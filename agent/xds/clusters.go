@@ -46,44 +46,57 @@ func (s *Server) clustersFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.Config
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
 func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	// TODO(rb): this sizing is a low bound.
-	clusters := make([]proto.Message, 0, len(cfgSnap.Proxy.Upstreams)+1)
+	// This sizing is a lower bound.
+	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.DiscoveryChain)+1)
 
 	// Include the "app" cluster for the public listener
 	appCluster, err := s.makeAppCluster(cfgSnap, LocalAppClusterName, "", cfgSnap.Proxy.LocalServicePort)
 	if err != nil {
 		return nil, err
 	}
-
 	clusters = append(clusters, appCluster)
 
-	for _, u := range cfgSnap.Proxy.Upstreams {
-		id := u.Identifier()
+	// In TransparentProxy mode there needs to be a passthrough cluster for traffic going to destinations
+	// that aren't in Consul's catalog.
+	// TODO (freddy): Add cluster-wide setting that can disable this cluster and restrict traffic to catalog destinations.
+	if cfgSnap.Proxy.TransparentProxy {
+		clusters = append(clusters, &envoy_cluster_v3.Cluster{
+			Name: OriginalDestinationClusterName,
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
+			},
+			LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
+			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		})
+	}
 
-		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
-			upstreamCluster, err := s.makeUpstreamClusterForPreparedQuery(u, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
-			clusters = append(clusters, upstreamCluster)
-
-		} else {
-			chain := cfgSnap.ConnectProxy.DiscoveryChain[id]
-			chainEndpoints, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
-			if !ok {
-				// this should not happen
-				return nil, fmt.Errorf("no endpoint map for upstream %q", id)
-			}
-
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, cluster := range upstreamClusters {
-				clusters = append(clusters, cluster)
-			}
+	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		chainEndpoints, ok := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
+		if !ok {
+			// this should not happen
+			return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 		}
+
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, cfgSnap.ConnectProxy.UpstreamConfig[id], chain, chainEndpoints, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, cluster := range upstreamClusters {
+			clusters = append(clusters, cluster)
+		}
+	}
+
+	for _, u := range cfgSnap.Proxy.Upstreams {
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			continue
+		}
+
+		upstreamCluster, err := s.makeUpstreamClusterForPreparedQuery(u, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		clusters = append(clusters, upstreamCluster)
 	}
 
 	cfgSnap.Proxy.Expose.Finalize()
@@ -316,7 +329,7 @@ func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnap
 				return nil, fmt.Errorf("no endpoint map for upstream %q", id)
 			}
 
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(u, chain, chainEndpoints, cfgSnap)
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, &u, chain, chainEndpoints, cfgSnap)
 			if err != nil {
 				return nil, err
 			}
@@ -439,16 +452,21 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 }
 
 func (s *Server) makeUpstreamClustersForDiscoveryChain(
-	upstream structs.Upstream,
+	id string,
+	upstream *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	chainEndpoints map[string]structs.CheckServiceNodes,
 	cfgSnap *proxycfg.ConfigSnapshot,
 ) ([]*envoy_cluster_v3.Cluster, error) {
 	if chain == nil {
-		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", upstream.Identifier())
+		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", id)
 	}
 
-	cfg, err := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
+	configMap := make(map[string]interface{})
+	if upstream != nil {
+		configMap = upstream.Config
+	}
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(configMap)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.

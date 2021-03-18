@@ -1890,6 +1890,11 @@ func TestStore_IntentionTopology(t *testing.T) {
 	}
 	services := []structs.NodeService{
 		{
+			ID:             structs.ConsulServiceID,
+			Service:        structs.ConsulServiceName,
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		},
+		{
 			ID:             "api-1",
 			Service:        "api",
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
@@ -1960,7 +1965,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("web", nil),
 			downstreams: false,
 			expect: expect{
-				idx: 9,
+				idx: 10,
 				services: structs.ServiceList{
 					{
 						Name:           "mysql",
@@ -1987,7 +1992,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("web", nil),
 			downstreams: false,
 			expect: expect{
-				idx: 9,
+				idx: 10,
 				services: structs.ServiceList{
 					{
 						Name:           "api",
@@ -2014,7 +2019,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("api", nil),
 			downstreams: true,
 			expect: expect{
-				idx: 9,
+				idx: 10,
 				services: structs.ServiceList{
 					{
 						Name:           "ingress-gateway",
@@ -2045,7 +2050,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("api", nil),
 			downstreams: true,
 			expect: expect{
-				idx: 9,
+				idx: 10,
 				services: structs.ServiceList{
 					{
 						Name:           "web",
@@ -2072,7 +2077,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("web", nil),
 			downstreams: false,
 			expect: expect{
-				idx: 9,
+				idx: 10,
 				services: structs.ServiceList{
 					{
 						Name:           "api",
@@ -2103,7 +2108,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("web", nil),
 			downstreams: false,
 			expect: expect{
-				idx:      9,
+				idx:      10,
 				services: structs.ServiceList{},
 			},
 		},
@@ -2125,7 +2130,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 			target:      structs.NewServiceName("web", nil),
 			downstreams: false,
 			expect: expect{
-				idx: 9,
+				idx: 10,
 				services: structs.ServiceList{
 					{
 						Name:           "api",

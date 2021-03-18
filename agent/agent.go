@@ -3708,6 +3708,8 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
 
+	a.cache.RegisterType(cachetype.IntentionUpstreamsName, &cachetype.IntentionUpstreams{RPC: a})
+
 	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 
 	a.cache.RegisterType(cachetype.HealthServicesName, &cachetype.HealthServices{RPC: a})

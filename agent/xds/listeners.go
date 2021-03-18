@@ -32,6 +32,11 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+const (
+	// TODO (freddy) Make this configurable
+	TProxyOutboundPort = 15001
+)
+
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *Server) listenersFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
@@ -54,27 +59,83 @@ func (s *Server) listenersFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.C
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
 func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	// One listener for each upstream plus the public one
-	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
+	resources := make([]proto.Message, 1)
 
-	// Configure public listener
 	var err error
-	resources[0], err = s.makePublicListener(cInfo, cfgSnap)
+
+	// Configure inbound listener.
+	resources[0], err = s.makeInboundListener(cInfo, cfgSnap, PublicListenerName)
 	if err != nil {
 		return nil, err
 	}
-	for i, u := range cfgSnap.Proxy.Upstreams {
-		id := u.Identifier()
 
-		var chain *structs.CompiledDiscoveryChain
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
+	// This outboundListener is exclusively used when TransparentProxy mode is active.
+	// In that situation there is a single listener where we are redirecting outbound traffic,
+	// and each upstream gets a filter chain attached to that listener.
+	var outboundListener *envoy_listener_v3.Listener
+
+	if cfgSnap.Proxy.TransparentProxy {
+		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", TProxyOutboundPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
+		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
+			{
+				// TODO (freddy): Hard-coded until we upgrade the go-control-plane library
+				Name: "envoy.filters.listener.original_dst",
+			},
+		}
+	}
+
+	var hasFilterChains bool
+
+	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+		cfg := getAndModifyUpstreamConfigForListener(s.Logger, id, upstreamCfg, chain)
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, upstreamListener)
+			continue
 		}
 
-		var upstreamListener proto.Message
-		upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(
-			&u,
-			u.LocalBindAddress,
+		// Generate the upstream listeners for when they are explicitly set with a local bind port
+		if outboundListener == nil || (upstreamCfg != nil && upstreamCfg.LocalBindPort != 0) {
+			address := "127.0.0.1"
+			if upstreamCfg.LocalBindAddress != "" {
+				address = upstreamCfg.LocalBindAddress
+			}
+
+			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+				id,
+				"",
+				cfg.Protocol,
+				upstreamCfg,
+				chain,
+				cfgSnap,
+				nil,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			upstreamListener := makeListener(id, address, upstreamCfg.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, upstreamListener)
+
+			// Avoid creating filter chains below for upstreams that have dedicated listeners
+			continue
+		}
+
+		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			id,
+			"",
+			cfg.Protocol,
+			upstreamCfg,
 			chain,
 			cfgSnap,
 			nil,
@@ -82,7 +143,138 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		if err != nil {
 			return nil, err
 		}
-		resources[i+1] = upstreamListener
+
+		// For filter chains used by the transparent proxy, we need to match on multiple destination addresses.
+		// These might be: the ClusterIP in k8s, or any of the service instance addresses.
+		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
+		uniqueAddrs := make(map[string]struct{})
+
+		for _, t := range chain.Targets {
+			var k8sNamespace string
+
+			// Store all the IP addresses per unique port
+			for _, e := range endpoints[t.ID] {
+				addr, _ := e.BestAddress(false)
+
+				if _, ok := uniqueAddrs[addr]; !ok {
+					uniqueAddrs[addr] = struct{}{}
+				}
+
+				// The k8s namespace should be the same for all instances, so pick any
+				if ns, ok := e.Service.Meta["k8s-namespace"]; ok {
+					k8sNamespace = ns
+				}
+			}
+
+			// TODO (freddy) hack to remove for beta: for every potential discovery chain target, resolve the k8s ClusterIP
+			//  		     since it's not stored in Consul's catalog (yet)
+			if k8sNamespace != "" {
+				host := fmt.Sprintf("%s.%s.svc.cluster.local", t.Service, k8sNamespace)
+				resolved, err := net.LookupHost(host)
+				if err != nil {
+					// We still have the Pod ips in the catalog, so don't hard-fail on errors
+					s.Logger.Warn("failed to resolve", "host", host, "error", err)
+					continue
+				}
+				for _, addr := range resolved {
+					if _, ok := uniqueAddrs[addr]; !ok {
+						uniqueAddrs[addr] = struct{}{}
+					}
+				}
+			}
+		}
+
+		// For every potential address we collected, create the appropriate address prefix to match on.
+		// In this case we are matching on exact addresses, so the prefix is the address itself,
+		// and the prefix length is based on whether it's IPv4 or IPv6.
+		ranges := make([]*envoy_core_v3.CidrRange, 0)
+
+		for addr := range uniqueAddrs {
+			ip := net.ParseIP(addr)
+			if ip == nil {
+				continue
+			}
+
+			pfxLen := uint32(32)
+			if ip.To4() == nil {
+				pfxLen = 128
+			}
+			ranges = append(ranges, &envoy_core_v3.CidrRange{
+				AddressPrefix: addr,
+				PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
+			})
+		}
+		filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
+			PrefixRanges: ranges,
+		}
+
+		// Only attach the filter chain if there are addresses to match on
+		if len(ranges) > 0 {
+			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+		}
+		hasFilterChains = true
+	}
+
+	// Only create the outbound listener when there are upstreams and filter chains are present
+	if outboundListener != nil && hasFilterChains {
+		// Filter chains are stable sorted to avoid draining if the list is provided out of order
+		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
+			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
+		})
+
+		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
+		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			"passthrough",
+			OriginalDestinationClusterName,
+			"tcp",
+			nil,
+			nil,
+			cfgSnap,
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+
+		resources = append(resources, outboundListener)
+	}
+
+	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
+	for id, u := range cfgSnap.ConnectProxy.UpstreamConfig {
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			continue
+		}
+
+		cfg, err := structs.ParseUpstreamConfig(u.Config)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+		}
+		address := "127.0.0.1"
+		if u.LocalBindAddress != "" {
+			address = u.LocalBindAddress
+		}
+
+		upstreamListener := makeListener(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+
+		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			id,
+			"",
+			cfg.Protocol,
+			u,
+			nil,
+			cfgSnap,
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
+			filterChain,
+		}
+		resources = append(resources, upstreamListener)
 	}
 
 	cfgSnap.Proxy.Expose.Finalize()
@@ -423,7 +615,7 @@ const (
 )
 
 // Locate the existing http connect manager L4 filter and inject our RBAC filter at the top.
-func (s *Server) injectHTTPFilterOnFilterChains(
+func injectHTTPFilterOnFilterChains(
 	listener *envoy_listener_v3.Listener,
 	authzFilter *envoy_http_v3.HttpFilter,
 ) error {
@@ -503,7 +695,7 @@ func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxy
 	return nil
 }
 
-func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
+func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, name string) (proto.Message, error) {
 	var l *envoy_listener_v3.Listener
 	var err error
 
@@ -514,104 +706,118 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	if cfg.PublicListenerJSON != "" {
-		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
-		if err != nil {
-			return l, err
-		}
-		// In the happy path don't return yet as we need to inject TLS and authz config still.
-	}
-
 	// This controls if we do L4 or L7 intention checks.
 	useHTTPFilter := structs.IsProtocolHTTPLike(cfg.Protocol)
 
-	if l == nil {
-		// No user config, use default listener
-		addr := cfgSnap.Address
-
-		// Override with bind address if one is set, otherwise default
-		// to 0.0.0.0
-		if cfg.BindAddress != "" {
-			addr = cfg.BindAddress
-		} else if addr == "" {
-			addr = "0.0.0.0"
+	// Generate and return custom public listener from config if one was provided.
+	if cfg.PublicListenerJSON != "" {
+		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
+		if err != nil {
+			return nil, err
 		}
 
-		// Override with bind port if one is set, otherwise default to
-		// proxy service's address
-		port := cfgSnap.Port
-		if cfg.BindPort != 0 {
-			port = cfg.BindPort
-		}
-
-		l = makeListener(PublicListenerName, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
-
-		opts := listenerFilterOpts{
-			useRDS:           false,
-			protocol:         cfg.Protocol,
-			filterName:       "public_listener",
-			routeName:        "public_listener",
-			cluster:          LocalAppClusterName,
-			statPrefix:       "",
-			routePath:        "",
-			requestTimeoutMs: cfg.LocalRequestTimeoutMs,
-		}
-
+		// For HTTP-like services attach an RBAC http filter and do a best-effort insert
 		if useHTTPFilter {
-			opts.httpAuthzFilter, err = makeRBACHTTPFilter(
+			httpAuthzFilter, err := makeRBACHTTPFilter(
 				cfgSnap.ConnectProxy.Intentions,
 				cfgSnap.IntentionDefaultAllow,
 			)
 			if err != nil {
 				return nil, err
 			}
+
+			// Try our best to inject the HTTP RBAC filter.
+			if err := injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
+				s.Logger.Warn(
+					"could not inject the HTTP RBAC filter to enforce intentions on user-provided "+
+						"'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
+					"proxy", cfgSnap.ProxyID,
+					"error", err,
+				)
+
+				// If we get an error inject the RBAC network filter instead.
+				useHTTPFilter = false
+			}
 		}
 
-		filter, err := makeListenerFilter(opts)
+		err := s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 		}
-		l.FilterChains = []*envoy_listener_v3.FilterChain{
-			{
-				Filters: []*envoy_listener_v3.Filter{
-					filter,
-				},
-			},
-		}
+		return l, nil
+	}
 
-	} else if useHTTPFilter {
-		httpAuthzFilter, err := makeRBACHTTPFilter(
+	// No JSON user config, use default listener address
+	// Default to listening on all addresses, but override with bind address if one is set.
+	addr := cfgSnap.Address
+	if addr == "" {
+		addr = "0.0.0.0"
+	}
+	if cfg.BindAddress != "" {
+		addr = cfg.BindAddress
+	}
+
+	// Override with bind port if one is set, otherwise default to
+	// proxy service's address
+	port := cfgSnap.Port
+	if cfg.BindPort != 0 {
+		port = cfg.BindPort
+	}
+
+	l = makeListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
+
+	filterOpts := listenerFilterOpts{
+		protocol:         cfg.Protocol,
+		filterName:       name,
+		routeName:        name,
+		cluster:          LocalAppClusterName,
+		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
+	}
+	if useHTTPFilter {
+		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		// We're using the listener escape hatch, so try our best to inject the
-		// HTTP RBAC filter, but if we can't then just inject the RBAC Network
-		// filter instead.
-		if err := s.injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
-			s.Logger.Warn(
-				"could not inject the HTTP RBAC filter to enforce intentions on user-provided 'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
-				"proxy", cfgSnap.ProxyID,
-				"error", err,
-			)
-			useHTTPFilter = false
-		}
 	}
-
-	if !useHTTPFilter {
-		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
+	filter, err := makeListenerFilter(filterOpts)
+	if err != nil {
 		return nil, err
+	}
+	l.FilterChains = []*envoy_listener_v3.FilterChain{
+		{
+			Filters: []*envoy_listener_v3.Filter{
+				filter,
+			},
+		},
+	}
+
+	err = s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
 
 	return l, err
+}
+
+// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
+// This include L4 authorization filters and TLS context.
+func (s *Server) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener,
+	cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
+	if !useHTTPFilter {
+		// Best-effort injection of L4 intentions
+		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
+			return nil
+		}
+	}
+
+	// Always apply TLS certificates
+	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
+		return nil
+	}
+	return nil
 }
 
 func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster string, path structs.ExposePath) (proto.Message, error) {
@@ -973,6 +1179,109 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 	return l, nil
 }
 
+func (s *Server) makeUpstreamFilterChainForDiscoveryChain(
+	id string,
+	overrideCluster string,
+	protocol string,
+	u *structs.Upstream,
+	chain *structs.CompiledDiscoveryChain,
+	cfgSnap *proxycfg.ConfigSnapshot,
+	tlsContext *envoy_tls_v3.DownstreamTlsContext,
+) (*envoy_listener_v3.FilterChain, error) {
+	// TODO (freddy) Make this actually legible
+	useRDS := true
+
+	var (
+		clusterName                        string
+		destination, datacenter, namespace string
+	)
+
+	if chain != nil {
+		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
+	}
+	if (chain == nil || chain.IsDefault()) && u != nil {
+		useRDS = false
+
+		if datacenter == "" {
+			datacenter = u.Datacenter
+		}
+		if datacenter == "" {
+			datacenter = cfgSnap.Datacenter
+		}
+		if destination == "" {
+			destination = u.DestinationName
+		}
+		if namespace == "" {
+			namespace = u.DestinationNamespace
+		}
+
+		sni := connect.UpstreamSNI(u, "", datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName = CustomizeClusterName(sni, chain)
+
+	} else {
+		if protocol == "tcp" && chain != nil {
+			useRDS = false
+
+			startNode := chain.Nodes[chain.StartNode]
+			if startNode == nil {
+				return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+			}
+			if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
+				return nil, fmt.Errorf("unexpected first node in discovery chain using protocol=%q: %s", protocol, startNode.Type)
+			}
+			targetID := startNode.Resolver.Target
+			target := chain.Targets[targetID]
+
+			clusterName = CustomizeClusterName(target.Name, chain)
+		}
+	}
+
+	// Default the namespace to match how SNIs are generated
+	if namespace == "" {
+		namespace = structs.IntentionDefaultNamespace
+	}
+
+	filterName := fmt.Sprintf("%s.%s.%s", destination, namespace, datacenter)
+	if u != nil && u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+		// Avoid encoding dc and namespace for prepared queries.
+		// Those are defined in the query itself and are not available here.
+		filterName = id
+	}
+	if overrideCluster != "" {
+		useRDS = false
+		clusterName = overrideCluster
+		filterName = overrideCluster
+	}
+
+	opts := listenerFilterOpts{
+		useRDS:          useRDS,
+		protocol:        protocol,
+		filterName:      filterName,
+		routeName:       id,
+		cluster:         clusterName,
+		statPrefix:      "upstream.",
+		routePath:       "",
+		ingressGateway:  false,
+		httpAuthzFilter: nil,
+	}
+	filter, err := makeListenerFilter(opts)
+	if err != nil {
+		return nil, err
+	}
+	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+
+	return &envoy_listener_v3.FilterChain{
+		Filters: []*envoy_listener_v3.Filter{
+			filter,
+		},
+		TransportSocket: transportSocket,
+	}, nil
+}
+
+// TODO(freddy) Replace in favor of new function above. Currently in use for ingress gateways.
 func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	u *structs.Upstream,
 	address string,
@@ -986,7 +1295,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	upstreamID := u.Identifier()
 	l := makeListener(upstreamID, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 
-	cfg := getAndModifyUpstreamConfigForListener(s.Logger, u, chain)
+	cfg := getAndModifyUpstreamConfigForListener(s.Logger, upstreamID, u, chain)
 	if cfg.EnvoyListenerJSON != "" {
 		return makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 	}
@@ -1071,48 +1380,51 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	return l, nil
 }
 
-func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) structs.UpstreamConfig {
+func getAndModifyUpstreamConfigForListener(logger hclog.Logger, id string, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) structs.UpstreamConfig {
 	var (
 		cfg structs.UpstreamConfig
 		err error
 	)
 
+	configMap := make(map[string]interface{})
+	if u != nil {
+		configMap = u.Config
+	}
 	if chain == nil || chain.IsDefault() {
-		cfg, err = structs.ParseUpstreamConfig(u.Config)
+		cfg, err = structs.ParseUpstreamConfig(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+			logger.Warn("failed to parse", "upstream", id, "error", err)
 		}
 	} else {
 		// Use NoDefaults here so that we can set the protocol to the chain
 		// protocol if necessary
-		cfg, err = structs.ParseUpstreamConfigNoDefaults(u.Config)
+		cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+			logger.Warn("failed to parse", "upstream", id, "error", err)
 		}
 
 		if cfg.EnvoyListenerJSON != "" {
 			logger.Warn("ignoring escape hatch setting because already configured for",
-				"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
+				"discovery chain", chain.ServiceName, "upstream", id, "config", "envoy_listener_json")
 
 			// Remove from config struct so we don't use it later on
 			cfg.EnvoyListenerJSON = ""
 		}
 
-		proto := cfg.Protocol
-		if proto == "" {
-			proto = chain.Protocol
+		protocol := cfg.Protocol
+		if protocol == "" {
+			protocol = chain.Protocol
 		}
-
-		if proto == "" {
-			proto = "tcp"
+		if protocol == "" {
+			protocol = "tcp"
 		}
 
 		// set back on the config so that we can use it from return value
-		cfg.Protocol = proto
+		cfg.Protocol = protocol
 	}
 
 	return cfg
@@ -1127,6 +1439,7 @@ type listenerFilterOpts struct {
 	statPrefix       string
 	routePath        string
 	requestTimeoutMs *int
+	ingressGateway   bool
 	httpAuthzFilter  *envoy_http_v3.HttpFilter
 }
 

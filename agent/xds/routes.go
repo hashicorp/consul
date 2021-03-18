@@ -28,7 +28,7 @@ func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesForConnectProxy(cInfo, cfgSnap.Proxy.Upstreams, cfgSnap.ConnectProxy.DiscoveryChain)
+		return routesForConnectProxy(cInfo, cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
 		return routesForIngressGateway(cInfo, cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
 	case structs.ServiceKindTerminatingGateway:
@@ -42,37 +42,29 @@ func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 // "routes" in the snapshot.
 func routesForConnectProxy(
 	cInfo connectionInfo,
-	upstreams structs.Upstreams,
 	chains map[string]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {
 
 	var resources []proto.Message
-	for _, u := range upstreams {
-		upstreamID := u.Identifier()
-
-		var chain *structs.CompiledDiscoveryChain
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = chains[upstreamID]
+	for id, chain := range chains {
+		if chain.IsDefault() {
+			continue
 		}
 
-		if chain == nil || chain.IsDefault() {
-			// TODO(rb): make this do the old school stuff too
-		} else {
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, []string{"*"})
-			if err != nil {
-				return nil, err
-			}
-
-			route := &envoy_route_v3.RouteConfiguration{
-				Name:         upstreamID,
-				VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
-				// ValidateClusters defaults to true when defined statically and false
-				// when done via RDS. Re-set the sane value of true to prevent
-				// null-routing traffic.
-				ValidateClusters: makeBoolValue(true),
-			}
-			resources = append(resources, route)
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, id, chain, []string{"*"})
+		if err != nil {
+			return nil, err
 		}
+
+		route := &envoy_route_v3.RouteConfiguration{
+			Name:         id,
+			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
+			// ValidateClusters defaults to true when defined statically and false
+			// when done via RDS. Re-set the sane value of true to prevent
+			// null-routing traffic.
+			ValidateClusters: makeBoolValue(true),
+		}
+		resources = append(resources, route)
 	}
 
 	// TODO(rb): make sure we don't generate an empty result

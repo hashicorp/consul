@@ -2,22 +2,21 @@ package xds
 
 import (
 	"bytes"
-	"path/filepath"
-	"sort"
-	"testing"
-	"text/template"
-	"time"
-
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+	"path/filepath"
+	"sort"
+	"testing"
+	"text/template"
+	"time"
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
@@ -475,6 +474,37 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "ingress-with-tls-listener",
 			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
 			setup:  nil,
+		},
+		{
+			name:   "transparent-proxy",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.TransparentProxy = true
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in TransparentProxy mode
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
+					t, "google", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
+					"google.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "8.8.8.8",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google",
+								Port:    9090,
+							},
+						},
+					},
+				}
+
+				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(
+					t, "no-endpoints", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+			},
 		},
 	}
 

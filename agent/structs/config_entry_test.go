@@ -1572,14 +1572,14 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					UpstreamConfigs: map[string]*UpstreamConfig{
 						"redis": {
 							Protocol:         "tcp",
-							ConnectTimeoutMs: 5000,
+							ConnectTimeoutMs: 0,
 						},
 						"memcached": {
-							ConnectTimeoutMs: 5000,
+							ConnectTimeoutMs: 0,
 						},
 					},
 					UpstreamDefaults: &UpstreamConfig{
-						ConnectTimeoutMs: 5000,
+						ConnectTimeoutMs: 0,
 					},
 				},
 			},
@@ -1751,6 +1751,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: nil,
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
+				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1758,6 +1759,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: map[string]interface{}{},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
+				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1768,6 +1770,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
+				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1787,6 +1790,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
+				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1796,6 +1800,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
+				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1805,6 +1810,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
+				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1823,6 +1829,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					MaxPendingRequests:    intPointer(60),
 					MaxConcurrentRequests: intPointer(70),
 				},
+				Protocol: "tcp",
 			},
 		},
 		{
@@ -1841,6 +1848,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					MaxPendingRequests:    intPointer(0),
 					MaxConcurrentRequests: intPointer(0),
 				},
+				Protocol: "tcp",
 			},
 		},
 		{
@@ -1857,6 +1865,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 					Interval:    22 * time.Second,
 					MaxFailures: 7,
 				},
+				Protocol: "tcp",
 			},
 		},
 		{
@@ -1871,6 +1880,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				Protocol: "tcp",
 			},
 		},
 	}

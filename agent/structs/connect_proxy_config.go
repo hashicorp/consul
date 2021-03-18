@@ -215,6 +215,15 @@ func (us Upstreams) ToAPI() []api.Upstream {
 	return a
 }
 
+func (us Upstreams) ToMap() map[string]*Upstream {
+	upstreamMap := make(map[string]*Upstream)
+
+	for i := range us {
+		upstreamMap[us[i].Identifier()] = &us[i]
+	}
+	return upstreamMap
+}
+
 // UpstreamsFromAPI is a helper for converting api.Upstream to Upstream.
 func UpstreamsFromAPI(us []api.Upstream) Upstreams {
 	a := make([]Upstream, len(us))
