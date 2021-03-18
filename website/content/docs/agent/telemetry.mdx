@@ -110,6 +110,11 @@ These are some metrics emitted that can help you understand the health of your c
 
 **What to look for:** If `consul.runtime.sys_bytes` exceeds 90% of total available system memory.
 
+**NOTE:** This metric is calculated using Go's runtime package
+[MemStats](https://golang.org/pkg/runtime/#MemStats). This will have a
+different output than using information gathered from `top`. For more
+information, see [GH-4734](https://github.com/hashicorp/consul/issues/4734).
+
 ### Garbage collection
 
 | Metric Name                        | Description                                                                                           | Unit | Type  |
