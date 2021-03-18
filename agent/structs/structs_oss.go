@@ -150,3 +150,11 @@ func (s *Session) CheckIDs() []types.CheckID {
 	}
 	return checks
 }
+
+func (t *Intention) HasWildcardSource() bool {
+	return t.SourceName == WildcardSpecifier
+}
+
+func (t *Intention) HasWildcardDestination() bool {
+	return t.DestinationName == WildcardSpecifier
+}

@@ -965,9 +965,7 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		// Intentions with wildcard source and destination have the lowest precedence, so they are last in the list
 		ixn := intentions[len(intentions)-1]
 
-		// TODO (freddy) This needs an enterprise split to account for (*/* -> */*)
-		//				 Maybe ixn.HasWildcardSource() && ixn.HasWildcardDestination()
-		if ixn.SourceName == structs.WildcardSpecifier && ixn.DestinationName == structs.WildcardSpecifier {
+		if ixn.HasWildcardSource() && ixn.HasWildcardDestination() {
 			defaultDecision = acl.Allow
 			if ixn.Action == structs.IntentionActionDeny {
 				defaultDecision = acl.Deny
