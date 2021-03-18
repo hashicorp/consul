@@ -12,9 +12,11 @@
   button.show::before {
     @extend %with-visibility-show-icon, %as-pseudo;
   }
-  div.key {
+  code {
     background-color: var(--gray-050);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    max-width: min-content;
+    padding: 0 12px;
   }
   hr {
     border: 3px dashed var(--gray-300);
