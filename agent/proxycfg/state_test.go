@@ -1664,7 +1664,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"discovery-chain:" + dbStr: genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
-							Name:                 dbStr,
+							Name:                 "db",
 							EvaluateInDatacenter: "dc1",
 							EvaluateInNamespace:  "default",
 							Datacenter:           "dc1",
@@ -1686,11 +1686,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"upstream-target:db.default.dc1:db": genVerifyServiceWatch("db", "", "dc1", true),
+						"upstream-target:db.default.dc1:" + dbStr: genVerifyServiceWatch("db", "", "dc1", true),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "upstream-target:db.default.dc1:db",
+							CorrelationID: "upstream-target:db.default.dc1:" + dbStr,
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{

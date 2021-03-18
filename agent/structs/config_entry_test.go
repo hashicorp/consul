@@ -1531,8 +1531,9 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 				Name: "web",
 			},
 			expect: ServiceConfigEntry{
-				Kind: ServiceDefaults,
-				Name: "web",
+				Kind:           ServiceDefaults,
+				Name:           "web",
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 		},
 		{
@@ -1543,9 +1544,10 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 				Protocol: "PrOtoCoL",
 			},
 			expect: ServiceConfigEntry{
-				Kind:     ServiceDefaults,
-				Name:     "web",
-				Protocol: "protocol",
+				Kind:           ServiceDefaults,
+				Name:           "web",
+				Protocol:       "protocol",
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 		},
 		{
@@ -1564,6 +1566,7 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					},
 					UpstreamDefaults: &UpstreamConfig{ConnectTimeoutMs: -20},
 				},
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 			expect: ServiceConfigEntry{
 				Kind: ServiceDefaults,
@@ -1582,6 +1585,7 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 						ConnectTimeoutMs: 0,
 					},
 				},
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 		},
 	}
