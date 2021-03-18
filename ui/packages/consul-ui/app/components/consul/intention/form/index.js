@@ -23,6 +23,7 @@ export default class ConsulIntentionForm extends Component {
     this.updateCRDManagement();
   }
 
+  @action
   ondelete() {
     if (this.args.ondelete) {
       this.args.ondelete(...arguments);
@@ -31,6 +32,7 @@ export default class ConsulIntentionForm extends Component {
     }
   }
 
+  @action
   oncancel() {
     if (this.args.oncancel) {
       this.args.oncancel(...arguments);
@@ -39,6 +41,7 @@ export default class ConsulIntentionForm extends Component {
     }
   }
 
+  @action
   onsubmit() {
     if (this.args.onsubmit) {
       this.args.onsubmit(...arguments);
@@ -49,6 +52,7 @@ export default class ConsulIntentionForm extends Component {
   updateCRDManagement() {
     this.isManagedByCRDs = this.repo.isManagedByCRDs();
   }
+
   @action
   submit(item, submit, e) {
     e.preventDefault();
@@ -60,6 +64,7 @@ export default class ConsulIntentionForm extends Component {
       submit();
     }
   }
+
   @action
   createServices(item, e) {
     // Services in the menus should:
