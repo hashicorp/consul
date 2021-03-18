@@ -58,12 +58,12 @@ These are some metrics emitted that can help you understand the health of your c
 
 ### Transaction timing
 
-| Metric Name              | Description                                                                          |
-| :----------------------- | :----------------------------------------------------------------------------------- |
-| `consul.kvs.apply`       | This measures the time it takes to complete an update to the KV store.               |
-| `consul.txn.apply`       | This measures the time spent applying a transaction operation.                       |
-| `consul.raft.apply`      | This counts the number of Raft transactions occurring over the interval.             |
-| `consul.raft.commitTime` | This measures the time it takes to commit a new entry to the Raft log on the leader. |
+| Metric Name              | Description                                                                          | Unit                         | Type    |
+| :----------------------- | :----------------------------------------------------------------------------------- | :--------------------------- | :------ |
+| `consul.kvs.apply`       | This measures the time it takes to complete an update to the KV store.               | ms                           | timer   |
+| `consul.txn.apply`       | This measures the time spent applying a transaction operation.                       | ms                           | timer   |
+| `consul.raft.apply`      | This counts the number of Raft transactions occurring over the interval.             | raft transactions / interval | counter |
+| `consul.raft.commitTime` | This measures the time it takes to commit a new entry to the Raft log on the leader. | ms                           | timer   |
 
 **Why they're important:** Taken together, these metrics indicate how long it takes to complete write operations in various parts of the Consul cluster. Generally these should all be fairly consistent and no more than a few milliseconds. Sudden changes in any of the timing values could be due to unexpected load on the Consul servers, or due to problems on the servers themselves.
 
@@ -71,11 +71,11 @@ These are some metrics emitted that can help you understand the health of your c
 
 ### Leadership changes
 
-| Metric Name                      | Description                                                                                                    |
-| :------------------------------- | :------------------------------------------------------------------------------------------------------------- |
-| `consul.raft.leader.lastContact` | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. |
-| `consul.raft.state.candidate`    | This increments whenever a Consul server starts an election.                                                   |
-| `consul.raft.state.leader`       | This increments whenever a Consul server becomes a leader.                                                     |
+| Metric Name                      | Description                                                                                                    | Unit      | Type    |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------- | :-------- | :------ |
+| `consul.raft.leader.lastContact` | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. | ms        | timer   |
+| `consul.raft.state.candidate`    | This increments whenever a Consul server starts an election.                                                   | elections | counter |
+| `consul.raft.state.leader`       | This increments whenever a Consul server becomes a leader.                                                     | leaders   | counter |
 
 **Why they're important:** Normally, your Consul cluster should have a stable leader. If there are frequent elections or leadership changes, it would likely indicate network issues between the Consul servers, or that the Consul servers themselves are unable to keep up with the load.
 
@@ -83,9 +83,9 @@ These are some metrics emitted that can help you understand the health of your c
 
 ### Autopilot
 
-| Metric Name                | Description                                                                                                                                                                  |
-| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `consul.autopilot.healthy` | This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0. |
+| Metric Name                | Description                                                                                                                                                                  | Unit         | Type  |
+| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------- | :---- |
+| `consul.autopilot.healthy` | This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0. | health state | gauge |
 
 **Why it's important:** Obviously, you want your cluster to be healthy.
 
@@ -93,10 +93,10 @@ These are some metrics emitted that can help you understand the health of your c
 
 ### Memory usage
 
-| Metric Name                  | Description                                                        |
-| :--------------------------- | :----------------------------------------------------------------- |
-| `consul.runtime.alloc_bytes` | This measures the number of bytes allocated by the Consul process. |
-| `consul.runtime.sys_bytes`   | This is the total number of bytes of memory obtained from the OS.  |
+| Metric Name                  | Description                                                        | Unit  | Type  |
+| :--------------------------- | :----------------------------------------------------------------- | :---- | :---- |
+| `consul.runtime.alloc_bytes` | This measures the number of bytes allocated by the Consul process. | bytes | gauge |
+| `consul.runtime.sys_bytes`   | This is the total number of bytes of memory obtained from the OS.  | bytes | gauge |
 
 **Why they're important:** Consul keeps all of its data in memory. If Consul consumes all available memory, it will crash.
 
@@ -104,9 +104,9 @@ These are some metrics emitted that can help you understand the health of your c
 
 ### Garbage collection
 
-| Metric Name                        | Description                                                                                           |
-| :--------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| `consul.runtime.total_gc_pause_ns` | Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started. |
+| Metric Name                        | Description                                                                                           | Unit | Type  |
+| :--------------------------------- | :---------------------------------------------------------------------------------------------------- | :--- | :---- |
+| `consul.runtime.total_gc_pause_ns` | Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started. | ns   | gauge |
 
 **Why it's important:** GC pause is a "stop-the-world" event, meaning that all runtime threads are blocked until GC completes. Normally these pauses last only a few nanoseconds. But if memory usage is high, the Go runtime may GC so frequently that it starts to slow down Consul.
 
@@ -117,11 +117,11 @@ you will need to apply a function such as InfluxDB's [`non_negative_difference()
 
 ### Network activity - RPC Count
 
-| Metric Name                  | Description                                                                                                                                                                       |
-| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `consul.client.rpc`          | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server                                                                                         |
-| `consul.client.rpc.exceeded` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's [`limits`](/docs/agent/options#limits) configuration. |
-| `consul.client.rpc.failed`   | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.                                                                              |
+| Metric Name                  | Description                                                                                                                                                                       | Unit     | Type    |
+| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------ |
+| `consul.client.rpc`          | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server                                                                                         | requests | counter |
+| `consul.client.rpc.exceeded` | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's [`limits`](/docs/agent/options#limits) configuration. | requests | counter |
+| `consul.client.rpc.failed`   | Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.                                                                              | requests | counter |
 
 **Why they're important:** These measurements indicate the current load created from a Consul agent, including when the load becomes high enough to be rate limited. A high RPC count, especially from `consul.client.rpcexceeded` meaning that the requests are being rate-limited, could imply a misconfigured Consul agent.
 
@@ -303,10 +303,10 @@ These metrics give insight into the health of the cluster as a whole.
 | `consul.memberlist.udp.sent/received` | This metric measures the total number of bytes sent/received by an agent through the UDP protocol.                                                                                                                                                                                                                                                                                                                                             | bytes sent or bytes received / interval | counter |
 | `consul.memberlist.tcp.connect`       | This metric counts the number of times an agent has initiated a push/pull sync with an other agent.                                                                                                                                                                                                                                                                                                                                            | push/pull initiated / interval          | counter |
 | `consul.memberlist.tcp.sent`          | This metric measures the total number of bytes sent by an agent through the TCP protocol                                                                                                                                                                                                                                                                                                                                                       | bytes sent / interval                   | counter |
-| `consul.memberlist.gossip`            | This metric gives the number of gossips (messages) broadcasted to a set of randomly selected nodes.                                                                                                                                                                                                                                                                                                                                            | messages / Interval                     | counter |
-| `consul.memberlist.msg_alive`         | This metric counts the number of alive agents, that the agent has mapped out so far, based on the message information given by the network layer.                                                                                                                                                                                                                                                                                              | nodes / Interval                        | counter |
-| `consul.memberlist.msg_dead`          | This metric gives the number of dead agents, that the agent has mapped out so far, based on the message information given by the network layer.                                                                                                                                                                                                                                                                                                | nodes / Interval                        | counter |
-| `consul.memberlist.msg_suspect`       | This metric gives the number of suspect nodes, that the agent has mapped out so far, based on the message information given by the network layer.                                                                                                                                                                                                                                                                                              | nodes / Interval                        | counter |
+| `consul.memberlist.gossip`            | This metric measures the time taken for gossip messages to be broadcasted to a set of randomly selected nodes.                                                                                                                                                                                                                                                                                                                                 | ms                  | timer |
+| `consul.memberlist.msg_alive`         | This metric counts the number of alive messages, that the agent has processed so far, based on the message information given by the network layer.                                                                                                                                                                                                                                                                                              | messages / Interval                        | counter |
+| `consul.memberlist.msg_dead`          | This metric gives the number of dead messages, that the agent has processed so far, based on the message information given by the network layer.                                                                                                                                                                                                                                                                                                | messages / Interval                        | counter |
+| `consul.memberlist.msg_suspect`       | This metric gives the number of suspect messages, that the agent has processed so far, based on the message information given by the network layer.                                                                                                                                                                                                                                                                                              | messages / Interval                        | counter |
 | `consul.memberlist.probeNode`         | This metric measures the time taken to perform a single round of failure detection on a select agent.                                                                                                                                                                                                                                                                                                                                          | nodes / Interval                        | counter |
 | `consul.memberlist.pushPullNode`      | This metric measures the number of agents that have exchanged state with this agent.                                                                                                                                                                                                                                                                                                                                                           | nodes / Interval                        | counter |
 | `consul.serf.member.failed`           | This increments when an agent is marked dead. This can be an indicator of overloaded agents, network problems, or configuration errors where agents cannot connect to each other on the [required ports](/docs/agent/options#ports).                                                                                                                                                                                                           | failures / interval                     | counter |
@@ -314,6 +314,7 @@ These metrics give insight into the health of the cluster as a whole.
 | `consul.serf.member.join`             | This increments when an agent joins the cluster. If an agent flapped or failed this counter also increments when it re-joins.                                                                                                                                                                                                                                                                                                                  | joins / interval                        | counter |
 | `consul.serf.member.left`             | This increments when an agent leaves the cluster.                                                                                                                                                                                                                                                                                                                                                                                              | leaves / interval                       | counter |
 | `consul.serf.events`                  | This increments when an agent processes an [event](/commands/event). Consul uses events internally so there may be additional events showing in telemetry. There are also a per-event counters emitted as `consul.serf.events.`.                                                                                                                                                                                                               | events / interval                       | counter |
+| `consul.serf.msgs.sent`               | This metric is sample of the number of bytes of messages broadcast to the cluster. In a given time interval, the sum of this metric is the total number of bytes sent and the count is the number of messages sent.                                                                                                                                                                                                                            | message bytes / interval                | counter |
 | `consul.autopilot.failure_tolerance`  | This tracks the number of voting servers that the cluster can lose while continuing to function.                                                                                                                                                                                                                                                                                                                                               | servers                                 | gauge   |
 | `consul.autopilot.healthy`            | This tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0.                                                                                                                                                                                                                                                                   | boolean                                 | gauge   |
 | `consul.session_ttl.active`           | This tracks the active number of sessions being tracked.                                                                                                                                                                                                                                                                                                                                                                                       | sessions                                | gauge   |

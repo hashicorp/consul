@@ -1,4 +1,6 @@
-<fieldset>
+<fieldset
+  disabled={{if (not (can "write token" item=item)) "disabled"}}
+>
 {{#if create }}
   <div class="type-toggle">
     <label>
@@ -15,9 +17,19 @@
 </fieldset>
 <fieldset id="roles">
   <h2>Roles</h2>
-  <RoleSelector @dc={{dc}} @nspace={{nspace}} @items={{item.Roles}} />
+  <RoleSelector
+    @disabled={{not (can "write token" item=item)}}
+    @dc={{dc}}
+    @nspace={{nspace}}
+    @items={{item.Roles}}
+  />
 </fieldset>
 <fieldset id="policies">
   <h2>Policies</h2>
-  <PolicySelector @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}} />
+  <PolicySelector
+    @disabled={{not (can "write token" item=item)}}
+    @dc={{dc}}
+    @nspace={{nspace}}
+    @items={{item.Policies}}
+  />
 </fieldset>

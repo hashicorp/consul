@@ -95,7 +95,7 @@ func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs
 		Key:       req.Key,
 		Token:     req.Token,
 		Index:     req.Index,
-		Namespace: entMeta.GetNamespace(),
+		Namespace: entMeta.NamespaceOrEmpty(),
 	}
 }
 

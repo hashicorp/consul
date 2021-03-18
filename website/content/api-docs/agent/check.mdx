@@ -188,6 +188,11 @@ The table below shows this endpoint's support for
   The value can be further limited for all checks of a given agent using the
   `check_output_max_size` flag in the agent.
 
+- `TLSServerName` `(string: "")` - Specifies an optional string used to set the
+  SNI host when connecting via TLS.
+  For an `HTTP` check, this value is set automatically if the URL uses a hostname
+  (not an IP address).
+
 - `TLSSkipVerify` `(bool: false)` - Specifies if the certificate for an HTTPS
   check should not be verified.
 

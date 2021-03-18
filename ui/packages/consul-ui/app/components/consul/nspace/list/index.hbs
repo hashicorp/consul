@@ -29,10 +29,14 @@ as |item|>
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.nspaces.edit' item.Name}}>
           <BlockSlot @name="label">
+{{#if (can "write nspace" item=item)}}
             Edit
+{{else}}
+            View
+{{/if}}
           </BlockSlot>
         </Action>
-      {{#if (not-eq item.Name 'default') }}
+      {{#if (can "delete nspace" item=item)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete

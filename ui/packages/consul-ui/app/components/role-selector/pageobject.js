@@ -1,7 +1,7 @@
 export default (clickable, deletable, collection, alias, roleForm) => (scope = '#roles') => {
   return {
     scope: scope,
-    create: clickable('[for="new-role-toggle"]'),
+    create: clickable('[data-test-role-create]'),
     form: roleForm(),
     roles: alias('selectedOptions'),
     selectedOptions: collection(

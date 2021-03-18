@@ -1,0 +1,108 @@
+# Significant patterns
+
+The Consul UI tries to follow typical conventional ember but differs
+significantly in several places:
+
+## Routing
+
+We use a declarative configuration format for our routing rather than Ember's
+DSL. The format is closely modeled on Ember's DSL and if you need to generate
+Ember's DSL from this for some reason you can use one of our Debug Utilities
+to do this.
+
+## Routes
+
+We use a specific BaseRoute as a parent Route for **all** our Routes. This contains project wide
+functionality for several important additions. If you use the normal `ember
+generate route route-name` generator this inheritance is automatically added
+for you. If you don't use the generator please ensure you use:
+
+```js
+import Route from 'consul-ui/routing/route';
+export default class NameOfRoute extends Route {}
+```
+
+Query parameters should be added to Routes, not Controllers. If a controller
+has no query parameters configured they are copied over from the Route.
+Preferably we don't use Controllers, but this doesn't mean you shouldn't if
+you need to.
+
+## Routlets
+
+We use have a concept of 'routlets', the combination of a `<Route />` and
+`<Outlet />` components that we use within our route templates to achieve
+several different pieces of functionality.
+
+Every route template should be wrapped in a `<Route @name={{routeName}}>` component and ever
+`{{outlet}}` should be wrapped in `<Outlet @name={{routeName}}>` component.
+The `routeName` variable is made available in every single route template and
+it equal to the routeName of the current template e.g. `dc.services.index`
+
+## DataSources
+
+In order to support our live updating long-polling blocking queries we use
+'DataSources' which come in two flavours. A service backed
+approach for use within javascript:
+
+```js
+class RouteName extends Route {
+  @service('datasource/service') data;
+  async model(params) {
+    return this.data.source(uri => uri`/${params.nspace}/${params.dc}/services`)
+  }
+}
+```
+
+This method returns an Ember proxy that lets you access the data as if it was
+'just the data', but is also reactive/auto updates when the data in the
+backend updates, for example:
+
+```hbs
+
+{{@model.Name}}
+
+```
+
+And a component based approach for use within templates.
+
+```hbs
+<DataSource @src={{
+  uri '/${nspace}/${dc}/services'
+  (hash
+    nspace="default"
+    dc="dc"
+  )
+  }}
+  @onchange=""
+/>
+```
+
+See the relavant component/service documentation for more detail.
+
+## Components
+
+You could group our components into two different groups:
+
+1. UI Components - generic components not necessarily specific to the product.
+2. Consul Components - Components that are specific to Consul/the product.
+These are mostly 'glorified partials'.
+
+Mostly the CSS for a component lives in the component folder itself, but if it
+makes sense for it not to live here, thats fine.
+
+We currently use a mix of named/block slots and contextual components and its
+fair to say that we use more named/block slots, but both are fine depending on
+your use case.
+
+## Significant Addons
+
+- `ember-data` - model layer
+- `ember-stargate` - wormhole/portal/put this DOM over there functionality
+- `ember-can` - user abilities and permissions
+- `ember-composable-helpers`, `ember-string-fns`, `ember-truth-helpers` - helpers x lots
+- `ember-changeset` and `ember-changeset-validations` - form validation
+- `ember-cli-flash` - notifications
+
+Please see our package.json file dependencies.
+
+

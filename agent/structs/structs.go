@@ -833,6 +833,10 @@ type ServiceNode struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (s *ServiceNode) NodeIdentity() Identity {
+	return Identity{ID: s.Node}
+}
+
 // PartialClone() returns a clone of the given service node, minus the node-
 // related fields that get filled in later, Address and TaggedAddresses.
 func (s *ServiceNode) PartialClone() *ServiceNode {
@@ -1402,6 +1406,10 @@ type HealthCheck struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (hc *HealthCheck) NodeIdentity() Identity {
+	return Identity{ID: hc.Node}
+}
+
 func (hc *HealthCheck) CompoundServiceID() ServiceID {
 	id := hc.ServiceID
 	if id == "" {
@@ -1429,6 +1437,7 @@ func (hc *HealthCheck) CompoundCheckID() CheckID {
 
 type HealthCheckDefinition struct {
 	HTTP                           string              `json:",omitempty"`
+	TLSServerName                  string              `json:",omitempty"`
 	TLSSkipVerify                  bool                `json:",omitempty"`
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
@@ -1583,6 +1592,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
 		Shell:                          c.Definition.Shell,
+		TLSServerName:                  c.Definition.TLSServerName,
 		TLSSkipVerify:                  c.Definition.TLSSkipVerify,
 		Timeout:                        c.Definition.Timeout,
 		TTL:                            c.Definition.TTL,

@@ -20,12 +20,12 @@ Feature: dc / intentions / permissions / warn: Intention Permission Warn
       intention: intention-id
     ---
     Then the url should be /datacenter/intentions/intention-id
-    And I click "[value='deny']"
+    And I click ".value-deny"
     And I submit
-    And the warning object is present
+    And I see the warning object
     And I click the warning.cancel object
-    And the warning object isn't present
+    And I don't see the warning object
     And I submit
-    And the warning object is present
+    And I see the warning object
     And I click the warning.confirm object
     Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" from yaml

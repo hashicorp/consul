@@ -405,8 +405,8 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 		// default config if there is an error so it's safe to continue.
 		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(), "error", err)
 	}
-	if cfg.ClusterJSON != "" {
-		c, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+	if cfg.EnvoyClusterJSON != "" {
+		c, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
 		if err != nil {
 			return c, err
 		}
@@ -475,11 +475,11 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	}
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
-	if cfg.ClusterJSON != "" {
+	if cfg.EnvoyClusterJSON != "" {
 		if chain.IsDefault() {
 			// If you haven't done anything to setup the discovery chain, then
 			// you can use the envoy_cluster_json escape hatch.
-			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
 			if err != nil {
 				return nil, err
 			}

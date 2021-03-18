@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -358,7 +359,13 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil, false})
+	m, err := NewManager(ManagerConfig{
+		Cache:  c,
+		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
+		State:  state,
+		Source: source,
+		Logger: logger,
+	})
 	require.NoError(err)
 
 	// And run it

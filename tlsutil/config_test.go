@@ -909,16 +909,21 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 		TLSMinVersion:           "tls12",
 		EnableAgentTLSForChecks: false,
 	}, autoTLS: &autoTLS{}}
-	tlsConf := c.OutgoingTLSConfigForCheck(true)
+	tlsConf := c.OutgoingTLSConfigForCheck(true, "")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, uint16(0), tlsConf.MinVersion)
 
 	c.base.EnableAgentTLSForChecks = true
 	c.base.ServerName = "servername"
-	tlsConf = c.OutgoingTLSConfigForCheck(true)
+	tlsConf = c.OutgoingTLSConfigForCheck(true, "")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, TLSLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
 	require.Equal(t, c.base.ServerName, tlsConf.ServerName)
+
+	tlsConf = c.OutgoingTLSConfigForCheck(true, "servername2")
+	require.Equal(t, true, tlsConf.InsecureSkipVerify)
+	require.Equal(t, TLSLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
+	require.Equal(t, "servername2", tlsConf.ServerName)
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {

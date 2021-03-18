@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -24,10 +25,11 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI     cli.Ui
+	flags  *flag.FlagSet
+	http   *flags.HTTPFlags
+	help   string
+	prefix string
 
 	// testStdin is the input for testing.
 	testStdin io.Reader
@@ -35,6 +37,7 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(&c.prefix, "prefix", "", "Key prefix for imported data")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -76,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		pair := &api.KVPair{
-			Key:   entry.Key,
+			Key:   filepath.Join(c.prefix, entry.Key),
 			Flags: entry.Flags,
 			Value: value,
 		}

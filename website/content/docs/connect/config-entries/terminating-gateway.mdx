@@ -9,7 +9,7 @@ description: >-
 
 # Terminating Gateway
 
--> **v1.8.4+:** On Kubernetes, the `ServiceSplitter` custom resource is supported in Consul versions 1.8.4+.<br />
+-> **v1.8.4+:** On Kubernetes, the `TerminatingGateway` custom resource is supported in Consul versions 1.8.4+.<br />
 **v1.8.0+:** On other platforms, this config entry is supported in Consul versions 1.8.0+.
 
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
@@ -654,7 +654,8 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
       description: `A list of services to link
                       with the gateway. The gateway will proxy traffic to these services. These linked services
                       must be registered with Consul for the gateway to discover their addresses. They must also
-                      be registered in the same Consul datacenter as the terminating gateway.`,
+                      be registered in the same Consul datacenter as the terminating gateway. If Consul ACLs are
+                      enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
       children: [
         {
           name: 'Name',

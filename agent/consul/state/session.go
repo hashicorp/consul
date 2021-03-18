@@ -195,7 +195,7 @@ func sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) error {
 	sess.ModifyIndex = idx
 
 	// Check that the node exists
-	node, err := tx.First("nodes", "id", sess.Node)
+	node, err := tx.First(tableNodes, indexID, Query{Value: sess.Node})
 	if err != nil {
 		return fmt.Errorf("failed node lookup: %s", err)
 	}

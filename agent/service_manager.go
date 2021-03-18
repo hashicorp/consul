@@ -312,8 +312,6 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 	var (
 		ns   = addReq.Service
 		name = ns.Service
-		id   = ns.ID
-		node = addReq.nodeName
 	)
 
 	var upstreams []structs.ServiceID
@@ -338,10 +336,9 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 
 	req := &structs.ServiceConfigRequest{
 		Name:           name,
-		ID:             id,
-		NodeName:       node,
 		Datacenter:     bd.RuntimeConfig.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: addReq.token},
+		MeshGateway:    ns.Proxy.MeshGateway,
 		UpstreamIDs:    upstreams,
 		EnterpriseMeta: ns.EnterpriseMeta,
 	}
@@ -383,10 +380,7 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.TransparentProxy = defaults.TransparentProxy
 	}
 
-	// seenUpstreams stores the upstreams seen from the local registration so that we can also add synthetic entries.
-	// for upstream configuration that was defined via service-defaults.UpstreamConfigs. In TransparentProxy mode
-	// ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
-	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstream with thosee values.
+	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.ServiceID]structs.Upstream)
 
 	for _, us := range defaults.UpstreamIDConfigs {
@@ -397,6 +391,8 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 
 		// Delete the mesh gateway key since this is the only place it is read from an opaque map.
 		// Later reads use Proxy.MeshGateway.
+		// Note that we use the "mesh_gateway" key and not other variants like "MeshGateway" because
+		// UpstreamConfig.MergeInto and ResolveServiceConfig only use "mesh_gateway".
 		delete(us.Config, "mesh_gateway")
 
 		remoteUpstreams[us.Upstream] = structs.Upstream{
@@ -408,6 +404,9 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		}
 	}
 
+	// localUpstreams stores the upstreams seen from the local registration so that we can merge in the synthetic entries.
+	// In TransparentProxy mode ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
+	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstream with those values.
 	localUpstreams := make(map[structs.ServiceID]struct{})
 
 	// Merge upstream defaults into the local registration

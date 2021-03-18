@@ -92,8 +92,8 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		cfg := getAndModifyUpstreamConfigForListener(s.Logger, id, upstreamCfg, chain)
 
 		// If escape hatch is present, create a listener from it and move on to the next
-		if cfg.ListenerJSON != "" {
-			upstreamListener, err := makeListenerFromUserConfig(cfg.ListenerJSON)
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -1296,8 +1296,8 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	l := makeListener(upstreamID, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 	cfg := getAndModifyUpstreamConfigForListener(s.Logger, upstreamID, u, chain)
-	if cfg.ListenerJSON != "" {
-		return makeListenerFromUserConfig(cfg.ListenerJSON)
+	if cfg.EnvoyListenerJSON != "" {
+		return makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 	}
 
 	useRDS := true
@@ -1407,12 +1407,12 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, id string, u *st
 			logger.Warn("failed to parse", "upstream", id, "error", err)
 		}
 
-		if cfg.ListenerJSON != "" {
+		if cfg.EnvoyListenerJSON != "" {
 			logger.Warn("ignoring escape hatch setting because already configured for",
 				"discovery chain", chain.ServiceName, "upstream", id, "config", "envoy_listener_json")
 
 			// Remove from config struct so we don't use it later on
-			cfg.ListenerJSON = ""
+			cfg.EnvoyListenerJSON = ""
 		}
 
 		protocol := cfg.Protocol

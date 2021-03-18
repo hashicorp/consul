@@ -27,6 +27,7 @@
   margin-left: .5rem;
 }
 %main-nav-vertical-action,
+%main-nav-vertical li:not([role="separator"]) > span,
 %main-nav-vertical [role="separator"] {
   display: block;
   padding: 7px 25px;

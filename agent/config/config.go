@@ -137,7 +137,7 @@ type Config struct {
 	AdvertiseAddrLANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
 	AdvertiseAddrWAN                 *string             `mapstructure:"advertise_addr_wan"`
 	AdvertiseAddrWANIPv4             *string             `mapstructure:"advertise_addr_wan_ipv4"`
-	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
+	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_wan_ipv6"`
 	AdvertiseReconnectTimeout        *string             `mapstructure:"advertise_reconnect_timeout"`
 	AutoConfig                       AutoConfigRaw       `mapstructure:"auto_config"`
 	Autopilot                        Autopilot           `mapstructure:"autopilot"`
@@ -405,6 +405,7 @@ type CheckDefinition struct {
 	Shell                          *string             `mapstructure:"shell"`
 	GRPC                           *string             `mapstructure:"grpc"`
 	GRPCUseTLS                     *bool               `mapstructure:"grpc_use_tls"`
+	TLSServerName                  *string             `mapstructure:"tls_server_name"`
 	TLSSkipVerify                  *bool               `mapstructure:"tls_skip_verify" alias:"tlsskipverify"`
 	AliasNode                      *string             `mapstructure:"alias_node"`
 	AliasService                   *string             `mapstructure:"alias_service"`

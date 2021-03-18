@@ -1,0 +1,31 @@
+# with-overlay
+
+Our `{{with-overlay}}` modifier is a thin wrapper around the excellent `tippy.js`. The most common usage will be something like the below:
+
+```hbs preview-template
+<div
+  {{did-insert (set this 'popover')}}
+>
+  The popover
+</div>
+<button
+  {{with-overlay
+    this.popover
+    returns=(set this 'popoverController')
+  }}
+
+  {{on 'click' (fn (optional this.popoverController.show))}}
+>
+  Click me
+</button>
+```
+
+The first positional parameter is a reference to a DOM element to use for the
+popover. The easiest way to provide this is to use `{{did-insert
+(set this 'popoverName'}}}` on any DOM element (as seen above). This DOM element is then
+automatically removed from the DOM until the popover needs to be shown.
+
+The `returns` named attribute of the modifer allows you to save a reference to
+the overlay itself, which is a reference to a [tippy.js instance](https://atomiks.github.io/tippyjs/v5/methods/).
+This instance can then be used with conventional ember to control the overlay. In the example above we use `{{on 'click'}}` to show the overlay but once you have a reference to the tippy.js instance you can control it by any other means.
+

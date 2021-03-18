@@ -75,7 +75,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	n, err := tx.First("nodes", "id", nodeID)
+	n, err := tx.First(tableNodes, indexID, Query{Value: nodeID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

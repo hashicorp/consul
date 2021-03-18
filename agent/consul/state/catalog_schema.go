@@ -17,17 +17,16 @@ const (
 	tableGatewayServices = "gateway-services"
 	tableMeshTopology    = "mesh-topology"
 
-	indexID               = "id"
-	indexServiceName      = "service"
-	indexConnect          = "connect"
-	indexKind             = "kind"
-	indexStatus           = "status"
-	indexNodeServiceCheck = "node_service_check"
-	indexNodeService      = "node_service"
+	indexID          = "id"
+	indexServiceName = "service"
+	indexConnect     = "connect"
+	indexKind        = "kind"
+	indexStatus      = "status"
+	indexNodeService = "node_service"
+	indexNode        = "node"
 )
 
-// nodesTableSchema returns a new table schema used for storing node
-// information.
+// nodesTableSchema returns a new table schema used for storing struct.Node.
 func nodesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: tableNodes,
@@ -36,18 +35,16 @@ func nodesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeQuery),
+					writeIndex: writeIndex(indexFromNode),
 				},
 			},
 			"uuid": {
 				Name:         "uuid",
 				AllowMissing: true,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
-				},
+				Indexer:      &memdb.UUIDFieldIndex{Field: "ID"},
 			},
 			"meta": {
 				Name:         "meta",
@@ -85,13 +82,13 @@ func servicesTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeQuery),
+					writeIndex: writeIndex(indexFromNodeIdentity),
 				},
 			},
 			indexServiceName: {
@@ -161,46 +158,22 @@ func checksTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
-				},
-			},
-			indexNodeServiceCheck: {
-				Name:         indexNodeServiceCheck,
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.FieldSetIndex{
-							Field: "ServiceID",
-						},
-					},
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeQuery),
+					writeIndex: writeIndex(indexFromNodeIdentity),
 				},
 			},
 			indexNodeService: {
 				Name:         indexNodeService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "ServiceID",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeServiceQuery),
+					writeIndex: writeIndex(indexNodeServiceFromHealthCheck),
 				},
 			},
 		},

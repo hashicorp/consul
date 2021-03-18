@@ -1,6 +1,8 @@
 package state
 
-import "github.com/hashicorp/go-memdb"
+import (
+	"github.com/hashicorp/go-memdb"
+)
 
 const (
 	tableConfigEntries = "config-entries"
@@ -20,26 +22,19 @@ func configTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Kind",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "Name",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromConfigEntryKindName),
+					writeIndex:  writeIndex(indexFromConfigEntry),
+					prefixIndex: prefixIndex(indexFromConfigEntryKindName),
 				},
 			},
 			indexKind: {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Kind",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromConfigEntryKindQuery),
+					writeIndex: writeIndex(indexKindFromConfigEntry),
 				},
 			},
 			indexLink: {

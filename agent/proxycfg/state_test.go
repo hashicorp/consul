@@ -6,12 +6,14 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStateChanged(t *testing.T) {
@@ -141,6 +143,10 @@ func (cn *testCacheNotifier) Notify(ctx context.Context, t string, r cache.Reque
 	cn.notifiers[correlationId] = testCacheNotifierRequest{t, r, ch}
 	cn.lock.Unlock()
 	return nil
+}
+
+func (cn *testCacheNotifier) Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error) {
+	panic("Get: not implemented")
 }
 
 func (cn *testCacheNotifier) getNotifierRequest(t testing.TB, correlationId string) testCacheNotifierRequest {
@@ -1773,6 +1779,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			// setup a new testing cache notifier
 			cn := newTestCacheNotifier()
 			state.cache = cn
+			state.health = &health.Client{Cache: cn, CacheName: cachetype.HealthServicesName}
 
 			// setup the local datacenter information
 			state.source = &structs.QuerySource{

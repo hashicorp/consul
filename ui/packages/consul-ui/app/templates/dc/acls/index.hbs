@@ -32,7 +32,9 @@ as |sort filters items|}}
       <label for="toolbar-toggle"></label>
     </BlockSlot>
     <BlockSlot @name="actions">
+{{#if (can "create acls")}}
       <a data-test-create href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
+{{/if}}
     </BlockSlot>
     <BlockSlot @name="toolbar">
       {{#if (gt items.length 0) }}

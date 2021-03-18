@@ -458,8 +458,8 @@ func TestParseConfigEntry(t *testing.T) {
 						}
 					}
 					upstream_defaults {
-						cluster_json = "zip"
-						listener_json = "zop"
+						envoy_cluster_json = "zip"
+						envoy_listener_json = "zop"
 						connect_timeout_ms = 5000
 						protocol = "http"
 						limits {
@@ -502,8 +502,8 @@ func TestParseConfigEntry(t *testing.T) {
 						}
 					}
 					upstream_defaults = {
-						cluster_json = "zip"
-						listener_json = "zop"
+						envoy_cluster_json = "zip"
+						envoy_listener_json = "zop"
 						connect_timeout_ms = 5000
 						protocol = "http"
 						limits = {
@@ -547,8 +547,8 @@ func TestParseConfigEntry(t *testing.T) {
 						}
 					},
 					"upstream_defaults": {
-						"cluster_json": "zip",
-						"listener_json": "zop",
+						"envoy_cluster_json": "zip",
+						"envoy_listener_json": "zop",
 						"connect_timeout_ms": 5000,
 						"protocol": "http",
 						"limits": {
@@ -593,8 +593,8 @@ func TestParseConfigEntry(t *testing.T) {
 						}
 					},
 					"UpstreamDefaults": {
-						"ClusterJSON": "zip",
-						"ListenerJSON": "zop",
+						"EnvoyClusterJSON": "zip",
+						"EnvoyListenerJSON": "zop",
 						"ConnectTimeoutMs": 5000,
 						"Protocol": "http",
 						"Limits": {
@@ -638,10 +638,10 @@ func TestParseConfigEntry(t *testing.T) {
 						},
 					},
 					UpstreamDefaults: api.UpstreamConfig{
-						ClusterJSON:      "zip",
-						ListenerJSON:     "zop",
-						Protocol:         "http",
-						ConnectTimeoutMs: 5000,
+						EnvoyClusterJSON:  "zip",
+						EnvoyListenerJSON: "zop",
+						Protocol:          "http",
+						ConnectTimeoutMs:  5000,
 						Limits: &api.UpstreamLimits{
 							MaxConnections:        3,
 							MaxPendingRequests:    4,

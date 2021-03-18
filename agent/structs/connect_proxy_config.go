@@ -277,7 +277,7 @@ type Upstream struct {
 
 	// CentrallyConfigured indicates whether the upstream was defined in a proxy
 	// instance registration or whether it was generated from a config entry.
-	CentrallyConfigured bool
+	CentrallyConfigured bool `json:",omitempty" bexpr:"-"`
 }
 
 func (t *Upstream) UnmarshalJSON(data []byte) (err error) {

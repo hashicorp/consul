@@ -377,8 +377,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		Cache:     bd.Cache,
 		NetRPC:    &a,
 		CacheName: cacheName,
-		// Temporarily until streaming supports all connect events
-		CacheNameConnect: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -540,6 +538,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
+		Health: a.rpcClientHealth,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
@@ -1948,7 +1947,6 @@ type addServiceLockedRequest struct {
 // agent using Agent.AddService.
 type AddServiceRequest struct {
 	Service               *structs.NodeService
-	nodeName              string
 	chkTypes              []*structs.CheckType
 	persist               bool
 	token                 string
@@ -2519,7 +2517,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
+			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 
 			http := &checks.CheckHTTP{
 				CheckID:         cid,
@@ -2591,7 +2589,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var tlsClientConfig *tls.Config
 			if chkType.GRPCUseTLS {
-				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 			}
 
 			grpc := &checks.CheckGRPC{
@@ -3108,7 +3106,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		err = a.addServiceLocked(addServiceLockedRequest{
 			AddServiceRequest: AddServiceRequest{
 				Service:               ns,
-				nodeName:              a.config.NodeName,
 				chkTypes:              chkTypes,
 				persist:               false, // don't rewrite the file with the same data we just read
 				token:                 service.Token,
@@ -3129,7 +3126,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			err = a.addServiceLocked(addServiceLockedRequest{
 				AddServiceRequest: AddServiceRequest{
 					Service:               sidecar,
-					nodeName:              a.config.NodeName,
 					chkTypes:              sidecarChecks,
 					persist:               false, // don't rewrite the file with the same data we just read
 					token:                 sidecarToken,
@@ -3228,7 +3224,6 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			err = a.addServiceLocked(addServiceLockedRequest{
 				AddServiceRequest: AddServiceRequest{
 					Service:               p.Service,
-					nodeName:              a.config.NodeName,
 					chkTypes:              nil,
 					persist:               false, // don't rewrite the file with the same data we just read
 					token:                 p.Token,

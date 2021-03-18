@@ -1,10 +1,15 @@
-## ConsulNspaceList
+---
+class: ember
+---
+## Consul::Nspace::List
 
-```
-<ConsulNspaceList
-  @items={{items}}
-  @ondelete={{action 'delete'}}
-/>
+```hbs
+<DataSource @src="/default/dc-1/namespaces" as |source|>
+  <Consul::Nspace::List
+    @items={{source.data}}
+    @ondelete={{action (noop)}}
+  />
+</DataSource>
 ```
 
 A presentational component for rendering Consul Namespaces

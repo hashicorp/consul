@@ -3,7 +3,8 @@
   data-test-role-form
   @onclose={{action (mut state) "role"}}
   @name="new-role-toggle"
->
+as |modal|>
+  <Ref @target={{this}} @name="modal" @value={{modal}} />
   <BlockSlot @name="header">
 {{#if (eq state 'role')}}
     <h2>New Role</h2>
@@ -58,15 +59,17 @@
   </BlockSlot>
 </ModalDialog>
 
-<ChildSelector @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
+<ChildSelector @disabled={{disabled}} @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
   <BlockSlot @name="label">
     Apply an existing role
   </BlockSlot>
   <BlockSlot @name="create">
-    <label class="type-dialog" for="new-role-toggle">
+    <label class="type-dialog"
+      data-test-role-create
+      {{on "click" (optional this.modal.open)}}
+    >
       <span>Create new role</span>
     </label>
-
   </BlockSlot>
   <BlockSlot @name="option" as |option|>
     {{option.Name}}
@@ -96,8 +99,15 @@
           </BlockSlot>
           <BlockSlot @name="menu" as |confirm send keypressClick|>
               <li role="none">
-                <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
+                <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>
+{{#if (can "edit role" item=item)}}
+                  Edit
+{{else}}
+                  View
+{{/if}}
+                </a>
               </li>
+{{#if (not disabled)}}
               <li role="none" class="dangerous">
                 <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Remove</label>
                 <div role="menu">
@@ -121,6 +131,7 @@
                   </div>
                 </div>
               </li>
+{{/if}}
           </BlockSlot>
         </PopoverMenu>
       </BlockSlot>

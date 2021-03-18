@@ -229,7 +229,7 @@ func requireResultsSame(t *testing.T, want, got *structs.IndexedCheckServiceNode
 // without duplicating the tests.
 func getNamespace(ns string) string {
 	meta := structs.NewEnterpriseMeta(ns)
-	return meta.GetNamespace()
+	return meta.NamespaceOrEmpty()
 }
 
 func TestOrderingConsistentWithMemDb(t *testing.T) {
