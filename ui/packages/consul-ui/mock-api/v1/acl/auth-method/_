@@ -1,6 +1,20 @@
 ${
 	[1].map(i => {
     const type = `${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}`;
+    const cert = `-----BEGIN CERTIFICATE-----
+MIIH/TCCBeWgAwIBAgIQaBYE3/M08XHYCnNVmcFBcjANBgkqhkiG9w0BAQsFADBy
+MQswCQYDVQQGEwJVUzEOMAwGA1UECAwFVGV4YXMxEDAOBgNVBAcMB0hvdXN0b24x
+ETAPBgNVBAoMCFNTTCBDb3JwMS4wLAYDVQQDDCVTU0wuY29tIEVWIFNTTCBJbnRl
+cm1lZGlhdGUgQ0EgUlNBIFIzMB4XDTIwMDQwMTAwNTgzM1oXDTIxMDcxNjAwNTgz
+M1owgb0xCzAJBgNVBAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91
+c3RvbjERMA8GA1UECgwIU1NMIENvcnAxFjAUBgNVBAUTDU5WMjAwODE2MTQyNDMx
+FDASBgNVBAMMC3d3dy5zc2wuY29tMR0wGwYDVQQPDBRQcml2YXRlIE9yZ2FuaXph
+dGlvbjEXMBUGCysGAQQBgjc8AgECDAZOZXZhZGExEzARBgsrBgEEAYI3PAIBAxMC
+VVMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDHheRkbb1FCc7xRKst
+wK0JIGaKY8t7JbS2bQ2b6YIJDgnHuIYHqBrCUV79oelikkokRkFvcvpaKinFHDQH
+UpWEI6RUERYmSCg3O8Wi42uOcV2B5ZabmXCkwdxY5Ecl51BbM8UnGdoAGbdNmiRm
+SmTjcs+lhMxg4fFY6lBpiEVFiGUjGRR+61R67Lz6U4KJeLNcCm07QwFYKBmpi08g
+-----END CERTIFICATE-----`;
     let sourceType;
 
     if (type !== 'kubernetes') {
@@ -20,14 +34,14 @@ ${
       case 'kubernetes':
         config = {
           Host: `https://${fake.internet.ip()}:8443`,
-          CACert: `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`,
+          CACert: cert,
           ServiceAccountJWT: `eyJhbGciOiJ${fake.internet.password(25)}.eyJ${fake.internet.password(61)}.${fake.internet.password(32)}`
         };
         break;
       case 'oidc':
         config = {
           OIDCDiscoveryURL: `https://${fake.internet.ip()}:8443`,
-          OIDCDiscoveryCACert: `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`,
+          OIDCDiscoveryCACert: cert,
           OIDCClientID: `${fake.hacker.noun()}-ID`,
           OIDCClientSecret: `${fake.hacker.noun()}-secret`,
           BoundAudiences: ["aud_example_0", "aud_example_1"],
@@ -55,11 +69,11 @@ ${
 
     switch(sourceType) {
       case 'JWTValidationPubKeys':
-        config.JWTValidationPubKeys = `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`;
+        config.JWTValidationPubKeys = cert;
         break;
       case 'JWKSURL':
         config.JWKSURL = `https://${fake.internet.ip()}:8443`;
-        config.JWKSCACert = `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`;
+        config.JWKSCACert = cert;
         break;
       case 'OIDCDiscoveryURL':
         config.OIDCDiscoveryURL = `https://${fake.internet.ip()}:8443`;
