@@ -122,7 +122,7 @@
     "ember-named-blocks-polyfill": "^0.2.3",
     "ember-on-helper": "^0.1.0",
     "ember-on-resize-modifier": "^0.3.0",
-    "ember-page-title": "^5.2.3",
+    "ember-page-title": "^6.2.1",
     "ember-power-select": "^4.0.5",
     "ember-power-select-with-create": "^0.8.0",
     "ember-qunit": "^4.6.0",
