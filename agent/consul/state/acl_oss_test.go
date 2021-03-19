@@ -66,14 +66,14 @@ func testIndexerTableACLRoles() map[string]indexerTestCase {
 		},
 		indexPolicies: {
 			read: indexValue{
-				source:   "PolicyId1",
-				expected: []byte("PolicyId1\x00"),
+				source:   Query{Value: "PolicyId1"},
+				expected: []byte("policyid1\x00"),
 			},
 			writeMulti: indexValueMulti{
 				source: obj,
 				expected: [][]byte{
-					[]byte("PolicyId1\x00"),
-					[]byte("PolicyId2\x00"),
+					[]byte("policyid1\x00"),
+					[]byte("policyid2\x00"),
 				},
 			},
 		},

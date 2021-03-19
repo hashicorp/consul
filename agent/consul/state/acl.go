@@ -113,57 +113,6 @@ func (s *TokenRolesIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
 	return val, nil
 }
 
-type RolePoliciesIndex struct {
-}
-
-func (s *RolePoliciesIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
-	role, ok := obj.(*structs.ACLRole)
-	if !ok {
-		return false, nil, fmt.Errorf("object is not an ACLRole")
-	}
-
-	links := role.Policies
-
-	numLinks := len(links)
-	if numLinks == 0 {
-		return false, nil, nil
-	}
-
-	vals := make([][]byte, 0, numLinks)
-	for _, link := range links {
-		vals = append(vals, []byte(link.ID+"\x00"))
-	}
-
-	return true, vals, nil
-}
-
-func (s *RolePoliciesIndex) FromArgs(args ...interface{}) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("must provide only a single argument")
-	}
-	arg, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
-	}
-	// Add the null character as a terminator
-	arg += "\x00"
-	return []byte(arg), nil
-}
-
-func (s *RolePoliciesIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
-	val, err := s.FromArgs(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Strip the null terminator, the rest is a prefix
-	n := len(val)
-	if n > 0 {
-		return val[:n-1], nil
-	}
-	return val, nil
-}
-
 type TokenExpirationIndex struct {
 	LocalFilter bool
 }
@@ -544,21 +493,20 @@ func fixupTokenRoleLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLTo
 
 func resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMissing bool) error {
 	for linkIndex, link := range role.Policies {
-		if link.ID != "" {
-			policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &role.EnterpriseMeta)
-
-			if err != nil {
-				return err
-			}
-
-			if policy != nil {
-				// the name doesn't matter here
-				role.Policies[linkIndex].Name = policy.Name
-			} else if !allowMissing {
-				return fmt.Errorf("No such policy with ID: %s", link.ID)
-			}
-		} else {
+		if link.ID == "" {
 			return fmt.Errorf("Encountered a Role with policies linked by Name in the state store")
+		}
+
+		policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &role.EnterpriseMeta)
+		if err != nil {
+			return err
+		}
+
+		if policy != nil {
+			// the name doesn't matter here
+			role.Policies[linkIndex].Name = policy.Name
+		} else if !allowMissing {
+			return fmt.Errorf("No such policy with ID: %s", link.ID)
 		}
 	}
 	return nil
@@ -1495,8 +1443,14 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	var iter memdb.ResultIterator
 	var err error
 
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
 	if policy != "" {
-		iter, err = aclRoleListByPolicy(tx, policy, entMeta)
+		q := Query{Value: policy, EnterpriseMeta: *entMeta}
+		iter, err = tx.Get(tableACLRoles, indexPolicies, q)
 	} else {
 		iter, err = tx.Get(tableACLRoles, indexName+"_prefix", entMeta)
 	}

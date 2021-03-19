@@ -36,7 +36,8 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			}
 			secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
 
-			roles, err := aclRoleListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
+			q := Query{Value: policy.ID, EnterpriseMeta: policy.EnterpriseMeta}
+			roles, err := tx.Get(tableACLRoles, indexPolicies, q)
 			if err != nil {
 				return nil, err
 			}

@@ -53,6 +53,25 @@ func indexNameFromACLRole(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func multiIndexPolicyFromACLRole(raw interface{}) ([][]byte, error) {
+	role, ok := raw.(*structs.ACLRole)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
+	}
+
+	count := len(role.Policies)
+	if count == 0 {
+		return nil, errMissingValueForIndex
+	}
+
+	vals := make([][]byte, 0, count)
+	for _, link := range role.Policies {
+		vals = append(vals, []byte(strings.ToLower(link.ID)+"\x00"))
+	}
+
+	return vals, nil
+}
+
 func aclPolicyGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch(tableACLPolicies, indexID, id)
 }
@@ -172,10 +191,6 @@ func aclRoleInsert(tx *txn, role *structs.ACLRole) error {
 
 func aclRoleGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch(tableACLRoles, indexID, id)
-}
-
-func aclRoleListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLRoles, indexPolicies, policy)
 }
 
 func aclRoleDeleteWithRole(tx *txn, role *structs.ACLRole, idx uint64) error {

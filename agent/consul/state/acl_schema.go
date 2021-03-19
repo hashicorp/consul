@@ -162,7 +162,10 @@ func rolesTableSchema() *memdb.TableSchema {
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &RolePoliciesIndex{},
+				Indexer: indexerMulti{
+					readIndex:       readIndex(indexFromQuery),
+					writeIndexMulti: writeIndexMulti(multiIndexPolicyFromACLRole),
+				},
 			},
 		},
 	}
