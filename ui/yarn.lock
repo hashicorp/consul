@@ -5396,7 +5396,7 @@ ember-assign-polyfill@^2.6.0:
     ember-cli-babel "^7.20.5"
     ember-cli-version-checker "^2.0.0"
 
-ember-auto-import@^1.2.13, ember-auto-import@^1.5.2, ember-auto-import@^1.5.3, ember-auto-import@^1.6.0:
+ember-auto-import@^1.5.2, ember-auto-import@^1.5.3, ember-auto-import@^1.6.0:
   version "1.10.1"
   resolved "https://registry.yarnpkg.com/ember-auto-import/-/ember-auto-import-1.10.1.tgz#6c93a875e494aa0a58b759867d3f20adfd514ae3"
   integrity sha512-7bOWzPELlVwdWDOkB+phDIjg8BNW+/2RiLLQ+Xa/eIvCLT4ABYhHV5wqW5gs5BnXTDVLfE4ddKZdllnGuPGGDQ==
@@ -5430,7 +5430,7 @@ ember-auto-import@^1.2.13, ember-auto-import@^1.5.2, ember-auto-import@^1.5.3, e
     walk-sync "^0.3.3"
     webpack "^4.43.0"
 
-ember-basic-dropdown@^3.0.16:
+ember-basic-dropdown@^3.0.10, ember-basic-dropdown@^3.0.16:
   version "3.0.16"
   resolved "https://registry.yarnpkg.com/ember-basic-dropdown/-/ember-basic-dropdown-3.0.16.tgz#287fcde57b5a37405d89cc65e0a4ad9a2e8e1b0b"
   integrity sha512-ctVQL63nWoZ6+Lvb6aCo70SUA8ieMz5fQa0BuQKeV2LQx8njXDiZZ96gaK0PBn60glNghbIr1ZKU+wmnIT++5w==
@@ -5475,7 +5475,7 @@ ember-changeset-validations@~3.9.0:
     ember-get-config "^0.2.4"
     ember-validators "^2.0.0"
 
-ember-changeset@^3.9.1:
+ember-changeset@3.10.1, ember-changeset@^3.9.1:
   version "3.10.1"
   resolved "https://registry.yarnpkg.com/ember-changeset/-/ember-changeset-3.10.1.tgz#d6f06bc55f867a2c1ac7c5fd780776bd1e5a9b60"
   integrity sha512-4FoGKRcKxixSr+NBQ+ZoiwwbJE0/fuZRULUp9M1RIHejYhst+U8/ni47SsphrMhoRAcZCeyl+JqlBMlwR7v50g==
@@ -5884,7 +5884,7 @@ ember-cli-version-checker@^4.1.0:
     semver "^6.3.0"
     silent-error "^1.1.1"
 
-ember-cli-version-checker@^5.0.1, ember-cli-version-checker@^5.0.2, ember-cli-version-checker@^5.1.1, ember-cli-version-checker@^5.1.2:
+ember-cli-version-checker@^5.0.1, ember-cli-version-checker@^5.1.1, ember-cli-version-checker@^5.1.2:
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/ember-cli-version-checker/-/ember-cli-version-checker-5.1.2.tgz#649c7b6404902e3b3d69c396e054cea964911ab0"
   integrity sha512-rk7GY+FmLn/2e22HsZs0Ycrz8HQ1W3Fv+2TFOuEFW9optnDXDgkntPBIl6gact/LHsfBM5RKbM3dHsIIeLgl0Q==
@@ -5893,15 +5893,16 @@ ember-cli-version-checker@^5.0.1, ember-cli-version-checker@^5.0.2, ember-cli-ve
     semver "^7.3.4"
     silent-error "^1.1.1"
 
-ember-cli-yadda@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/ember-cli-yadda/-/ember-cli-yadda-0.5.0.tgz#bbf564b996bd05f0ad4c7422a89795eca3ea3b47"
-  integrity sha512-CnHtYL4pRF7hp+NhB/1eirYQALOUIMwUyUnQ48/VEGY9nOfg5wNO9f8HKGaTHlwKv3UvS/3eDspsx9cw6GPAmA==
+ember-cli-yadda@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/ember-cli-yadda/-/ember-cli-yadda-0.6.0.tgz#9a01b55091c4a61f58109af890990381eba77a60"
+  integrity sha512-lD+u9RwoKDtrSdHIF9vIrNtPosZHNVvjF4s0uWzh2nkOxM+qu+cdeEAQ3RPQvNaEj6fnLgR2tcPjS/28eqnE9Q==
   dependencies:
-    broccoli-funnel "^2.0.1"
-    broccoli-persistent-filter "^1.4.3"
-    ember-auto-import "^1.2.13"
-    ember-cli-babel "^6.6.0"
+    broccoli-funnel "^3.0.3"
+    broccoli-persistent-filter "^3.1.2"
+    ember-auto-import "^1.6.0"
+    ember-cli-babel "^7.22.1"
+    ember-cli-htmlbars "^5.3.1"
     yadda "*"
 
 ember-cli@~3.20.2:
@@ -6583,14 +6584,14 @@ ember-template-recast@^5.0.1:
     tmp "^0.2.1"
     workerpool "^6.0.3"
 
-ember-test-selectors@^4.0.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/ember-test-selectors/-/ember-test-selectors-4.1.0.tgz#0416c9ebdbd5ded4585643ba121115e45932dfc2"
-  integrity sha512-njyopeK018CP4PUWvkRdNFcP+56B7yfVYGt6k+71+4t8WscUzWPqgJvDYaJ64avn5EvrI+QBSWb80NC7Q++WDA==
+ember-test-selectors@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/ember-test-selectors/-/ember-test-selectors-5.0.0.tgz#36c30f64498039cb88797cdda682275a460ee624"
+  integrity sha512-hqAPqyJLEGBYcQ9phOKvHhSCyvcSbUL8Yj2si8OASsQWxwRqbxrtk5YlkN2aZiZdp9PAd2wErS8uClG0U7tNpA==
   dependencies:
     calculate-cache-key-for-tree "^2.0.0"
-    ember-cli-babel "^7.19.0"
-    ember-cli-version-checker "^5.0.2"
+    ember-cli-babel "^7.22.1"
+    ember-cli-version-checker "^5.1.1"
 
 ember-test-waiters@^1.1.1:
   version "1.2.0"
@@ -13941,7 +13942,7 @@ validate-npm-package-name@^3.0.0:
   dependencies:
     builtins "^1.0.3"
 
-validated-changeset@~0.10.0:
+validated-changeset@0.10.0, validated-changeset@~0.10.0:
   version "0.10.0"
   resolved "https://registry.yarnpkg.com/validated-changeset/-/validated-changeset-0.10.0.tgz#2e8188c089ab282c1b51fba3c289073f6bd14c8b"
   integrity sha512-n8NB3ol6Tbi0O7bnq1wz81m5Wd1gfHw0HUcH4MatOfqO3DyXzWZV+bUaNq6wThXn20rMFB82C8pTNFSWbgXJLA==
