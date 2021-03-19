@@ -2682,13 +2682,6 @@ babel-plugin-htmlbars-inline-precompile@^3.2.0:
   resolved "https://registry.yarnpkg.com/babel-plugin-htmlbars-inline-precompile/-/babel-plugin-htmlbars-inline-precompile-3.2.0.tgz#c4882ea875d0f5683f0d91c1f72e29a4f14b5606"
   integrity sha512-IUeZmgs9tMUGXYu1vfke5I18yYJFldFGdNFQOWslXTnDWXzpwPih7QFduUqvT+awDpDuNtXpdt5JAf43Q1Hhzg==
 
-babel-plugin-htmlbars-inline-precompile@^4.2.0:
-  version "4.4.6"
-  resolved "https://registry.yarnpkg.com/babel-plugin-htmlbars-inline-precompile/-/babel-plugin-htmlbars-inline-precompile-4.4.6.tgz#9fd632ad2717226b90bde6940b4148b3a323fddb"
-  integrity sha512-h/HA2T+iKL/AmmOaaH5w107F8G/foMPyapuMWFtwqa+RqHYNiaNg73JCQ13XMa2SJGPYckHE9hKgjV699k1tVA==
-  dependencies:
-    babel-plugin-ember-modules-api-polyfill "^3.4.0"
-
 babel-plugin-htmlbars-inline-precompile@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/babel-plugin-htmlbars-inline-precompile/-/babel-plugin-htmlbars-inline-precompile-5.0.0.tgz#b3a3008bdedbd3543e745fc953769cc10d4a7021"
