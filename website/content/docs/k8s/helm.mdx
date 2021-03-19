@@ -635,7 +635,7 @@ and consider if they're appropriate for your deployment.
       beta.kubernetes.io/arch: amd64
     ```
 
-  - `affinity` ((#v-client-affinity)) (`string: ""`) - Affinity Settings for Client pods, formatted as a multi-line YAML string.
+  - `affinity` ((#v-client-affinity)) (`string: null`) - Affinity Settings for Client pods, formatted as a multi-line YAML string.
     ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
 
     Example:
@@ -1029,6 +1029,7 @@ and consider if they're appropriate for your deployment.
 
     - `defaultEnableMerging` ((#v-connectinject-metrics-defaultenablemerging)) (`boolean: false`) - Configures the Consul sidecar to run a merged metrics server
       to combine and serve both Envoy and Connect service metrics.
+      This feature is available only in Consul v1.10-alpha or greater.
 
     - `defaultMergedMetricsPort` ((#v-connectinject-metrics-defaultmergedmetricsport)) (`integer: 20100`) - Configures the port at which the Consul sidecar will listen on to return
       combined metrics. This port only needs to be changed if it conflicts with
