@@ -59,3 +59,10 @@ func uuidStringToBytes(uuid string) ([]byte, error) {
 	}
 	return dec, nil
 }
+
+// BoolQuery is a type used to query a boolean condition that may include an
+// enterprise identifier.
+type BoolQuery struct {
+	Value bool
+	structs.EnterpriseMeta
+}

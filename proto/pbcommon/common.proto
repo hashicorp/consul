@@ -139,4 +139,6 @@ message QueryMeta  {
 message EnterpriseMeta {
    // Namespace in which the entity exists.
    string Namespace = 1;
+   // Tenant in which the entity exists.
+   string Tenant = 2;
 }
