@@ -178,6 +178,7 @@ export default [
           'connect-ca-provider',
           'ambassador',
           'health',
+          { category: 'observability', content: ['metrics'], name: "Observability" },
         ],
       },
       'service-sync',

@@ -275,7 +275,7 @@ Annotations can be used to configure the injection behavior.
     consul.hashicorp.com/service-meta-bar: baz
   ```
 
-- `consul.hashicorp.com/sidecar-proxy-` - override default resource settings for
+- `consul.hashicorp.com/sidecar-proxy-` - Override default resource settings for
   the sidecar proxy container.
   The defaults are set in Helm config via the [`connectInject.sidecarProxy.resources`](/docs/k8s/helm#v-connectinject-sidecarproxy-resources) key.
 
@@ -283,6 +283,14 @@ Annotations can be used to configure the injection behavior.
   - `consul.hashicorp.com/sidecar-proxy-cpu-request` - Override the default CPU request.
   - `consul.hashicorp.com/sidecar-proxy-memory-limit` - Override the default memory limit.
   - `consul.hashicorp.com/sidecar-proxy-memory-request` - Override the default memory request.
+
+- `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
+- `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
+- `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
+- `consul.hashicorp.com/prometheus-scrape-port` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePort`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapeport).
+- `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
+- `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
+- `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
 
 ### Deployments, StatefulSets, etc.
 
