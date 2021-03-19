@@ -177,25 +177,26 @@ driver "terraform" {
 
 A `terraform_provider` block configures the options to interface with network infrastructure. Define a block for each provider required by the set of Terraform modules across all tasks. This block resembles [provider blocks for Terraform configuration](https://www.terraform.io/docs/configuration/providers.html). To find details on how to configure a provider, refer to the corresponding documentation for the Terraform provider. The main directory of publicly available providers are hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers).
 
-The below configuration captures the general design of defining a provider using the [Vault Terraform provider](https://registry.terraform.io/providers/hashicorp/vault/latest/docs) as an example.
+The below configuration captures the general design of defining a provider using the [AWS Terraform provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs) as an example.
 
 ```hcl
 driver "terraform" {
   required_providers {
-    vault = {
-      source = "hashicorp/vault"
-      version = "2.13.0"
+    aws = {
+      source = "hashicorp/aws"
+      version = "3.33.0"
     }
   }
 }
 
-terraform_provider "vault" {
-  address = "vault.example.com"
+terraform_provider "aws" {
+  # Configuration options
+  region = "us-east-1"
 }
 
 task {
   source = "some/source"
-  providers = ["vault"]
+  providers = ["aws"]
   services = ["web", "api"]
 }
 ```
@@ -298,24 +299,22 @@ terraform_provider "example" {
 
 Consul-Terraform-Sync supports the [Terraform feature to define multiple configurations](https://www.terraform.io/docs/configuration/providers.html#alias-multiple-provider-configurations) for the same provider by utilizing the `alias` meta-argument. Define multiple provider blocks with the same provider name and set the `alias` to a unique value across a given provider. Select which provider configuration to use for a task by specifying the configuration with the provider name and alias (`<name>.<alias>`) within the list of providers in the [`task.provider`](#task) parameter. A task can use multiple providers, but only one provider instance of a provider is allowed per task.
 
-The example Consul-Terraform-Sync configuration below defines two similar tasks executing the same module with different instances of the Vault provider.
+The example Consul-Terraform-Sync configuration below defines two similar tasks executing the same module with different instances of the AWS provider.
 
 ```hcl
-terraform_provider "vault" {
+terraform_provider "aws" {
   alias = "a"
-  address = "vault.example.com"
-  namespace = "team-a"
+  profile = "team-a"
   task_env {
-    "VAULT_TOKEN" = "{{ env \"CTS_VAULT_TOKEN_A\" }}"
+    "AWS_ACCESS_KEY_ID" = "{{ env \"CTS_AWS_ACCESS_KEY_ID_A\" }}"
   }
 }
 
-terraform_provider "vault" {
+terraform_provider "aws" {
   alias = "b"
-  address = "vault.internal.com"
-  namespace = "team-b"
+  profile = "team-b"
   task_env {
-    "VAULT_TOKEN" = "{{ env \"CTS_VAULT_TOKEN_B\" }}"
+    "AWS_ACCESS_KEY_ID" = "{{ env \"CTS_AWS_ACCESS_KEY_ID_B\" }}"
   }
 }
 
@@ -326,14 +325,14 @@ terraform_provider "dns" {
 task {
   name = "task-a"
   source = "org/module"
-  providers = ["vault.a", "dns"]
+  providers = ["aws.a", "dns"]
   // ...
 }
 
 task {
   name = "task-b"
   source = "org/module"
-  providers = ["vault.b", "dns"]
+  providers = ["aws.b", "dns"]
   // ...
 }
 ```
