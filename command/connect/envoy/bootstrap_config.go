@@ -280,6 +280,8 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name string, typeName string, ad
 	// Resolve address ENV var
 	if len(addr) > 2 && addr[0] == '$' {
 		addr = os.Getenv(addr[1:])
+	} else {
+		addr = os.Expand(addr, statsSinkEnvMapping)
 	}
 
 	u, err := url.Parse(addr)
@@ -316,6 +318,18 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name string, typeName string, ad
 			}
 		}
 	}`, nil
+}
+
+func statsSinkEnvMapping(s string) string {
+	allowedStatsSinkEnvVars := map[string]bool{
+		"HOST_IP": true,
+	}
+
+	if !allowedStatsSinkEnvVars[s] {
+		// if the specified env var isn't explicitly allowed, unexpand it
+		return fmt.Sprintf("${%s}", s)
+	}
+	return os.Getenv(s)
 }
 
 // resourceTagSpecifiers returns patterns used to generate tags from cluster and filter metric names.
