@@ -1,0 +1,4 @@
+```release-note:improvement
+api: Enable setting query options on agent endpoints.
+```
+
