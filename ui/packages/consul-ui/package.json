@@ -144,7 +144,7 @@
     "flat": "^5.0.0",
     "husky": "^4.2.5",
     "ivy-codemirror": "^2.1.0",
-    "js-yaml": "^3.13.1",
+    "js-yaml": "^4.0.0",
     "jsonlint": "^1.6.3",
     "lint-staged": "^10.2.11",
     "loader.js": "^4.7.0",
