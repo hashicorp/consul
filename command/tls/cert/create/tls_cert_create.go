@@ -182,7 +182,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	pub, priv, err := tlsutil.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
+	pub, priv, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		signer, string(cert), sn, name, c.days,
+		DNSNames, IPAddresses, extKeyUsage,
+	})
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

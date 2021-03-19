@@ -58,7 +58,7 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 		return "", "", "", err
 	}
 
-	cert, privateKey, err := tlsutil.GenerateCert(
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 		signer,
 		ca,
 		serial,
@@ -67,7 +67,7 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 		[]string{serverName},
 		nil,
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-	)
+	})
 	if err != nil {
 		return "", "", "", err
 	}

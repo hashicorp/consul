@@ -207,7 +207,7 @@ func generateTestCert(serverName string) (cert tls.Certificate, caPEM []byte, er
 		return tls.Certificate{}, nil, err
 	}
 
-	certificate, privateKey, err := tlsutil.GenerateCert(
+	certificate, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 		signer,
 		ca,
 		serial,
@@ -216,7 +216,7 @@ func generateTestCert(serverName string) (cert tls.Certificate, caPEM []byte, er
 		[]string{serverName},
 		nil,
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-	)
+	})
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}

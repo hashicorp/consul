@@ -123,7 +123,10 @@ func TestGenerateCert(t *testing.T) {
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}
 	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	name := "Cert Name"
-	certificate, pk, err := GenerateCert(signer, ca, sn, name, 365, DNSNames, IPAddresses, extKeyUsage)
+	certificate, pk, err := GenerateCert(CertOpts{
+		signer, ca, sn, name, 365,
+		DNSNames, IPAddresses, extKeyUsage,
+	})
 	require.Nil(t, err)
 	require.NotEmpty(t, certificate)
 	require.NotEmpty(t, pk)

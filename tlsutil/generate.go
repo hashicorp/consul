@@ -44,6 +44,17 @@ type CAOpts struct {
 	Name                string
 }
 
+type CertOpts struct {
+	Signer crypto.Signer
+	CA string
+	Serial *big.Int
+	Name string
+	Days int
+	DNSNames []string
+	IPAddresses []net.IP
+	ExtKeyUsage []x509.ExtKeyUsage
+}
+
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
 func GenerateCA(opts CAOpts) (string, string, error) {
 	signer := opts.Signer
@@ -127,8 +138,8 @@ func GenerateCA(opts CAOpts) (string, string, error) {
 }
 
 // GenerateCert generates a new certificate for agent TLS (not to be confused with Connect TLS)
-func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, days int, DNSNames []string, IPAddresses []net.IP, extKeyUsage []x509.ExtKeyUsage) (string, string, error) {
-	parent, err := parseCert(ca)
+func GenerateCert(opts CertOpts) (string, string, error) {
+	parent, err := parseCert(opts.CA)
 	if err != nil {
 		return "", "", err
 	}
@@ -143,21 +154,30 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 		return "", "", err
 	}
 
-	template := x509.Certificate{
-		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: name},
-		BasicConstraintsValid: true,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           extKeyUsage,
-		IsCA:                  false,
-		NotAfter:              time.Now().AddDate(0, 0, days),
-		NotBefore:             time.Now(),
-		SubjectKeyId:          id,
-		DNSNames:              DNSNames,
-		IPAddresses:           IPAddresses,
+	sn := opts.Serial
+	if sn == nil {
+		var err error
+		sn, err = GenerateSerialNumber()
+		if err != nil {
+			return "", "", err
+		}
 	}
 
-	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), signer)
+	template := x509.Certificate{
+		SerialNumber:          sn,
+		Subject:               pkix.Name{CommonName: opts.Name},
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           opts.ExtKeyUsage,
+		IsCA:                  false,
+		NotAfter:              time.Now().AddDate(0, 0, opts.Days),
+		NotBefore:             time.Now(),
+		SubjectKeyId:          id,
+		DNSNames:              opts.DNSNames,
+		IPAddresses:           opts.IPAddresses,
+	}
+
+	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), opts.Signer)
 	if err != nil {
 		return "", "", err
 	}
