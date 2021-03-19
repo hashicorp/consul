@@ -12,7 +12,7 @@ table=acl-policies
   index=id unique
     indexer=github.com/hashicorp/go-memdb.UUIDFieldIndex Field=ID
   index=name unique
-    indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Name Lowercase=true
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingleWithPrefix readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexNameFromACLPolicy prefixIndex=github.com/hashicorp/consul/agent/consul/state.prefixIndexFromQuery
 
 table=acl-roles
   index=id unique

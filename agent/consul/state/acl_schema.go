@@ -125,10 +125,10 @@ func policiesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field: "Name",
-					// TODO (ACL-V2) - should we coerce to lowercase?
-					Lowercase: true,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromQuery),
+					writeIndex:  writeIndex(indexNameFromACLPolicy),
+					prefixIndex: prefixIndex(prefixIndexFromQuery),
 				},
 			},
 		},

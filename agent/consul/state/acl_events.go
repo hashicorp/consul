@@ -1,9 +1,10 @@
 package state
 
 import (
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 // aclChangeUnsubscribeEvent creates and returns stream.UnsubscribeEvents that
@@ -27,7 +28,7 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			}
 			secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
 
-		case "acl-policies":
+		case tableACLPolicies:
 			policy := changeObject(change).(*structs.ACLPolicy)
 			tokens, err := aclTokenListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
 			if err != nil {

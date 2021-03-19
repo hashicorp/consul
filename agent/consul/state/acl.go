@@ -228,11 +228,7 @@ func (s *Restore) ACLToken(token *structs.ACLToken) error {
 
 // ACLPolicies is used when saving a snapshot
 func (s *Snapshot) ACLPolicies() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-policies", "id")
-	if err != nil {
-		return nil, err
-	}
-	return iter, nil
+	return s.tx.Get(tableACLPolicies, indexID)
 }
 
 func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
@@ -1162,7 +1158,8 @@ func aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) error {
 	}
 
 	// ensure the name is unique (cannot conflict with another policy with a different ID)
-	_, nameMatch, err := aclPolicyGetByName(tx, policy.Name, &policy.EnterpriseMeta)
+	q := Query{Value: policy.Name, EnterpriseMeta: policy.EnterpriseMeta}
+	nameMatch, err := tx.First(tableACLPolicies, indexName, q)
 	if err != nil {
 		return err
 	}
@@ -1195,6 +1192,15 @@ func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string, entMeta *stru
 	return s.aclPolicyGet(ws, name, aclPolicyGetByName, entMeta)
 }
 
+func aclPolicyGetByName(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+	// todo: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: name, EnterpriseMeta: *entMeta}
+	return tx.FirstWatch(tableACLPolicies, indexName, q)
+}
+
 func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -1212,8 +1218,8 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 	}
 
 	// We are specifically not wanting to call aclPolicyMaxIndex here as we always want the
-	// index entry for the "acl-policies" table.
-	idx := maxIndexTxn(tx, "acl-policies")
+	// index entry for the tableACLPolicies table.
+	idx := maxIndexTxn(tx, tableACLPolicies)
 
 	return idx, policies, nil
 }
@@ -1252,7 +1258,7 @@ func (s *Store) ACLPolicyList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := aclPolicyList(tx, entMeta)
+	iter, err := tx.Get(tableACLPolicies, indexName+"_prefix", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
