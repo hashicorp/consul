@@ -150,7 +150,7 @@ table=services
   index=connect allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.IndexConnectService
   index=id unique
-    indexer=github.com/hashicorp/go-memdb.CompoundIndex Indexes=[github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true, github.com/hashicorp/go-memdb.StringFieldIndex Field=ServiceID Lowercase=true] AllowMissing=false
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingleWithPrefix readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeServiceQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromServiceNode prefixIndex=github.com/hashicorp/consul/agent/consul/state.prefixIndexFromQuery
   index=kind
     indexer=github.com/hashicorp/consul/agent/consul/state.IndexServiceKind
   index=node

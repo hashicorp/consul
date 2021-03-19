@@ -87,6 +87,37 @@ func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func indexFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.Node))
+	b.String(strings.ToLower(n.ServiceID))
+	return b.Bytes(), nil
+}
+
+func prefixIndexFromQuery(arg interface{}) ([]byte, error) {
+	var b indexBuilder
+	switch v := arg.(type) {
+	case *structs.EnterpriseMeta:
+		return nil, nil
+	case structs.EnterpriseMeta:
+		return nil, nil
+	case Query:
+		b.String(strings.ToLower(v.Value))
+		return b.Bytes(), nil
+	}
+
+	return nil, fmt.Errorf("unexpected type %T for NodeServiceQuery prefix index", arg)
+}
+
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
 }
@@ -168,8 +199,8 @@ func catalogServiceKindMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.Serv
 	return maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind, nil))
 }
 
-func catalogServiceList(tx ReadTxn, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
-	return tx.Get("services", "id")
+func catalogServiceListNoWildcard(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	return tx.Get(tableServices, indexID)
 }
 
 func catalogServiceListByKind(tx ReadTxn, kind structs.ServiceKind, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
