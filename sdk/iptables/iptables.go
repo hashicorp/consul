@@ -30,20 +30,6 @@ type Config struct {
 	// ProxyUserID is the user ID of the proxy process.
 	ProxyUserID string
 
-	// ExcludeInboundPorts is the list of ports that should be excluded
-	// from inbound traffic redirection.
-	ExcludeInboundPorts []string
-	// ExcludeOutboundPorts is the list of ports that should be excluded
-	// from outbound traffic redirection.
-	ExcludeOutboundPorts []string
-	// ExcludeOutboundCIDRs is the list of IP CIDRs that should be excluded
-	// from outbound traffic redirection.
-	ExcludeOutboundCIDRs []string
-
-	// NetNS is the network namespace where the iptables commands
-	// should be applied.
-	NetNS string
-
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
 }
