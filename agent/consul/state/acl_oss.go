@@ -66,7 +66,11 @@ func multiIndexPolicyFromACLRole(raw interface{}) ([][]byte, error) {
 
 	vals := make([][]byte, 0, count)
 	for _, link := range role.Policies {
-		vals = append(vals, []byte(strings.ToLower(link.ID)+"\x00"))
+		v, err := uuidStringToBytes(link.ID)
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, v)
 	}
 
 	return vals, nil
