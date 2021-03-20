@@ -590,6 +590,9 @@ type ServiceConfigRequest struct {
 	// MeshGateway contains the mesh gateway configuration from the requesting proxy's registration
 	MeshGateway MeshGatewayConfig
 
+	// TransparentProxy indicates whether the requesting proxy is in transparent proxy mode
+	TransparentProxy bool
+
 	UpstreamIDs []ServiceID
 
 	// DEPRECATED
