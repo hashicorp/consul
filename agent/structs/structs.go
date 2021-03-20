@@ -1153,6 +1153,11 @@ func (s *NodeService) Validate() error {
 				"Proxy.DestinationServiceName must be non-empty for Connect proxy "+
 					"services"))
 		}
+		if strings.TrimSpace(s.Proxy.DestinationServiceName) == WildcardSpecifier {
+			result = multierror.Append(result, fmt.Errorf(
+				"Proxy.DestinationServiceName must not be a wildcard for Connect proxy "+
+					"services"))
+		}
 
 		if s.Port == 0 {
 			result = multierror.Append(result, fmt.Errorf(
