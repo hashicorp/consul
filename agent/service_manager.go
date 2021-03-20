@@ -250,7 +250,7 @@ func (w *serviceConfigWatch) runWatch(ctx context.Context, wg *sync.WaitGroup, u
 	}
 }
 
-// handleUpdate receives an update event the global config defaults, updates
+// handleUpdate receives an update event from the global config defaults, updates
 // the local state and re-registers the service with the newly merged config.
 //
 // NOTE: the caller must NOT hold the Agent.stateLock!
