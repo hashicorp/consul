@@ -769,6 +769,24 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			"upstreams cannot contain duplicates",
 		},
 		{
+			"connect-proxy: Centrally configured upstreams can have duplicate ip/port",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType:     UpstreamDestTypeService,
+						DestinationName:     "foo",
+						CentrallyConfigured: true,
+					},
+					{
+						DestinationType:     UpstreamDestTypeService,
+						DestinationName:     "bar",
+						CentrallyConfigured: true,
+					},
+				}
+			},
+			"",
+		},
+		{
 			"connect-proxy: Upstreams duplicated by ip and port",
 			func(x *NodeService) {
 				x.Proxy.Upstreams = Upstreams{
