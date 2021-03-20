@@ -410,13 +410,14 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			upstreamIDs := args.UpstreamIDs
 			legacyUpstreams := false
 
-			// Before Consul namespaces were released, the Upstreams provided to the endpoint did not contain the namespace.
-			// Because of this we attach the enterprise meta of the request, which will just be the default namespace.
-			if len(upstreamIDs) == 0 {
+			// The request is considered legacy if the deprecated args.Upstream was used
+			if len(upstreamIDs) == 0 && len(args.Upstreams) > 0 {
 				legacyUpstreams = true
 
 				upstreamIDs = make([]structs.ServiceID, 0)
 				for _, upstream := range args.Upstreams {
+					// Before Consul namespaces were released, the Upstreams provided to the endpoint did not contain the namespace.
+					// Because of this we attach the enterprise meta of the request, which will just be the default namespace.
 					sid := structs.NewServiceID(upstream, &args.EnterpriseMeta)
 					upstreamIDs = append(upstreamIDs, sid)
 				}
