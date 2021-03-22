@@ -325,8 +325,8 @@ type upstreamDownstream struct {
 	structs.RaftIndex
 }
 
-// NodeCheckID is used to query the ID index of the checks table.
-type NodeCheckID struct {
+// NodeCheckQuery is used to query the ID index of the checks table.
+type NodeCheckQuery struct {
 	Node    string
 	CheckID string
 	structs.EnterpriseMeta

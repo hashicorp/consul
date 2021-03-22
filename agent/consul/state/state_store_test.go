@@ -163,7 +163,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First(tableChecks, indexID, NodeCheckID{Node: nodeID, CheckID: string(checkID)})
+	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

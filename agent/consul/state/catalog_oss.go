@@ -120,9 +120,9 @@ func indexFromHealthCheck(raw interface{}) ([]byte, error) {
 }
 
 func indexFromNodeCheckID(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(NodeCheckID)
+	hc, ok := raw.(NodeCheckQuery)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for NodeCheckID index", raw)
+		return nil, fmt.Errorf("unexpected type %T for NodeCheckQuery index", raw)
 	}
 
 	if hc.Node == "" || hc.CheckID == "" {

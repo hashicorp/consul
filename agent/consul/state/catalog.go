@@ -194,7 +194,7 @@ func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWi
 		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
 			// Look up the existing node's Serf health check to see if it's failed.
 			// If it is, the node can be renamed.
-			enodeCheck, err := tx.First(tableChecks, indexID, NodeCheckID{EnterpriseMeta: *structs.DefaultEnterpriseMeta(), Node: enode.Node, CheckID: string(structs.SerfCheckID)})
+			enodeCheck, err := tx.First(tableChecks, indexID, NodeCheckQuery{EnterpriseMeta: *structs.DefaultEnterpriseMeta(), Node: enode.Node, CheckID: string(structs.SerfCheckID)})
 			if err != nil {
 				return fmt.Errorf("Cannot get status of node %s: %s", enode.Node, err)
 			}
@@ -1470,7 +1470,7 @@ func (s *Store) ensureCheckCASTxn(tx WriteTxn, idx uint64, hc *structs.HealthChe
 // checks with no matching node or service.
 func (s *Store) ensureCheckTxn(tx WriteTxn, idx uint64, preserveIndexes bool, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
-	existing, err := tx.First(tableChecks, indexID, NodeCheckID{EnterpriseMeta: hc.EnterpriseMeta, Node: hc.Node, CheckID: string(hc.CheckID)})
+	existing, err := tx.First(tableChecks, indexID, NodeCheckQuery{EnterpriseMeta: hc.EnterpriseMeta, Node: hc.Node, CheckID: string(hc.CheckID)})
 	if err != nil {
 		return fmt.Errorf("failed health check lookup: %s", err)
 	}
@@ -1583,7 +1583,7 @@ func getNodeCheckTxn(tx ReadTxn, nodeName string, checkID types.CheckID, entMeta
 	}
 
 	// Return the check.
-	check, err := tx.First(tableChecks, indexID, NodeCheckID{EnterpriseMeta: *entMeta, Node: nodeName, CheckID: string(checkID)})
+	check, err := tx.First(tableChecks, indexID, NodeCheckQuery{EnterpriseMeta: *entMeta, Node: nodeName, CheckID: string(checkID)})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1809,7 +1809,7 @@ func (s *Store) deleteCheckTxn(tx WriteTxn, idx uint64, node string, checkID typ
 	}
 
 	// Try to retrieve the existing health check.
-	hc, err := tx.First(tableChecks, indexID, NodeCheckID{EnterpriseMeta: *entMeta, Node: node, CheckID: string(checkID)})
+	hc, err := tx.First(tableChecks, indexID, NodeCheckQuery{EnterpriseMeta: *entMeta, Node: node, CheckID: string(checkID)})
 	if err != nil {
 		return fmt.Errorf("check lookup failed: %s", err)
 	}
