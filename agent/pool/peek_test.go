@@ -201,22 +201,14 @@ func generateTestCert(serverName string) (cert tls.Certificate, caPEM []byte, er
 		return tls.Certificate{}, nil, err
 	}
 
-	// generate leaf
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return tls.Certificate{}, nil, err
-	}
-
-	certificate, privateKey, err := tlsutil.GenerateCert(
-		signer,
-		ca,
-		serial,
-		"Test Cert Name",
-		365,
-		[]string{serverName},
-		nil,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-	)
+	certificate, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	})
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
