@@ -209,6 +209,11 @@ models:
       VerboseOIDCLogging: Verbose OIDC logging
       ClaimMappings: Claim Mappings
       ListClaimMappings: List Claim Mappings
+  binding-rule:
+      BindType: Type
+      Description: Description
+      Selector: Selector
+
 
 
 

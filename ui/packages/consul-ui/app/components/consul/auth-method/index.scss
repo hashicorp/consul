@@ -1,9 +1,36 @@
+// List
 .consul-consul-auth-method-view-list ul {
   .locality::before {
     @extend %with-public-default-mask, %as-pseudo;
     margin-right: 4px;
   }
 }
+
+%definition-list {
+  display: flex;
+    flex-wrap: wrap;
+    > dt:last-of-type,
+    > dd:last-of-type {
+      border-bottom: 1px solid var(--gray-300) !important;
+    }
+    dt, dd {
+      padding: 12px 0;
+      margin: 0;
+      border-top: 1px solid var(--gray-300) !important;
+      color: $black !important;
+    }
+    dt {
+      width: 20%;
+      font-weight: $typo-weight-bold;
+    }
+    dd {
+      margin-left: auto;
+      width: 80%;
+      display: flex;
+    }
+}
+
+// View
 .consul-auth-method-view {
   margin-bottom: 32px;
   > hr {
@@ -32,27 +59,7 @@
   }
   dl,
   section dl {
-    display: flex;
-    flex-wrap: wrap;
-    > dt:last-of-type,
-    > dd:last-of-type {
-      border-bottom: 1px solid var(--gray-300) !important;
-    }
-    dt, dd {
-      padding: 12px 0;
-      margin: 0;
-      border-top: 1px solid var(--gray-300) !important;
-      color: $black !important;
-    }
-    dt {
-      width: 20%;
-      font-weight: $typo-weight-bold;
-    }
-    dd {
-      margin-left: auto;
-      width: 80%;
-      display: flex;
-    }
+    @extend %definition-list;
     dd > ul li {
       display: flex;
     }
@@ -71,4 +78,24 @@
     }
   }
 }
+
+// Binding View
+.consul-auth-method-binding-view {
+  br {
+    display: block;
+    content: "";
+    margin-top: 4px;
+  }
+  > hr {
+    background-color: var(--gray-200);
+  }
+  h2 {
+    @extend %h200;
+    padding-bottom: 12px;
+  }
+  dl {
+    @extend %definition-list;
+  }
+}
+
 
