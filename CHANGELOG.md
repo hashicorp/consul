@@ -196,6 +196,7 @@ BUG FIXES:
 * agent: make the json/hcl decoding of ConnectProxyConfig fully work with CamelCase and snake_case [[GH-8741](https://github.com/hashicorp/consul/issues/8741)]
 * agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
 * api: Fixed a bug where the Check.GRPCUseTLS field could not be set using snake case. [[GH-8771](https://github.com/hashicorp/consul/issues/8771)]
+* api: Fixed a bug where additional headers configured with `http_config.response_headers` would not be served on index and error pages [[GH-8694](https://github.com/hashicorp/consul/pull/8694/files#diff-160c9abf1b1868a8505065ab02d736fd2dc522a7a555d57383e8428883dc7755R545-R548)]
 * autopilot: **(Enterprise Only)** Previously servers in other zones would not be promoted when all servers in a second zone had failed. Now the actual behavior matches the docs and autopilot will promote a healthy non-voter from any zone to replace failure of an entire zone. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
 * autopilot: Prevent panic when requesting the autopilot health immediately after a leader is elected. [[GH-9204](https://github.com/hashicorp/consul/issues/9204)]
 * command: when generating envoy bootstrap configs use the datacenter returned from the agent services endpoint [[GH-9229](https://github.com/hashicorp/consul/issues/9229)]
