@@ -98,13 +98,14 @@ func TestGenerateCert(t *testing.T) {
 	ca, _, err := GenerateCA(CAOpts{Signer: signer})
 	require.Nil(t, err)
 
-	sn, err := GenerateSerialNumber()
-	require.Nil(t, err)
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}
 	extKeyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	name := "Cert Name"
-	certificate, pk, err := GenerateCert(signer, ca, sn, name, 365, DNSNames, IPAddresses, extKeyUsage)
+	certificate, pk, err := GenerateCert(CertOpts{
+		Signer: signer, CA: ca, Name: name, Days: 365,
+		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: extKeyUsage,
+	})
 	require.Nil(t, err)
 	require.NotEmpty(t, certificate)
 	require.NotEmpty(t, pk)
