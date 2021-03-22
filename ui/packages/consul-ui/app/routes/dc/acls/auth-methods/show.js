@@ -4,16 +4,25 @@ import { hash } from 'rsvp';
 
 export default class ShowRoute extends SingleRoute {
   @service('repository/auth-method') repo;
+  @service('repository/binding-rule') bindingRuleRepo;
 
   model(params) {
+    const dc = this.modelFor('dc').dc;
+    const nspace = this.modelFor('nspace').nspace.substr(1);
+
     return super.model(...arguments).then(model => {
       return hash({
         ...model,
         ...{
           item: this.repo.findBySlug({
             id: params.id,
-            dc: this.modelFor('dc').dc.Name,
-            ns: this.modelFor('nspace').nspace.substr(1),
+            dc: dc.Name,
+            ns: nspace,
+          }),
+          bindingRules: this.bindingRuleRepo.findAllByDatacenter({
+            ns: nspace,
+            dc: dc.Name,
+            authmethod: params.id,
           }),
         },
       });
