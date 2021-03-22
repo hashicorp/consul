@@ -15,32 +15,24 @@ import (
 )
 
 func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
-	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
-	if err != nil {
-		return "", "", "", err
-	}
-
-	// generate leaf
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-
 	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return "", "", "", err
 	}
 
-	cert, privateKey, err := tlsutil.GenerateCert(
-		signer,
-		ca,
-		serial,
-		"Test Cert Name",
-		365,
-		[]string{serverName},
-		nil,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-	)
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	if err != nil {
+		return "", "", "", err
+	}
+
+	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	})
 	if err != nil {
 		return "", "", "", err
 	}
