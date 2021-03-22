@@ -45,12 +45,12 @@ type CAOpts struct {
 }
 
 type CertOpts struct {
-	Signer crypto.Signer
-	CA string
-	Serial *big.Int
-	Name string
-	Days int
-	DNSNames []string
+	Signer      crypto.Signer
+	CA          string
+	Serial      *big.Int
+	Name        string
+	Days        int
+	DNSNames    []string
 	IPAddresses []net.IP
 	ExtKeyUsage []x509.ExtKeyUsage
 }

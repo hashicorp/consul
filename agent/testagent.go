@@ -572,20 +572,13 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 		return "", "", "", err
 	}
 
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-
 	cert, privateKey, err := tlsutil.GenerateCert(tlsutil.CertOpts{
-		signer,
-		ca,
-		serial,
-		"Test Cert Name",
-		365,
-		[]string{serverName},
-		nil,
-		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		Signer:      signer,
+		CA:          ca,
+		Name:        "Test Cert Name",
+		Days:        365,
+		DNSNames:    []string{serverName},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	})
 	if err != nil {
 		return "", "", "", err
