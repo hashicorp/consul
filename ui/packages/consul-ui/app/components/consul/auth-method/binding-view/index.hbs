@@ -8,12 +8,12 @@
   {{#each @items as |item|}}
   <h2>{{item.BindName}}</h2>
   <dl>
-  {{#each (array "BindType" "Selector" "Description") as |value|}}
-    {{#if (get item value)}}
-    <dt>{{t (concat "models.binding-rule." value)}}</dt>
-    <dd>{{get item value}}</dd>
-    {{/if}}
-  {{/each}}
+    <dt>{{t "models.binding-rule.BindType"}}</dt>
+    <dd>{{item.BindType}}</dd>
+    <dt>{{t "models.binding-rule.Selector"}}</dt>
+    <dd><code>{{item.Selector}}</code></dd>
+    <dt>{{t "models.binding-rule.Description"}}</dt>
+    <dd>{{item.Description}}</dd>
   </dl>
   <hr />
   {{/each}}

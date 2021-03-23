@@ -99,6 +99,10 @@
   dl {
     @extend %definition-list;
   }
+  code {
+    background-color: var(--gray-050);
+    padding: 0 12px;
+  }
 }
 
 
