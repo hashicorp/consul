@@ -16,7 +16,7 @@
             "ID": "${fake.random.uuid()}",
             "Description": "${fake.lorem.sentence()}",
             "AuthMethod": "${fake.hacker.noun()}-${i}",
-            "Selector": "${fake.hacker.noun()}",
+            "Selector": "serviceaccount.namespace==default and serviceaccount.name!=vault",
             "BindType": "${fake.helpers.randomize(['service', 'node', 'role'])}",
             "BindName": "${fake.hacker.noun()}-${i}",
             "Namespace": "${location.search.ns}",

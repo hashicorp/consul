@@ -1,3 +1,50 @@
+%definition-list {
+  display: flex;
+  flex-wrap: wrap;
+  > dt:last-of-type,
+  > dd:last-of-type {
+    border-bottom: 1px solid var(--gray-300) !important;
+  }
+  dt, dd {
+    padding: 12px 0;
+    margin: 0;
+    border-top: 1px solid var(--gray-300) !important;
+    color: $black !important;
+  }
+  dt {
+    width: 20%;
+    font-weight: $typo-weight-bold;
+  }
+  dd {
+    margin-left: auto;
+    width: 80%;
+    display: flex;
+  }
+  dd > ul li {
+    display: flex;
+  }
+  dd > ul li:not(:last-of-type) {
+    padding-bottom: 12px;
+  }
+  dd .copy-button button {
+    padding: 0 !important;
+    margin: 0 4px 0 0 !important;
+  }
+  dd .copy-button button::before {
+    background-color: $black;
+  }
+  dt.check + dd {
+    padding-top: 16px;
+  }
+}
+%hr {
+  background-color: var(--gray-200);
+}
+%h2 {
+  @extend %h200;
+  padding-bottom: 12px;
+}
+
 // List
 .consul-consul-auth-method-view-list ul {
   .locality::before {
@@ -6,35 +53,11 @@
   }
 }
 
-%definition-list {
-  display: flex;
-    flex-wrap: wrap;
-    > dt:last-of-type,
-    > dd:last-of-type {
-      border-bottom: 1px solid var(--gray-300) !important;
-    }
-    dt, dd {
-      padding: 12px 0;
-      margin: 0;
-      border-top: 1px solid var(--gray-300) !important;
-      color: $black !important;
-    }
-    dt {
-      width: 20%;
-      font-weight: $typo-weight-bold;
-    }
-    dd {
-      margin-left: auto;
-      width: 80%;
-      display: flex;
-    }
-}
-
 // View
 .consul-auth-method-view {
   margin-bottom: 32px;
   > hr {
-    background-color: var(--gray-200);
+    @extend %hr;
   }
   section {
     @extend %p1;
@@ -42,8 +65,7 @@
     position: relative;
     overflow-y: auto;
     h2 {
-      @extend %h200;
-      padding-bottom: 12px;
+      @extend %h2;
     }
     table {
       thead td {
@@ -60,38 +82,19 @@
   dl,
   section dl {
     @extend %definition-list;
-    dd > ul li {
-      display: flex;
-    }
-    dd > ul li:not(:last-of-type) {
-      padding-bottom: 12px;
-    }
-    dd .copy-button button {
-      padding: 0 !important;
-      margin: 0 4px 0 0 !important;
-    }
-    dd .copy-button button::before {
-      background-color: $black;
-    }
-    dt.check + dd {
-      padding-top: 16px;
-    }
   }
 }
 
 // Binding View
 .consul-auth-method-binding-view {
-  br {
-    display: block;
-    content: "";
-    margin-top: 4px;
+  p {
+    margin-bottom: 4px !important;
   }
   > hr {
-    background-color: var(--gray-200);
+    @extend %hr;
   }
   h2 {
-    @extend %h200;
-    padding-bottom: 12px;
+    @extend %h2;
   }
   dl {
     @extend %definition-list;

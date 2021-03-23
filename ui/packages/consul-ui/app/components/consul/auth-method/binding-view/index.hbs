@@ -1,7 +1,9 @@
 <div class="consul-auth-method-binding-view">
 {{#if (gt @items.length 0)}}
-  <p>Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.<br>
-Successful authentication with an auth method returns a set of trusted identity attributes corresponding to the authenticated identity. Those attributes are matched against all configured binding rules for that auth method to determine what privileges to grant the the Consul ACL token it will ultimately create.</p>
+  <p>Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
+  </p>
+  <p>Successful authentication with an auth method returns a set of trusted identity attributes corresponding to the authenticated identity. Those attributes are matched against all configured binding rules for that auth method to determine what privileges to grant the Consul ACL token it will ultimately create.
+  </p>
   <hr />
   {{#each @items as |item|}}
   <h2>{{item.BindName}}</h2>
