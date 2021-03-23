@@ -11,18 +11,4 @@ export default class BindingRuleAdapter extends Adapter {
       }}
     `;
   }
-
-  requestForQueryRecord(request, { dc, ns, index, id }) {
-    if (typeof id === 'undefined') {
-      throw new Error('You must specify an id');
-    }
-    return request`
-      GET /v1/acl/binding-rule/${id}?${{ dc }}
-
-      ${{
-        ...this.formatNspace(ns),
-        index,
-      }}
-    `;
-  }
 }
