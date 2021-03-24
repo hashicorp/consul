@@ -123,17 +123,10 @@ func checksTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "CheckID",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromNodeCheckID),
+					prefixIndex: prefixIndex(prefixIndexFromQuery),
+					writeIndex:  writeIndex(indexFromHealthCheck),
 				},
 			},
 			indexStatus: {
@@ -330,4 +323,11 @@ type upstreamDownstream struct {
 	Refs map[string]struct{}
 
 	structs.RaftIndex
+}
+
+// NodeCheckQuery is used to query the ID index of the checks table.
+type NodeCheckQuery struct {
+	Node    string
+	CheckID string
+	structs.EnterpriseMeta
 }

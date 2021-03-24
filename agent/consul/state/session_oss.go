@@ -5,9 +5,10 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-memdb"
 )
 
 func sessionIndexer() *memdb.UUIDFieldIndex {
@@ -107,7 +108,7 @@ func sessionMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
 func validateSessionChecksTxn(tx *txn, session *structs.Session) error {
 	// Go over the session checks and ensure they exist.
 	for _, checkID := range session.CheckIDs() {
-		check, err := tx.First("checks", "id", session.Node, string(checkID))
+		check, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: session.Node, CheckID: string(checkID)})
 		if err != nil {
 			return fmt.Errorf("failed check lookup: %s", err)
 		}

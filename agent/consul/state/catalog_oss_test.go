@@ -2,10 +2,40 @@
 
 package state
 
-import "github.com/hashicorp/consul/agent/structs"
+import (
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func testIndexerTableChecks() map[string]indexerTestCase {
+	obj := &structs.HealthCheck{
+		Node:      "NoDe",
+		ServiceID: "SeRvIcE",
+		CheckID:   "CheckID",
+	}
 	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: NodeCheckQuery{
+					Node:    "NoDe",
+					CheckID: "CheckId",
+				},
+				expected: []byte("node\x00checkid\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("node\x00checkid\x00"),
+			},
+			prefix: []indexValue{
+				{
+					source:   structs.EnterpriseMeta{},
+					expected: nil,
+				},
+				{
+					source:   Query{Value: "nOdE"},
+					expected: []byte("node\x00"),
+				},
+			},
+		},
 		indexNodeService: {
 			read: indexValue{
 				source: NodeServiceQuery{
@@ -15,10 +45,7 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 				expected: []byte("node\x00service\x00"),
 			},
 			write: indexValue{
-				source: &structs.HealthCheck{
-					Node:      "NoDe",
-					ServiceID: "SeRvIcE",
-				},
+				source:   obj,
 				expected: []byte("node\x00service\x00"),
 			},
 		},
@@ -30,10 +57,7 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 				expected: []byte("node\x00"),
 			},
 			write: indexValue{
-				source: &structs.HealthCheck{
-					Node:      "NoDe",
-					ServiceID: "SeRvIcE",
-				},
+				source:   obj,
 				expected: []byte("node\x00"),
 			},
 		},

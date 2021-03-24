@@ -48,7 +48,7 @@ table=autopilot-config
 
 table=checks
   index=id unique
-    indexer=github.com/hashicorp/go-memdb.CompoundIndex Indexes=[github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true, github.com/hashicorp/go-memdb.StringFieldIndex Field=CheckID Lowercase=true] AllowMissing=false
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingleWithPrefix readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeCheckID writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromHealthCheck prefixIndex=github.com/hashicorp/consul/agent/consul/state.prefixIndexFromQuery
   index=node allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeIdentity
   index=node_service allow-missing

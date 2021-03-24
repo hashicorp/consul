@@ -3,8 +3,9 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func firstWithTxn(tx ReadTxn,
@@ -17,11 +18,6 @@ func firstWatchWithTxn(tx ReadTxn,
 	table, index, idxVal string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 
 	return tx.FirstWatch(table, index, idxVal)
-}
-
-func firstWatchCompoundWithTxn(tx ReadTxn,
-	table, index string, _ *structs.EnterpriseMeta, idxVals ...interface{}) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch(table, index, idxVals...)
 }
 
 func getWithTxn(tx ReadTxn,
