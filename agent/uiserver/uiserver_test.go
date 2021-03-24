@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/net/html"
-
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/html"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -359,4 +359,57 @@ func TestCompiledJS(t *testing.T) {
 		})
 	}
 
+}
+
+func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
+	cfg := basicUIEnabledConfig()
+
+	value := "seeds"
+	transform := func(data map[string]interface{}) error {
+		data["apple"] = value
+		return nil
+	}
+	h := NewHandler(cfg, hclog.New(nil), transform)
+
+	t.Run("initial request", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		expected := `{
+		"ACLsEnabled": false,
+		"LocalDatacenter": "dc1",
+		"ContentPath": "/ui/",
+		"UIConfig": {
+			"metrics_provider": "",
+			"metrics_proxy_enabled": false,
+			"dashboard_url_templates": null
+		},
+		"apple": "seeds"
+	}`
+		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
+	})
+
+	t.Run("transform value has changed", func(t *testing.T) {
+
+		value = "plant"
+		req := httptest.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		expected := `{
+			"ACLsEnabled": false,
+			"LocalDatacenter": "dc1",
+			"ContentPath": "/ui/",
+			"UIConfig": {
+				"metrics_provider": "",
+				"metrics_proxy_enabled": false,
+				"dashboard_url_templates": null
+			},
+			"apple": "plant"
+		}`
+		require.JSONEq(t, expected, extractUIConfig(t, rec.Body.String()))
+	})
 }
