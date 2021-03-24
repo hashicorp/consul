@@ -14,6 +14,7 @@ export default class AuthMethod extends Model {
   @attr('string', { defaultValue: () => '' }) DisplayName;
   @attr('string', { defaultValue: () => 'local' }) TokenLocality;
   @attr('string') Type;
+  @attr() NamespaceRules;
   @or('DisplayName', 'Name') MethodName;
   @attr() Config;
   @attr('string') MaxTokenTTL;

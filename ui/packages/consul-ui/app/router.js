@@ -199,6 +199,9 @@ export const routes = {
           'binding-rules': {
             _options: { path: '/binding-rules' },
           },
+          'namespace-rules': {
+            _options: { path: '/namespace-rules' },
+          },
         },
       },
     },
