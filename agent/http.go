@@ -288,7 +288,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		uiHandler := uiserver.NewHandler(
 			s.agent.config,
 			s.agent.logger.Named(logging.HTTP),
-			s.uiTemplateDataTransform(),
+			s.uiTemplateDataTransform,
 		)
 		s.configReloaders = append(s.configReloaders, uiHandler.ReloadConfig)
 
@@ -298,10 +298,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			uiHandler,
 			s.agent.config.HTTPResponseHeaders,
 		)
-		mux.Handle(
-			"/robots.txt",
-			uiHandlerWithHeaders,
-		)
+		mux.Handle("/robots.txt", uiHandlerWithHeaders)
 		mux.Handle(
 			s.agent.config.UIConfig.ContentPath,
 			http.StripPrefix(

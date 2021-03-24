@@ -13,9 +13,10 @@ import (
 
 	"golang.org/x/net/html"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUIServerIndex(t *testing.T) {
@@ -105,7 +106,7 @@ func TestUIServerIndex(t *testing.T) {
 				withMetricsProvider("foo"),
 			),
 			path: "/",
-			tx: func(cfg *config.RuntimeConfig, data map[string]interface{}) error {
+			tx: func(data map[string]interface{}) error {
 				data["SSOEnabled"] = true
 				o := data["UIConfig"].(map[string]interface{})
 				o["metrics_provider"] = "bar"
