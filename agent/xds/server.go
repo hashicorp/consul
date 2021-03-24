@@ -243,9 +243,14 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 		},
 	}
 
+	var authCheckFrequency = s.AuthCheckFrequency
+	if authCheckFrequency == 0 {
+		authCheckFrequency = DefaultAuthCheckFrequency
+	}
+
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
-		authTimer = time.After(s.AuthCheckFrequency)
+		authTimer = time.After(authCheckFrequency)
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {

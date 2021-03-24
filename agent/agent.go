@@ -654,9 +654,8 @@ func (a *Agent) listenAndServeGRPC() error {
 		ResolveToken: func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
-		CheckFetcher:       a,
-		CfgFetcher:         a,
-		AuthCheckFrequency: xds.DefaultAuthCheckFrequency,
+		CheckFetcher: a,
+		CfgFetcher:   a,
 	}
 
 	tlsConfig := a.tlsConfigurator
