@@ -151,9 +151,10 @@ func rolesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromQuery),
+					writeIndex:  writeIndex(indexNameFromACLRole),
+					prefixIndex: prefixIndex(prefixIndexFromQuery),
 				},
 			},
 			indexPolicies: {
@@ -161,7 +162,10 @@ func rolesTableSchema() *memdb.TableSchema {
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &RolePoliciesIndex{},
+				Indexer: indexerMulti{
+					readIndex:       readIndex(indexFromUUIDQuery),
+					writeIndexMulti: writeIndexMulti(multiIndexPolicyFromACLRole),
+				},
 			},
 		},
 	}

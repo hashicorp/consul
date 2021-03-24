@@ -18,9 +18,9 @@ table=acl-roles
   index=id unique
     indexer=github.com/hashicorp/go-memdb.UUIDFieldIndex Field=ID
   index=name unique
-    indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Name Lowercase=true
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingleWithPrefix readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexNameFromACLRole prefixIndex=github.com/hashicorp/consul/agent/consul/state.prefixIndexFromQuery
   index=policies allow-missing
-    indexer=github.com/hashicorp/consul/agent/consul/state.RolePoliciesIndex
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerMulti readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromUUIDQuery writeIndexMulti=github.com/hashicorp/consul/agent/consul/state.multiIndexPolicyFromACLRole
 
 table=acl-tokens
   index=accessor unique allow-missing

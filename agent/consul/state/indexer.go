@@ -107,6 +107,13 @@ func (b *indexBuilder) String(v string) {
 	(*bytes.Buffer)(b).WriteString(null)
 }
 
+// Raw appends the bytes without a null terminator to the buffer. Raw should
+// only be used when v has a fixed length, or when building the last segment of
+// a prefix index.
+func (b *indexBuilder) Raw(v []byte) {
+	(*bytes.Buffer)(b).Write(v)
+}
+
 func (b *indexBuilder) Bytes() []byte {
 	return (*bytes.Buffer)(b).Bytes()
 }

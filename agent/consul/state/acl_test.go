@@ -4082,7 +4082,7 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, roles, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-roles"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLRoles))
 	}()
 }
 

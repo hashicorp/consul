@@ -28,13 +28,6 @@ const (
 	minUUIDLookupLen = 2
 )
 
-// Query is a type used to query any single value index that may include an
-// enterprise identifier.
-type Query struct {
-	Value string
-	structs.EnterpriseMeta
-}
-
 func resizeNodeLookupKey(s string) string {
 	l := len(s)
 
