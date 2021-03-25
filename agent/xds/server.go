@@ -7,13 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/logging"
-
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -180,8 +178,6 @@ const (
 )
 
 func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.DiscoveryRequest) error {
-	logger := s.Logger.Named(logging.XDS)
-
 	// xDS requires a unique nonce to correlate response/request pairs
 	var nonce uint64
 
@@ -194,14 +190,19 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 
 	// Loop state
 	var (
-		cfgSnap       *proxycfg.ConfigSnapshot
-		req           *envoy_discovery_v3.DiscoveryRequest
-		node          *envoy_config_core_v3.Node
-		proxyFeatures supportedProxyFeatures
-		ok            bool
-		stateCh       <-chan *proxycfg.ConfigSnapshot
-		watchCancel   func()
-		proxyID       structs.ServiceID
+		cfgSnap     *proxycfg.ConfigSnapshot
+		req         *envoy_discovery_v3.DiscoveryRequest
+		node        *envoy_config_core_v3.Node
+		ok          bool
+		stateCh     <-chan *proxycfg.ConfigSnapshot
+		watchCancel func()
+		proxyID     structs.ServiceID
+	)
+
+	g := newResourceGenerator(
+		s.Logger.Named(logging.XDS),
+		s.CheckFetcher,
+		s.CfgFetcher,
 	)
 
 	// need to run a small state machine to get through initial authentication.
@@ -210,13 +211,13 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	// Configure handlers for each type of request
 	handlers := map[string]*xDSType{
 		EndpointType: {
+			generator: g,
 			typeURL:   EndpointType,
-			resources: s.endpointsFromSnapshot,
 			stream:    stream,
 		},
 		ClusterType: {
+			generator: g,
 			typeURL:   ClusterType,
-			resources: s.clustersFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
@@ -227,16 +228,16 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			},
 		},
 		RouteType: {
+			generator: g,
 			typeURL:   RouteType,
-			resources: s.routesFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				return cfgSnap.Kind == structs.ServiceKindIngressGateway
 			},
 		},
 		ListenerType: {
+			generator: g,
 			typeURL:   ListenerType,
-			resources: s.listenersFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				return cfgSnap.Kind == structs.ServiceKindIngressGateway
@@ -282,14 +283,14 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				proxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				g.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				handler.Recv(req, node, proxyFeatures)
+				handler.Recv(req, node)
 			}
 		case cfgSnap = <-stateCh:
 			// We got a new config, update the version counter
@@ -316,7 +317,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// state machine.
 			defer watchCancel()
 
-			logger.Trace("watching proxy, pending initial proxycfg snapshot",
+			g.Logger.Trace("watching proxy, pending initial proxycfg snapshot",
 				"service_id", proxyID.String())
 
 			// Now wait for the config so we can check ACL
@@ -330,7 +331,18 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// Got config, try to authenticate next.
 			state = stateRunning
 
-			logger.Trace("Got initial config snapshot",
+			// Upgrade the logger based on Kind.
+			switch cfgSnap.Kind {
+			case structs.ServiceKindConnectProxy:
+			case structs.ServiceKindTerminatingGateway:
+				g.Logger = g.Logger.Named(logging.TerminatingGateway)
+			case structs.ServiceKindMeshGateway:
+				g.Logger = g.Logger.Named(logging.MeshGateway)
+			case structs.ServiceKindIngressGateway:
+				g.Logger = g.Logger.Named(logging.IngressGateway)
+			}
+
+			g.Logger.Trace("Got initial config snapshot",
 				"service_id", cfgSnap.ProxyID.String())
 
 			// Lets actually process the config we just got or we'll mis responding
@@ -344,7 +356,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// timer is first started.
 			extendAuthTimer()
 
-			logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
+			g.Logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
 				"service_id", cfgSnap.ProxyID.String())
 
 			// See if any handlers need to have the current (possibly new) config
@@ -368,12 +380,12 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 }
 
 type xDSType struct {
-	typeURL       string
-	stream        ADSStream
-	req           *envoy_discovery_v3.DiscoveryRequest
-	node          *envoy_config_core_v3.Node
-	proxyFeatures supportedProxyFeatures
-	lastNonce     string
+	generator *ResourceGenerator
+	typeURL   string
+	stream    ADSStream
+	req       *envoy_discovery_v3.DiscoveryRequest
+	node      *envoy_config_core_v3.Node
+	lastNonce string
 	// lastVersion is the version that was last sent to the proxy. It is needed
 	// because we don't want to send the same version more than once.
 	// req.VersionInfo may be an older version than the most recent once sent in
@@ -382,21 +394,13 @@ type xDSType struct {
 	// last version we sent with a Nack then req.VersionInfo will be the older
 	// version it's hanging on to.
 	lastVersion  uint64
-	resources    func(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error)
 	allowEmptyFn func(cfgSnap *proxycfg.ConfigSnapshot) bool
 }
 
-// connectionInfo represents details specific to this connection
-type connectionInfo struct {
-	Token         string
-	ProxyFeatures supportedProxyFeatures
-}
-
-func (t *xDSType) Recv(req *envoy_discovery_v3.DiscoveryRequest, node *envoy_config_core_v3.Node, proxyFeatures supportedProxyFeatures) {
+func (t *xDSType) Recv(req *envoy_discovery_v3.DiscoveryRequest, node *envoy_config_core_v3.Node) {
 	if t.lastNonce == "" || t.lastNonce == req.GetResponseNonce() {
 		t.req = req
 		t.node = node
-		t.proxyFeatures = proxyFeatures
 	}
 }
 
@@ -409,11 +413,7 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		return nil
 	}
 
-	cInfo := connectionInfo{
-		Token:         tokenFromContext(t.stream.Context()),
-		ProxyFeatures: t.proxyFeatures,
-	}
-	resources, err := t.resources(cInfo, cfgSnap)
+	resources, err := t.generator.resourcesFromSnapshot(t.typeURL, cfgSnap)
 	if err != nil {
 		return err
 	}

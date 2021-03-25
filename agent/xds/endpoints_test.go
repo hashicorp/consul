@@ -585,13 +585,10 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					s := Server{Logger: testutil.Logger(t)}
+					g := newResourceGenerator(testutil.Logger(t), nil, nil)
+					g.ProxyFeatures = sf
 
-					cInfo := connectionInfo{
-						Token:         "my-token",
-						ProxyFeatures: sf,
-					}
-					endpoints, err := s.endpointsFromSnapshot(cInfo, snap)
+					endpoints, err := g.endpointsFromSnapshot(snap)
 					require.NoError(t, err)
 
 					sort.Slice(endpoints, func(i, j int) bool {

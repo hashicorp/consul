@@ -661,13 +661,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					s := Server{Logger: testutil.Logger(t)}
+					g := newResourceGenerator(testutil.Logger(t), nil, nil)
+					g.ProxyFeatures = sf
 
-					cInfo := connectionInfo{
-						Token:         "my-token",
-						ProxyFeatures: sf,
-					}
-					clusters, err := s.clustersFromSnapshot(cInfo, snap)
+					clusters, err := g.clustersFromSnapshot(snap)
 					require.NoError(t, err)
 
 					sort.Slice(clusters, func(i, j int) bool {
