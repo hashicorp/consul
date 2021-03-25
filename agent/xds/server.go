@@ -255,38 +255,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
-		if cfgSnap == nil {
-			return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
-		}
-
-		rule, err := s.ResolveToken(tokenFromContext(stream.Context()))
-
-		if acl.IsErrNotFound(err) {
-			return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
-		} else if acl.IsErrPermissionDenied(err) {
-			return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
-		} else if err != nil {
-			return err
-		}
-
-		var authzContext acl.AuthorizerContext
-		switch cfgSnap.Kind {
-		case structs.ServiceKindConnectProxy:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		default:
-			return status.Errorf(codes.Internal, "Invalid service kind")
-		}
-
-		// Authed OK!
-		return nil
+		return s.checkStreamACLs(stream.Context(), cfgSnap)
 	}
 
 	for {
@@ -519,4 +488,39 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	}
 
 	return srv, nil
+}
+
+func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
+	if cfgSnap == nil {
+		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
+	}
+
+	rule, err := s.ResolveToken(tokenFromContext(streamCtx))
+
+	if acl.IsErrNotFound(err) {
+		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
+	} else if acl.IsErrPermissionDenied(err) {
+		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
+	} else if err != nil {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+			return status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
+		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+			return status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	default:
+		return status.Errorf(codes.Internal, "Invalid service kind")
+	}
+
+	// Authed OK!
+	return nil
 }
