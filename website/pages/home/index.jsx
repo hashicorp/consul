@@ -7,14 +7,15 @@ import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
 import HcpCalloutSection from 'components/hcp-callout-section'
 import MiniCTA from '../../components/mini-cta'
+import Callouts from '@hashicorp/react-callouts'
 
 export default function HomePage() {
   return (
     <div className="p-home">
       <BasicHero
         brand="consul"
-        heading="Service mesh for any runtime or cloud"
-        content="A service mesh platform to discover and securely connect any service on any runtime or cloud platform."
+        heading="Service Mesh for everyone"
+        content="Consul automates networking for simple and secure application delivery."
         links={[
           {
             text: 'Get Started',
@@ -32,6 +33,59 @@ export default function HomePage() {
           },
         ]}
         backgroundImage
+      />
+
+      <Callouts
+        layout="two-up"
+        heading="Consul Service Mesh"
+        centerHeading
+        brand="consul"
+        items={[
+          {
+            icon: function k8sIcon() {
+              return (
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: require('./img/why-consul/kubernetes.svg?include'),
+                  }}
+                />
+              )
+            },
+            heading: 'For Kubernetes',
+            content:
+              'some content goes here to explain why Consul and Kubernetes work so well together',
+            link: {
+              text: 'Get started',
+              url: 'https://www.consul.io/docs/k8s/installation/install',
+            },
+          },
+          {
+            icon: function k8sIcon() {
+              return (
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: require('./img/why-consul/kubernetes.svg?include'),
+                  }}
+                />
+              )
+            },
+            heading: 'For Kubernetes',
+            content:
+              'some content goes here to explain why Consul and Kubernetes work so well together',
+            link: {
+              text: 'Get started',
+              url: 'https://www.consul.io/docs/k8s/installation/install',
+            },
+          },
+        ]}
       />
 
       <ProductFeaturesList
