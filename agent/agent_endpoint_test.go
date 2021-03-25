@@ -3316,6 +3316,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					// there worked by inspecting the registered sidecar below.
 					SidecarService: nil,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
 
 			got := a.State.Service(structs.NewServiceID("test", nil))
@@ -3352,6 +3353,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						},
 					},
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
 			gotSidecar := a.State.Service(structs.NewServiceID("test-sidecar-proxy", nil))
 			hasNoCorrectTCPCheck := true
