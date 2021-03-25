@@ -36,6 +36,11 @@
   dt.check + dd {
     padding-top: 16px;
   }
+  dt.type + dd span::before {
+    @extend %with-info-circle-outline-mask, %as-pseudo;
+    margin-left: 4px;
+    background-color: var(--gray-500);
+  }
 }
 %hr {
   background-color: var(--gray-200);
