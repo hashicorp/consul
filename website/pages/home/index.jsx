@@ -13,8 +13,8 @@ export default function HomePage() {
     <div className="p-home">
       <BasicHero
         brand="consul"
-        heading="Service Networking Across Any Cloud"
-        content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
+        heading="Service mesh for any runtime or cloud"
+        content="A service mesh platform to discover and securely connect any service on any runtime or cloud platform."
         links={[
           {
             text: 'Get Started',
@@ -92,7 +92,8 @@ export default function HomePage() {
             title: 'Migrate to Microservices on Kubernetes',
             category: 'Step-by-Step Tutorials',
             time: '45 mins',
-            link: 'https://learn.hashicorp.com/collections/consul/microservices',
+            link:
+              'https://learn.hashicorp.com/collections/consul/microservices',
             image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
