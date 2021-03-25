@@ -129,13 +129,14 @@ type Server struct {
 	Logger       hclog.Logger
 	CfgMgr       ConfigManager
 	ResolveToken ACLResolverFunc
+	CheckFetcher HTTPCheckFetcher
+	CfgFetcher   ConfigFetcher
+
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
 	// This is only used during idle periods of stream interactions (i.e. when
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
-	CheckFetcher       HTTPCheckFetcher
-	CfgFetcher         ConfigFetcher
 
 	DisableV2Protocol bool
 }
