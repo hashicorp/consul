@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/uiserver"
 )
 
 func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.EnterpriseMeta) error {
@@ -71,6 +70,6 @@ func (s *HTTPHandlers) enterpriseHandler(next http.Handler) http.Handler {
 
 // uiTemplateDataTransform returns an optional uiserver.UIDataTransform to allow
 // altering UI data in enterprise.
-func (s *HTTPHandlers) uiTemplateDataTransform() uiserver.UIDataTransform {
+func (s *HTTPHandlers) uiTemplateDataTransform(data map[string]interface{}) error {
 	return nil
 }
