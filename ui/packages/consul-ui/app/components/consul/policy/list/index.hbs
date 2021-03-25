@@ -24,12 +24,7 @@ as |item|>
               {{join ', ' (policy/datacenters item)}}
           </dd>
         </dl>
-        <dl class="description">
-          <dt>Description</dt>
-          <dd data-test-description>
-            {{item.Description}}
-          </dd>
-        </dl>
+        <span data-test-description>{{item.Description}}</span>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
       <Actions as |Action|>

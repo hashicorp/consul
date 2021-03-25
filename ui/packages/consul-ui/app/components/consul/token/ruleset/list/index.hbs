@@ -1,48 +1,26 @@
 {{#let (policy/group (or item.Policies item.ACLs.PolicyDefaults (array))) as |policies|}}
   {{#let (get policies 'management') as |management|}}
     {{#if (gt management.length 0)}}
-        <dl>
-          <dt>
-            Management
-          </dt>
-          <dd>
-              {{#each (get policies 'management') as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
-              {{/each}}
-          </dd>
-        </dl>
+      {{#each (get policies 'management') as |item|}}
+        <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+      {{/each}}
     {{/if}}
   {{/let}}
   {{#let (get policies 'identities') as |identities|}}
     {{#if (gt identities.length 0)}}
-        <dl>
-          <dt>Identities</dt>
-          <dd>
-              {{#each identities as |item|}}
-                <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
-              {{/each}}
-          </dd>
-        </dl>
+      {{#each identities as |item|}}
+        <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+      {{/each}}
     {{/if}}
   {{/let}}
   {{#if (token/is-legacy item) }}
-        <dl>
-          <dt>Rules</dt>
-          <dd>
-              Legacy tokens have embedded rules.
-          </dd>
-        </dl>
+    <span>Legacy tokens have embedded rules.</span>
   {{else}}
     {{#let (append (get policies 'policies') (or item.Roles item.ACLs.RoleDefaults (array))) as |policies|}}
       {{#if (gt policies.length 0)}}
-        <dl>
-          <dt>Rules</dt>
-          <dd>
-            {{#each policies as |item|}}
-              <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
-            {{/each}}
-          </dd>
-        </dl>
+        {{#each policies as |item|}}
+          <span data-test-policy class={{policy/typeof item}}>{{item.Name}}</span>
+        {{/each}}
       {{/if}}
     {{/let}}
   {{/if}}

@@ -8,12 +8,7 @@ as |item|>
     </BlockSlot>
     <BlockSlot @name="details">
       <Consul::Token::Ruleset::List @item={{item}} />
-      <dl>
-        <dt>Description</dt>
-        <dd data-test-description>
-            {{item.Description}}
-        </dd>
-      </dl>
+      <span data-test-description>{{item.Description}}</span>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
       <Actions as |Action|>

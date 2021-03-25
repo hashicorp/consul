@@ -14,12 +14,9 @@ as |item|>
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="details">
-      <dl>
-        <dt>Description</dt>
-        <dd data-test-description>
-          {{item.Description}}
-        </dd>
-      </dl>
+    {{#if item.Description}}
+      <span data-test-description>{{item.Description}}</span>
+    {{/if}}
   {{#if (env 'CONSUL_ACLS_ENABLED')}}
       <Consul::Token::Ruleset::List @item={{item}} />
   {{/if}}

@@ -41,15 +41,12 @@
 {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
         <dl class="local-bind-address">
           <dt>
-            <span>
-              Address
-            </span>
+            <CopyButton
+                @value={{combinedAddress}}
+                @name="Address"
+              />
           </dt>
           <dd>
-            <CopyButton
-              @value={{combinedAddress}}
-              @name="Address"
-            />
               {{combinedAddress}}
           </dd>
         </dl>

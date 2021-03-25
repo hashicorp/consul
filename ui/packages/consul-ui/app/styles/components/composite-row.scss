@@ -33,6 +33,10 @@
 .consul-service-instance-list .detail {
   overflow-x: visible !important;
 }
+.consul-service-list .detail,
+.consul-node-list .detail {
+  padding-left: 31px;
+}
 .consul-intention-permission-list > ul {
   border-top: 1px solid $gray-200;
 }
@@ -51,7 +55,6 @@
   margin-left: 4px;
 }
 %composite-row-detail .copy-button {
-  margin-right: 4px;
   margin-top: 2px;
 }
 %composite-row .copy-button button {

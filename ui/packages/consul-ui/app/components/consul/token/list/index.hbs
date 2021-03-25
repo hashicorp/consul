@@ -15,19 +15,9 @@ as |item|>
         <a data-test-token={{item.AccessorID}} href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
     </BlockSlot>
     <BlockSlot @name="details">
-        <dl>
-          <dt>Scope</dt>
-          <dd>
-              {{if item.Local 'local' 'global' }}
-          </dd>
-        </dl>
-        <Consul::Token::Ruleset::List @item={{item}} />
-        <dl>
-          <dt>Description</dt>
-          <dd data-test-description>
-              {{or item.Description item.Name}}
-          </dd>
-        </dl>
+      <span>{{if item.Local 'local' 'global' }}</span>
+      <Consul::Token::Ruleset::List @item={{item}} />
+      <span data-test-description>{{or item.Description item.Name}}</span>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
 
