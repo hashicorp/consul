@@ -127,6 +127,10 @@ message Upstream {
     // CentrallyConfigured indicates whether the upstream was defined in a proxy
     // instance registration or whether it was generated from a config entry.
     bool CentrallyConfigured = 9;
+
+    // LocalBindSocketPath is the socket to create to connect to the upstream service
+    string LocalBindSocketPath = 10;
+    string LocalBindSocketMode = 11;
 }
 
 // ServiceConnect are the shared Connect settings between all service

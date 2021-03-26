@@ -1706,6 +1706,8 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
 			LocalBindPort:        intVal(u.LocalBindPort),
+			LocalBindSocketPath:  stringVal(u.LocalBindSocketPath),
+			LocalBindSocketMode:  uint32Val(u.LocalBindSocketMode),
 			Config:               u.Config,
 			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"net"
 	"reflect"
 	"regexp"
 	"sort"
@@ -811,7 +810,7 @@ type Services map[string][]string
 type ServiceNode struct {
 	ID                       types.NodeID
 	Node                     string
-	Address                  string
+	Address                  string // TODO markan; this is slippery when we have sockets; the addr:path pattern falls apart.
 	Datacenter               string
 	TaggedAddresses          map[string]string
 	NodeMeta                 map[string]string
@@ -974,11 +973,13 @@ const (
 )
 
 // Type to hold a address and port of a service
+// TODO markan, think about this around sockets
 type ServiceAddress struct {
 	Address string
 	Port    int
 }
 
+// TODO markan, think about this around sockets
 func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 	return api.ServiceAddress{Address: a.Address, Port: a.Port}
 }

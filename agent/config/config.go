@@ -503,13 +503,20 @@ type Upstream struct {
 	// datacenter.
 	Datacenter *string `mapstructure:"datacenter"`
 
+	// It would be worth thinking about a separate structure for these four items,
+	// unifying under address as something like "unix:/tmp/foo", "tcp:localhost:80" could make sense
 	// LocalBindAddress is the ip address a side-car proxy should listen on for
-	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	// traffic destined for this upstream service. Default if empty and local bind socket
+	// is not present is 127.0.0.1.
 	LocalBindAddress *string `mapstructure:"local_bind_address"`
 
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
 	// destined for this upstream service. Required.
 	LocalBindPort *int `mapstructure:"local_bind_port"`
+
+	// These are exclusive with LocalBindAddress/LocalBindPort
+	LocalBindSocketPath *string `mapstructure:"local_bind_socket_path"`
+	LocalBindSocketMode *uint32 `mapstructure:"local_bind_socket_mode"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
