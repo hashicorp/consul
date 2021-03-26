@@ -170,7 +170,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			n := changeObject(change).(*structs.Node)
 			markNode(n.Node, changeTypeFromChange(change))
 
-		case "services":
+		case tableServices:
 			sn := changeObject(change).(*structs.ServiceNode)
 			srvChange := serviceChange{changeType: changeTypeFromChange(change), change: change}
 			markService(newNodeServiceTupleFromServiceNode(sn), srvChange)

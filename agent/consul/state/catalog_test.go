@@ -1316,7 +1316,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{"nodes", "services", "checks"} {
+	for _, tbl := range []string{"nodes", tableServices, "checks"} {
 		if idx := s.maxIndex(tbl); idx != 3 {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
@@ -1479,7 +1479,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("services"); idx != 30 {
+	if idx := s.maxIndex(tableServices); idx != 30 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1510,7 +1510,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("services"); idx != 40 {
+	if idx := s.maxIndex(tableServices); idx != 40 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -2073,7 +2073,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("services"); idx != 4 {
+	if idx := s.maxIndex(tableServices); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if idx := s.maxIndex("checks"); idx != 4 {
@@ -2085,7 +2085,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 	if err := s.DeleteService(5, "node1", "service1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("services"); idx != 4 {
+	if idx := s.maxIndex(tableServices); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if watchFired(ws) {

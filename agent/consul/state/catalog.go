@@ -1351,7 +1351,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 	}
 
 	// Delete the service and update the index
-	if err := tx.Delete("services", service); err != nil {
+	if err := tx.Delete(tableServices, service); err != nil {
 		return fmt.Errorf("failed deleting service: %s", err)
 	}
 	if err := catalogUpdateServicesIndexes(tx, idx, entMeta); err != nil {
@@ -1368,7 +1368,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
-	if _, remainingService, err := firstWatchWithTxn(tx, "services", "service", svc.ServiceName, entMeta); err == nil {
+	if _, remainingService, err := firstWatchWithTxn(tx, tableServices, "service", svc.ServiceName, entMeta); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
 			if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, entMeta); err != nil {

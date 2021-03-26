@@ -70,7 +70,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 		switch change.Table {
 		case "nodes":
 			usageDeltas[change.Table] += delta
-		case "services":
+		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
 			usageDeltas[change.Table] += delta
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
