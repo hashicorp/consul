@@ -1,5 +1,5 @@
 import UseCases from '@hashicorp/react-use-cases'
-import BasicHero from '../../components/basic-hero'
+import DiptychHero from 'components/k8s-get-started'
 import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
@@ -7,32 +7,13 @@ import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
 import HcpCalloutSection from 'components/hcp-callout-section'
 import MiniCTA from '../../components/mini-cta'
+import K8sGetStarted from 'components/k8s-get-started'
 
 export default function HomePage() {
   return (
     <div className="p-home">
-      <BasicHero
-        brand="consul"
-        heading="Service Networking Across Any Cloud"
-        content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
-        links={[
-          {
-            text: 'Get Started',
-            url: 'https://learn.hashicorp.com/consul',
-          },
-          {
-            text: 'Try Cloud',
-            url:
-              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hero',
-          },
-          {
-            text: 'Download CLI',
-            url: '/downloads',
-            type: 'download',
-          },
-        ]}
-        backgroundImage
-      />
+      <DiptychHero />
+      <K8sGetStarted />
 
       <ProductFeaturesList
         heading="Why Consul?"
@@ -92,7 +73,8 @@ export default function HomePage() {
             title: 'Migrate to Microservices on Kubernetes',
             category: 'Step-by-Step Tutorials',
             time: '45 mins',
-            link: 'https://learn.hashicorp.com/collections/consul/microservices',
+            link:
+              'https://learn.hashicorp.com/collections/consul/microservices',
             image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
