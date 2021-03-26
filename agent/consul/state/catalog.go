@@ -899,29 +899,31 @@ func maxIndexAndWatchChsForServiceNodes(tx ReadTxn,
 func (s *Store) ConnectServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
-	return serviceNodesTxn(tx, ws, serviceName, true, entMeta)
+
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	return serviceNodesTxn(tx, ws, indexConnect, q)
 }
 
 // ServiceNodes returns the nodes associated with a given service name.
 func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
-	return serviceNodesTxn(tx, ws, serviceName, false, entMeta)
-}
 
-func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
-	// Function for lookup
-	index := indexService
-	if connect {
-		index = indexConnect
-	}
-
-	// TODO: accept non-pointer
+	// TODO: accept non-pointer value
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMeta()
 	}
-
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	return serviceNodesTxn(tx, ws, indexService, q)
+}
+
+func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, index string, q Query) (uint64, structs.ServiceNodes, error) {
+	connect := index == indexConnect
+	serviceName := q.Value
 	services, err := tx.Get(tableServices, index, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
@@ -940,7 +942,7 @@ func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect 
 	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		gwIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, &q.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
@@ -971,7 +973,7 @@ func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect 
 	// Get the table index.
 	// TODO (gateways) (freddy) Why do we always consider the main service index here?
 	//      This doesn't seem to make sense for Connect when there's more than 1 result
-	svcIdx := maxIndexForService(tx, serviceName, len(results) > 0, false, entMeta)
+	svcIdx := maxIndexForService(tx, serviceName, len(results) > 0, false, &q.EnterpriseMeta)
 	if idx < svcIdx {
 		idx = svcIdx
 	}
