@@ -143,6 +143,11 @@ components:
           options:
             local: Creates local tokens
             global: Creates global tokens
+      binding-list:
+        bind-type:
+          service: The bind name value is used as an ACLServiceIdentity.ServiceName field in the token that is created.
+          node: The bind name value is used as an ACLNodeIdentity.NodeName field in the token that is created.
+          role: The bind name value is used as an RoleLink.Name field in the token that is created.
     kv:
       search-bar:
         kind:
@@ -209,6 +214,11 @@ models:
       VerboseOIDCLogging: Verbose OIDC logging
       ClaimMappings: Claim Mappings
       ListClaimMappings: List Claim Mappings
+  binding-rule:
+    BindType: Type
+    Description: Description
+    Selector: Selector
+
 
 
 

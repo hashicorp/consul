@@ -196,6 +196,9 @@ export const routes = {
           'auth-method': {
             _options: { path: '/auth-method' },
           },
+          'binding-rules': {
+            _options: { path: '/binding-rules' },
+          },
         },
       },
     },

@@ -1,0 +1,30 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_BINDING_RULE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_BINDING_RULE_MAX', 10)
+          ) + parseInt(env('CONSUL_BINDING_RULE_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i) {
+        return `
+          {
+            "ID": "${fake.random.uuid()}",
+            "Description": "${fake.lorem.sentence()}",
+            "AuthMethod": "${fake.hacker.noun()}-${i}",
+            "Selector": "serviceaccount.namespace==${fake.hacker.noun()} and serviceaccount.name!=${fake.hacker.noun()}",
+            "BindType": "${fake.helpers.randomize(['service', 'node', 'role'])}",
+            "BindName": "${fake.hacker.noun()}-${i}",
+            "Namespace": "${location.search.ns}",
+            "CreateIndex": ${fake.random.number()},
+            "ModifyIndex": 10
+          }
+        `
+      }
+    )
+  }
+]
