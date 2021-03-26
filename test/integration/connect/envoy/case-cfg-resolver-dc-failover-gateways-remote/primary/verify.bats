@@ -34,6 +34,10 @@ load helpers
   retry_long nc -z consul-secondary:4432
 }
 
+@test "wait until the first cluster is configured" {
+  assert_envoy_dynamic_cluster_exists 127.0.0.1:19000 s2.default.primary s2.default.primary
+}
+
 ################
 # PHASE 1: we show that by default requests are served from the primary
 
@@ -62,6 +66,10 @@ load helpers
 
 @test "s2 proxies should be unhealthy in primary" {
   assert_service_has_healthy_instances s2 0 primary
+}
+
+@test "wait until the failover cluster is configured" {
+  assert_envoy_dynamic_cluster_exists 127.0.0.1:19000 s2.default.primary s2.default.secondary
 }
 
 @test "s1 upstream should have healthy endpoints for s2 secondary" {

@@ -231,6 +231,33 @@ function get_envoy_http_filters {
   echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"'
 }
 
+function get_envoy_dynamic_cluster_once {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output ".configs[] | select (.[\"@type\"] == \"type.googleapis.com/envoy.admin.v3.ClustersConfigDump\") | .dynamic_active_clusters[] | select(.cluster.name | startswith(\"${NAME_PREFIX}\"))"
+}
+
+function assert_envoy_dynamic_cluster_exists_once {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local EXPECT_SNI=$3
+  BODY="$(get_envoy_dynamic_cluster_once $HOSTPORT $NAME_PREFIX)"
+  [ -n "$BODY" ]
+
+  SNI="$(echo "$BODY" | jq --raw-output ".cluster.transport_socket.typed_config.sni | select(. | startswith(\"${EXPECT_SNI}\"))")"
+  [ -n "$SNI" ]
+}
+
+function assert_envoy_dynamic_cluster_exists {
+  local HOSTPORT=$1
+  local NAME_PREFIX=$2
+  local EXPECT_SNI=$3
+  run retry_long assert_envoy_dynamic_cluster_exists_once $HOSTPORT $NAME_PREFIX $EXPECT_SNI
+  [ "$status" -eq 0 ]
+}
+
 function get_envoy_cluster_config {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
