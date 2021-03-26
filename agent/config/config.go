@@ -516,7 +516,7 @@ type Upstream struct {
 
 	// These are exclusive with LocalBindAddress/LocalBindPort
 	LocalBindSocketPath *string `mapstructure:"local_bind_socket_path"`
-	LocalBindSocketMode *uint32 `mapstructure:"local_bind_socket_mode"`
+	LocalBindSocketMode *string `mapstructure:"local_bind_socket_mode"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream

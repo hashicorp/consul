@@ -176,6 +176,16 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceInt,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
+	"LocalBindSocketPath": &bexpr.FieldConfiguration{
+		StructFieldName:     "LocalBindSocketPath",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"LocalBindSocketMode": &bexpr.FieldConfiguration{
+		StructFieldName:     "LocalBindSocketMode",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
 	"MeshGateway": &bexpr.FieldConfiguration{
 		StructFieldName: "MeshGateway",
 		SubFields:       expectedFieldConfigMeshGatewayConfig,

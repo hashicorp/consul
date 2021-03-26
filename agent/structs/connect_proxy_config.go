@@ -410,8 +410,11 @@ func (u *Upstream) Validate() error {
 		return fmt.Errorf("upstream destination name cannot be a wildcard")
 	}
 
-	if u.LocalBindPort == 0 && !u.CentrallyConfigured {
-		return fmt.Errorf("upstream local bind port cannot be zero")
+	if u.LocalBindPort == 0 && u.LocalBindSocketPath == "" && !u.CentrallyConfigured {
+		return fmt.Errorf("upstream local bind port or local socket path must be defined and nonzero")
+	}
+	if u.LocalBindPort != 0 && u.LocalBindSocketPath != "" && !u.CentrallyConfigured {
+		return fmt.Errorf("only one of upstream local bind port or local socket path can be defined and nonzero")
 	}
 
 	return nil

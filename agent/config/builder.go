@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1707,7 +1708,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
 			LocalBindPort:        intVal(u.LocalBindPort),
 			LocalBindSocketPath:  stringVal(u.LocalBindSocketPath),
-			LocalBindSocketMode:  uint32Val(u.LocalBindSocketMode),
+			LocalBindSocketMode:  b.unixPermissionsVal("local_bind_socket_mode", u.LocalBindSocketMode),
 			Config:               u.Config,
 			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}
@@ -1892,6 +1893,21 @@ func uint64Val(v *uint64) uint64 {
 		return 0
 	}
 	return *v
+}
+
+// Expect an octal permissions string, e.g. 0644
+func (b *builder) unixPermissionsVal(name string, v *string) uint32 {
+
+	if v == nil {
+		return 0
+	}
+	if strings.HasPrefix(*v, "0") {
+		if mode, err := strconv.ParseUint(*v, 0, 32); err == nil {
+			return uint32(mode)
+		}
+	}
+	b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid mode: %s", name, *v))
+	return 0
 }
 
 func (b *builder) portVal(name string, v *int) int {

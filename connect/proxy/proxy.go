@@ -103,8 +103,8 @@ func (p *Proxy) Serve() error {
 			for _, uc := range newCfg.Upstreams {
 				uc.applyDefaults()
 
-				if uc.LocalBindPort < 1 {
-					p.logger.Error("upstream has no local_bind_port. "+
+				if uc.LocalBindPort < 1 || uc.LocalBindSocketPath == "" {
+					p.logger.Error("upstream has no local_bind_port or local_bind_socket_path. "+
 						"Can't start upstream.", "upstream", uc.String())
 					continue
 				}

@@ -1709,6 +1709,8 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 	return nil
 }
 
+// Note: Ingress gateways are always bound to ports and never unix sockets.
+// This means LocalBindPort is the only possibility
 func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.Name,
