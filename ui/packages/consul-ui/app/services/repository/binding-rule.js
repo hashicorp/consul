@@ -26,11 +26,6 @@ export default class BindingRuleService extends RepositoryService {
     return super.findAllByDatacenter(...arguments);
   }
 
-  @dataSource('/:ns/:dc/binding-rule/:id')
-  async findBySlug() {
-    return super.findBySlug(...arguments);
-  }
-
   status(obj) {
     return status(obj);
   }
