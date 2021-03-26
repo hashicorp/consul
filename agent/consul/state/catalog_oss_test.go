@@ -237,5 +237,17 @@ func testIndexerTableServices() map[string]indexerTestCase {
 				expected: []byte("connectname\x00"),
 			},
 		},
+		indexKind: {
+			read: indexValue{
+				source:   "connect-proxy",
+				expected: []byte("connect-proxy\x00"),
+			},
+			write: indexValue{
+				source: &structs.ServiceNode{
+					ServiceKind: structs.ServiceKindConnectProxy,
+				},
+				expected: []byte("connect-proxy\x00"),
+			},
+		},
 	}
 }
