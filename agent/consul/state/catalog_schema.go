@@ -124,7 +124,10 @@ func servicesTableSchema() *memdb.TableSchema {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer:      &IndexServiceKind{},
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexKindFromServiceNode,
+				},
 			},
 		},
 	}
@@ -221,6 +224,17 @@ func connectNameFromServiceNode(sn *structs.ServiceNode) (string, bool) {
 		// Doesn't support Connect at all
 		return "", false
 	}
+}
+
+func indexKindFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(string(n.ServiceKind)))
+	return b.Bytes(), nil
 }
 
 // checksTableSchema returns a new table schema used for storing and indexing

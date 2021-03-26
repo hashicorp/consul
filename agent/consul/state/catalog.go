@@ -2304,8 +2304,11 @@ func serviceDumpKindTxn(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind,
 	// entries
 	idx := catalogServiceKindMaxIndex(tx, ws, kind, entMeta)
 
-	// Query the state store for the service.
-	services, err := catalogServiceListByKind(tx, kind, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: string(kind), EnterpriseMeta: *entMeta}
+	services, err := tx.Get(tableServices, indexKind, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2548,7 +2551,11 @@ func terminatingConfigGatewayServices(
 
 // updateGatewayNamespace is used to target all services within a namespace
 func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
-	services, err := catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: string(structs.ServiceKindTypical), EnterpriseMeta: *entMeta}
+	services, err := tx.Get(tableServices, indexKind, q)
 	if err != nil {
 		return fmt.Errorf("failed querying services: %s", err)
 	}

@@ -97,10 +97,6 @@ func catalogServiceListNoWildcard(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.
 	return tx.Get(tableServices, indexID)
 }
 
-func catalogServiceListByKind(tx ReadTxn, kind structs.ServiceKind, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableServices, "kind", string(kind))
-}
-
 func catalogServiceListByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
 	return tx.Get(tableServices, indexNode, Query{Value: node})
 }

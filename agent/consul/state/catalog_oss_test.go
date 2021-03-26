@@ -239,7 +239,7 @@ func testIndexerTableServices() map[string]indexerTestCase {
 		},
 		indexKind: {
 			read: indexValue{
-				source:   "connect-proxy",
+				source:   Query{Value: "connect-proxy"},
 				expected: []byte("connect-proxy\x00"),
 			},
 			write: indexValue{
