@@ -107,7 +107,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceNameChanges map[structs.ServiceName]int) (map[structs.ServiceName]uniqueServiceState, error) {
 	serviceStates := make(map[structs.ServiceName]uniqueServiceState, len(serviceNameChanges))
 	for svc, delta := range serviceNameChanges {
-		serviceIter, err := getWithTxn(tx, tableServices, "service", svc.Name, &svc.EnterpriseMeta)
+		serviceIter, err := getWithTxn(tx, tableServices, indexService, svc.Name, &svc.EnterpriseMeta)
 		if err != nil {
 			return nil, err
 		}

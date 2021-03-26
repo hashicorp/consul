@@ -1368,7 +1368,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
-	if _, remainingService, err := firstWatchWithTxn(tx, tableServices, "service", svc.ServiceName, entMeta); err == nil {
+	if _, remainingService, err := firstWatchWithTxn(tx, tableServices, indexService, svc.ServiceName, entMeta); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
 			if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, entMeta); err != nil {
