@@ -61,8 +61,9 @@ func TestProxy_public(t *testing.T) {
 	defer p.Close()
 	go p.Serve()
 
-	// We create this client with an explicit ServerNextProtos here for safety, so
-	// we can properly verify that h2 was not accepted below
+	// We create this client with an explicit ServerNextProtos here which will use `h2`
+	// if the proxy supports it. This is so we can verify below that the proxy _doesn't_
+	// advertise `h2` support as it's only a L4 proxy.
 	svc, err := connect.NewServiceWithConfig("echo", connect.Config{Client: client, ServerNextProtos: []string{"h2"}})
 	require.NoError(err)
 
