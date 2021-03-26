@@ -911,12 +911,18 @@ func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *str
 
 func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	// Function for lookup
-	index := "service"
+	index := indexService
 	if connect {
-		index = "connect"
+		index = indexConnect
 	}
 
-	services, err := catalogServiceNodeList(tx, serviceName, index, entMeta)
+	// TODO: accept non-pointer
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	services, err := tx.Get(tableServices, index, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -979,8 +985,13 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// List all the services.
-	services, err := catalogServiceNodeList(tx, service, "service", entMeta)
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
+	q := Query{Value: service, EnterpriseMeta: *entMeta}
+	services, err := tx.Get(tableServices, indexService, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -1328,8 +1339,8 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 	}
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
-	q := NodeServiceQuery{Node: nodeName, Service: serviceID, EnterpriseMeta: *entMeta}
-	checks, err := tx.Get(tableChecks, indexNodeService, q)
+	nsq := NodeServiceQuery{Node: nodeName, Service: serviceID, EnterpriseMeta: *entMeta}
+	checks, err := tx.Get(tableChecks, indexNodeService, nsq)
 	if err != nil {
 		return fmt.Errorf("failed service check lookup: %s", err)
 	}
@@ -1368,7 +1379,8 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
-	if _, remainingService, err := firstWatchWithTxn(tx, tableServices, indexService, svc.ServiceName, entMeta); err == nil {
+	q := Query{Value: svc.ServiceName, EnterpriseMeta: *entMeta}
+	if remainingService, err := tx.First(tableServices, indexService, q); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
 			if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, entMeta); err != nil {
@@ -1951,14 +1963,18 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 }
 
 func checkServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
-	// Function for lookup
-	index := "service"
+	index := indexService
 	if connect {
-		index = "connect"
+		index = indexConnect
 	}
 
-	// Query the state store for the service.
-	iter, err := catalogServiceNodeList(tx, serviceName, index, entMeta)
+	// TODO: accept non-pointer
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	iter, err := tx.Get(tableServices, index, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2081,8 +2097,13 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Query the state store for the service.
-	iter, err := catalogServiceNodeList(tx, serviceName, "service", entMeta)
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	iter, err := tx.Get(tableServices, indexService, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2739,7 +2760,8 @@ func serviceGatewayNodes(tx ReadTxn, ws memdb.WatchSet, service string, kind str
 		maxIdx = lib.MaxUint64(maxIdx, mapping.ModifyIndex)
 
 		// Look up nodes for gateway
-		gwServices, err := catalogServiceNodeList(tx, mapping.Gateway.Name, "service", &mapping.Gateway.EnterpriseMeta)
+		q := Query{Value: mapping.Gateway.Name, EnterpriseMeta: mapping.Gateway.EnterpriseMeta}
+		gwServices, err := tx.Get(tableServices, indexService, q)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 		}

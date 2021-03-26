@@ -105,10 +105,6 @@ func catalogServiceListByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta
 	return tx.Get(tableServices, indexNode, Query{Value: node})
 }
 
-func catalogServiceNodeList(tx ReadTxn, name string, index string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableServices, index, name)
-}
-
 func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First(tableIndex, "id", indexServiceExtinction)
 }

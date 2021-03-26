@@ -216,7 +216,7 @@ func testIndexerTableServices() map[string]indexerTestCase {
 		},
 		indexService: {
 			read: indexValue{
-				source:   "ServiceName",
+				source:   Query{Value: "ServiceName"},
 				expected: []byte("servicename\x00"),
 			},
 			write: indexValue{
