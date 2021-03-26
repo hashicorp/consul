@@ -175,7 +175,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			srvChange := serviceChange{changeType: changeTypeFromChange(change), change: change}
 			markService(newNodeServiceTupleFromServiceNode(sn), srvChange)
 
-		case "checks":
+		case tableChecks:
 			// For health we only care about the scope for now to know if it's just
 			// affecting a single service or every service on a node. There is a
 			// subtle edge case where the check with same ID changes from being node

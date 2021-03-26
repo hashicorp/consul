@@ -107,28 +107,28 @@ func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (i
 
 func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexTxn(tx, "nodes", tableServices, "checks")
+		return maxIndexTxn(tx, "nodes", tableServices, tableChecks)
 	}
 	return maxIndexTxn(tx, "nodes", tableServices)
 }
 
 func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexWatchTxn(tx, ws, "nodes", tableServices, "checks")
+		return maxIndexWatchTxn(tx, ws, "nodes", tableServices, tableChecks)
 	}
 	return maxIndexWatchTxn(tx, ws, "nodes", tableServices)
 }
 
 func catalogUpdateCheckIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
 	// update the universal index entry
-	if err := tx.Insert(tableIndex, &IndexEntry{"checks", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableChecks, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
 }
 
 func catalogChecksMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
-	return maxIndexTxn(tx, "checks")
+	return maxIndexTxn(tx, tableChecks)
 }
 
 func catalogListChecksByNode(tx ReadTxn, q Query) (memdb.ResultIterator, error) {
@@ -136,17 +136,17 @@ func catalogListChecksByNode(tx ReadTxn, q Query) (memdb.ResultIterator, error) 
 }
 
 func catalogListChecksByService(tx ReadTxn, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "service", service)
+	return tx.Get(tableChecks, indexService, service)
 }
 
 func catalogListChecksInState(tx ReadTxn, state string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	// simpler than normal due to the use of the CompoundMultiIndex
-	return tx.Get("checks", "status", state)
+	return tx.Get(tableChecks, indexStatus, state)
 }
 
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
 	// Insert the check
-	if err := tx.Insert("checks", chk); err != nil {
+	if err := tx.Insert(tableChecks, chk); err != nil {
 		return fmt.Errorf("failed inserting check: %s", err)
 	}
 

@@ -1857,7 +1857,7 @@ func (s *Store) deleteCheckTxn(tx WriteTxn, idx uint64, node string, checkID typ
 	}
 
 	// Delete the check from the DB and update the index.
-	if err := tx.Delete("checks", hc); err != nil {
+	if err := tx.Delete(tableChecks, hc); err != nil {
 		return fmt.Errorf("failed removing check: %s", err)
 	}
 
