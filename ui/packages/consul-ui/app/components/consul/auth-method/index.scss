@@ -1,47 +1,3 @@
-%definition-list {
-  display: flex;
-  flex-wrap: wrap;
-  > dt:last-of-type,
-  > dd:last-of-type {
-    border-bottom: 1px solid var(--gray-300) !important;
-  }
-  dt, dd {
-    padding: 12px 0;
-    margin: 0;
-    border-top: 1px solid var(--gray-300) !important;
-    color: $black !important;
-  }
-  dt {
-    width: 20%;
-    font-weight: $typo-weight-bold;
-  }
-  dd {
-    margin-left: auto;
-    width: 80%;
-    display: flex;
-  }
-  dd > ul li {
-    display: flex;
-  }
-  dd > ul li:not(:last-of-type) {
-    padding-bottom: 12px;
-  }
-  dd .copy-button button {
-    padding: 0 !important;
-    margin: 0 4px 0 0 !important;
-  }
-  dd .copy-button button::before {
-    background-color: $black;
-  }
-  dt.check + dd {
-    padding-top: 16px;
-  }
-  dt.type + dd span::before {
-    @extend %with-info-circle-outline-mask, %as-pseudo;
-    margin-left: 4px;
-    background-color: var(--gray-500);
-  }
-}
 %hr {
   background-color: var(--gray-200);
 }
@@ -51,7 +7,7 @@
 }
 
 // List
-.consul-consul-auth-method-view-list ul {
+.consul-auth-method-list ul {
   .locality::before {
     @extend %with-public-default-mask, %as-pseudo;
     margin-right: 4px;
