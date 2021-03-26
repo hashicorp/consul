@@ -7,15 +7,15 @@
       <span>
         {{#if (eq @item.BindType 'service')}}
         <Tooltip>
-          The bind name value is used as an ACLServiceIdentity.ServiceName field in the token that is created.
+          {{t "components.consul.auth-method.binding-list.bind-type.service"}}
         </Tooltip>
         {{else if (eq @item.BindType 'node')}}
         <Tooltip>
-          The bind name value is used as an ACLNodeIdentity.NodeName field in the token that is created.
+          {{t "components.consul.auth-method.binding-list.bind-type.node"}}
         </Tooltip>
         {{else if (eq @item.BindType 'role')}}
         <Tooltip>
-          The bind name value is used as an RoleLink.Name field in the token that is created.
+           {{t "components.consul.auth-method.binding-list.bind-type.role"}}
         </Tooltip>
         {{/if}}
       </span>
