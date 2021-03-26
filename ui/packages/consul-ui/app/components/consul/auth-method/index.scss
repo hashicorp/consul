@@ -1,6 +1,3 @@
-%hr {
-  background-color: var(--gray-200);
-}
 %h2 {
   @extend %h200;
   padding-bottom: 12px;
@@ -17,9 +14,6 @@
 // View
 .consul-auth-method-view {
   margin-bottom: 32px;
-  > hr {
-    @extend %hr;
-  }
   section {
     @extend %p1;
     width: 100%;
@@ -42,7 +36,7 @@
   }
   dl,
   section dl {
-    @extend %definition-list;
+    @extend %tabular-dl;
   }
 }
 
@@ -51,14 +45,11 @@
   p {
     margin-bottom: 4px !important;
   }
-  > hr {
-    @extend %hr;
-  }
   h2 {
     @extend %h2;
   }
   dl {
-    @extend %definition-list;
+    @extend %tabular-dl;
   }
   code {
     background-color: var(--gray-050);
