@@ -1,3 +1,4 @@
+import Button from '@hashicorp/react-button'
 import TextSplit from '@hashicorp/react-text-split'
 import s from './style.module.css'
 
@@ -21,5 +22,24 @@ export default function CtaHero() {
 }
 
 function Cta() {
-  return <div className={s.cta}>{'<Cta />'}</div>
+  return (
+    <div className={s.cta}>
+      <img src={require('./img/cta-image.jpg?url')} alt="Consul stack" />
+      <div className={s.ctaContent}>
+        <h4>Try HCP Consul</h4>
+        <div className={s.ctaDescription}>
+          <p className="g-type-body-small">
+            Hosted on HashiCorp Cloud Platform, HCP Consul is a fully managed
+            service mesh that discovers and securely connects any service.
+          </p>
+          <Button
+            title="Sign Up"
+            linkType="inbound"
+            theme={{ variant: 'tertiary' }}
+            url="https://consul.io"
+          />
+        </div>
+      </div>
+    </div>
+  )
 }
