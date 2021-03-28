@@ -2,10 +2,16 @@
   /* Styles TBD */
 }
 
-.cta img {
-  max-height: 50%;
-  max-width: 100%;
-  margin-bottom: 36px;
+.cta {
+  padding: 24px;
+  padding-bottom: 51px;
+  border: 1px solid var(--gray-5);
+
+  & img {
+    max-height: 50%;
+    max-width: 100%;
+    margin-bottom: 36px;
+  }
 }
 
 .ctaContent {
