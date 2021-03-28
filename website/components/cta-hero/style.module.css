@@ -1,5 +1,63 @@
 .ctaHero {
-  /* Styles TBD */
+  & :global(.g-text-split) :global(.g-grid-container) {
+    @media (width < 1120px) {
+      flex-direction: column-reverse;
+    }
+
+    & > div {
+      @media (768px < width < 1120px) {
+        width: 40em;
+      }
+
+      &:last-child {
+        @media (width < 1120px) {
+          margin-bottom: 64px;
+          text-align: center;
+        }
+
+        & p {
+          @media (width < 1120px) {
+            margin: 16px auto;
+          }
+        }
+      }
+    }
+
+    /**
+     * HACK:
+     * Overrides the H2 with styling from
+     * our global g-type-display-1 class.
+     *
+     * This was because there's no way to
+     * override the heading in <TextSplit />
+     * with the designed h1 styling.
+     *
+     * TODO:
+     * Address this at the component
+     * level or revert to just using h2
+     * as is default.
+     */
+    & h2 {
+      font-size: 2.125rem;
+      letter-spacing: -0.008em;
+      line-height: 1.265em;
+
+      @media (--medium-up) {
+        font-size: 2.625rem;
+        letter-spacing: -0.01em;
+        line-height: 1.19em;
+      }
+
+      @media (--large) {
+        font-size: 3.125rem;
+        line-height: 1.2em;
+      }
+    }
+
+    & p {
+      max-width: 440px;
+    }
+  }
 }
 
 .cta {
@@ -16,14 +74,20 @@
 
 .ctaContent {
   display: flex;
+  @media (width < 520px) {
+    flex-direction: column;
+  }
 
   & .ctaHeading {
-    width: 194px;
-    flex-shrink: 0;
+    @media (width >= 520px) {
+      width: 40%;
+    }
 
     & h4 {
-      width: 100px;
-      margin: 0;
+      margin-top: 0;
+      @media (width >= 520px) {
+        width: 100px;
+      }
     }
   }
 

@@ -37,7 +37,7 @@ function Cta() {
           <Button
             title="Sign Up"
             linkType="inbound"
-            theme={{ variant: 'tertiary' }}
+            theme={{ variant: 'tertiary-neutral' }}
             url="https://consul.io"
           />
         </div>
