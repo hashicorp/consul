@@ -5,4 +5,24 @@
 .cta img {
   max-height: 50%;
   max-width: 100%;
+  margin-bottom: 36px;
+}
+
+.ctaContent {
+  display: flex;
+
+  & .ctaHeading {
+    width: 194px;
+    flex-shrink: 0;
+
+    & h4 {
+      width: 100px;
+      margin: 0;
+    }
+  }
+
+  & p {
+    margin-top: 0;
+    margin-bottom: 24px;
+  }
 }

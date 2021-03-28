@@ -26,7 +26,9 @@ function Cta() {
     <div className={s.cta}>
       <img src={require('./img/cta-image.jpg?url')} alt="Consul stack" />
       <div className={s.ctaContent}>
-        <h4>Try HCP Consul</h4>
+        <div className={s.ctaHeading}>
+          <h4 className="g-type-display-4">Try HCP Consul</h4>
+        </div>
         <div className={s.ctaDescription}>
           <p className="g-type-body-small">
             Hosted on HashiCorp Cloud Platform, HCP Consul is a fully managed
