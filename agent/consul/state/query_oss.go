@@ -36,11 +36,3 @@ func prefixIndexFromQuery(arg interface{}) ([]byte, error) {
 
 	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
 }
-
-func indexFromUUIDQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for UUIDQuery index", raw)
-	}
-	return uuidStringToBytes(q.Value)
-}

@@ -15,6 +15,12 @@ type Query struct {
 	structs.EnterpriseMeta
 }
 
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q Query) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
 // uuidStringToBytes is a modified version of memdb.UUIDFieldIndex.parseString
 func uuidStringToBytes(uuid string) ([]byte, error) {
 	l := len(uuid)
