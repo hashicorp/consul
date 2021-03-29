@@ -21,6 +21,19 @@ func (q Query) NamespaceOrDefault() string {
 	return q.EnterpriseMeta.NamespaceOrDefault()
 }
 
+// indexFromQuery builds an index key where Query.Value is lowercase, and is
+// a required value.
+func indexFromQuery(arg interface{}) ([]byte, error) {
+	q, ok := arg.(Query)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Value))
+	return b.Bytes(), nil
+}
+
 // uuidStringToBytes is a modified version of memdb.UUIDFieldIndex.parseString
 func uuidStringToBytes(uuid string) ([]byte, error) {
 	l := len(uuid)

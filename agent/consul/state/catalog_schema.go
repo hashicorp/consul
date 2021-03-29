@@ -39,7 +39,7 @@ func nodesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: indexerSingle{
-					readIndex:  indexFromNodeQuery,
+					readIndex:  indexFromQuery,
 					writeIndex: indexFromNode,
 				},
 			},
@@ -77,18 +77,6 @@ func indexFromNode(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// TODO: remove once all uses of indexFromQuery are ported
-func indexFromNodeQuery(arg interface{}) ([]byte, error) {
-	q, ok := arg.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(q.Value))
-	return b.Bytes(), nil
-}
-
 // servicesTableSchema returns a new table schema used to store information
 // about services.
 func servicesTableSchema() *memdb.TableSchema {
@@ -110,7 +98,7 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromNodeQuery,
+					readIndex:  indexFromQuery,
 					writeIndex: indexFromNodeIdentity,
 				},
 			},
@@ -225,7 +213,7 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  indexFromNodeQuery,
+					readIndex:  indexFromQuery,
 					writeIndex: indexFromNodeIdentity,
 				},
 			},
