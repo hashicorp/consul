@@ -1638,8 +1638,11 @@ func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string, entMeta *st
 	// Get the table index.
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
-	// Return the checks.
-	iter, err := catalogListChecksByService(tx, serviceName, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	iter, err := tx.Get(tableChecks, indexService, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1663,8 +1666,12 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 
 	// Get the table index.
 	idx := maxIndexForService(tx, serviceName, true, true, entMeta)
-	// Return the checks.
-	iter, err := catalogListChecksByService(tx, serviceName, entMeta)
+
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	iter, err := tx.Get(tableChecks, indexService, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}

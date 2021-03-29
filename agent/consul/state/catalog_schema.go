@@ -267,9 +267,9 @@ func checksTableSchema() *memdb.TableSchema {
 				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexServiceNameFromHealthCheck,
 				},
 			},
 			indexNode: {
@@ -354,6 +354,21 @@ func indexStatusFromHealthCheck(raw interface{}) ([]byte, error) {
 
 	var b indexBuilder
 	b.String(strings.ToLower(hc.Status))
+	return b.Bytes(), nil
+}
+
+func indexServiceNameFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.ServiceName == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.ServiceName))
 	return b.Bytes(), nil
 }
 

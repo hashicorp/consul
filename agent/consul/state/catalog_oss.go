@@ -135,10 +135,6 @@ func catalogListChecksByNode(tx ReadTxn, q Query) (memdb.ResultIterator, error) 
 	return tx.Get(tableChecks, indexNode, q)
 }
 
-func catalogListChecksByService(tx ReadTxn, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableChecks, indexService, service)
-}
-
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
 	// Insert the check
 	if err := tx.Insert(tableChecks, chk); err != nil {
