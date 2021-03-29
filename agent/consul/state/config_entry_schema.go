@@ -1,7 +1,12 @@
 package state
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -23,9 +28,9 @@ func configTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: indexerSingleWithPrefix{
-					readIndex:   readIndex(indexFromConfigEntryKindName),
-					writeIndex:  writeIndex(indexFromConfigEntry),
-					prefixIndex: prefixIndex(indexFromConfigEntryKindName),
+					readIndex:   indexFromConfigEntryKindName,
+					writeIndex:  indexFromConfigEntry,
+					prefixIndex: indexFromConfigEntryKindName,
 				},
 			},
 			indexKind: {
@@ -33,8 +38,8 @@ func configTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromConfigEntryKindQuery),
-					writeIndex: writeIndex(indexKindFromConfigEntry),
+					readIndex:  indexFromConfigEntryKindQuery,
+					writeIndex: indexKindFromConfigEntry,
 				},
 			},
 			indexLink: {
@@ -57,4 +62,48 @@ func configTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+func indexFromConfigEntry(raw interface{}) ([]byte, error) {
+	c, ok := raw.(structs.ConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	if c.GetName() == "" || c.GetKind() == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.GetKind()))
+	b.String(strings.ToLower(c.GetName()))
+	return b.Bytes(), nil
+}
+
+func indexFromConfigEntryKindQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(ConfigEntryKindQuery)
+	if !ok {
+		return nil, fmt.Errorf("type must be ConfigEntryKindQuery: %T", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Kind))
+	return b.Bytes(), nil
+}
+
+// indexKindFromConfigEntry indexes kinds without a namespace for any config
+// entries that span all namespaces.
+func indexKindFromConfigEntry(raw interface{}) ([]byte, error) {
+	c, ok := raw.(structs.ConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	if c.GetKind() == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.GetKind()))
+	return b.Bytes(), nil
 }
