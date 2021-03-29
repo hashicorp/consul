@@ -19,28 +19,22 @@ export default function HomePage() {
         heading="Why Consul?"
         features={[
           {
-            title: 'Integrate and Extend With Kubernetes',
-            content:
-              'Quickly deploy Consul on Kubernetes leveraging Helm. Automatically inject sidecars for Kubernetes resources. Federate multiple clusters into a single service mesh.',
-            icon: require('./img/why-consul/kubernetes.svg'),
-          },
-          {
             title: 'Service Mesh Across Any Runtime',
             content:
               'Deploy service mesh within any runtime or infrastructure - Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud.',
             icon: require('./img/why-consul/service-mesh-runtime.svg'),
           },
           {
-            title: 'Dynamic Load Balancing',
-            content:
-              'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
-            icon: require('./img/why-consul/dynamic-load-balancing.svg'),
-          },
-          {
             title: 'Secure, Multi-Cloud Service Networking',
             content:
               'Secure services running in any environment leveraging intention based policies and automatic mTLS encryption between service mesh resources',
             icon: require('./img/why-consul/cloud.svg'),
+          },
+          {
+            title: 'Dynamic Load Balancing',
+            content:
+              'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
+            icon: require('./img/why-consul/dynamic-load-balancing.svg'),
           },
           {
             title: 'Service Discovery with Health Checking',
@@ -53,6 +47,12 @@ export default function HomePage() {
             content:
               'Consul offers support for and integrations with many popular DevOps and Networking tools.',
             icon: require('./img/why-consul/world.svg'),
+          },
+          {
+            title: 'Integrate and Extend With Kubernetes',
+            content:
+              'Quickly deploy Consul on Kubernetes leveraging Helm. Automatically inject sidecars for Kubernetes resources. Federate multiple clusters into a single service mesh.',
+            icon: require('./img/why-consul/kubernetes.svg'),
           },
         ]}
       />
