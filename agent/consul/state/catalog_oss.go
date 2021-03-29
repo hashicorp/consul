@@ -4,7 +4,6 @@ package state
 
 import (
 	"fmt"
-	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -12,128 +11,6 @@ import (
 )
 
 func withEnterpriseSchema(_ *memdb.DBSchema) {}
-
-func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(*structs.HealthCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
-	}
-
-	if hc.Node == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(hc.Node))
-	b.String(strings.ToLower(hc.ServiceID))
-	return b.Bytes(), nil
-}
-
-func indexFromNodeServiceQuery(arg interface{}) ([]byte, error) {
-	hc, ok := arg.(NodeServiceQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for NodeServiceQuery index", arg)
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(hc.Node))
-	b.String(strings.ToLower(hc.Service))
-	return b.Bytes(), nil
-}
-
-func indexFromNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.Node)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
-	}
-
-	if n.Node == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(n.Node))
-	return b.Bytes(), nil
-}
-
-// indexFromNodeQuery builds an index key where Query.Value is lowercase, and is
-// a required value.
-func indexFromNodeQuery(arg interface{}) ([]byte, error) {
-	q, ok := arg.(Query)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(q.Value))
-	return b.Bytes(), nil
-}
-
-func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
-	n, ok := raw.(interface {
-		NodeIdentity() structs.Identity
-	})
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for index, type must provide NodeIdentity()", raw)
-	}
-
-	id := n.NodeIdentity()
-	if id.ID == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(id.ID))
-	return b.Bytes(), nil
-}
-
-func indexFromServiceNode(raw interface{}) ([]byte, error) {
-	n, ok := raw.(*structs.ServiceNode)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
-	}
-
-	if n.Node == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(n.Node))
-	b.String(strings.ToLower(n.ServiceID))
-	return b.Bytes(), nil
-}
-
-func indexFromHealthCheck(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(*structs.HealthCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
-	}
-
-	if hc.Node == "" || hc.CheckID == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(hc.Node))
-	b.String(strings.ToLower(string(hc.CheckID)))
-	return b.Bytes(), nil
-}
-
-func indexFromNodeCheckID(raw interface{}) ([]byte, error) {
-	hc, ok := raw.(NodeCheckQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for NodeCheckQuery index", raw)
-	}
-
-	if hc.Node == "" || hc.CheckID == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(hc.Node))
-	b.String(strings.ToLower(hc.CheckID))
-	return b.Bytes(), nil
-}
 
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
