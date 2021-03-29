@@ -237,6 +237,7 @@ export default [
       'tasks',
       'terraform-modules',
       'network-drivers',
+      'compatibility',
     ],
   },
 
