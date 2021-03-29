@@ -7,7 +7,7 @@
         <g id="Consul.io-Landing-Op1" transform="translate(-887.000000, -1410.000000)">
             <g id="dynamic" transform="translate(887.000000, 1410.000000)">
                 <g id="main-box" transform="translate(97.000000, 0.000000)">
-                    <g id="lines-inter-main" transform="translate(85.000000, 31.000000)" stroke="#CA2171" stroke-linejoin="round">
+                    <g id="lines-inter-main" transform="translate(85.000000, 31.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                         <path d="M83.53,48.57 L97.38,56.57" id="Shape"></path>
                         <path d="M125.09,24.57 L138.95,32.57" id="Shape"></path>
                         <path d="M41.96,72.57 L55.81,80.57" id="Shape"></path>
@@ -142,12 +142,12 @@
                             <path d="M55.5,16.58 C55.5,16.58 55.5,16.58 55.5,16.58 L27.81,32.58 L27.81,40.58 L55.5,24.58 L55.5,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M55.5,16.58 C55.5,16.58 55.5,16.58 55.5,16.58 L27.81,32.58 L27.81,40.58 L55.5,24.58 L55.5,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M27.8,32.57 L0.11,16.57 C0.11,16.57 0.11,16.57 0.11,16.57 L27.8,0.57 L55.49,16.57 C55.49,16.57 55.49,16.57 55.49,16.57 L27.8,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M27.8,32.57 L0.11,16.57 C0.11,16.57 0.11,16.57 0.11,16.57 L27.8,0.57 L55.49,16.57 C55.49,16.57 55.49,16.57 55.49,16.57 L27.8,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M27.8,32.57 L0.11,16.57 C0.11,16.57 0.11,16.57 0.11,16.57 L27.8,0.57 L55.49,16.57 C55.49,16.57 55.49,16.57 55.49,16.57 L27.8,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.5 3.57 5.31 6.57 1.84 4.57 7.04 1.57"></polygon>
                                 <path d="M6.17,2.07 L2.71,4.07 L0.98,3.07 C0.545183136,2.93079068 0.250156212,2.52655771 0.250156212,2.07 C0.250156212,1.61344229 0.545183136,1.20920932 0.98,1.07 C2.06760864,0.51935499 3.35239136,0.51935499 4.44,1.07 L6.17,2.07 Z" id="Shape"></path>
                             </g>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="27.65" cy="26.49" rx="2.65" ry="1.53"></ellipse>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="27.65" cy="26.49" rx="2.65" ry="1.53"></ellipse>
                         </g>
                         <g id="Box" transform="translate(41.000000, 72.000000)">
                             <polygon id="Shape" fill="#DDDDDD" fill-rule="nonzero" points="28.36 40.56 28.36 40.56 0.66 24.56 0.66 16.56 0.66 16.56 28.36 32.56"></polygon>
@@ -155,9 +155,9 @@
                             <path d="M56.07,16.58 C56.07,16.58 56.07,16.58 56.07,16.58 L28.38,32.58 L28.38,40.58 L56.07,24.58 L56.07,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M56.07,16.58 C56.07,16.58 56.07,16.58 56.07,16.58 L28.38,32.58 L28.38,40.58 L56.07,24.58 L56.07,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M28.37,32.57 L0.67,16.57 L28.37,0.57 C28.37,0.57 28.37,0.57 28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M28.37,32.57 L0.67,16.57 L28.37,0.57 C28.37,0.57 28.37,0.57 28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.36" cy="26.57" rx="2.65" ry="1.53"></ellipse>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M28.37,32.57 L0.67,16.57 L28.37,0.57 C28.37,0.57 28.37,0.57 28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.36" cy="26.57" rx="2.65" ry="1.53"></ellipse>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="11.07 3.57 5.88 6.57 2.41 4.57 7.61 1.57"></polygon>
                                 <path d="M6.74,2.07 L3.28,4.07 L1.55,3.07 C1.11518314,2.93079068 0.820156212,2.52655771 0.820156212,2.07 C0.820156212,1.61344229 1.11518314,1.20920932 1.55,1.07 C2.63760864,0.51935499 3.92239136,0.51935499 5.01,1.07 L6.74,2.07 Z" id="Shape"></path>
                             </g>
@@ -168,9 +168,9 @@
                             <path d="M55.64,16.58 C55.64,16.58 55.64,16.58 55.64,16.58 L27.95,32.58 L27.95,40.58 L55.64,24.58 L55.64,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M55.64,16.58 C55.64,16.58 55.64,16.58 55.64,16.58 L27.95,32.58 L27.95,40.58 L55.64,24.58 L55.64,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 C27.94,0.57 27.94,0.57 27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 C27.94,0.57 27.94,0.57 27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.07" cy="26.66" rx="2.65" ry="1.53"></ellipse>
-                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 C27.94,0.57 27.94,0.57 27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.07" cy="26.66" rx="2.65" ry="1.53"></ellipse>
+                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.64 3.57 5.44 6.57 1.98 4.57 7.18 1.57"></polygon>
                                 <path d="M6.31,2.07 L2.85,4.07 L1.11,3.07 C0.685568794,2.92078361 0.401567917,2.51989708 0.401567917,2.07 C0.401567917,1.62010292 0.685568794,1.21921639 1.11,1.07 C2.20147403,0.520796402 3.48852597,0.520796402 4.58,1.07 L6.31,2.07 Z" id="Shape"></path>
                             </g>
@@ -181,9 +181,9 @@
                             <polygon id="Shape" fill="#FFFFFF" fill-rule="nonzero" points="56.07 16.58 56.07 16.58 28.38 32.58 28.38 40.58 28.38 40.58 56.07 24.58"></polygon>
                             <polygon id="Shape" stroke="#B5B8C4" stroke-linejoin="round" points="56.07 16.58 56.07 16.58 28.38 32.58 28.38 40.58 28.38 40.58 56.07 24.58"></polygon>
                             <path d="M28.37,32.57 L0.67,16.57 L28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M28.37,32.57 L0.67,16.57 L28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.21" cy="26.49" rx="2.65" ry="1.53"></ellipse>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M28.37,32.57 L0.67,16.57 L28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.21" cy="26.49" rx="2.65" ry="1.53"></ellipse>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="11.07 3.57 5.88 6.57 2.41 4.57 7.61 1.57"></polygon>
                                 <path d="M6.74,2.07 L3.28,4.07 L1.55,3.07 C1.11518314,2.93079068 0.820156212,2.52655771 0.820156212,2.07 C0.820156212,1.61344229 1.11518314,1.20920932 1.55,1.07 C2.63760864,0.51935499 3.92239136,0.51935499 5.01,1.07 L6.74,2.07 Z" id="Shape"></path>
                             </g>
@@ -194,9 +194,9 @@
                             <path d="M55.64,16.58 C55.64,16.58 55.64,16.58 55.64,16.58 L27.95,32.58 L27.95,40.58 L55.64,24.58 L55.64,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M55.64,16.58 C55.64,16.58 55.64,16.58 55.64,16.58 L27.95,32.58 L27.95,40.58 L55.64,24.58 L55.64,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="27.93" cy="26.57" rx="2.65" ry="1.53"></ellipse>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="27.93" cy="26.57" rx="2.65" ry="1.53"></ellipse>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.64 3.57 5.44 6.57 1.98 4.57 7.18 1.57"></polygon>
                                 <path d="M6.31,2.07 L2.85,4.07 L1.11,3.07 C0.685568794,2.92078361 0.401567917,2.51989708 0.401567917,2.07 C0.401567917,1.62010292 0.685568794,1.21921639 1.11,1.07 C2.20147403,0.520796402 3.48852597,0.520796402 4.58,1.07 L6.31,2.07 Z" id="Shape"></path>
                             </g>
@@ -207,9 +207,9 @@
                             <path d="M56.21,16.58 C56.21,16.58 56.21,16.58 56.21,16.58 L28.52,32.58 L28.52,40.58 L56.21,24.58 L56.21,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M56.21,16.58 C56.21,16.58 56.21,16.58 56.21,16.58 L28.52,32.58 L28.52,40.58 L56.21,24.58 L56.21,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M28.51,32.57 L0.81,16.57 L28.51,0.57 C28.51,0.57 28.51,0.57 28.51,0.57 L56.2,16.57 C56.2,16.57 56.2,16.57 56.2,16.57 L28.51,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M28.51,32.57 L0.81,16.57 L28.51,0.57 C28.51,0.57 28.51,0.57 28.51,0.57 L56.2,16.57 C56.2,16.57 56.2,16.57 56.2,16.57 L28.51,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.64" cy="26.66" rx="2.65" ry="1.53"></ellipse>
-                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M28.51,32.57 L0.81,16.57 L28.51,0.57 C28.51,0.57 28.51,0.57 28.51,0.57 L56.2,16.57 C56.2,16.57 56.2,16.57 56.2,16.57 L28.51,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.64" cy="26.66" rx="2.65" ry="1.53"></ellipse>
+                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="11.21 3.57 6.01 6.57 2.55 4.57 7.75 1.57"></polygon>
                                 <path d="M6.88,2.07 L3.42,4.07 L1.68,3.07 C1.25556879,2.92078361 0.971567917,2.51989708 0.971567917,2.07 C0.971567917,1.62010292 1.25556879,1.21921639 1.68,1.07 C2.77147403,0.520796402 4.05852597,0.520796402 5.15,1.07 L6.88,2.07 Z" id="Shape"></path>
                             </g>
@@ -220,9 +220,9 @@
                             <polygon id="Shape" fill="#FFFFFF" fill-rule="nonzero" points="55.64 16.58 55.64 16.58 27.95 32.58 27.95 32.58 27.95 40.58 27.95 40.58 55.64 24.58"></polygon>
                             <polygon id="Shape" stroke="#B5B8C4" stroke-linejoin="round" points="55.64 16.58 55.64 16.58 27.95 32.58 27.95 32.58 27.95 40.58 27.95 40.58 55.64 24.58"></polygon>
                             <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="27.93" cy="26.41" rx="2.65" ry="1.53"></ellipse>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="27.93" cy="26.41" rx="2.65" ry="1.53"></ellipse>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.64 3.57 5.44 6.57 1.98 4.57 7.18 1.57"></polygon>
                                 <path d="M6.31,2.07 L2.85,4.07 L1.11,3.07 C0.685568794,2.92078361 0.401567917,2.51989708 0.401567917,2.07 C0.401567917,1.62010292 0.685568794,1.21921639 1.11,1.07 C2.20147403,0.520796402 3.48852597,0.520796402 4.58,1.07 L6.31,2.07 Z" id="Shape"></path>
                             </g>
@@ -233,9 +233,9 @@
                             <polygon id="Shape" fill="#FFFFFF" fill-rule="nonzero" points="56.21 16.58 56.21 16.58 28.52 32.58 28.52 40.58 28.52 40.58 56.21 24.58"></polygon>
                             <polygon id="Shape" stroke="#B5B8C4" stroke-linejoin="round" points="56.21 16.58 56.21 16.58 28.52 32.58 28.52 40.58 28.52 40.58 56.21 24.58"></polygon>
                             <path d="M28.51,32.57 L0.81,16.57 L28.51,0.57 L56.2,16.57 C56.2,16.57 56.2,16.57 56.2,16.57 L28.51,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M28.51,32.57 L0.81,16.57 L28.51,0.57 L56.2,16.57 C56.2,16.57 56.2,16.57 56.2,16.57 L28.51,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.64" cy="26.49" rx="2.65" ry="1.53"></ellipse>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M28.51,32.57 L0.81,16.57 L28.51,0.57 L56.2,16.57 C56.2,16.57 56.2,16.57 56.2,16.57 L28.51,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.64" cy="26.49" rx="2.65" ry="1.53"></ellipse>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="11.21 3.57 6.01 6.57 2.55 4.57 7.75 1.57"></polygon>
                                 <path d="M6.88,2.07 L3.42,4.07 L1.68,3.07 C1.25556879,2.92078361 0.971567917,2.51989708 0.971567917,2.07 C0.971567917,1.62010292 1.25556879,1.21921639 1.68,1.07 C2.77147403,0.520796402 4.05852597,0.520796402 5.15,1.07 L6.88,2.07 Z" id="Shape"></path>
                             </g>
@@ -246,16 +246,16 @@
                             <path d="M55.78,16.58 C55.78,16.58 55.78,16.58 55.78,16.58 L28.08,32.58 L28.08,40.58 L55.78,24.58 C55.78,24.58 55.78,24.58 55.78,24.58 L55.78,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M55.78,16.58 C55.78,16.58 55.78,16.58 55.78,16.58 L28.08,32.58 L28.08,40.58 L55.78,24.58 C55.78,24.58 55.78,24.58 55.78,24.58 L55.78,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <polygon id="Shape" fill="#FFFFFF" fill-rule="nonzero" points="28.07 32.57 28.07 32.57 0.37 16.57 0.37 16.57 28.07 0.57 28.07 0.57 55.77 16.57 55.77 16.57"></polygon>
-                            <polygon id="Shape" stroke="#CA2171" stroke-linejoin="round" points="28.07 32.57 28.07 32.57 0.37 16.57 0.37 16.57 28.07 0.57 28.07 0.57 55.77 16.57 55.77 16.57"></polygon>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.35" cy="26.57" rx="2.65" ry="1.53"></ellipse>
-                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <polygon id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round" points="28.07 32.57 28.07 32.57 0.37 16.57 0.37 16.57 28.07 0.57 28.07 0.57 55.77 16.57 55.77 16.57"></polygon>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.35" cy="26.57" rx="2.65" ry="1.53"></ellipse>
+                            <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.78 3.57 5.58 6.57 2.12 4.57 7.31 1.57"></polygon>
                                 <path d="M6.45,2.07 L2.98,4.07 L1.25,3.07 C0.825568794,2.92078361 0.541567917,2.51989708 0.541567917,2.07 C0.541567917,1.62010292 0.825568794,1.21921639 1.25,1.07 C2.34147403,0.520796402 3.62852597,0.520796402 4.72,1.07 L6.45,2.07 Z" id="Shape"></path>
                             </g>
                         </g>
                     </g>
                 </g>
-                <g id="lines-origin-azure" transform="translate(265.000000, 79.000000)" stroke="#CA2171" stroke-linejoin="round">
+                <g id="lines-origin-azure" transform="translate(265.000000, 79.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                     <path d="M0.53,48.57 L55.95,80.57" id="Shape"></path>
                     <path d="M42.09,24.57 L97.52,56.57" id="Shape"></path>
                     <polyline id="Shape" points="83.66 0.57 113.11 17.57 75 39.57 100.98 54.57"></polyline>
@@ -346,7 +346,7 @@
                         <polygon id="Shape" stroke="#0478D7" stroke-linejoin="round" points="0.07 32.57 55.49 0.57 82.98 16.45 27.56 48.45"></polygon>
                         <path d="M37.89,19.2 L40.89,24.38 L52.18,24.86 L43.67,31 L58.79,22.45 L37.89,19.2 Z M33.83,25.41 L37.31,33.27 L41.19,30.53 L34.94,18.18 L33.83,25.41 Z" id="Shape" fill="#015BE2" fill-rule="nonzero"></path>
                     </g>
-                    <path d="M127.23,39.57 L141.09,31.57" id="line-inter-azure" stroke="#CA2171" stroke-linejoin="round"></path>
+                    <path d="M127.23,39.57 L141.09,31.57" id="line-inter-azure" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
                     <g id="box-shadows" opacity="0.08" transform="translate(28.000000, 32.000000)" fill="#252937" fill-rule="nonzero">
                         <path d="M28.08,80.57 L0.38,64.57 L28.08,48.57 C28.08,48.57 28.08,48.57 28.08,48.57 L55.77,64.57 C55.77,64.57 55.77,64.57 55.77,64.57 L28.08,80.57 Z" id="Shape"></path>
                         <path d="M69.64,56.57 L41.94,40.57 L69.64,24.57 C69.64,24.57 69.64,24.57 69.64,24.57 L97.34,40.57 L69.64,56.57 Z" id="Shape"></path>
@@ -358,9 +358,9 @@
                         <path d="M55.78,16.58 C55.78,16.58 55.78,16.58 55.78,16.58 L28.09,32.58 L28.09,40.58 L55.78,24.58 L55.78,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                         <path d="M55.78,16.58 C55.78,16.58 55.78,16.58 55.78,16.58 L28.09,32.58 L28.09,40.58 L55.78,24.58 L55.78,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                         <path d="M28.08,32.57 L0.38,16.57 L28.08,0.57 C28.08,0.57 28.08,0.57 28.08,0.57 L55.77,16.57 C55.77,16.57 55.77,16.57 55.77,16.57 L28.08,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                        <path d="M28.08,32.57 L0.38,16.57 L28.08,0.57 C28.08,0.57 28.08,0.57 28.08,0.57 L55.77,16.57 C55.77,16.57 55.77,16.57 55.77,16.57 L28.08,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                        <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.5" cy="26.82" rx="2.65" ry="1.53"></ellipse>
-                        <g id="lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                        <path d="M28.08,32.57 L0.38,16.57 L28.08,0.57 C28.08,0.57 28.08,0.57 28.08,0.57 L55.77,16.57 C55.77,16.57 55.77,16.57 55.77,16.57 L28.08,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                        <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.5" cy="26.82" rx="2.65" ry="1.53"></ellipse>
+                        <g id="lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                             <polygon id="Shape" points="10.78 3.57 5.58 6.57 2.12 4.57 7.31 1.57"></polygon>
                             <path d="M6.45,2.07 L2.99,4.07 L1.25,3.07 C0.825568794,2.92078361 0.541567917,2.51989708 0.541567917,2.07 C0.541567917,1.62010292 0.825568794,1.21921639 1.25,1.07 C2.34147403,0.520796402 3.62852597,0.520796402 4.72,1.07 L6.45,2.07 Z" id="Shape"></path>
                         </g>
@@ -371,9 +371,9 @@
                         <path d="M56.35,16.58 C56.35,16.58 56.35,16.58 56.35,16.58 L28.65,32.58 L28.65,40.58 L56.35,24.58 C56.35,24.58 56.35,24.58 56.35,24.58 L56.35,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                         <path d="M56.35,16.58 C56.35,16.58 56.35,16.58 56.35,16.58 L28.65,32.58 L28.65,40.58 L56.35,24.58 C56.35,24.58 56.35,24.58 56.35,24.58 L56.35,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                         <path d="M28.64,32.57 L0.94,16.57 L28.64,0.57 C28.64,0.57 28.64,0.57 28.64,0.57 L56.34,16.57 L28.64,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                        <path d="M28.64,32.57 L0.94,16.57 L28.64,0.57 C28.64,0.57 28.64,0.57 28.64,0.57 L56.34,16.57 L28.64,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                        <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="29.07" cy="26.82" rx="2.65" ry="1.53"></ellipse>
-                        <g id="lock" transform="translate(38.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                        <path d="M28.64,32.57 L0.94,16.57 L28.64,0.57 C28.64,0.57 28.64,0.57 28.64,0.57 L56.34,16.57 L28.64,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                        <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="29.07" cy="26.82" rx="2.65" ry="1.53"></ellipse>
+                        <g id="lock" transform="translate(38.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                             <polygon id="Shape" points="10.35 3.57 5.15 6.57 1.69 4.57 6.88 1.57"></polygon>
                             <path d="M6,2.07 L2.53,4.07 L0.8,3.07 C0.375568794,2.92078361 0.0915679166,2.51989708 0.0915679166,2.07 C0.0915679166,1.62010292 0.375568794,1.21921639 0.8,1.07 C1.89147403,0.520796402 3.17852597,0.520796402 4.27,1.07 L6,2.07 Z" id="Shape"></path>
                         </g>
@@ -384,15 +384,15 @@
                         <path d="M55.92,16.58 C55.92,16.58 55.92,16.58 55.92,16.58 L28.22,32.58 L28.22,40.58 L55.92,24.58 C55.92,24.58 55.92,24.58 55.92,24.58 L55.92,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                         <path d="M55.92,16.58 C55.92,16.58 55.92,16.58 55.92,16.58 L28.22,32.58 L28.22,40.58 L55.92,24.58 C55.92,24.58 55.92,24.58 55.92,24.58 L55.92,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                         <path d="M28.21,32.57 L0.51,16.57 L28.21,0.57 C28.21,0.57 28.21,0.57 28.21,0.57 L55.91,16.57 L28.21,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                        <path d="M28.21,32.57 L0.51,16.57 L28.21,0.57 C28.21,0.57 28.21,0.57 28.21,0.57 L55.91,16.57 L28.21,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                        <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.78" cy="26.74" rx="2.65" ry="1.53"></ellipse>
-                        <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                        <path d="M28.21,32.57 L0.51,16.57 L28.21,0.57 C28.21,0.57 28.21,0.57 28.21,0.57 L55.91,16.57 L28.21,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                        <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.78" cy="26.74" rx="2.65" ry="1.53"></ellipse>
+                        <g id="Lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                             <polygon id="Shape" points="10.92 3.57 5.72 6.57 2.26 4.57 7.45 1.57"></polygon>
                             <path d="M6.59,2.07 L3.12,4.07 L1.39,3.07 C0.955183136,2.93079068 0.660156212,2.52655771 0.660156212,2.07 C0.660156212,1.61344229 0.955183136,1.20920932 1.39,1.07 C2.48147403,0.520796402 3.76852597,0.520796402 4.86,1.07 L6.59,2.07 Z" id="Shape"></path>
                         </g>
                     </g>
                 </g>
-                <g id="lines-origin-aws" transform="translate(166.000000, 103.000000)" stroke="#CA2171" stroke-linejoin="round">
+                <g id="lines-origin-aws" transform="translate(166.000000, 103.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                     <path d="M101.26,105.57 L156.68,73.57" id="Shape"></path>
                     <polyline id="Shape" points="97.79 103.57 127.24 86.57 7.73 17.57 33.71 2.57"></polyline>
                     <polyline id="Shape" points="59.69 81.57 125.51 43.57 96.06 26.57"></polyline>
@@ -400,7 +400,7 @@
                     <polyline id="Shape" points="56.22 79.57 82.2 64.57 0.8 17.57 30.24 0.57"></polyline>
                 </g>
                 <g id="aws-box" transform="translate(97.000000, 144.000000)">
-                    <g id="lines-inter-aws" transform="translate(85.000000, 31.000000)" stroke="#CA2171" stroke-linejoin="round">
+                    <g id="lines-inter-aws" transform="translate(85.000000, 31.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                         <path d="M0.39,0.57 L14.24,8.57" id="Shape"></path>
                         <path d="M41.96,24.57 L55.81,32.57" id="Shape"></path>
                     </g>
@@ -502,9 +502,9 @@
                             <path d="M55.64,16.58 C55.64,16.58 55.64,16.58 55.64,16.58 L27.95,32.58 L27.95,40.58 L55.64,24.58 L55.64,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M55.64,16.58 C55.64,16.58 55.64,16.58 55.64,16.58 L27.95,32.58 L27.95,40.58 L55.64,24.58 L55.64,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 C27.94,0.57 27.94,0.57 27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 C27.94,0.57 27.94,0.57 27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.51" cy="26.74" rx="2.65" ry="1.53"></ellipse>
-                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M27.94,32.57 L0.24,16.57 L27.94,0.57 C27.94,0.57 27.94,0.57 27.94,0.57 L55.63,16.57 C55.63,16.57 55.63,16.57 55.63,16.57 L27.94,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.51" cy="26.74" rx="2.65" ry="1.53"></ellipse>
+                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.64 3.57 5.44 6.57 1.98 4.57 7.18 1.57"></polygon>
                                 <path d="M6.31,2.07 L2.85,4.07 L1.12,3.07 C0.685183136,2.93079068 0.390156212,2.52655771 0.390156212,2.07 C0.390156212,1.61344229 0.685183136,1.20920932 1.12,1.07 C2.20760864,0.51935499 3.49239136,0.51935499 4.58,1.07 L6.31,2.07 Z" id="Shape"></path>
                             </g>
@@ -515,9 +515,9 @@
                             <path d="M56.07,16.58 C56.07,16.58 56.07,16.58 56.07,16.58 L28.38,32.58 L28.38,40.58 L56.07,24.58 L56.07,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M56.07,16.58 C56.07,16.58 56.07,16.58 56.07,16.58 L28.38,32.58 L28.38,40.58 L56.07,24.58 L56.07,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M28.37,32.57 L0.68,16.57 C0.68,16.57 0.68,16.57 0.68,16.57 L28.37,0.57 C28.37,0.57 28.37,0.57 28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M28.37,32.57 L0.68,16.57 C0.68,16.57 0.68,16.57 0.68,16.57 L28.37,0.57 C28.37,0.57 28.37,0.57 28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.36" cy="26.41" rx="2.65" ry="1.53"></ellipse>
-                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M28.37,32.57 L0.68,16.57 C0.68,16.57 0.68,16.57 0.68,16.57 L28.37,0.57 C28.37,0.57 28.37,0.57 28.37,0.57 L56.06,16.57 C56.06,16.57 56.06,16.57 56.06,16.57 L28.37,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.36" cy="26.41" rx="2.65" ry="1.53"></ellipse>
+                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="11.07 3.57 5.88 6.57 2.41 4.57 7.61 1.57"></polygon>
                                 <path d="M6.74,2.07 L3.28,4.07 L1.55,3.07 C1.11518314,2.93079068 0.820156212,2.52655771 0.820156212,2.07 C0.820156212,1.61344229 1.11518314,1.20920932 1.55,1.07 C2.63760864,0.51935499 3.92239136,0.51935499 5.01,1.07 L6.74,2.07 Z" id="Shape"></path>
                             </g>
@@ -528,16 +528,16 @@
                             <path d="M55.5,16.58 C55.5,16.58 55.5,16.58 55.5,16.58 L27.81,32.58 L27.81,40.58 L55.5,24.58 L55.5,16.58 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
                             <path d="M55.5,16.58 C55.5,16.58 55.5,16.58 55.5,16.58 L27.81,32.58 L27.81,40.58 L55.5,24.58 L55.5,16.58 Z" id="Shape" stroke="#B5B8C4" stroke-linejoin="round"></path>
                             <path d="M27.8,32.57 L0.11,16.57 C0.11,16.57 0.11,16.57 0.11,16.57 L27.8,0.57 C27.8,0.57 27.8,0.57 27.8,0.57 L55.49,16.57 C55.49,16.57 55.49,16.57 55.49,16.57 L27.8,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                            <path d="M27.8,32.57 L0.11,16.57 C0.11,16.57 0.11,16.57 0.11,16.57 L27.8,0.57 C27.8,0.57 27.8,0.57 27.8,0.57 L55.49,16.57 C55.49,16.57 55.49,16.57 55.49,16.57 L27.8,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                            <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="28.08" cy="26.57" rx="2.65" ry="1.53"></ellipse>
-                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                            <path d="M27.8,32.57 L0.11,16.57 C0.11,16.57 0.11,16.57 0.11,16.57 L27.8,0.57 C27.8,0.57 27.8,0.57 27.8,0.57 L55.49,16.57 C55.49,16.57 55.49,16.57 55.49,16.57 L27.8,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                            <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="28.08" cy="26.57" rx="2.65" ry="1.53"></ellipse>
+                            <g id="lock" transform="translate(37.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                                 <polygon id="Shape" points="10.5 3.57 5.31 6.57 1.84 4.57 7.04 1.57"></polygon>
                                 <path d="M6.17,2.07 L2.71,4.07 L0.98,3.07 C0.545183136,2.93079068 0.250156212,2.52655771 0.250156212,2.07 C0.250156212,1.61344229 0.545183136,1.20920932 0.98,1.07 C2.06760864,0.51935499 3.35239136,0.51935499 4.44,1.07 L6.17,2.07 Z" id="Shape"></path>
                             </g>
                         </g>
                     </g>
                 </g>
-                <g id="lines-origin-gcp" transform="translate(97.000000, 78.000000)" stroke="#CA2171" stroke-linejoin="round">
+                <g id="lines-origin-gcp" transform="translate(97.000000, 78.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                     <path d="M55.94,0.57 L0.52,32.57" id="Shape"></path>
                     <polyline id="Shape" points="3.98 34.57 29.96 19.57 66.34 40.57 95.78 23.57"></polyline>
                 </g>
@@ -618,9 +618,9 @@
                         <polygon id="Shape" fill="#FFFFFF" fill-rule="nonzero" points="55.36 16.58 55.36 16.58 27.66 32.58 27.66 32.58 27.66 40.58 27.66 40.58 55.36 24.58 55.36 16.58"></polygon>
                         <polygon id="Shape" stroke="#B5B8C4" stroke-linejoin="round" points="55.36 16.58 55.36 16.58 27.66 32.58 27.66 32.58 27.66 40.58 27.66 40.58 55.36 24.58 55.36 16.58"></polygon>
                         <path d="M27.66,32.57 L0,16.58 C0,16.58 0,16.58 0,16.58 L27.69,0.58 C27.69,0.58 27.69,0.58 27.69,0.58 L55.39,16.58 L27.66,32.57 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-                        <path d="M27.66,32.57 L0,16.58 C0,16.58 0,16.58 0,16.58 L27.69,0.58 C27.69,0.58 27.69,0.58 27.69,0.58 L55.39,16.58 L27.66,32.57 Z" id="Shape" stroke="#CA2171" stroke-linejoin="round"></path>
-                        <ellipse id="Oval" fill="#CA2171" fill-rule="nonzero" cx="27.65" cy="26.41" rx="2.65" ry="1.53"></ellipse>
-                        <g id="lock" transform="translate(36.000000, 13.000000)" stroke="#CA2171" stroke-linejoin="round">
+                        <path d="M27.66,32.57 L0,16.58 C0,16.58 0,16.58 0,16.58 L27.69,0.58 C27.69,0.58 27.69,0.58 27.69,0.58 L55.39,16.58 L27.66,32.57 Z" id="Shape" stroke="var(--consul, #dc477d)" stroke-linejoin="round"></path>
+                        <ellipse id="Oval" fill="var(--consul, #dc477d)" fill-rule="nonzero" cx="27.65" cy="26.41" rx="2.65" ry="1.53"></ellipse>
+                        <g id="lock" transform="translate(36.000000, 13.000000)" stroke="var(--consul, #dc477d)" stroke-linejoin="round">
                             <polygon id="Shape" points="10.36 3.57 5.17 6.57 1.7 4.57 6.9 1.57"></polygon>
                             <path d="M6,2.07 L2.54,4.07 L0.81,3.07 C0.375183136,2.93079068 0.0801562119,2.52655771 0.0801562119,2.07 C0.0801562119,1.61344229 0.375183136,1.20920932 0.81,1.07 C1.89760864,0.51935499 3.18239136,0.51935499 4.27,1.07 L6,2.07 Z" id="Shape"></path>
                         </g>
