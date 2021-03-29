@@ -40,14 +40,12 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 		},
 		indexStatus: {
 			read: indexValue{
-				source: []interface{}{
-					"PASSING",
-				},
-				expected: []byte("PASSING\x00"),
+				source:   Query{Value: "PASSING"},
+				expected: []byte("passing\x00"),
 			},
 			write: indexValue{
 				source:   obj,
-				expected: []byte("PASSING\x00"),
+				expected: []byte("passing\x00"),
 			},
 		},
 		indexService: {

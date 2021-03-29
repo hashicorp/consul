@@ -139,11 +139,6 @@ func catalogListChecksByService(tx ReadTxn, service string, _ *structs.Enterpris
 	return tx.Get(tableChecks, indexService, service)
 }
 
-func catalogListChecksInState(tx ReadTxn, state string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	// simpler than normal due to the use of the CompoundMultiIndex
-	return tx.Get(tableChecks, indexStatus, state)
-}
-
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
 	// Insert the check
 	if err := tx.Insert(tableChecks, chk); err != nil {

@@ -1709,13 +1709,18 @@ func checksInStateTxn(tx ReadTxn, ws memdb.WatchSet, state string, entMeta *stru
 	// Get the table index.
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
 	// Query all checks if HealthAny is passed, otherwise use the index.
 	var iter memdb.ResultIterator
 	var err error
 	if state == api.HealthAny {
 		iter, err = tx.Get(tableChecks, indexID+"_prefix", entMeta)
 	} else {
-		iter, err = catalogListChecksInState(tx, state, entMeta)
+		q := Query{Value: state, EnterpriseMeta: *entMeta}
+		iter, err = tx.Get(tableChecks, indexStatus, q)
 	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
