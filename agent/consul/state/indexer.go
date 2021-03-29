@@ -101,6 +101,12 @@ const null = "\x00"
 // indexBuilder is a buffer used to construct memdb index values.
 type indexBuilder bytes.Buffer
 
+func newIndexBuilder(cap int) *indexBuilder {
+	buff := make([]byte, 0, cap)
+	b := bytes.NewBuffer(buff)
+	return (*indexBuilder)(b)
+}
+
 // String appends the string and a null terminator to the buffer.
 func (b *indexBuilder) String(v string) {
 	(*bytes.Buffer)(b).WriteString(v)
