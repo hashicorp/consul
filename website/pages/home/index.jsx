@@ -23,36 +23,71 @@ export default function HomePage() {
             content:
               'Deploy service mesh within any runtime or infrastructure - Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud.',
             icon: require('./img/why-consul/service-mesh-runtime.svg'),
+            link: {
+              type: 'outbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/collections/consul/developer-mesh',
+            },
           },
           {
             title: 'Secure, Multi-Cloud Service Networking',
             content:
               'Secure services running in any environment leveraging intention based policies and automatic mTLS encryption between service mesh resources',
             icon: require('./img/why-consul/cloud.svg'),
+            link: {
+              type: 'outbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-application-secure-networking',
+            },
           },
           {
             title: 'Dynamic Load Balancing',
             content:
               'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
             icon: require('./img/why-consul/dynamic-load-balancing.svg'),
+            link: {
+              type: 'outbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/collections/consul/load-balancing',
+            },
           },
           {
             title: 'Service Discovery with Health Checking',
             content:
               'Consul enables detecting the deployment of new services, changes to existing ones, and provides real time agent health to reduce downtime.',
             icon: require('./img/why-consul/health.svg'),
+            link: {
+              type: 'outbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/tutorials/cloud/get-started-service-discovery',
+            },
           },
           {
             title: 'Robust Ecosystem',
             content:
               'Consul offers support for and integrations with many popular DevOps and Networking tools.',
             icon: require('./img/why-consul/world.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url: '/docs/integrate/partnerships',
+            },
           },
           {
             title: 'Integrate and Extend With Kubernetes',
             content:
               'Quickly deploy Consul on Kubernetes leveraging Helm. Automatically inject sidecars for Kubernetes resources. Federate multiple clusters into a single service mesh.',
             icon: require('./img/why-consul/kubernetes.svg'),
+            link: {
+              type: 'outbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
+            },
           },
         ]}
       />
