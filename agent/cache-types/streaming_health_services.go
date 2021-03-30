@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
@@ -28,7 +29,8 @@ const (
 // catalog using the streaming gRPC endpoint.
 type StreamingHealthServices struct {
 	RegisterOptionsBlockingRefresh
-	deps MaterializerDeps
+	deps  MaterializerDeps
+	cache *cache.Cache // Cache that has StreamingHealthServices
 }
 
 // RegisterOptions returns options with a much shorter LastGetTTL than the default.
@@ -46,8 +48,8 @@ func (c *StreamingHealthServices) RegisterOptions() cache.RegisterOptions {
 
 // NewStreamingHealthServices creates a cache-type for watching for service
 // health results via streaming updates.
-func NewStreamingHealthServices(deps MaterializerDeps) *StreamingHealthServices {
-	return &StreamingHealthServices{deps: deps}
+func NewStreamingHealthServices(deps MaterializerDeps, cache *cache.Cache) *StreamingHealthServices {
+	return &StreamingHealthServices{deps: deps, cache: cache}
 }
 
 type MaterializerDeps struct {
@@ -63,11 +65,20 @@ type MaterializerDeps struct {
 // Fetch implements part of the cache.Type interface, and assumes that the
 // caller ensures that only a single call to Fetch is running at any time.
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
+	srvReq, ok := req.(*structs.ServiceSpecificRequest)
+	if !ok {
+		return cache.FetchResult{}, fmt.Errorf(
+			"Internal cache failure: request wrong type: %T", req)
+	}
+
+	if srvReq.PreferConnect {
+		return c.preferConnectFetch(srvReq, opts.LastResult)
+	}
+
 	if opts.LastResult != nil && opts.LastResult.State != nil {
 		return opts.LastResult.State.(*streamingHealthState).Fetch(opts)
 	}
 
-	srvReq := req.(*structs.ServiceSpecificRequest)
 	newReqFn := func(index uint64) pbsubscribe.SubscribeRequest {
 		req := pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
@@ -96,6 +107,108 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 		cancel:       cancel,
 	}
 	return state.Fetch(opts)
+}
+
+type streamingHealthPreferConnectState struct {
+	ConnectIndex   uint64
+	ConnectResults *structs.IndexedCheckServiceNodes
+
+	PlainIndex   uint64
+	PlainResults *structs.IndexedCheckServiceNodes
+}
+
+func (s *streamingHealthPreferConnectState) Valid() bool {
+	return s.ConnectIndex > 0 && s.PlainIndex > 0 &&
+		s.ConnectResults != nil && s.PlainResults != nil
+}
+
+func (s *streamingHealthPreferConnectState) Results() cache.FetchResult {
+	result := cache.FetchResult{
+		Index: lib.MaxUint64(s.ConnectIndex, s.PlainIndex),
+		State: s,
+	}
+	if len(s.ConnectResults.Nodes) > 0 {
+		result.Value = s.ConnectResults
+	} else {
+		result.Value = s.PlainResults
+	}
+	return result
+}
+
+// This doesn't correspond to a streaming topic, but rather it looks at two
+// other topics and synthesizes results from them.
+func (c *StreamingHealthServices) preferConnectFetch(
+	origReq *structs.ServiceSpecificRequest,
+	lastResult *cache.FetchResult,
+) (cache.FetchResult, error) {
+	state := &streamingHealthPreferConnectState{}
+	if lastResult != nil && lastResult.State != nil {
+		state = lastResult.State.(*streamingHealthPreferConnectState)
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+
+	ch := make(chan cache.UpdateEvent, 2)
+
+	connectReq := *origReq
+	connectReq.PreferConnect = false
+	connectReq.Connect = true
+
+	err := c.cache.Notify(ctx, StreamingHealthServicesName, &connectReq, "connect", ch)
+	if err != nil {
+		return cache.FetchResult{}, err
+	}
+
+	plainReq := *origReq
+	plainReq.PreferConnect = false
+	plainReq.Connect = false
+
+	err = c.cache.Notify(ctx, StreamingHealthServicesName, &plainReq, "plain", ch)
+	if err != nil {
+		return cache.FetchResult{}, err
+	}
+
+	for {
+		var e cache.UpdateEvent
+		select {
+		case <-ctx.Done():
+			return cache.FetchResult{}, ctx.Err()
+		case e = <-ch:
+		}
+		if e.Err != nil {
+			return cache.FetchResult{}, err
+		}
+
+		switch e.CorrelationID {
+		case "connect":
+			if state.ConnectIndex >= e.Meta.Index {
+				continue // didn't change
+			}
+			state.ConnectIndex = e.Meta.Index
+			result, ok := e.Result.(*structs.IndexedCheckServiceNodes)
+			if !ok {
+				return cache.FetchResult{}, fmt.Errorf("invalid streaming service health response type: %T", e.Result)
+			}
+			state.ConnectResults = result
+		case "plain":
+			if state.PlainIndex >= e.Meta.Index {
+				continue // didn't change
+			}
+			state.PlainIndex = e.Meta.Index
+			result, ok := e.Result.(*structs.IndexedCheckServiceNodes)
+			if !ok {
+				return cache.FetchResult{}, fmt.Errorf("invalid streaming service health response type: %T", e.Result)
+			}
+			state.PlainResults = result
+		default:
+			return cache.FetchResult{}, fmt.Errorf("unexpected correlation id: %s", e.CorrelationID)
+		}
+
+		if state.Valid() {
+			return state.Results(), nil
+		}
+	}
 }
 
 func newMaterializer(

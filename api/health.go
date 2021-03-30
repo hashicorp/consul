@@ -18,9 +18,10 @@ const (
 )
 
 const (
-	serviceHealth = "service"
-	connectHealth = "connect"
-	ingressHealth = "ingress"
+	serviceHealth       = "service"
+	preferConnectHealth = "prefer-connect"
+	connectHealth       = "connect"
+	ingressHealth       = "ingress"
 )
 
 const (
@@ -268,6 +269,49 @@ func (h *Health) Checks(service string, q *QueryOptions) (HealthChecks, *QueryMe
 	return out, qm, nil
 }
 
+type ServiceQueryOptions struct {
+	// Tags optionally does server-side filtering on a tag.
+	Tags []string
+
+	// PassingOnly optional does server-side filtering of nodes with passing
+	// health checks only.
+	PassingOnly bool
+
+	// PreferConnect if true will default to returning Connect-compatible
+	// services, but if none are found it will return standard services.
+	PreferConnect bool
+
+	// Connect if true will only search for Connect-compatible services.
+	Connect bool
+
+	// Ingress if true will only search for Ingress gateways for the given service.
+	Ingress bool
+}
+
+func (o *ServiceQueryOptions) healthType() string {
+	switch {
+	case o == nil:
+		return serviceHealth
+	case o.Connect:
+		return connectHealth
+	case o.Ingress:
+		return ingressHealth
+	case o.PreferConnect:
+		return preferConnectHealth
+	default:
+		return serviceHealth
+	}
+}
+
+// ServiceOpts is used to query health information along with service info
+// for a given service. See the ServiceQueryOptions for available options to control behavior.
+func (h *Health) ServiceOpts(service string, opts *ServiceQueryOptions, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
+	if opts == nil {
+		opts = &ServiceQueryOptions{}
+	}
+	return h.service(service, opts.Tags, opts.PassingOnly, q, opts.healthType())
+}
+
 // Service is used to query health information along with service info
 // for a given service. It can optionally do server-side filtering on a tag
 // or nodes with passing health checks only.
@@ -308,12 +352,18 @@ func (h *Health) Ingress(service string, passingOnly bool, q *QueryOptions) ([]*
 }
 
 func (h *Health) service(service string, tags []string, passingOnly bool, q *QueryOptions, healthType string) ([]*ServiceEntry, *QueryMeta, error) {
-	var path string
+	var (
+		path          string
+		preferConnect bool
+	)
 	switch healthType {
 	case connectHealth:
 		path = "/v1/health/connect/" + service
 	case ingressHealth:
 		path = "/v1/health/ingress/" + service
+	case preferConnectHealth:
+		path = "/v1/health/service/" + service
+		preferConnect = true
 	default:
 		path = "/v1/health/service/" + service
 	}
@@ -327,6 +377,9 @@ func (h *Health) service(service string, tags []string, passingOnly bool, q *Que
 	}
 	if passingOnly {
 		r.params.Set(HealthPassing, "1")
+	}
+	if preferConnect {
+		r.params.Set("prefer-connect", "")
 	}
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {

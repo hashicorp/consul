@@ -737,6 +737,172 @@ func TestHealthServiceNodes(t *testing.T) {
 	}
 }
 
+func TestHealthServiceNodes_PreferConnect(t *testing.T) {
+	t.Run("no streaming", func(t *testing.T) {
+		testHealthServiceNodes_PreferConnect(t, ` rpc { enable_streaming = false } use_streaming_backend = false `)
+	})
+	t.Run("cache with streaming", func(t *testing.T) {
+		testHealthServiceNodes_PreferConnect(t, ` rpc { enable_streaming = true } use_streaming_backend = true `)
+	})
+}
+
+func testHealthServiceNodes_PreferConnect(t *testing.T, agentHCL string) {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, agentHCL)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	req, _ := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1&prefer-connect", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+
+	assertIndex(t, resp)
+
+	// Should be 1 health check for consul
+	nodes := obj.(structs.CheckServiceNodes)
+	require.Len(t, nodes, 1)
+
+	req, _ = http.NewRequest("GET", "/v1/health/service/nope?dc=dc1&prefer-connect", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list
+	nodes = obj.(structs.CheckServiceNodes)
+	require.NotNil(t, nodes)
+	require.Empty(t, nodes)
+
+	args := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "test",
+			Service: "test",
+		},
+	}
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
+
+	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&prefer-connect", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list for checks
+	nodes = obj.(structs.CheckServiceNodes)
+	require.Len(t, nodes, 1)
+	require.Equal(t, structs.ServiceKindTypical, nodes[0].Service.Kind)
+	require.NotNil(t, nodes[0].Checks)
+	require.Empty(t, nodes[0].Checks)
+
+	// register a connect proxy for this so it wins
+	argsProxy := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "test-proxy",
+			Service: "test-proxy",
+			Port:    2222,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "test",
+			},
+		},
+	}
+	require.NoError(t, a.RPC("Catalog.Register", &argsProxy, &out))
+
+	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&prefer-connect", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceNodes(resp, req)
+	require.NoError(t, err)
+
+	assertIndex(t, resp)
+
+	// Should be a non-nil empty list for checks
+	nodes = obj.(structs.CheckServiceNodes)
+	require.Len(t, nodes, 1)
+	require.Equal(t, structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+	require.NotNil(t, nodes[0].Checks)
+	require.Empty(t, nodes[0].Checks)
+
+	require.True(t, t.Run("test caching miss", func(t *testing.T) {
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached&prefer-connect", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		require.NoError(t, err)
+		nodes := obj.(structs.CheckServiceNodes)
+		require.Len(t, nodes, 1)
+		require.Equal(t, structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+
+		// Should be a cache miss
+		require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+	}))
+
+	require.True(t, t.Run("test caching hit", func(t *testing.T) {
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", "/v1/health/service/test?cached&prefer-connect", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthServiceNodes(resp, req)
+		require.NoError(t, err)
+		nodes := obj.(structs.CheckServiceNodes)
+		require.Len(t, nodes, 1)
+		require.Equal(t, structs.ServiceKindConnectProxy, nodes[0].Service.Kind)
+
+		// Should be a cache HIT now!
+		require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+	}))
+
+	require.True(t, t.Run("background cache refresh works", func(t *testing.T) {
+		// Ensure background refresh works
+
+		// Delete the proxy so it falls back on the real service.
+		// Register a new instance of the service
+		proxyDereg := structs.DeregisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			ServiceID:  "test-proxy",
+		}
+		require.NoError(t, a.RPC("Catalog.Deregister", &proxyDereg, &out))
+
+		retry.Run(t, func(r *retry.R) {
+			// List it again
+			req, _ := http.NewRequest("GET", "/v1/health/service/test?cached&prefer-connect", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.HealthServiceNodes(resp, req)
+			r.Check(err)
+
+			nodes := obj.(structs.CheckServiceNodes)
+			require.Len(r, nodes, 1)
+			require.Equal(r, structs.ServiceKindTypical, nodes[0].Service.Kind)
+			header := resp.Header().Get("X-Consul-Index")
+			if header == "" || header == "0" {
+				r.Fatalf("Want non-zero header: %q", header)
+			}
+			_, err = strconv.ParseUint(header, 10, 64)
+			r.Check(err)
+
+			// Should be a cache hit! The data should've updated in the cache
+			// in the background so this should've been fetched directly from
+			// the cache.
+
+			require.Equal(r, "HIT", resp.Header().Get("X-Cache"), "should be a cache hit")
+		})
+	}))
+}
+
 func TestHealthServiceNodes_Blocking(t *testing.T) {
 	cases := []struct {
 		name        string
