@@ -1,33 +1,36 @@
 import { productName, productSlug } from 'data/metadata'
-import order from 'data/intro-navigation.js'
 import DocsPage from '@hashicorp/react-docs-page'
+// Imports below are only used server-side
 import {
   generateStaticPaths,
   generateStaticProps,
 } from '@hashicorp/react-docs-page/server'
 
-const subpath = 'intro'
+//  Configure the docs path
+const baseRoute = 'intro'
+const navDataFile = `data/${baseRoute}-nav-data.json`
+const localContentDir = `content/${baseRoute}`
+const mainBranch = 'master'
+const product = { name: productName, slug: productSlug }
 
 export default function IntroLayout(props) {
   return (
-    <DocsPage
-      product={{ name: productName, slug: productSlug }}
-      subpath={subpath}
-      order={order}
-      mainBranch="master"
-      staticProps={props}
-    />
+    <DocsPage baseRoute={baseRoute} product={product} staticProps={props} />
   )
 }
 
 export async function getStaticPaths() {
-  return generateStaticPaths(subpath)
+  const paths = await generateStaticPaths({ localContentDir, navDataFile })
+  return { paths, fallback: false }
 }
 
 export async function getStaticProps({ params }) {
-  return generateStaticProps({
-    subpath,
-    productName,
+  const props = await generateStaticProps({
+    localContentDir,
+    mainBranch,
+    navDataFile,
     params,
+    product,
   })
+  return { props }
 }
