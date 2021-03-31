@@ -1,19 +1,38 @@
 import UseCases from '@hashicorp/react-use-cases'
-import DiptychHero from 'components/k8s-get-started'
+import DiptychHero from 'components/diptych-hero'
 import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
 import HcpCalloutSection from 'components/hcp-callout-section'
+import Callouts from '@hashicorp/react-callouts'
 import MiniCTA from '../../components/mini-cta'
-import K8sGetStarted from 'components/k8s-get-started'
 
 export default function HomePage() {
   return (
     <div className="p-home">
       <DiptychHero />
-      <K8sGetStarted />
+      <Callouts
+        layout="two-up"
+        product="neutral"
+        items={[
+          {
+            icon: require('./img/kubernetes/logo.svg?include'),
+            heading: 'Consul Service Mesh on Kubernetes',
+            content:
+              'Use Helm to deploy and CRDs to configure Consul on Kubernetes.',
+            link: { text: 'Get started', url: 'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh' },
+          },
+          {
+            icon: require('./img/kubernetes/communication-arrows.svg?include'),
+            heading: 'Consul as a Service Mesh',
+            content:
+              'Simplify, observe, and secure service to service communication for microservice architectures.',
+            link: { text: 'Read more', url: 'https://learn.hashicorp.com/collections/consul/developer-mesh' },
+          },
+        ]}
+      />
 
       <ProductFeaturesList
         heading="Why Consul?"
