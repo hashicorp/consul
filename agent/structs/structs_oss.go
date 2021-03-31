@@ -50,6 +50,14 @@ func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 	return ""
 }
 
+func (m *EnterpriseMeta) PartitionOrDefault() string {
+	return ""
+}
+
+func (m *EnterpriseMeta) PartitionOrEmpty() string {
+	return ""
+}
+
 func NewEnterpriseMeta(_ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
 }

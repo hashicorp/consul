@@ -18,17 +18,15 @@ func testIndexerTableConfigEntries() map[string]indexerTestCase {
 				source:   &structs.ProxyConfigEntry{Name: "NaMe"},
 				expected: []byte("proxy-defaults\x00name\x00"),
 			},
-		},
-		indexKind: {
-			read: indexValue{
-				source: ConfigEntryKindQuery{
-					Kind: "Service-Defaults",
+			prefix: []indexValue{
+				{
+					source:   structs.EnterpriseMeta{},
+					expected: nil,
 				},
-				expected: []byte("service-defaults\x00"),
-			},
-			write: indexValue{
-				source:   &structs.ServiceConfigEntry{},
-				expected: []byte("service-defaults\x00"),
+				{
+					source:   ConfigEntryKindQuery{Kind: "Proxy-Defaults"},
+					expected: []byte("proxy-defaults\x00"),
+				},
 			},
 		},
 	}
