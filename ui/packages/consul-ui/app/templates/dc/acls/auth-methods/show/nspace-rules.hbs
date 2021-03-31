@@ -2,7 +2,7 @@
 <div class="tab-section">
 {{#if true}}
   <p>A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.</p>
-  <Consul::AuthMethod::NamespaceTable @items={{item.NamespaceRules}} />
+  <Consul::AuthMethod::NspaceList @items={{item.NamespaceRules}} />
 {{else}}
   <EmptyState>
     <BlockSlot @name="header">
