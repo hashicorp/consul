@@ -55,6 +55,9 @@ func TestFoo_bar(t *testing.T) {
 		"baz": []byte("456"),
 	})
 
+	// Delete key/value
+	srv1.DeleteKV(t, "baz")
+
 	// Create a service
 	srv1.AddService(t, "redis", structs.HealthPassing, []string{"master"})
 

@@ -48,6 +48,10 @@ func (w *WrappedServer) PopulateKV(data map[string][]byte) {
 	w.s.PopulateKV(w.t, data)
 }
 
+func (w *WrappedServer) DeleteKV(key string) {
+	w.s.DeleteKV(w.t, key)
+}
+
 func (w *WrappedServer) ListKV(prefix string) []string {
 	return w.s.ListKV(w.t, prefix)
 }

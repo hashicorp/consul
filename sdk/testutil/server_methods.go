@@ -87,6 +87,12 @@ func (s *TestServer) PopulateKV(t testing.TB, data map[string][]byte) {
 	}
 }
 
+//DeleteKV removes the value from Consul's KV store at the given path.
+func (s *TestServer) DeleteKV(t testing.TB, key string) {
+	resp := s.delete(t, "/v1/kv/"+key)
+	resp.Body.Close()
+}
+
 // ListKV returns a list of keys present in the KV store. This will list all
 // keys under the given prefix recursively and return them as a slice.
 func (s *TestServer) ListKV(t testing.TB, prefix string) []string {
@@ -211,6 +217,23 @@ func (s *TestServer) get(t testing.TB, path string) *http.Response {
 	if err := s.requireOK(resp); err != nil {
 		defer resp.Body.Close()
 		t.Fatalf("not OK GET: %s", err)
+	}
+	return resp
+}
+
+// delete performs a new HTTP DELETE request.
+func (s *TestServer) delete(t testing.TB, path string) *http.Response {
+	req, err := http.NewRequest("DELETE", s.url(path), nil)
+	if err != nil {
+		t.Fatalf("failed to create DELETE request: %s", err)
+	}
+	resp, err := s.HTTPClient.Do(req)
+	if err != nil {
+		t.Fatalf("failed to make DELETE request: %s", err)
+	}
+	if err := s.requireOK(resp); err != nil {
+		defer resp.Body.Close()
+		t.Fatalf("not OK DELETE: %s", err)
 	}
 	return resp
 }
