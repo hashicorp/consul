@@ -22,14 +22,14 @@ export default function HomePage() {
             heading: 'Consul Service Mesh on Kubernetes',
             content:
               'Use Helm to deploy and CRDs to configure Consul on Kubernetes.',
-            link: { text: 'Get started', url: 'https://consul.io' },
+            link: { text: 'Get started', url: 'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh' },
           },
           {
             icon: require('./img/kubernetes/communication-arrows.svg?include'),
             heading: 'Consul as a Service Mesh',
             content:
               'Simplify, observe, and secure service to service communication for microservice architectures.',
-            link: { text: 'Read more', url: 'https://consul.io' },
+            link: { text: 'Read more', url: 'https://learn.hashicorp.com/collections/consul/developer-mesh' },
           },
         ]}
       />
