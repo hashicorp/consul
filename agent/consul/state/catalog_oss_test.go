@@ -258,6 +258,35 @@ func testIndexerTableServices() map[string]indexerTestCase {
 				},
 				expected: []byte("connectname\x00"),
 			},
+			extra: []indexerTestCase{
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindConnectProxy,
+							ServiceProxy: structs.ConnectProxyConfig{
+								DestinationServiceName: "ConnectName",
+							},
+						},
+						expected: []byte("connectname\x00"),
+					},
+				},
+				{
+					write: indexValue{
+						source:               &structs.ServiceNode{ServiceName: "ServiceName"},
+						expectedIndexMissing: true,
+					},
+				},
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindTerminatingGateway,
+						},
+						expectedIndexMissing: true,
+					},
+				},
+			},
 		},
 		indexKind: {
 			read: indexValue{
@@ -269,6 +298,17 @@ func testIndexerTableServices() map[string]indexerTestCase {
 					ServiceKind: structs.ServiceKindConnectProxy,
 				},
 				expected: []byte("connect-proxy\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindTypical,
+						},
+						expected: []byte("\x00"),
+					},
+				},
 			},
 		},
 	}
