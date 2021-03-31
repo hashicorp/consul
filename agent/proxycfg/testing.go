@@ -1639,6 +1639,7 @@ func testConfigSnapshotIngressGateway(
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
+
 	snap := &ConfigSnapshot{
 		Kind:       structs.ServiceKindIngressGateway,
 		Service:    "ingress-gateway",
