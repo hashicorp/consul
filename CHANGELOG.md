@@ -1,4 +1,5 @@
 ## UNRELEASED
+* sdk: Add DeleteKV method to removes the value from Consul's KV store at the given path 
 
 ## 1.9.4 (March 04, 2021)
 
