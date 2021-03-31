@@ -1,7 +1,7 @@
 @import './brand-loader/index';
-html body > svg {
+html body > .brand-loader {
   display: none;
 }
-html.ember-loading body > svg {
+html.ember-loading body > .brand-loader {
   @extend %brand-loader;
 }
