@@ -4,8 +4,9 @@
 
 module.exports = ({ appName, environment, rootURL, config }) => `
   <!-- CONSUL_VERSION: ${config.CONSUL_VERSION} -->
-  <link rel="icon" type="image/png" href="${rootURL}assets/favicon-32x32.png" sizes="32x32">
-  <link rel="icon" type="image/png" href="${rootURL}assets/favicon-16x16.png" sizes="16x16">
+  <link rel="icon" href="${rootURL}assets/favicon.ico">
+  <link rel="icon" href="${rootURL}assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="${rootURL}assets/apple-touch-icon.png">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/vendor.css">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/${
   environment === 'development' ? 'debug' : appName
