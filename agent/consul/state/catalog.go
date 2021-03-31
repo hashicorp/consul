@@ -1638,8 +1638,11 @@ func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string, entMeta *st
 	// Get the table index.
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
-	// Return the checks.
-	iter, err := catalogListChecksByService(tx, serviceName, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	iter, err := tx.Get(tableChecks, indexService, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1663,8 +1666,12 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 
 	// Get the table index.
 	idx := maxIndexForService(tx, serviceName, true, true, entMeta)
-	// Return the checks.
-	iter, err := catalogListChecksByService(tx, serviceName, entMeta)
+
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
+	iter, err := tx.Get(tableChecks, indexService, q)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1709,13 +1716,18 @@ func checksInStateTxn(tx ReadTxn, ws memdb.WatchSet, state string, entMeta *stru
 	// Get the table index.
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
 	// Query all checks if HealthAny is passed, otherwise use the index.
 	var iter memdb.ResultIterator
 	var err error
 	if state == api.HealthAny {
 		iter, err = tx.Get(tableChecks, indexID+"_prefix", entMeta)
 	} else {
-		iter, err = catalogListChecksInState(tx, state, entMeta)
+		q := Query{Value: state, EnterpriseMeta: *entMeta}
+		iter, err = tx.Get(tableChecks, indexStatus, q)
 	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
@@ -1857,7 +1869,7 @@ func (s *Store) deleteCheckTxn(tx WriteTxn, idx uint64, node string, checkID typ
 	}
 
 	// Delete the check from the DB and update the index.
-	if err := tx.Delete("checks", hc); err != nil {
+	if err := tx.Delete(tableChecks, hc); err != nil {
 		return fmt.Errorf("failed removing check: %s", err)
 	}
 

@@ -8,9 +8,11 @@ import (
 
 func testIndexerTableChecks() map[string]indexerTestCase {
 	obj := &structs.HealthCheck{
-		Node:      "NoDe",
-		ServiceID: "SeRvIcE",
-		CheckID:   "CheckID",
+		Node:        "NoDe",
+		ServiceID:   "SeRvIcE",
+		ServiceName: "ServiceName",
+		CheckID:     "CheckID",
+		Status:      "PASSING",
 	}
 	return map[string]indexerTestCase{
 		indexID: {
@@ -34,6 +36,26 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 					source:   Query{Value: "nOdE"},
 					expected: []byte("node\x00"),
 				},
+			},
+		},
+		indexStatus: {
+			read: indexValue{
+				source:   Query{Value: "PASSING"},
+				expected: []byte("passing\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("passing\x00"),
+			},
+		},
+		indexService: {
+			read: indexValue{
+				source:   Query{Value: "ServiceName"},
+				expected: []byte("servicename\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("servicename\x00"),
 			},
 		},
 		indexNodeService: {

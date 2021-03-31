@@ -258,18 +258,18 @@ func checksTableSchema() *memdb.TableSchema {
 				Name:         indexStatus,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Status",
-					Lowercase: false,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexStatusFromHealthCheck,
 				},
 			},
 			indexService: {
 				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexServiceNameFromHealthCheck,
 				},
 			},
 			indexNode: {
@@ -339,6 +339,36 @@ func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(hc.Node))
 	b.String(strings.ToLower(hc.ServiceID))
+	return b.Bytes(), nil
+}
+
+func indexStatusFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Status == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Status))
+	return b.Bytes(), nil
+}
+
+func indexServiceNameFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.ServiceName == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.ServiceName))
 	return b.Bytes(), nil
 }
 
