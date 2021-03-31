@@ -10,8 +10,8 @@ export default function CtaHero() {
         content="Consul automates networking for simple and secure application delivery."
         brand="consul"
         links={[
-          { type: 'none', text: 'Download Consul', url: 'https://consul.io' },
-          { type: 'none', text: 'Explore Tutorials', url: 'https://consul.io' },
+          { type: 'none', text: 'Download Consul', url: '/downloads' },
+          { type: 'none', text: 'Explore Tutorials', url: 'https://learn.hashicorp.com/consul' },
         ]}
         linkStyle="buttons"
       >
@@ -38,7 +38,7 @@ function Cta() {
             title="Sign Up"
             linkType="inbound"
             theme={{ variant: 'tertiary-neutral' }}
-            url="https://consul.io"
+            url="https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hero"
           />
         </div>
       </div>
