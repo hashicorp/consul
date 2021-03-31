@@ -23,49 +23,6 @@ func indexFromConfigEntryKindName(arg interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func indexFromConfigEntry(raw interface{}) ([]byte, error) {
-	c, ok := raw.(structs.ConfigEntry)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
-
-	if c.GetName() == "" || c.GetKind() == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(c.GetKind()))
-	b.String(strings.ToLower(c.GetName()))
-	return b.Bytes(), nil
-}
-
-// indexKindFromConfigEntry indexes kinds, it is a shim for enterprise.
-func indexKindFromConfigEntry(raw interface{}) ([]byte, error) {
-	c, ok := raw.(structs.ConfigEntry)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
-
-	if c.GetKind() == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(c.GetKind()))
-	return b.Bytes(), nil
-}
-
-func indexFromConfigEntryKindQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(ConfigEntryKindQuery)
-	if !ok {
-		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(q.Kind))
-	return b.Bytes(), nil
-}
-
 func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
 	return nil
 }
