@@ -28,6 +28,20 @@ SmTjcs+lhMxg4fFY6lBpiEVFiGUjGRR+61R67Lz6U4KJeLNcCm07QwFYKBmpi08g
     const listClaimMappings = {
       "http://example.com/example-1": `${fake.hacker.noun()}`
     }
+    const namespaceRules = `[
+      {
+          "Selector": "${fake.hacker.noun()} in list.group",
+          "BindNamespace": "dc-1"
+      },
+      {
+          "Selector": "serviceaccount.namespace!=${fake.hacker.noun()}",
+          "BindNamespace": "dc-2"
+      },
+      {
+          "Selector": "serviceaccount.namespace==${fake.hacker.noun()}",
+          "BindNamespace": "dc-3"
+      }
+    ]`;
 
     let config = {};
     switch(type) {
@@ -91,6 +105,7 @@ SmTjcs+lhMxg4fFY6lBpiEVFiGUjGRR+61R67Lz6U4KJeLNcCm07QwFYKBmpi08g
       "DisplayName": "${fake.hacker.noun()}",
       "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
       "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
+      "NamespaceRules": ${namespaceRules},
       "Config": ${JSON.stringify(config)},
       "CreateIndex": ${fake.random.number()},
       "ModifyIndex": 10

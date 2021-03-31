@@ -24,9 +24,17 @@
         font-weight: $typo-weight-semibold;
         font-size: $typo-size-700;
       }
-      tbody td {
-        font-size: $typo-size-600;
-        color: $black;
+      tbody {
+        td {
+          font-size: $typo-size-600;
+          color: $black;
+        }
+        tr {
+          cursor: default;
+        }
+        tr:hover {
+          box-shadow: none;
+        }
       }
     }
   }
@@ -54,4 +62,26 @@
   }
 }
 
+// Nspace List
+.consul-auth-method-nspace-list {
+  thead {
+    td {
+      color: var(--gray-500) !important;
+      font-weight: $typo-weight-semibold !important;
+      font-size: $typo-size-700 !important;
+    }
+  }
+  tbody {
+    td {
+      font-size: $typo-size-600;
+      color: $black;
+    }
+    tr {
+      cursor: default;
+    }
+    tr:hover {
+      box-shadow: none;
+    }
+  }
+}
 
