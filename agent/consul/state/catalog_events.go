@@ -170,7 +170,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			n := changeObject(change).(*structs.Node)
 			markNode(n.Node, changeTypeFromChange(change))
 
-		case "services":
+		case tableServices:
 			sn := changeObject(change).(*structs.ServiceNode)
 			srvChange := serviceChange{changeType: changeTypeFromChange(change), change: change}
 			markService(newNodeServiceTupleFromServiceNode(sn), srvChange)
@@ -303,7 +303,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		for serviceName, gsChange := range serviceChanges {
 			gs := changeObject(gsChange.change).(*structs.GatewayService)
 
-			_, nodes, err := serviceNodesTxn(tx, nil, gs.Gateway.Name, false, &gatewayName.EnterpriseMeta)
+			q := Query{Value: gs.Gateway.Name, EnterpriseMeta: gatewayName.EnterpriseMeta}
+			_, nodes, err := serviceNodesTxn(tx, nil, indexService, q)
 			if err != nil {
 				return nil, err
 			}

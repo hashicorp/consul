@@ -106,22 +106,28 @@ func servicesTableSchema() *memdb.TableSchema {
 				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexServiceNameFromServiceNode,
 				},
 			},
 			indexConnect: {
 				Name:         indexConnect,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &IndexConnectService{},
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexConnectNameFromServiceNode,
+				},
 			},
 			indexKind: {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer:      &IndexServiceKind{},
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexKindFromServiceNode,
+				},
 			},
 		},
 	}
@@ -170,6 +176,64 @@ func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
 
 	var b indexBuilder
 	b.String(strings.ToLower(id.ID))
+	return b.Bytes(), nil
+}
+
+func indexServiceNameFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.ServiceName))
+	return b.Bytes(), nil
+}
+
+func indexConnectNameFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	name, ok := connectNameFromServiceNode(n)
+	if !ok {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(name))
+	return b.Bytes(), nil
+}
+
+func connectNameFromServiceNode(sn *structs.ServiceNode) (string, bool) {
+	switch {
+	case sn.ServiceKind == structs.ServiceKindConnectProxy:
+		// For proxies, this service supports Connect for the destination
+		return sn.ServiceProxy.DestinationServiceName, true
+
+	case sn.ServiceConnect.Native:
+		// For native, this service supports Connect directly
+		return sn.ServiceName, true
+
+	default:
+		// Doesn't support Connect at all
+		return "", false
+	}
+}
+
+func indexKindFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(string(n.ServiceKind)))
 	return b.Bytes(), nil
 }
 

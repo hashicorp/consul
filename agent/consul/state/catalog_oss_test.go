@@ -168,6 +168,12 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 }
 
 func testIndexerTableServices() map[string]indexerTestCase {
+	obj := &structs.ServiceNode{
+		Node:        "NoDeId",
+		ServiceID:   "SeRviCe",
+		ServiceName: "ServiceName",
+	}
+
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
@@ -178,10 +184,7 @@ func testIndexerTableServices() map[string]indexerTestCase {
 				expected: []byte("nodeid\x00service\x00"),
 			},
 			write: indexValue{
-				source: &structs.ServiceNode{
-					Node:      "NoDeId",
-					ServiceID: "SeRviCe",
-				},
+				source:   obj,
 				expected: []byte("nodeid\x00service\x00"),
 			},
 			prefix: []indexValue{
@@ -202,16 +205,48 @@ func testIndexerTableServices() map[string]indexerTestCase {
 		indexNode: {
 			read: indexValue{
 				source: Query{
-					Value: "NoDe",
+					Value: "NoDeId",
 				},
-				expected: []byte("node\x00"),
+				expected: []byte("nodeid\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("nodeid\x00"),
+			},
+		},
+		indexService: {
+			read: indexValue{
+				source:   Query{Value: "ServiceName"},
+				expected: []byte("servicename\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("servicename\x00"),
+			},
+		},
+		indexConnect: {
+			read: indexValue{
+				source:   Query{Value: "ConnectName"},
+				expected: []byte("connectname\x00"),
 			},
 			write: indexValue{
 				source: &structs.ServiceNode{
-					Node:      "NoDe",
-					ServiceID: "SeRvIcE",
+					ServiceName:    "ConnectName",
+					ServiceConnect: structs.ServiceConnect{Native: true},
 				},
-				expected: []byte("node\x00"),
+				expected: []byte("connectname\x00"),
+			},
+		},
+		indexKind: {
+			read: indexValue{
+				source:   Query{Value: "connect-proxy"},
+				expected: []byte("connect-proxy\x00"),
+			},
+			write: indexValue{
+				source: &structs.ServiceNode{
+					ServiceKind: structs.ServiceKindConnectProxy,
+				},
+				expected: []byte("connect-proxy\x00"),
 			},
 		},
 	}
