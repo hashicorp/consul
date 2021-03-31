@@ -28,7 +28,7 @@
         (array
           (hash label="General info" href=(href-to "dc.acls.auth-methods.show.auth-method") selected=(is-href "dc.acls.auth-methods.show.auth-method"))
     (if (env "CONSUL_NSPACES_ENABLED")
-          (hash label="Namespace rules" href=(href-to "dc.acls.auth-methods.show.namespace-rules") selected=(is-href "dc.acls.auth-methods.show.namespace-rules"))
+          (hash label="Namespace rules" href=(href-to "dc.acls.auth-methods.show.nspace-rules") selected=(is-href "dc.acls.auth-methods.show.nspace-rules"))
     '')
           (hash label="Binding rules" href=(href-to "dc.acls.auth-methods.show.binding-rules") selected=(is-href "dc.acls.auth-methods.show.binding-rules"))
         )

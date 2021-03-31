@@ -1,6 +1,6 @@
 import Route from 'consul-ui/routing/route';
 
-export default class NamespaceRoute extends Route {
+export default class NspaceRulesRoute extends Route {
   model() {
     const parent = this.routeName
       .split('.')
