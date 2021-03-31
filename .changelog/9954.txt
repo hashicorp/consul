@@ -1,0 +1,3 @@
+```release-note:improvement
+sdk: Add DeleteKV method to removes the value from Consul's KV store at the given path
+```
