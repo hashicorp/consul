@@ -2,4 +2,5 @@
 
 package state
 
-var stateStoreSchemaExpected = "TestStateStoreSchema.golden"
+func addEnterpriseIndexerTestCases(testcases map[string]func() map[string]indexerTestCase) {
+}

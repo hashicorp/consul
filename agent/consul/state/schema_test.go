@@ -38,6 +38,7 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		tableMeshTopology:    testIndexerTableMeshTopology,
 		tableGatewayServices: testIndexerTableGatewayServices,
 	}
+	addEnterpriseIndexerTestCases(testcases)
 
 	for _, table := range schema.Tables {
 		if testcases[table.Name] == nil {
