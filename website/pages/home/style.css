@@ -43,4 +43,23 @@
       }
     }
   }
+
+  & .g-callouts {
+    & > .g-grid-container > .items.layout-two-up > .callout-item-wrapper {
+      padding: 0;
+    }
+
+    & .callout-item.layout-two-up {
+      padding: 70px;
+
+      &.theme-light {
+        background-color: #f2f2f3;
+        transition: filter 0.25s ease;
+
+        &:hover {
+          filter: brightness(97%);
+        }
+      }
+    }
+  }
 }
