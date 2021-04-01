@@ -64,6 +64,7 @@
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
+    "@icholy/duration": "^5.1.0",
     "@mapbox/rehype-prism": "^0.6.0",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
