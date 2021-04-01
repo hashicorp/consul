@@ -1,77 +1,119 @@
 import UseCases from '@hashicorp/react-use-cases'
-import BasicHero from '../../components/basic-hero'
+import CtaHero from 'components/cta-hero'
 import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
 import HcpCalloutSection from 'components/hcp-callout-section'
+import Callouts from '@hashicorp/react-callouts'
 import MiniCTA from '../../components/mini-cta'
 
 export default function HomePage() {
   return (
     <div className="p-home">
-      <BasicHero
-        brand="consul"
-        heading="Service Networking Across Any Cloud"
-        content="Automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
-        links={[
+      <CtaHero />
+      <Callouts
+        layout="two-up"
+        product="neutral"
+        items={[
           {
-            text: 'Get Started',
-            url: 'https://learn.hashicorp.com/consul',
+            icon: require('./img/kubernetes/logo.svg?include'),
+            heading: 'Consul Service Mesh on Kubernetes',
+            content:
+              'Use Helm to deploy and CRDs to configure Consul on Kubernetes.',
+            link: {
+              text: 'Get started',
+              url:
+                'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
+            },
           },
           {
-            text: 'Try Cloud',
-            url:
-              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hero',
-          },
-          {
-            text: 'Download CLI',
-            url: '/downloads',
-            type: 'download',
+            icon: require('./img/kubernetes/communication-arrows.svg?include'),
+            heading: 'Consul as a Service Mesh',
+            content:
+              'Simplify, observe, and secure service to service communication for microservice architectures.',
+            link: {
+              text: 'Read more',
+              url: '/docs/connect',
+            },
           },
         ]}
-        backgroundImage
       />
 
       <ProductFeaturesList
         heading="Why Consul?"
         features={[
           {
-            title: 'Integrate and Extend With Kubernetes',
-            content:
-              'Quickly deploy Consul on Kubernetes leveraging Helm. Automatically inject sidecars for Kubernetes resources. Federate multiple clusters into a single service mesh.',
-            icon: require('./img/why-consul/kubernetes.svg'),
-          },
-          {
             title: 'Service Mesh Across Any Runtime',
             content:
               'Deploy service mesh within any runtime or infrastructure - Bare Metal, Virtual Machines, and Kubernetes clusters, across any cloud.',
             icon: require('./img/why-consul/service-mesh-runtime.svg'),
-          },
-          {
-            title: 'Dynamic Load Balancing',
-            content:
-              'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
-            icon: require('./img/why-consul/dynamic-load-balancing.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/collections/consul/developer-mesh',
+            },
           },
           {
             title: 'Secure, Multi-Cloud Service Networking',
             content:
               'Secure services running in any environment leveraging intention based policies and automatic mTLS encryption between service mesh resources',
             icon: require('./img/why-consul/cloud.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-application-secure-networking',
+            },
+          },
+          {
+            title: 'Dynamic Load Balancing',
+            content:
+              'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
+            icon: require('./img/why-consul/dynamic-load-balancing.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/collections/consul/load-balancing',
+            },
           },
           {
             title: 'Service Discovery with Health Checking',
             content:
               'Consul enables detecting the deployment of new services, changes to existing ones, and provides real time agent health to reduce downtime.',
             icon: require('./img/why-consul/health.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/tutorials/cloud/get-started-service-discovery',
+            },
           },
           {
             title: 'Robust Ecosystem',
             content:
               'Consul offers support for and integrations with many popular DevOps and Networking tools.',
             icon: require('./img/why-consul/world.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url: '/docs/integrate/partnerships',
+            },
+          },
+          {
+            title: 'Integrate and Extend With Kubernetes',
+            content:
+              'Quickly deploy Consul on Kubernetes leveraging Helm. Automatically inject sidecars for Kubernetes resources. Federate multiple clusters into a single service mesh.',
+            icon: require('./img/why-consul/kubernetes.svg'),
+            link: {
+              type: 'inbound',
+              text: 'Learn more',
+              url:
+                'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
+            },
           },
         ]}
       />
@@ -92,7 +134,8 @@ export default function HomePage() {
             title: 'Migrate to Microservices on Kubernetes',
             category: 'Step-by-Step Tutorials',
             time: '45 mins',
-            link: 'https://learn.hashicorp.com/collections/consul/microservices',
+            link:
+              'https://learn.hashicorp.com/collections/consul/microservices',
             image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
