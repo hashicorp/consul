@@ -200,7 +200,19 @@ func (c *StreamingHealthServices) preferConnectFetch(
 			if !ok {
 				return cache.FetchResult{}, fmt.Errorf("invalid streaming service health response type: %T", e.Result)
 			}
-			state.PlainResults = result
+
+			// only return typical results here
+			dup := &structs.IndexedCheckServiceNodes{
+				Nodes:     make(structs.CheckServiceNodes, 0, len(result.Nodes)),
+				QueryMeta: result.QueryMeta,
+			}
+			for _, node := range result.Nodes {
+				if node.Service.Kind == structs.ServiceKindTypical {
+					dup.Nodes = append(dup.Nodes, node)
+				}
+			}
+
+			state.PlainResults = dup
 		default:
 			return cache.FetchResult{}, fmt.Errorf("unexpected correlation id: %s", e.CorrelationID)
 		}

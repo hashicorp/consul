@@ -792,6 +792,35 @@ func testHealthServiceNodes_PreferConnect(t *testing.T, agentHCL string) {
 	var out struct{}
 	require.NoError(t, a.RPC("Catalog.Register", &args, &out))
 
+	{
+		args2 := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "ignore",
+				Service: "ignore",
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &args2, &out))
+
+		argsProxy2 := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "bar",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "ignore-proxy",
+				Service: "ignore-proxy",
+				Port:    2222,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "ignore",
+				},
+			},
+		}
+		require.NoError(t, a.RPC("Catalog.Register", &argsProxy2, &out))
+	}
+
 	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&prefer-connect", nil)
 	resp = httptest.NewRecorder()
 	obj, err = a.srv.HealthServiceNodes(resp, req)
@@ -822,6 +851,18 @@ func testHealthServiceNodes_PreferConnect(t *testing.T, agentHCL string) {
 		},
 	}
 	require.NoError(t, a.RPC("Catalog.Register", &argsProxy, &out))
+
+	t.Run("can't resolve proxies by their own name", func(t *testing.T) {
+		req, _ = http.NewRequest("GET", "/v1/health/service/ignore-proxy?dc=dc1&prefer-connect", nil)
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.HealthServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		assertIndex(t, resp)
+
+		nodes = obj.(structs.CheckServiceNodes)
+		require.Len(t, nodes, 0)
+	})
 
 	req, _ = http.NewRequest("GET", "/v1/health/service/test?dc=dc1&prefer-connect", nil)
 	resp = httptest.NewRecorder()

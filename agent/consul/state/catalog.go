@@ -2001,6 +2001,7 @@ func checkServiceNodesTxn(
 	preferConnect bool,
 	entMeta *structs.EnterpriseMeta,
 ) (uint64, structs.CheckServiceNodes, error) {
+	onlyReturnTypicalKinds := false
 	if preferConnect {
 		connect = true // temporarily flip this flag for the first pass
 	}
@@ -2041,6 +2042,9 @@ START_OVER:
 	serviceNames := make(map[structs.ServiceName]struct{}, 2)
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		sn := service.(*structs.ServiceNode)
+		if onlyReturnTypicalKinds && sn.ServiceKind != structs.ServiceKindTypical {
+			continue // skip it
+		}
 		results = append(results, sn)
 
 		name := structs.NewServiceName(sn.ServiceName, &sn.EnterpriseMeta)
@@ -2137,6 +2141,7 @@ START_OVER:
 	if preferConnect && len(results) == 0 {
 		connect = false
 		preferConnect = false
+		onlyReturnTypicalKinds = true
 		goto START_OVER
 	}
 

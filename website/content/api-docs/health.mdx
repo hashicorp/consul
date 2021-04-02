@@ -257,7 +257,8 @@ The table below shows this endpoint's support for
 
 - `prefer-connect` `(bool: false)` - If any [Connect-capable service](#list-nodes-for-connect-capable-service)
   exists for this service, nodes for those are returned in lieu of the nodes
-  for the underlying service. This is specified as part of the URL as a query parameter.
+  for the underlying service. Attempts to resolve anything other than a typical service name will return no results.
+  This is specified as part of the URL as a query parameter.
   Added in Consul 1.10.0.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service.
