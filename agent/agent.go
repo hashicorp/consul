@@ -322,7 +322,8 @@ type Agent struct {
 
 	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
 	// into Agent, which will allow us to remove this field.
-	rpcClientHealth *health.Client
+	rpcClientHealth            *health.Client
+	rpcClientHealthNoStreaming *health.Client
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -377,6 +378,11 @@ func New(bd BaseDeps) (*Agent, error) {
 		Cache:     bd.Cache,
 		NetRPC:    &a,
 		CacheName: cacheName,
+	}
+	a.rpcClientHealthNoStreaming = &health.Client{
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
