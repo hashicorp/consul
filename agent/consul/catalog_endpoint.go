@@ -108,6 +108,11 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 		return fmt.Errorf("Invalid service address")
 	}
 
+	// Check the service address to be a valid IP address
+	if !ipaddr.IsValid(service.Address) {
+		return fmt.Errorf("Invalid service address. Not a valid IP")
+	}
+
 	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 

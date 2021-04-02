@@ -55,7 +55,7 @@ func TestCatalog_Register(t *testing.T) {
 	}
 }
 
-func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
+func TestCatalog_RegisterService_InvalidAnyAddress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -84,6 +84,40 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
 			if err == nil || err.Error() != "Invalid service address" {
 				t.Fatalf("got error %v want 'Invalid service address'", err)
+			}
+		})
+	}
+}
+
+func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	for _, addr := range []string{"192.168.1.400+what", "256.456.321.1", ""} {
+		t.Run("addr "+addr, func(t *testing.T) {
+			arg := structs.RegisterRequest{
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.1",
+				Service: &structs.NodeService{
+					Service: "db",
+					Address: addr,
+					Port:    8000,
+				},
+			}
+			var out struct{}
+
+			err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out)
+			if err == nil || err.Error() != "Invalid service address. Not a valid IP" {
+				t.Fatalf("got error %v want 'Invalid service address. Not a valid IP'", err)
 			}
 		})
 	}

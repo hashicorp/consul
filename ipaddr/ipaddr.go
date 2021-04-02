@@ -31,6 +31,15 @@ func IsAnyV6(ip interface{}) bool {
 	return ips == "::" || ips == "[::]"
 }
 
+// IsValid checks if the given ip address a valid IP address.
+func IsValid(ip string) bool {
+	ret := net.ParseIP(ip)
+	if ret != nil {
+		return true
+	}
+	return false
+}
+
 func iptos(ip interface{}) string {
 	if ip == nil || reflect.TypeOf(ip).Kind() == reflect.Ptr && reflect.ValueOf(ip).IsNil() {
 		return ""
