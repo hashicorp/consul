@@ -1,0 +1,3 @@
+```release-note:improvement
+catalog: Validate service IP [[GH-9929](https://github.com/hashicorp/consul/issues/9929)]
+```
