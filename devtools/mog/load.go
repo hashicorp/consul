@@ -24,6 +24,8 @@ type sourcePkg struct {
 
 	// Structs declared in the source package.
 	Structs map[string]structDecl
+
+	pkg *packages.Package
 }
 
 type structDecl struct {
@@ -63,6 +65,7 @@ func loadSourceStructs(path string, handleErr handlePkgLoadErr) (sourcePkg, erro
 	}
 	p.Path = filepath.Dir(pkg.GoFiles[0])
 	p.Name = pkg.Name
+	p.pkg = pkg
 
 	for _, file := range pkg.Syntax {
 		for _, decl := range file.Decls {

@@ -6,12 +6,11 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
 type config struct {
-	// TODO: maybe move Path, PkgPath, BuildTags, etc onto a separate struct
-	// so that sourcePkg.Structs is not passed around.
 	SourcePkg sourcePkg
 	Structs   []structConfig
 }
@@ -26,6 +25,7 @@ type structConfig struct {
 	FuncFrom         string
 	FuncTo           string
 	Fields           []fieldConfig
+	typeInfo         *types.Info
 }
 
 type stringSet map[string]struct{}
@@ -57,7 +57,7 @@ func newTarget(v string) target {
 
 type fieldConfig struct {
 	SourceName string
-	SourceType ast.Expr
+	SourceExpr ast.Expr
 	TargetName string
 	FuncFrom   string
 	FuncTo     string
@@ -88,6 +88,7 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 		if err := cfg.Validate(); err != nil {
 			return c, fmt.Errorf("invalid config for %v: %w", name, err)
 		}
+		cfg.typeInfo = pkg.pkg.TypesInfo
 
 		c.Structs = append(c.Structs, cfg)
 	}
@@ -158,7 +159,7 @@ func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 	}
 
 	c.SourceName = name
-	c.SourceType = field.Type
+	c.SourceExpr = field.Type
 
 	text := getFieldAnnotationLine(field.Doc)
 	if text == "" {
@@ -254,7 +255,7 @@ func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
 				continue
 			}
 
-			ident, ok := f.SourceType.(*ast.Ident)
+			ident, ok := f.SourceExpr.(*ast.Ident)
 			if !ok {
 				continue
 			}

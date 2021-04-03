@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
+	"go/types"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,15 +20,15 @@ func generateFiles(cfg config, targets map[string]targetPkg) error {
 		var decls []ast.Decl
 		imports := newImports()
 
-		for _, cfg := range group {
-			t := targets[cfg.Target.Package].Structs[cfg.Target.Struct]
+		for _, sourceStruct := range group {
+			t := targets[sourceStruct.Target.Package].Structs[sourceStruct.Target.Struct]
 			if t.Name == "" {
-				return fmt.Errorf("failed to locate target %v for %v", cfg.Target, cfg.Source)
+				return fmt.Errorf("failed to locate target %v for %v", sourceStruct.Target, sourceStruct.Source)
 			}
 
-			gen, err := generateConversion(cfg, t, imports)
+			gen, err := generateConversion(sourceStruct, t, imports)
 			if err != nil {
-				return fmt.Errorf("failed to generate conversion for %v: %w", cfg.Source, err)
+				return fmt.Errorf("failed to generate conversion for %v: %w", sourceStruct.Source, err)
 			}
 			decls = append(decls, gen.To, gen.From)
 
@@ -107,6 +108,10 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			errs = append(errs, fmt.Errorf(msg, cfg.Source, name))
 			continue
 		}
+
+		o := cfg.typeInfo.Types[sourceField.SourceExpr].Type
+		fmt.Printf("%v, %v %T\n", name, o, o)
+		fmt.Printf("%v, %v %v\n", name, field.Type(), types.AssignableTo(o, field.Type()))
 
 		// TODO: handle pointer
 

@@ -7,6 +7,10 @@ import core "github.com/hashicorp/mog/internal/e2e/core"
 func NodeToCore(s Node) core.ClusterNode {
 	var t core.ClusterNode
 	t.ID = s.ID
+	t.Labels = make([]core.Label, len(s.Labels))
+	for i, v := range s.Labels {
+		t.Labels[i] = core.Label(v)
+	}
 	return t
 }
 func NewNodeFromCore(t core.ClusterNode) Node {

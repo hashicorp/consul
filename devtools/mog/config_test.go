@@ -147,7 +147,7 @@ func TestParseFieldAnnotation_Full(t *testing.T) {
 	require.NoError(t, err)
 	expected := fieldConfig{
 		SourceName: "Some",
-		SourceType: field.Type,
+		SourceExpr: field.Type,
 		TargetName: "ID",
 		FuncFrom:   "string",
 		FuncTo:     "types.ID",

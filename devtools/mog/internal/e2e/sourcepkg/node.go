@@ -12,4 +12,9 @@ type Node struct {
 	Weight int64
 	Labels []string
 	Meta   map[string]interface{}
+	Work   []Workload
+}
+
+type Workload struct {
+	ID string
 }

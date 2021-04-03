@@ -1,5 +1,8 @@
 package core
 
+type Label string
+
 type ClusterNode struct {
-	ID string
+	ID     string
+	Labels []Label
 }
