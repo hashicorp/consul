@@ -829,7 +829,7 @@ func TestAgent_AddServiceWithH2PINGCheck(t *testing.T) {
 		ID:      "test-h2ping-check-service",
 		Service: "test-h2ping-check-service",
 	}
-	err := a.AddService(nodeService, check, false, "", ConfigSourceLocal)
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
 	if err != nil {
 		t.Fatalf("Error registering service: %v", err)
 	}

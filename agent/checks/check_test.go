@@ -1033,6 +1033,53 @@ func TestCheckH2PING(t *testing.T) {
 	}
 }
 
+func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+	server := httptest.NewUnstartedServer(handler)
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+	serverAddress := server.Listener.Addr()
+	target := serverAddress.String()
+
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+	tlsCfg := &api.TLSConfig{}
+	tlsClientCfg, err := api.SetupTLSConfig(tlsCfg)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	tlsClientCfg.NextProtos = []string{http2.NextProtoTLS}
+
+	check := &CheckH2PING{
+		CheckID:         cid,
+		H2PING:          target,
+		Interval:        5 * time.Second,
+		Timeout:         2 * time.Second,
+		Logger:          logger,
+		TLSClientConfig: tlsClientCfg,
+		StatusHandler:   statusHandler,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	insecureSkipVerifyValue := check.TLSClientConfig.InsecureSkipVerify
+	if insecureSkipVerifyValue {
+		t.Fatalf("The default value for InsecureSkipVerify should be false but was %v", insecureSkipVerifyValue)
+	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.State(cid), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+		expectedOutput := "certificate signed by unknown authority"
+		if !strings.Contains(notif.Output(cid), expectedOutput) {
+			r.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
+		}
+	})
+}
 func TestCheckH2PINGInvalidListener(t *testing.T) {
 	t.Parallel()
 
