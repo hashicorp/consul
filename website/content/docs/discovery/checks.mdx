@@ -121,6 +121,13 @@ There are several different kinds of checks:
   `tls_skip_verify` field to `true` in the check definition.
   To check on a specific service instead of the whole gRPC server, add the service identifier after the `gRPC` check's endpoint in the following format `/:service_identifier`.
 
+- `H2ping + Interval` - These checks test an endpoint that uses http2 with TLS
+  by connecting to the endpoint and sending a ping frame. If the ping is successful
+  within a specified timeout, then the check is updated as passing.
+  The timeout defaults to 10 seconds, but is configurable using the `timeout` field. A valid
+  certificate is required, unless `tls_skip_verify` is set to `true`.
+  The check will be run on the interval specified by the `interval` field.
+
 - `Alias` - These checks alias the health state of another registered
   node or service. The state of the check will be updated asynchronously, but is
   nearly instant. For aliased services on the same agent, the local state is monitored
@@ -130,13 +137,6 @@ There are several different kinds of checks:
   node or service, the check state will be critical. For the blocking query, the
   check will use the ACL token set on the service or check definition or otherwise
   will fall back to the default ACL token set with the agent (`acl_token`).
-
-- `H2ping + Interval` - These checks test an endpoint that uses http2 with TLS
-  by connecting to the endpoint and sending a ping frame. If the ping is successful
-  within a specified timeout, then the check is updated as passing.
-  The timeout defaults to 10 seconds, but is configurable using the `timeout` field. A valid
-  certificate is required, unless `tls_skip_verify` is set to `true`.
-  The check will be run on the interval specified by the `interval` field.
 
 ## Check Definition
 
