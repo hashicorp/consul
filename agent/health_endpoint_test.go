@@ -1427,8 +1427,6 @@ func TestHealthIngressServiceNodes(t *testing.T) {
 }
 
 func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
-	t.Helper()
-
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
