@@ -4095,6 +4095,116 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			}
 		},
 	})
+	run(t, testCase{
+		desc: "ConfigEntry bootstrap cluster (snake-case)",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "cluster",
+							"name": "cluster",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"transparent_proxy": {
+								"catalog_destinations_only": true
+							}
+						}
+					]
+				}
+			}`,
+		},
+		hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "cluster"
+					name = "cluster"
+					meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					transparent_proxy {
+						catalog_destinations_only = true
+					}
+				  }
+				}
+			`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+				&structs.ClusterConfigEntry{
+					Kind: "cluster",
+					Name: "cluster",
+					Meta: map[string]string{
+						"foo": "bar",
+						"gir": "zim",
+					},
+					EnterpriseMeta: *defaultEntMeta,
+					TransparentProxy: structs.TransparentProxyClusterConfig{
+						CatalogDestinationsOnly: true,
+					},
+				},
+			}
+		},
+	})
+	run(t, testCase{
+		desc: "ConfigEntry bootstrap cluster (camel-case)",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"Kind": "cluster",
+							"Name": "cluster",
+							"Meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"TransparentProxy": {
+								"CatalogDestinationsOnly": true
+							}
+						}
+					]
+				}
+			}`,
+		},
+		hcl: []string{`
+				config_entries {
+				  bootstrap {
+					Kind = "cluster"
+					Name = "cluster"
+					Meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					TransparentProxy {
+						CatalogDestinationsOnly = true
+					}
+				  }
+				}
+			`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+				&structs.ClusterConfigEntry{
+					Kind: "cluster",
+					Name: "cluster",
+					Meta: map[string]string{
+						"foo": "bar",
+						"gir": "zim",
+					},
+					EnterpriseMeta: *defaultEntMeta,
+					TransparentProxy: structs.TransparentProxyClusterConfig{
+						CatalogDestinationsOnly: true,
+					},
+				},
+			}
+		},
+	})
 
 	///////////////////////////////////
 	// Defaults sanity checks

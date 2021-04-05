@@ -8,11 +8,12 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestConfigWrite_noTabs(t *testing.T) {
@@ -2531,6 +2532,68 @@ func TestParseConfigEntry(t *testing.T) {
 						Action:     "deny",
 						Precedence: 6,
 					},
+				},
+			},
+		},
+		{
+			name: "cluster",
+			snake: `
+				kind = "cluster"
+				name = "cluster"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				transparent_proxy {
+					catalog_destinations_only = true
+				}
+			`,
+			camel: `
+				Kind = "cluster"
+				Name = "cluster"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				TransparentProxy {
+					CatalogDestinationsOnly = true
+				}
+			`,
+			snakeJSON: `
+			{
+				"kind": "cluster",
+				"name": "cluster",
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"transparent_proxy": {
+					"catalog_destinations_only": true
+				}
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "cluster",
+				"Name": "cluster",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"TransparentProxy": {
+					"CatalogDestinationsOnly": true
+				}
+			}
+			`,
+			expect: &api.ClusterConfigEntry{
+				Kind: "cluster",
+				Name: "cluster",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TransparentProxy: api.TransparentProxyClusterConfig{
+					CatalogDestinationsOnly: true,
 				},
 			},
 		},

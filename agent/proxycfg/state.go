@@ -46,6 +46,7 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
+	clusterConfigEntryID               = "cluster-config"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	serviceIDPrefix                    = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
@@ -312,6 +313,17 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 			ServiceName:    s.proxyCfg.DestinationServiceName,
 			EnterpriseMeta: structs.NewEnterpriseMeta(s.proxyID.NamespaceOrEmpty()),
 		}, intentionUpstreamsID, s.ch)
+		if err != nil {
+			return err
+		}
+
+		err = s.cache.Notify(s.ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
+			Kind:           structs.ClusterConfig,
+			Name:           structs.ClusterConfigCluster,
+			Datacenter:     s.source.Datacenter,
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		}, clusterConfigEntryID, s.ch)
 		if err != nil {
 			return err
 		}
@@ -846,6 +858,24 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		}
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
+
+	case u.CorrelationID == clusterConfigEntryID:
+		resp, ok := u.Result.(*structs.ConfigEntryResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+
+		if resp.Entry != nil {
+			clusterConf, ok := resp.Entry.(*structs.ClusterConfigEntry)
+			if !ok {
+				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
+			}
+			snap.ConnectProxy.ClusterConfig = clusterConf
+		} else {
+			snap.ConnectProxy.ClusterConfig = nil
+		}
+		snap.ConnectProxy.ClusterConfigSet = true
+
 	default:
 		return s.handleUpdateUpstreams(u, &snap.ConnectProxy.ConfigSnapshotUpstreams)
 	}
