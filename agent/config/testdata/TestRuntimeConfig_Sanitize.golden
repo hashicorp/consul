@@ -93,6 +93,7 @@
             "FailuresBeforeCritical": 0,
             "GRPC": "",
             "GRPCUseTLS": false,
+            "H2PING": ""
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -294,6 +295,7 @@
                 "FailuresBeforeCritical": 0,
                 "GRPC": "",
                 "GRPCUseTLS": false,
+                "H2PING": "",
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
