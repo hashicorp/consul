@@ -8,6 +8,8 @@ sends events as they occur, and the client maintains a materialized view of the 
 At the time of writing only the service health endpoint uses streaming, but more endpoints
 will be added in the future.
 
+See [adding a topic](./adding-a-topic.md) for a guide on adding new topics to streaming.
+
 ## Overview
 
 The diagram below shows the components that are used in streaming, and how they fit into
