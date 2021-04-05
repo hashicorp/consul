@@ -226,12 +226,7 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, BadRequestError{Reason: "'near' query param can not be used with streaming"}
 	}
 
-	healthClient := s.agent.rpcClientHealth
-	if args.Ingress {
-		healthClient = s.agent.rpcClientHealthNoStreaming
-	}
-
-	out, md, err := healthClient.ServiceNodes(req.Context(), args)
+	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
 	if err != nil {
 		return nil, err
 	}

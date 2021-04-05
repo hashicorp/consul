@@ -14,6 +14,9 @@ type Client struct {
 	CacheName string
 	// CacheNameConnect is the name of the cache to use for connect service health.
 	CacheNameConnect string
+	// CacheNameIngress is the name of the cache type to use for ingress
+	// service health.
+	CacheNameIngress string
 }
 
 type NetRPC interface {
@@ -57,6 +60,9 @@ func (c *Client) getServiceNodes(
 	cacheName := c.CacheName
 	if req.Connect {
 		cacheName = c.CacheNameConnect
+	}
+	if req.Ingress {
+		cacheName = c.CacheNameIngress
 	}
 
 	raw, md, err := c.Cache.Get(ctx, cacheName, &req)
