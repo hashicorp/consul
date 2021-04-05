@@ -374,9 +374,10 @@ func New(bd BaseDeps) (*Agent, error) {
 		cacheName = cachetype.StreamingHealthServicesName
 	}
 	a.rpcClientHealth = &health.Client{
-		Cache:     bd.Cache,
-		NetRPC:    &a,
-		CacheName: cacheName,
+		Cache:            bd.Cache,
+		NetRPC:           &a,
+		CacheName:        cacheName,
+		CacheNameIngress: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)

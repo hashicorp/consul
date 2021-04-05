@@ -1418,13 +1418,20 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 }
 
 func TestHealthIngressServiceNodes(t *testing.T) {
+	t.Run("no streaming", func(t *testing.T) {
+		testHealthIngressServiceNodes(t, ` rpc { enable_streaming = false } use_streaming_backend = false `)
+	})
+	t.Run("cache with streaming", func(t *testing.T) {
+		testHealthIngressServiceNodes(t, ` rpc { enable_streaming = true } use_streaming_backend = true `)
+	})
+}
+
+func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
-	a := NewTestAgent(t, "")
+	a := NewTestAgent(t, agentHCL)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -1461,34 +1468,64 @@ func TestHealthIngressServiceNodes(t *testing.T) {
 	require.Nil(t, a.RPC("ConfigEntry.Apply", req, &outB))
 	require.True(t, outB)
 
-	t.Run("associated service", func(t *testing.T) {
-		assert := assert.New(t)
-		req, _ := http.NewRequest("GET", fmt.Sprintf(
-			"/v1/health/ingress/%s", args.Service.Service), nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
-		assert.Nil(err)
-		assertIndex(t, resp)
-
+	checkResults := func(t *testing.T, obj interface{}) {
 		nodes := obj.(structs.CheckServiceNodes)
 		require.Len(t, nodes, 1)
 		require.Equal(t, structs.ServiceKindIngressGateway, nodes[0].Service.Kind)
 		require.Equal(t, gatewayArgs.Service.Address, nodes[0].Service.Address)
 		require.Equal(t, gatewayArgs.Service.Proxy, nodes[0].Service.Proxy)
-	})
+	}
 
-	t.Run("non-associated service", func(t *testing.T) {
-		assert := assert.New(t)
+	require.True(t, t.Run("associated service", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", fmt.Sprintf(
+			"/v1/health/ingress/%s", args.Service.Service), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		checkResults(t, obj)
+	}))
+
+	require.True(t, t.Run("non-associated service", func(t *testing.T) {
 		req, _ := http.NewRequest("GET",
 			"/v1/health/connect/notexist", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
-		assert.Nil(err)
+		require.NoError(t, err)
 		assertIndex(t, resp)
 
 		nodes := obj.(structs.CheckServiceNodes)
 		require.Len(t, nodes, 0)
-	})
+	}))
+
+	require.True(t, t.Run("test caching miss", func(t *testing.T) {
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", fmt.Sprintf(
+			"/v1/health/ingress/%s?cached", args.Service.Service), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		checkResults(t, obj)
+
+		// Should be a cache miss
+		require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+	}))
+
+	require.True(t, t.Run("test caching hit", func(t *testing.T) {
+		// List instances with cache enabled
+		req, _ := http.NewRequest("GET", fmt.Sprintf(
+			"/v1/health/ingress/%s?cached", args.Service.Service), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
+		require.NoError(t, err)
+
+		checkResults(t, obj)
+
+		// Should be a cache HIT now!
+		require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+	}))
 }
 
 func TestHealthConnectServiceNodes_Filter(t *testing.T) {
