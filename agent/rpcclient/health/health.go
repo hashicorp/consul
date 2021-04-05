@@ -12,6 +12,9 @@ type Client struct {
 	Cache  CacheGetter
 	// CacheName to use for service health.
 	CacheName string
+	// CacheNameIngress is the name of the cache type to use for ingress
+	// service health.
+	CacheNameIngress string
 }
 
 type NetRPC interface {
@@ -53,7 +56,12 @@ func (c *Client) getServiceNodes(
 		return out, cache.ResultMeta{}, err
 	}
 
-	raw, md, err := c.Cache.Get(ctx, c.CacheName, &req)
+	cacheName := c.CacheName
+	if req.Ingress {
+		cacheName = c.CacheNameIngress
+	}
+
+	raw, md, err := c.Cache.Get(ctx, cacheName, &req)
 	if err != nil {
 		return out, md, err
 	}
@@ -72,5 +80,9 @@ func (c *Client) Notify(
 	correlationID string,
 	ch chan<- cache.UpdateEvent,
 ) error {
-	return c.Cache.Notify(ctx, c.CacheName, &req, correlationID, ch)
+	cacheName := c.CacheName
+	if req.Ingress {
+		cacheName = c.CacheNameIngress
+	}
+	return c.Cache.Notify(ctx, cacheName, &req, correlationID, ch)
 }
