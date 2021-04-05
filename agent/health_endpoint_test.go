@@ -1319,8 +1319,6 @@ func TestHealthIngressServiceNodes(t *testing.T) {
 }
 
 func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
-	t.Helper()
-
 	a := NewTestAgent(t, agentHCL)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
