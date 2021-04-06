@@ -25,6 +25,7 @@ module.exports = {
       files: [
         '.eslintrc.js',
         '.dev.eslintrc.js',
+        '.docfy-config.js',
         '.template-lintrc.js',
         'ember-cli-build.js',
         'testem.js',

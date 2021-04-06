@@ -1885,3 +1885,124 @@ service "web" { policy = "read" }
 		require.True(t, acl.IsErrPermissionDenied(err))
 	})
 }
+
+func TestInternal_IntentionUpstreams(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Services:
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	//
+	// Intentions
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registerIntentionUpstreamEntries(t, codec, "")
+
+	t.Run("web", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "web",
+			}
+			var out structs.IndexedServiceList
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.IntentionUpstreams", &args, &out))
+
+			// foo/api
+			require.Len(r, out.Services, 1)
+
+			expectUp := structs.ServiceList{
+				structs.NewServiceName("api", structs.DefaultEnterpriseMeta()),
+			}
+			require.Equal(r, expectUp, out.Services)
+		})
+	})
+}
+
+func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Services:
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	//
+	// Intentions
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registerIntentionUpstreamEntries(t, codec, TestDefaultMasterToken)
+
+	t.Run("valid token", func(t *testing.T) {
+		// Token grants read to read api service
+		userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+service_prefix "api" { policy = "read" }
+`)
+		require.NoError(t, err)
+
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:   "dc1",
+				ServiceName:  "web",
+				QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+			}
+			var out structs.IndexedServiceList
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.IntentionUpstreams", &args, &out))
+
+			// foo/api
+			require.Len(r, out.Services, 1)
+
+			expectUp := structs.ServiceList{
+				structs.NewServiceName("api", structs.DefaultEnterpriseMeta()),
+			}
+			require.Equal(r, expectUp, out.Services)
+		})
+	})
+
+	t.Run("invalid token filters results", func(t *testing.T) {
+		// Token grants read to read an unrelated service, mongo
+		userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+service_prefix "mongo" { policy = "read" }
+`)
+		require.NoError(t, err)
+
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:   "dc1",
+				ServiceName:  "web",
+				QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+			}
+			var out structs.IndexedServiceList
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.IntentionUpstreams", &args, &out))
+
+			// Token can't read api service
+			require.Empty(r, out.Services)
+		})
+	})
+}

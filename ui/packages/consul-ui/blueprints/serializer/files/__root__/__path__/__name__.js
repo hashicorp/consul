@@ -1,11 +1,12 @@
 import Serializer from './application';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/<%= dasherizedModuleName  %>';
 
-export default Serializer.extend({
-  primaryKey: PRIMARY_KEY,
-  slugKey: SLUG_KEY,
-  // respondForQueryRecord: function(respond, query) {
-  //   return this._super(
+export default class <%= classifiedModuleName %>Serializer extends Serializer {
+  primaryKey = PRIMARY_KEY;
+  slugKey = SLUG_KEY;
+
+  // respondForQueryRecord(respond, query) {
+  //   return super.respondForQueryRecord(
   //     function(cb) {
   //       return respond(
   //         function(headers, body) {
@@ -20,5 +21,5 @@ export default Serializer.extend({
   //     },
   //     query
   //   );
-  // },
-});
+  // }
+};

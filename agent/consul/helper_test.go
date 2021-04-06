@@ -910,3 +910,138 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 	}
 }
+
+func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token string) {
+	t.Helper()
+
+	// api and api-proxy on node foo
+	// web and web-proxy on node foo
+	// redis and redis-proxy on node foo
+	// * -> * (deny) intention
+	// web -> api (allow)
+	registrations := map[string]*structs.RegisterRequest{
+		"Node foo": {
+			Datacenter:   "dc1",
+			Node:         "foo",
+			ID:           types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:      "127.0.0.2",
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service api on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "api",
+				Service: "api",
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service api-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "api-proxy",
+				Service: "api-proxy",
+				Port:    8443,
+				Address: "198.18.1.2",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "web",
+				Service: "web",
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web-proxy on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-proxy",
+				Service: "web-proxy",
+				Port:    8080,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service redis on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redis",
+				Service: "redis",
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service redis-proxy on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "redis-proxy",
+				Service: "redis-proxy",
+				Port:    1234,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "redis",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	registerTestCatalogEntriesMap(t, codec, registrations)
+
+	// Add intentions: deny all and web -> api
+	entries := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "api",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "web",
+						Action: structs.IntentionActionAllow,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "*",
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "*",
+						Action: structs.IntentionActionDeny,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
+}

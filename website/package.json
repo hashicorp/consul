@@ -5,10 +5,11 @@
   "author": "HashiCorp",
   "dependencies": {
     "@hashicorp/mktg-global-styles": "2.1.0",
-    "@hashicorp/nextjs-scripts": "16.0.1",
+    "@hashicorp/nextjs-scripts": "16.3.0",
     "@hashicorp/react-alert-banner": "5.0.0",
     "@hashicorp/react-button": "4.0.0",
     "@hashicorp/react-call-to-action": "1.0.3",
+    "@hashicorp/react-callouts": "^7.0.0",
     "@hashicorp/react-docs-page": "10.4.0",
     "@hashicorp/react-featured-slider": "1.1.10",
     "@hashicorp/react-hashi-stack-menu": "^1.1.0",

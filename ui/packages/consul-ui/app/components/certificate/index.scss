@@ -1,0 +1,28 @@
+.certificate {
+  display: flex;
+  button.visibility {
+    height: fit-content;
+    padding-top: 4px;
+    margin-right: 4px;
+    cursor: pointer;
+  }
+  button.hide::before {
+    @extend %with-visibility-hide-icon, %as-pseudo;
+  }
+  button.show::before {
+    @extend %with-visibility-show-icon, %as-pseudo;
+  }
+  code {
+    background-color: var(--gray-050);
+    overflow-wrap: break-word;
+    max-width: min-content;
+    padding: 0 12px;
+  }
+  hr {
+    border: 3px dashed var(--gray-300);
+    background-color: $white;
+    width: 150px;
+    margin: auto;
+    margin-top: 9px;
+  }
+}

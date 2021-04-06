@@ -1,7 +1,7 @@
 package xds
 
 import (
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -28,7 +28,7 @@ func firstHealthyTarget(
 		}
 		for _, ep := range endpoints {
 			healthStatus, _ := calculateEndpointHealthAndWeight(ep, target.Subset.OnlyPassing)
-			if healthStatus == envoycore.HealthStatus_HEALTHY {
+			if healthStatus == envoy_core_v3.HealthStatus_HEALTHY {
 				return targetID
 			}
 		}

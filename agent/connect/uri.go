@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // CertURI represents a Connect-valid URI value for a TLS certificate.
@@ -17,13 +15,6 @@ import (
 // However, we anticipate that we may accept URIs that are also not SPIFFE
 // compliant and therefore the interface is named as such.
 type CertURI interface {
-	// Authorize tests the authorization for this URI as a client
-	// for the given intention. The return value `auth` is only valid if
-	// the second value `match` is true. If the second value `match` is
-	// false, then the intention doesn't match this client and any
-	// result should be ignored.
-	Authorize(*structs.Intention) (auth bool, match bool)
-
 	// URI is the valid URI value used in the cert.
 	URI() *url.URL
 }

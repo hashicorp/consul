@@ -1,10 +1,8 @@
 package xds
 
 import (
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"strings"
-	"time"
-
-	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -150,75 +148,15 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	return cfg, err
 }
 
-// UpstreamLimits describes the limits that are associated with a specific
-// upstream of a service instance.
-type UpstreamLimits struct {
-	// MaxConnections is the maximum number of connections the local proxy can
-	// make to the upstream service.
-	MaxConnections *int `mapstructure:"max_connections"`
-
-	// MaxPendingRequests is the maximum number of requests that will be queued
-	// waiting for an available connection. This is mostly applicable to HTTP/1.1
-	// clusters since all HTTP/2 requests are streamed over a single
-	// connection.
-	MaxPendingRequests *int `mapstructure:"max_pending_requests"`
-
-	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
-	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
-	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
-	MaxConcurrentRequests *int `mapstructure:"max_concurrent_requests"`
-}
-
-// UpstreamConfig describes the keys we understand from
-// Connect.Proxy.Upstream[*].Config.
-type UpstreamConfig struct {
-	// ListenerJSON is a complete override ("escape hatch") for the upstream's
-	// listener.
-	//
-	// Note: This escape hatch is NOT compatible with the discovery chain and
-	// will be ignored if a discovery chain is active.
-	ListenerJSON string `mapstructure:"envoy_listener_json"`
-
-	// ClusterJSON is a complete override ("escape hatch") for the upstream's
-	// cluster. The Connect client TLS certificate and context will be injected
-	// overriding any TLS settings present.
-	//
-	// Note: This escape hatch is NOT compatible with the discovery chain and
-	// will be ignored if a discovery chain is active.
-	ClusterJSON string `mapstructure:"envoy_cluster_json"`
-
-	// Protocol describes the upstream's service protocol. Valid values are "tcp",
-	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
-	// aware features like per-request metrics and connection pooling, tracing,
-	// routing etc.
-	Protocol string `mapstructure:"protocol"`
-
-	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
-	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
-	ConnectTimeoutMs int `mapstructure:"connect_timeout_ms"`
-
-	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
-	// service instance.
-	Limits UpstreamLimits `mapstructure:"limits"`
-
-	// PassiveHealthCheck configuration
-	PassiveHealthCheck PassiveHealthCheck `mapstructure:"passive_health_check"`
-}
-
-type PassiveHealthCheck struct {
-	// Interval between health check analysis sweeps. Each sweep may remove
-	// hosts or return hosts to the pool.
-	Interval time.Duration
-	// MaxFailures is the count of consecutive failures that results in a host
-	// being removed from the pool.
-	MaxFailures uint32 `mapstructure:"max_failures"`
-}
-
 // Return an envoy.OutlierDetection populated by the values from this struct.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
-func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection {
-	od := &envoycluster.OutlierDetection{}
+func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
+	od := &envoy_cluster_v3.OutlierDetection{}
+	if p == nil {
+		return od
+	}
+
 	if p.Interval != 0 {
 		od.Interval = ptypes.DurationProto(p.Interval)
 	}
@@ -226,42 +164,4 @@ func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection 
 		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
 	}
 	return od
-}
-
-func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
-	var cfg UpstreamConfig
-	config := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			decode.HookWeakDecodeFromSlice,
-			decode.HookTranslateKeys,
-			mapstructure.StringToTimeDurationHookFunc(),
-		),
-		Result:           &cfg,
-		WeaklyTypedInput: true,
-	}
-
-	decoder, err := mapstructure.NewDecoder(config)
-	if err != nil {
-		return cfg, err
-	}
-
-	err = decoder.Decode(m)
-	return cfg, err
-}
-
-// ParseUpstreamConfig returns the UpstreamConfig parsed from an opaque map.
-// If an error occurs during parsing it is returned along with the default
-// config this allows caller to choose whether and how to report the error.
-func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
-	cfg, err := ParseUpstreamConfigNoDefaults(m)
-	// Set defaults (even if error is returned)
-	if cfg.Protocol == "" {
-		cfg.Protocol = "tcp"
-	} else {
-		cfg.Protocol = strings.ToLower(cfg.Protocol)
-	}
-	if cfg.ConnectTimeoutMs < 1 {
-		cfg.ConnectTimeoutMs = 5000
-	}
-	return cfg, err
 }

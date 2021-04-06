@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
 	"sync/atomic"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"github.com/hashicorp/consul/logging"
+
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
@@ -27,28 +28,32 @@ import (
 )
 
 // ADSStream is a shorter way of referring to this thing...
-type ADSStream = envoydisco.AggregatedDiscoveryService_StreamAggregatedResourcesServer
+type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
+type ADSStream_v2 = envoy_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
-	// Resource types in xDS v2. These are copied from
-	// envoyproxy/go-control-plane/pkg/cache/resource.go since we don't need any of
+	// Resource types in xDS v3. These are copied from
+	// envoyproxy/go-control-plane/pkg/resource/v3/resource.go since we don't need any of
 	// the rest of that package.
-	typePrefix = "type.googleapis.com/envoy.api.v2."
+	apiTypePrefix = "type.googleapis.com/"
 
 	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = typePrefix + "ClusterLoadAssignment"
+	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
 
 	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = typePrefix + "Cluster"
+	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
 
 	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = typePrefix + "RouteConfiguration"
+	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
 
 	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = typePrefix + "Listener"
+	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
 
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
+
+	// OutboundListenerName is the name we give the outbound Envoy listener when TransparentProxy mode is enabled.
+	OutboundListenerName = "outbound_listener"
 
 	// LocalAppClusterName is the name we give the local application "cluster" in
 	// Envoy config. Note that all cluster names may collide with service names
@@ -77,6 +82,12 @@ const (
 	// We should probably just make it configurable if anyone actually has
 	// services named "local_agent" in the future.
 	LocalAgentClusterName = "local_agent"
+
+	// OriginalDestinationClusterName is the name we give to the passthrough
+	// cluster which redirects transparently-proxied requests to their original
+	// destination. This cluster prevents Consul from blocking connections to
+	// destinations outside of the catalog when in TransparentProxy mode.
+	OriginalDestinationClusterName = "original-destination"
 
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
@@ -125,14 +136,16 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 	CheckFetcher       HTTPCheckFetcher
 	CfgFetcher         ConfigFetcher
+
+	DisableV2Protocol bool
 }
 
 // StreamAggregatedResources implements
-// envoydisco.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
+// envoy_discovery_v3.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
 // the only xDS API we directly support for now.
 func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 	// a channel for receiving incoming requests
-	reqCh := make(chan *envoy.DiscoveryRequest)
+	reqCh := make(chan *envoy_discovery_v3.DiscoveryRequest)
 	reqStop := int32(0)
 	go func() {
 		for {
@@ -150,7 +163,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Error("Error handling ADS stream", "error", err)
+		s.Logger.Error("Error handling ADS stream", "xdsVersion", "v3", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -165,7 +178,7 @@ const (
 	stateRunning
 )
 
-func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest) error {
+func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.DiscoveryRequest) error {
 	logger := s.Logger.Named(logging.XDS)
 
 	// xDS requires a unique nonce to correlate response/request pairs
@@ -181,8 +194,8 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 	// Loop state
 	var (
 		cfgSnap       *proxycfg.ConfigSnapshot
-		req           *envoy.DiscoveryRequest
-		node          *envoycore.Node
+		req           *envoy_discovery_v3.DiscoveryRequest
+		node          *envoy_config_core_v3.Node
 		proxyFeatures supportedProxyFeatures
 		ok            bool
 		stateCh       <-chan *proxycfg.ConfigSnapshot
@@ -382,8 +395,8 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 type xDSType struct {
 	typeURL       string
 	stream        ADSStream
-	req           *envoy.DiscoveryRequest
-	node          *envoycore.Node
+	req           *envoy_discovery_v3.DiscoveryRequest
+	node          *envoy_config_core_v3.Node
 	proxyFeatures supportedProxyFeatures
 	lastNonce     string
 	// lastVersion is the version that was last sent to the proxy. It is needed
@@ -404,7 +417,7 @@ type connectionInfo struct {
 	ProxyFeatures supportedProxyFeatures
 }
 
-func (t *xDSType) Recv(req *envoy.DiscoveryRequest, node *envoycore.Node, proxyFeatures supportedProxyFeatures) {
+func (t *xDSType) Recv(req *envoy_discovery_v3.DiscoveryRequest, node *envoy_config_core_v3.Node, proxyFeatures supportedProxyFeatures) {
 	if t.lastNonce == "" || t.lastNonce == req.GetResponseNonce() {
 		t.req = req
 		t.node = node
@@ -476,8 +489,8 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// DeltaAggregatedResources implements envoydisco.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(_ envoydisco.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
+// DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
+func (s *Server) DeltaAggregatedResources(_ envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	return errors.New("not implemented")
 }
 
@@ -493,7 +506,11 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 		}
 	}
 	srv := grpc.NewServer(opts...)
-	envoydisco.RegisterAggregatedDiscoveryServiceServer(srv, s)
+	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
+
+	if !s.DisableV2Protocol {
+		envoy_discovery_v2.RegisterAggregatedDiscoveryServiceServer(srv, &adsServerV2Shim{srv: s})
+	}
 
 	return srv, nil
 }

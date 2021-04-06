@@ -3,8 +3,6 @@ package connect
 import (
 	"fmt"
 	"net/url"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // SpiffeIDService is the structure to represent the SPIFFE ID for an agent.
@@ -21,11 +19,6 @@ func (id *SpiffeIDAgent) URI() *url.URL {
 	result.Host = id.Host
 	result.Path = fmt.Sprintf("/agent/client/dc/%s/id/%s", id.Datacenter, id.Agent)
 	return &result
-}
-
-// CertURI impl.
-func (id *SpiffeIDAgent) Authorize(_ *structs.Intention) (bool, bool) {
-	return false, false
 }
 
 func (id *SpiffeIDAgent) CommonName() string {

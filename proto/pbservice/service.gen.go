@@ -14,6 +14,7 @@ func ConnectProxyConfigToStructs(s ConnectProxyConfig) structs.ConnectProxyConfi
 	t.Upstreams = UpstreamsToStructs(s.Upstreams)
 	t.MeshGateway = MeshGatewayConfigToStructs(s.MeshGateway)
 	t.Expose = ExposeConfigToStructs(s.Expose)
+	t.TransparentProxy = s.TransparentProxy
 	return t
 }
 func NewConnectProxyConfigFromStructs(t structs.ConnectProxyConfig) ConnectProxyConfig {
@@ -26,6 +27,7 @@ func NewConnectProxyConfigFromStructs(t structs.ConnectProxyConfig) ConnectProxy
 	s.Upstreams = NewUpstreamsFromStructs(t.Upstreams)
 	s.MeshGateway = NewMeshGatewayConfigFromStructs(t.MeshGateway)
 	s.Expose = NewExposeConfigFromStructs(t.Expose)
+	s.TransparentProxy = t.TransparentProxy
 	return s
 }
 func ExposeConfigToStructs(s ExposeConfig) structs.ExposeConfig {
@@ -130,6 +132,7 @@ func UpstreamToStructs(s Upstream) structs.Upstream {
 	t.LocalBindPort = int(s.LocalBindPort)
 	t.Config = ProtobufTypesStructToMapStringInterface(s.Config)
 	t.MeshGateway = MeshGatewayConfigToStructs(s.MeshGateway)
+	t.CentrallyConfigured = s.CentrallyConfigured
 	return t
 }
 func NewUpstreamFromStructs(t structs.Upstream) Upstream {
@@ -142,5 +145,6 @@ func NewUpstreamFromStructs(t structs.Upstream) Upstream {
 	s.LocalBindPort = int32(t.LocalBindPort)
 	s.Config = MapStringInterfaceToProtobufTypesStruct(t.Config)
 	s.MeshGateway = NewMeshGatewayConfigFromStructs(t.MeshGateway)
+	s.CentrallyConfigured = t.CentrallyConfigured
 	return s
 }

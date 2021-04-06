@@ -213,19 +213,19 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 	}
 	// Setup prometheus if needed. This MUST happen after the Static*JSON is set above
 	if c.PrometheusBindAddr != "" {
-		if err := c.generateListenerConfig(args, c.PrometheusBindAddr, "envoy_prometheus_metrics", "path", "/metrics", "/stats/prometheus"); err != nil {
+		if err := c.generateListenerConfig(args, c.PrometheusBindAddr, "envoy_prometheus_metrics", "path", args.PrometheusScrapePath, "/stats/prometheus", args.PrometheusBackendPort); err != nil {
 			return err
 		}
 	}
 	// Setup /stats proxy listener if needed. This MUST happen after the Static*JSON is set above
 	if c.StatsBindAddr != "" {
-		if err := c.generateListenerConfig(args, c.StatsBindAddr, "envoy_metrics", "prefix", "/stats", "/stats"); err != nil {
+		if err := c.generateListenerConfig(args, c.StatsBindAddr, "envoy_metrics", "prefix", "/stats", "/stats", ""); err != nil {
 			return err
 		}
 	}
 	// Setup /ready proxy listener if needed. This MUST happen after the Static*JSON is set above
 	if c.ReadyBindAddr != "" {
-		if err := c.generateListenerConfig(args, c.ReadyBindAddr, "envoy_ready", "path", "/ready", "/ready"); err != nil {
+		if err := c.generateListenerConfig(args, c.ReadyBindAddr, "envoy_ready", "path", "/ready", "/ready", ""); err != nil {
 			return err
 		}
 	}
@@ -247,7 +247,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	if c.StatsdURL != "" {
 		sinkJSON, err := c.generateStatsSinkJSON(
 			"envoy.stat_sinks.statsd",
-			"type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+			"type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 			c.StatsdURL,
 		)
 		if err != nil {
@@ -258,7 +258,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	if c.DogstatsdURL != "" {
 		sinkJSON, err := c.generateStatsSinkJSON(
 			"envoy.stat_sinks.dog_statsd",
-			"type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+			"type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 			c.DogstatsdURL,
 		)
 		if err != nil {
@@ -276,10 +276,12 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	return nil
 }
 
-func (c *BootstrapConfig) generateStatsSinkJSON(name, typeName, addr string) (string, error) {
+func (c *BootstrapConfig) generateStatsSinkJSON(name string, typeName string, addr string) (string, error) {
 	// Resolve address ENV var
 	if len(addr) > 2 && addr[0] == '$' {
 		addr = os.Getenv(addr[1:])
+	} else {
+		addr = os.Expand(addr, statsSinkEnvMapping)
 	}
 
 	u, err := url.Parse(addr)
@@ -316,6 +318,18 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name, typeName, addr string) (st
 			}
 		}
 	}`, nil
+}
+
+func statsSinkEnvMapping(s string) string {
+	allowedStatsSinkEnvVars := map[string]bool{
+		"HOST_IP": true,
+	}
+
+	if !allowedStatsSinkEnvVars[s] {
+		// if the specified env var isn't explicitly allowed, unexpand it
+		return fmt.Sprintf("${%s}", s)
+	}
+	return os.Getenv(s)
 }
 
 // resourceTagSpecifiers returns patterns used to generate tags from cluster and filter metric names.
@@ -549,19 +563,36 @@ func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDepreca
 	return tagJSONs, nil
 }
 
-func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAddr, name, matchType, matchValue, prefixRewrite string) error {
+func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAddr, name, matchType, matchValue, prefixRewrite, prometheusBackendPort string) error {
 	host, port, err := net.SplitHostPort(bindAddr)
 	if err != nil {
 		return fmt.Errorf("invalid %s bind address: %s", name, err)
 	}
 
+	// If prometheusBackendPort is set (not empty string), create
+	// "prometheus_backend" cluster with the prometheusBackendPort that the
+	// listener will point to, rather than the "self_admin" cluster. This is for
+	// the merged metrics feature in consul-k8s, so the
+	// envoy_prometheus_bind_addr listener will point to the merged Envoy and
+	// service metrics endpoint rather than the Envoy admin endpoint for
+	// metrics. This cluster will only be created once since it's only created
+	// when prometheusBackendPort is set, and prometheusBackendPort is only set
+	// when calling this function if c.PrometheusBindAddr is set.
+	clusterPort := args.AdminBindPort
+	clusterName := selfAdminName
+	if prometheusBackendPort != "" {
+		clusterPort = prometheusBackendPort
+		clusterName = "prometheus_backend"
+	}
+
 	clusterJSON := `{
-		"name": "` + selfAdminName + `",
+		"name": "` + clusterName + `",
+		"ignore_health_on_host_removal": false,
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},
 		"loadAssignment": {
-			"clusterName": "` + selfAdminName + `",
+			"clusterName": "` + clusterName + `",
 			"endpoints": [
 				{
 					"lbEndpoints": [
@@ -570,13 +601,13 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 								"address": {
 									"socket_address": {
 										"address": "127.0.0.1",
-										"port_value": ` + args.AdminBindPort + `
+										"port_value": ` + clusterPort + `
 									}
 								}
 							}
 						}
 					]
- 				}
+				}
 			]
 		}
 	}`
@@ -593,8 +624,8 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 				"filters": [
 					{
 						"name": "envoy.filters.network.http_connection_manager",
-						"typedConfig": {
-							"@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+						 "typedConfig": {
+							"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
 							"stat_prefix": "` + name + `",
 							"codec_type": "HTTP1",
 							"route_config": {
@@ -611,7 +642,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 													"` + matchType + `": "` + matchValue + `"
 												},
 												"route": {
-													"cluster": "self_admin",
+													"cluster": "` + clusterName + `",
 													"prefix_rewrite": "` + prefixRewrite + `"
 												}
 											},

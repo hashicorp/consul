@@ -1,10 +1,15 @@
-## ConsulLockSessionList
+---
+class: ember
+---
+# Consul::LockSession::List
 
-```
-<ConsulLockSessionList
-  @items={{items}}
-  @onInvalidate={{action send 'invalidateSession'}}
-/>
+```hbs preview-template
+<DataSource @src="/default/dc-1/sessions/for-node/my-node" as |source|>
+  <Consul::LockSession::List
+    @items={{source.data}}
+    @onInvalidate={{action (noop)}}
+  />
+</DataSource>
 ```
 
 A presentational component for rendering Node Lock Sessions

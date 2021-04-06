@@ -602,7 +602,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 	sort.Strings(r.ServiceTags)
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
-		r.ServiceName,
+		strings.ToLower(r.ServiceName),
 		// DEPRECATED (singular-service-tag) - remove this when upgrade RPC compat
 		// with 1.2.x is not required. We still need this in because <1.3 agents
 		// might still send RPCs with singular tag set. In fact the only place we
@@ -831,6 +831,10 @@ type ServiceNode struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (s *ServiceNode) NodeIdentity() Identity {
+	return Identity{ID: s.Node}
 }
 
 // PartialClone() returns a clone of the given service node, minus the node-
@@ -1402,6 +1406,10 @@ type HealthCheck struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (hc *HealthCheck) NodeIdentity() Identity {
+	return Identity{ID: hc.Node}
+}
+
 func (hc *HealthCheck) CompoundServiceID() ServiceID {
 	id := hc.ServiceID
 	if id == "" {
@@ -1429,6 +1437,7 @@ func (hc *HealthCheck) CompoundCheckID() CheckID {
 
 type HealthCheckDefinition struct {
 	HTTP                           string              `json:",omitempty"`
+	TLSServerName                  string              `json:",omitempty"`
 	TLSSkipVerify                  bool                `json:",omitempty"`
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
@@ -1583,6 +1592,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
 		Shell:                          c.Definition.Shell,
+		TLSServerName:                  c.Definition.TLSServerName,
 		TLSSkipVerify:                  c.Definition.TLSSkipVerify,
 		Timeout:                        c.Definition.Timeout,
 		TTL:                            c.Definition.TTL,
@@ -2463,19 +2473,4 @@ func (m MessageType) String() string {
 	}
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
 
-}
-
-// UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
-type UpstreamDownstream struct {
-	Upstream   ServiceName
-	Downstream ServiceName
-
-	// Refs stores the registrations that contain this pairing.
-	// When there are no remaining Refs, the UpstreamDownstream can be deleted.
-	//
-	// Note: This map must be treated as immutable when accessed in MemDB.
-	//       The entire UpstreamDownstream structure must be deep copied on updates.
-	Refs map[string]struct{}
-
-	RaftIndex
 }

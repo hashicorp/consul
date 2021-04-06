@@ -176,13 +176,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	sn, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-
-	pub, priv, err := tlsutil.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
+	pub, priv, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+		Signer: signer, CA: string(cert), Name: name, Days: c.days,
+		DNSNames: DNSNames, IPAddresses: IPAddresses, ExtKeyUsage: extKeyUsage,
+	})
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1

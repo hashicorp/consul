@@ -2,14 +2,16 @@
   cursor: pointer;
   border-right: $decor-border-400;
   border-color: $transparent;
-  font-size: $typo-size-600;
+  @extend %p1;
 }
 %main-nav-vertical-action > a {
   color: inherit;
   font-size: inherit;
 }
 %main-nav-vertical [role="separator"] {
+  @extend %p3;
   text-transform: uppercase;
+  font-weight: $typo-weight-medium;
 }
 %main-nav-vertical-action-intent {
   text-decoration: underline;
@@ -20,6 +22,9 @@
 %main-nav-vertical {
   background-color: var(--gray-050);
   color: var(--gray-700);
+}
+%main-nav-vertical li:not([role="separator"]) > span {
+  color: var(--gray-300);
 }
 %main-nav-vertical [role="separator"] {
   color: var(--gray-600);

@@ -1,3 +1,4 @@
+/* globals requirejs */
 import EmberRouter from '@ember/routing/router';
 import { runInDebug } from '@ember/debug';
 import { env } from 'consul-ui/env';
@@ -127,44 +128,80 @@ export const routes = {
     },
     // ACLs
     acls: {
-      _options: { path: '/acls' },
+      _options: {
+        path: '/acls',
+        abilities: ['read acls'],
+      },
       edit: {
         _options: { path: '/:id' },
       },
       create: {
-        _options: { path: '/create' },
+        _options: {
+          path: '/create',
+          abilities: ['create acls'],
+        },
       },
       policies: {
-        _options: { path: '/policies' },
+        _options: {
+          path: '/policies',
+          abilities: ['read policies'],
+        },
         edit: {
           _options: { path: '/:id' },
         },
         create: {
-          _options: { path: '/create' },
+          _options: {
+            path: '/create',
+            abilities: ['create policies'],
+          },
         },
       },
       roles: {
-        _options: { path: '/roles' },
+        _options: {
+          path: '/roles',
+          abilities: ['read roles'],
+        },
         edit: {
           _options: { path: '/:id' },
         },
         create: {
-          _options: { path: '/create' },
+          _options: {
+            path: '/create',
+            abilities: ['create roles'],
+          },
         },
       },
       tokens: {
-        _options: { path: '/tokens' },
+        _options: {
+          path: '/tokens',
+          abilities: ['read tokens'],
+        },
         edit: {
           _options: { path: '/:id' },
         },
         create: {
-          _options: { path: '/create' },
+          _options: {
+            path: '/create',
+            abilities: ['create tokens'],
+          },
         },
       },
       'auth-methods': {
-        _options: { path: '/auth-methods' },
+        _options: {
+          path: '/auth-methods',
+          abilities: ['read auth-methods'],
+        },
         show: {
-          _options: { path: '/show' },
+          _options: { path: '/:id' },
+          'auth-method': {
+            _options: { path: '/auth-method' },
+          },
+          'binding-rules': {
+            _options: { path: '/binding-rules' },
+          },
+          'nspace-rules': {
+            _options: { path: '/nspace-rules' },
+          },
         },
       },
     },
@@ -184,12 +221,18 @@ export const routes = {
 };
 if (env('CONSUL_NSPACES_ENABLED')) {
   routes.dc.nspaces = {
-    _options: { path: '/namespaces' },
+    _options: {
+      path: '/namespaces',
+      abilities: ['read nspaces'],
+    },
     edit: {
       _options: { path: '/:name' },
     },
     create: {
-      _options: { path: '/create' },
+      _options: {
+        path: '/create',
+        abilities: ['create nspaces'],
+      },
     },
   };
   routes.nspace = {
@@ -197,6 +240,36 @@ if (env('CONSUL_NSPACES_ENABLED')) {
     dc: routes.dc,
   };
 }
+runInDebug(() => {
+  // check to see if we are running docfy and if so add its routes to our
+  // route config
+  const docfyOutput = requirejs.entries['consul-ui/docfy-output'];
+  if (typeof docfyOutput !== 'undefined') {
+    const output = {};
+    docfyOutput.callback(output);
+    // see https://github.com/josemarluedke/docfy/blob/904529641279975586402431108895713d156b55/packages/ember/addon/index.ts
+    (function addPage(route, page) {
+      if (page.name !== '/') {
+        route = route[page.name] = {
+          _options: { path: page.name },
+        };
+      }
+      page.pages.forEach(page => {
+        const url = page.relativeUrl;
+        if (typeof url === 'string') {
+          if (url !== '') {
+            route[url] = {
+              _options: { path: url },
+            };
+          }
+        }
+      });
+      page.children.forEach(child => {
+        addPage(route, child);
+      });
+    })(routes, output.default.nested);
+  }
+});
 export default class Router extends EmberRouter {
   location = env('locationType');
   rootURL = env('rootURL');

@@ -333,7 +333,7 @@ func TestAPI_AgentServices(t *testing.T) {
 	}
 }
 
-func TestAPI_AgentServicesWithFilter(t *testing.T) {
+func TestAPI_AgentServicesWithFilterOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -362,7 +362,8 @@ func TestAPI_AgentServicesWithFilter(t *testing.T) {
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 
-	services, err := agent.ServicesWithFilter("foo in Tags")
+	opts := &QueryOptions{Namespace: defaultNamespace}
+	services, err := agent.ServicesWithFilterOpts("foo in Tags", opts)
 	require.NoError(t, err)
 	require.Len(t, services, 1)
 	_, ok := services["foo2"]
@@ -437,6 +438,7 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 		Port: 8001,
 		Proxy: &AgentServiceConnectProxyConfig{
 			DestinationServiceName: "foo",
+			TransparentProxy:       true,
 		},
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -452,6 +454,9 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 	}
 	if _, ok := services["foo-proxy"]; !ok {
 		t.Fatalf("missing proxy service: %v", services)
+	}
+	if !services["foo-proxy"].Proxy.TransparentProxy {
+		t.Fatalf("expected transparent proxy mode to be enabled")
 	}
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
@@ -848,6 +853,63 @@ func TestAPI_AgentSetTTLStatus(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentUpdateTTLOpts(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+	s.WaitForSerfCheck(t)
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Check: &AgentServiceCheck{
+			TTL: "15s",
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	verify := func(status, output string) {
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		chk, ok := checks["service:foo"]
+		if !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+		if chk.Status != status {
+			t.Fatalf("Bad: %#v", chk)
+		}
+		if chk.Output != output {
+			t.Fatalf("Bad: %#v", chk)
+		}
+	}
+
+	opts := &QueryOptions{Namespace: defaultNamespace}
+
+	if err := agent.UpdateTTLOpts("service:foo", "foo", HealthWarning, opts); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify(HealthWarning, "foo")
+
+	if err := agent.UpdateTTLOpts("service:foo", "bar", HealthPassing, opts); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify(HealthPassing, "bar")
+
+	if err := agent.UpdateTTL("service:foo", "baz", HealthCritical); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify(HealthCritical, "baz")
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAPI_AgentChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -883,7 +945,7 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 }
 
-func TestAPI_AgentChecksWithFilter(t *testing.T) {
+func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -901,7 +963,8 @@ func TestAPI_AgentChecksWithFilter(t *testing.T) {
 	reg.TTL = "15s"
 	require.NoError(t, agent.CheckRegister(reg))
 
-	checks, err := agent.ChecksWithFilter("Name == foo")
+	opts := &QueryOptions{Namespace: defaultNamespace}
+	checks, err := agent.ChecksWithFilterOpts("Name == foo", opts)
 	require.NoError(t, err)
 	require.Len(t, checks, 1)
 	_, ok := checks["foo"]

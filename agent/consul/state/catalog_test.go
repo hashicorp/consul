@@ -1298,7 +1298,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	// the DB to make sure it is actually gone.
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	services, err := getCompoundWithTxn(tx, "services", "id", nil, "node1", "service1")
+	services, err := tx.Get(tableServices, indexID, NodeServiceQuery{Node: "node1", Service: "service1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1307,7 +1307,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Associated health check was removed.
-	checks, err := getCompoundWithTxn(tx, "checks", "id", nil, "node1", "check1")
+	checks, err := tx.Get(tableChecks, indexID, NodeCheckQuery{Node: "node1", CheckID: "check1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1316,7 +1316,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{"nodes", "services", "checks"} {
+	for _, tbl := range []string{"nodes", tableServices, tableChecks} {
 		if idx := s.maxIndex(tbl); idx != 3 {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
@@ -1479,7 +1479,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("services"); idx != 30 {
+	if idx := s.maxIndex(tableServices); idx != 30 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1510,7 +1510,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("services"); idx != 40 {
+	if idx := s.maxIndex(tableServices); idx != 40 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -2067,16 +2067,16 @@ func TestStateStore_DeleteService(t *testing.T) {
 	// that it actually is removed in the state store.
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, check, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, "node1", "check1")
+	check, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: "node1", CheckID: "check1"})
 	if err != nil || check != nil {
 		t.Fatalf("bad: %#v (err: %s)", check, err)
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("services"); idx != 4 {
+	if idx := s.maxIndex(tableServices); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	if idx := s.maxIndex("checks"); idx != 4 {
+	if idx := s.maxIndex(tableChecks); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -2085,7 +2085,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 	if err := s.DeleteService(5, "node1", "service1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("services"); idx != 4 {
+	if idx := s.maxIndex(tableServices); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if watchFired(ws) {
@@ -2411,7 +2411,7 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	testCheckOutput(t, 5, 5, "bbbmodified")
 
 	// Index tables were updated
-	if idx := s.maxIndex("checks"); idx != 5 {
+	if idx := s.maxIndex(tableChecks); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -2894,7 +2894,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if idx, check, err := s.NodeCheck("node1", "check1", nil); idx != 3 || err != nil || check != nil {
 		t.Fatalf("Node check should have been deleted idx=%d, node=%v, err=%s", idx, check, err)
 	}
-	if idx := s.maxIndex("checks"); idx != 3 {
+	if idx := s.maxIndex(tableChecks); idx != 3 {
 		t.Fatalf("bad index for checks: %d", idx)
 	}
 	if !watchFired(ws) {
@@ -2914,7 +2914,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	}
 
 	// Index tables were updated.
-	if idx := s.maxIndex("checks"); idx != 3 {
+	if idx := s.maxIndex(tableChecks); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -2923,7 +2923,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if err := s.DeleteCheck(4, "node1", "check1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("checks"); idx != 3 {
+	if idx := s.maxIndex(tableChecks); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if watchFired(ws) {

@@ -374,11 +374,10 @@ func New(bd BaseDeps) (*Agent, error) {
 		cacheName = cachetype.StreamingHealthServicesName
 	}
 	a.rpcClientHealth = &health.Client{
-		Cache:     bd.Cache,
-		NetRPC:    &a,
-		CacheName: cacheName,
-		// Temporarily until streaming supports all connect events
-		CacheNameConnect: cachetype.HealthServicesName,
+		Cache:            bd.Cache,
+		NetRPC:           &a,
+		CacheName:        cacheName,
+		CacheNameIngress: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -540,6 +539,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
+		Health: a.rpcClientHealth,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
@@ -2518,7 +2518,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
-			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
+			tlsClientConfig := a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 
 			http := &checks.CheckHTTP{
 				CheckID:         cid,
@@ -2590,7 +2590,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var tlsClientConfig *tls.Config
 			if chkType.GRPCUseTLS {
-				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify)
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 			}
 
 			grpc := &checks.CheckGRPC{
@@ -3708,6 +3708,8 @@ func (a *Agent) registerCache() {
 	})
 
 	a.cache.RegisterType(cachetype.IntentionMatchName, &cachetype.IntentionMatch{RPC: a})
+
+	a.cache.RegisterType(cachetype.IntentionUpstreamsName, &cachetype.IntentionUpstreams{RPC: a})
 
 	a.cache.RegisterType(cachetype.CatalogServicesName, &cachetype.CatalogServices{RPC: a})
 

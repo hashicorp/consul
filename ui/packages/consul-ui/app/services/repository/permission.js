@@ -12,6 +12,10 @@ const REQUIRED_PERMISSIONS = [
     Access: 'write',
   },
   {
+    Resource: 'operator',
+    Access: 'read',
+  },
+  {
     Resource: 'service',
     Access: 'read',
   },

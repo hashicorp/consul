@@ -489,6 +489,19 @@ function docker_consul {
   docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
 }
 
+function docker_consul_for_proxy_bootstrap {
+  local DC=$1
+  shift 1
+
+  if [[ -n "${TEST_V2_XDS}" ]]; then
+      # pre-pull this image and discard any output so we don't corrupt the bootstrap file
+      docker pull "${OLD_XDSV2_AWARE_CONSUL_VERSION}" &>/dev/null
+      docker run -i --rm --network container:envoy_consul-${DC}_1 "${OLD_XDSV2_AWARE_CONSUL_VERSION}" "$@"
+  else
+      docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  fi
+}
+
 function docker_wget {
   local DC=$1
   shift 1
@@ -696,7 +709,7 @@ function gen_envoy_bootstrap {
     PROXY_ID="$SERVICE-sidecar-proxy"
   fi
 
-  if output=$(docker_consul "$DC" connect envoy -bootstrap \
+  if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then

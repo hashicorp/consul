@@ -36,7 +36,6 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -197,6 +196,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
 			Upstreams:              structs.TestUpstreams(t),
+			TransparentProxy:       true,
 		},
 	}
 	a.State.AddService(srv1, "")
@@ -396,7 +396,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "4c7d5f8d3748be6d",
+		ContentHash: "fa3af167b81f6721",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -410,7 +410,7 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "713435ba1f5badcf"
+	updatedResponse.ContentHash = "c7739b50900c7483"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
@@ -3156,11 +3156,11 @@ func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
+		testAgent_RegisterService_TranslateKeys(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = true")
+		testAgent_RegisterService_TranslateKeys(t, "enable_central_service_config = true")
 	})
 }
 
@@ -3316,6 +3316,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					// there worked by inspecting the registered sidecar below.
 					SidecarService: nil,
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
 
 			got := a.State.Service(structs.NewServiceID("test", nil))
@@ -3329,6 +3330,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					"some":                "meta",
 					"enable_tag_override": "sidecar_service.meta is 'opaque' so should not get translated",
 				},
+				TaggedAddresses:            map[string]structs.ServiceAddress{},
 				Port:                       8001,
 				EnableTagOverride:          true,
 				Weights:                    &structs.Weights{Passing: 1, Warning: 1},
@@ -3351,6 +3353,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						},
 					},
 				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			}
 			gotSidecar := a.State.Service(structs.NewServiceID("test-sidecar-proxy", nil))
 			hasNoCorrectTCPCheck := true
@@ -6135,13 +6138,6 @@ func requireLeafValidUnderCA(t *testing.T, issued *structs.IssuedCert, ca *struc
 	// Verify the private key matches. tls.LoadX509Keypair does this for us!
 	_, err = tls.X509KeyPair([]byte(issued.CertPEM), []byte(issued.PrivateKeyPEM))
 	require.NoError(t, err)
-}
-
-func makeTelemetryDefaults(targetID string) lib.TelemetryConfig {
-	return lib.TelemetryConfig{
-		FilterDefault: true,
-		MetricsPrefix: "consul.proxy." + targetID,
-	}
 }
 
 func TestAgentConnectAuthorize_badBody(t *testing.T) {

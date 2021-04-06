@@ -179,6 +179,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{"bootstrap = true: do not enable unless necessary"},
 	})
@@ -195,6 +196,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{"bootstrap_expect > 0: expecting 3 servers"},
 	})
@@ -342,6 +344,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConsulServerHealthInterval = 10 * time.Millisecond
 			rt.GRPCPort = 8502
 			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -663,6 +666,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -845,6 +849,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -1851,6 +1856,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{"BootstrapExpect is set to 1; this is the same as Bootstrap mode.", "bootstrap = true: do not enable unless necessary"},
 	})
@@ -1867,6 +1873,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect = 2: A cluster with 2 servers will provide no failure tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -1886,6 +1893,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.DataDir = dataDir
+			rt.RPCConfig.EnableStreaming = true
 		},
 		expectedWarnings: []string{
 			`bootstrap_expect is even number: A cluster with an even number of servers does not achieve optimum fault tolerance. See https://www.consul.io/docs/internals/consensus.html#deployment-table`,
@@ -2574,6 +2582,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
+									"transparent_proxy": true,
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2609,7 +2618,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											protocol = "http"
 										}
 									]
-								},
+								}
+								transparent_proxy = true
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2649,6 +2659,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
+								TransparentProxy: true,
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
@@ -2703,6 +2714,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
+									"transparent_proxy": true,
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2738,7 +2750,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											protocol = "http"
 										}
 									]
-								},
+								}
+								transparent_proxy = true,
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2778,6 +2791,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
+								TransparentProxy: true,
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
@@ -2843,6 +2857,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2870,6 +2885,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2897,6 +2913,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2921,6 +2938,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	run(t, testCase{
@@ -2949,10 +2967,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		json: []string{`{
 			  "use_streaming_backend": true,
+              "rpc": {"enable_streaming": false},
 			  "server": true
 			}`},
 		hcl: []string{`
 			  use_streaming_backend = true
+              rpc { enable_streaming = false }
 			  server = true
 			`},
 		expectedWarnings: []string{"use_streaming_backend = true requires rpc.enable_streaming on servers to work properly"},
@@ -3322,6 +3342,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.LeaveOnTerm = false
 			rt.SkipLeaveOnInt = true
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 
@@ -3413,7 +3434,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							},
 							"mesh_gateway": {
 								"mode": "remote"
-							}
+							},
+							"transparent_proxy": true
 						}
 					]
 				}
@@ -3432,6 +3454,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
+						transparent_proxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3450,6 +3473,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -3471,7 +3495,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							},
 							"MeshGateway": {
 								"Mode": "remote"
-							}
+							},
+							"TransparentProxy": true
 						}
 					]
 				}
@@ -3490,6 +3515,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
+						TransparentProxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3508,6 +3534,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -3529,7 +3556,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"external_sni": "abc-123",
 							"mesh_gateway": {
 								"mode": "remote"
-							}
+							},
+							"transparent_proxy": true
 						}
 					]
 				}
@@ -3548,6 +3576,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
+						transparent_proxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3566,6 +3595,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -3587,7 +3617,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"ExternalSNI": "abc-123",
 							"MeshGateway": {
 								"Mode": "remote"
-							}
+							},
+							"TransparentProxy": true
 						}
 					]
 				}
@@ -3606,6 +3637,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
+						TransparentProxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3624,6 +3656,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -4497,6 +4530,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ServerMode = true
 			rt.SkipLeaveOnInt = true
 			rt.CertFile = "foo"
+			rt.RPCConfig.EnableStreaming = true
 		},
 	})
 	// UI Config tests
@@ -5065,6 +5099,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				OutputMaxSize:                  checks.DefaultBufSize,
 				DockerContainerID:              "ipgdFtjd",
 				Shell:                          "qAeOYy0M",
+				TLSServerName:                  "bdeb5f6a",
 				TLSSkipVerify:                  true,
 				Timeout:                        1813 * time.Second,
 				TTL:                            21743 * time.Second,
@@ -5090,6 +5125,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Interval:                       28767 * time.Second,
 				DockerContainerID:              "THW6u7rL",
 				Shell:                          "C1Zt3Zwh",
+				TLSServerName:                  "6adc3bfb",
 				TLSSkipVerify:                  true,
 				Timeout:                        18506 * time.Second,
 				TTL:                            31006 * time.Second,
@@ -5115,6 +5151,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Interval:                       18714 * time.Second,
 				DockerContainerID:              "qF66POS9",
 				Shell:                          "sOnDy228",
+				TLSServerName:                  "7BdnzBYk",
 				TLSSkipVerify:                  true,
 				Timeout:                        5954 * time.Second,
 				TTL:                            30044 * time.Second,
@@ -5320,6 +5357,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Interval:                       24392 * time.Second,
 						DockerContainerID:              "ZKXr68Yb",
 						Shell:                          "CEfzx0Fo",
+						TLSServerName:                  "4f191d4F",
 						TLSSkipVerify:                  true,
 						Timeout:                        38333 * time.Second,
 						TTL:                            57201 * time.Second,
@@ -5370,6 +5408,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Interval:                       32718 * time.Second,
 						DockerContainerID:              "cU15LMet",
 						Shell:                          "nEz9qz2l",
+						TLSServerName:                  "f43ouY7a",
 						TLSSkipVerify:                  true,
 						Timeout:                        34738 * time.Second,
 						TTL:                            22773 * time.Second,
@@ -5393,6 +5432,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Interval:                       5656 * time.Second,
 						DockerContainerID:              "5tDBWpfA",
 						Shell:                          "rlTpLM8s",
+						TLSServerName:                  "sOv5WTtp",
 						TLSSkipVerify:                  true,
 						Timeout:                        4868 * time.Second,
 						TTL:                            11222 * time.Second,
@@ -5442,6 +5482,7 @@ func TestLoad_FullConfig(t *testing.T) {
 							},
 						},
 					},
+					TransparentProxy: true,
 				},
 				Weights: &structs.Weights{
 					Passing: 1,
@@ -5509,6 +5550,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Interval:                       22224 * time.Second,
 						DockerContainerID:              "ipgdFtjd",
 						Shell:                          "omVZq7Sz",
+						TLSServerName:                  "axw5QPL5",
 						TLSSkipVerify:                  true,
 						Timeout:                        18913 * time.Second,
 						TTL:                            44743 * time.Second,
@@ -5532,6 +5574,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Interval:                       12356 * time.Second,
 						DockerContainerID:              "HBndBU6R",
 						Shell:                          "hVI33JjA",
+						TLSServerName:                  "7uwWOnUS",
 						TLSSkipVerify:                  true,
 						Timeout:                        38282 * time.Second,
 						TTL:                            1181 * time.Second,
@@ -5555,6 +5598,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						Interval:                       23926 * time.Second,
 						DockerContainerID:              "dO5TtRHk",
 						Shell:                          "e6q2ttES",
+						TLSServerName:                  "ECSHk8WF",
 						TLSSkipVerify:                  true,
 						Timeout:                        38483 * time.Second,
 						TTL:                            10943 * time.Second,

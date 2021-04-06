@@ -29,7 +29,13 @@
         </BlockSlot>
         <BlockSlot @name="menu" as |confirm send keypressClick|>
             <li role="none">
-              <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
+              <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.edit' item.ID}}>
+{{#if (can "write acl" item=item)}}
+            Edit
+{{else}}
+            View
+{{/if}}
+              </a>
             </li>
   {{#if (eq item.ID token.SecretID) }}
             <li role="none">
@@ -87,10 +93,12 @@
               </div>
             </li>
   {{/if}}
+{{#if (can "duplicate acl" item=item)}}
             <li role="none">
                 <button role="menuitem" tabindex="-1" type="button" data-test-clone {{action @onclone item}}>Duplicate</button>
             </li>
-  {{# if (not-eq item.ID 'anonymous') }}
+{{/if}}
+{{#if (can "delete acl" item=item)}}
             <li role="none" class="dangerous">
               <label for={{concat confirm 'delete'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
               <div role="menu">

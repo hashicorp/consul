@@ -1,6 +1,9 @@
 package state
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -125,14 +128,29 @@ func policiesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field: "Name",
-					// TODO (ACL-V2) - should we coerce to lowercase?
-					Lowercase: true,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromQuery,
+					writeIndex:  indexNameFromACLPolicy,
+					prefixIndex: prefixIndexFromQuery,
 				},
 			},
 		},
 	}
+}
+
+func indexNameFromACLPolicy(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLPolicy)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
+	}
+
+	if p.Name == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.Name))
+	return b.Bytes(), nil
 }
 
 func rolesTableSchema() *memdb.TableSchema {
@@ -151,9 +169,10 @@ func rolesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromQuery,
+					writeIndex:  indexNameFromACLRole,
+					prefixIndex: prefixIndexFromQuery,
 				},
 			},
 			indexPolicies: {
@@ -161,10 +180,59 @@ func rolesTableSchema() *memdb.TableSchema {
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &RolePoliciesIndex{},
+				Indexer: indexerMulti{
+					readIndex:       indexFromUUIDQuery,
+					writeIndexMulti: multiIndexPolicyFromACLRole,
+				},
 			},
 		},
 	}
+}
+
+func indexNameFromACLRole(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLRole)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
+	}
+
+	if p.Name == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.Name))
+	return b.Bytes(), nil
+}
+
+func indexFromUUIDQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(Query)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for UUIDQuery index", raw)
+	}
+	return uuidStringToBytes(q.Value)
+}
+
+func multiIndexPolicyFromACLRole(raw interface{}) ([][]byte, error) {
+	role, ok := raw.(*structs.ACLRole)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
+	}
+
+	count := len(role.Policies)
+	if count == 0 {
+		return nil, errMissingValueForIndex
+	}
+
+	vals := make([][]byte, 0, count)
+	for _, link := range role.Policies {
+		v, err := uuidStringToBytes(link.ID)
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, v)
+	}
+
+	return vals, nil
 }
 
 func bindingRulesTableSchema() *memdb.TableSchema {

@@ -711,21 +711,27 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	return config
 }
 
-// IncomingTLSConfig generates a *tls.Config for outgoing TLS connections for
-// checks. This function is separated because there is an extra flag to
+// OutgoingTLSConfigForCheck generates a *tls.Config for outgoing TLS connections
+// for checks. This function is separated because there is an extra flag to
 // consider for checks. EnableAgentTLSForChecks and InsecureSkipVerify has to
 // be checked for checks.
-func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool) *tls.Config {
+func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
+
+	if serverName == "" {
+		serverName = c.serverNameOrNodeName()
+	}
+
 	if !c.enableAgentTLSForChecks() {
 		return &tls.Config{
 			InsecureSkipVerify: skipVerify,
+			ServerName:         serverName,
 		}
 	}
 
 	config := c.commonTLSConfig(false)
 	config.InsecureSkipVerify = skipVerify
-	config.ServerName = c.serverNameOrNodeName()
+	config.ServerName = serverName
 
 	return config
 }

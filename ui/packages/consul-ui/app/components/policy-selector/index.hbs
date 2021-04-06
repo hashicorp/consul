@@ -1,4 +1,13 @@
-<ChildSelector ...attributes @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="policy" @placeholder="Search for policy" @items={{items}}>
+<ChildSelector
+  @disabled={{disabled}}
+  @repo={{repo}}
+  @dc={{dc}}
+  @nspace={{nspace}}
+  @type="policy"
+  @placeholder="Search for policy"
+  @items={{items}}
+  ...attributes
+>
   {{yield}}
   <BlockSlot @name="label">
     Apply an existing policy
@@ -7,7 +16,11 @@
     {{#yield-slot name='trigger'}}
       {{yield}}
     {{else}}
-      <label class="type-dialog" for="new-policy-toggle">
+      <label
+        class="type-dialog"
+        data-test-policy-create
+        {{on "click" (optional this.modal.open)}}
+      >
         <span>Create new policy</span>
       </label>
       {{!TODO: potentially call trigger something else}}
@@ -16,7 +29,8 @@
         data-test-policy-form
         @onopen={{action "open"}}
         @name="new-policy-toggle"
-      >
+      as |modal|>
+        <Ref @target={{this}} @name="modal" @value={{modal}} />
         <BlockSlot @name="header">
           <h2>New Policy</h2>
         </BlockSlot>
@@ -107,6 +121,7 @@
             />
 {{/if}}
           </label>
+{{#if (not disabled)}}
           <div>
             <ConfirmationDialog @message="Are you sure you want to remove this policy from this token?">
               <BlockSlot @name="action" as |confirm|>
@@ -122,6 +137,7 @@
               </BlockSlot>
             </ConfirmationDialog>
           </div>
+{{/if}}
       </BlockSlot>
     </TabularDetails>
 

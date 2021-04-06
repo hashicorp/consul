@@ -1,4 +1,6 @@
-<HeadLayout />
+<Route
+  @name={{routeName}}
+>
 {{page-title 'Consul' separator=' - '}}
 
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
@@ -35,3 +37,4 @@ as |source|>
     <Consul::Loader class="view-loader" />
   </HashicorpConsul>
 {{/if}}
+</Route>

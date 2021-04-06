@@ -9,18 +9,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/copystructure"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
-	"github.com/mitchellh/mapstructure"
 )
 
 type CacheNotifier interface {
 	Notify(ctx context.Context, t string, r cache.Request,
 		correlationID string, ch chan<- cache.UpdateEvent) error
+}
+
+type Health interface {
+	Notify(ctx context.Context, req structs.ServiceSpecificRequest, correlationID string, ch chan<- cache.UpdateEvent) error
 }
 
 const (
@@ -40,6 +45,7 @@ const (
 	serviceConfigIDPrefix              = "service-config:"
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
+	intentionUpstreamsID               = "intention-upstreams"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	serviceIDPrefix                    = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
@@ -54,6 +60,7 @@ type state struct {
 	logger                hclog.Logger
 	source                *structs.QuerySource
 	cache                 CacheNotifier
+	health                Health
 	dnsConfig             DNSConfig
 	serverSNIFn           ServerSNIFunc
 	intentionDefaultAllow bool
@@ -155,6 +162,7 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 		taggedAddresses: taggedAddresses,
 		proxyCfg:        proxyCfg,
 		token:           token,
+
 		// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 		// reasonable number of upstream watches to all deliver their initial
 		// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -175,13 +183,14 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 func (s *state) Watch() (<-chan ConfigSnapshot, error) {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	err := s.initWatches()
+	snap := s.initialConfigSnapshot()
+	err := s.initWatches(&snap)
 	if err != nil {
 		s.cancel()
 		return nil, err
 	}
 
-	go s.run()
+	go s.run(&snap)
 
 	return s.snapCh, nil
 }
@@ -195,10 +204,10 @@ func (s *state) Close() error {
 }
 
 // initWatches sets up the watches needed for the particular service
-func (s *state) initWatches() error {
+func (s *state) initWatches(snap *ConfigSnapshot) error {
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
-		return s.initWatchesConnectProxy()
+		return s.initWatchesConnectProxy(snap)
 	case structs.ServiceKindTerminatingGateway:
 		return s.initWatchesTerminatingGateway()
 	case structs.ServiceKindMeshGateway:
@@ -225,7 +234,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 	var finalMeta structs.EnterpriseMeta
 	finalMeta.Merge(entMeta)
 
-	return s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+	return s.health.Notify(ctx, structs.ServiceSpecificRequest{
 		Datacenter: dc,
 		QueryOptions: structs.QueryOptions{
 			Token:  s.token,
@@ -243,7 +252,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 
 // initWatchesConnectProxy sets up the watches needed based on current proxy registration
 // state.
-func (s *state) initWatchesConnectProxy() error {
+func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 	// Watch for root changes
 	err := s.cache.Notify(s.ctx, cachetype.ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter:   s.source.Datacenter,
@@ -295,11 +304,37 @@ func (s *state) initWatchesConnectProxy() error {
 	// default the namespace to the namespace of this proxy service
 	currentNamespace := s.proxyID.NamespaceOrDefault()
 
+	if s.proxyCfg.TransparentProxy {
+		// When in transparent proxy we will infer upstreams from intentions with this source
+		err := s.cache.Notify(s.ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
+			Datacenter:     s.source.Datacenter,
+			QueryOptions:   structs.QueryOptions{Token: s.token},
+			ServiceName:    s.proxyCfg.DestinationServiceName,
+			EnterpriseMeta: structs.NewEnterpriseMeta(s.proxyID.NamespaceOrEmpty()),
+		}, intentionUpstreamsID, s.ch)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Watch for updates to service endpoints for all upstreams
-	for _, u := range s.proxyCfg.Upstreams {
+	for i := range s.proxyCfg.Upstreams {
+		u := s.proxyCfg.Upstreams[i]
+
+		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
+		// Watches should not be created for them.
+		if u.CentrallyConfigured {
+			continue
+		}
+		snap.ConnectProxy.UpstreamConfig[u.Identifier()] = &u
+
 		dc := s.source.Datacenter
 		if u.Datacenter != "" {
 			dc = u.Datacenter
+		}
+		if s.proxyCfg.TransparentProxy && (dc == "" || dc == s.source.Datacenter) {
+			// In TransparentProxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
+			continue
 		}
 
 		ns := currentNamespace
@@ -443,7 +478,7 @@ func (s *state) initWatchesMeshGateway() error {
 			return err
 		}
 
-		err = s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+		err = s.health.Notify(s.ctx, structs.ServiceSpecificRequest{
 			Datacenter:   s.source.Datacenter,
 			QueryOptions: structs.QueryOptions{Token: s.token},
 			ServiceName:  structs.ConsulServiceName,
@@ -541,12 +576,14 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		snap.ConnectProxy.DiscoveryChain = make(map[string]*structs.CompiledDiscoveryChain)
+		snap.ConnectProxy.WatchedDiscoveryChains = make(map[string]context.CancelFunc)
 		snap.ConnectProxy.WatchedUpstreams = make(map[string]map[string]context.CancelFunc)
 		snap.ConnectProxy.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 		snap.ConnectProxy.WatchedGateways = make(map[string]map[string]context.CancelFunc)
 		snap.ConnectProxy.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 		snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
 		snap.ConnectProxy.PreparedQueryEndpoints = make(map[string]structs.CheckServiceNodes)
+		snap.ConnectProxy.UpstreamConfig = make(map[string]*structs.Upstream)
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
 		snap.TerminatingGateway.WatchedIntentions = make(map[structs.ServiceName]context.CancelFunc)
@@ -582,14 +619,12 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 	return snap
 }
 
-func (s *state) run() {
+func (s *state) run(snap *ConfigSnapshot) {
 	// Close the channel we return from Watch when we stop so consumers can stop
 	// watching and clean up their goroutines. It's important we do this here and
 	// not in Close since this routine sends on this chan and so might panic if it
 	// gets closed from another goroutine.
 	defer close(s.snapCh)
-
-	snap := s.initialConfigSnapshot()
 
 	// This turns out to be really fiddly/painful by just using time.Timer.C
 	// directly in the code below since you can't detect when a timer is stopped
@@ -605,7 +640,7 @@ func (s *state) run() {
 		case u := <-s.ch:
 			s.logger.Trace("A blocking query returned; handling snapshot update")
 
-			if err := s.handleUpdate(u, &snap); err != nil {
+			if err := s.handleUpdate(u, snap); err != nil {
 				s.logger.Error("Failed to handle update from watch",
 					"id", u.CorrelationID, "error", err,
 				)
@@ -733,6 +768,68 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 			snap.ConnectProxy.Intentions = resp.Matches[0]
 		}
 		snap.ConnectProxy.IntentionsSet = true
+
+	case u.CorrelationID == intentionUpstreamsID:
+		resp, ok := u.Result.(*structs.IndexedServiceList)
+		if !ok {
+			return fmt.Errorf("invalid type for response %T", u.Result)
+		}
+
+		seenServices := make(map[string]struct{})
+		for _, svc := range resp.Services {
+			seenServices[svc.String()] = struct{}{}
+
+			cfgMap := make(map[string]interface{})
+			u, ok := snap.ConnectProxy.UpstreamConfig[svc.String()]
+			if ok {
+				cfgMap = u.Config
+			}
+
+			cfg, err := parseReducedUpstreamConfig(cfgMap)
+			if err != nil {
+				// Don't hard fail on a config typo, just warn. We'll fall back on
+				// the plain discovery chain if there is an error so it's safe to
+				// continue.
+				s.logger.Warn("failed to parse upstream config",
+					"upstream", u.Identifier(),
+					"error", err,
+				)
+			}
+
+			err = s.watchDiscoveryChain(snap, cfg, svc.String(), svc.Name, svc.NamespaceOrDefault())
+			if err != nil {
+				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
+			}
+		}
+
+		// Clean up data from services that were not in the update
+		for sn := range snap.ConnectProxy.WatchedUpstreams {
+			if _, ok := seenServices[sn]; !ok {
+				delete(snap.ConnectProxy.WatchedUpstreams, sn)
+			}
+		}
+		for sn := range snap.ConnectProxy.WatchedUpstreamEndpoints {
+			if _, ok := seenServices[sn]; !ok {
+				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, sn)
+			}
+		}
+		for sn := range snap.ConnectProxy.WatchedGateways {
+			if _, ok := seenServices[sn]; !ok {
+				delete(snap.ConnectProxy.WatchedGateways, sn)
+			}
+		}
+		for sn := range snap.ConnectProxy.WatchedGatewayEndpoints {
+			if _, ok := seenServices[sn]; !ok {
+				delete(snap.ConnectProxy.WatchedGatewayEndpoints, sn)
+			}
+		}
+		for sn, cancelFn := range snap.ConnectProxy.WatchedDiscoveryChains {
+			if _, ok := seenServices[sn]; !ok {
+				cancelFn()
+				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
+				delete(snap.ConnectProxy.DiscoveryChain, sn)
+			}
+		}
 
 	case strings.HasPrefix(u.CorrelationID, "upstream:"+preparedQueryIDPrefix):
 		resp, ok := u.Result.(*structs.PreparedQueryExecuteResponse)
@@ -969,7 +1066,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			// Watch the health endpoint to discover endpoints for the service
 			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(s.ctx)
-				err := s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+				err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Service.Name,
@@ -1267,7 +1364,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 
 			if _, ok := snap.MeshGateway.WatchedServices[svc]; !ok {
 				ctx, cancel := context.WithCancel(s.ctx)
-				err := s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+				err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Name,
@@ -1465,9 +1562,9 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		for _, service := range services.Services {
 			u := makeUpstream(service)
 
-			err := s.watchIngressDiscoveryChain(snap, u)
+			err := s.watchDiscoveryChain(snap, reducedUpstreamConfig{}, u.Identifier(), u.DestinationName, u.DestinationNamespace)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to watch discovery chain for %s: %v", u.Identifier(), err)
 			}
 			watchedSvcs[u.Identifier()] = struct{}{}
 
@@ -1515,25 +1612,36 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	return upstream
 }
 
-func (s *state) watchIngressDiscoveryChain(snap *ConfigSnapshot, u structs.Upstream) error {
-	if _, ok := snap.IngressGateway.WatchedDiscoveryChains[u.Identifier()]; ok {
+func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, cfg reducedUpstreamConfig, id, name, namespace string) error {
+	if _, ok := snap.ConnectProxy.WatchedDiscoveryChains[id]; ok {
 		return nil
 	}
 
 	ctx, cancel := context.WithCancel(s.ctx)
 	err := s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
-		Datacenter:           s.source.Datacenter,
-		QueryOptions:         structs.QueryOptions{Token: s.token},
-		Name:                 u.DestinationName,
-		EvaluateInDatacenter: s.source.Datacenter,
-		EvaluateInNamespace:  u.DestinationNamespace,
-	}, "discovery-chain:"+u.Identifier(), s.ch)
+		Datacenter:             s.source.Datacenter,
+		QueryOptions:           structs.QueryOptions{Token: s.token},
+		Name:                   name,
+		EvaluateInDatacenter:   s.source.Datacenter,
+		EvaluateInNamespace:    namespace,
+		OverrideProtocol:       cfg.Protocol,
+		OverrideConnectTimeout: cfg.ConnectTimeout(),
+	}, "discovery-chain:"+id, s.ch)
 	if err != nil {
 		cancel()
 		return err
 	}
 
-	snap.IngressGateway.WatchedDiscoveryChains[u.Identifier()] = cancel
+	switch s.kind {
+	case structs.ServiceKindIngressGateway:
+		snap.IngressGateway.WatchedDiscoveryChains[id] = cancel
+	case structs.ServiceKindConnectProxy:
+		snap.ConnectProxy.WatchedDiscoveryChains[id] = cancel
+	default:
+		cancel()
+		return fmt.Errorf("unsupported kind %s", s.kind)
+	}
+
 	return nil
 }
 

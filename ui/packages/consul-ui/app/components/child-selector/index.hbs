@@ -3,6 +3,7 @@
   ...attributes
 >
 {{yield}}
+{{#if (not disabled)}}
   <YieldSlot @name="create">{{yield}}</YieldSlot>
   <label class="type-text">
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
@@ -35,6 +36,7 @@
       </PowerSelect>
     </DataCollection>
   </label>
+{{/if}}
 {{#if (gt items.length 0)}}
   <YieldSlot @name="set">{{yield}}</YieldSlot>
 {{else}}

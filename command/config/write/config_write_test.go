@@ -181,6 +181,7 @@ func TestParseConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				transparent_proxy = true
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -199,6 +200,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				TransparentProxy = true
 			`,
 			snakeJSON: `
 			{
@@ -217,7 +219,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"mesh_gateway": {
 					"mode": "remote"
-				}
+				},
+				"transparent_proxy": true
 			}
 			`,
 			camelJSON: `
@@ -237,7 +240,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"MeshGateway": {
 					"Mode": "remote"
-				}
+				},
+				"TransparentProxy": true
 			}
 			`,
 			expect: &api.ProxyConfigEntry{
@@ -257,6 +261,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 			},
 			expectJSON: &api.ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -275,6 +280,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 			},
 		},
 		{
@@ -423,7 +429,7 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-defaults",
+			name: "service-defaults: kitchen sink",
 			snake: `
 				kind = "service-defaults"
 				name = "main"
@@ -435,6 +441,37 @@ func TestParseConfigEntry(t *testing.T) {
 				external_sni = "abc-123"
 				mesh_gateway {
 					mode = "remote"
+				}
+				transparent_proxy = true
+				connect {
+					upstream_configs {
+						"redis" {
+							passive_health_check {
+								max_failures = 3
+								interval = "2s"
+							}
+						}
+						"finance/billing" {
+							mesh_gateway {
+								mode = "remote"
+							}
+						}
+					}
+					upstream_defaults {
+						envoy_cluster_json = "zip"
+						envoy_listener_json = "zop"
+						connect_timeout_ms = 5000
+						protocol = "http"
+						limits {
+							max_connections = 3
+							max_pending_requests = 4
+							max_concurrent_requests = 5
+						}
+						passive_health_check {
+							max_failures = 5
+							interval = "4s"
+						}
+					}
 				}
 			`,
 			camel: `
@@ -449,6 +486,37 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				TransparentProxy = true
+				connect = {
+					upstream_configs = {
+						"redis" = {
+							passive_health_check = {
+								max_failures = 3
+								interval = "2s"
+							}
+						}
+						"finance/billing" = {
+							mesh_gateway = {
+								mode = "remote"
+							}
+						}
+					}
+					upstream_defaults = {
+						envoy_cluster_json = "zip"
+						envoy_listener_json = "zop"
+						connect_timeout_ms = 5000
+						protocol = "http"
+						limits = {
+							max_connections = 3
+							max_pending_requests = 4
+							max_concurrent_requests = 5
+						}
+						passive_health_check = {
+							max_failures = 5
+							interval = "4s"
+						}
+					}
+				}
 			`,
 			snakeJSON: `
 			{
@@ -462,6 +530,37 @@ func TestParseConfigEntry(t *testing.T) {
 				"external_sni": "abc-123",
 				"mesh_gateway": {
 					"mode": "remote"
+				},
+				"transparent_proxy": true,
+				"connect": {
+					"upstream_configs": {
+						"redis": {
+							"passive_health_check": {
+								"max_failures": 3,
+								"interval": "2s"
+							}
+						},
+						"finance/billing": {
+							"mesh_gateway": {
+								"mode": "remote"
+							}
+						}
+					},
+					"upstream_defaults": {
+						"envoy_cluster_json": "zip",
+						"envoy_listener_json": "zop",
+						"connect_timeout_ms": 5000,
+						"protocol": "http",
+						"limits": {
+							"max_connections": 3,
+							"max_pending_requests": 4,
+							"max_concurrent_requests": 5
+						},
+						"passive_health_check": {
+							"max_failures": 5,
+							"interval": "4s"
+						}
+					}
 				}
 			}
 			`,
@@ -477,6 +576,37 @@ func TestParseConfigEntry(t *testing.T) {
 				"ExternalSNI": "abc-123",
 				"MeshGateway": {
 					"Mode": "remote"
+				},
+				"TransparentProxy": true,
+				"Connect": {
+					"UpstreamConfigs": {
+						"redis": {
+							"PassiveHealthCheck": {
+								"MaxFailures": 3,
+								"Interval": "2s"
+							}
+						},
+						"finance/billing": {
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					},
+					"UpstreamDefaults": {
+						"EnvoyClusterJSON": "zip",
+						"EnvoyListenerJSON": "zop",
+						"ConnectTimeoutMs": 5000,
+						"Protocol": "http",
+						"Limits": {
+							"MaxConnections": 3,
+							"MaxPendingRequests": 4,
+							"MaxConcurrentRequests": 5
+						},
+						"PassiveHealthCheck": {
+								"MaxFailures": 5,
+								"Interval": "4s"
+						}
+					}
 				}
 			}
 			`,
@@ -491,6 +621,37 @@ func TestParseConfigEntry(t *testing.T) {
 				ExternalSNI: "abc-123",
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
+				},
+				TransparentProxy: true,
+				Connect: api.ConnectConfiguration{
+					UpstreamConfigs: map[string]api.UpstreamConfig{
+						"redis": {
+							PassiveHealthCheck: &api.PassiveHealthCheck{
+								MaxFailures: 3,
+								Interval:    2 * time.Second,
+							},
+						},
+						"finance/billing": {
+							MeshGateway: api.MeshGatewayConfig{
+								Mode: "remote",
+							},
+						},
+					},
+					UpstreamDefaults: api.UpstreamConfig{
+						EnvoyClusterJSON:  "zip",
+						EnvoyListenerJSON: "zop",
+						Protocol:          "http",
+						ConnectTimeoutMs:  5000,
+						Limits: &api.UpstreamLimits{
+							MaxConnections:        3,
+							MaxPendingRequests:    4,
+							MaxConcurrentRequests: 5,
+						},
+						PassiveHealthCheck: &api.PassiveHealthCheck{
+							MaxFailures: 5,
+							Interval:    4 * time.Second,
+						},
+					},
 				},
 			},
 		},

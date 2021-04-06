@@ -11,14 +11,13 @@ import (
 	"strings"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	envoytcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
-	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -31,6 +30,11 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+)
+
+const (
+	// TODO (freddy) Make this configurable
+	TProxyOutboundPort = 15001
 )
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
@@ -55,27 +59,83 @@ func (s *Server) listenersFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.C
 
 // listenersFromSnapshotConnectProxy returns the "listeners" for a connect proxy service
 func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	// One listener for each upstream plus the public one
-	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
+	resources := make([]proto.Message, 1)
 
-	// Configure public listener
 	var err error
-	resources[0], err = s.makePublicListener(cInfo, cfgSnap)
+
+	// Configure inbound listener.
+	resources[0], err = s.makeInboundListener(cInfo, cfgSnap, PublicListenerName)
 	if err != nil {
 		return nil, err
 	}
-	for i, u := range cfgSnap.Proxy.Upstreams {
-		id := u.Identifier()
 
-		var chain *structs.CompiledDiscoveryChain
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = cfgSnap.ConnectProxy.DiscoveryChain[id]
+	// This outboundListener is exclusively used when TransparentProxy mode is active.
+	// In that situation there is a single listener where we are redirecting outbound traffic,
+	// and each upstream gets a filter chain attached to that listener.
+	var outboundListener *envoy_listener_v3.Listener
+
+	if cfgSnap.Proxy.TransparentProxy {
+		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", TProxyOutboundPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
+		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
+			{
+				// TODO (freddy): Hard-coded until we upgrade the go-control-plane library
+				Name: "envoy.filters.listener.original_dst",
+			},
+		}
+	}
+
+	var hasFilterChains bool
+
+	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
+		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
+		cfg := getAndModifyUpstreamConfigForListener(s.Logger, id, upstreamCfg, chain)
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, upstreamListener)
+			continue
 		}
 
-		var upstreamListener proto.Message
-		upstreamListener, err = s.makeUpstreamListenerForDiscoveryChain(
-			&u,
-			u.LocalBindAddress,
+		// Generate the upstream listeners for when they are explicitly set with a local bind port
+		if outboundListener == nil || (upstreamCfg != nil && upstreamCfg.LocalBindPort != 0) {
+			address := "127.0.0.1"
+			if upstreamCfg.LocalBindAddress != "" {
+				address = upstreamCfg.LocalBindAddress
+			}
+
+			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+				id,
+				"",
+				cfg.Protocol,
+				upstreamCfg,
+				chain,
+				cfgSnap,
+				nil,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			upstreamListener := makeListener(id, address, upstreamCfg.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
+				filterChain,
+			}
+			resources = append(resources, upstreamListener)
+
+			// Avoid creating filter chains below for upstreams that have dedicated listeners
+			continue
+		}
+
+		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			id,
+			"",
+			cfg.Protocol,
+			upstreamCfg,
 			chain,
 			cfgSnap,
 			nil,
@@ -83,7 +143,138 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		if err != nil {
 			return nil, err
 		}
-		resources[i+1] = upstreamListener
+
+		// For filter chains used by the transparent proxy, we need to match on multiple destination addresses.
+		// These might be: the ClusterIP in k8s, or any of the service instance addresses.
+		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
+		uniqueAddrs := make(map[string]struct{})
+
+		for _, t := range chain.Targets {
+			var k8sNamespace string
+
+			// Store all the IP addresses per unique port
+			for _, e := range endpoints[t.ID] {
+				addr, _ := e.BestAddress(false)
+
+				if _, ok := uniqueAddrs[addr]; !ok {
+					uniqueAddrs[addr] = struct{}{}
+				}
+
+				// The k8s namespace should be the same for all instances, so pick any
+				if ns, ok := e.Service.Meta["k8s-namespace"]; ok {
+					k8sNamespace = ns
+				}
+			}
+
+			// TODO (freddy) hack to remove for beta: for every potential discovery chain target, resolve the k8s ClusterIP
+			//  		     since it's not stored in Consul's catalog (yet)
+			if k8sNamespace != "" {
+				host := fmt.Sprintf("%s.%s.svc.cluster.local", t.Service, k8sNamespace)
+				resolved, err := net.LookupHost(host)
+				if err != nil {
+					// We still have the Pod ips in the catalog, so don't hard-fail on errors
+					s.Logger.Warn("failed to resolve", "host", host, "error", err)
+					continue
+				}
+				for _, addr := range resolved {
+					if _, ok := uniqueAddrs[addr]; !ok {
+						uniqueAddrs[addr] = struct{}{}
+					}
+				}
+			}
+		}
+
+		// For every potential address we collected, create the appropriate address prefix to match on.
+		// In this case we are matching on exact addresses, so the prefix is the address itself,
+		// and the prefix length is based on whether it's IPv4 or IPv6.
+		ranges := make([]*envoy_core_v3.CidrRange, 0)
+
+		for addr := range uniqueAddrs {
+			ip := net.ParseIP(addr)
+			if ip == nil {
+				continue
+			}
+
+			pfxLen := uint32(32)
+			if ip.To4() == nil {
+				pfxLen = 128
+			}
+			ranges = append(ranges, &envoy_core_v3.CidrRange{
+				AddressPrefix: addr,
+				PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
+			})
+		}
+		filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
+			PrefixRanges: ranges,
+		}
+
+		// Only attach the filter chain if there are addresses to match on
+		if len(ranges) > 0 {
+			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+		}
+		hasFilterChains = true
+	}
+
+	// Only create the outbound listener when there are upstreams and filter chains are present
+	if outboundListener != nil && hasFilterChains {
+		// Filter chains are stable sorted to avoid draining if the list is provided out of order
+		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
+			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
+		})
+
+		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
+		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			"passthrough",
+			OriginalDestinationClusterName,
+			"tcp",
+			nil,
+			nil,
+			cfgSnap,
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
+
+		resources = append(resources, outboundListener)
+	}
+
+	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
+	for id, u := range cfgSnap.ConnectProxy.UpstreamConfig {
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
+			continue
+		}
+
+		cfg, err := structs.ParseUpstreamConfig(u.Config)
+		if err != nil {
+			// Don't hard fail on a config typo, just warn. The parse func returns
+			// default config if there is an error so it's safe to continue.
+			s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+		}
+		address := "127.0.0.1"
+		if u.LocalBindAddress != "" {
+			address = u.LocalBindAddress
+		}
+
+		upstreamListener := makeListener(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+
+		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			id,
+			"",
+			cfg.Protocol,
+			u,
+			nil,
+			cfgSnap,
+			nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
+			filterChain,
+		}
+		resources = append(resources, upstreamListener)
 	}
 
 	cfgSnap.Proxy.Expose.Finalize()
@@ -255,7 +446,7 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 		}
 		seen[a.ServiceAddress] = true
 
-		var l *envoy.Listener
+		var l *envoy_listener_v3.Listener
 
 		switch cfgSnap.Kind {
 		case structs.ServiceKindTerminatingGateway:
@@ -286,9 +477,9 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 	var resources []proto.Message
 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
-		var tlsContext *envoyauth.DownstreamTlsContext
+		var tlsContext *envoy_tls_v3.DownstreamTlsContext
 		if cfgSnap.IngressGateway.TLSEnabled {
-			tlsContext = &envoyauth.DownstreamTlsContext{
+			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
 				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
@@ -317,7 +508,7 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 			resources = append(resources, upstreamListener)
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
-			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port, envoycore.TrafficDirection_OUTBOUND)
+			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
 			opts := listenerFilterOpts{
 				useRDS:          true,
 				protocol:        listenerKey.Protocol,
@@ -338,9 +529,9 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 				return nil, err
 			}
 
-			listener.FilterChains = []*envoylistener.FilterChain{
+			listener.FilterChains = []*envoy_listener_v3.FilterChain{
 				{
-					Filters: []*envoylistener.Filter{
+					Filters: []*envoy_listener_v3.Filter{
 						filter,
 					},
 					TransportSocket: transportSocket,
@@ -364,8 +555,8 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 // changes them, we actually create a whole new listener on the new address and
 // port. Envoy should take care of closing the old one once it sees it's no
 // longer in the config.
-func makeListener(name, addr string, port int, trafficDirection envoycore.TrafficDirection) *envoy.Listener {
-	return &envoy.Listener{
+func makeListener(name, addr string, port int, trafficDirection envoy_core_v3.TrafficDirection) *envoy_listener_v3.Listener {
+	return &envoy_listener_v3.Listener{
 		Name:             fmt.Sprintf("%s:%s:%d", name, addr, port),
 		Address:          makeAddress(addr, port),
 		TrafficDirection: trafficDirection,
@@ -384,13 +575,13 @@ func makeListener(name, addr string, port int, trafficDirection envoycore.Traffi
 // immediately. It's also probably not a bad thing to support long-term since
 // any config generated by other systems will likely be in canonical protobuf
 // from rather than our slight variant in JSON/hcl.
-func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
+func makeListenerFromUserConfig(configJSON string) (*envoy_listener_v3.Listener, error) {
 	// Type field is present so decode it as a any.Any
 	var any any.Any
 	if err := jsonpb.UnmarshalString(configJSON, &any); err != nil {
 		return nil, err
 	}
-	var l envoy.Listener
+	var l envoy_listener_v3.Listener
 	if err := proto.Unmarshal(any.Value, &l); err != nil {
 		return nil, err
 	}
@@ -399,7 +590,7 @@ func makeListenerFromUserConfig(configJSON string) (*envoy.Listener, error) {
 
 // Ensure that the first filter in each filter chain of a public listener is
 // the authz filter to prevent unauthorized access.
-func (s *Server) injectConnectFilters(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
+func (s *Server) injectConnectFilters(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	authzFilter, err := makeRBACNetworkFilter(
 		cfgSnap.ConnectProxy.Intentions,
 		cfgSnap.IntentionDefaultAllow,
@@ -411,7 +602,7 @@ func (s *Server) injectConnectFilters(_ connectionInfo, cfgSnap *proxycfg.Config
 	for idx := range listener.FilterChains {
 		// Insert our authz filter before any others
 		listener.FilterChains[idx].Filters =
-			append([]*envoylistener.Filter{
+			append([]*envoy_listener_v3.Filter{
 				authzFilter,
 			}, listener.FilterChains[idx].Filters...)
 	}
@@ -424,13 +615,13 @@ const (
 )
 
 // Locate the existing http connect manager L4 filter and inject our RBAC filter at the top.
-func (s *Server) injectHTTPFilterOnFilterChains(
-	listener *envoy.Listener,
-	authzFilter *envoyhttp.HttpFilter,
+func injectHTTPFilterOnFilterChains(
+	listener *envoy_listener_v3.Listener,
+	authzFilter *envoy_http_v3.HttpFilter,
 ) error {
 	for chainIdx, chain := range listener.FilterChains {
 		var (
-			hcmFilter    *envoylistener.Filter
+			hcmFilter    *envoy_listener_v3.Filter
 			hcmFilterIdx int
 		)
 
@@ -452,9 +643,9 @@ func (s *Server) injectHTTPFilterOnFilterChains(
 		}
 
 		var (
-			hcm envoyhttp.HttpConnectionManager
+			hcm envoy_http_v3.HttpConnectionManager
 		)
-		tc, ok := hcmFilter.ConfigType.(*envoylistener.Filter_TypedConfig)
+		tc, ok := hcmFilter.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
 		if !ok {
 			return fmt.Errorf(
 				"filter chain %d has a %q filter with an unsupported config type: %T",
@@ -469,7 +660,7 @@ func (s *Server) injectHTTPFilterOnFilterChains(
 		}
 
 		// Insert our authz filter before any others
-		hcm.HttpFilters = append([]*envoyhttp.HttpFilter{
+		hcm.HttpFilters = append([]*envoy_http_v3.HttpFilter{
 			authzFilter,
 		}, hcm.HttpFilters...)
 
@@ -489,9 +680,9 @@ func (s *Server) injectHTTPFilterOnFilterChains(
 // for now as it allows them to specify custom listener params in config but
 // still get our certs delivered dynamically and intentions enforced without
 // coming up with some complicated templating/merging solution.
-func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
+func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
 	for idx := range listener.FilterChains {
-		tlsContext := &envoyauth.DownstreamTlsContext{
+		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
@@ -504,8 +695,8 @@ func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxy
 	return nil
 }
 
-func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
-	var l *envoy.Listener
+func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, name string) (proto.Message, error) {
+	var l *envoy_listener_v3.Listener
 	var err error
 
 	cfg, err := ParseProxyConfig(cfgSnap.Proxy.Config)
@@ -515,104 +706,118 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	if cfg.PublicListenerJSON != "" {
-		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
-		if err != nil {
-			return l, err
-		}
-		// In the happy path don't return yet as we need to inject TLS and authz config still.
-	}
-
 	// This controls if we do L4 or L7 intention checks.
 	useHTTPFilter := structs.IsProtocolHTTPLike(cfg.Protocol)
 
-	if l == nil {
-		// No user config, use default listener
-		addr := cfgSnap.Address
-
-		// Override with bind address if one is set, otherwise default
-		// to 0.0.0.0
-		if cfg.BindAddress != "" {
-			addr = cfg.BindAddress
-		} else if addr == "" {
-			addr = "0.0.0.0"
+	// Generate and return custom public listener from config if one was provided.
+	if cfg.PublicListenerJSON != "" {
+		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
+		if err != nil {
+			return nil, err
 		}
 
-		// Override with bind port if one is set, otherwise default to
-		// proxy service's address
-		port := cfgSnap.Port
-		if cfg.BindPort != 0 {
-			port = cfg.BindPort
-		}
-
-		l = makeListener(PublicListenerName, addr, port, envoycore.TrafficDirection_INBOUND)
-
-		opts := listenerFilterOpts{
-			useRDS:           false,
-			protocol:         cfg.Protocol,
-			filterName:       "public_listener",
-			routeName:        "public_listener",
-			cluster:          LocalAppClusterName,
-			statPrefix:       "",
-			routePath:        "",
-			requestTimeoutMs: cfg.LocalRequestTimeoutMs,
-		}
-
+		// For HTTP-like services attach an RBAC http filter and do a best-effort insert
 		if useHTTPFilter {
-			opts.httpAuthzFilter, err = makeRBACHTTPFilter(
+			httpAuthzFilter, err := makeRBACHTTPFilter(
 				cfgSnap.ConnectProxy.Intentions,
 				cfgSnap.IntentionDefaultAllow,
 			)
 			if err != nil {
 				return nil, err
 			}
+
+			// Try our best to inject the HTTP RBAC filter.
+			if err := injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
+				s.Logger.Warn(
+					"could not inject the HTTP RBAC filter to enforce intentions on user-provided "+
+						"'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
+					"proxy", cfgSnap.ProxyID,
+					"error", err,
+				)
+
+				// If we get an error inject the RBAC network filter instead.
+				useHTTPFilter = false
+			}
 		}
 
-		filter, err := makeListenerFilter(opts)
+		err := s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 		}
-		l.FilterChains = []*envoylistener.FilterChain{
-			{
-				Filters: []*envoylistener.Filter{
-					filter,
-				},
-			},
-		}
+		return l, nil
+	}
 
-	} else if useHTTPFilter {
-		httpAuthzFilter, err := makeRBACHTTPFilter(
+	// No JSON user config, use default listener address
+	// Default to listening on all addresses, but override with bind address if one is set.
+	addr := cfgSnap.Address
+	if addr == "" {
+		addr = "0.0.0.0"
+	}
+	if cfg.BindAddress != "" {
+		addr = cfg.BindAddress
+	}
+
+	// Override with bind port if one is set, otherwise default to
+	// proxy service's address
+	port := cfgSnap.Port
+	if cfg.BindPort != 0 {
+		port = cfg.BindPort
+	}
+
+	l = makeListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
+
+	filterOpts := listenerFilterOpts{
+		protocol:         cfg.Protocol,
+		filterName:       name,
+		routeName:        name,
+		cluster:          LocalAppClusterName,
+		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
+	}
+	if useHTTPFilter {
+		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		// We're using the listener escape hatch, so try our best to inject the
-		// HTTP RBAC filter, but if we can't then just inject the RBAC Network
-		// filter instead.
-		if err := s.injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
-			s.Logger.Warn(
-				"could not inject the HTTP RBAC filter to enforce intentions on user-provided 'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
-				"proxy", cfgSnap.ProxyID,
-				"error", err,
-			)
-			useHTTPFilter = false
-		}
 	}
-
-	if !useHTTPFilter {
-		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
+	filter, err := makeListenerFilter(filterOpts)
+	if err != nil {
 		return nil, err
+	}
+	l.FilterChains = []*envoy_listener_v3.FilterChain{
+		{
+			Filters: []*envoy_listener_v3.Filter{
+				filter,
+			},
+		},
+	}
+
+	err = s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
 
 	return l, err
+}
+
+// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
+// This include L4 authorization filters and TLS context.
+func (s *Server) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener,
+	cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
+	if !useHTTPFilter {
+		// Best-effort injection of L4 intentions
+		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
+			return nil
+		}
+	}
+
+	// Always apply TLS certificates
+	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
+		return nil
+	}
+	return nil
 }
 
 func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster string, path structs.ExposePath) (proto.Message, error) {
@@ -638,7 +843,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 	strippedPath := r.ReplaceAllString(path.Path, "")
 	listenerName := fmt.Sprintf("exposed_path_%s", strippedPath)
 
-	l := makeListener(listenerName, addr, path.ListenerPort, envoycore.TrafficDirection_INBOUND)
+	l := makeListener(listenerName, addr, path.ListenerPort, envoy_core_v3.TrafficDirection_INBOUND)
 
 	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
@@ -657,8 +862,8 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 		return nil, err
 	}
 
-	chain := &envoylistener.FilterChain{
-		Filters: []*envoylistener.Filter{f},
+	chain := &envoy_listener_v3.FilterChain{
+		Filters: []*envoy_listener_v3.Filter{f},
 	}
 
 	// For registered checks restrict traffic sources to localhost and Consul's advertise addr
@@ -674,26 +879,26 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 			advertiseLen = 128
 		}
 
-		ranges := make([]*envoycore.CidrRange, 0, 3)
+		ranges := make([]*envoy_core_v3.CidrRange, 0, 3)
 		ranges = append(ranges,
-			&envoycore.CidrRange{AddressPrefix: "127.0.0.1", PrefixLen: &wrappers.UInt32Value{Value: 8}},
-			&envoycore.CidrRange{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
+			&envoy_core_v3.CidrRange{AddressPrefix: "127.0.0.1", PrefixLen: &wrappers.UInt32Value{Value: 8}},
+			&envoy_core_v3.CidrRange{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
 		)
 
 		if ok, err := kernelSupportsIPv6(); err != nil {
 			return nil, err
 		} else if ok {
 			ranges = append(ranges,
-				&envoycore.CidrRange{AddressPrefix: "::1", PrefixLen: &wrappers.UInt32Value{Value: 128}},
+				&envoy_core_v3.CidrRange{AddressPrefix: "::1", PrefixLen: &wrappers.UInt32Value{Value: 128}},
 			)
 		}
 
-		chain.FilterChainMatch = &envoylistener.FilterChainMatch{
+		chain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
 			SourcePrefixRanges: ranges,
 		}
 	}
 
-	l.FilterChains = []*envoylistener.FilterChain{chain}
+	l.FilterChains = []*envoy_listener_v3.FilterChain{chain}
 
 	return l, err
 }
@@ -703,14 +908,14 @@ func (s *Server) makeTerminatingGatewayListener(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	name, addr string,
 	port int,
-) (*envoy.Listener, error) {
-	l := makeListener(name, addr, port, envoycore.TrafficDirection_INBOUND)
+) (*envoy_listener_v3.Listener, error) {
+	l := makeListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
 
 	tlsInspector, err := makeTLSInspectorListenerFilter()
 	if err != nil {
 		return nil, err
 	}
-	l.ListenerFilters = []*envoylistener.ListenerFilter{tlsInspector}
+	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
@@ -787,8 +992,8 @@ func (s *Server) makeTerminatingGatewayListener(
 	if err != nil {
 		return nil, err
 	}
-	fallback := &envoylistener.FilterChain{
-		Filters: []*envoylistener.Filter{
+	fallback := &envoy_listener_v3.FilterChain{
+		Filters: []*envoy_listener_v3.Filter{
 			{Name: "envoy.filters.network.sni_cluster"},
 			tcpProxy,
 		},
@@ -805,8 +1010,8 @@ func (s *Server) makeFilterChainTerminatingGateway(
 	service structs.ServiceName,
 	intentions structs.Intentions,
 	protocol string,
-) (*envoylistener.FilterChain, error) {
-	tlsContext := &envoyauth.DownstreamTlsContext{
+) (*envoy_listener_v3.FilterChain, error) {
+	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
@@ -815,9 +1020,9 @@ func (s *Server) makeFilterChainTerminatingGateway(
 		return nil, err
 	}
 
-	filterChain := &envoylistener.FilterChain{
+	filterChain := &envoy_listener_v3.FilterChain{
 		FilterChainMatch: makeSNIFilterChainMatch(cluster),
-		Filters:          make([]*envoylistener.Filter, 0, 3),
+		Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
 		TransportSocket:  transportSocket,
 	}
 
@@ -872,7 +1077,7 @@ func (s *Server) makeFilterChainTerminatingGateway(
 	return filterChain, nil
 }
 
-func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy.Listener, error) {
+func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_listener_v3.Listener, error) {
 	tlsInspector, err := makeTLSInspectorListenerFilter()
 	if err != nil {
 		return nil, err
@@ -890,15 +1095,15 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 		return nil, err
 	}
 
-	sniClusterChain := &envoylistener.FilterChain{
-		Filters: []*envoylistener.Filter{
+	sniClusterChain := &envoy_listener_v3.FilterChain{
+		Filters: []*envoy_listener_v3.Filter{
 			sniCluster,
 			tcpProxy,
 		},
 	}
 
-	l := makeListener(name, addr, port, envoycore.TrafficDirection_UNSPECIFIED)
-	l.ListenerFilters = []*envoylistener.ListenerFilter{tlsInspector}
+	l := makeListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
+	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
 	// We need 1 Filter Chain per datacenter
@@ -914,11 +1119,11 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 			return nil, err
 		}
 
-		l.FilterChains = append(l.FilterChains, &envoylistener.FilterChain{
-			FilterChainMatch: &envoylistener.FilterChainMatch{
+		l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+			FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
 				ServerNames: []string{fmt.Sprintf("*.%s", clusterName)},
 			},
-			Filters: []*envoylistener.Filter{
+			Filters: []*envoy_listener_v3.Filter{
 				dcTCPProxy,
 			},
 		})
@@ -936,11 +1141,11 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 				return nil, err
 			}
 
-			l.FilterChains = append(l.FilterChains, &envoylistener.FilterChain{
-				FilterChainMatch: &envoylistener.FilterChainMatch{
+			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
 					ServerNames: []string{fmt.Sprintf("*.%s", clusterName)},
 				},
-				Filters: []*envoylistener.Filter{
+				Filters: []*envoy_listener_v3.Filter{
 					dcTCPProxy,
 				},
 			})
@@ -956,11 +1161,11 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 				return nil, err
 			}
 
-			l.FilterChains = append(l.FilterChains, &envoylistener.FilterChain{
-				FilterChainMatch: &envoylistener.FilterChainMatch{
+			l.FilterChains = append(l.FilterChains, &envoy_listener_v3.FilterChain{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
 					ServerNames: []string{fmt.Sprintf("%s", clusterName)},
 				},
-				Filters: []*envoylistener.Filter{
+				Filters: []*envoy_listener_v3.Filter{
 					dcTCPProxy,
 				},
 			})
@@ -974,22 +1179,125 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 	return l, nil
 }
 
+func (s *Server) makeUpstreamFilterChainForDiscoveryChain(
+	id string,
+	overrideCluster string,
+	protocol string,
+	u *structs.Upstream,
+	chain *structs.CompiledDiscoveryChain,
+	cfgSnap *proxycfg.ConfigSnapshot,
+	tlsContext *envoy_tls_v3.DownstreamTlsContext,
+) (*envoy_listener_v3.FilterChain, error) {
+	// TODO (freddy) Make this actually legible
+	useRDS := true
+
+	var (
+		clusterName                        string
+		destination, datacenter, namespace string
+	)
+
+	if chain != nil {
+		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
+	}
+	if (chain == nil || chain.IsDefault()) && u != nil {
+		useRDS = false
+
+		if datacenter == "" {
+			datacenter = u.Datacenter
+		}
+		if datacenter == "" {
+			datacenter = cfgSnap.Datacenter
+		}
+		if destination == "" {
+			destination = u.DestinationName
+		}
+		if namespace == "" {
+			namespace = u.DestinationNamespace
+		}
+
+		sni := connect.UpstreamSNI(u, "", datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName = CustomizeClusterName(sni, chain)
+
+	} else {
+		if protocol == "tcp" && chain != nil {
+			useRDS = false
+
+			startNode := chain.Nodes[chain.StartNode]
+			if startNode == nil {
+				return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+			}
+			if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
+				return nil, fmt.Errorf("unexpected first node in discovery chain using protocol=%q: %s", protocol, startNode.Type)
+			}
+			targetID := startNode.Resolver.Target
+			target := chain.Targets[targetID]
+
+			clusterName = CustomizeClusterName(target.Name, chain)
+		}
+	}
+
+	// Default the namespace to match how SNIs are generated
+	if namespace == "" {
+		namespace = structs.IntentionDefaultNamespace
+	}
+
+	filterName := fmt.Sprintf("%s.%s.%s", destination, namespace, datacenter)
+	if u != nil && u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+		// Avoid encoding dc and namespace for prepared queries.
+		// Those are defined in the query itself and are not available here.
+		filterName = id
+	}
+	if overrideCluster != "" {
+		useRDS = false
+		clusterName = overrideCluster
+		filterName = overrideCluster
+	}
+
+	opts := listenerFilterOpts{
+		useRDS:          useRDS,
+		protocol:        protocol,
+		filterName:      filterName,
+		routeName:       id,
+		cluster:         clusterName,
+		statPrefix:      "upstream.",
+		routePath:       "",
+		ingressGateway:  false,
+		httpAuthzFilter: nil,
+	}
+	filter, err := makeListenerFilter(opts)
+	if err != nil {
+		return nil, err
+	}
+	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+
+	return &envoy_listener_v3.FilterChain{
+		Filters: []*envoy_listener_v3.Filter{
+			filter,
+		},
+		TransportSocket: transportSocket,
+	}, nil
+}
+
+// TODO(freddy) Replace in favor of new function above. Currently in use for ingress gateways.
 func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	u *structs.Upstream,
 	address string,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
-	tlsContext *envoyauth.DownstreamTlsContext,
+	tlsContext *envoy_tls_v3.DownstreamTlsContext,
 ) (proto.Message, error) {
 	if address == "" {
 		address = "127.0.0.1"
 	}
 	upstreamID := u.Identifier()
-	l := makeListener(upstreamID, address, u.LocalBindPort, envoycore.TrafficDirection_OUTBOUND)
+	l := makeListener(upstreamID, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 
-	cfg := getAndModifyUpstreamConfigForListener(s.Logger, u, chain)
-	if cfg.ListenerJSON != "" {
-		return makeListenerFromUserConfig(cfg.ListenerJSON)
+	cfg := getAndModifyUpstreamConfigForListener(s.Logger, upstreamID, u, chain)
+	if cfg.EnvoyListenerJSON != "" {
+		return makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 	}
 
 	useRDS := true
@@ -1061,9 +1369,9 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		return nil, err
 	}
 
-	l.FilterChains = []*envoylistener.FilterChain{
+	l.FilterChains = []*envoy_listener_v3.FilterChain{
 		{
-			Filters: []*envoylistener.Filter{
+			Filters: []*envoy_listener_v3.Filter{
 				filter,
 			},
 			TransportSocket: transportSocket,
@@ -1072,48 +1380,51 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	return l, nil
 }
 
-func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) UpstreamConfig {
+func getAndModifyUpstreamConfigForListener(logger hclog.Logger, id string, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) structs.UpstreamConfig {
 	var (
-		cfg UpstreamConfig
+		cfg structs.UpstreamConfig
 		err error
 	)
 
+	configMap := make(map[string]interface{})
+	if u != nil {
+		configMap = u.Config
+	}
 	if chain == nil || chain.IsDefault() {
-		cfg, err = ParseUpstreamConfig(u.Config)
+		cfg, err = structs.ParseUpstreamConfig(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+			logger.Warn("failed to parse", "upstream", id, "error", err)
 		}
 	} else {
 		// Use NoDefaults here so that we can set the protocol to the chain
 		// protocol if necessary
-		cfg, err = ParseUpstreamConfigNoDefaults(u.Config)
+		cfg, err = structs.ParseUpstreamConfigNoDefaults(configMap)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
-			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
+			logger.Warn("failed to parse", "upstream", id, "error", err)
 		}
 
-		if cfg.ListenerJSON != "" {
+		if cfg.EnvoyListenerJSON != "" {
 			logger.Warn("ignoring escape hatch setting because already configured for",
-				"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
+				"discovery chain", chain.ServiceName, "upstream", id, "config", "envoy_listener_json")
 
 			// Remove from config struct so we don't use it later on
-			cfg.ListenerJSON = ""
+			cfg.EnvoyListenerJSON = ""
 		}
 
-		proto := cfg.Protocol
-		if proto == "" {
-			proto = chain.Protocol
+		protocol := cfg.Protocol
+		if protocol == "" {
+			protocol = chain.Protocol
 		}
-
-		if proto == "" {
-			proto = "tcp"
+		if protocol == "" {
+			protocol = "tcp"
 		}
 
 		// set back on the config so that we can use it from return value
-		cfg.Protocol = proto
+		cfg.Protocol = protocol
 	}
 
 	return cfg
@@ -1128,10 +1439,11 @@ type listenerFilterOpts struct {
 	statPrefix       string
 	routePath        string
 	requestTimeoutMs *int
-	httpAuthzFilter  *envoyhttp.HttpFilter
+	ingressGateway   bool
+	httpAuthzFilter  *envoy_http_v3.HttpFilter
 }
 
-func makeListenerFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
+func makeListenerFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
 	switch opts.protocol {
 	case "grpc", "http2", "http":
 		return makeHTTPFilter(opts)
@@ -1147,25 +1459,25 @@ func makeListenerFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) 
 	}
 }
 
-func makeTLSInspectorListenerFilter() (*envoylistener.ListenerFilter, error) {
-	return &envoylistener.ListenerFilter{Name: "envoy.filters.listener.tls_inspector"}, nil
+func makeTLSInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error) {
+	return &envoy_listener_v3.ListenerFilter{Name: "envoy.filters.listener.tls_inspector"}, nil
 }
 
-func makeSNIFilterChainMatch(sniMatch string) *envoylistener.FilterChainMatch {
-	return &envoylistener.FilterChainMatch{
+func makeSNIFilterChainMatch(sniMatch string) *envoy_listener_v3.FilterChainMatch {
+	return &envoy_listener_v3.FilterChainMatch{
 		ServerNames: []string{sniMatch},
 	}
 }
 
-func makeSNIClusterFilter() (*envoylistener.Filter, error) {
+func makeSNIClusterFilter() (*envoy_listener_v3.Filter, error) {
 	// This filter has no config which is why we are not calling make
-	return &envoylistener.Filter{Name: "envoy.filters.network.sni_cluster"}, nil
+	return &envoy_listener_v3.Filter{Name: "envoy.filters.network.sni_cluster"}, nil
 }
 
-func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoylistener.Filter, error) {
-	cfg := &envoytcp.TcpProxy{
+func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoy_listener_v3.Filter, error) {
+	cfg := &envoy_tcp_proxy_v3.TcpProxy{
 		StatPrefix:       makeStatPrefix(statPrefix, filterName),
-		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{Cluster: cluster},
+		ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: cluster},
 	}
 	return makeFilter("envoy.filters.network.tcp_proxy", cfg)
 }
@@ -1177,20 +1489,20 @@ func makeStatPrefix(prefix, filterName string) string {
 	return fmt.Sprintf("%s%s", prefix, strings.Replace(filterName, ":", "_", -1))
 }
 
-func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
-	cfg := &envoyhttp.HttpConnectionManager{
+func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) {
+	cfg := &envoy_http_v3.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
-		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
-		HttpFilters: []*envoyhttp.HttpFilter{
+		CodecType:  envoy_http_v3.HttpConnectionManager_AUTO,
+		HttpFilters: []*envoy_http_v3.HttpFilter{
 			{
 				Name: "envoy.filters.http.router",
 			},
 		},
-		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
+		Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 			// Don't trace any requests by default unless the client application
 			// explicitly propagates trace headers that indicate this should be
 			// sampled.
-			RandomSampling: &envoytype.Percent{Value: 0.0},
+			RandomSampling: &envoy_type_v3.Percent{Value: 0.0},
 		},
 	}
 
@@ -1198,12 +1510,13 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 		if opts.cluster != "" {
 			return nil, fmt.Errorf("cannot specify cluster name when using RDS")
 		}
-		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_Rds{
-			Rds: &envoyhttp.Rds{
+		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_Rds{
+			Rds: &envoy_http_v3.Rds{
 				RouteConfigName: opts.routeName,
-				ConfigSource: &envoycore.ConfigSource{
-					ConfigSourceSpecifier: &envoycore.ConfigSource_Ads{
-						Ads: &envoycore.AggregatedConfigSource{},
+				ConfigSource: &envoy_core_v3.ConfigSource{
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
+						Ads: &envoy_core_v3.AggregatedConfigSource{},
 					},
 				},
 			},
@@ -1213,9 +1526,9 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 			return nil, fmt.Errorf("must specify cluster name when not using RDS")
 		}
 
-		route := &envoyroute.Route{
-			Match: &envoyroute.RouteMatch{
-				PathSpecifier: &envoyroute.RouteMatch_Prefix{
+		route := &envoy_route_v3.Route{
+			Match: &envoy_route_v3.RouteMatch{
+				PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
 					Prefix: "/",
 				},
 				// TODO(banks) Envoy supports matching only valid GRPC
@@ -1224,9 +1537,9 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 				// although docs say it was supported by 1.8.0. Going to defer
 				// that until we've updated the deps.
 			},
-			Action: &envoyroute.Route_Route{
-				Route: &envoyroute.RouteAction{
-					ClusterSpecifier: &envoyroute.RouteAction_Cluster{
+			Action: &envoy_route_v3.Route_Route{
+				Route: &envoy_route_v3.RouteAction{
+					ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{
 						Cluster: opts.cluster,
 					},
 				},
@@ -1240,17 +1553,17 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 
 		// If a path is provided, do not match on a catch-all prefix
 		if opts.routePath != "" {
-			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: opts.routePath}
+			route.Match.PathSpecifier = &envoy_route_v3.RouteMatch_Path{Path: opts.routePath}
 		}
 
-		cfg.RouteSpecifier = &envoyhttp.HttpConnectionManager_RouteConfig{
-			RouteConfig: &envoy.RouteConfiguration{
+		cfg.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{
+			RouteConfig: &envoy_route_v3.RouteConfiguration{
 				Name: opts.routeName,
-				VirtualHosts: []*envoyroute.VirtualHost{
+				VirtualHosts: []*envoy_route_v3.VirtualHost{
 					{
 						Name:    opts.filterName,
 						Domains: []string{"*"},
-						Routes: []*envoyroute.Route{
+						Routes: []*envoy_route_v3.Route{
 							route,
 						},
 					},
@@ -1260,7 +1573,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	}
 
 	if opts.protocol == "http2" || opts.protocol == "grpc" {
-		cfg.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
+		cfg.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 	}
 
 	// Like injectConnectFilters for L4, here we ensure that the first filter
@@ -1268,46 +1581,44 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	// chain of a public listener is the authz filter to prevent unauthorized
 	// access and that every filter chain uses our TLS certs.
 	if opts.httpAuthzFilter != nil {
-		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{opts.httpAuthzFilter}, cfg.HttpFilters...)
+		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{opts.httpAuthzFilter}, cfg.HttpFilters...)
 	}
 
 	if opts.protocol == "grpc" {
 		// Add grpc bridge before router and authz
-		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
-			Name: "envoy.grpc_http1_bridge",
+		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{{
+			Name: "envoy.filters.http.grpc_http1_bridge",
 		}}, cfg.HttpFilters...)
 	}
 
 	return makeFilter("envoy.filters.network.http_connection_manager", cfg)
 }
 
-func makeFilter(name string, cfg proto.Message) (*envoylistener.Filter, error) {
-	filter := &envoylistener.Filter{
-		Name: name,
-	}
+func makeFilter(name string, cfg proto.Message) (*envoy_listener_v3.Filter, error) {
 	any, err := ptypes.MarshalAny(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	filter.ConfigType = &envoylistener.Filter_TypedConfig{TypedConfig: any}
-
-	return filter, nil
-}
-
-func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoyhttp.HttpFilter, error) {
-	any, err := ptypes.MarshalAny(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &envoyhttp.HttpFilter{
+	return &envoy_listener_v3.Filter{
 		Name:       name,
-		ConfigType: &envoyhttp.HttpFilter_TypedConfig{TypedConfig: any},
+		ConfigType: &envoy_listener_v3.Filter_TypedConfig{TypedConfig: any},
 	}, nil
 }
 
-func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {
+func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFilter, error) {
+	any, err := ptypes.MarshalAny(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &envoy_http_v3.HttpFilter{
+		Name:       name,
+		ConfigType: &envoy_http_v3.HttpFilter_TypedConfig{TypedConfig: any},
+	}, nil
+}
+
+func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoy_tls_v3.CommonTlsContext {
 	// Concatenate all the root PEMs into one.
 	if cfgSnap.Roots == nil {
 		return nil
@@ -1319,27 +1630,27 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		rootPEMS += root.RootCert
 	}
 
-	return &envoyauth.CommonTlsContext{
-		TlsParams: &envoyauth.TlsParameters{},
-		TlsCertificates: []*envoyauth.TlsCertificate{
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: &envoy_tls_v3.TlsParameters{},
+		TlsCertificates: []*envoy_tls_v3.TlsCertificate{
 			{
-				CertificateChain: &envoycore.DataSource{
-					Specifier: &envoycore.DataSource_InlineString{
+				CertificateChain: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineString{
 						InlineString: leaf.CertPEM,
 					},
 				},
-				PrivateKey: &envoycore.DataSource{
-					Specifier: &envoycore.DataSource_InlineString{
+				PrivateKey: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineString{
 						InlineString: leaf.PrivateKeyPEM,
 					},
 				},
 			},
 		},
-		ValidationContextType: &envoyauth.CommonTlsContext_ValidationContext{
-			ValidationContext: &envoyauth.CertificateValidationContext{
+		ValidationContextType: &envoy_tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoy_tls_v3.CertificateValidationContext{
 				// TODO(banks): later for L7 support we may need to configure ALPN here.
-				TrustedCa: &envoycore.DataSource{
-					Specifier: &envoycore.DataSource_InlineString{
+				TrustedCa: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_InlineString{
 						InlineString: rootPEMS,
 					},
 				},
@@ -1348,45 +1659,44 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	}
 }
 
-func makeDownstreamTLSTransportSocket(tlsContext *envoyauth.DownstreamTlsContext) (*envoycore.TransportSocket, error) {
+func makeDownstreamTLSTransportSocket(tlsContext *envoy_tls_v3.DownstreamTlsContext) (*envoy_core_v3.TransportSocket, error) {
 	if tlsContext == nil {
 		return nil, nil
 	}
 	return makeTransportSocket("tls", tlsContext)
 }
 
-func makeUpstreamTLSTransportSocket(tlsContext *envoyauth.UpstreamTlsContext) (*envoycore.TransportSocket, error) {
+func makeUpstreamTLSTransportSocket(tlsContext *envoy_tls_v3.UpstreamTlsContext) (*envoy_core_v3.TransportSocket, error) {
 	if tlsContext == nil {
 		return nil, nil
 	}
-
 	return makeTransportSocket("tls", tlsContext)
 }
 
-func makeTransportSocket(name string, config proto.Message) (*envoycore.TransportSocket, error) {
+func makeTransportSocket(name string, config proto.Message) (*envoy_core_v3.TransportSocket, error) {
 	any, err := ptypes.MarshalAny(config)
 	if err != nil {
 		return nil, err
 	}
-	return &envoycore.TransportSocket{
+	return &envoy_core_v3.TransportSocket{
 		Name: name,
-		ConfigType: &envoycore.TransportSocket_TypedConfig{
+		ConfigType: &envoy_core_v3.TransportSocket_TypedConfig{
 			TypedConfig: any,
 		},
 	}, nil
 }
 
-func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoyauth.CommonTlsContext {
-	ctx := envoyauth.CommonTlsContext{
-		TlsParams: &envoyauth.TlsParameters{},
+func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoy_tls_v3.CommonTlsContext {
+	ctx := envoy_tls_v3.CommonTlsContext{
+		TlsParams: &envoy_tls_v3.TlsParameters{},
 	}
 
 	// Verify certificate of peer if caFile is specified
 	if caFile != "" {
-		ctx.ValidationContextType = &envoyauth.CommonTlsContext_ValidationContext{
-			ValidationContext: &envoyauth.CertificateValidationContext{
-				TrustedCa: &envoycore.DataSource{
-					Specifier: &envoycore.DataSource_Filename{
+		ctx.ValidationContextType = &envoy_tls_v3.CommonTlsContext_ValidationContext{
+			ValidationContext: &envoy_tls_v3.CertificateValidationContext{
+				TrustedCa: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_Filename{
 						Filename: caFile,
 					},
 				},
@@ -1396,15 +1706,15 @@ func makeCommonTLSContextFromFiles(caFile, certFile, keyFile string) *envoyauth.
 
 	// Present certificate for mTLS if cert and key files are specified
 	if certFile != "" && keyFile != "" {
-		ctx.TlsCertificates = []*envoyauth.TlsCertificate{
+		ctx.TlsCertificates = []*envoy_tls_v3.TlsCertificate{
 			{
-				CertificateChain: &envoycore.DataSource{
-					Specifier: &envoycore.DataSource_Filename{
+				CertificateChain: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_Filename{
 						Filename: certFile,
 					},
 				},
-				PrivateKey: &envoycore.DataSource{
-					Specifier: &envoycore.DataSource_Filename{
+				PrivateKey: &envoy_core_v3.DataSource{
+					Specifier: &envoy_core_v3.DataSource_Filename{
 						Filename: keyFile,
 					},
 				},

@@ -2,22 +2,21 @@ package xds
 
 import (
 	"bytes"
-	"path/filepath"
-	"sort"
-	"testing"
-	"text/template"
-	"time"
-
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+	"path/filepath"
+	"sort"
+	"testing"
+	"text/template"
+	"time"
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
@@ -476,16 +475,46 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
 			setup:  nil,
 		},
+		{
+			name:   "transparent-proxy",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.TransparentProxy = true
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in TransparentProxy mode
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
+					t, "google", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
+					"google.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "8.8.8.8",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google",
+								Port:    9090,
+							},
+						},
+					},
+				}
+
+				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(
+					t, "no-endpoints", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+			},
+		},
 	}
 
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
-					require := require.New(t)
-
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
@@ -509,25 +538,43 @@ func TestListenersFromSnapshot(t *testing.T) {
 						ProxyFeatures: sf,
 					}
 					listeners, err := s.listenersFromSnapshot(cInfo, snap)
-					require.NoError(err)
+					require.NoError(t, err)
 
 					// The order of listeners returned via LDS isn't relevant, so it's safe
 					// to sort these for the purposes of test comparisons.
 					sort.Slice(listeners, func(i, j int) bool {
-						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
+						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
 					})
 
 					r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
-					require.NoError(err)
+					require.NoError(t, err)
 
-					gotJSON := responseToJSON(t, r)
+					t.Run("current", func(t *testing.T) {
+						gotJSON := protoToJSON(t, r)
 
-					gName := tt.name
-					if tt.overrideGoldenName != "" {
-						gName = tt.overrideGoldenName
-					}
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, gotJSON), gotJSON)
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+					})
+
+					t.Run("v2-compat", func(t *testing.T) {
+						respV2, err := convertDiscoveryResponseToV2(r)
+						require.NoError(t, err)
+
+						gotJSON := protoToJSON(t, respV2)
+
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
+
+						gName += ".v2compat"
+
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+					})
 				})
 			}
 		})
@@ -537,7 +584,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]string {
 	return map[string]string{
 		"public_listener": `{
-				"@type": "type.googleapis.com/envoy.api.v2.Listener",
+				"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
 				"name": "public_listener:0.0.0.0:9999",
 				"address": {
 					"socketAddress": {
@@ -553,7 +600,7 @@ func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 							{
 								"name": "envoy.filters.network.rbac",
 								"typedConfig": {
-									"@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+									"@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
 										"rules": {
 											},
 										"statPrefix": "connect_authz"
@@ -562,7 +609,7 @@ func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 							{
 								"name": "envoy.filters.network.tcp_proxy",
 								"typedConfig": {
-									"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+									"@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
 									"cluster": "local_app",
 									"statPrefix": "public_listener"
 								}
@@ -572,7 +619,7 @@ func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 				]
 			}`,
 		"db": `{
-			"@type": "type.googleapis.com/envoy.api.v2.Listener",
+			"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
 			"name": "db:127.0.0.1:9191",
 			"address": {
 				"socketAddress": {
@@ -587,7 +634,7 @@ func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 						{
 							"name": "envoy.filters.network.tcp_proxy",
 							"typedConfig": {
-								"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+								"@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
 								"cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 								"statPrefix": "upstream.db.default.dc1"
 							}
@@ -597,7 +644,7 @@ func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 			]
 		}`,
 		"prepared_query:geo-cache": `{
-			"@type": "type.googleapis.com/envoy.api.v2.Listener",
+			"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
 			"name": "prepared_query:geo-cache:127.10.10.10:8181",
 			"address": {
 				"socketAddress": {
@@ -612,7 +659,7 @@ func expectListenerJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 						{
 							"name": "envoy.filters.network.tcp_proxy",
 							"typedConfig": {
-								"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+								"@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
 								"cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 								"statPrefix": "upstream.prepared_query_geo-cache"
 							}
@@ -645,7 +692,7 @@ func expectListenerJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64,
 	return `{
 		"versionInfo": "` + hexString(v) + `",
 		"resources": [` + resJSON + `],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+		"typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
 		"nonce": "` + hexString(n) + `"
 		}`
 }
@@ -660,7 +707,7 @@ type customListenerJSONOptions struct {
 }
 
 const customListenerJSONTpl = `{
-	"@type": "type.googleapis.com/envoy.api.v2.Listener",
+	"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
 	"name": "{{ .Name }}",
 	"address": {
 		"socketAddress": {
@@ -674,7 +721,7 @@ const customListenerJSONTpl = `{
 			"transport_socket": {
 				"name": "tls",
 				"typed_config": {
-					"@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+					"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
 					{{ .TLSContext }}
 				}
 			},
@@ -683,7 +730,7 @@ const customListenerJSONTpl = `{
 				{
 					"name": "envoy.filters.network.tcp_proxy",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+						"@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
 							"cluster": "random-cluster",
 							"statPrefix": "foo-stats"
 						}
@@ -699,7 +746,7 @@ type customHTTPListenerJSONOptions struct {
 }
 
 const customHTTPListenerJSONTpl = `{
-	"@type": "type.googleapis.com/envoy.api.v2.Listener",
+	"@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
 	"name": "{{ .Name }}",
 	"address": {
 		"socketAddress": {
@@ -713,7 +760,7 @@ const customHTTPListenerJSONTpl = `{
 				{
 					"name": "{{ .HTTPConnectionManagerName }}",
 					"typedConfig": {
-					"@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+						"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
 						"http_filters": [
 							{
 								"name": "envoy.filters.http.router"

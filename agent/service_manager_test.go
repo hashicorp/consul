@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServiceManager_RegisterService(t *testing.T) {
@@ -112,8 +112,9 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			LocalServicePort:       8000,
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 				},
 			},
 		},
@@ -141,8 +142,9 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -341,8 +343,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			LocalServicePort:       8000,
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 				},
 			},
 		},
@@ -366,8 +369,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -418,8 +422,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.UpstreamConfigs{
-				structs.UpstreamConfig{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -459,8 +463,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.UpstreamConfigs{
-				structs.UpstreamConfig{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -550,6 +554,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			local_service_port       = 8000
 			upstreams = [{
 			  destination_name = "redis"
+			  destination_namespace = "default"
 			  local_bind_port  = 5000
 			}]
 		  }
@@ -592,9 +597,10 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationType: "service",
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationType:      "service",
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -634,8 +640,8 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				"foo":      1,
 				"protocol": "http",
 			},
-			UpstreamIDConfigs: structs.UpstreamConfigs{
-				structs.UpstreamConfig{
+			UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+				structs.OpaqueUpstreamConfig{
 					Upstream: structs.NewServiceID("redis", nil),
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -847,4 +853,325 @@ func convertToMap(v interface{}) (map[string]interface{}, error) {
 	}
 
 	return raw, nil
+}
+
+func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "new config fields",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"passive_health_check": map[string]interface{}{
+									"Interval":    int64(10),
+									"MaxFailures": int64(2),
+								},
+								"mesh_gateway": map[string]interface{}{
+									"Mode": "local",
+								},
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zap",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zap",
+							Config: map[string]interface{}{
+								"passive_health_check": map[string]interface{}{
+									"Interval":    int64(10),
+									"MaxFailures": int64(2),
+								},
+								"protocol": "grpc",
+							},
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "remote upstream config expands local upstream list in tproxy mode",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						TransparentProxy:       true,
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					TransparentProxy:       true,
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zip",
+							LocalBindPort:        8080,
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zap",
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+							CentrallyConfigured: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "remote upstream config not added to local upstream list outside of tproxy mode",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						TransparentProxy:       false,
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zip",
+							LocalBindPort:        8080,
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "upstream mode from remote defaults overrides local default",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"mesh_gateway": map[string]interface{}{
+									"Mode": "local",
+								},
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zap",
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeRemote,
+					},
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zap",
+							Config:               map[string]interface{}{},
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeLocal,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "mode in local upstream config overrides all",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"mesh_gateway": map[string]interface{}{
+									"Mode": "local",
+								},
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: structs.MeshGatewayModeRemote,
+						},
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zap",
+								MeshGateway: structs.MeshGatewayConfig{
+									Mode: structs.MeshGatewayModeNone,
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeRemote,
+					},
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zap",
+							Config:               map[string]interface{}{},
+							MeshGateway: structs.MeshGatewayConfig{
+								Mode: structs.MeshGatewayModeNone,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

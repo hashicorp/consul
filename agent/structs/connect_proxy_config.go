@@ -118,6 +118,10 @@ type ConnectProxyConfig struct {
 
 	// Expose defines whether checks or paths are exposed through the proxy
 	Expose ExposeConfig `json:",omitempty"`
+
+	// TransparentProxy toggles whether inbound and outbound traffic is being
+	// redirected to the proxy.
+	TransparentProxy bool `json:",omitempty" alias:"transparent_proxy"`
 }
 
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
@@ -128,6 +132,7 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 		LocalServiceAddressSnake    string            `json:"local_service_address"`
 		LocalServicePortSnake       int               `json:"local_service_port"`
 		MeshGatewaySnake            MeshGatewayConfig `json:"mesh_gateway"`
+		TransparentProxySnake       bool              `json:"transparent_proxy"`
 
 		*Alias
 	}{
@@ -150,6 +155,9 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.MeshGateway.Mode == "" {
 		t.MeshGateway.Mode = aux.MeshGatewaySnake.Mode
+	}
+	if !t.TransparentProxy {
+		t.TransparentProxy = aux.TransparentProxySnake
 	}
 
 	return nil
@@ -183,6 +191,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		Upstreams:              c.Upstreams.ToAPI(),
 		MeshGateway:            c.MeshGateway.ToAPI(),
 		Expose:                 c.Expose.ToAPI(),
+		TransparentProxy:       c.TransparentProxy,
 	}
 }
 
@@ -204,6 +213,15 @@ func (us Upstreams) ToAPI() []api.Upstream {
 		a[i] = u.ToAPI()
 	}
 	return a
+}
+
+func (us Upstreams) ToMap() map[string]*Upstream {
+	upstreamMap := make(map[string]*Upstream)
+
+	for i := range us {
+		upstreamMap[us[i].Identifier()] = &us[i]
+	}
+	return upstreamMap
 }
 
 // UpstreamsFromAPI is a helper for converting api.Upstream to Upstream.
@@ -256,6 +274,10 @@ type Upstream struct {
 	// an ingress gateway. This cannot and should not be set by a user, it is
 	// used internally to store the association of hosts to an upstream service.
 	IngressHosts []string `json:"-" bexpr:"-"`
+
+	// CentrallyConfigured indicates whether the upstream was defined in a proxy
+	// instance registration or whether it was generated from a config entry.
+	CentrallyConfigured bool `json:",omitempty" bexpr:"-"`
 }
 
 func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
@@ -312,7 +334,7 @@ func (u *Upstream) Validate() error {
 		return fmt.Errorf("upstream destination name cannot be empty")
 	}
 
-	if u.LocalBindPort == 0 {
+	if u.LocalBindPort == 0 && !u.CentrallyConfigured {
 		return fmt.Errorf("upstream local bind port cannot be zero")
 	}
 	return nil

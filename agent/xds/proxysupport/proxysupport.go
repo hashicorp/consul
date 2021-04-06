@@ -7,7 +7,7 @@ package proxysupport
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
-	// TODO(rb): add in 1.17.0 when the v3 support comes
+	"1.17.0",
 	"1.16.2",
 	"1.15.3",
 	"1.14.6",

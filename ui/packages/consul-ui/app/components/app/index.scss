@@ -11,7 +11,7 @@
 [role="banner"] > label {
   @extend %main-nav-horizontal-toggle-button;
 }
-.hashicorp-consul > input[id] {
+.app > input[id] {
   @extend %main-nav-horizontal-toggle;
 }
 %main-header-horizontal > div {
@@ -34,7 +34,7 @@ main {
   z-index: 10;
 }
 main {
-  top: var(--chrome-height);
+  margin-top: var(--chrome-height);
   transition-property: margin-left;
 }
 

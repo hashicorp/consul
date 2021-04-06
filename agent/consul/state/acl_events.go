@@ -1,9 +1,10 @@
 package state
 
 import (
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 // aclChangeUnsubscribeEvent creates and returns stream.UnsubscribeEvents that
@@ -19,7 +20,7 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			token := changeObject(change).(*structs.ACLToken)
 			secretIDs = append(secretIDs, token.SecretID)
 
-		case "acl-roles":
+		case tableACLRoles:
 			role := changeObject(change).(*structs.ACLRole)
 			tokens, err := aclTokenListByRole(tx, role.ID, &role.EnterpriseMeta)
 			if err != nil {
@@ -27,7 +28,7 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			}
 			secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
 
-		case "acl-policies":
+		case tableACLPolicies:
 			policy := changeObject(change).(*structs.ACLPolicy)
 			tokens, err := aclTokenListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
 			if err != nil {
@@ -35,7 +36,8 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			}
 			secretIDs = appendSecretIDsFromTokenIterator(secretIDs, tokens)
 
-			roles, err := aclRoleListByPolicy(tx, policy.ID, &policy.EnterpriseMeta)
+			q := Query{Value: policy.ID, EnterpriseMeta: policy.EnterpriseMeta}
+			roles, err := tx.Get(tableACLRoles, indexPolicies, q)
 			if err != nil {
 				return nil, err
 			}

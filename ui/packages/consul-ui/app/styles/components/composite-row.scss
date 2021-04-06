@@ -9,7 +9,8 @@
 .consul-node-list > ul > li:not(:first-child),
 .consul-token-list > ul > li:not(:first-child),
 .consul-policy-list > ul > li:not(:first-child),
-.consul-role-list > ul > li:not(:first-child) {
+.consul-role-list > ul > li:not(:first-child),
+.consul-auth-method-list > ul > li:not(:first-child) {
   @extend %with-composite-row-intent;
 }
 .consul-lock-session-list ul > li:not(:first-child) {

@@ -63,7 +63,7 @@ export default utils => (annotations, nspace, dict = new Yadda.Dictionary()) => 
         /@namespace/g,
         typeof nspace === 'undefined' || nspace === '' ? 'default' : nspace
       );
-      cb(null, YAML.safeLoad(val));
+      cb(null, YAML.load(val));
     })
     .define('endpoint', /([^\u0000]*)/, function(val, cb) {
       // if is @namespace is !important, always replace with namespace

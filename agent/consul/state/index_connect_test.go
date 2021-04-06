@@ -3,120 +3,53 @@ package state
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestIndexConnectService_FromObject(t *testing.T) {
+func TestConnectNameFromServiceNode(t *testing.T) {
 	cases := []struct {
-		Name        string
-		Input       interface{}
-		ExpectMatch bool
-		ExpectVal   []byte
-		ExpectErr   string
+		name       string
+		input      structs.ServiceNode
+		expected   string
+		expectedOk bool
 	}{
 		{
-			"not a ServiceNode",
-			42,
-			false,
-			nil,
-			"ServiceNode",
+			name:       "typical service, not native",
+			input:      structs.ServiceNode{ServiceName: "db"},
+			expectedOk: false,
 		},
 
 		{
-			"typical service, not native",
-			&structs.ServiceNode{
-				ServiceName: "db",
-			},
-			false,
-			nil,
-			"",
-		},
-
-		{
-			"typical service, is native",
-			&structs.ServiceNode{
+			name: "typical service, is native",
+			input: structs.ServiceNode{
 				ServiceName:    "dB",
 				ServiceConnect: structs.ServiceConnect{Native: true},
 			},
-			true,
-			[]byte("db\x00"),
-			"",
+			expectedOk: true,
+			expected:   "dB",
 		},
-
 		{
-			"proxy service",
-			&structs.ServiceNode{
+			name: "proxy service",
+			input: structs.ServiceNode{
 				ServiceKind:  structs.ServiceKindConnectProxy,
 				ServiceName:  "db",
 				ServiceProxy: structs.ConnectProxyConfig{DestinationServiceName: "fOo"},
 			},
-			true,
-			[]byte("foo\x00"),
-			"",
+			expectedOk: true,
+			expected:   "fOo",
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
-
-			var idx IndexConnectService
-			match, val, err := idx.FromObject(tc.Input)
-			if tc.ExpectErr != "" {
-				require.Error(err)
-				require.Contains(err.Error(), tc.ExpectErr)
+		t.Run(tc.name, func(t *testing.T) {
+			actual, ok := connectNameFromServiceNode(&tc.input)
+			if !tc.expectedOk {
+				require.False(t, ok, "expected no connect name")
 				return
 			}
-			require.NoError(err)
-			require.Equal(tc.ExpectMatch, match)
-			require.Equal(tc.ExpectVal, val)
-		})
-	}
-}
-
-func TestIndexConnectService_FromArgs(t *testing.T) {
-	cases := []struct {
-		Name      string
-		Args      []interface{}
-		ExpectVal []byte
-		ExpectErr string
-	}{
-		{
-			"multiple arguments",
-			[]interface{}{"foo", "bar"},
-			nil,
-			"single",
-		},
-
-		{
-			"not a string",
-			[]interface{}{42},
-			nil,
-			"must be a string",
-		},
-
-		{
-			"string",
-			[]interface{}{"fOO"},
-			[]byte("foo\x00"),
-			"",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.Name, func(t *testing.T) {
-			require := require.New(t)
-
-			var idx IndexConnectService
-			val, err := idx.FromArgs(tc.Args...)
-			if tc.ExpectErr != "" {
-				require.Error(err)
-				require.Contains(err.Error(), tc.ExpectErr)
-				return
-			}
-			require.NoError(err)
-			require.Equal(tc.ExpectVal, val)
+			require.Equal(t, tc.expected, actual)
 		})
 	}
 }

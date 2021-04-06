@@ -1,6 +1,6 @@
 export default (clickable, deletable, collection, alias, policyForm) => (
   scope = '#policies',
-  createSelector = '[for="new-policy-toggle"]'
+  createSelector = '[data-test-policy-create]'
 ) => {
   return {
     scope: scope,

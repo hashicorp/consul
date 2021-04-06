@@ -1,5 +1,7 @@
 <form>
-    <fieldset>
+    <fieldset
+      disabled={{if (not (can "write acl" item=item)) "disabled"}}
+    >
         <label class="type-text{{if item.error.Name ' has-error'}}">
             <span>Name</span>
             <Input @value={{item.Name}} @name="name" @autofocus="autofocus" />
@@ -25,12 +27,16 @@
 {{/if}}
     </fieldset>
     <div>
-{{#if create }}
+{{#if (and create (can "create acls")) }}
         {{! we only need to check for an empty name here as ember munges autofocus, once we have autofocus back revisit this}}
-        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>{{else}}<button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+        <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
+{{else}}
+  {{#if (can "write acl" item=item)}}
+        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+  {{/if}}
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
-{{# if (and (not create) (not-eq item.ID 'anonymous')) }}
+{{# if (and (not create) (can "delete acl" item=item) ) }}
         <ConfirmationDialog @message="Are you sure you want to delete this ACL token?">
             <BlockSlot @name="action" as |confirm|>
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item parent}}>Delete</button>

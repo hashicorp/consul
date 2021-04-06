@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	pbacl "github.com/hashicorp/consul/proto/pbacl"
-	memdb "github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -3801,7 +3802,7 @@ func TestStateStore_ACLPolicies_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, policies, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-policies"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLPolicies))
 	}()
 }
 
@@ -4081,7 +4082,7 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, roles, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-roles"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLRoles))
 	}()
 }
 

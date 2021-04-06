@@ -17,17 +17,19 @@ const (
 	tableGatewayServices = "gateway-services"
 	tableMeshTopology    = "mesh-topology"
 
-	indexID               = "id"
-	indexServiceName      = "service"
-	indexConnect          = "connect"
-	indexKind             = "kind"
-	indexStatus           = "status"
-	indexNodeServiceCheck = "node_service_check"
-	indexNodeService      = "node_service"
+	indexID          = "id"
+	indexService     = "service"
+	indexConnect     = "connect"
+	indexKind        = "kind"
+	indexStatus      = "status"
+	indexNodeService = "node_service"
+	indexNode        = "node"
+	indexUpstream    = "upstream"
+	indexDownstream  = "downstream"
+	indexGateway     = "gateway"
 )
 
-// nodesTableSchema returns a new table schema used for storing node
-// information.
+// nodesTableSchema returns a new table schema used for storing struct.Node.
 func nodesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: tableNodes,
@@ -36,18 +38,16 @@ func nodesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexFromNode,
 				},
 			},
 			"uuid": {
 				Name:         "uuid",
 				AllowMissing: true,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
-				},
+				Indexer:      &memdb.UUIDFieldIndex{Field: "ID"},
 			},
 			"meta": {
 				Name:         "meta",
@@ -62,6 +62,21 @@ func nodesTableSchema() *memdb.TableSchema {
 	}
 }
 
+func indexFromNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.Node))
+	return b.Bytes(), nil
+}
+
 // servicesTableSchema returns a new table schema used to store information
 // about services.
 func servicesTableSchema() *memdb.TableSchema {
@@ -72,51 +87,154 @@ func servicesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "ServiceID",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromNodeServiceQuery,
+					writeIndex:  indexFromServiceNode,
+					prefixIndex: prefixIndexFromQuery,
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexFromNodeIdentity,
 				},
 			},
-			indexServiceName: {
-				Name:         indexServiceName,
+			indexService: {
+				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexServiceNameFromServiceNode,
 				},
 			},
 			indexConnect: {
 				Name:         indexConnect,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &IndexConnectService{},
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexConnectNameFromServiceNode,
+				},
 			},
 			indexKind: {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer:      &IndexServiceKind{},
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexKindFromServiceNode,
+				},
 			},
 		},
 	}
+}
+
+func indexFromNodeServiceQuery(arg interface{}) ([]byte, error) {
+	q, ok := arg.(NodeServiceQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for NodeServiceQuery index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Node))
+	b.String(strings.ToLower(q.Service))
+	return b.Bytes(), nil
+}
+
+func indexFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.Node))
+	b.String(strings.ToLower(n.ServiceID))
+	return b.Bytes(), nil
+}
+
+func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
+	n, ok := raw.(interface {
+		NodeIdentity() structs.Identity
+	})
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for index, type must provide NodeIdentity()", raw)
+	}
+
+	id := n.NodeIdentity()
+	if id.ID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(id.ID))
+	return b.Bytes(), nil
+}
+
+func indexServiceNameFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.ServiceName))
+	return b.Bytes(), nil
+}
+
+func indexConnectNameFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	name, ok := connectNameFromServiceNode(n)
+	if !ok {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(name))
+	return b.Bytes(), nil
+}
+
+func connectNameFromServiceNode(sn *structs.ServiceNode) (string, bool) {
+	switch {
+	case sn.ServiceKind == structs.ServiceKindConnectProxy:
+		// For proxies, this service supports Connect for the destination
+		return sn.ServiceProxy.DestinationServiceName, true
+
+	case sn.ServiceConnect.Native:
+		// For native, this service supports Connect directly
+		return sn.ServiceName, true
+
+	default:
+		// Doesn't support Connect at all
+		return "", false
+	}
+}
+
+func indexKindFromServiceNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.ServiceNode)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ServiceNode index", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(string(n.ServiceKind)))
+	return b.Bytes(), nil
 }
 
 // checksTableSchema returns a new table schema used for storing and indexing
@@ -130,81 +248,128 @@ func checksTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "CheckID",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromNodeCheckQuery,
+					writeIndex:  indexFromHealthCheck,
+					prefixIndex: prefixIndexFromQuery,
 				},
 			},
 			indexStatus: {
 				Name:         indexStatus,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Status",
-					Lowercase: false,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexStatusFromHealthCheck,
 				},
 			},
-			indexServiceName: {
-				Name:         indexServiceName,
+			indexService: {
+				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexServiceNameFromHealthCheck,
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
-				},
-			},
-			indexNodeServiceCheck: {
-				Name:         indexNodeServiceCheck,
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.FieldSetIndex{
-							Field: "ServiceID",
-						},
-					},
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexFromNodeIdentity,
 				},
 			},
 			indexNodeService: {
 				Name:         indexNodeService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "ServiceID",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingle{
+					readIndex:  indexFromNodeServiceQuery,
+					writeIndex: indexNodeServiceFromHealthCheck,
 				},
 			},
 		},
 	}
+}
+
+func indexFromNodeCheckQuery(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(NodeCheckQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for NodeCheckQuery index", raw)
+	}
+
+	if hc.Node == "" || hc.CheckID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.CheckID))
+	return b.Bytes(), nil
+}
+
+func indexFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Node == "" || hc.CheckID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(string(hc.CheckID)))
+	return b.Bytes(), nil
+}
+
+func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.ServiceID))
+	return b.Bytes(), nil
+}
+
+func indexStatusFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Status == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Status))
+	return b.Bytes(), nil
+}
+
+func indexServiceNameFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.ServiceName == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.ServiceName))
+	return b.Bytes(), nil
 }
 
 //  gatewayServicesTableSchema returns a new table schema used to store information
@@ -231,16 +396,16 @@ func gatewayServicesTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"gateway": {
-				Name:         "gateway",
+			indexGateway: {
+				Name:         indexGateway,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
 					Field: "Gateway",
 				},
 			},
-			"service": {
-				Name:         "service",
+			indexService: {
+				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
@@ -272,16 +437,16 @@ func meshTopologyTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"upstream": {
-				Name:         "upstream",
+			indexUpstream: {
+				Name:         indexUpstream,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
 					Field: "Upstream",
 				},
 			},
-			"downstream": {
-				Name:         "downstream",
+			indexDownstream: {
+				Name:         indexDownstream,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
@@ -346,4 +511,32 @@ func (index *ServiceNameIndex) PrefixFromArgs(args ...interface{}) ([]byte, erro
 		return val[:n-1], nil
 	}
 	return val, nil
+}
+
+// upstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
+type upstreamDownstream struct {
+	Upstream   structs.ServiceName
+	Downstream structs.ServiceName
+
+	// Refs stores the registrations that contain this pairing.
+	// When there are no remaining Refs, the upstreamDownstream can be deleted.
+	//
+	// Note: This map must be treated as immutable when accessed in MemDB.
+	//       The entire upstreamDownstream structure must be deep copied on updates.
+	Refs map[string]struct{}
+
+	structs.RaftIndex
+}
+
+// NodeCheckQuery is used to query the ID index of the checks table.
+type NodeCheckQuery struct {
+	Node    string
+	CheckID string
+	structs.EnterpriseMeta
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q NodeCheckQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
 }

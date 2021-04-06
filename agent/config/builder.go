@@ -822,6 +822,8 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
+	serverMode := boolVal(c.ServerMode)
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -1050,7 +1052,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		RPCMaxConnsPerClient:        intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                 intVal(c.RPCProtocol),
 		RPCRateLimit:                rate.Limit(float64Val(c.Limits.RPCRate)),
-		RPCConfig:                   consul.RPCConfig{EnableStreaming: boolVal(c.RPC.EnableStreaming)},
+		RPCConfig:                   consul.RPCConfig{EnableStreaming: boolValWithDefault(c.RPC.EnableStreaming, serverMode)},
 		RaftProtocol:                intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:       intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
@@ -1074,7 +1076,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		SerfBindAddrWAN:             serfBindAddrWAN,
 		SerfPortLAN:                 serfPortLAN,
 		SerfPortWAN:                 serfPortWAN,
-		ServerMode:                  boolVal(c.ServerMode),
+		ServerMode:                  serverMode,
 		ServerName:                  stringVal(c.ServerName),
 		ServerPort:                  serverPort,
 		Services:                    services,
@@ -1569,6 +1571,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Shell:                          stringVal(v.Shell),
 		GRPC:                           stringVal(v.GRPC),
 		GRPCUseTLS:                     boolVal(v.GRPCUseTLS),
+		TLSServerName:                  stringVal(v.TLSServerName),
 		TLSSkipVerify:                  boolVal(v.TLSSkipVerify),
 		AliasNode:                      stringVal(v.AliasNode),
 		AliasService:                   stringVal(v.AliasService),
@@ -1687,6 +1690,7 @@ func (b *builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
 		Expose:                 b.exposeConfVal(v.Expose),
+		TransparentProxy:       boolVal(v.TransparentProxy),
 	}
 }
 

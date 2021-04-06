@@ -7,7 +7,9 @@ module.exports = function(defaults) {
   const isProd = env === 'production';
   const isProdLike = prodlike.indexOf(env) > -1;
   const sourcemaps = !isProd;
-  let trees = {};
+  const trees = {};
+  const addons = {};
+  const outputPaths = {};
   if (isProdLike) {
     // exclude any component/pageobject.js files from production-like environments
     trees.app = new Funnel('app', {
@@ -15,8 +17,24 @@ module.exports = function(defaults) {
         'components/**/pageobject.js',
         'components/**/*.test-support.js',
         'components/**/*.test.js',
+        // exclude our debug initializer, route and template
+        'instance-initializers/debug.js',
+        'templates/debug.hbs',
+        'components/debug/**/*.*'
       ],
     });
+    // exclude any debug like addons from production-like environments
+    addons.blacklist = [
+      // exclude docfy
+      '@docfy/ember'
+    ];
+  } else {
+    // add debug css is we are not in prodlike environments
+    outputPaths.app = {
+      css: {
+        'debug': '/assets/debug.css'
+      }
+    }
   }
   let app = new EmberApp(
     Object.assign({}, defaults, {
@@ -24,6 +42,8 @@ module.exports = function(defaults) {
     }),
     {
       trees: trees,
+      addons: addons,
+      outputPaths: outputPaths,
       'ember-cli-babel': {
         includePolyfill: true,
       },
@@ -36,6 +56,10 @@ module.exports = function(defaults) {
       babel: {
         plugins: ['@babel/plugin-proposal-object-rest-spread'],
         sourceMaps: sourcemaps ? 'inline' : false,
+      },
+      autoImport: {
+        // allows use of a CSP without 'unsafe-eval' directive
+        forbidEval: true,
       },
       codemirror: {
         keyMaps: ['sublime'],

@@ -1,0 +1,253 @@
+  <div class="consul-auth-method-view">
+  {{#if (eq @item.Type 'kubernetes')}}
+    <dl>
+      <dt>{{t 'models.auth-method.Type'}}</dt>
+      <dd><Consul::AuthMethod::Type @item={{@item}} /></dd>
+
+    {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+      {{#if (get @item value)}}
+      <dt>{{t (concat "models.auth-method." value)}}</dt>
+      <dd>{{get @item value}}</dd>
+      {{/if}}
+    {{/each}}
+      {{#if @item.Config.Host}}
+      <dt>{{t 'models.auth-method.Config.Host'}}</dt>
+      <dd>
+        <CopyButton @value={{@item.Config.Host}} @name={{t 'models.auth-method.Config.Host'}}/>
+        <span>{{@item.Config.Host}}</span>
+      </dd>
+      {{/if}}
+      {{#if @item.Config.CACert}}
+      <dt>{{t 'models.auth-method.Config.CACert'}}</dt>
+      <dd>
+        <Certificate @item={{@item.Config.CACert}} @name={{t 'models.auth-method.Config.CACert'}} />
+      </dd>
+      {{/if}}
+      {{#if @item.Config.ServiceAccountJWT}}
+      <dt>{{t 'models.auth-method.Config.ServiceAccountJWT'}}</dt>
+      <dd>
+        <CopyButton @value={{@item.Config.ServiceAccountJWT}} @name={{t 'models.auth-method.Config.ServiceAccountJWT'}} />
+        <span>
+          {{@item.Config.ServiceAccountJWT}}
+        </span>
+      </dd>
+      {{/if}}
+    </dl>
+  {{else}}
+    <section class="meta">
+      <dl>
+        <dt>Type</dt>
+        <dd><Consul::AuthMethod::Type @item={{@item}} /></dd>
+
+      {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+        {{#if (get @item value)}}
+        <dt>{{t (concat "models.auth-method." value)}}</dt>
+        <dd>{{get @item value}}</dd>
+        {{/if}}
+      {{/each}}
+
+      {{#if (eq @item.Type 'jwt')}}
+        {{#if @item.Config.JWKSURL}}
+        <dt>{{t 'models.auth-method.Config.JWKSURL'}}</dt>
+        <dd>
+          <CopyButton @value={{@item.Config.JWKSURL}} @name={{t 'models.auth-method.Config.JWKSURL'}} />
+          <span>{{@item.Config.JWKSURL}}</span>
+        </dd>
+        <dt>{{t 'models.auth-method.Config.JWKSCACert'}}</dt>
+        <dd>
+          <Certificate @item={{@item.Config.JWKSCACert}} @name={{t 'models.auth-method.Config.JWKSCACert'}} />
+        </dd>
+        {{/if}}
+        {{#if @item.Config.JWTValidationPubKeys}}
+        <dt>{{t 'models.auth-method.Config.JWTValidationPubKeys'}}</dt>
+        <dd>
+          <Certificate @item={{@item.Config.JWTValidationPubKeys}} @name={{t 'models.auth-method.Config.JWTValidationPubKeys'}} />
+        </dd>
+        {{/if}}
+        {{#if @item.Config.OIDCDiscoveryURL}}
+        <dt>{{t 'models.auth-method.Config.OIDCDiscoveryURL'}}</dt>
+        <dd>
+          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}} />
+          <span>{{@item.Config.OIDCDiscoveryURL}}</span>
+        </dd>
+        {{/if}}
+        {{#if @item.Config.JWTSupportedAlgs}}
+        <dt>{{t 'models.auth-method.Config.JWTSupportedAlgs'}}</dt>
+        <dd>{{join ', ' @item.Config.JWTSupportedAlgs}}</dd>
+        {{/if}}
+        {{#if @item.Config.BoundAudiences}}
+          <dt>{{t 'models.auth-method.Config.BoundAudiences'}}</dt>
+          <dd>
+            <ul>
+              {{#each @item.Config.BoundAudiences as |bond|}}
+              <li>
+                <span>{{bond}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#each (array "BoundIssuer" "ExpirationLeeway" "NotBeforeLeeway" "ClockSkewLeeway") as |value|}}
+          {{#if (get @item.Config value)}}
+          <dt>{{t (concat "models.auth-method.Config." value)}}</dt>
+          <dd>{{get @item.Config value}}</dd>
+          {{/if}}
+        {{/each}}
+      {{else if (eq @item.Type 'oidc')}}
+        {{#if @item.Config.OIDCDiscoveryURL}}
+        <dt>{{t 'models.auth-method.Config.OIDCDiscoveryURL'}}</dt>
+        <dd>
+          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}} />
+          <span>{{@item.Config.OIDCDiscoveryURL}}</span>
+        </dd>
+        {{/if}}
+        {{#if @item.Config.OIDCDiscoveryCACert}}
+        <dt>{{t 'models.auth-method.Config.OIDCDiscoveryCACert'}}</dt>
+        <dd>
+          <Certificate @item={{@item.Config.OIDCDiscoveryCACert}} @name={{t 'models.auth-method.Config.OIDCDiscoveryCACert'}} />
+        </dd>
+        {{/if}}
+        {{#if @item.Config.OIDCClientID}}
+          <dt>{{t 'models.auth-method.Config.OIDCClientID'}}</dt>
+          <dd>{{@item.Config.OIDCClientID}}</dd>
+        {{/if}}
+        {{#if @item.Config.OIDCClientSecret}}
+          <dt>{{t 'models.auth-method.Config.OIDCClientSecret'}}</dt>
+          <dd>{{@item.Config.OIDCClientSecret}}</dd>
+        {{/if}}
+        {{#if @item.Config.AllowedRedirectURIs}}
+          <dt>{{t 'models.auth-method.Config.AllowedRedirectURIs'}}</dt>
+          <dd>
+            <ul>
+              {{#each @item.Config.AllowedRedirectURIs as |uri|}}
+              <li>
+                <CopyButton @value={{uri}} @name="Redirect URI" />
+                <span>{{uri}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if @item.Config.BoundAudiences}}
+          <dt>{{t 'models.auth-method.Config.BoundAudiences'}}</dt>
+          <dd>
+            <ul>
+              {{#each @item.Config.BoundAudiences as |bond|}}
+              <li>
+                <span>{{bond}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if @item.Config.OIDCScopes}}
+          <dt>{{t 'models.auth-method.Config.OIDCScopes'}}</dt>
+          <dd>
+            <ul>
+              {{#each @item.Config.OIDCScopes as |scope|}}
+              <li>
+                <span>{{scope}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if @item.Config.JWTSupportedAlgs}}
+        <dt>{{t 'models.auth-method.Config.JWTSupportedAlgs'}}</dt>
+        <dd>{{join ', ' @item.Config.JWTSupportedAlgs}}</dd>
+        {{/if}}
+        {{#if @item.Config.VerboseOIDCLogging}}
+        <dt class="check">{{t 'models.auth-method.Config.VerboseOIDCLogging'}}</dt>
+        <dd><input type="checkbox" disabled="disabled" checked={{@item.Config.VerboseOIDCLogging}}></dd>
+        {{/if}}
+      {{/if}}
+      </dl>
+    </section>
+
+    <hr />
+
+    <section class="claim-mappings">
+      <h2>Claim Mappings</h2>
+    {{#if @item.Config.ClaimMappings}}
+      <p>Use this if the claim you are capturing is singular. When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+      <table>
+        <thead>
+          <tr>
+            <td>Key</td>
+            <td>Value</td>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each (entries @item.Config.ClaimMappings) as |entry|}}
+          <tr>
+            <td>{{get entry 0}}</td>
+            <td>{{get entry 1}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="header">
+          <h2>No claim mappings</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>Use this if the claim you are capturing is singular. When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <li class="docs-link">
+          {{#if (eq @item.Type 'jwt')}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/jwt#claimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{else}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/oidc#claimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{/if}}
+          </li>
+        </BlockSlot>
+      </EmptyState>
+    {{/if}}
+    </section>
+
+    <hr />
+
+    <section class="list-claim-mappings">
+      <h2>List Claim Mappings</h2>
+    {{#if @item.Config.ListClaimMappings}}
+      <p>Use this if the claim you are capturing is list-like (such as groups). When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+      <table>
+        <thead>
+          <tr>
+            <td>Key</td>
+            <td>Value</td>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each (entries @item.Config.ListClaimMappings) as |entry|}}
+          <tr>
+            <td>{{get entry 0}}</td>
+            <td>{{get entry 1}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="header">
+          <h2>No list claim mappings</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>Use this if the claim you are capturing is list-like (such as groups). When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <li class="docs-link">
+          {{#if (eq @item.Type 'jwt')}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/jwt#listclaimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{else}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/oidc#listclaimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{/if}}
+          </li>
+        </BlockSlot>
+      </EmptyState>
+    {{/if}}
+    </section>
+  {{/if}}
+  </div>

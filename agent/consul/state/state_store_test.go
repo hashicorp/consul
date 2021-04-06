@@ -75,7 +75,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	n, err := tx.First("nodes", "id", nodeID)
+	n, err := tx.First(tableNodes, indexID, Query{Value: nodeID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -105,7 +105,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
+	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -138,7 +138,7 @@ func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serv
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
+	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -163,7 +163,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, c, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, nodeID, string(checkID))
+	c, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: nodeID, CheckID: string(checkID)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -283,7 +283,7 @@ func TestStateStore_maxIndex(t *testing.T) {
 	testRegisterNode(t, s, 1, "bar")
 	testRegisterService(t, s, 2, "foo", "consul")
 
-	if max := s.maxIndex("nodes", "services"); max != 2 {
+	if max := s.maxIndex("nodes", tableServices); max != 2 {
 		t.Fatalf("bad max: %d", max)
 	}
 }

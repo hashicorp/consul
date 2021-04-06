@@ -1,0 +1,47 @@
+{{page-title 'Engineering Docs - Consul' separator=' - '}}
+
+{{document-attrs class="is-debug"}}
+<App class="docs" id="wrapper">
+  <:main-nav>
+
+    <DocfyOutput as |node|>
+      <ul>
+          <li role="separator">Docs</li>
+{{#each node.children as |child|}}
+  {{#each child.pages as |child|}}
+          <li
+            class={{if (is-href (to-route child.url)) 'is-active'}}
+          >
+            <DocfyLink @to={{child.url}}>
+              {{child.title}}
+            </DocfyLink>
+          </li>
+  {{/each}}
+  {{#each child.children as |section|}}
+          <li role="separator">{{section.label}}</li>
+    {{#each (flatten-property section 'pages') as |child|}}
+          <li
+            class={{concat
+              (slugify section.label) ' '
+              (if (eq child.frontmatter.class 'ember') 'ember-component') ' '
+              (if (is-href (to-route child.url)) 'is-active')
+            }}
+          >
+            <DocfyLink @to={{child.url}}>
+              {{child.title}}
+            </DocfyLink>
+          </li>
+    {{/each}}
+  {{/each}}
+{{/each}}
+      </ul>
+    </DocfyOutput>
+
+  </:main-nav>
+  <:main>
+    <DocfyOutput @fromCurrentURL={{true}} as |page|>
+      {{outlet}}
+    </DocfyOutput>
+  </:main>
+</App>
+

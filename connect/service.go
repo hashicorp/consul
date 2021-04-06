@@ -53,29 +53,34 @@ type Service struct {
 	logger hclog.Logger
 }
 
-// NewService creates and starts a Service. The caller must close the returned
-// service to free resources and allow the program to exit normally. This is
-// typically called in a signal handler.
-//
-// Caller must provide client which is already configured to speak to the local
-// Consul agent, and with an ACL token that has `service:write` privileges for
-// the service specified.
-func NewService(serviceName string, client *api.Client) (*Service, error) {
-	logger := hclog.New(&hclog.LoggerOptions{})
-
-	return NewServiceWithLogger(serviceName, client,
-		logger)
+// Config represents the configuration options for a service.
+type Config struct {
+	// client is the mandatory Consul API client. Will panic if not set.
+	Client *api.Client
+	// Logger is the logger to use. If nil a default logger will be used.
+	Logger hclog.Logger
+	// ServerNextProtos are the protocols advertised via ALPN. If nil, defaults to
+	// ["h2"] for backwards compatibility. Usually there is no need to change this,
+	// see https://github.com/hashicorp/consul/issues/4466 for some discussion on why
+	// this can be useful.
+	ServerNextProtos []string
 }
 
-// NewServiceWithLogger starts the service with a specified log.Logger.
-func NewServiceWithLogger(serviceName string, client *api.Client,
-	logger hclog.Logger) (*Service, error) {
+// NewServiceWithConfig starts a service with the specified Config.
+func NewServiceWithConfig(serviceName string, config Config) (*Service, error) {
+	if config.Logger == nil {
+		config.Logger = hclog.New(&hclog.LoggerOptions{})
+	}
+	tlsCfg := defaultTLSConfig()
+	if config.ServerNextProtos != nil {
+		tlsCfg.NextProtos = config.ServerNextProtos
+	}
 	s := &Service{
 		service:              serviceName,
-		client:               client,
-		logger:               logger.Named(logging.Connect).With("service", serviceName),
-		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
-		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
+		client:               config.Client,
+		logger:               config.Logger.Named(logging.Connect).With("service", serviceName),
+		tlsCfg:               newDynamicTLSConfig(tlsCfg, config.Logger),
+		httpResolverFromAddr: ConsulResolverFromAddrFunc(config.Client),
 	}
 
 	// Set up root and leaf watches
@@ -98,10 +103,27 @@ func NewServiceWithLogger(serviceName string, client *api.Client,
 	s.leafWatch = p
 	s.leafWatch.HybridHandler = s.leafWatchHandler
 
-	go s.rootsWatch.RunWithClientAndHclog(client, s.logger)
-	go s.leafWatch.RunWithClientAndHclog(client, s.logger)
+	go s.rootsWatch.RunWithClientAndHclog(config.Client, s.logger)
+	go s.leafWatch.RunWithClientAndHclog(config.Client, s.logger)
 
 	return s, nil
+}
+
+// NewService creates and starts a Service. The caller must close the returned
+// service to free resources and allow the program to exit normally. This is
+// typically called in a signal handler.
+//
+// Caller must provide client which is already configured to speak to the local
+// Consul agent, and with an ACL token that has `service:write` privileges for
+// the service specified.
+func NewService(serviceName string, client *api.Client) (*Service, error) {
+	return NewServiceWithConfig(serviceName, Config{Client: client})
+}
+
+// NewServiceWithLogger starts the service with a specified log.Logger.
+func NewServiceWithLogger(serviceName string, client *api.Client,
+	logger hclog.Logger) (*Service, error) {
+	return NewServiceWithConfig(serviceName, Config{Client: client, Logger: logger})
 }
 
 // NewDevServiceFromCertFiles creates a Service using certificate and key files

@@ -10,14 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Signing ID should never authorize
-func TestSpiffeIDSigningAuthorize(t *testing.T) {
-	var id SpiffeIDSigning
-	auth, ok := id.Authorize(nil)
-	assert.False(t, auth)
-	assert.True(t, ok)
-}
-
 func TestSpiffeIDSigningForCluster(t *testing.T) {
 	// For now it should just append .consul to the ID.
 	config := &structs.CAConfiguration{
@@ -30,10 +22,6 @@ func TestSpiffeIDSigningForCluster(t *testing.T) {
 // fakeCertURI is a CertURI implementation that our implementation doesn't know
 // about
 type fakeCertURI string
-
-func (f fakeCertURI) Authorize(*structs.Intention) (auth bool, match bool) {
-	return false, false
-}
 
 func (f fakeCertURI) URI() *url.URL {
 	u, _ := url.Parse(string(f))

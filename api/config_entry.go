@@ -91,17 +91,94 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
+type ConnectConfiguration struct {
+	// UpstreamConfigs is a map of <namespace/>service to per-upstream configuration
+	UpstreamConfigs map[string]UpstreamConfig `json:",omitempty" alias:"upstream_configs"`
+
+	// UpstreamDefaults contains default configuration for all upstreams of a given service
+	UpstreamDefaults UpstreamConfig `json:",omitempty" alias:"upstream_defaults"`
+}
+
+type UpstreamConfig struct {
+	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
+	// listener.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
+	EnvoyListenerJSON string `json:",omitempty" alias:"envoy_listener_json"`
+
+	// EnvoyClusterJSON is a complete override ("escape hatch") for the upstream's
+	// cluster. The Connect client TLS certificate and context will be injected
+	// overriding any TLS settings present.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
+	EnvoyClusterJSON string `json:",omitempty" alias:"envoy_cluster_json"`
+
+	// Protocol describes the upstream's service protocol. Valid values are "tcp",
+	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
+	// aware features like per-request metrics and connection pooling, tracing,
+	// routing etc.
+	Protocol string `json:",omitempty"`
+
+	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
+	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
+	ConnectTimeoutMs int `json:",omitempty" alias:"connect_timeout_ms"`
+
+	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
+	// service instance.
+	Limits *UpstreamLimits `json:",omitempty"`
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
+
+	// MeshGatewayConfig controls how Mesh Gateways are configured and used
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+}
+
+type PassiveHealthCheck struct {
+	// Interval between health check analysis sweeps. Each sweep may remove
+	// hosts or return hosts to the pool.
+	Interval time.Duration `json:",omitempty"`
+
+	// MaxFailures is the count of consecutive failures that results in a host
+	// being removed from the pool.
+	MaxFailures uint32 `alias:"max_failures"`
+}
+
+// UpstreamLimits describes the limits that are associated with a specific
+// upstream of a service instance.
+type UpstreamLimits struct {
+	// MaxConnections is the maximum number of connections the local proxy can
+	// make to the upstream service.
+	MaxConnections int `alias:"max_connections"`
+
+	// MaxPendingRequests is the maximum number of requests that will be queued
+	// waiting for an available connection. This is mostly applicable to HTTP/1.1
+	// clusters since all HTTP/2 requests are streamed over a single
+	// connection.
+	MaxPendingRequests int `alias:"max_pending_requests"`
+
+	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
+	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
+	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
+	MaxConcurrentRequests int `alias:"max_concurrent_requests"`
+}
+
 type ServiceConfigEntry struct {
-	Kind        string
-	Name        string
-	Namespace   string            `json:",omitempty"`
-	Protocol    string            `json:",omitempty"`
-	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig      `json:",omitempty"`
-	ExternalSNI string            `json:",omitempty" alias:"external_sni"`
-	Meta        map[string]string `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Kind             string
+	Name             string
+	Namespace        string               `json:",omitempty"`
+	Protocol         string               `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig    `json:",omitempty" alias:"mesh_gateway"`
+	Connect          ConnectConfiguration `json:",omitempty"`
+	Expose           ExposeConfig         `json:",omitempty"`
+	TransparentProxy bool                 `json:",omitempty" alias:"transparent_proxy"`
+	ExternalSNI      string               `json:",omitempty" alias:"external_sni"`
+	Meta             map[string]string    `json:",omitempty"`
+	CreateIndex      uint64
+	ModifyIndex      uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string {
@@ -129,15 +206,16 @@ func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
 }
 
 type ProxyConfigEntry struct {
-	Kind        string
-	Name        string
-	Namespace   string                 `json:",omitempty"`
-	Config      map[string]interface{} `json:",omitempty"`
-	MeshGateway MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig           `json:",omitempty"`
-	Meta        map[string]string      `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Kind             string
+	Name             string
+	Namespace        string                 `json:",omitempty"`
+	Config           map[string]interface{} `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
+	TransparentProxy bool                   `json:",omitempty" alias:"transparent_proxy"`
+	Meta             map[string]string      `json:",omitempty"`
+	CreateIndex      uint64
+	ModifyIndex      uint64
 }
 
 func (p *ProxyConfigEntry) GetKind() string {

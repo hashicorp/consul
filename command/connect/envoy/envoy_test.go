@@ -146,6 +146,37 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "",
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name: "prometheus-metrics",
+			Flags: []string{"-proxy-id", "test-proxy",
+				"-prometheus-backend-port", "20100", "-prometheus-scrape-path", "/scrape-path"},
+			ProxyConfig: map[string]interface{}{
+				// When envoy_prometheus_bind_addr is set, if
+				// PrometheusBackendPort is set, there will be a
+				// "prometheus_backend" cluster in the Envoy configuration.
+				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502", // Note this is the gRPC port
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusBackendPort: "20100",
+				PrometheusScrapePath:  "/scrape-path",
 			},
 		},
 		{
@@ -168,6 +199,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -192,6 +224,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -218,6 +251,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -245,6 +279,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
 				Token:                 "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -269,6 +304,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -295,6 +331,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -315,6 +352,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -339,6 +377,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -362,6 +401,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -408,6 +448,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -454,6 +495,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -496,6 +538,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -533,6 +576,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -575,6 +619,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -604,6 +649,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -663,6 +709,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -688,6 +735,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -706,6 +754,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -724,6 +773,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -742,6 +792,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -760,6 +811,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 		{
@@ -778,6 +830,7 @@ func TestGenerateConfig(t *testing.T) {
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
 				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
 			},
 		},
 	}

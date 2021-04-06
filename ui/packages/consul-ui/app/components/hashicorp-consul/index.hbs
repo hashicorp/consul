@@ -7,10 +7,11 @@
     <:home-nav>
       <a
         href={{href-to 'index'}}
-      ><svg width="28" height="27" xmlns="http://www.w3.org/2000/svg">
+      ><svg width="34" height="34" xmlns="http://www.w3.org/2000/svg">
         <title>Consul</title>
-        <path
-          d="M13.284 16.178a2.876 2.876 0 1 1-.008-5.751 2.876 2.876 0 0 1 .008 5.75zm5.596-1.547a1.333 1.333 0 1 1 0-2.667 1.333 1.333 0 0 1 0 2.667zm4.853 1.249a1.271 1.271 0 1 1 .027-.107c0 .031 0 .067-.027.107zm-.937-3.436a1.333 1.333 0 1 1 .986-1.595c.033.172.033.348 0 .52-.07.53-.465.96-.986 1.075zm4.72 3.29a1.333 1.333 0 1 1-1.076-1.538 1.333 1.333 0 0 1 1.116 1.417.342.342 0 0 0-.027.12h-.013zm-1.08-3.33a1.333 1.333 0 1 1 1.088-1.524c.014.114.014.229 0 .342a1.333 1.333 0 0 1-1.102 1.182h.014zm-.925 7.925a1.333 1.333 0 1 1 .165-.547c-.01.193-.067.38-.165.547zm-.48-12.191a1.333 1.333 0 1 1 .507-1.814c.14.237.198.514.164.787-.038.438-.289.828-.67 1.045v-.018zM13.333 26.667C5.97 26.667 0 20.697 0 13.333 0 5.97 5.97 0 13.333 0c2.929-.01 5.778.955 8.098 2.742L19.8 4.89a10.667 10.667 0 0 0-17.133 8.444 10.667 10.667 0 0 0 17.137 8.471l1.627 2.13a13.218 13.218 0 0 1-8.098 2.733z"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M16.879 19.9a3.027 3.027 0 1 1-.01-6.053 3.027 3.027 0 0 1 .01 6.054z" fill="#961D59"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M22.802 18.387a1.387 1.387 0 1 1 0-2.775 1.387 1.387 0 0 1 0 2.775zM28.17 19.656a1.387 1.387 0 1 1 .028-.113c-.015.035-.015.07-.028.113zM26.909 16.08a1.386 1.386 0 1 1-.098-2.719c.555.09 1 .506 1.129 1.053.038.178.043.362.014.542a1.335 1.335 0 0 1-1.043 1.123M31.972 19.512a1.38 1.38 0 0 1-1.598 1.124 1.386 1.386 0 0 1-1.119-1.606 1.38 1.38 0 0 1 1.598-1.126c.703.12 1.202.756 1.153 1.472a.358.358 0 0 0-.027.123M30.848 16.098a1.387 1.387 0 1 1 1.157-1.239 1.38 1.38 0 0 1-1.157 1.24zM29.817 24.232a1.387 1.387 0 1 1 .17-.562c-.011.198-.07.39-.17.562zM29.286 11.65a1.387 1.387 0 1 1 .526-1.89c.142.242.202.523.171.801-.039.456-.3.863-.697 1.088z" fill="#C62A71"/>
+        <path d="M17.122 31C9.322 31 3 24.732 3 17S9.323 3 17.122 3a14.054 14.054 0 0 1 8.58 2.875l-1.716 2.232a11.359 11.359 0 0 0-11.862-1.152c-3.852 1.888-6.288 5.782-6.28 10.043-.008 4.26 2.428 8.155 6.28 10.043a11.359 11.359 0 0 0 11.862-1.152l1.717 2.233A14.078 14.078 0 0 1 17.122 31z" fill="#C62A71"/>
         </svg></a>
     </:home-nav>
 
@@ -124,11 +125,18 @@
               <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
           </li>
 {{/if}}
-{{#if (can "read acls")}}
-          <li role="separator">Access Controls</li>
+          <li class="acls-separator" role="separator">
+            Access Controls
+{{#if (not (can "use acls"))}}
+            <span
+              {{tooltip "ACLs are not currently enabled in this cluster"}}
+            ></span>
+{{/if}}
+          </li>
           <li data-test-main-nav-tokens class={{if (is-href 'dc.acls.tokens' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.tokens' @dc.Name}}>Tokens</a>
           </li>
+{{#if (can "read acls")}}
           <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.policies' @dc.Name}}>Policies</a>
           </li>
@@ -138,6 +146,16 @@
           <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.auth-methods' @dc.Name}}>Auth Methods</a>
           </li>
+{{else if (not (can "use acls"))}}
+          <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
+              <span>Policies</span>
+          </li>
+          <li data-test-main-nav-roles class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}>
+              <span>Roles</span>
+          </li>
+          <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
+              <span>Auth Methods</span>
+          </li>
 {{/if}}
       </ul>
   {{/if}}
@@ -146,6 +164,7 @@
 
     <:complementary-nav>
       <ul>
+          <Debug::Navigation />
           <li data-test-main-nav-help>
             <PopoverMenu @position="right" as |components|>
               <BlockSlot @name="trigger">
@@ -153,6 +172,11 @@
               </BlockSlot>
               <BlockSlot @name="menu">
                 {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                  <MenuSeparator>
+                    <BlockSlot @name="label">
+                      Consul v{{env 'CONSUL_VERSION'}}
+                    </BlockSlot>
+                  </MenuSeparator>
                   <MenuItem
                     class="docs-link"
                     @href={{env 'CONSUL_DOCS_URL'}}
@@ -194,39 +218,45 @@
             >
               {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                 <BlockSlot @name="unauthorized">
-                  <label tabindex="0" for={{concat guid "-login-toggle"}} onkeypress={{this.keypressClick}}>
+                  <label
+                    tabindex="0"
+                    {{on 'keypress' this.keypressClick}}
+                    {{on "click" (optional this.modal.open)}}
+                  >
                     <span>Log in</span>
                   </label>
-                  <ModalDialog @name={{concat guid "-login-toggle"}} @onclose={{this.close}} @onopen={{this.open}} as |api|>
-                    <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in to Consul</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |api|>
-                        <Ref @target={{this}} @name="authForm" @value={{api}} />
+                      <AuthForm as |authForm|>
+                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
                       </AuthForm>
                     </BlockSlot>
-                    <BlockSlot @name="actions" as |close|>
-                      <button type="button" onclick={{action close}}>
+                    <BlockSlot @name="actions">
+                      <button type="button"
+                        {{on "click" modal.close}}
+                      >
                         Continue without logging in
                       </button>
                     </BlockSlot>
                   </ModalDialog>
                 </BlockSlot>
                 <BlockSlot @name="authorized">
-                  <ModalDialog @name={{concat guid "-login-toggle"}} @onclose={{this.close}} @onopen={{this.open}} as |api|>
-                    <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in with a different token</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |api|>
-                        <Ref @target={{this}} @name="authForm" @value={{api}} />
+                      <AuthForm as |authForm|>
+                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
                       </AuthForm>
                     </BlockSlot>
-                    <BlockSlot @name="actions" as |close|>
-                      <button type="button" onclick={{action close}}>
+                    <BlockSlot @name="actions">
+                      <button type="button" onclick={{action modal.close}}>
                         Continue without logging in
                       </button>
                     </BlockSlot>
@@ -264,25 +294,12 @@
     </:complementary-nav>
 
     <:main>
-      {{yield}}
+      {{yield (hash
+        modal=this.modal
+      )}}
     </:main>
 
     <:content-info>
-      <Action
-        @href={{concat (env 'CONSUL_COPYRIGHT_URL') '/'}}
-        @external={{true}}
-      >
-        &copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp
-      </Action>
-      <p>
-        Consul {{env 'CONSUL_VERSION'}}
-      </p>
-      <Action
-        @href={{env 'CONSUL_DOCS_URL'}}
-        @external={{true}}
-      >
-        Documentation
-      </Action>
       {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </:content-info>
   </App>

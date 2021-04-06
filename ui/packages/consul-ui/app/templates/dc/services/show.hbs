@@ -1,114 +1,118 @@
-{{#let items.firstObject as |item|}}
-{{page-title item.Service.Service}}
-  <DataLoader as |loader|>
+<Route
+  @name={{routeName}}
+as |route|>
+  {{#let items.firstObject as |item|}}
+  {{page-title item.Service.Service}}
+    <DataLoader as |loader|>
 
-    <BlockSlot @name="data">
-      <EventSource @src={{items}} @onerror={{action loader.dispatchError}} />
-      {{#if (not loader.error)}}
-        <EventSource @src={{proxies}} />
-        <EventSource @src={{chain}} />
-      {{/if}}
-    </BlockSlot>
-
-    <BlockSlot @name="error">
-      <AppError @error={{loader.error}} />
-    </BlockSlot>
-
-    <BlockSlot @name="disconnected" as |Notification|>
-      {{#if (eq loader.error.status "404")}}
-        <Notification @sticky={{true}}>
-          <p data-notification role="alert" class="warning notification-update">
-            <strong>Warning!</strong>
-            This service has been deregistered and no longer exists in the catalog.
-          </p>
-        </Notification>
-      {{else if (eq loader.error.status "403")}}
-        <Notification @sticky={{true}}>
-          <p data-notification role="alert" class="error notification-update">
-            <strong>Error!</strong>
-            You no longer have access to this service
-          </p>
-        </Notification>
-      {{else}}
-        <Notification @sticky={{true}}>
-          <p data-notification role="alert" class="warning notification-update">
-            <strong>Warning!</strong>
-            An error was returned whilst loading this data, refresh to try again.
-          </p>
-        </Notification>
-      {{/if}}
-    </BlockSlot>
-
-    <BlockSlot @name="loaded">
-      <AppView>
-        <BlockSlot @name="notification" as |status type item error|>
-          <TopologyMetrics::Notifications
-            @type={{type}}
-            @status={{status}}
-            @error={{error}}
-          />
-        </BlockSlot>
-        <BlockSlot @name="breadcrumbs">
-          <ol>
-              <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-          </ol>
-        </BlockSlot>
-        <BlockSlot @name="header">
-            <h1>
-              {{item.Service.Service}}
-            </h1>
-            <Consul::ExternalSource @item={{item.Service}} />
-            <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
-        </BlockSlot>
-        <BlockSlot @name="nav">
-        {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
-          <TabNav @items={{
-            compact
-                (array
-      (if (and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')))
-                  (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
-      '')
-      (if (eq item.Service.Kind 'terminating-gateway')
-                  (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
-      '')
-      (if (eq item.Service.Kind 'ingress-gateway')
-                  (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
-      '')
-                  (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-      (if (not-eq item.Service.Kind 'terminating-gateway')
-                  (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
-      '')
-      (if (and dc.MeshEnabled item.IsOrigin)
-                  (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
-      '')
-      (if (not item.Service.Kind)
-                  (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
-      '')
-                )
-          }}/>
+      <BlockSlot @name="data">
+        <EventSource @src={{items}} @onerror={{action loader.dispatchError}} />
+        {{#if (not loader.error)}}
+          <EventSource @src={{proxies}} />
+          <EventSource @src={{chain}} />
         {{/if}}
-        </BlockSlot>
-        <BlockSlot @name="actions">
-          {{#if urls.service}}
-            <a href={{render-template urls.service (hash
-              Datacenter=dc.Name
-              Service=(hash Name=item.Service.Service)
-            )}}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-test-dashboard-anchor>
-              Open Dashboard
-            </a>
-          {{/if}}
-        </BlockSlot>
-        <BlockSlot @name="content">
-          <Outlet
-            @name={{routeName}}
-          as |o|>
-            {{outlet}}
-          </Outlet>
-        </BlockSlot>
-      </AppView>
-    </BlockSlot>
-  </DataLoader>
-{{/let}}
+      </BlockSlot>
+
+      <BlockSlot @name="error">
+        <AppError @error={{loader.error}} />
+      </BlockSlot>
+
+      <BlockSlot @name="disconnected" as |Notification|>
+        {{#if (eq loader.error.status "404")}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="warning notification-update">
+              <strong>Warning!</strong>
+              This service has been deregistered and no longer exists in the catalog.
+            </p>
+          </Notification>
+        {{else if (eq loader.error.status "403")}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="error notification-update">
+              <strong>Error!</strong>
+              You no longer have access to this service
+            </p>
+          </Notification>
+        {{else}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="warning notification-update">
+              <strong>Warning!</strong>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </Notification>
+        {{/if}}
+      </BlockSlot>
+
+      <BlockSlot @name="loaded">
+        <AppView>
+          <BlockSlot @name="notification" as |status type item error|>
+            <TopologyMetrics::Notifications
+              @type={{type}}
+              @status={{status}}
+              @error={{error}}
+            />
+          </BlockSlot>
+          <BlockSlot @name="breadcrumbs">
+            <ol>
+                <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+            </ol>
+          </BlockSlot>
+          <BlockSlot @name="header">
+              <h1>
+                {{item.Service.Service}}
+              </h1>
+              <Consul::ExternalSource @item={{item.Service}} />
+              <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
+          </BlockSlot>
+          <BlockSlot @name="nav">
+            {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
+              <TabNav @items={{
+                compact
+                    (array
+          (if (and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')))
+                      (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
+          '')
+          (if (eq item.Service.Kind 'terminating-gateway')
+                      (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
+          '')
+          (if (eq item.Service.Kind 'ingress-gateway')
+                      (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
+          '')
+                      (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
+          (if (not-eq item.Service.Kind 'terminating-gateway')
+                      (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
+          '')
+          (if (and dc.MeshEnabled item.IsOrigin)
+                      (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
+          '')
+          (if (not item.Service.Kind)
+                      (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
+          '')
+                    )
+              }}/>
+            {{/if}}
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            {{#if urls.service}}
+              <a href={{render-template urls.service (hash
+                Datacenter=dc.Name
+                Service=(hash Name=item.Service.Service)
+              )}}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-test-dashboard-anchor>
+                Open Dashboard
+              </a>
+            {{/if}}
+          </BlockSlot>
+          <BlockSlot @name="content">
+            <Outlet
+              @name={{routeName}}
+            as |o|>
+              {{outlet}}
+            </Outlet>
+          </BlockSlot>
+        </AppView>
+      </BlockSlot>
+    </DataLoader>
+  {{/let}}
+</Route>

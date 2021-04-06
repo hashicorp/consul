@@ -74,11 +74,6 @@ func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (_ *EnterpriseMeta) Normalize() {}
 
-// GetNamespace always returns the empty string.
-func (_ *EnterpriseMeta) GetNamespace() string {
-	return ""
-}
-
 // FillAuthzContext stub
 func (_ *DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
@@ -154,4 +149,12 @@ func (s *Session) CheckIDs() []types.CheckID {
 		checks = append(checks, types.CheckID(c.ID))
 	}
 	return checks
+}
+
+func (t *Intention) HasWildcardSource() bool {
+	return t.SourceName == WildcardSpecifier
+}
+
+func (t *Intention) HasWildcardDestination() bool {
+	return t.DestinationName == WildcardSpecifier
 }

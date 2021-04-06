@@ -27,9 +27,11 @@ In the example task above, the "fake-firewall" and "null" providers, listed in t
 
 See [task configuration](/docs/nia/configuration#task) for more details on how to configure a task.
 
+A task can be either enabled or disabled using the [task cli](/docs/nia/cli/task). When enabled, tasks are executed and automated as described in sections below. However, disabled tasks do not execute when changes are detected from Consul catalog. Since disabled tasks do not execute, they also do not store [events](/docs/nia/tasks#event) until re-enabled.
+
 ## Task Execution
 
-A task is executed when any change of information for services the task is configured for is detected from the Consul catalog. Execution could include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
+An enabled task is executed when any change of information for services the task is configured for is detected from the Consul catalog. Execution could include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
 
 | Attribute               | Description                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -52,7 +54,7 @@ Consul-Terraform-Sync automatically generates any files needed to execute the ne
 
 ## Task Automation
 
-Consul-Terraform-Sync will attempt to execute each task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure all tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
+Consul-Terraform-Sync will attempt to execute each enabled task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. As a result, it is not recommended to configure a task as disabled from the start. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
 
 Tasks are executed near-real time when service changes are detected. For services or environments that are prone to flapping, it may be useful to configure a [buffer period](/docs/nia/configuration#buffer_period-1) for a task to accumulate changes before it is executed. The buffer period would reduce the number of consecutive network calls to infrastructure by batching changes for a task over a short duration of time.
 
@@ -67,7 +69,7 @@ These three levels form a hierarchy where each level of data informs the one hig
 
 ### Event
 
-Each time a task's services has an update, Consul-Terraform-Sync takes a series of steps in order to update network infrastructure. This process starts with updating the task's templates to fetch new service data from Consul and ends with any post-actions after modifying network infrastructure. An event is a data structure that captures information on this process of updating network infrastructure. It stores information to help understand if the update to network infrastructure was successful or not, and it stores any errors that occurred.
+Each time a task's services has an update, Consul-Terraform-Sync takes a series of steps in order to update network infrastructure. This process starts with updating the task's templates to fetch new service data from Consul and ends with any post-actions after modifying network infrastructure. An event is a data structure that captures information on this process of updating network infrastructure. It stores information to help understand if the update to network infrastructure was successful or not, and it stores any errors that occurred. Because disabled tasks do not update network infrastructures, they therefore do not have store events until re-enabled.
 
 Sample event:
 ```json

@@ -28,10 +28,7 @@
 %empty-state > ul {
   display: flex;
   justify-content: space-between;
-
-  margin-top: 1.5em;
-  padding-top: 0.6em;
-  border-top: 1px solid;
+  margin-top: 1em;
 }
 %empty-state-anchor {
   display: inline-flex;

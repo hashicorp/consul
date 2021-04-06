@@ -8,23 +8,207 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/proto/pbcommon"
-
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 )
 
+func TestServiceHealthSnapshot(t *testing.T) {
+	store := NewStateStore(nil)
+
+	counter := newIndexCounter()
+	err := store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "db"))
+	require.NoError(t, err)
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web"))
+	require.NoError(t, err)
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regNode2))
+	require.NoError(t, err)
+
+	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealth)
+	buf := &snapshotAppender{}
+	req := stream.SubscribeRequest{Key: "web"}
+
+	idx, err := fn(req, buf)
+	require.NoError(t, err)
+	require.Equal(t, counter.Last(), idx)
+
+	expected := [][]stream.Event{
+		{
+			testServiceHealthEvent(t, "web", func(e *stream.Event) error {
+				e.Index = counter.Last()
+				csn := getPayloadCheckServiceNode(e.Payload)
+				csn.Node.CreateIndex = 1
+				csn.Node.ModifyIndex = 1
+				csn.Service.CreateIndex = 2
+				csn.Service.ModifyIndex = 2
+				csn.Checks[0].CreateIndex = 1
+				csn.Checks[0].ModifyIndex = 1
+				csn.Checks[1].CreateIndex = 2
+				csn.Checks[1].ModifyIndex = 2
+				return nil
+			}),
+		},
+		{
+			testServiceHealthEvent(t, "web", evNode2, func(e *stream.Event) error {
+				e.Index = counter.Last()
+				csn := getPayloadCheckServiceNode(e.Payload)
+				csn.Node.CreateIndex = 3
+				csn.Node.ModifyIndex = 3
+				csn.Service.CreateIndex = 3
+				csn.Service.ModifyIndex = 3
+				for i := range csn.Checks {
+					csn.Checks[i].CreateIndex = 3
+					csn.Checks[i].ModifyIndex = 3
+				}
+				return nil
+			}),
+		},
+	}
+	assertDeepEqual(t, expected, buf.events, cmpEvents)
+}
+
+func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
+	store := NewStateStore(nil)
+
+	counter := newIndexCounter()
+	err := store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "db"))
+	require.NoError(t, err)
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web"))
+	require.NoError(t, err)
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regSidecar))
+	require.NoError(t, err)
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regNode2))
+	require.NoError(t, err)
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regNode2, regSidecar))
+	require.NoError(t, err)
+
+	configEntry := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "tgate1",
+		Services: []structs.LinkedService{
+			{
+				Name:           "web",
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	err = store.EnsureConfigEntry(counter.Next(), configEntry)
+	require.NoError(t, err)
+
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "tgate1", regTerminatingGateway))
+	require.NoError(t, err)
+
+	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealthConnect)
+	buf := &snapshotAppender{}
+	req := stream.SubscribeRequest{Key: "web", Topic: topicServiceHealthConnect}
+
+	idx, err := fn(req, buf)
+	require.NoError(t, err)
+	require.Equal(t, counter.Last(), idx)
+
+	expected := [][]stream.Event{
+		{
+			testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, func(e *stream.Event) error {
+				e.Index = counter.Last()
+				ep := e.Payload.(EventPayloadCheckServiceNode)
+				e.Payload = ep
+				csn := ep.Value
+				csn.Node.CreateIndex = 1
+				csn.Node.ModifyIndex = 1
+				csn.Service.CreateIndex = 3
+				csn.Service.ModifyIndex = 3
+				csn.Checks[0].CreateIndex = 1
+				csn.Checks[0].ModifyIndex = 1
+				csn.Checks[1].CreateIndex = 3
+				csn.Checks[1].ModifyIndex = 3
+				return nil
+			}),
+		},
+		{
+			testServiceHealthEvent(t, "web", evConnectTopic, evNode2, evSidecar, func(e *stream.Event) error {
+				e.Index = counter.Last()
+				ep := e.Payload.(EventPayloadCheckServiceNode)
+				e.Payload = ep
+				csn := ep.Value
+				csn.Node.CreateIndex = 4
+				csn.Node.ModifyIndex = 4
+				csn.Service.CreateIndex = 5
+				csn.Service.ModifyIndex = 5
+				csn.Checks[0].CreateIndex = 4
+				csn.Checks[0].ModifyIndex = 4
+				csn.Checks[1].CreateIndex = 5
+				csn.Checks[1].ModifyIndex = 5
+				return nil
+			}),
+		},
+		{
+			testServiceHealthEvent(t, "tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("web"),
+				func(e *stream.Event) error {
+					e.Index = counter.Last()
+					ep := e.Payload.(EventPayloadCheckServiceNode)
+					e.Payload = ep
+					csn := ep.Value
+					csn.Node.CreateIndex = 1
+					csn.Node.ModifyIndex = 1
+					csn.Service.CreateIndex = 7
+					csn.Service.ModifyIndex = 7
+					csn.Checks[0].CreateIndex = 1
+					csn.Checks[0].ModifyIndex = 1
+					csn.Checks[1].CreateIndex = 7
+					csn.Checks[1].ModifyIndex = 7
+					return nil
+				}),
+		},
+	}
+	assertDeepEqual(t, expected, buf.events, cmpEvents)
+}
+
+type snapshotAppender struct {
+	events [][]stream.Event
+}
+
+func (s *snapshotAppender) Append(events []stream.Event) {
+	s.events = append(s.events, events)
+}
+
+type indexCounter struct {
+	value uint64
+}
+
+func (c *indexCounter) Next() uint64 {
+	c.value++
+	return c.value
+}
+
+func (c *indexCounter) Last() uint64 {
+	return c.value
+}
+
+func newIndexCounter() *indexCounter {
+	return &indexCounter{}
+}
+
+var _ stream.SnapshotAppender = (*snapshotAppender)(nil)
+
+type serviceHealthTestCase struct {
+	Name       string
+	Setup      func(s *Store, tx *txn) error
+	Mutate     func(s *Store, tx *txn) error
+	WantEvents []stream.Event
+	WantErr    bool
+}
+
 func TestServiceHealthEventsFromChanges(t *testing.T) {
-	cases := []struct {
-		Name       string
-		Setup      func(s *Store, tx *txn) error
-		Mutate     func(s *Store, tx *txn) error
-		WantEvents []stream.Event
-		WantErr    bool
-	}{
+	setupIndex := uint64(10)
+	mutateIndex := uint64(100)
+
+	cases := []serviceHealthTestCase{
 		{
 			Name: "irrelevant events",
 			Mutate: func(s *Store, tx *txn) error {
@@ -324,7 +508,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					evRenameService,
 					evServiceMutated,
 					evNodeUnchanged,
-					evChecksMutated,
+					evServiceChecksMutated,
 				),
 				testServiceHealthDeregistrationEvent(t, "web",
 					evConnectTopic,
@@ -638,14 +822,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					evServiceCheckFail,
 					evNodeUnchanged,
 					evServiceUnchanged,
-					evChecksMutated,
+					evServiceChecksMutated,
 				),
 				testServiceHealthEvent(t, "web",
 					evSidecar,
 					evServiceCheckFail,
 					evNodeUnchanged,
 					evServiceUnchanged,
-					evChecksMutated,
+					evServiceChecksMutated,
 				),
 				testServiceHealthEvent(t, "web",
 					evConnectTopic,
@@ -653,7 +837,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					evServiceCheckFail,
 					evNodeUnchanged,
 					evServiceUnchanged,
-					evChecksMutated,
+					evServiceChecksMutated,
 				),
 			},
 			WantErr: false,
@@ -845,7 +1029,546 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
 			},
 		},
+		{
+			Name: "terminating gateway registered with no config entry",
+			Mutate: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1")),
+			},
+		},
+		{
+			Name: "config entry created with no terminating gateway instance",
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			},
+			WantEvents: []stream.Event{},
+		},
+		{
+			Name: "terminating gateway registered after config entry exists",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				if err := s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false,
+				); err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway, regNode2), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1"),
+					evNode2),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evNode2),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evNode2),
+			},
+		},
+		{
+			Name: "terminating gateway updated after config entry exists",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway, regNodeCheckFail), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1"),
+					evNodeCheckFail,
+					evNodeUnchanged,
+					evNodeChecksMutated,
+					evServiceUnchanged),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evNodeCheckFail,
+					evNodeUnchanged,
+					evNodeChecksMutated,
+					evServiceUnchanged),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evNodeCheckFail,
+					evNodeUnchanged,
+					evNodeChecksMutated,
+					evServiceUnchanged),
+			},
+		},
+		{
+			Name: "terminating gateway config entry created after gateway exists",
+			Setup: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evServiceIndex(setupIndex)),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evServiceIndex(setupIndex)),
+			},
+		},
+		{
+			Name: "change the terminating gateway config entry to add a linked service",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evServiceIndex(setupIndex)),
+			},
+		},
+		{
+			Name: "change the terminating gateway config entry to remove a linked service",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+			},
+		},
+		{
+			Name: "update a linked service within a terminating gateway config entry",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							CAFile:         "foo.crt",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evServiceIndex(setupIndex)),
+			},
+		},
+		{
+			Name: "delete a terminating gateway config entry with a linked service",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				err = s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway, regNode2), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				return deleteConfigEntryTxn(tx, tx.Index, structs.TerminatingGateway, "tgate1", structs.DefaultEnterpriseMeta())
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evNode2),
+			},
+		},
+		{
+			Name: "create an instance of a linked service in a terminating gateway",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "srv1"), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t, "srv1", evNodeUnchanged),
+			},
+		},
+		{
+			Name: "delete an instance of a linked service in a terminating gateway",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				err = s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "srv1"), false)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				return s.deleteServiceTxn(tx, tx.Index, "node1", "srv1", nil)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t, "srv1"),
+			},
+		},
+		{
+			Name: "rename a terminating gateway instance",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				configEntry = &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate2",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err = ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				rename := func(req *structs.RegisterRequest) error {
+					req.Service.Service = "tgate2"
+					req.Checks[1].ServiceName = "tgate2"
+					return nil
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway, rename), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway(""),
+					evNodeUnchanged,
+					evServiceMutated,
+					evServiceChecksMutated,
+					evTerminatingGatewayRenamed("tgate2")),
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evNodeUnchanged,
+					evServiceMutated,
+					evServiceChecksMutated,
+					evTerminatingGatewayRenamed("tgate2")),
+			},
+		},
+		{
+			Name: "delete a terminating gateway instance",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMeta())
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evServiceTermingGateway("")),
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2")),
+			},
+		},
 	}
+	cases = withServiceHealthEnterpriseCases(cases)
 
 	for _, tc := range cases {
 		tc := tc
@@ -855,7 +1578,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			if tc.Setup != nil {
 				// Bypass the publish mechanism for this test or we get into odd
 				// recursive stuff...
-				setupTx := s.db.WriteTxn(10)
+				setupTx := s.db.WriteTxn(setupIndex)
 				require.NoError(t, tc.Setup(s, setupTx))
 				// Commit the underlying transaction without using wrapped Commit so we
 				// avoid the whole event publishing system for setup here. It _should_
@@ -864,7 +1587,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				setupTx.Txn.Commit()
 			}
 
-			tx := s.db.WriteTxn(100)
+			tx := s.db.WriteTxn(mutateIndex)
 			require.NoError(t, tc.Mutate(s, tx))
 
 			// Note we call the func under test directly rather than publishChanges so
@@ -876,8 +1599,47 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents)
+			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 		})
+	}
+}
+
+func regTerminatingGateway(req *structs.RegisterRequest) error {
+	req.Service.Kind = structs.ServiceKindTerminatingGateway
+	req.Service.Port = 22000
+	return nil
+}
+
+func evServiceTermingGateway(name string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+
+		csn.Service.Kind = structs.ServiceKindTerminatingGateway
+		csn.Service.Port = 22000
+
+		if e.Topic == topicServiceHealthConnect {
+			payload := e.Payload.(EventPayloadCheckServiceNode)
+			payload.overrideKey = name
+			e.Payload = payload
+		}
+		return nil
+	}
+}
+
+func evServiceIndex(idx uint64) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.Value.Node.CreateIndex = idx
+		payload.Value.Node.ModifyIndex = idx
+		payload.Value.Service.CreateIndex = idx
+		payload.Value.Service.ModifyIndex = idx
+		for _, check := range payload.Value.Checks {
+			check.CreateIndex = idx
+			check.ModifyIndex = idx
+		}
+		e.Payload = payload
+
+		return nil
 	}
 }
 
@@ -889,13 +1651,26 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 }
 
 // cmpPartialOrderEvents returns a compare option which sorts events so that
-// all events for a particular node/service are grouped together. The sort is
-// stable so events with the same node/service retain their relative order.
+// all events for a particular topic are grouped together. The sort is
+// stable so events with the same key retain their relative order.
+//
+// This sort should match the logic in EventPayloadCheckServiceNode.MatchesKey
+// to avoid masking bugs.
 var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {
 		key := func(e stream.Event) string {
-			csn := getPayloadCheckServiceNode(e.Payload)
-			return fmt.Sprintf("%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service)
+			payload := e.Payload.(EventPayloadCheckServiceNode)
+			csn := payload.Value
+
+			name := csn.Service.Service
+			if payload.overrideKey != "" {
+				name = payload.overrideKey
+			}
+			ns := csn.Service.EnterpriseMeta.NamespaceOrDefault()
+			if payload.overrideNamespace != "" {
+				ns = payload.overrideNamespace
+			}
+			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, ns, name)
 		}
 		return key(i) < key(j)
 	}),
@@ -950,7 +1725,9 @@ func testServiceRegistration(t *testing.T, svc string, opts ...regOption) *struc
 		})
 	for _, opt := range opts {
 		err := opt(r)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 	}
 	return r
 }
@@ -968,8 +1745,9 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) strea
 	csn.Node.Address = "10.10.10.10"
 
 	for _, opt := range opts {
-		err := opt(&e)
-		require.NoError(t, err)
+		if err := opt(&e); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 	}
 	return e
 }
@@ -977,8 +1755,9 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) strea
 func testServiceHealthDeregistrationEvent(t *testing.T, svc string, opts ...eventOption) stream.Event {
 	e := newTestEventServiceHealthDeregister(100, 1, svc)
 	for _, opt := range opts {
-		err := opt(&e)
-		require.NoError(t, err)
+		if err := opt(&e); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 	}
 	return e
 }
@@ -1146,7 +1925,7 @@ func evConnectNative(e *stream.Event) error {
 // evConnectTopic option converts the base event to the equivalent event that
 // should be published to the connect topic. When needed it should be applied
 // first as several other options (notable evSidecar) change behavior subtly
-// depending on which topic they are published to and they determin this from
+// depending on which topic they are published to and they determine this from
 // the event.
 func evConnectTopic(e *stream.Event) error {
 	e.Topic = topicServiceHealthConnect
@@ -1183,7 +1962,7 @@ func evSidecar(e *stream.Event) error {
 
 	if e.Topic == topicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
-		payload.key = svc
+		payload.overrideKey = svc
 		e.Payload = payload
 	}
 	return nil
@@ -1215,12 +1994,12 @@ func evServiceMutated(e *stream.Event) error {
 	return nil
 }
 
-// evChecksMutated option alters the base event service check to set it's
+// evServiceChecksMutated option alters the base event service check to set it's
 // CreateIndex (but not modify index) to the setup index. This expresses that we
 // expect the service check records originally created in setup to have been
 // mutated during the update. NOTE: this must be sequenced after
 // evServiceUnchanged if both are used.
-func evChecksMutated(e *stream.Event) error {
+func evServiceChecksMutated(e *stream.Event) error {
 	getPayloadCheckServiceNode(e.Payload).Checks[1].CreateIndex = 10
 	getPayloadCheckServiceNode(e.Payload).Checks[1].ModifyIndex = 100
 	return nil
@@ -1272,10 +2051,19 @@ func evRenameService(e *stream.Event) error {
 
 	if e.Topic == topicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
-		payload.key = csn.Service.Proxy.DestinationServiceName
+		payload.overrideKey = csn.Service.Proxy.DestinationServiceName
 		e.Payload = payload
 	}
 	return nil
+}
+
+func evTerminatingGatewayRenamed(newName string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+		csn.Service.Service = newName
+		csn.Checks[1].ServiceName = newName
+		return nil
+	}
 }
 
 // evNodeMeta option alters the base event node to add some meta data.
@@ -1513,14 +2301,42 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 		},
 		{
 			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv1"),
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", ""),
 			key:       "srv1",
 			namespace: "ns1",
 			expected:  true,
 		},
 		{
-			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv2"),
+			name:      "override key mismatch",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", ""),
+			key:       "proxy",
+			namespace: "ns1",
+			expected:  false,
+		},
+		{
+			name:      "override namespace match",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns2"),
+			key:       "proxy",
+			namespace: "ns2",
+			expected:  true,
+		},
+		{
+			name:      "override namespace mismatch",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns3"),
+			key:       "proxy",
+			namespace: "ns1",
+			expected:  false,
+		},
+		{
+			name:      "override both key and namespace match",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", "ns2"),
+			key:       "srv1",
+			namespace: "ns2",
+			expected:  true,
+		},
+		{
+			name:      "override both key and namespace mismatch namespace",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", "ns3"),
 			key:       "proxy",
 			namespace: "ns1",
 			expected:  false,
@@ -1545,7 +2361,8 @@ func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServ
 	}
 }
 
-func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayloadCheckServiceNode {
+func newPayloadCheckServiceNodeWithOverride(
+	service, namespace, overrideKey, overrideNamespace string) EventPayloadCheckServiceNode {
 	return EventPayloadCheckServiceNode{
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
@@ -1553,6 +2370,7 @@ func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayl
 				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 			},
 		},
-		key: key,
+		overrideKey:       overrideKey,
+		overrideNamespace: overrideNamespace,
 	}
 }

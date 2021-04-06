@@ -1,5 +1,27 @@
 ## UNRELEASED
 
+## 1.9.4 (March 04, 2021)
+
+IMPROVEMENTS:
+
+* connect: if the token given to the vault provider returns no data avoid a panic [[GH-9806](https://github.com/hashicorp/consul/issues/9806)]
+* connect: update supported envoy point releases to 1.16.2, 1.15.3, 1.14.6, 1.13.7 [[GH-9737](https://github.com/hashicorp/consul/issues/9737)]
+* xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel [[GH-9765](https://github.com/hashicorp/consul/issues/9765)]
+
+BUG FIXES:
+
+* api: Remove trailing periods from the gateway internal HTTP API endpoint [[GH-9752](https://github.com/hashicorp/consul/issues/9752)]
+* cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error. [[GH-9738](https://github.com/hashicorp/consul/issues/9738)]
+* connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate [[GH-9428](https://github.com/hashicorp/consul/issues/9428)]
+* proxycfg: avoid potential deadlock in delivering proxy snapshot to watchers. [[GH-9689](https://github.com/hashicorp/consul/issues/9689)]
+* replication: Correctly log all replication warnings that should not be suppressed [[GH-9320](https://github.com/hashicorp/consul/issues/9320)]
+* streaming: fixes a bug caused by caching an incorrect snapshot, that would cause clients
+to error until the cache expired. [[GH-9772](https://github.com/hashicorp/consul/issues/9772)]
+* ui: Exclude proxies when showing the total number of instances on a node. [[GH-9749](https://github.com/hashicorp/consul/issues/9749)]
+* ui: Fixed a bug in older browsers relating to String.replaceAll and fieldset w/flexbox usage [[GH-9715](https://github.com/hashicorp/consul/issues/9715)]
+* xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn [[GH-9650](https://github.com/hashicorp/consul/issues/9650)]
+* xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well [[GH-9651](https://github.com/hashicorp/consul/issues/9651)]
+
 ## 1.9.3 (February 01, 2021)
 
 FEATURES:
@@ -174,6 +196,7 @@ BUG FIXES:
 * agent: make the json/hcl decoding of ConnectProxyConfig fully work with CamelCase and snake_case [[GH-8741](https://github.com/hashicorp/consul/issues/8741)]
 * agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
 * api: Fixed a bug where the Check.GRPCUseTLS field could not be set using snake case. [[GH-8771](https://github.com/hashicorp/consul/issues/8771)]
+* api: Fixed a bug where additional headers configured with `http_config.response_headers` would not be served on index and error pages [[GH-8694](https://github.com/hashicorp/consul/pull/8694/files#diff-160c9abf1b1868a8505065ab02d736fd2dc522a7a555d57383e8428883dc7755R545-R548)]
 * autopilot: **(Enterprise Only)** Previously servers in other zones would not be promoted when all servers in a second zone had failed. Now the actual behavior matches the docs and autopilot will promote a healthy non-voter from any zone to replace failure of an entire zone. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
 * autopilot: Prevent panic when requesting the autopilot health immediately after a leader is elected. [[GH-9204](https://github.com/hashicorp/consul/issues/9204)]
 * command: when generating envoy bootstrap configs use the datacenter returned from the agent services endpoint [[GH-9229](https://github.com/hashicorp/consul/issues/9229)]
@@ -190,6 +213,28 @@ BUG FIXES:
 * telemetry: fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
+## 1.8.9 (March 04, 2021)
+
+IMPROVEMENTS:
+
+* cli: Add new `-cluster-id` and `common-name` to `consul tls ca create` to support creating a CA for Consul Connect. [[GH-9585](https://github.com/hashicorp/consul/issues/9585)]
+* connect: if the token given to the vault provider returns no data avoid a panic [[GH-9806](https://github.com/hashicorp/consul/issues/9806)]
+* connect: update supported envoy point releases to 1.14.6, 1.13.7, 1.12.7, 1.11.2 [[GH-9739](https://github.com/hashicorp/consul/issues/9739)]
+* license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
+* server: use the presense of stored federation state data as a sign that we already activated the federation state feature flag [[GH-9519](https://github.com/hashicorp/consul/issues/9519)]
+* xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel [[GH-9765](https://github.com/hashicorp/consul/issues/9765)]
+
+BUG FIXES:
+
+* api: Remove trailing periods from the gateway internal HTTP API endpoint [[GH-9752](https://github.com/hashicorp/consul/issues/9752)]
+* cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error. [[GH-9738](https://github.com/hashicorp/consul/issues/9738)]
+* connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate [[GH-9428](https://github.com/hashicorp/consul/issues/9428)]
+* proxycfg: avoid potential deadlock in delivering proxy snapshot to watchers. [[GH-9689](https://github.com/hashicorp/consul/issues/9689)]
+* server: When wan federating via mesh gateways after initial federation default to using the local mesh gateways unless the heuristic indicates a bypass is required. [[GH-9528](https://github.com/hashicorp/consul/issues/9528)]
+* server: When wan federating via mesh gateways only do heuristic primary DC bypass on the leader. [[GH-9366](https://github.com/hashicorp/consul/issues/9366)]
+* xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn [[GH-9650](https://github.com/hashicorp/consul/issues/9650)]
+* xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well [[GH-9651](https://github.com/hashicorp/consul/issues/9651)]
+* 
 ## 1.8.8 (January 22, 2021)
 
 BUG FIXES:
@@ -385,6 +430,21 @@ BUGFIXES:
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+
+## 1.7.13 (March 04, 2021)
+
+IMPROVEMENTS:
+
+* connect: update supported envoy point releases to 1.13.7, 1.12.7, 1.11.2, 1.10.0 [[GH-9740](https://github.com/hashicorp/consul/issues/9740)]
+* license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
+* xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel [[GH-9765](https://github.com/hashicorp/consul/issues/9765)]
+
+BUG FIXES:
+
+* cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error. [[GH-9738](https://github.com/hashicorp/consul/issues/9738)]
+* connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate [[GH-9428](https://github.com/hashicorp/consul/issues/9428)]
+* xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn [[GH-9650](https://github.com/hashicorp/consul/issues/9650)]
+* xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well [[GH-9651](https://github.com/hashicorp/consul/issues/9651)]
 
 ## 1.7.12 (January 22, 2021)
 

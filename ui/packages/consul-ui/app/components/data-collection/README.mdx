@@ -1,13 +1,16 @@
-## DataSource
+---
+class: ember
+---
+# DataCollection
 
-```handlebars
+```hbs
 <DataCollection
   @search={{''}}
   @sort={{''}}
   @filter={{hash
     searchproperties=(array)
   }}
-  @items={{array}}
+  @items={{array 'hi'}}
 as |collection|>
   {{collection.items.length}}
   <collection.Collection>

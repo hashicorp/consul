@@ -1,11 +1,9 @@
 @import './skin';
 @import './layout';
 /* things that should look like nav buttons */
-%main-nav-vertical > ul > li > a,
-%main-nav-vertical > ul > li > span {
+%main-nav-vertical > ul > li > a {
   @extend %main-nav-vertical-action;
 }
-%main-nav-vertical > ul > li > a:active,
 %main-nav-vertical > ul > li.is-active > a {
   @extend %main-nav-vertical-action-active;
 }
@@ -15,10 +13,8 @@
   @extend %main-nav-vertical-action-active-intent;
 }
 
-/* Whilst we want spans to look the same as actions */
-/* we don't want them to act the same */
-%main-nav-vertical-action:not(span):hover,
-%main-nav-vertical-action:not(span):focus {
+%main-nav-vertical-action:hover,
+%main-nav-vertical-action:focus {
   @extend %main-nav-vertical-action-intent;
 }
 

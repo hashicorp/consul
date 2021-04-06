@@ -113,57 +113,6 @@ func (s *TokenRolesIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
 	return val, nil
 }
 
-type RolePoliciesIndex struct {
-}
-
-func (s *RolePoliciesIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
-	role, ok := obj.(*structs.ACLRole)
-	if !ok {
-		return false, nil, fmt.Errorf("object is not an ACLRole")
-	}
-
-	links := role.Policies
-
-	numLinks := len(links)
-	if numLinks == 0 {
-		return false, nil, nil
-	}
-
-	vals := make([][]byte, 0, numLinks)
-	for _, link := range links {
-		vals = append(vals, []byte(link.ID+"\x00"))
-	}
-
-	return true, vals, nil
-}
-
-func (s *RolePoliciesIndex) FromArgs(args ...interface{}) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("must provide only a single argument")
-	}
-	arg, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
-	}
-	// Add the null character as a terminator
-	arg += "\x00"
-	return []byte(arg), nil
-}
-
-func (s *RolePoliciesIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
-	val, err := s.FromArgs(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Strip the null terminator, the rest is a prefix
-	n := len(val)
-	if n > 0 {
-		return val[:n-1], nil
-	}
-	return val, nil
-}
-
 type TokenExpirationIndex struct {
 	LocalFilter bool
 }
@@ -228,11 +177,7 @@ func (s *Restore) ACLToken(token *structs.ACLToken) error {
 
 // ACLPolicies is used when saving a snapshot
 func (s *Snapshot) ACLPolicies() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-policies", "id")
-	if err != nil {
-		return nil, err
-	}
-	return iter, nil
+	return s.tx.Get(tableACLPolicies, indexID)
 }
 
 func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
@@ -241,7 +186,7 @@ func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
 
 // ACLRoles is used when saving a snapshot
 func (s *Snapshot) ACLRoles() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-roles", "id")
+	iter, err := s.tx.Get(tableACLRoles, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -548,21 +493,20 @@ func fixupTokenRoleLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLTo
 
 func resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMissing bool) error {
 	for linkIndex, link := range role.Policies {
-		if link.ID != "" {
-			policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &role.EnterpriseMeta)
-
-			if err != nil {
-				return err
-			}
-
-			if policy != nil {
-				// the name doesn't matter here
-				role.Policies[linkIndex].Name = policy.Name
-			} else if !allowMissing {
-				return fmt.Errorf("No such policy with ID: %s", link.ID)
-			}
-		} else {
+		if link.ID == "" {
 			return fmt.Errorf("Encountered a Role with policies linked by Name in the state store")
+		}
+
+		policy, err := getPolicyWithTxn(tx, nil, link.ID, aclPolicyGetByID, &role.EnterpriseMeta)
+		if err != nil {
+			return err
+		}
+
+		if policy != nil {
+			// the name doesn't matter here
+			role.Policies[linkIndex].Name = policy.Name
+		} else if !allowMissing {
+			return fmt.Errorf("No such policy with ID: %s", link.ID)
 		}
 	}
 	return nil
@@ -1162,7 +1106,8 @@ func aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) error {
 	}
 
 	// ensure the name is unique (cannot conflict with another policy with a different ID)
-	_, nameMatch, err := aclPolicyGetByName(tx, policy.Name, &policy.EnterpriseMeta)
+	q := Query{Value: policy.Name, EnterpriseMeta: policy.EnterpriseMeta}
+	nameMatch, err := tx.First(tableACLPolicies, indexName, q)
 	if err != nil {
 		return err
 	}
@@ -1195,6 +1140,15 @@ func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string, entMeta *stru
 	return s.aclPolicyGet(ws, name, aclPolicyGetByName, entMeta)
 }
 
+func aclPolicyGetByName(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+	// todo: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{Value: name, EnterpriseMeta: *entMeta}
+	return tx.FirstWatch(tableACLPolicies, indexName, q)
+}
+
 func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLPolicies, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -1212,8 +1166,8 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 	}
 
 	// We are specifically not wanting to call aclPolicyMaxIndex here as we always want the
-	// index entry for the "acl-policies" table.
-	idx := maxIndexTxn(tx, "acl-policies")
+	// index entry for the tableACLPolicies table.
+	idx := maxIndexTxn(tx, tableACLPolicies)
 
 	return idx, policies, nil
 }
@@ -1252,7 +1206,7 @@ func (s *Store) ACLPolicyList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := aclPolicyList(tx, entMeta)
+	iter, err := tx.Get(tableACLPolicies, indexName+"_prefix", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl policy lookup: %v", err)
 	}
@@ -1365,7 +1319,8 @@ func aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowMissing bool
 	}
 
 	// ensure the name is unique (cannot conflict with another role with a different ID)
-	_, nameMatch, err := aclRoleGetByName(tx, role.Name, &role.EnterpriseMeta)
+	q := Query{EnterpriseMeta: role.EnterpriseMeta, Value: role.Name}
+	nameMatch, err := tx.First(tableACLRoles, indexName, q)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1418,6 +1373,15 @@ func (s *Store) ACLRoleGetByName(ws memdb.WatchSet, name string, entMeta *struct
 	return s.aclRoleGet(ws, name, aclRoleGetByName, entMeta)
 }
 
+func aclRoleGetByName(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{EnterpriseMeta: *entMeta, Value: name}
+	return tx.FirstWatch(tableACLRoles, indexName, q)
+}
+
 func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLRoles, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -1434,7 +1398,7 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 		}
 	}
 
-	idx := maxIndexTxn(tx, "acl-roles")
+	idx := maxIndexTxn(tx, tableACLRoles)
 
 	return idx, roles, nil
 }
@@ -1479,10 +1443,16 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	var iter memdb.ResultIterator
 	var err error
 
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
 	if policy != "" {
-		iter, err = aclRoleListByPolicy(tx, policy, entMeta)
+		q := Query{Value: policy, EnterpriseMeta: *entMeta}
+		iter, err = tx.Get(tableACLRoles, indexPolicies, q)
 	} else {
-		iter, err = aclRoleList(tx, entMeta)
+		iter, err = tx.Get(tableACLRoles, indexName+"_prefix", entMeta)
 	}
 
 	if err != nil {

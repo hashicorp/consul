@@ -32,7 +32,7 @@ Feature: dc / intentions / create: Intention Create
     And I click ".ember-power-select-option:first-child"
     Then I see the text "db" in "[data-test-destination-element] .ember-power-select-selected-item"
     # Specifically set deny
-    And I click "[value=deny]"
+    And I click ".value-deny"
     And I submit
     # TODO: When namespace is empty we expect *
     # Then a PUT request was made to "/v1/connect/intentions/exact?source=@namespace%2Fweb&destination=@namespace%2Fdb&dc=datacenter" from yaml
@@ -75,7 +75,7 @@ Feature: dc / intentions / create: Intention Create
     And I click ".ember-power-select-option:first-child"
     Then I see the text "db" in "[data-test-destination-element] .ember-power-select-selected-item"
     # Specifically set deny
-    And I click "[value=deny]"
+    And I click ".value-deny"
     And I submit
     Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" from yaml
     ---

@@ -1,0 +1,95 @@
+@import './base/reset/index';
+@import './base/index';
+@import 'prism-coldark-dark';
+.docs {
+  .tabular-collection,
+  .list-collection {
+    height: 300px !important;
+  }
+  nav:first-of-type {
+    & {
+      padding-top: 0 !important;
+    }
+    ul {
+      margin-bottom: 100px;
+      padding-top: 0 !important;
+    }
+    li.consul-components a::before,
+    li.components a::before {
+      @extend %with-glimmer-logo-color-icon, %as-pseudo;
+      margin-right: 5px;
+    }
+    li.consul-components.ember-component a::before,
+    li.components.ember-component a::before {
+      @extend %with-ember-circle-logo-color-icon, %as-pseudo;
+    }
+  }
+  main {
+    & {
+      background-color: white;
+      margin-bottom: 2rem;
+    }
+    ol,
+    ul {
+      list-style-position: inside;
+      margin-bottom: 1rem;
+    }
+  }
+  .docfy-demo {
+    & {
+      margin-bottom: 1rem;
+    }
+    &__example {
+      & {
+        border-top: 1px solid;
+        border-left: 1px solid;
+        border-right: 1px solid;
+        border-color: var(--gray-200);
+        padding: 1rem;
+        margin-bottom: 0;
+      }
+      ol,
+      ul {
+        margin-bottom: 0;
+      }
+    }
+    // &__snippets__tabs__button {
+    //   display: none;
+    // }
+    &__snippet {
+      pre {
+        margin: 0 !important;
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+      }
+    }
+  }
+  h1,
+  h2,
+  h3 {
+    margin-bottom: 1em;
+  }
+  h1 {
+    padding-top: 20px;
+    @extend %h100;
+  }
+  h2 {
+    @extend %h200;
+  }
+  h3 {
+    @extend %h300;
+  }
+  p {
+    @extend %p1;
+  }
+  table {
+    margin-bottom: 3em;
+  }
+  td {
+    font-weight: normal !important;
+    cursor: default !important;
+  }
+  tr:hover {
+    box-shadow: none;
+  }
+}

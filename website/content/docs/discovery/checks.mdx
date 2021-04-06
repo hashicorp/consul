@@ -63,7 +63,9 @@ There are several different kinds of checks:
   check is limited to roughly 4KB. Responses larger than this will be truncated.
   HTTP checks also support TLS. By default, a valid TLS certificate is expected.
   Certificate verification can be turned off by setting the `tls_skip_verify`
-  field to `true` in the check definition.
+  field to `true` in the check definition. When using TLS, the SNI will be set
+  automatically from the URL if it uses a hostname (as opposed to an IP address);
+  the value can be overriden by setting `tls_server_name`.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts
@@ -153,6 +155,7 @@ A HTTP check:
     "id": "api",
     "name": "HTTP API on port 5000",
     "http": "https://localhost:5000/health",
+    "tls_server_name": "",
     "tls_skip_verify": false,
     "method": "POST",
     "header": {"Content-Type": ["application/json"]},

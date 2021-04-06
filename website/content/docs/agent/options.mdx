@@ -851,7 +851,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `serf_wan_allowed_cidrs` ((#serf_wan_allowed_cidrs)) Equivalent to the [`-serf-wan-allowed-cidrs` command-line flag](#_serf_wan_allowed_cidrs).
 
 - `audit` <EnterpriseAlert inline /> - Added in Consul 1.8, the audit object allow users to enable auditing
-  and configure a sink and filters for their audit logs.
+  and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](https://learn.hashicorp.com/tutorials/consul/audit-logging).
 
   ```hcl
     audit {
@@ -1832,10 +1832,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `rpc` configuration for Consul servers.
 
-  - `enable_streaming` ((#rpc_enable_streaming)) (experimental) enables the gRPC subscribe endpoint on a Consul Server. All
+  - `enable_streaming` ((#rpc_enable_streaming)) defaults to true. If set to false it will disable
+    the gRPC subscribe endpoint on a Consul Server. All
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
-    This setting will default to true in a future version of Consul.
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
@@ -2213,7 +2213,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   streaming rpc, instead of the traditional blocking queries, for endpoints which support
   streaming. All servers must have [`rpc.enable_streaming`](#rpc_enable_streaming)
   enabled before any client can enable `use_streaming_backend`.
-  At least one of [`dns.use_cache`](#dns_use_cache) or
+  At least one of [`dns_config.use_cache`](#dns_use_cache) or
   [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
   this setting has no effect.
   `use_streaming_backend` will default to true in a future version of Consul.

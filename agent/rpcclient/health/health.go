@@ -12,8 +12,9 @@ type Client struct {
 	Cache  CacheGetter
 	// CacheName to use for service health.
 	CacheName string
-	// CacheNameConnect is the name of the cache to use for connect service health.
-	CacheNameConnect string
+	// CacheNameIngress is the name of the cache type to use for ingress
+	// service health.
+	CacheNameIngress string
 }
 
 type NetRPC interface {
@@ -22,6 +23,7 @@ type NetRPC interface {
 
 type CacheGetter interface {
 	Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error)
+	Notify(ctx context.Context, t string, r cache.Request, cID string, ch chan<- cache.UpdateEvent) error
 }
 
 func (c *Client) ServiceNodes(
@@ -55,8 +57,8 @@ func (c *Client) getServiceNodes(
 	}
 
 	cacheName := c.CacheName
-	if req.Connect {
-		cacheName = c.CacheNameConnect
+	if req.Ingress {
+		cacheName = c.CacheNameIngress
 	}
 
 	raw, md, err := c.Cache.Get(ctx, cacheName, &req)
@@ -68,5 +70,19 @@ func (c *Client) getServiceNodes(
 	if !ok {
 		panic("wrong response type for cachetype.HealthServicesName")
 	}
+
 	return *value, md, nil
+}
+
+func (c *Client) Notify(
+	ctx context.Context,
+	req structs.ServiceSpecificRequest,
+	correlationID string,
+	ch chan<- cache.UpdateEvent,
+) error {
+	cacheName := c.CacheName
+	if req.Ingress {
+		cacheName = c.CacheNameIngress
+	}
+	return c.Cache.Notify(ctx, cacheName, &req, correlationID, ch)
 }

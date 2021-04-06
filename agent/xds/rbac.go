@@ -5,37 +5,37 @@ import (
 	"sort"
 	"strings"
 
-	envoylistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	envoyhttprbac "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
-	envoyhttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	envoynetrbac "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2"
-	envoyrbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2"
-	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
+	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
+	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoylistener.Filter, error) {
+func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoy_listener_v3.Filter, error) {
 	rules, err := makeRBACRules(intentions, intentionDefaultAllow, false)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := &envoynetrbac.RBAC{
+	cfg := &envoy_network_rbac_v3.RBAC{
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}
 	return makeFilter("envoy.filters.network.rbac", cfg)
 }
 
-func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoyhttp.HttpFilter, error) {
+func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoy_http_v3.HttpFilter, error) {
 	rules, err := makeRBACRules(intentions, intentionDefaultAllow, true)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := &envoyhttprbac.RBAC{
+	cfg := &envoy_http_rbac_v3.RBAC{
 		Rules: rules,
 	}
 	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg)
@@ -227,17 +227,17 @@ type rbacIntention struct {
 	// that marked them.
 	Skip bool
 
-	ComputedPrincipal *envoyrbac.Principal
+	ComputedPrincipal *envoy_rbac_v3.Principal
 }
 
-func (r *rbacIntention) FlattenPrincipal() *envoyrbac.Principal {
+func (r *rbacIntention) FlattenPrincipal() *envoy_rbac_v3.Principal {
 	r.NotSources = simplifyNotSourceSlice(r.NotSources)
 
 	if len(r.NotSources) == 0 {
 		return idPrincipal(r.Source)
 	}
 
-	andIDs := make([]*envoyrbac.Principal, 0, len(r.NotSources)+1)
+	andIDs := make([]*envoy_rbac_v3.Principal, 0, len(r.NotSources)+1)
 	andIDs = append(andIDs, idPrincipal(r.Source))
 	for _, src := range r.NotSources {
 		andIDs = append(andIDs, notPrincipal(
@@ -251,23 +251,23 @@ type rbacPermission struct {
 	Definition *structs.IntentionPermission
 
 	Action   intentionAction
-	Perm     *envoyrbac.Permission
-	NotPerms []*envoyrbac.Permission
+	Perm     *envoy_rbac_v3.Permission
+	NotPerms []*envoy_rbac_v3.Permission
 
 	// Skip is field used to indicate that this permission can be deleted in
 	// the final pass. Items marked as true should generally not escape the
 	// method that marked them.
 	Skip bool
 
-	ComputedPermission *envoyrbac.Permission
+	ComputedPermission *envoy_rbac_v3.Permission
 }
 
-func (p *rbacPermission) Flatten() *envoyrbac.Permission {
+func (p *rbacPermission) Flatten() *envoy_rbac_v3.Permission {
 	if len(p.NotPerms) == 0 {
 		return p.Perm
 	}
 
-	parts := make([]*envoyrbac.Permission, 0, len(p.NotPerms)+1)
+	parts := make([]*envoy_rbac_v3.Permission, 0, len(p.NotPerms)+1)
 	parts = append(parts, p.Perm)
 	for _, notPerm := range p.NotPerms {
 		parts = append(parts, notPermission(notPerm))
@@ -357,7 +357,7 @@ func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceN
 //     <default>    : DENY
 //
 // Which really is just an allow-list of [A, C AND NOT(B)]
-func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, isHTTP bool) (*envoyrbac.RBAC, error) {
+func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, isHTTP bool) (*envoy_rbac_v3.RBAC, error) {
 	// Note that we DON'T explicitly validate the trust-domain matches ours.
 	//
 	// For now we don't validate the trust domain of the _destination_ at all.
@@ -378,15 +378,15 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 	// Normalize: if we are in default-deny then all intentions must be allows and vice versa
 	intentionDefaultAction := intentionActionFromBool(intentionDefaultAllow)
 
-	var rbacAction envoyrbac.RBAC_Action
+	var rbacAction envoy_rbac_v3.RBAC_Action
 	if intentionDefaultAllow {
 		// The RBAC policies deny access to principals. The rest is allowed.
 		// This is block-list style access control.
-		rbacAction = envoyrbac.RBAC_DENY
+		rbacAction = envoy_rbac_v3.RBAC_DENY
 	} else {
 		// The RBAC policies grant access to principals. The rest is denied.
 		// This is safe-list style access control. This is the default type.
-		rbacAction = envoyrbac.RBAC_ALLOW
+		rbacAction = envoy_rbac_v3.RBAC_ALLOW
 	}
 
 	// Remove source and permissions precedence.
@@ -394,21 +394,21 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 
 	// For L4: we should generate one big Policy listing all Principals
 	// For L7: we should generate one Policy per Principal and list all of the Permissions
-	rbac := &envoyrbac.RBAC{
+	rbac := &envoy_rbac_v3.RBAC{
 		Action:   rbacAction,
-		Policies: make(map[string]*envoyrbac.Policy),
+		Policies: make(map[string]*envoy_rbac_v3.Policy),
 	}
 
-	var principalsL4 []*envoyrbac.Principal
+	var principalsL4 []*envoy_rbac_v3.Principal
 	for i, rbacIxn := range rbacIxns {
 		if len(rbacIxn.Permissions) > 0 {
 			if !isHTTP {
 				panic("invalid state: L7 permissions present for TCP service")
 			}
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
-			policy := &envoyrbac.Policy{
-				Principals:  []*envoyrbac.Principal{rbacIxn.ComputedPrincipal},
-				Permissions: make([]*envoyrbac.Permission, 0, len(rbacIxn.Permissions)),
+			policy := &envoy_rbac_v3.Policy{
+				Principals:  []*envoy_rbac_v3.Principal{rbacIxn.ComputedPrincipal},
+				Permissions: make([]*envoy_rbac_v3.Permission, 0, len(rbacIxn.Permissions)),
 			}
 			for _, perm := range rbacIxn.Permissions {
 				policy.Permissions = append(policy.Permissions, perm.ComputedPermission)
@@ -420,9 +420,9 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 		}
 	}
 	if len(principalsL4) > 0 {
-		rbac.Policies["consul-intentions-layer4"] = &envoyrbac.Policy{
+		rbac.Policies["consul-intentions-layer4"] = &envoy_rbac_v3.Policy{
 			Principals:  principalsL4,
-			Permissions: []*envoyrbac.Permission{anyPermission()},
+			Permissions: []*envoy_rbac_v3.Permission{anyPermission()},
 		}
 	}
 
@@ -502,32 +502,32 @@ func countWild(src structs.ServiceName) int {
 	return 0
 }
 
-func andPrincipals(ids []*envoyrbac.Principal) *envoyrbac.Principal {
-	return &envoyrbac.Principal{
-		Identifier: &envoyrbac.Principal_AndIds{
-			AndIds: &envoyrbac.Principal_Set{
+func andPrincipals(ids []*envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_AndIds{
+			AndIds: &envoy_rbac_v3.Principal_Set{
 				Ids: ids,
 			},
 		},
 	}
 }
 
-func notPrincipal(id *envoyrbac.Principal) *envoyrbac.Principal {
-	return &envoyrbac.Principal{
-		Identifier: &envoyrbac.Principal_NotId{
+func notPrincipal(id *envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_NotId{
 			NotId: id,
 		},
 	}
 }
 
-func idPrincipal(src structs.ServiceName) *envoyrbac.Principal {
+func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
 	pattern := makeSpiffePattern(src.NamespaceOrDefault(), src.Name)
 
-	return &envoyrbac.Principal{
-		Identifier: &envoyrbac.Principal_Authenticated_{
-			Authenticated: &envoyrbac.Principal_Authenticated{
-				PrincipalName: &envoymatcher.StringMatcher{
-					MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
+	return &envoy_rbac_v3.Principal{
+		Identifier: &envoy_rbac_v3.Principal_Authenticated_{
+			Authenticated: &envoy_rbac_v3.Principal_Authenticated{
+				PrincipalName: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
 						SafeRegex: makeEnvoyRegexMatch(pattern),
 					},
 				},
@@ -552,28 +552,28 @@ func makeSpiffePattern(sourceNS, sourceName string) string {
 	}
 }
 
-func anyPermission() *envoyrbac.Permission {
-	return &envoyrbac.Permission{
-		Rule: &envoyrbac.Permission_Any{Any: true},
+func anyPermission() *envoy_rbac_v3.Permission {
+	return &envoy_rbac_v3.Permission{
+		Rule: &envoy_rbac_v3.Permission_Any{Any: true},
 	}
 }
 
-func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission {
+func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permission {
 	// NOTE: this does not do anything with perm.Action
 	if perm.HTTP == nil {
 		return anyPermission()
 	}
 
-	var parts []*envoyrbac.Permission
+	var parts []*envoy_rbac_v3.Permission
 
 	switch {
 	case perm.HTTP.PathExact != "":
-		parts = append(parts, &envoyrbac.Permission{
-			Rule: &envoyrbac.Permission_UrlPath{
-				UrlPath: &envoymatcher.PathMatcher{
-					Rule: &envoymatcher.PathMatcher_Path{
-						Path: &envoymatcher.StringMatcher{
-							MatchPattern: &envoymatcher.StringMatcher_Exact{
+		parts = append(parts, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
 								Exact: perm.HTTP.PathExact,
 							},
 						},
@@ -582,12 +582,12 @@ func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission 
 			},
 		})
 	case perm.HTTP.PathPrefix != "":
-		parts = append(parts, &envoyrbac.Permission{
-			Rule: &envoyrbac.Permission_UrlPath{
-				UrlPath: &envoymatcher.PathMatcher{
-					Rule: &envoymatcher.PathMatcher_Path{
-						Path: &envoymatcher.StringMatcher{
-							MatchPattern: &envoymatcher.StringMatcher_Prefix{
+		parts = append(parts, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
 								Prefix: perm.HTTP.PathPrefix,
 							},
 						},
@@ -596,12 +596,12 @@ func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission 
 			},
 		})
 	case perm.HTTP.PathRegex != "":
-		parts = append(parts, &envoyrbac.Permission{
-			Rule: &envoyrbac.Permission_UrlPath{
-				UrlPath: &envoymatcher.PathMatcher{
-					Rule: &envoymatcher.PathMatcher_Path{
-						Path: &envoymatcher.StringMatcher{
-							MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
+		parts = append(parts, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
 								SafeRegex: makeEnvoyRegexMatch(perm.HTTP.PathRegex),
 							},
 						},
@@ -612,29 +612,29 @@ func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission 
 	}
 
 	for _, hdr := range perm.HTTP.Header {
-		eh := &envoyroute.HeaderMatcher{
+		eh := &envoy_route_v3.HeaderMatcher{
 			Name: hdr.Name,
 		}
 
 		switch {
 		case hdr.Exact != "":
-			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_ExactMatch{
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_ExactMatch{
 				ExactMatch: hdr.Exact,
 			}
 		case hdr.Regex != "":
-			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
 			}
 		case hdr.Prefix != "":
-			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PrefixMatch{
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
 				PrefixMatch: hdr.Prefix,
 			}
 		case hdr.Suffix != "":
-			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SuffixMatch{
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SuffixMatch{
 				SuffixMatch: hdr.Suffix,
 			}
 		case hdr.Present:
-			eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PresentMatch{
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
 				PresentMatch: true,
 			}
 		default:
@@ -645,8 +645,8 @@ func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission 
 			eh.InvertMatch = true
 		}
 
-		parts = append(parts, &envoyrbac.Permission{
-			Rule: &envoyrbac.Permission_Header{
+		parts = append(parts, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_Header{
 				Header: eh,
 			},
 		})
@@ -655,15 +655,15 @@ func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission 
 	if len(perm.HTTP.Methods) > 0 {
 		methodHeaderRegex := strings.Join(perm.HTTP.Methods, "|")
 
-		eh := &envoyroute.HeaderMatcher{
+		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_SafeRegexMatch{
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
 
-		parts = append(parts, &envoyrbac.Permission{
-			Rule: &envoyrbac.Permission_Header{
+		parts = append(parts, &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_Header{
 				Header: eh,
 			},
 		})
@@ -674,22 +674,22 @@ func convertPermission(perm *structs.IntentionPermission) *envoyrbac.Permission 
 	return andPermissions(parts)
 }
 
-func notPermission(perm *envoyrbac.Permission) *envoyrbac.Permission {
-	return &envoyrbac.Permission{
-		Rule: &envoyrbac.Permission_NotRule{NotRule: perm},
+func notPermission(perm *envoy_rbac_v3.Permission) *envoy_rbac_v3.Permission {
+	return &envoy_rbac_v3.Permission{
+		Rule: &envoy_rbac_v3.Permission_NotRule{NotRule: perm},
 	}
 }
 
-func andPermissions(perms []*envoyrbac.Permission) *envoyrbac.Permission {
+func andPermissions(perms []*envoy_rbac_v3.Permission) *envoy_rbac_v3.Permission {
 	switch len(perms) {
 	case 0:
 		return anyPermission()
 	case 1:
 		return perms[0]
 	default:
-		return &envoyrbac.Permission{
-			Rule: &envoyrbac.Permission_AndRules{
-				AndRules: &envoyrbac.Permission_Set{
+		return &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_AndRules{
+				AndRules: &envoy_rbac_v3.Permission_Set{
 					Rules: perms,
 				},
 			},

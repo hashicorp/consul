@@ -14,7 +14,7 @@ export default class ConsulIntentionForm extends Component {
 
   @tracked isManagedByCRDs;
 
-  @tracked warn = false;
+  modal = null; // reference to the warning modal
 
   @service('repository/intention') repo;
 
@@ -23,6 +23,7 @@ export default class ConsulIntentionForm extends Component {
     this.updateCRDManagement();
   }
 
+  @action
   ondelete() {
     if (this.args.ondelete) {
       this.args.ondelete(...arguments);
@@ -31,6 +32,7 @@ export default class ConsulIntentionForm extends Component {
     }
   }
 
+  @action
   oncancel() {
     if (this.args.oncancel) {
       this.args.oncancel(...arguments);
@@ -39,6 +41,7 @@ export default class ConsulIntentionForm extends Component {
     }
   }
 
+  @action
   onsubmit() {
     if (this.args.onsubmit) {
       this.args.onsubmit(...arguments);
@@ -49,17 +52,19 @@ export default class ConsulIntentionForm extends Component {
   updateCRDManagement() {
     this.isManagedByCRDs = this.repo.isManagedByCRDs();
   }
+
   @action
   submit(item, submit, e) {
     e.preventDefault();
     // if the action of the intention has changed and its non-empty then warn
     // the user
     if (typeof item.change.Action !== 'undefined' && typeof item.data.Action === 'undefined') {
-      this.warn = true;
+      this.modal.open();
     } else {
       submit();
     }
   }
+
   @action
   createServices(item, e) {
     // Services in the menus should:

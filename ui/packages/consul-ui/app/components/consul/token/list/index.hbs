@@ -30,19 +30,25 @@ as |item|>
         </dl>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
+
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>
           <BlockSlot @name="label">
+{{#if (can "write token" item=item)}}
             Edit
+{{else}}
+            View
+{{/if}}
           </BlockSlot>
         </Action>
-  {{#if (not (token/is-legacy item))}}
+{{#if (can "duplicate token" item=item)}}
         <Action data-test-clone-action @onclick={{action @onclone item}}>
           <BlockSlot @name="label">
             Duplicate
           </BlockSlot>
         </Action>
-  {{/if}}
+{{/if}}
+
   {{#if (eq item.AccessorID token.AccessorID)}}
         <Action data-test-logout-action class="dangerous" @onclick={{action @onlogout item}}>
           <BlockSlot @name="label">
@@ -86,7 +92,9 @@ as |item|>
           </BlockSlot>
         </Action>
   {{/if}}
-  {{#if (not (or (token/is-anonymous item) (eq item.AccessorID @token.AccessorID)))}}
+
+
+{{#if (can "delete token" item=item token=@token)}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
@@ -107,7 +115,8 @@ as |item|>
             </Confirmation>
           </BlockSlot>
         </Action>
-  {{/if}}
+{{/if}}
+
       </Actions>
     </BlockSlot>
 </ListCollection>

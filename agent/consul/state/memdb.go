@@ -202,9 +202,7 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 
 func newSnapshotHandlers(db ReadDB) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		topicServiceHealth: serviceHealthSnapshot(db, topicServiceHealth),
-		// The connect topic is temporarily disabled until the correct events are
-		// created for terminating gateway changes.
-		//topicServiceHealthConnect: serviceHealthSnapshot(db, topicServiceHealthConnect),
+		topicServiceHealth:        serviceHealthSnapshot(db, topicServiceHealth),
+		topicServiceHealthConnect: serviceHealthSnapshot(db, topicServiceHealthConnect),
 	}
 }

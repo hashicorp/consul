@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -105,7 +104,8 @@ func (a *Agent) ConnectAuthorize(token string,
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
 	for _, ixn := range reply.Matches[0] {
-		if _, ok := uriService.Authorize(ixn); ok {
+		// We match on the intention source because the uriService is the source of the connection to authorize.
+		if _, ok := connect.AuthorizeIntentionTarget(uriService.Service, uriService.Namespace, ixn, structs.IntentionMatchSource); ok {
 			ixnMatch = ixn
 			break
 		}
