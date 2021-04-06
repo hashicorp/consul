@@ -333,6 +333,11 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 	for i := range s.proxyCfg.Upstreams {
 		u := s.proxyCfg.Upstreams[i]
 
+		// Store defaults keyed under wildcard so they can be applied to centrally configured upstreams
+		if u.DestinationName == structs.WildcardSpecifier {
+			snap.ConnectProxy.UpstreamConfig[u.DestinationID().String()] = &u
+		}
+
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
 		// Watches should not be created for them.
 		if u.CentrallyConfigured {
@@ -795,6 +800,16 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 			u, ok := snap.ConnectProxy.UpstreamConfig[svc.String()]
 			if ok {
 				cfgMap = u.Config
+			} else {
+				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
+				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
+				// by the ResolveServiceConfig endpoint.
+				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardSID.String()]
+				if ok {
+					cfgMap = defaults.Config
+					snap.ConnectProxy.UpstreamConfig[svc.String()] = defaults
+				}
 			}
 
 			cfg, err := parseReducedUpstreamConfig(cfgMap)
