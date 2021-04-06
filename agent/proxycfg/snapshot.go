@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/copystructure"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -59,6 +60,9 @@ type configSnapshotConnectProxy struct {
 	// intentions.
 	Intentions    structs.Intentions
 	IntentionsSet bool
+
+	ClusterConfig    *structs.ClusterConfigEntry
+	ClusterConfigSet bool
 }
 
 func (c *configSnapshotConnectProxy) IsEmpty() bool {
@@ -75,7 +79,8 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
 		len(c.PreparedQueryEndpoints) == 0 &&
-		len(c.UpstreamConfig) == 0
+		len(c.UpstreamConfig) == 0 &&
+		!c.ClusterConfigSet
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -355,6 +360,9 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
+		if s.Proxy.TransparentProxy && !s.ConnectProxy.ClusterConfigSet {
+			return false
+		}
 		return s.Roots != nil &&
 			s.ConnectProxy.Leaf != nil &&
 			s.ConnectProxy.IntentionsSet

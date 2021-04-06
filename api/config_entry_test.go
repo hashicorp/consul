@@ -1124,6 +1124,33 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "cluster",
+			body: `
+			{
+				"Kind": "cluster",
+				"Name": "cluster",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"TransparentProxy": {
+					"CatalogDestinationsOnly": true
+				}
+			}
+			`,
+			expect: &ClusterConfigEntry{
+				Kind: "cluster",
+				Name: "cluster",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TransparentProxy: TransparentProxyClusterConfig{
+					CatalogDestinationsOnly: true,
+				},
+			},
+		},
 	} {
 		tc := tc
 

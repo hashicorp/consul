@@ -223,19 +223,23 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		})
 
 		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
-		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
-			"passthrough",
-			OriginalDestinationClusterName,
-			"tcp",
-			nil,
-			nil,
-			cfgSnap,
-			nil,
-		)
-		if err != nil {
-			return nil, err
+		if cfgSnap.ConnectProxy.ClusterConfig == nil ||
+			!cfgSnap.ConnectProxy.ClusterConfig.TransparentProxy.CatalogDestinationsOnly {
+
+			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+				"passthrough",
+				OriginalDestinationClusterName,
+				"tcp",
+				nil,
+				nil,
+				cfgSnap,
+				nil,
+			)
+			if err != nil {
+				return nil, err
+			}
+			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
-		outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 
 		resources = append(resources, outboundListener)
 	}
