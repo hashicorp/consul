@@ -24,15 +24,22 @@ as |item index|>
         </Tooltip>
       </dd>
     </dl>
-    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
-      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) @dc item.Name }}>
+{{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
+      <a
+        data-test-service-name
+        href={{href-to 'dc.services.show' @dc item.Name
+                params=(hash
+                  nspace=item.Namespace
+                )
+              }}
+      >
         {{item.Name}}
       </a>
-    {{else}}
+{{else}}
       <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
         {{item.Name}}
       </a>
-    {{/if}}
+{{/if}}
   {{else}}
     <p data-test-service-name>
       {{item.Name}}

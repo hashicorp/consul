@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
 
 export default class IndexRoute extends Route {

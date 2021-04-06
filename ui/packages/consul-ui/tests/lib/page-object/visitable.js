@@ -1,4 +1,6 @@
 // import { assign } from '../-private/helpers';
+import { getContext, settled, getSettledState, waitUntil } from '@ember/test-helpers';
+import { getWaiters, hasPendingWaiters, getPendingWaiterState } from '@ember/test-waiters';
 const assign = Object.assign;
 import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
 
@@ -64,6 +66,8 @@ export function visitable(path, encoder = encodeURIComponent) {
           let path = paths.shift();
           if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
             path = `/:nspace${path}`;
+            // getContext().owner.lookup(`location:regexp-none`).optional = {nspace: dynamicSegmentsAndQueryParams.nspace};
+            // delete dynamicSegmentsAndQueryParams.nspace;
           }
           params = assign({}, dynamicSegmentsAndQueryParams);
           var fullPath;
@@ -79,8 +83,67 @@ export function visitable(path, encoder = encodeURIComponent) {
           return fullPath;
         })(typeof path === 'string' ? [path] : path.slice(0));
         fullPath = appendQueryParams(fullPath, params);
+        const app = getContext().owner;
+        const location = app.lookup(`location:regexp-none`);
+        // window.getSettledState = () => getSettledState()
+        // window.getPendingWaiterState = () => getPendingWaiterState()
+        // window.hasPendingWaiters = () => hasPendingWaiters()
+        // return context.visit(fullPath);
+        const handleTransitionResolve = () => {
+          return waitUntil(
+            () => {
+              const state = getSettledState();
+              // state.hasPendingWaiters = hasPendingWaiters();
+              return (
+                !state.hasPendingTimers &&
+                !state.hasRunLoop &&
+                !state.hasPendingWaiters &&
+                !state.hasPendingTransitions
+              );
+            },
+            { timeout: Infinity }
+          ).then(() => {
+            return new Promise(resolve => {
+              setTimeout(() => {
+                resolve(app);
+              }, 0);
+            });
+          });
+          return settled().then(() => app);
+        };
+        const handleTransitionReject = error => {
+          const router = app.router;
+          if (error.error) {
+            throw error.error;
+          } else if (
+            error.name === 'TransitionAborted' &&
+            router._routerMicrolib.activeTransition
+          ) {
+            return router._routerMicrolib.activeTransition.then(
+              handleTransitionResolve,
+              handleTransitionReject
+            );
+          } else if (error.name === 'TransitionAborted') {
+            throw new Error(error.message);
+          } else {
+            throw error;
+          }
+        };
 
-        return context.visit(fullPath);
+        if (location.location.pathname === '') {
+          const url = location.getURLForTransition(fullPath);
+          location.detect = function() {
+            location.path = url;
+            location.history.state.path = location.location.pathname = `/ui${fullPath}`;
+          };
+          // app.setupRouter();
+          // handleURL calls setupRouter
+          return app.handleURL(`${url}`).then(handleTransitionResolve, handleTransitionReject);
+        }
+        // return app.visit(fullPath);
+        return location
+          .transitionTo(fullPath)
+          .then(handleTransitionResolve, handleTransitionReject);
       });
     },
   };

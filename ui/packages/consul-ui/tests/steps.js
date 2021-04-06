@@ -97,16 +97,23 @@ export default function({
   const clipboard = function() {
     return window.localStorage.getItem('clipboard');
   };
+  const currentURL = function() {
+    const context = helpers.getContext();
+    const locationType = context.owner.lookup('service:env').var('locationType');
+    let location = context.owner.lookup(`location:${locationType}`);
+    return location.getURLFrom();
+  };
+
   models(library, create, setCookie);
   http(library, respondWith, setCookie);
   visit(library, pages, utils.setCurrentPage, reset);
   click(library, utils.find, helpers.click);
   form(library, utils.find, helpers.fillIn, helpers.triggerKeyEvent, utils.getCurrentPage);
-  debug(library, assert, helpers.currentURL);
+  debug(library, assert, currentURL);
   assertHttp(library, assert, lastNthRequest);
   assertModel(library, assert, utils.find, utils.getCurrentPage, pauseUntil, pluralize);
   assertPage(library, assert, utils.find, utils.getCurrentPage, $);
-  assertDom(library, assert, pauseUntil, helpers.find, helpers.currentURL, clipboard);
+  assertDom(library, assert, pauseUntil, helpers.find, currentURL, clipboard);
   assertForm(library, assert, utils.find, utils.getCurrentPage);
 
   return library.given(["I'm using a legacy token"], function(number, model, data) {

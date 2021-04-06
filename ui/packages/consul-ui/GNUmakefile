@@ -41,7 +41,7 @@ test-view: deps test-node
 test-oss: deps test-node
 	yarn run test:oss
 
-test-oss-view: deps test-node
+test-oss-view: deps # test-node
 	yarn run test:oss:view
 
 # these run from CI, both with and without namespaces
