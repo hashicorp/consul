@@ -1,3 +1,5 @@
+// +build !consulent
+
 package structs
 
 func (e *ClusterConfigEntry) validateEnterpriseMeta() error {
