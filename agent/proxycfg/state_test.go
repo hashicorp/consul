@@ -1615,6 +1615,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Config: map[string]interface{}{
 								"connect_timeout_ms": 6000,
 							},
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						},
 					},
 				},
@@ -1726,6 +1727,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							EvaluateInNamespace:    "default",
 							Datacenter:             "dc1",
 							OverrideConnectTimeout: 6 * time.Second,
+							OverrideMeshGateway:    structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						}),
 					},
 					events: []cache.UpdateEvent{
