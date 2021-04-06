@@ -15,8 +15,9 @@
   width: 370px;
   margin: 0 auto;
 }
-%empty-state label {
-  margin: 0 auto !important;
+%empty-state button {
+  margin: 0 auto;
+  display: inline;
 }
 %empty-state-header {
   margin-bottom: -3px;

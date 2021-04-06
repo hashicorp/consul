@@ -24,7 +24,12 @@
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
     {{#if (gt items.length 0)}}
-              <ModalDialog @onclose={{action cancel}}>
+              <ModalDialog
+                @onclose={{action cancel}}
+                @aria={{hash
+                  label="Role in Use"
+                }}
+              >
                   <BlockSlot @name="header">
                       <h2>Role in Use</h2>
                   </BlockSlot>

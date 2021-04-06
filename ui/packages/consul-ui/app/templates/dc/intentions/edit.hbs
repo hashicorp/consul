@@ -1,33 +1,33 @@
-{{#if item.ID}}
-    {{page-title 'Edit Intention'}}
-{{else}}
-    {{page-title 'New Intention'}}
-{{/if}}
-<AppView>
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-          <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
-        </ol>
-    </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-{{#if item.IsEditable}}
-  {{#if item.ID}}
-          Edit Intention
+<Route
+  @name={{routeName}}
+  @title={{if item.ID 'Edit Intention' 'New Intention'}}
+as |route|>
+  <AppView>
+      <BlockSlot @name="breadcrumbs">
+          <ol>
+            <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
+          </ol>
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+  {{#if item.IsEditable}}
+    {{#if item.ID}}
+            Edit Intention
+    {{else}}
+            New Intention
+    {{/if}}
   {{else}}
-          New Intention
+            View Intention
   {{/if}}
-{{else}}
-          View Intention
-{{/if}}
-        </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <Consul::Intention::Form
-        @item={{item}}
-        @dc={{dc}}
-        @nspace={{nspace}}
-        @onsubmit={{transition-to 'dc.intentions.index' dc}}
-      />
-    </BlockSlot>
-</AppView>
+          </h1>
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <Consul::Intention::Form
+          @item={{item}}
+          @dc={{dc}}
+          @nspace={{nspace}}
+          @onsubmit={{transition-to 'dc.intentions.index' dc}}
+        />
+      </BlockSlot>
+  </AppView>
+</Route>

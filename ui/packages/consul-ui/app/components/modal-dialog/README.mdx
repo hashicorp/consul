@@ -1,0 +1,69 @@
+---
+class: ember
+---
+# ModalDialog
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `onopen` | `Function` | `undefined` | A function to call when the modal has opened |
+| `onclose` | `Function` | `undefined` | A function to call when the modal has closed |
+| `aria` | `Object` | `undefined` | A `hash` of aria properties used in the component, currently only label is supported |
+
+## Exports
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `open` | `Function` | Opens the modal dialog |
+| `close` | `Function` | Closes the modal dialog |
+
+Works in tandem with `<ModalLayer />` to render modals. First of all ensure
+you have a modal layer on the page (it doesn't have to be in the same
+template)
+
+```hbs
+<ModalLayer />
+```
+
+Then all modals will be rendered into the `<ModalLayer />` for example:
+
+```hbs preview-template
+<ModalDialog
+  @onclose={{noop}}
+  @onopen={{noop}}
+  @aria={{hash
+    label="Screenread name of the modal"
+  }}
+as |modal|>
+
+  <!-- Save a reference to the modal component so we can call its methods -->
+  {{did-insert (set this 'modal' modal)}}
+
+  <BlockSlot @name="header">
+    <h2>
+      Modal Header
+    </h2>
+  </BlockSlot>
+  <BlockSlot @name="body">
+    <p>
+      Modal body
+    </p>
+  </BlockSlot>
+  <BlockSlot @name="actions">
+    <button type="button"
+      {{on "click" modal.close}}
+    >
+      Close modal
+    </button>
+  </BlockSlot>
+</ModalDialog>
+
+<button
+  type="button"
+  {{on 'click' (optional this.modal.open)}}
+>
+  Open Modal
+</button>
+
+```

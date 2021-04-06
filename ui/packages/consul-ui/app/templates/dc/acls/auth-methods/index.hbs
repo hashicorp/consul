@@ -1,102 +1,104 @@
-{{#if isAuthorized }}
-  {{page-title 'Auth Methods'}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
+<Route
+  @name={{routeName}}
+  @title="Auth Methods"
+as |route|>
+  {{#let
 
-{{#let
-
-  (hash
-    value=(or sortBy "MethodName:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    kind=(hash
-      value=(if kind (split kind ',') undefined)
-      change=(action (mut kind) value="target.selectedItems")
+    (hash
+      value=(or sortBy "MethodName:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
-    source=(hash
-      value=(if source (split source ',') undefined)
-      change=(action (mut source) value="target.selectedItems")
-    )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+
+    (hash
+      kind=(hash
+        value=(if kind (split kind ',') undefined)
+        change=(action (mut kind) value="target.selectedItems")
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      source=(hash
+        value=(if source (split source ',') undefined)
+        change=(action (mut source) value="target.selectedItems")
+      )
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
     )
-  )
 
-  items
+    items
 
-as |sort filters items|}}
+  as |sort filters items|}}
 
 
-  <AppView
-    @authorized={{isAuthorized}}
-    @enabled={{isEnabled}}
-    >
-    <BlockSlot @name="header">
-      <h1>
-        Access Controls
-      </h1>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-    {{#if (gt items.length 0)}}
-      <Consul::AuthMethod::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
-        @sort={{sort}}
-        @filter={{filters}}
-      />
-    {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <DataCollection
-        @type="auth-method"
-        @sort={{sort.value}}
-        @filters={{filters}}
-        @search={{search}}
-        @items={{items}}
-      as |collection|>
-        <collection.Collection>
-          <Consul::AuthMethod::List @items={{collection.items}} />
-        </collection.Collection>
-        <collection.Empty>
-          <EmptyState @allowLogin={{true}}>
-            <BlockSlot @name="header">
-              <h2>
-                {{#if (gt items.length 0)}}
-                  No auth methods found
-                {{else}}
-                  Welcome to Auth Methods
-                {{/if}}
-              </h2>
-            </BlockSlot>
-            <BlockSlot @name="body">
-              <p>
-                {{#if (gt items.length 0)}}
-                  No auth methods where found matching that search, or you may not have access to view the auth methods you are searching for.
-                {{else}}
-                  There don't seem to be any auth methods, or you may not have access to view auth methods yet.
-                {{/if}}
-              </p>
-            </BlockSlot>
-            <BlockSlot @name="actions">
-              <li class="docs-link">
-                <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods" rel="noopener noreferrer" target="_blank">Documentation on auth methods</a>
-              </li>
-              <li class="learn-link">
-                <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/auth-methods.html" rel="noopener noreferrer" target="_blank">Read the API Docs</a>
-              </li>
-            </BlockSlot>
-          </EmptyState>
-        </collection.Empty>
-      </DataCollection>
-    </BlockSlot>
-  </AppView>
-{{/let}}
-
+    <AppView
+      @authorized={{isAuthorized}}
+      @enabled={{isEnabled}}
+      @login={{route.model.app.login.open}}
+      >
+      <BlockSlot @name="header">
+        <h1>
+          {{route.model.hi}}
+          Auth Methods
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0)}}
+        <Consul::AuthMethod::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+          @sort={{sort}}
+          @filter={{filters}}
+        />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataCollection
+          @type="auth-method"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::AuthMethod::List @items={{collection.items}} />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No auth methods found
+                  {{else}}
+                    Welcome to Auth Methods
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No auth methods where found matching that search, or you may not have access to view the auth methods you are searching for.
+                  {{else}}
+                    There don't seem to be any auth methods, or you may not have access to view auth methods yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods" rel="noopener noreferrer" target="_blank">Documentation on auth methods</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/auth-methods.html" rel="noopener noreferrer" target="_blank">Read the API Docs</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+</Route>

@@ -1,0 +1,34 @@
+# ErrorState
+
+Consul UIs default 'error state' used when an error is returned form the
+backend. This component used `EmptyState` internally, so please refer to that
+for more details.
+
+Using this component for all of our errors means we can show a consistent
+error page for generic errors.
+
+This component show slighltly different visuals and copy depending on the
+`status` of the error (the status is generally a HTTP error code)
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `login` | `Function` | `undefined` | A login action to call when the login button is pressed (if not provided no login button will be shown  |
+| `error` | `Object` | `undefined` | 'Consul UI error shaped' JSON `{status: String, message: String, detail: String}` |
+
+```hbs preview-template
+<ErrorState
+  @error={{hash status='403'}}
+/>
+```
+
+As with `EmptyState` you can optionally chose to show a login button using the
+`@login` argument.
+
+```hbs preview-template
+<ErrorState
+  @error={{hash status='403'}}
+  @login={{noop}}
+/>
+```

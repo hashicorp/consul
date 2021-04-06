@@ -26,6 +26,9 @@
               <ModalDialog
                 data-test-delete-modal
                 @onclose={{action cancel}}
+                @aria={{hash
+                  label="Policy in Use"
+                }}
               >
                   <BlockSlot @name="header">
                       <h2>Policy in Use</h2>

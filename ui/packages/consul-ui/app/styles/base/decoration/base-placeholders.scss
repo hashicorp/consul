@@ -1,9 +1,12 @@
 %visually-hidden {
-  position: absolute !important;
-  height: 1px;
-  width: 1px;
+  position: absolute;
   overflow: hidden;
-  clip: rect(1px, 1px, 1px, 1px);
+  clip: rect(0 0 0 0);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
 }
 %visually-hidden-text {
   text-indent: -9000px;

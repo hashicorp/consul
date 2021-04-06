@@ -1,71 +1,75 @@
-{{#let
+<Route
+  @name={{routeName}}
+as |route|>
+  {{#let
 
-  (hash
-    value=(or sortBy "Status:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
+    (hash
+      value=(or sortBy "Status:asc")
+      change=(action (mut sortBy) value="target.selected")
+    )
 
-  (hash
-    status=(hash
-      value=(if status (split status ',') undefined)
-      change=(action (mut status) value="target.selectedItems")
-    )
-    source=(hash
-      value=(if source (split source ',') undefined)
-      change=(action (mut source) value="target.selectedItems")
-    )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+    (hash
+      status=(hash
+        value=(if status (split status ',') undefined)
+        change=(action (mut status) value="target.selectedItems")
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      source=(hash
+        value=(if source (split source ',') undefined)
+        change=(action (mut source) value="target.selectedItems")
+      )
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
     )
-  )
 
-  item.MeshServiceInstances
+    item.MeshServiceInstances
 
-as |sort filters items|}}
-<div class="tab-section">
-  {{#if (gt items.length 0) }}
-    <input type="checkbox" id="toolbar-toggle" />
-    <Consul::ServiceInstance::SearchBar
-      @sources={{get (collection items) 'ExternalSources'}}
-      @search={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
-      @searchproperties={{searchProperties}}
+  as |sort filters items|}}
+  <div class="tab-section">
+    {{#if (gt items.length 0) }}
+      <input type="checkbox" id="toolbar-toggle" />
+      <Consul::ServiceInstance::SearchBar
+        @sources={{get (collection items) 'ExternalSources'}}
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
+        @searchproperties={{searchProperties}}
 
-      @sort={{sort}}
+        @sort={{sort}}
 
-      @filter={{filters}}
-      />
-    {{/if}}
-    {{! filter out any sidecar proxies }}
-    <DataCollection
-      @type="service-instance"
-      @sort={{sort.value}}
-      @filters={{filters}}
-      @search={{search}}
-      @items={{items}}
-    as |collection|>
-      <collection.Collection>
-        <Consul::ServiceInstance::List
-          @node={{item}}
-          @routeName="dc.services.show"
-          @items={{collection.items}}
-          @checks={{checks}}
+        @filter={{filters}}
         />
-      </collection.Collection>
-      <collection.Empty>
-        <EmptyState>
-          <BlockSlot @name="body">
-            <p>
-              This node has no service instances{{#if (gt items.length 0)}} matching that search{{/if}}.
-            </p>
-          </BlockSlot>
-        </EmptyState>
-      </collection.Empty>
-    </DataCollection>
-</div>
-{{/let}}
+      {{/if}}
+      {{! filter out any sidecar proxies }}
+      <DataCollection
+        @type="service-instance"
+        @sort={{sort.value}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::ServiceInstance::List
+            @node={{item}}
+            @routeName="dc.services.show"
+            @items={{collection.items}}
+            @checks={{checks}}
+          />
+        </collection.Collection>
+        <collection.Empty>
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                This node has no service instances{{#if (gt items.length 0)}} matching that search{{/if}}.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
+  </div>
+  {{/let}}
+</Route>

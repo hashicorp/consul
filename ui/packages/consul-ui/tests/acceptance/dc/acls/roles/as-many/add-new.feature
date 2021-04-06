@@ -51,7 +51,7 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Add Role that has an existing Policy
-    And I click "#new-role-toggle + div .ember-power-select-trigger"
+    And I click "#new-role .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
     And I click submit on the roles.form
     Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml

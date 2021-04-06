@@ -1,26 +1,29 @@
-<div class="tab-section">
-  <div class="definition-table">
-    <dl>
-        <dt>
-            Minimum
-        </dt>
-        <dd>
-            {{format-number tomography.min maximumFractionDigits=2}}ms
-        </dd>
-        <dt>
-            Median
-        </dt>
-        <dd>
-            {{format-number tomography.median maximumFractionDigits=2}}ms
-        </dd>
-        <dt>
-            Maximum
-        </dt>
-        <dd>
-            {{format-number tomography.max maximumFractionDigits=2}}ms
-        </dd>
-    </dl>
+<Route
+  @name={{routeName}}
+as |route|>
+  <div class="tab-section">
+    <div class="definition-table">
+      <dl>
+          <dt>
+              Minimum
+          </dt>
+          <dd>
+              {{format-number tomography.min maximumFractionDigits=2}}ms
+          </dd>
+          <dt>
+              Median
+          </dt>
+          <dd>
+              {{format-number tomography.median maximumFractionDigits=2}}ms
+          </dd>
+          <dt>
+              Maximum
+          </dt>
+          <dd>
+              {{format-number tomography.max maximumFractionDigits=2}}ms
+          </dd>
+      </dl>
+    </div>
+    <Consul::Tomography::Graph @distances={{tomography.distances}} />
   </div>
-  <Consul::Tomography::Graph @distances={{tomography.distances}} />
-</div>
-
+</Route>

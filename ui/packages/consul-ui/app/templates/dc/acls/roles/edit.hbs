@@ -1,53 +1,50 @@
-{{#if isAuthorized }}
-  {{#if item.ID}}
-    {{page-title 'Edit Role'}}
+<Route
+  @name={{routeName}}
+  @title={{if isAuthorized (if create 'New Role' 'Edit Role') 'Access Controls'}}
+as |route|>
+  <AppView
+    @authorized={{isAuthorized}}
+    @enabled={{isEnabled}}
+    @login={{route.model.app.login.open}}
+    >
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Role::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="breadcrumbs">
+          <ol>
+              <li><a data-test-back href={{href-to 'dc.acls.roles'}}>All Roles</a></li>
+          </ol>
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+  {{#if isAuthorized }}
+    {{#if create }}
+              New Role
+    {{else}}
+              Edit Role
+    {{/if}}
   {{else}}
-    {{page-title 'New Role'}}
+              Access Controls
   {{/if}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
-<AppView
-  @authorized={{isAuthorized}}
-  @enabled={{isEnabled}}
-  >
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Role::Notifications
-        @type={{type}}
-        @status={{status}}
-        @item={{item}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-            <li><a data-test-back href={{href-to 'dc.acls.roles'}}>All Roles</a></li>
-        </ol>
-    </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-{{#if isAuthorized }}
-  {{#if create }}
-            New Role
-  {{else}}
-            Edit Role
+          </h1>
+      </BlockSlot>
+      <BlockSlot @name="content">
+  {{#if (not create) }}
+        <div class="definition-table">
+            <dl>
+              <dt>Role ID</dt>
+              <dd>
+                <CopyButton @value={{item.ID}} @name="Role ID" @position="top-start" /> {{item.ID}}
+              </dd>
+            </dl>
+        </div>
   {{/if}}
-{{else}}
-            Access Controls
-{{/if}}
-        </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
-{{#if (not create) }}
-      <div class="definition-table">
-          <dl>
-            <dt>Role ID</dt>
-            <dd>
-              <CopyButton @value={{item.ID}} @name="Role ID" @position="top-start" /> {{item.ID}}
-            </dd>
-          </dl>
-      </div>
-{{/if}}
-      {{ partial 'dc/acls/roles/form'}}
-    </BlockSlot>
-</AppView>
+        {{ partial 'dc/acls/roles/form'}}
+      </BlockSlot>
+  </AppView>
+</Route>

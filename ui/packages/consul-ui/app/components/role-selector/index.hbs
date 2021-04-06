@@ -1,8 +1,11 @@
 <ModalDialog
   class="role-selector"
   data-test-role-form
+  id="new-role"
   @onclose={{action (mut state) "role"}}
-  @name="new-role-toggle"
+  @aria={{hash
+    label=(if (eq state 'role') 'New Role' 'New Policy')
+  }}
 as |modal|>
   <Ref @target={{this}} @name="modal" @value={{modal}} />
   <BlockSlot @name="header">

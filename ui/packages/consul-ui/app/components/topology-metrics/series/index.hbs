@@ -43,6 +43,9 @@
 
 <ModalDialog
   class="sparkline-key"
+  @aria={{hash
+    label="Metrics Key"
+  }}
   as |modal|>
     <Ref @target={{this}} @name="modal" @value={{modal}} />
     <BlockSlot @name="header">

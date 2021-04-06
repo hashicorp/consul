@@ -1,28 +1,32 @@
-<div class="tab-section">
-  {{#if item.Service.TaggedAddresses }}
-    <TabularCollection
-      data-test-addresses
-      class="consul-tagged-addresses"
-      @items={{entries item.Service.TaggedAddresses}} as |taggedAddress index|
-    >
-        <BlockSlot @name="header">
-          <th>Tag</th>
-          <th>Address</th>
-        </BlockSlot>
-        <BlockSlot @name="row">
-    {{#with (object-at 1 taggedAddress) as |address|}}
-          <td>
-            {{object-at 0 taggedAddress}}{{#if (and (eq address.Address item.Address) (eq address.Port item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
-          </td>
-          <td data-test-address>
-            {{address.Address}}:{{address.Port}}
-          </td>
-    {{/with}}
-        </BlockSlot>
-    </TabularCollection>
-  {{else}}
-    <p>
-      There are no additional addresses.
-    </p>
-  {{/if}}
-</div>
+<Route
+  @name={{routeName}}
+as |route|>
+  <div class="tab-section">
+    {{#if item.Service.TaggedAddresses }}
+      <TabularCollection
+        data-test-addresses
+        class="consul-tagged-addresses"
+        @items={{entries item.Service.TaggedAddresses}} as |taggedAddress index|
+      >
+          <BlockSlot @name="header">
+            <th>Tag</th>
+            <th>Address</th>
+          </BlockSlot>
+          <BlockSlot @name="row">
+      {{#with (object-at 1 taggedAddress) as |address|}}
+            <td>
+              {{object-at 0 taggedAddress}}{{#if (and (eq address.Address item.Address) (eq address.Port item.Port))}}&nbsp;<em data-test-address-default>(default)</em>{{/if}}
+            </td>
+            <td data-test-address>
+              {{address.Address}}:{{address.Port}}
+            </td>
+      {{/with}}
+          </BlockSlot>
+      </TabularCollection>
+    {{else}}
+      <p>
+        There are no additional addresses.
+      </p>
+    {{/if}}
+  </div>
+</Route>

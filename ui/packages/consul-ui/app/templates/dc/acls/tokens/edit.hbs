@@ -1,98 +1,95 @@
-{{#if isAuthorized }}
-  {{#if create}}
-    {{page-title 'New Token'}}
-  {{else}}
-    {{page-title 'Edit Token'}}
-  {{/if}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
-<AppView
-  @authorized={{isAuthorized}}
-  @enabled={{isEnabled}}
+<Route
+  @name={{routeName}}
+  @title={{if isAuthorized (if create 'New Token' 'Edit Token') 'Access Controls'}}
+as |route|>
+  <AppView
+    @authorized={{isAuthorized}}
+    @enabled={{isEnabled}}
+    @login={{route.model.app.login.open}}
   >
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Token::Notifications
-        @type={{type}}
-        @status={{status}}
-        @item={{item}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-            <li><a data-test-back href={{href-to 'dc.acls.tokens'}}>All Tokens</a></li>
-        </ol>
-    </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-{{#if isAuthorized }}
-  {{#if create }}
-            New Token
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Token::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="breadcrumbs">
+          <ol>
+              <li><a data-test-back href={{href-to 'dc.acls.tokens'}}>All Tokens</a></li>
+          </ol>
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+  {{#if isAuthorized }}
+    {{#if create }}
+              New Token
+    {{else}}
+              Edit Token
+    {{/if}}
   {{else}}
-            Edit Token
+              Access Controls
   {{/if}}
-{{else}}
-            Access Controls
-{{/if}}
-        </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-{{#if (not create)}}
-  {{#if (not-eq item.AccessorID token.AccessorID)}}
-      <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
-        <BlockSlot @name="action" as |confirm|>
-            <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
-        </BlockSlot>
-        <BlockSlot @name="dialog" as |execute cancel message|>
-          <p>
-              {{message}}
-          </p>
-          <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
-          <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
-        </BlockSlot>
-      </ConfirmationDialog>
+          </h1>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+  {{#if (not create)}}
+    {{#if (not-eq item.AccessorID token.AccessorID)}}
+        <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
+          <BlockSlot @name="action" as |confirm|>
+              <button data-test-use type="button" {{ action confirm 'use' item }}>Use</button>
+          </BlockSlot>
+          <BlockSlot @name="dialog" as |execute cancel message|>
+            <p>
+                {{message}}
+            </p>
+            <button type="button" class="type-delete" {{action execute}}>Confirm Use</button>
+            <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+          </BlockSlot>
+        </ConfirmationDialog>
+    {{/if}}
+    {{#if (can "duplicate token" item=item)}}
+        <button data-test-clone type="button" {{ action "clone" item }}>Duplicate</button>
+    {{/if}}
   {{/if}}
-  {{#if (can "duplicate token" item=item)}}
-      <button data-test-clone type="button" {{ action "clone" item }}>Duplicate</button>
+      </BlockSlot>
+      <BlockSlot @name="content">
+          {{#if (token/is-legacy item)}}
+            <Notice
+              @type="info"
+            as |notice|>
+              <notice.Header>
+                <h2>Update</h2>
+              </notice.Header>
+              <notice.Body>
+                <p>
+                  We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.
+                </p>
+              </notice.Body>
+            </Notice>
+          {{/if}}
+  {{#if (not create) }}
+        <div class="definition-table">
+            <dl>
+              <dt>AccessorID</dt>
+              <dd>
+                <CopyButton @value={{item.AccessorID}} @name="AccessorID" @position="top-start" /> {{item.AccessorID}}
+              </dd>
+              <dt>Token</dt>
+              <dd>
+                <CopyButton @value={{item.SecretID}} @name="Token" @position="top-start" /> <SecretButton>{{item.SecretID}}</SecretButton>
+              </dd>
+  {{#if (and (not (token/is-legacy item)) (not create))}}
+              <dt>Scope</dt>
+              <dd>
+                {{if item.Local 'local' 'global' }}
+              </dd>
   {{/if}}
-{{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-        {{#if (token/is-legacy item)}}
-          <Notice
-            @type="info"
-          as |notice|>
-            <notice.Header>
-              <h2>Update</h2>
-            </notice.Header>
-            <notice.Body>
-              <p>
-                We have upgraded our ACL system by allowing you to create reusable policies which you can then apply to tokens. Don't worry, even though this token was written in the old style, it is still valid. However, we do recommend upgrading your old tokens to the new style. Learn how in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.
-              </p>
-            </notice.Body>
-          </Notice>
-        {{/if}}
-{{#if (not create) }}
-      <div class="definition-table">
-          <dl>
-            <dt>AccessorID</dt>
-            <dd>
-              <CopyButton @value={{item.AccessorID}} @name="AccessorID" @position="top-start" /> {{item.AccessorID}}
-            </dd>
-            <dt>Token</dt>
-            <dd>
-              <CopyButton @value={{item.SecretID}} @name="Token" @position="top-start" /> <SecretButton>{{item.SecretID}}</SecretButton>
-            </dd>
-{{#if (and (not (token/is-legacy item)) (not create))}}
-            <dt>Scope</dt>
-            <dd>
-              {{if item.Local 'local' 'global' }}
-            </dd>
-{{/if}}
-          </dl>
-      </div>
-{{/if}}
-        {{ partial 'dc/acls/tokens/form'}}
-    </BlockSlot>
-</AppView>
+            </dl>
+        </div>
+  {{/if}}
+          {{ partial 'dc/acls/tokens/form'}}
+      </BlockSlot>
+  </AppView>
+</Route>
