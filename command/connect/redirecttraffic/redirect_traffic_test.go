@@ -63,6 +63,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			if c.createTestServer {
 				testServer, err := testutil.NewTestServerConfigT(t, nil)
 				require.NoError(t, err)
+				defer testServer.Stop()
 
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
 				require.NoError(t, err)

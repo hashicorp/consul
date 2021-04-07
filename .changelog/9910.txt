@@ -1,3 +1,6 @@
 ```release-note:feature
-connect: add toggle to globally disable wildcard outbound network access when transparent proxy is enabled
+cli: Add new `consul connect redirect-traffic` command for applying traffic redirection rules when Transparent Proxy is enabled.
+```
+```release-note:feature
+sdk: Add new `iptables` package for applying traffic redirection rules with iptables.
 ```
