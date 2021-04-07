@@ -192,6 +192,8 @@ models:
     TokenLocality: Token locality
     Type: Type
     MaxTokenTTL: Maximum token TTL
+    Selector: Selector
+    BindNamespace: Bind Namespace
     Config:
       Host: Host
       CACert: CA Cert

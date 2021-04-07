@@ -1,8 +1,9 @@
 {{yield}}
 <fieldset
-  disabled={{if (not (can "write role" item=item)) "disabled"}}
   class="role-form"
+  disabled={{if (not (can "write role" item=item)) "disabled"}}
   data-test-role-form
+  ...attributes
 >
     <label class="type-text{{if item.error.Name ' has-error'}}">
         <span>Name</span>

@@ -419,6 +419,16 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn))
 
+	// cluster config entry
+	clusterConfig := &structs.ClusterConfigEntry{
+		Kind: structs.ClusterConfig,
+		Name: structs.ClusterConfigCluster,
+		TransparentProxy: structs.TransparentProxyClusterConfig{
+			CatalogDestinationsOnly: true,
+		},
+	}
+	require.NoError(t, fsm.state.EnsureConfigEntry(27, clusterConfig))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -690,6 +700,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 	require.Equal(t, serviceIxn, serviceIxnEntry)
+
+	// Verify cluster config entry is restored
+	_, clusterConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.ClusterConfig, structs.ClusterConfigCluster, structs.DefaultEnterpriseMeta())
+	require.NoError(t, err)
+	require.Equal(t, clusterConfig, clusterConfigEntry)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

@@ -1,56 +1,59 @@
-<Portal @target="modal">
-  {{yield}}
-  <input
-    id={{@name}}
-    type="checkbox"
-    {{on 'change' (action 'change')}}
-  />
-  <div
-    class="modal-dialog"
-    aria-hidden="true"
-    ...attributes
-    {{did-insert (action "connect")}}
-    {{will-destroy (action "disconnect")}}
-  >
-    <div tabindex="-1" data-a11y-dialog-hide></div>
+{{#let (hash
+  labelledby=(unique-id)
+) as |aria|}}
+  <Portal @target="modal">
+    {{yield}}
     <div
-      class="modal-dialog-modal"
-      role="dialog"
+      class="modal-dialog"
+      aria-hidden="true"
+      ...attributes
+      {{did-insert (action "connect")}}
+      {{will-destroy (action "disconnect")}}
     >
+      <div tabindex="-1" data-a11y-dialog-hide></div>
       <div
-        role="document"
+        class="modal-dialog-modal"
+        role="dialog"
+        aria-label={{@aria.label}}
       >
-        <header class="modal-dialog-header">
-          <button
-            type="button"
-            data-a11y-dialog-hide
-            aria-label="Close dialog"
-          >
-          </button>
-          <YieldSlot @name="header">
-            {{yield (hash
-              open=(action "open")
-              close=(action "close")
-            )}}
-          </YieldSlot>
-        </header>
-        <div class="modal-dialog-body">
-          <YieldSlot @name="body">
-            {{yield (hash
-              open=(action "open")
-              close=(action "close")
-            )}}
-          </YieldSlot>
+        <div
+          role="document"
+        >
+          <header class="modal-dialog-header">
+            <button
+              type="button"
+              data-a11y-dialog-hide
+              aria-label="Close dialog"
+            >
+            </button>
+            <YieldSlot @name="header">
+              {{yield (hash
+                open=(action "open")
+                close=(action "close")
+                aria=aria
+              )}}
+            </YieldSlot>
+          </header>
+          <div class="modal-dialog-body">
+            <YieldSlot @name="body">
+              {{yield (hash
+                open=(action "open")
+                close=(action "close")
+                aria=aria
+              )}}
+            </YieldSlot>
+          </div>
+          <footer class="modal-dialog-footer">
+            <YieldSlot @name="actions" @params={{block-params (action "close")}}>
+              {{yield (hash
+                open=(action "open")
+                close=(action "close")
+                aria=aria
+              )}}
+            </YieldSlot>
+          </footer>
         </div>
-        <footer class="modal-dialog-footer">
-          <YieldSlot @name="actions" @params={{block-params (action "close")}}>
-            {{yield (hash
-              open=(action "open")
-              close=(action "close")
-            )}}
-          </YieldSlot>
-        </footer>
       </div>
     </div>
-  </div>
-</Portal>
+  </Portal>
+{{/let}}

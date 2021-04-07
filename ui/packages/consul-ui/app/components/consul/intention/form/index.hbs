@@ -38,6 +38,9 @@ as |api|>
       <ModalDialog
         class="consul-intention-action-warn-modal warning"
         data-test-action-warning
+        @aria={{hash
+          label=(concat "Set intention to " newAction)
+        }}
       as |modal|>
         <Ref @target={{this}} @name="modal" @value={{modal}} />
         <BlockSlot @name="header">

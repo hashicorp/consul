@@ -4,7 +4,6 @@ package state
 
 import (
 	"fmt"
-	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -21,59 +20,6 @@ func aclPolicyInsert(tx *txn, policy *structs.ACLPolicy) error {
 	}
 
 	return nil
-}
-
-func indexNameFromACLPolicy(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLPolicy)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
-	}
-
-	if p.Name == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(p.Name))
-	return b.Bytes(), nil
-}
-
-func indexNameFromACLRole(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLRole)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
-	}
-
-	if p.Name == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(p.Name))
-	return b.Bytes(), nil
-}
-
-func multiIndexPolicyFromACLRole(raw interface{}) ([][]byte, error) {
-	role, ok := raw.(*structs.ACLRole)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLRole index", raw)
-	}
-
-	count := len(role.Policies)
-	if count == 0 {
-		return nil, errMissingValueForIndex
-	}
-
-	vals := make([][]byte, 0, count)
-	for _, link := range role.Policies {
-		v, err := uuidStringToBytes(link.ID)
-		if err != nil {
-			return nil, err
-		}
-		vals = append(vals, v)
-	}
-
-	return vals, nil
 }
 
 func aclPolicyGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {

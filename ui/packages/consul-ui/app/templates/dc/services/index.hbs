@@ -1,7 +1,7 @@
 <Route
   @name={{routeName}}
->
-{{page-title 'Services'}}
+  @title="Services"
+as |route|>
 
 <EventSource @src={{items}} />
 
@@ -76,7 +76,9 @@ as |sort filters items|}}
           </Consul::Service::List>
         </collection.Collection>
         <collection.Empty>
-            <EmptyState @allowLogin={{true}}>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
               <BlockSlot @name="header">
                 <h2>
                   {{#if (gt services.length 0)}}

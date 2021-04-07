@@ -1,100 +1,106 @@
-{{page-title 'Namespaces'}}
-<EventSource @src={{items}} />
-{{#let
+<Route
+  @name={{routeName}}
+  @title='Namespaces'
+as |route|>
+  <EventSource @src={{items}} />
+  {{#let
 
-  (hash
-    value=(or sortBy "Name:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
-      )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+    (hash
+      value=(or sortBy "Name:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
-  )
 
-  items
+    (hash
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
+    )
 
-as |sort filters items|}}
+    items
 
-  <AppView>
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Nspace::Notifications
-        @type={{type}}
-        @status={{status}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="header">
-      <h1>
-        Namespaces
-      </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-        <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-    {{#if (gt items.length 0)}}
-      <Consul::Nspace::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
+  as |sort filters items|}}
 
-        @sort={{sort}}
+    <AppView>
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Nspace::Notifications
+          @type={{type}}
+          @status={{status}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="header">
+        <h1>
+          Namespaces
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+          <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0)}}
+        <Consul::Nspace::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
 
-        @filter={{filters}}
-      />
-    {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <DataCollection
-        @type="nspace"
-        @sort={{sort.value}}
-        @filters={{filters}}
-        @search={{search}}
-        @items={{items}}
-      as |collection|>
-        <collection.Collection>
-          <Consul::Nspace::List
-            @items={{collection.items}}
-            @ondelete={{route-action 'delete'}}
-          />
-        </collection.Collection>
-        <collection.Empty>
-          <EmptyState @allowLogin={{true}}>
-            <BlockSlot @name="header">
-              <h2>
-                {{#if (gt items.length 0)}}
-                  No namespaces found
-                {{else}}
-                  Welcome to Namespaces
-                {{/if}}
-              </h2>
-            </BlockSlot>
-            <BlockSlot @name="body">
-              <p>
-                {{#if (gt items.length 0)}}
-                  No namespaces where found matching that search, or you may not have access to view the namespaces you are searching for.
-                {{else}}
-                  There don't seem to be any namespaces, or you may not have access to view namespaces yet.
-                {{/if}}
-              </p>
-            </BlockSlot>
-            <BlockSlot @name="actions">
-              <li class="docs-link">
-                <a href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace" rel="noopener noreferrer" target="_blank">Documentation on namespaces</a>
-              </li>
-              <li class="learn-link">
-                <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces" rel="noopener noreferrer" target="_blank">Read the guide</a>
-              </li>
-            </BlockSlot>
-          </EmptyState>
-        </collection.Empty>
-      </DataCollection>
-    </BlockSlot>
-  </AppView>
-{{/let}}
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataCollection
+          @type="nspace"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Nspace::List
+              @items={{collection.items}}
+              @ondelete={{route-action 'delete'}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No namespaces found
+                  {{else}}
+                    Welcome to Namespaces
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No namespaces where found matching that search, or you may not have access to view the namespaces you are searching for.
+                  {{else}}
+                    There don't seem to be any namespaces, or you may not have access to view namespaces yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/namespace" rel="noopener noreferrer" target="_blank">Documentation on namespaces</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/namespaces/secure-namespaces" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+</Route>

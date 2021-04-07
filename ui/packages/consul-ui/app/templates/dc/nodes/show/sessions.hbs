@@ -1,30 +1,36 @@
-<EventSource @src={{sessions}} />
-<div class="tab-section">
-{{#if (gt sessions.length 0)}}
-    <Consul::LockSession::List
-      @items={{sessions}}
-      @onInvalidate={{action send 'invalidateSession'}}
-    />
-{{else}}
-    <EmptyState @allowLogin={{true}}>
-      <BlockSlot @name="header">
-        <h2>
-            Welcome to Lock Sessions
-        </h2>
-      </BlockSlot>
-      <BlockSlot @name="body">
-        <p>
-          Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. There are currently no lock sessions present, or you may not have permission to view lock sessions.
-        </p>
-      </BlockSlot>
-      <BlockSlot @name="actions">
-        <li class="docs-link">
-          <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">Documentation on sessions</a>
-        </li>
-        <li class="learn-link">
-          <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore" rel="noopener noreferrer" target="_blank">Read the guide</a>
-        </li>
-      </BlockSlot>
-    </EmptyState>
-{{/if}}
-</div>
+<Route
+  @name={{routeName}}
+as |route|>
+  <EventSource @src={{sessions}} />
+  <div class="tab-section">
+  {{#if (gt sessions.length 0)}}
+      <Consul::LockSession::List
+        @items={{sessions}}
+        @onInvalidate={{action send 'invalidateSession'}}
+      />
+  {{else}}
+      <EmptyState
+        @login={{route.model.app.login.open}}
+      >
+        <BlockSlot @name="header">
+          <h2>
+              Welcome to Lock Sessions
+          </h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>
+            Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. There are currently no lock sessions present, or you may not have permission to view lock sessions.
+          </p>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <li class="docs-link">
+            <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">Documentation on sessions</a>
+          </li>
+          <li class="learn-link">
+            <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/tutorials/consul/distributed-semaphore" rel="noopener noreferrer" target="_blank">Read the guide</a>
+          </li>
+        </BlockSlot>
+      </EmptyState>
+  {{/if}}
+  </div>
+</Route>

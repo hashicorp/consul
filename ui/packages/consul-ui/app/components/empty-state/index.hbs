@@ -16,8 +16,11 @@
   {{#yield-slot name="body"}}
     <div>
       {{yield}}
-      {{#if (and (env 'CONSUL_ACLS_ENABLED') allowLogin)}}
-        <label for="login-toggle" data-test-empty-state-login>
+      {{#if login}}
+        <Action
+          data-test-empty-state-login
+          {{on "click" login}}
+        >
           <DataSource
             @src="settings://consul:token"
             @onchange={{action (mut token) value="data"}}
@@ -27,7 +30,7 @@
           {{else}}
             Log in
           {{/if}}
-        </label>
+        </Action>
       {{/if}}
     </div>
   {{/yield-slot}}

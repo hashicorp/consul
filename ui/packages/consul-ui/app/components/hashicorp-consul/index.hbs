@@ -218,14 +218,28 @@
             >
               {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                 <BlockSlot @name="unauthorized">
-                  <label
-                    tabindex="0"
-                    {{on 'keypress' this.keypressClick}}
+                  <Portal @target="app-before-skip-links">
+                    <button
+                      type="button"
+                      {{on "click" (optional this.modal.open)}}
+                    >
+                      Login
+                    </button>
+                  </Portal>
+                  <button
+                    type="button"
                     {{on "click" (optional this.modal.open)}}
                   >
-                    <span>Log in</span>
-                  </label>
-                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    Log in
+                  </button>
+                  <ModalDialog
+                    @name="login-toggle"
+                    @onclose={{this.close}}
+                    @onopen={{this.open}}
+                    @aria={{hash
+                      label="Log in to Consul"
+                    }}
+                  as |modal|>
                     <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in to Consul</h2>
@@ -245,7 +259,14 @@
                   </ModalDialog>
                 </BlockSlot>
                 <BlockSlot @name="authorized">
-                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                  <ModalDialog
+                    @name="login-toggle"
+                    @onclose={{this.close}}
+                    @onopen={{this.open}}
+                    @aria={{hash
+                      label="Log in with a different token"
+                    }}
+                  as |modal|>
                     <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in with a different token</h2>
@@ -261,6 +282,14 @@
                       </button>
                     </BlockSlot>
                   </ModalDialog>
+                  <Portal @target="app-before-skip-links">
+                    <button
+                      type="button"
+                      {{on "click" (optional authDialog.logout)}}
+                    >
+                      Logout
+                    </button>
+                  </Portal>
                   <PopoverMenu @position="right" as |components api|>
                     <BlockSlot @name="trigger">
                       Logout
@@ -295,7 +324,7 @@
 
     <:main>
       {{yield (hash
-        modal=this.modal
+        login=(if (env 'CONSUL_ACLS_ENABLED') this.modal (hash open=undefined))
       )}}
     </:main>
 

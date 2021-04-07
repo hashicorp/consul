@@ -21,8 +21,5 @@ export default Component.extend(Slotted, {
     close: function() {
       this.dialog.hide();
     },
-    change: function(e) {
-      this.actions.open.call(this);
-    },
   },
 });

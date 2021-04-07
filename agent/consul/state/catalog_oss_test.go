@@ -8,9 +8,11 @@ import (
 
 func testIndexerTableChecks() map[string]indexerTestCase {
 	obj := &structs.HealthCheck{
-		Node:      "NoDe",
-		ServiceID: "SeRvIcE",
-		CheckID:   "CheckID",
+		Node:        "NoDe",
+		ServiceID:   "SeRvIcE",
+		ServiceName: "ServiceName",
+		CheckID:     "CheckID",
+		Status:      "PASSING",
 	}
 	return map[string]indexerTestCase{
 		indexID: {
@@ -34,6 +36,26 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 					source:   Query{Value: "nOdE"},
 					expected: []byte("node\x00"),
 				},
+			},
+		},
+		indexStatus: {
+			read: indexValue{
+				source:   Query{Value: "PASSING"},
+				expected: []byte("passing\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("passing\x00"),
+			},
+		},
+		indexService: {
+			read: indexValue{
+				source:   Query{Value: "ServiceName"},
+				expected: []byte("servicename\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("servicename\x00"),
 			},
 		},
 		indexNodeService: {
@@ -168,6 +190,12 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 }
 
 func testIndexerTableServices() map[string]indexerTestCase {
+	obj := &structs.ServiceNode{
+		Node:        "NoDeId",
+		ServiceID:   "SeRviCe",
+		ServiceName: "ServiceName",
+	}
+
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
@@ -178,10 +206,7 @@ func testIndexerTableServices() map[string]indexerTestCase {
 				expected: []byte("nodeid\x00service\x00"),
 			},
 			write: indexValue{
-				source: &structs.ServiceNode{
-					Node:      "NoDeId",
-					ServiceID: "SeRviCe",
-				},
+				source:   obj,
 				expected: []byte("nodeid\x00service\x00"),
 			},
 			prefix: []indexValue{
@@ -202,16 +227,88 @@ func testIndexerTableServices() map[string]indexerTestCase {
 		indexNode: {
 			read: indexValue{
 				source: Query{
-					Value: "NoDe",
+					Value: "NoDeId",
 				},
-				expected: []byte("node\x00"),
+				expected: []byte("nodeid\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("nodeid\x00"),
+			},
+		},
+		indexService: {
+			read: indexValue{
+				source:   Query{Value: "ServiceName"},
+				expected: []byte("servicename\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("servicename\x00"),
+			},
+		},
+		indexConnect: {
+			read: indexValue{
+				source:   Query{Value: "ConnectName"},
+				expected: []byte("connectname\x00"),
 			},
 			write: indexValue{
 				source: &structs.ServiceNode{
-					Node:      "NoDe",
-					ServiceID: "SeRvIcE",
+					ServiceName:    "ConnectName",
+					ServiceConnect: structs.ServiceConnect{Native: true},
 				},
-				expected: []byte("node\x00"),
+				expected: []byte("connectname\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindConnectProxy,
+							ServiceProxy: structs.ConnectProxyConfig{
+								DestinationServiceName: "ConnectName",
+							},
+						},
+						expected: []byte("connectname\x00"),
+					},
+				},
+				{
+					write: indexValue{
+						source:               &structs.ServiceNode{ServiceName: "ServiceName"},
+						expectedIndexMissing: true,
+					},
+				},
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindTerminatingGateway,
+						},
+						expectedIndexMissing: true,
+					},
+				},
+			},
+		},
+		indexKind: {
+			read: indexValue{
+				source:   Query{Value: "connect-proxy"},
+				expected: []byte("connect-proxy\x00"),
+			},
+			write: indexValue{
+				source: &structs.ServiceNode{
+					ServiceKind: structs.ServiceKindConnectProxy,
+				},
+				expected: []byte("connect-proxy\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					write: indexValue{
+						source: &structs.ServiceNode{
+							ServiceName: "ServiceName",
+							ServiceKind: structs.ServiceKindTypical,
+						},
+						expected: []byte("\x00"),
+					},
+				},
 			},
 		},
 	}

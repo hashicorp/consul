@@ -1,7 +1,8 @@
 <Route
   @name={{routeName}}
+  @title='Consul'
+  @titleSeparator=" - "
 >
-{{page-title 'Consul' separator=' - '}}
 
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
   {{document-attrs class="has-acls"}}
@@ -28,9 +29,12 @@ as |source|>
     @nspaces={{nspaces}}
     @nspace={{or nspace nspaces.firstObject}}
     @onchange={{action "reauthorize"}}
-  >
+  as |consul|>
   <Outlet
   @name="application"
+  @model={{hash
+    app=consul
+  }}
   as |o|>
     {{outlet}}
   </Outlet>

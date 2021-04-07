@@ -6,12 +6,15 @@
   class="app"
   ...attributes
 >
-  <ModalLayer />
 
   <div
     class="skip-links"
     {{on "click" this.focus}}
   >
+    <PortalTarget
+      @name="app-before-skip-links"
+      @mutiple={{true}}
+    ></PortalTarget>
     <a href={{concat '#' exported.main}}>{{t 'components.app.skip_to_content'}}</a>
     {{!--
       In order to add further skip links from within other templates use:
@@ -21,10 +24,12 @@
       from within your template
     --}}
     <PortalTarget
-      @name="app-skip-links"
+      @name="app-after-skip-links"
       @mutiple={{true}}
     ></PortalTarget>
   </div>
+
+  <ModalLayer />
 
   <input
     type="checkbox"

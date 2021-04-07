@@ -70,7 +70,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 		switch change.Table {
 		case "nodes":
 			usageDeltas[change.Table] += delta
-		case "services":
+		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
 			usageDeltas[change.Table] += delta
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
@@ -107,7 +107,8 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceNameChanges map[structs.ServiceName]int) (map[structs.ServiceName]uniqueServiceState, error) {
 	serviceStates := make(map[structs.ServiceName]uniqueServiceState, len(serviceNameChanges))
 	for svc, delta := range serviceNameChanges {
-		serviceIter, err := getWithTxn(tx, tableServices, "service", svc.Name, &svc.EnterpriseMeta)
+		q := Query{Value: svc.Name, EnterpriseMeta: svc.EnterpriseMeta}
+		serviceIter, err := tx.Get(tableServices, indexService, q)
 		if err != nil {
 			return nil, err
 		}

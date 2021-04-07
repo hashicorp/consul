@@ -199,6 +199,9 @@ export const routes = {
           'binding-rules': {
             _options: { path: '/binding-rules' },
           },
+          'nspace-rules': {
+            _options: { path: '/nspace-rules' },
+          },
         },
       },
     },

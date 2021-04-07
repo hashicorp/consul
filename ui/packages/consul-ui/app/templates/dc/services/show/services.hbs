@@ -1,68 +1,72 @@
-<EventSource @src={{items}} />
-<div class="tab-section">
-{{#let
+<Route
+  @name={{routeName}}
+as |route|>
+  <EventSource @src={{items}} />
+  <div class="tab-section">
+  {{#let
 
-  (hash
-    value=(or sortBy "Status:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    instance=(hash
-      value=(if instance (split instance ',') undefined)
-      change=(action (mut instance) value="target.selectedItems")
+    (hash
+      value=(or sortBy "Status:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+
+    (hash
+      instance=(hash
+        value=(if instance (split instance ',') undefined)
+        change=(action (mut instance) value="target.selectedItems")
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
     )
-  )
 
-  items
+    items
 
-as |sort filters items|}}
-{{#if (gt items.length 0)}}
-    <input type="checkbox" id="toolbar-toggle" />
-    <Consul::Upstream::SearchBar
-      @search={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
+  as |sort filters items|}}
+  {{#if (gt items.length 0)}}
+      <input type="checkbox" id="toolbar-toggle" />
+      <Consul::Upstream::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
 
-      @sort={{sort}}
+        @sort={{sort}}
 
-      @filter={{filters}}
-      />
-{{/if}}
-    <p>
-      The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our
-      <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
-    </p>
-    <DataCollection
-      @type="service"
-      @sort={{sort.value}}
-      @filters={{filters}}
-      @search={{search}}
-      @items={{items}}
-    as |collection|>
-      <collection.Collection>
-        <Consul::Service::List
-          @nspace={{nspace}}
-          @items={{collection.items}}
-        >
-        </Consul::Service::List>
-      </collection.Collection>
-      <collection.Empty>
-        <EmptyState>
-          <BlockSlot @name="body">
-            <p>
-              There are no linked services{{#if (gt items.length 0)}} matching that search{{/if}}.
-            </p>
-          </BlockSlot>
-        </EmptyState>
-      </collection.Empty>
-    </DataCollection>
-{{/let}}
-</div>
+        @filter={{filters}}
+        />
+  {{/if}}
+      <p>
+        The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our
+        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
+      </p>
+      <DataCollection
+        @type="service"
+        @sort={{sort.value}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::Service::List
+            @nspace={{nspace}}
+            @items={{collection.items}}
+          >
+          </Consul::Service::List>
+        </collection.Collection>
+        <collection.Empty>
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                There are no linked services{{#if (gt items.length 0)}} matching that search{{/if}}.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
+  {{/let}}
+  </div>
+</Route>
