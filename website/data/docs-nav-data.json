@@ -1,0 +1,892 @@
+[
+  {
+    "title": "Intro to Consul",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "intro"
+      },
+      {
+        "title": "Consul vs. Other Software",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "intro/vs"
+          },
+          {
+            "title": "ZooKeeper, doozerd, etcd",
+            "path": "intro/vs/zookeeper"
+          },
+          {
+            "title": "Chef, Puppet, etc.",
+            "path": "intro/vs/chef-puppet"
+          },
+          {
+            "title": "Nagios",
+            "path": "intro/vs/nagios"
+          },
+          {
+            "title": "SkyDNS",
+            "path": "intro/vs/skydns"
+          },
+          {
+            "title": "SmartStack",
+            "path": "intro/vs/smartstack"
+          },
+          {
+            "title": "Serf",
+            "path": "intro/vs/serf"
+          },
+          {
+            "title": "Eureka",
+            "path": "intro/vs/eureka"
+          },
+          {
+            "title": "Istio",
+            "path": "intro/vs/istio"
+          },
+          {
+            "title": "Envoy and Other Proxies",
+            "path": "intro/vs/proxies"
+          },
+          {
+            "title": "Custom Solutions",
+            "path": "intro/vs/custom"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Get Started",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "install"
+      },
+      {
+        "title": "Consul Agent",
+        "href": "/docs/agent"
+      },
+      {
+        "title": "Glossary",
+        "path": "install/glossary"
+      },
+      {
+        "title": "Required Ports",
+        "path": "install/ports"
+      },
+      {
+        "title": "Bootstrapping a Datacenter",
+        "path": "install/bootstrapping"
+      },
+      {
+        "title": "Cloud Auto-join",
+        "path": "install/cloud-auto-join"
+      },
+      {
+        "title": "Server Performance",
+        "path": "install/performance"
+      },
+      {
+        "title": "Kubernetes",
+        "href": "/docs/k8s"
+      }
+    ]
+  },
+  {
+    "title": "API",
+    "href": "/api-docs"
+  },
+  {
+    "title": "Commands (CLI)",
+    "href": "/commands"
+  },
+  {
+    "title": "Service Discovery",
+    "routes": [
+      {
+        "title": "Register Services - Service Definitions",
+        "path": "discovery/services"
+      },
+      {
+        "title": "Find Services - DNS Interface",
+        "path": "discovery/dns"
+      },
+      {
+        "title": "Monitor Services - Check Definitions",
+        "path": "discovery/checks"
+      }
+    ]
+  },
+  {
+    "title": "Service Mesh",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "connect"
+      },
+      {
+        "title": "How Connect Works",
+        "path": "connect/connect-internals"
+      },
+      {
+        "title": "Configuration",
+        "path": "connect/configuration"
+      },
+      {
+        "title": "Configuration Entries",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/config-entries"
+          },
+          {
+            "title": "Ingress Gateway",
+            "path": "connect/config-entries/ingress-gateway"
+          },
+          {
+            "title": "Proxy Defaults",
+            "path": "connect/config-entries/proxy-defaults"
+          },
+          {
+            "title": "Service Defaults",
+            "path": "connect/config-entries/service-defaults"
+          },
+          {
+            "title": "Service Intentions",
+            "path": "connect/config-entries/service-intentions"
+          },
+          {
+            "title": "Service Resolver",
+            "path": "connect/config-entries/service-resolver"
+          },
+          {
+            "title": "Service Router",
+            "path": "connect/config-entries/service-router"
+          },
+          {
+            "title": "Service Splitter",
+            "path": "connect/config-entries/service-splitter"
+          },
+          {
+            "title": "Terminating Gateway",
+            "path": "connect/config-entries/terminating-gateway"
+          }
+        ]
+      },
+      {
+        "title": "Supported Proxies",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/proxies"
+          },
+          {
+            "title": "Envoy",
+            "path": "connect/proxies/envoy"
+          },
+          {
+            "title": "Built-in Proxy",
+            "path": "connect/proxies/built-in"
+          },
+          {
+            "title": "Proxy Integration",
+            "path": "connect/proxies/integrate"
+          }
+        ]
+      },
+      {
+        "title": "Registering Proxies",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/registration"
+          },
+          {
+            "title": "Proxy Service Registration",
+            "path": "connect/registration/service-registration"
+          },
+          {
+            "title": "Sidecar Service Registration",
+            "path": "connect/registration/sidecar-service"
+          }
+        ]
+      },
+      {
+        "title": "Service-to-service permissions - Intentions",
+        "path": "connect/intentions"
+      },
+      {
+        "title": "Service-to-service permissions - Intentions (Legacy Mode)",
+        "path": "connect/intentions-legacy"
+      },
+      {
+        "title": "Observability",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/observability"
+          },
+          {
+            "title": "UI Visualization",
+            "path": "connect/observability/ui-visualization"
+          }
+        ]
+      },
+      {
+        "title": "L7 Traffic Management",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/l7-traffic"
+          },
+          {
+            "title": "Discovery Chain",
+            "path": "connect/l7-traffic/discovery-chain"
+          }
+        ]
+      },
+      {
+        "title": "Connectivity Tasks",
+        "path": "connect/connectivity-tasks"
+      },
+      {
+        "title": "Gateways",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/gateways"
+          },
+          {
+            "title": "Connect Datacenters - Mesh Gateways",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/gateways/mesh-gateway"
+              },
+              {
+                "title": "WAN Federation",
+                "path": "connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways"
+              }
+            ]
+          },
+          {
+            "title": "External <> Internal Services -  Ingress Gateways",
+            "path": "connect/gateways/ingress-gateway"
+          },
+          {
+            "title": "Internal <> External Services - Terminating Gateways",
+            "path": "connect/gateways/terminating-gateway"
+          }
+        ]
+      },
+      {
+        "title": "Nomad",
+        "path": "connect/nomad"
+      },
+      {
+        "title": "Kubernetes",
+        "href": "/docs/k8s/connect"
+      },
+      {
+        "title": "Native App Integration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/native"
+          },
+          {
+            "title": "Go Integration",
+            "path": "connect/native/go"
+          }
+        ]
+      },
+      {
+        "title": "Certificate Management",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/ca"
+          },
+          {
+            "title": "Built-In CA",
+            "path": "connect/ca/consul"
+          },
+          {
+            "title": "Vault",
+            "path": "connect/ca/vault"
+          },
+          {
+            "title": "ACM Private CA",
+            "path": "connect/ca/aws"
+          }
+        ]
+      },
+      {
+        "title": "Develop and Debug",
+        "path": "connect/dev"
+      }
+    ]
+  },
+  {
+    "title": "Kubernetes",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "k8s"
+      },
+      {
+        "title": "Get Started",
+        "routes": [
+          {
+            "title": "Install with Helm Chart",
+            "path": "k8s/installation/install"
+          },
+          {
+            "title": "Platform Guides",
+            "routes": [
+              {
+                "title": "Minikube",
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-minikube?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk"
+              },
+              {
+                "title": "Kind",
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind"
+              },
+              {
+                "title": "AKS (Azure)",
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-aks-azure?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=aks"
+              },
+              {
+                "title": "EKS (AWS)",
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-eks-aws?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=eks"
+              },
+              {
+                "title": "GKE (Google Cloud)",
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke"
+              },
+              {
+                "title": "Red Hat OpenShift",
+                "href": "https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift"
+              },
+              {
+                "title": "Self Hosted Kubernetes",
+                "path": "k8s/installation/platforms/self-hosted-kubernetes"
+              }
+            ]
+          },
+          {
+            "title": "Deployment Configurations",
+            "routes": [
+              {
+                "title": "Consul Clients Outside Kubernetes",
+                "path": "k8s/installation/deployment-configurations/clients-outside-kubernetes"
+              },
+              {
+                "title": "Consul Servers Outside Kubernetes",
+                "path": "k8s/installation/deployment-configurations/servers-outside-kubernetes"
+              },
+              {
+                "title": "Consul Enterprise",
+                "path": "k8s/installation/deployment-configurations/consul-enterprise"
+              }
+            ]
+          },
+          {
+            "title": "Multi-Cluster Federation",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "k8s/installation/multi-cluster"
+              },
+              {
+                "title": "Federation Between Kubernetes Clusters",
+                "path": "k8s/installation/multi-cluster/kubernetes"
+              },
+              {
+                "title": "Federation Between VMs and Kubernetes",
+                "path": "k8s/installation/multi-cluster/vms-and-kubernetes"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Service Mesh",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "k8s/connect"
+          },
+          {
+            "title": "Ingress Gateways",
+            "path": "k8s/connect/ingress-gateways"
+          },
+          {
+            "title": "Terminating Gateways",
+            "path": "k8s/connect/terminating-gateways"
+          },
+          {
+            "title": "Configuring a Connect CA Provider",
+            "path": "k8s/connect/connect-ca-provider"
+          },
+          {
+            "title": "Ambassador Integration",
+            "path": "k8s/connect/ambassador"
+          },
+          {
+            "title": "Health Checks",
+            "path": "k8s/connect/health"
+          },
+          {
+            "title": "Observability",
+            "routes": [
+              {
+                "title": "Metrics",
+                "path": "k8s/connect/observability/metrics"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Service Sync",
+        "path": "k8s/service-sync"
+      },
+      {
+        "title": "Custom Resource Definitions",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "k8s/crds"
+          },
+          {
+            "title": "Upgrade An Existing Cluster to CRDs",
+            "path": "k8s/crds/upgrade-to-crds"
+          }
+        ]
+      },
+      {
+        "title": "Consul DNS",
+        "path": "k8s/dns"
+      },
+      {
+        "title": "Upgrade",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "k8s/upgrade"
+          },
+          {
+            "title": "Compatibility Matrix",
+            "path": "k8s/upgrade/compatibility"
+          }
+        ]
+      },
+      {
+        "title": "Operations",
+        "routes": [
+          {
+            "title": "Uninstall",
+            "path": "k8s/operations/uninstall"
+          },
+          {
+            "title": "Certificate Rotation",
+            "path": "k8s/operations/certificate-rotation"
+          },
+          {
+            "title": "Configure TLS on an Existing Cluster",
+            "path": "k8s/operations/tls-on-existing-cluster"
+          }
+        ]
+      },
+      {
+        "title": "Troubleshoot",
+        "routes": [
+          {
+            "title": "Common Error Messages",
+            "href": "/docs/troubleshoot/common-errors#common-errors-on-kubernetes"
+          },
+          {
+            "title": "FAQ",
+            "href": "/docs/troubleshoot/faq#consul-on-kubernetes"
+          }
+        ]
+      },
+      {
+        "title": "Helm Chart Configuration",
+        "path": "k8s/helm"
+      }
+    ]
+  },
+  {
+    "title": "Network Infrastructure Automation",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "nia"
+      },
+      {
+        "title": "Get Started",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "nia/installation/install"
+          },
+          {
+            "title": "Requirements",
+            "path": "nia/installation/requirements"
+          },
+          {
+            "title": "Configure",
+            "path": "nia/installation/configure"
+          },
+          {
+            "title": "Run Consul-Terraform-Sync",
+            "path": "nia/installation/run"
+          }
+        ]
+      },
+      {
+        "title": "Architecture",
+        "path": "nia/architecture"
+      },
+      {
+        "title": "API",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/api/api-overview"
+          },
+          {
+            "title": "Status",
+            "path": "nia/api/status"
+          },
+          {
+            "title": "Tasks",
+            "path": "nia/api/tasks"
+          }
+        ]
+      },
+      {
+        "title": "CLI",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/cli/cli-overview"
+          },
+          {
+            "title": "task",
+            "path": "nia/cli/task"
+          }
+        ]
+      },
+      {
+        "title": "Configuration",
+        "path": "nia/configuration"
+      },
+      {
+        "title": "Tasks",
+        "path": "nia/tasks"
+      },
+      {
+        "title": "Terraform Modules",
+        "path": "nia/terraform-modules"
+      },
+      {
+        "title": "Network Drivers",
+        "path": "nia/network-drivers"
+      },
+      {
+        "title": "Compatibility",
+        "path": "nia/compatibility"
+      }
+    ]
+  },
+  {
+    "title": "Dynamic App Configuration",
+    "routes": [
+      {
+        "title": "Consul KV",
+        "path": "dynamic-app-config/kv"
+      },
+      {
+        "title": "Sessions",
+        "path": "dynamic-app-config/sessions"
+      },
+      {
+        "title": "Watches",
+        "path": "dynamic-app-config/watches"
+      }
+    ]
+  },
+  {
+    "title": "Agent",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "agent"
+      },
+      {
+        "title": "Configuration",
+        "path": "agent/options"
+      },
+      {
+        "title": "Configuration Entries",
+        "path": "agent/config-entries"
+      },
+      {
+        "title": "Telemetry",
+        "path": "agent/telemetry"
+      }
+    ]
+  },
+  {
+    "title": "Security",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "security"
+      },
+      {
+        "title": "Access Control (ACLs)",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "security/acl"
+          },
+          {
+            "title": "ACL System",
+            "path": "security/acl/acl-system"
+          },
+          {
+            "title": "ACL Rules",
+            "path": "security/acl/acl-rules"
+          },
+          {
+            "title": "Legacy Mode",
+            "path": "security/acl/acl-legacy"
+          },
+          {
+            "title": "Token Migration",
+            "path": "security/acl/acl-migrate-tokens"
+          },
+          {
+            "title": "Auth Methods",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "security/acl/auth-methods"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "security/acl/auth-methods/kubernetes"
+              },
+              {
+                "title": "JWT",
+                "path": "security/acl/auth-methods/jwt"
+              },
+              {
+                "title": "OIDC",
+                "path": "security/acl/auth-methods/oidc"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Encryption",
+        "path": "security/encryption"
+      },
+      {
+        "title": "Security Models",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "security/security-models"
+          },
+          {
+            "title": "Core",
+            "path": "security/security-models/core"
+          },
+          {
+            "title": "Network Infrastructure Automation",
+            "path": "security/security-models/nia"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Enterprise Features",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "enterprise"
+      },
+      {
+        "title": "Audit Logging",
+        "path": "enterprise/audit-logging"
+      },
+      {
+        "title": "Automated Backups",
+        "path": "enterprise/backups"
+      },
+      {
+        "title": "Automated Upgrades",
+        "path": "enterprise/upgrades"
+      },
+      {
+        "title": "Enhanced Read Scalability",
+        "path": "enterprise/read-scale"
+      },
+      {
+        "title": "Single sign-on - OIDC",
+        "href": "/docs/security/acl/auth-methods/oidc"
+      },
+      {
+        "title": "Redundancy Zones",
+        "path": "enterprise/redundancy"
+      },
+      {
+        "title": "Advanced Federation",
+        "path": "enterprise/federation"
+      },
+      {
+        "title": "Namespaces",
+        "path": "enterprise/namespaces"
+      },
+      {
+        "title": "Network Segments",
+        "path": "enterprise/network-segments"
+      },
+      {
+        "title": "Sentinel",
+        "path": "enterprise/sentinel"
+      }
+    ]
+  },
+  {
+    "title": "Architecture",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "architecture"
+      },
+      {
+        "title": "Anti-Entropy",
+        "path": "architecture/anti-entropy"
+      },
+      {
+        "title": "Consensus Protocol",
+        "path": "architecture/consensus"
+      },
+      {
+        "title": "Gossip Protocol",
+        "path": "architecture/gossip"
+      },
+      {
+        "title": "Jepsen Testing",
+        "path": "architecture/jepsen"
+      },
+      {
+        "title": "Network Coordinates",
+        "path": "architecture/coordinates"
+      }
+    ]
+  },
+  {
+    "title": "Integrations",
+    "routes": [
+      {
+        "title": "Consul Integration Program",
+        "path": "integrate/partnerships"
+      },
+      {
+        "title": "NIA Integration Program",
+        "path": "integrate/nia-integration"
+      },
+      {
+        "title": "Vault Integration",
+        "href": "/docs/connect/ca/vault"
+      },
+      {
+        "title": "Ambassador Integration",
+        "href": "/docs/k8s/connect/ambassador"
+      },
+      {
+        "title": "Proxy Integration",
+        "href": "/docs/connect/proxies/integrate"
+      }
+    ]
+  },
+  {
+    "title": "Consul Tools",
+    "path": "download-tools"
+  },
+  {
+    "title": "Upgrade",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "upgrading"
+      },
+      {
+        "title": "Compatibility Promise",
+        "path": "upgrading/compatibility"
+      },
+      {
+        "title": "Specific Version Details",
+        "path": "upgrading/upgrade-specific"
+      },
+      {
+        "title": "Upgrade Instructions",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "upgrading/instructions"
+          },
+          {
+            "title": "General Process",
+            "path": "upgrading/instructions/general-process"
+          },
+          {
+            "title": "Upgrading to 1.2.4",
+            "path": "upgrading/instructions/upgrade-to-1-2-x"
+          },
+          {
+            "title": "Upgrading to 1.6.9",
+            "path": "upgrading/instructions/upgrade-to-1-6-x"
+          },
+          {
+            "title": "Upgrading to 1.8.4",
+            "path": "upgrading/instructions/upgrade-to-1-8-x"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Troubleshoot",
+    "routes": [
+      {
+        "title": "Common Error Messages",
+        "path": "troubleshoot/common-errors"
+      },
+      {
+        "title": "FAQ",
+        "path": "troubleshoot/faq"
+      }
+    ]
+  },
+  {
+    "title": "Release Notes",
+    "routes": [
+      {
+        "title": "1.9.0",
+        "path": "release-notes/1-9-0"
+      }
+    ]
+  }
+]
