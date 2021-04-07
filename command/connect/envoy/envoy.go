@@ -23,12 +23,28 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
+// stderrOnlyUi forces ui.Info calls to go to stderr by passing them to the
+// existing ui.Warn method. In Consul's main.go the underlying UI construct
+// sends Output+Info to stdout and Error+Warn to stderr. This only works
+// because the cli.Ui plumbing in consul doesn't try to do anything fancy with
+// colors. If it did pick up use of the ColoredUi abstraction we would need to
+// handle this differently.
+//
+// Prevent any incidental use of Output/Info from writing to Stdout and
+// corrupting the generated bootstrap file.
+//
+// Ideally we would audit the command/* package for the difference in Info/Output
+type stderrOnlyUi struct {
+	cli.Ui
+}
+
+var _ cli.Ui = (*stderrOnlyUi)(nil)
+
+func (ui *stderrOnlyUi) Output(s string) { ui.Warn(s) }
+func (ui *stderrOnlyUi) Info(s string)   { ui.Warn(s) }
+
 func New(ui cli.Ui) *cmd {
-	if bui, ok := ui.(*cli.BasicUi); ok {
-		// Prevent any incidental use of Output/Info from writing to Stdout and
-		// corrupting the generated bootstrap file.
-		bui.Writer = os.Stderr
-	}
+	ui = &stderrOnlyUi{ui}
 
 	ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -386,7 +402,7 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
+		c.UI.Info(fmt.Sprintf("Registered service: %s", svc.Name))
 	}
 
 	// Generate config
