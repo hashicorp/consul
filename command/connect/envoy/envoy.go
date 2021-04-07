@@ -24,6 +24,12 @@ import (
 )
 
 func New(ui cli.Ui) *cmd {
+	if bui, ok := ui.(*cli.BasicUi); ok {
+		// Prevent any incidental use of Output/Info from writing to Stdout and
+		// corrupting the generated bootstrap file.
+		bui.Writer = os.Stderr
+	}
+
 	ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
 		InfoPrefix:   "    ",
@@ -578,7 +584,6 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
 		}
 		addr = fmt.Sprintf("localhost:%v", port)
 	}
