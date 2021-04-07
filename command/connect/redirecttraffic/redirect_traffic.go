@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
@@ -32,16 +33,16 @@ type cmd struct {
 	help   string
 	client *api.Client
 
-	// flags
+	// Flags.
 	proxyUID string
-
-	provider iptables.Provider
+	proxyID  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 
 	c.flags.StringVar(&c.proxyUID, "proxy-uid", "", "The user ID of the proxy to exclude from traffic redirection.")
+	c.flags.StringVar(&c.proxyID, "proxy-id", "", "The service ID of the proxy service registered with Consul.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -59,18 +60,19 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	cfg := iptables.Config{ProxyUserID: c.proxyUID}
-	if c.provider != nil {
-		cfg.IptablesProvider = c.provider
-	}
-
-	err := iptables.Setup(cfg)
+	cfg, err := c.generateConfigFromFlags()
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error setting up iptables rules: %s", err.Error()))
+		c.UI.Error(fmt.Sprintf("Failed to create configuration to apply traffic redirection rules: %s", err))
 		return 1
 	}
 
-	c.UI.Info("Successfully applied iptables rules")
+	err = iptables.Setup(cfg)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error setting up traffic redirection rules: %s", err.Error()))
+		return 1
+	}
+
+	c.UI.Info("Successfully applied traffic redirection rules")
 	return 0
 }
 
@@ -82,9 +84,38 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
+// todo: add docs
+func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
+	cfg := iptables.Config{ProxyUserID: c.proxyUID}
+
+	// When proxyID is provided, we set up cfg with values
+	// from proxy's service registration in Consul.
+	if c.proxyID != "" {
+		var err error
+		if c.client == nil {
+			c.client, err = c.http.APIClient()
+			if err != nil {
+				return iptables.Config{}, fmt.Errorf("error creating Consul API client: %s", err)
+			}
+		}
+
+		svc, _, err := c.client.Agent().Service(c.proxyID, nil)
+		if err != nil {
+			return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
+		}
+
+		cfg.ProxyInboundPort = svc.Port
+
+		// todo: change once it's configurable
+		cfg.ProxyOutboundPort = xds.TProxyOutboundPort
+	}
+
+	return cfg, nil
+}
+
 const synopsis = "Applies iptables rules for traffic redirection"
 const help = `
-Usage: consul connect iptables [options]
+Usage: consul connect redirect-traffic [options]
 
   Applies iptables rules for inbound and outbound traffic redirection.
 
@@ -92,5 +123,5 @@ Usage: consul connect iptables [options]
 
   Example:
 
-    $ consul connect iptables -proxy-uid 1234
+    $ consul connect redirect-traffic -proxy-uid 1234
 `

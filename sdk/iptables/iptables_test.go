@@ -9,8 +9,10 @@ import (
 
 func TestSetup(t *testing.T) {
 	cfg := Config{
-		ProxyUserID:      "123",
-		IptablesProvider: &fakeIptablesProvider{},
+		ProxyUserID:       "123",
+		ProxyInboundPort:  20000,
+		ProxyOutboundPort: 21000,
+		IptablesProvider:  &fakeIptablesProvider{},
 	}
 
 	expectedRules := []string{
@@ -18,12 +20,12 @@ func TestSetup(t *testing.T) {
 		"iptables -t nat -N PROXY_IN_REDIRECT",
 		"iptables -t nat -N PROXY_OUTPUT",
 		"iptables -t nat -N PROXY_REDIRECT",
-		"iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001",
+		"iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
 		"iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT",
 		"iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
 		"iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
 		"iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT",
-		"iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 15006",
+		"iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
 		"iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND",
 		"iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT",
 	}
@@ -34,13 +36,43 @@ func TestSetup(t *testing.T) {
 }
 
 func TestSetup_errors(t *testing.T) {
-	cfg := Config{
-		ProxyUserID:      "123",
-		IptablesProvider: &iptablesExecutor{},
+	cases := []struct {
+		name   string
+		cfg    Config
+		expErr string
+	}{
+		{
+			"no proxy UID",
+			Config{
+				IptablesProvider: &iptablesExecutor{},
+			},
+			"ProxyUserID is required to set up traffic redirection",
+		},
+		{
+			"no proxy oubound port",
+			Config{
+				ProxyUserID:      "123",
+				IptablesProvider: &iptablesExecutor{},
+			},
+			"ProxyOutboundPort is required to set up traffic redirection",
+		},
+		{
+			"no proxy inbound port",
+			Config{
+				ProxyUserID:       "123",
+				ProxyOutboundPort: 21000,
+				IptablesProvider:  &iptablesExecutor{},
+			},
+			"ProxyInboundPort is required to set up traffic redirection",
+		},
 	}
 
-	err := Setup(cfg)
-	require.EqualError(t, err, "exec: \"iptables\": executable file not found in $PATH")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := Setup(c.cfg)
+			require.EqualError(t, err, c.expErr)
+		})
+	}
 }
 
 type fakeIptablesProvider struct {

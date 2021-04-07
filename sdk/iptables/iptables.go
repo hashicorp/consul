@@ -1,6 +1,7 @@
 package iptables
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -18,10 +19,6 @@ const (
 
 	// Chain to redirect outbound traffic to the proxy
 	ProxyOutputRedirectChain = "PROXY_REDIRECT"
-
-	// todo: consolidate these with the xds package
-	EnvoyInboundPort  = 15006
-	EnvoyOutboundPort = 15001
 )
 
 // Config is used to configure which traffic interception and redirection
@@ -29,6 +26,12 @@ const (
 type Config struct {
 	// ProxyUserID is the user ID of the proxy process.
 	ProxyUserID string
+
+	// ProxyInboundPort is the port of the proxy's inbound listener.
+	ProxyInboundPort int
+
+	// ProxyInboundPort is the port of the proxy's outbound listener.
+	ProxyOutboundPort int
 
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
@@ -93,6 +96,11 @@ func Setup(cfg Config) error {
 		cfg.IptablesProvider = &iptablesExecutor{}
 	}
 
+	err := validateConfig(cfg)
+	if err != nil {
+		return err
+	}
+
 	// Create chains we will use for redirection.
 	chains := []string{ProxyInboundChain, ProxyInboundRedirectChain, ProxyOutputChain, ProxyOutputRedirectChain}
 	for _, chain := range chains {
@@ -102,7 +110,7 @@ func Setup(cfg Config) error {
 	// Configure outbound rules.
 	{
 		// Redirects outbound TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener port.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(EnvoyOutboundPort))
+		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
 
 		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-j", ProxyOutputChain)
@@ -120,7 +128,7 @@ func Setup(cfg Config) error {
 	// Configure inbound rules.
 	{
 		// Redirects inbound TCP traffic hitting the PROXY_IN_REDIRECT chain to Envoy's inbound listener port.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(EnvoyInboundPort))
+		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyInboundPort))
 
 		// For inbound traffic jump from PREROUTING chain to PROXY_INBOUND chain.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "-j", ProxyInboundChain)
@@ -131,4 +139,20 @@ func Setup(cfg Config) error {
 	}
 
 	return cfg.IptablesProvider.ApplyRules()
+}
+
+func validateConfig(cfg Config) error {
+	if cfg.ProxyUserID == "" {
+		return errors.New("ProxyUserID is required to set up traffic redirection")
+	}
+
+	if cfg.ProxyOutboundPort == 0 {
+		return errors.New("ProxyOutboundPort is required to set up traffic redirection")
+	}
+
+	if cfg.ProxyInboundPort == 0 {
+		return errors.New("ProxyInboundPort is required to set up traffic redirection")
+	}
+
+	return nil
 }
