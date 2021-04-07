@@ -1,33 +1,36 @@
 import { productName, productSlug } from 'data/metadata'
-import order from 'data/commands-navigation.js'
 import DocsPage from '@hashicorp/react-docs-page'
+// Imports below are only used server-side
 import {
   generateStaticPaths,
   generateStaticProps,
 } from '@hashicorp/react-docs-page/server'
 
-const subpath = 'commands'
+//  Configure the docs path
+const baseRoute = 'commands'
+const navDataFile = `data/${baseRoute}-nav-data.json`
+const localContentDir = `content/${baseRoute}`
+const mainBranch = 'master'
+const product = { name: productName, slug: productSlug }
 
 export default function CommandsLayout(props) {
   return (
-    <DocsPage
-      product={{ name: productName, slug: productSlug }}
-      subpath={subpath}
-      order={order}
-      mainBranch="master"
-      staticProps={props}
-    />
+    <DocsPage baseRoute={baseRoute} product={product} staticProps={props} />
   )
 }
 
 export async function getStaticPaths() {
-  return generateStaticPaths(subpath)
+  const paths = await generateStaticPaths({ localContentDir, navDataFile })
+  return { paths, fallback: false }
 }
 
 export async function getStaticProps({ params }) {
-  return generateStaticProps({
-    subpath,
-    productName,
+  const props = await generateStaticProps({
+    localContentDir,
+    mainBranch,
+    navDataFile,
     params,
+    product,
   })
+  return { props }
 }
