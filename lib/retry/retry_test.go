@@ -105,6 +105,18 @@ func TestWaiter_Delay(t *testing.T) {
 			require.Equal(t, expected*time.Millisecond, w.delay(), "failure count: %d", i)
 		}
 	})
+
+	t.Run("jitter can exceed MaxWait", func(t *testing.T) {
+		w := &Waiter{
+			MaxWait: 20 * time.Second,
+			Jitter:  NewJitter(300),
+
+			failures: 30,
+		}
+
+		delay := w.delay()
+		require.True(t, delay > 20*time.Second, "expected delay %v to be greater than MaxWait %v", delay, w.MaxWait)
+	})
 }
 
 func TestWaiter_Wait(t *testing.T) {
