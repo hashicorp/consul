@@ -1,5 +1,5 @@
 #p-community {
-  --brand: var(--consul);
+  --brand-link: var(--consul-link);
 
   max-width: var(--site-max-width);
   margin: 72px auto;

@@ -5,8 +5,8 @@
 @import '~@hashicorp/mktg-global-styles/_temporary-to-remove/tables.css';
 
 :root {
-  --highlight-color: var(--consul);
-  --highlight-color-text: var(--consul-text);
+  --highlight-color: var(--consul-link);
+  --highlight-color-text: var(--consul-link);
 }
 
 @import '~@hashicorp/react-alert-banner/style.css';
