@@ -326,7 +326,7 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 		// Also if we have any upstreams defined, add them to the request so we can
 		// learn about their configs.
 		for _, us := range ns.Proxy.Upstreams {
-			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService && !us.CentrallyConfigured {
+			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
 				sid := us.DestinationID()
 				sid.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
 				upstreams = append(upstreams, sid)
@@ -440,25 +440,14 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	// This does not apply outside of TransparentProxy mode because in that situation every possible upstream already exists
 	// inside of ns.Proxy.Upstreams.
 	if ns.Proxy.TransparentProxy {
-		var upstreams structs.Upstreams
-
-		for _, us := range ns.Proxy.Upstreams {
-			if _, ok := remoteUpstreams[us.DestinationID()]; !ok && us.CentrallyConfigured {
-				// If a centrally configured upstream is only present locally then that means it was
-				// removed from central config and should be removed from the local list as well.
-				continue
-			}
-			upstreams = append(upstreams, us)
-		}
-
 		for id, remote := range remoteUpstreams {
 			if _, ok := localUpstreams[id]; ok {
 				// Remote upstream is already present locally
 				continue
 			}
-			upstreams = append(upstreams, remote)
+
+			ns.Proxy.Upstreams = append(ns.Proxy.Upstreams, remote)
 		}
-		ns.Proxy.Upstreams = upstreams
 	}
 
 	return ns, err
