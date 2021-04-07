@@ -39,7 +39,7 @@ export default function App({ Component, pageProps }) {
         />
       </HashiHead>
       {ALERT_BANNER_ACTIVE && (
-        <AlertBanner {...alertBannerData} theme="consul" />
+        <AlertBanner {...alertBannerData} product="consul" />
       )}
       <HashiStackMenu />
       <ProductSubnav />
