@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-sockaddr/template"
+	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -20,19 +22,9 @@ import (
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/go-sockaddr/template"
-
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
-	ui = &cli.PrefixedUi{
-		OutputPrefix: "==> ",
-		InfoPrefix:   "    ",
-		ErrorPrefix:  "==> ",
-		Ui:           ui,
-	}
-
 	c := &cmd{UI: ui}
 	c.init()
 	return c
@@ -330,7 +322,11 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
+		if !c.bootstrap {
+			// We need stdout to be reserved exclusively for the JSON blob, so
+			// we omit logging this to Info which also writes to stdout.
+			c.UI.Info(fmt.Sprintf("Registered service: %s", svc.Name))
+		}
 	}
 
 	// See if we need to lookup proxyID
@@ -367,7 +363,6 @@ func (c *cmd) Run(args []string) int {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
 		}
 		c.grpcAddr = fmt.Sprintf("localhost:%v", port)
 	}
@@ -381,7 +376,7 @@ func (c *cmd) Run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
-		os.Stdout.Write(bootstrapJson)
+		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
