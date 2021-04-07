@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -24,17 +23,7 @@ import (
 )
 
 func New(ui cli.Ui) *cmd {
-	ui = &cli.PrefixedUi{
-		OutputPrefix: "==> ",
-		InfoPrefix:   "    ",
-		ErrorPrefix:  "==> ",
-		Ui:           ui,
-	}
-
-	c := &cmd{
-		UI:        ui,
-		directOut: os.Stdout,
-	}
+	c := &cmd{UI: ui}
 	c.init()
 	return c
 }
@@ -47,9 +36,6 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
-	// DirectOut defaults to os.stdout but is a property to allow capture during
-	// tests to have more useful output.
-	directOut io.Writer
 
 	// flags
 	meshGateway           bool
@@ -380,7 +366,11 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
+		if !c.bootstrap {
+			// We need stdout to be reserved exclusively for the JSON blob, so
+			// we omit logging this to Info which also writes to stdout.
+			c.UI.Info(fmt.Sprintf("Registered service: %s", svc.Name))
+		}
 	}
 
 	// Generate config
@@ -392,7 +382,7 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
-		c.directOut.Write(bootstrapJson)
+		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 
@@ -578,7 +568,6 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 			// This is the dev mode default and recommended production setting if
 			// enabled.
 			port = 8502
-			c.UI.Info(fmt.Sprintf("Defaulting to grpc port = %d", port))
 		}
 		addr = fmt.Sprintf("localhost:%v", port)
 	}
