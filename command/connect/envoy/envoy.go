@@ -366,7 +366,11 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		c.UI.Warn(fmt.Sprintf("Registered service: %s", svc.Name))
+		if !c.bootstrap {
+			// We need stdout to be reserved exclusively for the JSON blob, so
+			// we omit logging this to Info which also writes to stdout.
+			c.UI.Info(fmt.Sprintf("Registered service: %s", svc.Name))
+		}
 	}
 
 	// Generate config
