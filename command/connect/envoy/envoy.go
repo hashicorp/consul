@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -23,40 +22,8 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-// stderrOnlyUi forces ui.Info calls to go to stderr by passing them to the
-// existing ui.Warn method. In Consul's main.go the underlying UI construct
-// sends Output+Info to stdout and Error+Warn to stderr. This only works
-// because the cli.Ui plumbing in consul doesn't try to do anything fancy with
-// colors. If it did pick up use of the ColoredUi abstraction we would need to
-// handle this differently.
-//
-// Prevent any incidental use of Output/Info from writing to Stdout and
-// corrupting the generated bootstrap file.
-//
-// Ideally we would audit the command/* package for the difference in Info/Output
-type stderrOnlyUi struct {
-	cli.Ui
-}
-
-var _ cli.Ui = (*stderrOnlyUi)(nil)
-
-func (ui *stderrOnlyUi) Output(s string) { ui.Warn(s) }
-func (ui *stderrOnlyUi) Info(s string)   { ui.Warn(s) }
-
 func New(ui cli.Ui) *cmd {
-	ui = &stderrOnlyUi{ui}
-
-	ui = &cli.PrefixedUi{
-		OutputPrefix: "==> ",
-		InfoPrefix:   "    ",
-		ErrorPrefix:  "==> ",
-		Ui:           ui,
-	}
-
-	c := &cmd{
-		UI:        ui,
-		directOut: os.Stdout,
-	}
+	c := &cmd{UI: ui}
 	c.init()
 	return c
 }
@@ -69,9 +36,6 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
-	// DirectOut defaults to os.stdout but is a property to allow capture during
-	// tests to have more useful output.
-	directOut io.Writer
 
 	// flags
 	meshGateway           bool
@@ -402,7 +366,7 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		c.UI.Info(fmt.Sprintf("Registered service: %s", svc.Name))
+		c.UI.Warn(fmt.Sprintf("Registered service: %s", svc.Name))
 	}
 
 	// Generate config
@@ -414,7 +378,7 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
-		c.directOut.Write(bootstrapJson)
+		c.UI.Output(string(bootstrapJson))
 		return 0
 	}
 

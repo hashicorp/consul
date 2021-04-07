@@ -1,7 +1,6 @@
 package envoy
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -15,12 +14,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -874,11 +874,6 @@ func TestGenerateConfig(t *testing.T) {
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
 
-			var outBuf bytes.Buffer
-			// Capture output since it clutters test output and we can assert on what
-			// was actually printed this way.
-			c.directOut = &outBuf
-
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
 			args := append([]string{"-bootstrap"}, myFlags...)
@@ -899,7 +894,7 @@ func TestGenerateConfig(t *testing.T) {
 			require.NoError(err) // Error cases should have returned above
 			require.Equal(&tc.WantArgs, got)
 
-			actual := outBuf.Bytes()
+			actual := ui.OutputWriter.Bytes()
 
 			// If we got the arg handling write, verify output
 			golden := filepath.Join("testdata", tc.Name+".golden")
