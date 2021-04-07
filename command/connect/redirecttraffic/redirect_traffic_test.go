@@ -14,12 +14,44 @@ import (
 func TestRun_FlagValidation(t *testing.T) {
 	t.Parallel()
 
-	ui := cli.NewMockUi()
-	c := New(ui)
+	cases := []struct {
+		name     string
+		args     []string
+		expError string
+	}{
+		{
+			"-proxy-uid is missing",
+			nil,
+			"-proxy-uid is required",
+		},
+		{
+			"-proxy-id and -proxy-inbound-port are provided",
+			[]string{"-proxy-uid=1234", "-proxy-id=test", "-proxy-inbound-port=15000"},
+			"-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id.",
+		},
+		{
+			"-proxy-id and -proxy-outbound-port are provided",
+			[]string{"-proxy-uid=1234", "-proxy-id=test", "-proxy-outbound-port=15000"},
+			"-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id.",
+		},
+		{
+			"-proxy-id, -proxy-inbound-port and -proxy-outbound-port are provided",
+			[]string{"-proxy-uid=1234", "-proxy-id=test", "-proxy-inbound-port=15000", "-proxy-outbound-port=15001"},
+			"-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id.",
+		},
+	}
 
-	code := c.Run(nil)
-	require.Equal(t, code, 1)
-	require.Contains(t, ui.ErrorWriter.String(), "-proxy-uid is required")
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+
+			code := cmd.Run(c.args)
+			require.Equal(t, code, 1)
+			require.Contains(t, ui.ErrorWriter.String(), c.expError)
+		})
+	}
+
 }
 
 func TestGenerateConfigFromFlags(t *testing.T) {
@@ -55,6 +87,21 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			false,
 			iptables.Config{},
 			"failed to fetch proxy service from Consul Agent: ",
+		},
+		{
+			"proxy inbound and outbound ports are provided",
+			cmd{
+				proxyUID:          "1234",
+				proxyInboundPort:  15000,
+				proxyOutboundPort: 16000,
+			},
+			false,
+			iptables.Config{
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  15000,
+				ProxyOutboundPort: 16000,
+			},
+			"",
 		},
 	}
 

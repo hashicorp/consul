@@ -34,8 +34,10 @@ type cmd struct {
 	client *api.Client
 
 	// Flags.
-	proxyUID string
-	proxyID  string
+	proxyUID          string
+	proxyID           string
+	proxyInboundPort  int
+	proxyOutboundPort int
 }
 
 func (c *cmd) init() {
@@ -43,6 +45,8 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.proxyUID, "proxy-uid", "", "The user ID of the proxy to exclude from traffic redirection.")
 	c.flags.StringVar(&c.proxyID, "proxy-id", "", "The service ID of the proxy service registered with Consul.")
+	c.flags.IntVar(&c.proxyInboundPort, "proxy-inbound-port", 0, "The inbound port that the proxy is listening on.")
+	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", 0, "The outbound port that the proxy is listening on.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -57,6 +61,12 @@ func (c *cmd) Run(args []string) int {
 
 	if c.proxyUID == "" {
 		c.UI.Error("-proxy-uid is required")
+		return 1
+	}
+
+	if c.proxyID != "" && (c.proxyInboundPort != 0 || c.proxyOutboundPort != 0) {
+		c.UI.Error("-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id. " +
+			"Proxy's inbound and outbound ports are retrieved from the proxy's configuration instead.")
 		return 1
 	}
 
@@ -108,6 +118,9 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 
 		// todo: change once it's configurable
 		cfg.ProxyOutboundPort = xds.TProxyOutboundPort
+	} else {
+		cfg.ProxyInboundPort = c.proxyInboundPort
+		cfg.ProxyOutboundPort = c.proxyOutboundPort
 	}
 
 	return cfg, nil
