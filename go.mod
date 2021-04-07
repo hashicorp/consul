@@ -2,6 +2,9 @@ module github.com/hashicorp/consul
 
 go 1.13
 
+// TODO(banks): remove once new version of raft is published...
+replace github.com/hashicorp/raft => /Users/banks/src/hashicorp/raft
+
 replace github.com/hashicorp/consul/api => ./api
 
 replace github.com/hashicorp/consul/sdk => ./sdk

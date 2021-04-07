@@ -3631,10 +3631,13 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	cc := consul.ReloadableConfig{
-		RPCRateLimit:         newCfg.RPCRateLimit,
-		RPCMaxBurst:          newCfg.RPCMaxBurst,
-		RPCMaxConnsPerClient: newCfg.RPCMaxConnsPerClient,
-		ConfigEntryBootstrap: newCfg.ConfigEntryBootstrap,
+		RPCRateLimit:          newCfg.RPCRateLimit,
+		RPCMaxBurst:           newCfg.RPCMaxBurst,
+		RPCMaxConnsPerClient:  newCfg.RPCMaxConnsPerClient,
+		ConfigEntryBootstrap:  newCfg.ConfigEntryBootstrap,
+		RaftSnapshotThreshold: newCfg.RaftSnapshotThreshold,
+		RaftSnapshotInterval:  newCfg.RaftSnapshotInterval,
+		RaftTrailingLogs:      newCfg.RaftTrailingLogs,
 	}
 	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err
