@@ -3,7 +3,6 @@ package envoy
 import (
 	"encoding/json"
 	"flag"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -13,12 +12,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -770,10 +771,7 @@ func TestGenerateConfig(t *testing.T) {
 			require.NoError(err) // Error cases should have returned above
 			require.Equal(&tc.WantArgs, got)
 
-			// Actual template output goes to stdout direct to avoid prefix in UI, so
-			// generate it again here to assert on.
-			actual, err := c.generateConfig()
-			require.NoError(err)
+			actual := ui.OutputWriter.Bytes()
 
 			// If we got the arg handling write, verify output
 			golden := filepath.Join("testdata", tc.Name+".golden")
