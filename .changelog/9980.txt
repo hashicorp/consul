@@ -1,0 +1,3 @@
+```release-note:bug
+command: when generating envoy bootstrap configs to stdout do not mix informational logs into the json
+```
