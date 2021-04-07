@@ -98,7 +98,7 @@ type ConnectConfiguration struct {
 	UpstreamConfigs map[string]UpstreamConfig `json:",omitempty" alias:"upstream_configs"`
 
 	// UpstreamDefaults contains default configuration for all upstreams of a given service
-	UpstreamDefaults UpstreamConfig `json:",omitempty" alias:"upstream_defaults"`
+	UpstreamDefaults *UpstreamConfig `json:",omitempty" alias:"upstream_defaults"`
 }
 
 type UpstreamConfig struct {

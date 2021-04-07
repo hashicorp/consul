@@ -194,7 +194,9 @@ func (cfg *ConnectConfiguration) Normalize() {
 		v.Normalize()
 	}
 
-	cfg.UpstreamDefaults.Normalize()
+	if cfg.UpstreamDefaults != nil {
+		cfg.UpstreamDefaults.Normalize()
+	}
 }
 
 func (cfg ConnectConfiguration) Validate() error {
@@ -206,8 +208,11 @@ func (cfg ConnectConfiguration) Validate() error {
 		}
 	}
 
-	if err := cfg.UpstreamDefaults.Validate(); err != nil {
-		validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults %v", err))
+	if cfg.UpstreamDefaults != nil {
+		err := cfg.UpstreamDefaults.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults %v", err))
+		}
 	}
 
 	return validationErr
