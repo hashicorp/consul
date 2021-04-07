@@ -1048,6 +1048,64 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			},
 		},
 		{
+			name: "synthetic local upstream is cleaned up if not in config response",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						TransparentProxy:       true,
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+								// Should get zip cleaned up
+								CentrallyConfigured: true,
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					TransparentProxy:       true,
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zap",
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+							CentrallyConfigured: true,
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "upstream mode from remote defaults overrides local default",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
