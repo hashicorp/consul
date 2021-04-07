@@ -1,6 +1,6 @@
 import Model, { attr } from '@ember-data/model';
 import { or } from '@ember/object/computed';
-import Duration from '@icholy/duration';
+import parse from 'parse-duration';
 import { computed } from '@ember/object';
 
 export const PRIMARY_KEY = 'uid';
@@ -27,7 +27,6 @@ export default class AuthMethod extends Model {
 
   @computed('MaxTokenTTL')
   get TokenTTL() {
-    const d = new Duration(this.MaxTokenTTL);
-    return d.milliseconds();
+    return parse(this.MaxTokenTTL);
   }
 }
