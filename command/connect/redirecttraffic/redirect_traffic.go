@@ -94,7 +94,7 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-// todo: add docs
+// generateConfigFromFlags generates iptables.Config based on command flags.
 func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 	cfg := iptables.Config{ProxyUserID: c.proxyUID}
 
