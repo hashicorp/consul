@@ -1,8 +1,10 @@
 import Button from '@hashicorp/react-button'
 
+/** TODO: this should use the `react-components` version — https://react-components.vercel.app/?component=LearnCallout */
+
 export default function LearnNomad({ headline, brand, items }) {
   return (
-    <div className={`g-learn-callout brand-${brand ? brand : 'neutral'}`}>
+    <div className={`g-learn-callout`}>
       <div className="g-grid-container learn-container">
         <div className="column-container">
           {/* need this wrapper to flex center the .column-content */}
