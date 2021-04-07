@@ -150,35 +150,23 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		uniqueAddrs := make(map[string]struct{})
 
 		for _, t := range chain.Targets {
-			var k8sNamespace string
-
-			// Store all the IP addresses per unique port
+			// Store all the possible IP addresses that might be used to dial this endpoint
 			for _, e := range endpoints[t.ID] {
-				addr, _ := e.BestAddress(false)
-
-				if _, ok := uniqueAddrs[addr]; !ok {
-					uniqueAddrs[addr] = struct{}{}
+				if e.Service.Address != "" {
+					uniqueAddrs[e.Service.Address] = struct{}{}
+				}
+				if e.Node.Address != "" {
+					uniqueAddrs[e.Node.Address] = struct{}{}
 				}
 
-				// The k8s namespace should be the same for all instances, so pick any
-				if ns, ok := e.Service.Meta["k8s-namespace"]; ok {
-					k8sNamespace = ns
+				for _, tagged := range e.Node.TaggedAddresses {
+					if tagged != "" {
+						uniqueAddrs[tagged] = struct{}{}
+					}
 				}
-			}
-
-			// TODO (freddy) hack to remove for beta: for every potential discovery chain target, resolve the k8s ClusterIP
-			//  		     since it's not stored in Consul's catalog (yet)
-			if k8sNamespace != "" {
-				host := fmt.Sprintf("%s.%s.svc.cluster.local", t.Service, k8sNamespace)
-				resolved, err := net.LookupHost(host)
-				if err != nil {
-					// We still have the Pod ips in the catalog, so don't hard-fail on errors
-					s.Logger.Warn("failed to resolve", "host", host, "error", err)
-					continue
-				}
-				for _, addr := range resolved {
-					if _, ok := uniqueAddrs[addr]; !ok {
-						uniqueAddrs[addr] = struct{}{}
+				for _, tagged := range e.Service.TaggedAddresses {
+					if tagged.Address != "" {
+						uniqueAddrs[tagged.Address] = struct{}{}
 					}
 				}
 			}
