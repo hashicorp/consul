@@ -336,6 +336,7 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 		// Store defaults keyed under wildcard so they can be applied to centrally configured upstreams
 		if u.DestinationName == structs.WildcardSpecifier {
 			snap.ConnectProxy.UpstreamConfig[u.DestinationID().String()] = &u
+			continue
 		}
 
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
