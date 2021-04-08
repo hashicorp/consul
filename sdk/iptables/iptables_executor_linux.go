@@ -2,6 +2,11 @@
 
 package iptables
 
+import (
+	"fmt"
+	"os/exec"
+)
+
 // iptablesExecutor implements IptablesProvider using exec.Cmd.
 type iptablesExecutor struct {
 	commands []*exec.Cmd
