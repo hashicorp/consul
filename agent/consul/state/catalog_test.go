@@ -2950,7 +2950,7 @@ func ensureIndexForService(t *testing.T, s *Store, serviceName string, expectedI
 	t.Helper()
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	transaction, err := tx.First("index", "id", serviceIndexName(serviceName, nil))
+	transaction, err := tx.First(tableIndex, "id", serviceIndexName(serviceName, nil))
 	if err == nil {
 		if idx, ok := transaction.(*IndexEntry); ok {
 			if expectedIndex != idx.Value {

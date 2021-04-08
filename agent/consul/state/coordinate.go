@@ -160,7 +160,7 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 	}
 
 	// Update the index.
-	if err := tx.Insert("index", &IndexEntry{"coordinates", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"coordinates", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
