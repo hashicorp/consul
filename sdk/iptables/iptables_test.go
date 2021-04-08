@@ -8,31 +8,66 @@ import (
 )
 
 func TestSetup(t *testing.T) {
-	cfg := Config{
-		ProxyUserID:       "123",
-		ProxyInboundPort:  20000,
-		ProxyOutboundPort: 21000,
-		IptablesProvider:  &fakeIptablesProvider{},
+	cases := []struct {
+		name string
+		cfg  Config
+		expectedRules []string
+	}{
+		{
+			"no proxy outbound port provided",
+			Config{
+				ProxyUserID:       "123",
+				ProxyInboundPort:  20000,
+				IptablesProvider:  &fakeIptablesProvider{},
+			},
+			[]string{
+				"iptables -t nat -N CONSUL_PROXY_INBOUND",
+				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
+				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
+				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 15001",
+				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -j CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
+				"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
+				"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
+			},
+		},
+		{
+			"proxy outbound port is provided",
+			Config{
+				ProxyUserID:       "123",
+				ProxyInboundPort:  20000,
+				ProxyOutboundPort: 21000,
+				IptablesProvider:  &fakeIptablesProvider{},
+			},
+			[]string{
+				"iptables -t nat -N CONSUL_PROXY_INBOUND",
+				"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
+				"iptables -t nat -N CONSUL_PROXY_OUTPUT",
+				"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
+				"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
+				"iptables -t nat -A CONSUL_PROXY_OUTPUT -j CONSUL_PROXY_REDIRECT",
+				"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
+				"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
+				"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
+			},
+		},
 	}
 
-	expectedRules := []string{
-		"iptables -t nat -N CONSUL_PROXY_INBOUND",
-		"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
-		"iptables -t nat -N CONSUL_PROXY_OUTPUT",
-		"iptables -t nat -N CONSUL_PROXY_REDIRECT",
-		"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
-		"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
-		"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
-		"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
-		"iptables -t nat -A CONSUL_PROXY_OUTPUT -j CONSUL_PROXY_REDIRECT",
-		"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
-		"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
-		"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := Setup(c.cfg)
+			require.NoError(t, err)
+			require.Equal(t, c.expectedRules, c.cfg.IptablesProvider.Rules())
+		})
 	}
 
-	err := Setup(cfg)
-	require.NoError(t, err)
-	require.Equal(t, expectedRules, cfg.IptablesProvider.Rules())
 }
 
 func TestSetup_errors(t *testing.T) {
@@ -47,14 +82,6 @@ func TestSetup_errors(t *testing.T) {
 				IptablesProvider: &iptablesExecutor{},
 			},
 			"ProxyUserID is required to set up traffic redirection",
-		},
-		{
-			"no proxy oubound port",
-			Config{
-				ProxyUserID:      "123",
-				IptablesProvider: &iptablesExecutor{},
-			},
-			"ProxyOutboundPort is required to set up traffic redirection",
 		},
 		{
 			"no proxy inbound port",

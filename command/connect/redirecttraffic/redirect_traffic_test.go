@@ -3,7 +3,6 @@ package redirecttraffic
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -23,6 +22,11 @@ func TestRun_FlagValidation(t *testing.T) {
 			"-proxy-uid is missing",
 			nil,
 			"-proxy-uid is required",
+		},
+		{
+			"-proxy-id and -proxy-inbound-port are missing",
+			[]string{"-proxy-uid=1234"},
+			"either -proxy-id or -proxy-inbound-port are required",
 		},
 		{
 			"-proxy-id and -proxy-inbound-port are provided",
@@ -59,16 +63,19 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 	cases := []struct {
 		name         string
-		command      cmd
+		command      func() cmd
 		proxyService *api.AgentServiceRegistration
 		expCfg       iptables.Config
 		expError     string
 	}{
 		{
 			"proxyID with service port provided",
-			cmd{
-				proxyUID: "1234",
-				proxyID:  "test-proxy-id",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
 			},
 			&api.AgentServiceRegistration{
 				Kind:    api.ServiceKindConnectProxy,
@@ -83,15 +90,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
-				ProxyOutboundPort: xds.TProxyOutboundPort,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
 			"",
 		},
 		{
 			"proxyID with bind_port(int) provided",
-			cmd{
-				proxyUID: "1234",
-				proxyID:  "test-proxy-id",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
 			},
 			&api.AgentServiceRegistration{
 				Kind:    api.ServiceKindConnectProxy,
@@ -109,15 +119,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  21000,
-				ProxyOutboundPort: xds.TProxyOutboundPort,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
 			"",
 		},
 		{
 			"proxyID with bind_port(string) provided",
-			cmd{
-				proxyUID: "1234",
-				proxyID:  "test-proxy-id",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
 			},
 			&api.AgentServiceRegistration{
 				Kind:    api.ServiceKindConnectProxy,
@@ -135,15 +148,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  21000,
-				ProxyOutboundPort: xds.TProxyOutboundPort,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
 			"",
 		},
 		{
 			"proxyID with bind_port(invalid type) provided",
-			cmd{
-				proxyUID: "1234",
-				proxyID:  "test-proxy-id",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
 			},
 			&api.AgentServiceRegistration{
 				Kind:    api.ServiceKindConnectProxy,
@@ -163,20 +179,43 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 		},
 		{
 			"proxyID provided, but Consul is not reachable",
-			cmd{
-				proxyUID: "1234",
-				proxyID:  "test-proxy-id",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
 			},
 			nil,
 			iptables.Config{},
 			"failed to fetch proxy service from Consul Agent: ",
 		},
 		{
+			"only proxy inbound port is provided",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyInboundPort = 15000
+				return c
+			},
+			nil,
+			iptables.Config{
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  15000,
+				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
+			},
+			"",
+		},
+		{
 			"proxy inbound and outbound ports are provided",
-			cmd{
-				proxyUID:          "1234",
-				proxyInboundPort:  15000,
-				proxyOutboundPort: 16000,
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyInboundPort = 15000
+				c.proxyOutboundPort = 16000
+				return c
 			},
 			nil,
 			iptables.Config{
@@ -190,6 +229,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			cmd := c.command()
 			if c.proxyService != nil {
 				testServer, err := testutil.NewTestServerConfigT(t, nil)
 				require.NoError(t, err)
@@ -201,14 +241,14 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				err = client.Agent().ServiceRegister(c.proxyService)
 				require.NoError(t, err)
 
-				c.command.client = client
+				cmd.client = client
 			} else {
 				client, err := api.NewClient(&api.Config{Address: "not-reachable"})
 				require.NoError(t, err)
-				c.command.client = client
+				cmd.client = client
 			}
 
-			cfg, err := c.command.generateConfigFromFlags()
+			cfg, err := cmd.generateConfigFromFlags()
 
 			if c.expError == "" {
 				require.NoError(t, err)

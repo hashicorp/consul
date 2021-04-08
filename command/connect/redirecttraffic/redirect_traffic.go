@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
@@ -47,7 +46,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.proxyUID, "proxy-uid", "", "The user ID of the proxy to exclude from traffic redirection.")
 	c.flags.StringVar(&c.proxyID, "proxy-id", "", "The service ID of the proxy service registered with Consul.")
 	c.flags.IntVar(&c.proxyInboundPort, "proxy-inbound-port", 0, "The inbound port that the proxy is listening on.")
-	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", 0, "The outbound port that the proxy is listening on.")
+	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", iptables.DefaultTProxyOutboundPort,
+		"The outbound port that the proxy is listening on. When not provided, 15001 is used by default.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -63,6 +63,11 @@ func (c *cmd) Run(args []string) int {
 
 	if c.proxyUID == "" {
 		c.UI.Error("-proxy-uid is required")
+		return 1
+	}
+
+	if c.proxyID == "" && c.proxyInboundPort == 0 {
+		c.UI.Error("either -proxy-id or -proxy-inbound-port are required")
 		return 1
 	}
 
@@ -134,8 +139,8 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			cfg.ProxyInboundPort = trCfg.BindPort
 		}
 
-		// todo: change once it's configurable
-		cfg.ProxyOutboundPort = xds.TProxyOutboundPort
+		// todo: Change once it's configurable
+		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
 	} else {
 		cfg.ProxyInboundPort = c.proxyInboundPort
 		cfg.ProxyOutboundPort = c.proxyOutboundPort
@@ -152,7 +157,9 @@ Usage: consul connect redirect-traffic [options]
 
   Requires iptables command line utility be installed separately.
 
-  Example:
+  Examples:
 
-    $ consul connect redirect-traffic -proxy-uid 1234
+    $ consul connect redirect-traffic -proxy-uid 1234 -proxy-id web
+
+    $ consul connect redirect-traffic -proxy-uid 1234 -proxy-inbound-port 20000
 `

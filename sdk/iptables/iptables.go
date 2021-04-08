@@ -17,6 +17,8 @@ const (
 
 	// Chain to redirect outbound traffic to the proxy
 	ProxyOutputRedirectChain = "CONSUL_PROXY_REDIRECT"
+
+	DefaultTProxyOutboundPort = 15001
 )
 
 // Config is used to configure which traffic interception and redirection
@@ -59,6 +61,11 @@ func Setup(cfg Config) error {
 	err := validateConfig(cfg)
 	if err != nil {
 		return err
+	}
+
+	// Set the default outbound port if it's not already set.
+	if cfg.ProxyOutboundPort == 0 {
+		cfg.ProxyOutboundPort = DefaultTProxyOutboundPort
 	}
 
 	// Create chains we will use for redirection.
@@ -104,10 +111,6 @@ func Setup(cfg Config) error {
 func validateConfig(cfg Config) error {
 	if cfg.ProxyUserID == "" {
 		return errors.New("ProxyUserID is required to set up traffic redirection")
-	}
-
-	if cfg.ProxyOutboundPort == 0 {
-		return errors.New("ProxyOutboundPort is required to set up traffic redirection")
 	}
 
 	if cfg.ProxyInboundPort == 0 {

@@ -41,7 +41,7 @@ Usage: `consul connect redirect-traffic [options]`
 
 - `-proxy-inbound-port` - The inbound port that the proxy is listening on.
 
-- `-proxy-outbound-port` - The outbound port that the proxy is listening on.
+- `-proxy-outbound-port` - The outbound port that the proxy is listening on. When not provided, 15001 is used by default.
 
 - `-proxy-uid` - The user ID of the proxy to exclude from traffic redirection.
 
@@ -58,8 +58,7 @@ The default traffic redirection rules can be applied with:
 ```shell-session
 $ consul connect redirect-traffic \
   -proxy-uid 1234 \
-  -proxy-inbound-port 20000 \
-  -proxy-outbound-port 21000
+  -proxy-inbound-port 20000
 ```
 
 ### Using Registered Proxy Configuration
