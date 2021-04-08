@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -64,7 +66,22 @@ func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error)
 		grpc.WithDisableRetry(),
 		grpc.WithStatsHandler(newStatsHandler(defaultMetrics())),
 		// nolint:staticcheck // there is no other supported alternative to WithBalancerName
-		grpc.WithBalancerName("pick_first"))
+		grpc.WithBalancerName("pick_first"),
+		// Keep alive parameters are based on the same default ones we used for
+		// Yamux. These are somewhat arbitrary but we did observe in scale testing
+		// that the gRPC defaults (servers send keepalives only every 2 hours,
+		// clients never) seemed to result in TCP drops going undetected until
+		// actual updates needed to be sent which caused unnecessary delays for
+		// deliveries. These settings should be no more work for servers than
+		// existing yamux clients but hopefully allow TCP drops to be detected
+		// earlier and so have a smaller chance of going unnoticed until there are
+		// actual updates to send out from the servers. The servers have a policy to
+		// not accept pings any faster than once every 15 seconds to protect against
+		// abuse.
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:    30 * time.Second,
+			Timeout: 10 * time.Second,
+		}))
 	if err != nil {
 		return nil, err
 	}
