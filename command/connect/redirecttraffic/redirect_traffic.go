@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -95,6 +96,13 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
+// trafficRedirectProxyConfig is a snippet of xds/config.go
+// with only the configuration values that we need to parse from Proxy.Config
+// to apply traffic redirection rules.
+type trafficRedirectProxyConfig struct {
+	BindPort int `mapstructure:"bind_port"`
+}
+
 // generateConfigFromFlags generates iptables.Config based on command flags.
 func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 	cfg := iptables.Config{ProxyUserID: c.proxyUID}
@@ -115,7 +123,16 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
 		}
 
+		// todo fail if proxy config is nil
 		cfg.ProxyInboundPort = svc.Port
+		var trCfg trafficRedirectProxyConfig
+		if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
+			return iptables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
+		}
+
+		if trCfg.BindPort != 0 {
+			cfg.ProxyInboundPort = trCfg.BindPort
+		}
 
 		// todo: change once it's configurable
 		cfg.ProxyOutboundPort = xds.TProxyOutboundPort
