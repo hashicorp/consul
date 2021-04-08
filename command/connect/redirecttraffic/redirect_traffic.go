@@ -158,7 +158,7 @@ Usage: consul connect redirect-traffic [options]
 
   Applies iptables rules for inbound and outbound traffic redirection.
 
-  Requires iptables command line utility be installed separately.
+  Requires that the iptables command line utility is installed.
 
   Examples:
 
