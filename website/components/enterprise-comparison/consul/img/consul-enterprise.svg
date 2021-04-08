@@ -1,26 +1,26 @@
 <svg width="160" height="96" viewBox="0 0 160 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="90" cy="6" r="6" fill="#BDBEC2"/>
-<circle cx="70" cy="6" r="6" fill="#CA2171"/>
-<circle cx="70" cy="26" r="6" fill="#CA2171"/>
-<circle cx="90" cy="26" r="6" fill="#CA2171"/>
-<circle cx="154" cy="6" r="6" fill="#CA2171"/>
-<circle cx="134" cy="6" r="6" fill="#CA2171"/>
-<circle cx="134" cy="26" r="6" fill="#CA2171"/>
-<circle cx="154" cy="26" r="6" fill="#CA2171"/>
-<circle cx="90" cy="70" r="6" fill="#CA2171"/>
-<circle cx="70" cy="70" r="6" fill="#CA2171"/>
-<circle cx="70" cy="90" r="6" fill="#BDBEC2"/>
-<circle cx="90" cy="90" r="6" fill="#BDBEC2"/>
-<circle cx="154" cy="70" r="6" fill="#CA2171"/>
-<circle cx="134" cy="70" r="6" fill="#CA2171"/>
-<circle cx="134" cy="90" r="6" fill="#CA2171"/>
-<circle cx="154" cy="90" r="6" fill="#BDBEC2"/>
-<circle cx="26" cy="6" r="6" fill="#CA2171"/>
-<circle cx="6" cy="6" r="6" fill="#CA2171"/>
-<circle cx="6" cy="26" r="6" fill="#CA2171"/>
-<circle cx="26" cy="26" r="6" fill="#BDBEC2"/>
-<circle cx="26" cy="70" r="6" fill="#BDBEC2"/>
-<circle cx="6" cy="70" r="6" fill="#BDBEC2"/>
-<circle cx="6" cy="90" r="6" fill="#BDBEC2"/>
-<circle cx="26" cy="90" r="6" fill="#BDBEC2"/>
+<circle cx="90" cy="6" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="70" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="70" cy="26" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="90" cy="26" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="154" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="134" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="134" cy="26" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="154" cy="26" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="90" cy="70" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="70" cy="70" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="70" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="90" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="154" cy="70" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="134" cy="70" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="134" cy="90" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="154" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="26" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="6" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="6" cy="26" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="26" cy="26" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="26" cy="70" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="6" cy="70" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="6" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="26" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
 </svg>

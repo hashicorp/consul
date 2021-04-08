@@ -1,10 +1,10 @@
 <svg width="32" height="96" viewBox="0 0 32 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="26" cy="6" r="6" fill="#CA2171"/>
-<circle cx="6" cy="6" r="6" fill="#CA2171"/>
-<circle cx="6" cy="26" r="6" fill="#CA2171"/>
-<circle cx="26" cy="26" r="6" fill="#BDBEC2"/>
-<circle cx="26" cy="70" r="6" fill="#BDBEC2"/>
-<circle cx="6" cy="70" r="6" fill="#BDBEC2"/>
-<circle cx="6" cy="90" r="6" fill="#BDBEC2"/>
-<circle cx="26" cy="90" r="6" fill="#BDBEC2"/>
+<circle cx="26" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="6" cy="6" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="6" cy="26" r="6" fill="var(--consul, #dc477d)"/>
+<circle cx="26" cy="26" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="26" cy="70" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="6" cy="70" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="6" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
+<circle cx="26" cy="90" r="6" fill="var(--gray-4, #bfbfc0)"/>
 </svg>

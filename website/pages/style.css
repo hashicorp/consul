@@ -5,7 +5,7 @@
 @import '~@hashicorp/mktg-global-styles/_temporary-to-remove/tables.css';
 
 :root {
-  --highlight-color: var(--consul);
+  --highlight-color: var(--consul-link);
 }
 
 @import '~@hashicorp/react-alert-banner/style.css';
@@ -25,7 +25,7 @@
 @import '~@hashicorp/react-tabs/style.css';
 @import '~@hashicorp/react-text-split/style.css';
 @import '~@hashicorp/react-toggle/style.css';
-@import '~@hashicorp/react-use-cases/dist/style.css';
+@import '~@hashicorp/react-use-cases/style.css';
 @import '~@hashicorp/react-vertical-text-block-list/style.css';
 
 /* Local Components */
