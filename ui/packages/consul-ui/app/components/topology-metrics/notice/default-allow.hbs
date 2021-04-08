@@ -1,0 +1,23 @@
+<Notice
+  class="topology-metrics-notice-default-allow"
+  ...attributes
+  @type={{or @type "warning"}}
+as |notice|>
+    <notice.Header>
+    <h3>
+      {{t "components.consul.topology-metrics.notice.default-allow.header"}}
+    </h3>
+  </notice.Header>
+  <notice.Body>
+    <p>
+      {{t "components.consul.topology-metrics.notice.default-allow.body"}}
+    </p>
+  </notice.Body>
+  <notice.Footer>
+    <p>
+      <a href={{href-to 'dc.services.show.intentions'}}>
+        {{t "components.consul.topology-metrics.notice.default-allow.footer"}}
+      </a>
+    </p>
+  </notice.Footer>
+</Notice>

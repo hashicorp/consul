@@ -25,6 +25,12 @@ as |route|>
       {{#if topology.FilteredByACLs}}
         <TopologyMetrics::Notice::LimitedAccess />
       {{/if}}
+      {{#if topology.DefaultAllow}}
+        <TopologyMetrics::Notice::DefaultAllow />
+      {{/if}}
+      {{#if topology.WildcardIntention}}
+        <TopologyMetrics::Notice::WildcardIntention />
+      {{/if}}
       <TopologyMetrics
         @nspace={{nspace}}
         @dc={{dc.Name}}
