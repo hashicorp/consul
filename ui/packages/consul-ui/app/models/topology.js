@@ -11,6 +11,9 @@ export default class Topology extends Model {
   @attr('string') Namespace;
   @attr('string') Protocol;
   @attr('boolean') FilteredByACLs;
+  @attr('boolean') TransparentProxy;
+  @attr('boolean') DefaultAllow;
+  @attr('boolean') WildcardIntention;
   @attr() Upstreams; // Service[]
   @attr() Downstreams; // Service[],
   @attr() meta; // {}

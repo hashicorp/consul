@@ -52,10 +52,18 @@ ${
     }
     fake.seed(index);
 
+
+    // Randomly make permissive intentions
+    const defaultAllow = fake.random.boolean();
+    const wildcardIntention = defaultAllow ? false : fake.random.boolean();
+
     return `
 {
   "Protocol": "${serviceProto}",
   "FilteredByACLs": ${fake.random.boolean()},
+  "TransparentProxy": ${fake.random.boolean()},
+  "DefaultAllow": ${defaultAllow},
+  "WildcardIntention": ${wildcardIntention},
   "Upstreams": [
     ${
       upstreams.map((item, i) => {
@@ -70,11 +78,14 @@ ${
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "Source": "${fake.helpers.randomize(['proxy-registration', 'default-allow', 'wildcard-intention'])}",
+      "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
         "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
-        "HasExact": ${fake.random.boolean()}
+        "HasExact": ${fake.random.boolean()},
+        "DefaultAllow": ${fake.random.boolean()}
       }
     }
     `})}
@@ -93,11 +104,14 @@ ${
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "Source": "${fake.helpers.randomize(['proxy-registration', 'specific-intention', 'default-allow', 'wildcard-intention'])}",
+      "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
         "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
-        "HasExact": ${fake.random.boolean()}
+        "HasExact": ${fake.random.boolean()},
+        "DefaultAllow": ${fake.random.boolean()}
       }
     }
     `})}
