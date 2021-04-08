@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
@@ -16,8 +16,8 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "autoHostRewrite": true,
+                "cluster": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "hashPolicy": [
                   {
                     "cookie": {
@@ -45,7 +45,7 @@
       "validateClusters": true
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
@@ -59,8 +59,8 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "autoHostRewrite": true,
+                "cluster": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "hashPolicy": [
                   {
                     "cookie": {
@@ -88,7 +88,7 @@
       "validateClusters": true
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "virtualHosts": [
         {
@@ -102,8 +102,8 @@
                 "prefix": "/"
               },
               "route": {
-                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "autoHostRewrite": true,
+                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "hashPolicy": [
                   {
                     "cookie": {
@@ -131,6 +131,6 @@
       "validateClusters": true
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
   "nonce": "00000001"
 }
