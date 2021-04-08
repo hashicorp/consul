@@ -21,6 +21,7 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.AliasService = s.AliasService
 	t.DockerContainerID = s.DockerContainerID
 	t.Shell = s.Shell
+	t.H2PING = s.H2PING
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.TLSServerName = s.TLSServerName
@@ -52,6 +53,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.AliasService = t.AliasService
 	s.DockerContainerID = t.DockerContainerID
 	s.Shell = t.Shell
+	s.H2PING = t.H2PING
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.TLSServerName = t.TLSServerName
@@ -116,6 +118,7 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.ScriptArgs = s.ScriptArgs
 	t.DockerContainerID = s.DockerContainerID
 	t.Shell = s.Shell
+	t.H2PING = s.H2PING
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.AliasNode = s.AliasNode
@@ -139,6 +142,7 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.ScriptArgs = t.ScriptArgs
 	s.DockerContainerID = t.DockerContainerID
 	s.Shell = t.Shell
+	s.H2PING = t.H2PING
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.AliasNode = t.AliasNode
