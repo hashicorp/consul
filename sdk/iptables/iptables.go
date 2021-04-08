@@ -117,7 +117,7 @@ func Setup(cfg Config) error {
 		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-j", ProxyOutputChain)
 
-		// Don't redirect Envoy traffic back to itself, return it to the next chain for processing.
+		// Don't redirect proxy traffic back to itself, return it to the next chain for processing.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-m", "owner", "--uid-owner", cfg.ProxyUserID, "-j", "RETURN")
 
 		// Skip localhost traffic, doesn't need to be routed via the proxy.

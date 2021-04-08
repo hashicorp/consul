@@ -13,10 +13,11 @@ Command: `consul connect redirect-traffic`
 
 The connect redirect-traffic command is used to apply traffic redirection rules to enforce
 all traffic to go through the [Envoy proxy](https://envoyproxy.io) when using [Consul
-Connect](/docs/connect/) in the Transparent Proxy mode.
+Service Mesh](/docs/connect/) in the Transparent Proxy mode.
 
 This command requires `iptables` command line utility to be installed,
 and as a result, this command can currently only run on linux.
+The user running the command needs to have `NET_ADMIN` capability.
 
 By default, this command will apply rules to intercept and redirect all inbound and outbound
 TCP traffic to the Envoy's inbound and outbound ports accordingly.
