@@ -101,7 +101,6 @@ func Setup(cfg Config) error {
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "-j", ProxyInboundChain)
 
 		// Redirect remaining inbound traffic to Envoy.
-		// todo: figure out why does inbound have tcp protocol but outbound does not
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundChain, "-p", "tcp", "-j", ProxyInboundRedirectChain)
 	}
 

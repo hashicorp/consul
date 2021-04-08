@@ -191,6 +191,24 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			"failed to fetch proxy service from Consul Agent: ",
 		},
 		{
+			"proxyID of a non-proxy service",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
+			},
+			&api.AgentServiceRegistration{
+				ID:      "test-proxy-id",
+				Name:    "test-proxy",
+				Port:    20000,
+				Address: "1.1.1.1",
+			},
+			iptables.Config{},
+			"service test-proxy-id is not a proxy service",
+		},
+		{
 			"only proxy inbound port is provided",
 			func() cmd {
 				var c cmd

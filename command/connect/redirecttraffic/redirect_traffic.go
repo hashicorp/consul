@@ -128,7 +128,10 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
 		}
 
-		// todo fail if proxy config is nil
+		if svc.Proxy == nil {
+			return iptables.Config{}, fmt.Errorf("service %s is not a proxy service", c.proxyID)
+		}
+
 		cfg.ProxyInboundPort = svc.Port
 		var trCfg trafficRedirectProxyConfig
 		if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
