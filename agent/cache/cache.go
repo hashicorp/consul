@@ -413,6 +413,27 @@ RETRY_GET:
 	_, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 	c.entriesLock.RUnlock()
 
+	if entry.Expiry != nil {
+		// The entry already exists in the TTL heap, touch it to keep it alive since
+		// this Get is still interested in the value. Note that we used to only do
+		// this in the `entryValid` block below but that means that a cache entry
+		// will expire after it's TTL regardless of how many callers are waiting for
+		// updates in this method in a couple of cases:
+		//  1. If the agent is disconnected from servers for the TTL then the client
+		//     will be in backoff getting errors on each call to Get and since an
+		//     errored cache entry has Valid = false it won't be touching the TTL.
+		//  2. If the value is just not changing then the client's current index
+		//     will be equal to the entry index and entryValid will be false. This
+		//     is a common case!
+		//
+		// But regardless of the state of the entry, assuming it's already in the
+		// TTL heap, we should touch it every time around here since this caller at
+		// least still cares about the value!
+		c.entriesLock.Lock()
+		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
+		c.entriesLock.Unlock()
+	}
+
 	if entryValid {
 		meta := ResultMeta{Index: entry.Index}
 		if first {
@@ -434,11 +455,6 @@ RETRY_GET:
 				meta.Age = time.Since(entry.FetchedAt)
 			}
 		}
-
-		// Touch the expiration and fix the heap.
-		c.entriesLock.Lock()
-		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
-		c.entriesLock.Unlock()
 
 		// We purposely do not return an error here since the cache only works with
 		// fetching values that either have a value or have an error, but not both.
