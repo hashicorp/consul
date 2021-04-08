@@ -998,6 +998,72 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test that entries reset their TTL on Get even when the value isn't changing
+func TestCacheGet_expireResetGetNoChange(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	// Create a closer so we can tell if the entry gets evicted.
+	closer := &testCloser{}
+
+	typ := &MockType{}
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		LastGetTTL:       150 * time.Millisecond,
+		SupportsBlocking: true,
+		Refresh:          true,
+	})
+	typ.On("Fetch", mock.Anything, mock.Anything).
+		Return(func(o FetchOptions, r Request) FetchResult {
+			if o.MinIndex == 10 {
+				// Simulate a very fast timeout from the backend. This must be shorter
+				// than the TTL above (as it would be in real life) so that fetch returns
+				// a few times with the same value which _should_ cause the blocking watch
+				// to go round the Get loop and so keep the cache entry from being
+				// evicted.
+				time.Sleep(10 * time.Millisecond)
+			}
+			return FetchResult{Value: 42, Index: 10, State: closer}
+		}, func(o FetchOptions, r Request) error {
+			return nil
+		})
+	defer typ.AssertExpectations(t)
+	c := New(Options{})
+
+	// Register the type with a timeout
+	c.RegisterType("t", typ)
+
+	// Get, should fetch
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err := c.Get(context.Background(), "t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.Equal(uint64(10), meta.Index)
+	require.False(meta.Hit)
+
+	// Do a blocking watch of the value that won't time out until after the TTL.
+	start := time.Now()
+	req = TestRequest(t, RequestInfo{Key: "hello", MinIndex: 10, Timeout: 300 * time.Millisecond})
+	result, meta, err = c.Get(context.Background(), "t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.Equal(uint64(10), meta.Index)
+	require.GreaterOrEqual(time.Since(start).Milliseconds(), int64(300))
+
+	// This is the point of this test! Even though we waited for a change for
+	// longer than the TTL, we should have been updating the TTL so that the cache
+	// entry should not have been evicted. We can't verify that with meta.Hit
+	// since that is not set for blocking Get calls but we can assert that the
+	// entry was never closed (which assuming the test for eviction closing is
+	// also passing is a reliable signal).
+	require.False(closer.isClosed(), "cache entry should not have been evicted")
+
+	// Sleep a tiny bit just to let maybe some background calls happen
+	// then verify that we still only got the one call
+	time.Sleep(20 * time.Millisecond)
+	typ.AssertExpectations(t)
+}
+
 // Test that entries with state that satisfies io.Closer get cleaned up
 func TestCacheGet_expireClose(t *testing.T) {
 	t.Parallel()
