@@ -164,10 +164,8 @@ func (s *Server) legacyIntentionsMigrationCleanupPhase(quiet bool) error {
 	req := structs.IntentionRequest{
 		Op: structs.IntentionOpDeleteAll,
 	}
-	if resp, err := s.raftApply(structs.IntentionRequestType, req); err != nil {
+	if _, err := s.raftApply(structs.IntentionRequestType, req); err != nil {
 		return err
-	} else if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	// Bypass the serf component and jump right to the final state.
@@ -409,9 +407,6 @@ func (s *Server) replicateLegacyIntentionsOnce(ctx context.Context, lastFetchInd
 		resp, err := s.raftApply(structs.TxnRequestType, &txnReq)
 		if err != nil {
 			return 0, false, err
-		}
-		if respErr, ok := resp.(error); ok {
-			return 0, false, respErr
 		}
 
 		if txnResp, ok := resp.(structs.TxnResponse); ok {

@@ -7,15 +7,16 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
-	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 )
 
 var CatalogCounters = []prometheus.CounterDefinition{
@@ -210,14 +211,8 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
-	resp, err := c.srv.raftApply(structs.RegisterRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-	return nil
+	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
+	return err
 }
 
 // Deregister is used to remove a service registration for a given node.
@@ -268,10 +263,8 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	}
 
-	if _, err := c.srv.raftApply(structs.DeregisterRequestType, args); err != nil {
-		return err
-	}
-	return nil
+	_, err = c.srv.raftApply(structs.DeregisterRequestType, args)
+	return err
 }
 
 // ListDatacenters is used to query for the list of known datacenters

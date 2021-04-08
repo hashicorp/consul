@@ -7,13 +7,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 var IntentionSummaries = []prometheus.SummaryDefinition{
@@ -157,15 +158,8 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	args.Mutation = mut
 	args.Intention = nil
 
-	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err = s.srv.raftApply(structs.IntentionRequestType, args)
+	return err
 }
 
 func (s *Intention) computeApplyChangesLegacyCreate(

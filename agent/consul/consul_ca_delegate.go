@@ -16,13 +16,5 @@ func (c *consulCADelegate) State() *state.Store {
 }
 
 func (c *consulCADelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	resp, err := c.srv.raftApply(structs.ConnectCARequestType, req)
-	if err != nil {
-		return nil, err
-	}
-	if respErr, ok := resp.(error); ok {
-		return nil, respErr
-	}
-
-	return resp, nil
+	return c.srv.raftApply(structs.ConnectCARequestType, req)
 }

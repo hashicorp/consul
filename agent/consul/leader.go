@@ -12,13 +12,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
@@ -26,6 +19,14 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
 )
 
 var LeaderSummaries = []prometheus.SummaryDefinition{
@@ -478,9 +479,6 @@ func (s *Server) initializeLegacyACL() error {
 				return fmt.Errorf("failed to initialize ACL bootstrap: %v", err)
 			}
 			switch v := resp.(type) {
-			case error:
-				return fmt.Errorf("failed to initialize ACL bootstrap: %v", v)
-
 			case bool:
 				if v {
 					s.logger.Info("ACL bootstrap enabled")
@@ -766,12 +764,8 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 
 		req := &structs.ACLTokenBatchSetRequest{Tokens: newTokens, CAS: true}
 
-		resp, err := s.raftApply(structs.ACLTokenSetRequestType, req)
+		_, err = s.raftApply(structs.ACLTokenSetRequestType, req)
 		if err != nil {
-			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
-		}
-
-		if err, ok := resp.(error); ok {
 			s.logger.Error("failed to apply acl token upgrade batch", "error", err)
 		}
 	}
@@ -1088,12 +1082,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 				Entry:      entry,
 			}
 
-			resp, err := s.raftApply(structs.ConfigEntryRequestType, &req)
-			if err == nil {
-				if respErr, ok := resp.(error); ok {
-					err = respErr
-				}
-			}
+			_, err := s.raftApply(structs.ConfigEntryRequestType, &req)
 			if err != nil {
 				return fmt.Errorf("Failed to apply configuration entry %q / %q: %v", entry.GetKind(), entry.GetName(), err)
 			}

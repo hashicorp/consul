@@ -14,14 +14,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/wanfed"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
@@ -30,6 +22,15 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/wanfed"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 )
 
 var RPCCounters = []prometheus.CounterDefinition{
@@ -729,28 +730,34 @@ func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*st
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
 
-// raftApply is used to encode a message, run it through raft, and return
-// the FSM response along with any errors
+// raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
+// raftApplyWithEncoder.
+// Deprecated: use raftApplyMsgpack
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyMsgpack(t, msg)
 }
 
-// raftApplyMsgpack will msgpack encode the request and then run it through raft,
-// then return the FSM response along with any errors.
+// raftApplyMsgpack encodes the msg using msgpack and calls raft.Apply. See
+// raftApplyWithEncoder.
 func (s *Server) raftApplyMsgpack(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.Encode)
 }
 
-// raftApplyProtobuf will protobuf encode the request and then run it through raft,
-// then return the FSM response along with any errors.
+// raftApplyProtobuf encodes the msg using protobuf and calls raft.Apply. See
+// raftApplyWithEncoder.
 func (s *Server) raftApplyProtobuf(t structs.MessageType, msg interface{}) (interface{}, error) {
 	return s.raftApplyWithEncoder(t, msg, structs.EncodeProtoInterface)
 }
 
-// raftApplyWithEncoder is used to encode a message, run it through raft,
-// and return the FSM response along with any errors. Unlike raftApply this
-// takes the encoder to use as an argument.
-func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, encoder raftEncoder) (interface{}, error) {
+// raftApplyWithEncoder encodes a message, and then calls raft.Apply with the
+// encoded message. Returns the FSM response along with any errors. If the
+// FSM.Apply response is an error it will be returned as the error return
+// value with a nil response.
+func (s *Server) raftApplyWithEncoder(
+	t structs.MessageType,
+	msg interface{},
+	encoder raftEncoder,
+) (response interface{}, err error) {
 	if encoder == nil {
 		return nil, fmt.Errorf("Failed to encode request: nil encoder")
 	}
@@ -789,17 +796,19 @@ func (s *Server) raftApplyWithEncoder(t structs.MessageType, msg interface{}, en
 			// apply function. Downstream client code expects to see any error
 			// from the FSM (as opposed to the apply itself) and decide whether
 			// it can retry in the future's response.
-			return ErrChunkingResubmit, nil
+			return nil, ErrChunkingResubmit
 		}
 		// We expect that this conversion should always work
 		chunkedSuccess, ok := resp.(raftchunking.ChunkingSuccess)
 		if !ok {
 			return nil, errors.New("unknown type of response back from chunking FSM")
 		}
-		// Return the inner wrapped response
-		return chunkedSuccess.Response, nil
+		resp = chunkedSuccess.Response
 	}
 
+	if err, ok := resp.(error); ok {
+		return nil, err
+	}
 	return resp, nil
 }
 

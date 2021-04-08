@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func (s *Server) reapExpiredTokens(ctx context.Context) error {
@@ -102,7 +103,7 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 		"amount", len(req.TokenIDs),
 		"locality", locality,
 	)
-	resp, err := s.raftApply(structs.ACLTokenDeleteRequestType, &req)
+	_, err = s.raftApply(structs.ACLTokenDeleteRequestType, &req)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to apply token expiration deletions: %v", err)
 	}
@@ -110,10 +111,6 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 	// Purge the identities from the cache
 	for _, secretID := range secretIDs {
 		s.acls.cache.RemoveIdentity(tokenSecretCacheID(secretID))
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return 0, respErr
 	}
 
 	return len(req.TokenIDs), nil

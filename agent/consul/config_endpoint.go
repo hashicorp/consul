@@ -92,9 +92,6 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	if err != nil {
 		return err
 	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 	if respBool, ok := resp.(bool); ok {
 		*reply = respBool
 	}
@@ -296,14 +293,8 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 	}
 
 	args.Op = structs.ConfigEntryDelete
-	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-	return nil
+	_, err = c.srv.raftApply(structs.ConfigEntryRequestType, args)
+	return err
 }
 
 // ResolveServiceConfig

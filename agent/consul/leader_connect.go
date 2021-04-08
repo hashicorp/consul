@@ -135,15 +135,8 @@ func (s *Server) pruneCARoots() error {
 	args.Op = structs.CAOpSetRoots
 	args.Index = idx
 	args.Roots = newRoots
-	resp, err := s.raftApply(structs.ConnectCARequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err = s.raftApply(structs.ConnectCARequestType, args)
+	return err
 }
 
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially

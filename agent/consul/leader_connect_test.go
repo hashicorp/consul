@@ -628,15 +628,12 @@ func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
 		activePrimaryRoot.SigningKeyID = primaryRootSigningKeyID
 
 		// Store the root cert in raft
-		resp, err := s1pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		_, err = s1pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
 			Op:    structs.CAOpSetRoots,
 			Index: idx,
 			Roots: []*structs.CARoot{activePrimaryRoot},
 		})
 		require.NoError(t, err)
-		if respErr, ok := resp.(error); ok {
-			t.Fatalf("respErr: %v", respErr)
-		}
 	}
 
 	// Shutdown s1pre and restart it to trigger the secondary CA init to correct
@@ -731,15 +728,12 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 		activeSecondaryRoot.SigningKeyID = secondaryRootSigningKeyID
 
 		// Store the root cert in raft
-		resp, err := s2pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+		_, err = s2pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
 			Op:    structs.CAOpSetRoots,
 			Index: idx,
 			Roots: []*structs.CARoot{activeSecondaryRoot},
 		})
 		require.NoError(t, err)
-		if respErr, ok := resp.(error); ok {
-			t.Fatalf("respErr: %v", respErr)
-		}
 	}
 
 	// Shutdown s2pre and restart it to trigger the secondary CA init to correct
