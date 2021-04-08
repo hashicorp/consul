@@ -649,6 +649,12 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		},
 
 		{
+			"connect-proxy: wildcard Proxy.DestinationServiceName",
+			func(x *NodeService) { x.Proxy.DestinationServiceName = "*" },
+			"Proxy.DestinationServiceName must not be",
+		},
+
+		{
 			"connect-proxy: valid Proxy.DestinationServiceName",
 			func(x *NodeService) { x.Proxy.DestinationServiceName = "hello" },
 			"",
@@ -696,6 +702,28 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 				}}
 			},
 			"upstream destination name cannot be empty",
+		},
+		{
+			"connect-proxy: upstream wildcard name",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{{
+					DestinationType: UpstreamDestTypeService,
+					DestinationName: WildcardSpecifier,
+					LocalBindPort:   5000,
+				}}
+			},
+			"upstream destination name cannot be a wildcard",
+		},
+		{
+			"connect-proxy: upstream can have wildcard name when centrally configured",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{{
+					DestinationType:     UpstreamDestTypeService,
+					DestinationName:     WildcardSpecifier,
+					CentrallyConfigured: true,
+				}}
+			},
+			"",
 		},
 		{
 			"connect-proxy: upstream empty bind port",
@@ -767,6 +795,24 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 				}
 			},
 			"upstreams cannot contain duplicates",
+		},
+		{
+			"connect-proxy: Centrally configured upstreams can have duplicate ip/port",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{
+						DestinationType:     UpstreamDestTypeService,
+						DestinationName:     "foo",
+						CentrallyConfigured: true,
+					},
+					{
+						DestinationType:     UpstreamDestTypeService,
+						DestinationName:     "bar",
+						CentrallyConfigured: true,
+					},
+				}
+			},
+			"",
 		},
 		{
 			"connect-proxy: Upstreams duplicated by ip and port",

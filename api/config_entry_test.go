@@ -393,7 +393,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							MeshGateway: MeshGatewayConfig{Mode: "remote"},
 						},
 					},
-					UpstreamDefaults: UpstreamConfig{
+					UpstreamDefaults: &UpstreamConfig{
 						EnvoyClusterJSON:  "zip",
 						EnvoyListenerJSON: "zop",
 						Protocol:          "http",

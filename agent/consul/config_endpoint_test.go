@@ -1000,6 +1000,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 
 	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMeta())
 	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMeta())
+	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
 
 	tt := []struct {
 		name     string
@@ -1127,6 +1128,14 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			expect: structs.ServiceConfigResponse{
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "remote",
+							},
+						},
+					},
+					{
 						Upstream: mysql,
 						Config: map[string]interface{}{
 							"mesh_gateway": map[string]interface{}{
@@ -1189,6 +1198,19 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"passive_health_check": map[string]interface{}{
+								"Interval":    int64(10),
+								"MaxFailures": int64(2),
+							},
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "remote",
+							},
+							"protocol": "http",
+						},
+					},
+					{
 						Upstream: mysql,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
@@ -1203,6 +1225,130 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "without upstream args we should return centralized config with tproxy arg",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "api",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamDefaults: &structs.UpstreamConfig{
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						},
+						UpstreamConfigs: map[string]*structs.UpstreamConfig{
+							mysql.String(): {
+								Protocol: "grpc",
+							},
+						},
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:             "api",
+				Datacenter:       "dc1",
+				TransparentProxy: true,
+
+				// Empty Upstreams/UpstreamIDs
+			},
+			expect: structs.ServiceConfigResponse{
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "remote",
+							},
+						},
+					},
+					{
+						Upstream: mysql,
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "remote",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "without upstream args we should return centralized config with tproxy default",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "api",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamDefaults: &structs.UpstreamConfig{
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						},
+						UpstreamConfigs: map[string]*structs.UpstreamConfig{
+							mysql.String(): {
+								Protocol: "grpc",
+							},
+						},
+					},
+
+					// TransparentProxy on the config entry but not the config request
+					TransparentProxy: true,
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "api",
+				Datacenter: "dc1",
+
+				// Empty Upstreams/UpstreamIDs
+			},
+			expect: structs.ServiceConfigResponse{
+				TransparentProxy: true,
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: wildcard,
+						Config: map[string]interface{}{
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "remote",
+							},
+						},
+					},
+					{
+						Upstream: mysql,
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "remote",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "without upstream args we should NOT return centralized config outside tproxy mode",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "api",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamDefaults: &structs.UpstreamConfig{
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						},
+						UpstreamConfigs: map[string]*structs.UpstreamConfig{
+							mysql.String(): {
+								Protocol: "grpc",
+							},
+						},
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:             "api",
+				Datacenter:       "dc1",
+				TransparentProxy: false,
+
+				// Empty Upstreams/UpstreamIDs
+			},
+			expect: structs.ServiceConfigResponse{},
 		},
 	}
 

@@ -1153,6 +1153,11 @@ func (s *NodeService) Validate() error {
 				"Proxy.DestinationServiceName must be non-empty for Connect proxy "+
 					"services"))
 		}
+		if s.Proxy.DestinationServiceName == WildcardSpecifier {
+			result = multierror.Append(result, fmt.Errorf(
+				"Proxy.DestinationServiceName must not be a wildcard for Connect proxy "+
+					"services"))
+		}
 
 		if s.Port == 0 {
 			result = multierror.Append(result, fmt.Errorf(
@@ -1189,7 +1194,9 @@ func (s *NodeService) Validate() error {
 			}
 			addr = net.JoinHostPort(addr, fmt.Sprintf("%d", u.LocalBindPort))
 
-			if _, ok := bindAddrs[addr]; ok {
+			// Centrally configured upstreams will fail this check if there are multiple because they do not have an address/port.
+			// Only consider non-centrally configured upstreams in this check since those are the ones we create listeners for.
+			if _, ok := bindAddrs[addr]; ok && !u.CentrallyConfigured {
 				result = multierror.Append(result, fmt.Errorf(
 					"upstreams cannot contain duplicates by local bind address and port; %q is specified twice", addr))
 				continue

@@ -410,13 +410,29 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			upstreamIDs := args.UpstreamIDs
 			legacyUpstreams := false
 
-			// Before Consul namespaces were released, the Upstreams provided to the endpoint did not contain the namespace.
-			// Because of this we attach the enterprise meta of the request, which will just be the default namespace.
-			if len(upstreamIDs) == 0 {
+			var (
+				noUpstreamArgs = len(upstreamIDs) == 0 && len(args.Upstreams) == 0
+
+				// Check the args and the resolved value. If it was exclusively set via a config entry, then args.TransparentProxy
+				// will never be true because the service config request does not use the resolved value.
+				tproxy = args.TransparentProxy || reply.TransparentProxy
+			)
+
+			// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
+			// If no upstreams were passed, then we should only returned the resolved config if the proxy has TransparentProxy mode enabled.
+			// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
+			if noUpstreamArgs && !tproxy {
+				return nil
+			}
+
+			// The request is considered legacy if the deprecated args.Upstream was used
+			if len(upstreamIDs) == 0 && len(args.Upstreams) > 0 {
 				legacyUpstreams = true
 
 				upstreamIDs = make([]structs.ServiceID, 0)
 				for _, upstream := range args.Upstreams {
+					// Before Consul namespaces were released, the Upstreams provided to the endpoint did not contain the namespace.
+					// Because of this we attach the enterprise meta of the request, which will just be the default namespace.
 					sid := structs.NewServiceID(upstream, &args.EnterpriseMeta)
 					upstreamIDs = append(upstreamIDs, sid)
 				}
@@ -436,6 +452,9 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
+			// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
+			usConfigs := make(map[structs.ServiceID]map[string]interface{})
+
 			var (
 				upstreamDefaults *structs.UpstreamConfig
 				upstreamConfigs  map[string]*structs.UpstreamConfig
@@ -443,14 +462,19 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			if serviceConf != nil && serviceConf.Connect != nil {
 				if serviceConf.Connect.UpstreamDefaults != nil {
 					upstreamDefaults = serviceConf.Connect.UpstreamDefaults
+
+					// Store the upstream defaults under a wildcard key so that they can be applied to
+					// upstreams that are inferred from intentions and do not have explicit upstream configuration.
+					cfgMap := make(map[string]interface{})
+					upstreamDefaults.MergeInto(cfgMap)
+
+					wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+					usConfigs[wildcard] = cfgMap
 				}
 				if serviceConf.Connect.UpstreamConfigs != nil {
 					upstreamConfigs = serviceConf.Connect.UpstreamConfigs
 				}
 			}
-
-			// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
-			usConfigs := make(map[structs.ServiceID]map[string]interface{})
 
 			for upstream := range seenUpstreams {
 				resolvedCfg := make(map[string]interface{})

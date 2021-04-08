@@ -333,6 +333,9 @@ func (u *Upstream) Validate() error {
 	if u.DestinationName == "" {
 		return fmt.Errorf("upstream destination name cannot be empty")
 	}
+	if u.DestinationName == WildcardSpecifier && !u.CentrallyConfigured {
+		return fmt.Errorf("upstream destination name cannot be a wildcard")
+	}
 
 	if u.LocalBindPort == 0 && !u.CentrallyConfigured {
 		return fmt.Errorf("upstream local bind port cannot be zero")

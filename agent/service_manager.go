@@ -250,7 +250,7 @@ func (w *serviceConfigWatch) runWatch(ctx context.Context, wg *sync.WaitGroup, u
 	}
 }
 
-// handleUpdate receives an update event the global config defaults, updates
+// handleUpdate receives an update event from the global config defaults, updates
 // the local state and re-registers the service with the newly merged config.
 //
 // NOTE: the caller must NOT hold the Agent.stateLock!
@@ -335,12 +335,13 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 	}
 
 	req := &structs.ServiceConfigRequest{
-		Name:           name,
-		Datacenter:     bd.RuntimeConfig.Datacenter,
-		QueryOptions:   structs.QueryOptions{Token: addReq.token},
-		MeshGateway:    ns.Proxy.MeshGateway,
-		UpstreamIDs:    upstreams,
-		EnterpriseMeta: ns.EnterpriseMeta,
+		Name:             name,
+		Datacenter:       bd.RuntimeConfig.Datacenter,
+		QueryOptions:     structs.QueryOptions{Token: addReq.token},
+		MeshGateway:      ns.Proxy.MeshGateway,
+		TransparentProxy: ns.Proxy.TransparentProxy,
+		UpstreamIDs:      upstreams,
+		EnterpriseMeta:   ns.EnterpriseMeta,
 	}
 	if req.QueryOptions.Token == "" {
 		req.QueryOptions.Token = bd.Tokens.AgentToken()
@@ -436,8 +437,8 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	}
 
 	// Ensure upstreams present in central config are represented in the local configuration.
-	// This does not apply outside of TransparentProxy mode because in that situation every upstream needs to be defined
-	// explicitly and locally with a local bind port.
+	// This does not apply outside of TransparentProxy mode because in that situation every possible upstream already exists
+	// inside of ns.Proxy.Upstreams.
 	if ns.Proxy.TransparentProxy {
 		for id, remote := range remoteUpstreams {
 			if _, ok := localUpstreams[id]; ok {
