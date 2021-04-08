@@ -16,18 +16,18 @@ func TestSetup(t *testing.T) {
 	}
 
 	expectedRules := []string{
-		"iptables -t nat -N PROXY_INBOUND",
-		"iptables -t nat -N PROXY_IN_REDIRECT",
-		"iptables -t nat -N PROXY_OUTPUT",
-		"iptables -t nat -N PROXY_REDIRECT",
-		"iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
-		"iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT",
-		"iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
-		"iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
-		"iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT",
-		"iptables -t nat -A PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
-		"iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND",
-		"iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT",
+		"iptables -t nat -N CONSUL_PROXY_INBOUND",
+		"iptables -t nat -N CONSUL_PROXY_IN_REDIRECT",
+		"iptables -t nat -N CONSUL_PROXY_OUTPUT",
+		"iptables -t nat -N CONSUL_PROXY_REDIRECT",
+		"iptables -t nat -A CONSUL_PROXY_REDIRECT -p tcp -j REDIRECT --to-port 21000",
+		"iptables -t nat -A OUTPUT -p tcp -j CONSUL_PROXY_OUTPUT",
+		"iptables -t nat -A CONSUL_PROXY_OUTPUT -m owner --uid-owner 123 -j RETURN",
+		"iptables -t nat -A CONSUL_PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN",
+		"iptables -t nat -A CONSUL_PROXY_OUTPUT -j CONSUL_PROXY_REDIRECT",
+		"iptables -t nat -A CONSUL_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port 20000",
+		"iptables -t nat -A PREROUTING -p tcp -j CONSUL_PROXY_INBOUND",
+		"iptables -t nat -A CONSUL_PROXY_INBOUND -p tcp -j CONSUL_PROXY_IN_REDIRECT",
 	}
 
 	err := Setup(cfg)

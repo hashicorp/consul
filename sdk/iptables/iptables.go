@@ -9,16 +9,16 @@ import (
 
 const (
 	// Chain to intercept inbound traffic
-	ProxyInboundChain = "PROXY_INBOUND"
+	ProxyInboundChain = "CONSUL_PROXY_INBOUND"
 
 	// Chain to redirect inbound traffic to the proxy
-	ProxyInboundRedirectChain = "PROXY_IN_REDIRECT"
+	ProxyInboundRedirectChain = "CONSUL_PROXY_IN_REDIRECT"
 
 	// Chain to intercept outbound traffic
-	ProxyOutputChain = "PROXY_OUTPUT"
+	ProxyOutputChain = "CONSUL_PROXY_OUTPUT"
 
 	// Chain to redirect outbound traffic to the proxy
-	ProxyOutputRedirectChain = "PROXY_REDIRECT"
+	ProxyOutputRedirectChain = "CONSUL_PROXY_REDIRECT"
 )
 
 // Config is used to configure which traffic interception and redirection
