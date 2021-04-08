@@ -1,0 +1,3 @@
+```release-note:bug
+cache: fix a bug in the client agent cache where streaming could potentially leak resources. [[GH-9978](https://github.com/hashicorp/consul/pull/9978)].
+```
