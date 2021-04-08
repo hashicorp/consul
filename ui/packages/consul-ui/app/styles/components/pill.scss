@@ -1,7 +1,8 @@
 span.policy-service-identity,
 span.policy-node-identity,
 .leader,
-.consul-auth-method-type {
+.consul-auth-method-type,
+.topology-metrics-source-type {
   @extend %pill-200, %frame-gray-600;
 }
 span.policy-service-identity::before,

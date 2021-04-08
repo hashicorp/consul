@@ -79,6 +79,8 @@
 
 @import 'consul-ui/components/role-selector';
 @import 'consul-ui/components/topology-metrics';
+@import 'consul-ui/components/topology-metrics/card';
+@import 'consul-ui/components/topology-metrics/source-type';
 @import 'consul-ui/components/topology-metrics/popover';
 @import 'consul-ui/components/topology-metrics/series';
 @import 'consul-ui/components/topology-metrics/stats';
