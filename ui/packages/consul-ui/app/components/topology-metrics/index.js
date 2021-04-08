@@ -92,9 +92,11 @@ export default class TopologyMetrics extends Component {
     this.upView = document.getElementById('upstream-lines').getBoundingClientRect();
 
     // Get Card elements positions
-    const downCards = [...document.querySelectorAll('#downstream-container .card')];
+    const downCards = [
+      ...document.querySelectorAll('#downstream-container .topology-metrics-card'),
+    ];
     const grafanaCard = document.querySelector('.metrics-header');
-    const upCards = [...document.querySelectorAll('#upstream-column .card')];
+    const upCards = [...document.querySelectorAll('#upstream-column .topology-metrics-card')];
 
     // Set center positioning points
     this.centerDimensions = grafanaCard.getBoundingClientRect();

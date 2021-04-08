@@ -49,44 +49,6 @@
 #upstream-column #upstream-container:not(:last-child) {
   margin-bottom: 8px;
 }
-#upstream-container .card:not(:last-child),
-#downstream-container .card:not(:last-child) {
-  margin-bottom: 8px;
-}
-#upstream-container .card,
-#downstream-container .card {
-  display: block;
-  color: $gray-700;
-  overflow: hidden;
-  p {
-    padding: 12px 12px 0 12px;
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 0 !important;
-  }
-  div {
-    display: inline-flex;
-    dl {
-      display: inline-flex;
-      margin-right: 8px;
-    }
-    span {
-      margin-right: 8px;
-    }
-    span::before,
-    dt::before {
-      margin-right: 4px;
-    }
-    .nspace dt::before,
-    .health dt::before {
-      margin-top: 2px;
-    }
-  }
-  .details {
-    padding: 0 12px 12px 12px;
-  }
-
-}
 
 // Metrics Container
 #metrics-container {
