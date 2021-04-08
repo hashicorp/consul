@@ -192,6 +192,12 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 				PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
 			})
 		}
+
+		// The match rules are stable sorted to avoid draining if the list is provided out of order
+		sort.SliceStable(ranges, func(i, j int) bool {
+			return ranges[i].AddressPrefix < ranges[j].AddressPrefix
+		})
+
 		filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
 			PrefixRanges: ranges,
 		}
