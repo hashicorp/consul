@@ -42,6 +42,8 @@ type Provider interface {
 	// AddRule adds a rule without executing it.
 	AddRule(name string, args ...string)
 	// ApplyRules executes rules that have been added via AddRule.
+	// This operation is currently not atomic, and if there's an error applying rules,
+	// you may be left in a state where partial rules were applied.
 	ApplyRules() error
 	// Rules returns the list of rules that have been added but not applied yet.
 	Rules() []string
