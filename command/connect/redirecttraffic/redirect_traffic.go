@@ -71,7 +71,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.proxyID != "" && (c.proxyInboundPort != 0 || c.proxyOutboundPort != 0) {
+	if c.proxyID != "" && (c.proxyInboundPort != 0 || c.proxyOutboundPort != iptables.DefaultTProxyOutboundPort) {
 		c.UI.Error("-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id. " +
 			"Proxy's inbound and outbound ports are retrieved from the proxy's configuration instead.")
 		return 1
