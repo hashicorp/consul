@@ -638,7 +638,7 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 						},
 					},
-					UpstreamDefaults: api.UpstreamConfig{
+					UpstreamDefaults: &api.UpstreamConfig{
 						EnvoyClusterJSON:  "zip",
 						EnvoyListenerJSON: "zop",
 						Protocol:          "http",

@@ -16,6 +16,7 @@
                 "prefix": "/"
               },
               "route": {
+                "autoHostRewrite": true,
                 "cluster": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "hashPolicy": [
                   {
@@ -58,6 +59,7 @@
                 "prefix": "/"
               },
               "route": {
+                "autoHostRewrite": true,
                 "cluster": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "hashPolicy": [
                   {
@@ -100,6 +102,7 @@
                 "prefix": "/"
               },
               "route": {
+                "autoHostRewrite": true,
                 "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "hashPolicy": [
                   {

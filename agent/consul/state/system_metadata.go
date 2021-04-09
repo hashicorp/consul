@@ -68,7 +68,7 @@ func (s *Store) SystemMetadataSet(idx uint64, entry *structs.SystemMetadataEntry
 }
 
 // systemMetadataSetTxn upserts a system metadata inside of a transaction.
-func systemMetadataSetTxn(tx *txn, idx uint64, entry *structs.SystemMetadataEntry) error {
+func systemMetadataSetTxn(tx WriteTxn, idx uint64, entry *structs.SystemMetadataEntry) error {
 	// The only validation we care about is non-empty keys.
 	if entry.Key == "" {
 		return fmt.Errorf("missing key on system metadata")
@@ -170,7 +170,7 @@ func (s *Store) SystemMetadataDelete(idx uint64, entry *structs.SystemMetadataEn
 	return tx.Commit()
 }
 
-func systemMetadataDeleteTxn(tx *txn, idx uint64, key string) error {
+func systemMetadataDeleteTxn(tx WriteTxn, idx uint64, key string) error {
 	// Try to retrieve the existing system metadata.
 	existing, err := tx.First(tableSystemMetadata, "id", key)
 	if err != nil {

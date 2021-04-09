@@ -42,14 +42,14 @@ func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64)
 	}
 
 	// Update the indexes
-	err := tx.Insert("index", &IndexEntry{"sessions", idx})
+	err := tx.Insert(tableIndex, &IndexEntry{"sessions", idx})
 	if err != nil {
 		return fmt.Errorf("failed updating sessions index: %v", err)
 	}
 	return nil
 }
 
-func insertSessionTxn(tx *txn, session *structs.Session, idx uint64, updateMax bool, _ bool) error {
+func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateMax bool, _ bool) error {
 	if err := tx.Insert("sessions", session); err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func insertSessionTxn(tx *txn, session *structs.Session, idx uint64, updateMax b
 			return fmt.Errorf("failed updating sessions index: %v", err)
 		}
 	} else {
-		err := tx.Insert("index", &IndexEntry{"sessions", idx})
+		err := tx.Insert(tableIndex, &IndexEntry{"sessions", idx})
 		if err != nil {
 			return fmt.Errorf("failed updating sessions index: %v", err)
 		}
@@ -105,7 +105,7 @@ func sessionMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "sessions")
 }
 
-func validateSessionChecksTxn(tx *txn, session *structs.Session) error {
+func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 	// Go over the session checks and ensure they exist.
 	for _, checkID := range session.CheckIDs() {
 		check, err := tx.First(tableChecks, indexID, NodeCheckQuery{Node: session.Node, CheckID: string(checkID)})

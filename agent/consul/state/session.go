@@ -172,7 +172,7 @@ func (s *Store) SessionCreate(idx uint64, sess *structs.Session) error {
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func sessionCreateTxn(tx *txn, idx uint64, sess *structs.Session) error {
+func sessionCreateTxn(tx WriteTxn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID

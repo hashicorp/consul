@@ -3,8 +3,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Tombstone is the internal type used to track tombstones.
@@ -79,7 +80,7 @@ func (g *Graveyard) DumpTxn(tx ReadTxn) (memdb.ResultIterator, error) {
 
 // RestoreTxn is used when restoring from a snapshot. For general inserts, use
 // InsertTxn.
-func (g *Graveyard) RestoreTxn(tx *txn, stone *Tombstone) error {
+func (g *Graveyard) RestoreTxn(tx WriteTxn, stone *Tombstone) error {
 	if err := g.insertTombstoneWithTxn(tx, "tombstones", stone, true); err != nil {
 		return fmt.Errorf("failed inserting tombstone: %s", err)
 	}
@@ -89,7 +90,7 @@ func (g *Graveyard) RestoreTxn(tx *txn, stone *Tombstone) error {
 
 // ReapTxn cleans out all tombstones whose index values are less than or equal
 // to the given idx. This prevents unbounded storage growth of the tombstones.
-func (g *Graveyard) ReapTxn(tx *txn, idx uint64) error {
+func (g *Graveyard) ReapTxn(tx WriteTxn, idx uint64) error {
 	// This does a full table scan since we currently can't index on a
 	// numeric value. Since this is all in-memory and done infrequently
 	// this pretty reasonable.
