@@ -9,16 +9,16 @@ import (
 
 func TestSetup(t *testing.T) {
 	cases := []struct {
-		name string
-		cfg  Config
+		name          string
+		cfg           Config
 		expectedRules []string
 	}{
 		{
 			"no proxy outbound port provided",
 			Config{
-				ProxyUserID:       "123",
-				ProxyInboundPort:  20000,
-				IptablesProvider:  &fakeIptablesProvider{},
+				ProxyUserID:      "123",
+				ProxyInboundPort: 20000,
+				IptablesProvider: &fakeIptablesProvider{},
 			},
 			[]string{
 				"iptables -t nat -N CONSUL_PROXY_INBOUND",
