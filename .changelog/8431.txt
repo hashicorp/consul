@@ -1,3 +1,3 @@
 ```release-note:enhancement
-health-checks: at H2 ping health checks.
+health-checks: add H2 ping health checks.
 ```
