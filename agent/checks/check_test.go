@@ -1016,7 +1016,7 @@ func TestCheckH2PING(t *testing.T) {
 			check.Start()
 			defer check.Stop()
 
-			if tt.passing == true {
+			if tt.passing {
 				retry.Run(t, func(r *retry.R) {
 					if got, want := notif.State(cid), api.HealthPassing; got != want {
 						r.Fatalf("got state %q want %q", got, want)
