@@ -3,6 +3,7 @@
 package iptables
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
 )
@@ -23,15 +24,12 @@ func (i *iptablesExecutor) ApplyRules() error {
 	}
 
 	for _, cmd := range i.commands {
+		var cmdOutput bytes.Buffer
+		cmd.Stdout = &cmdOutput
+		cmd.Stderr = &cmdOutput
 		err := cmd.Run()
 		if err != nil {
-			output, err := cmd.CombinedOutput()
-
-			if err != nil {
-				return fmt.Errorf("failed to run command: %s, err: %v", cmd.String(), err)
-			}
-
-			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, string(output))
+			return fmt.Errorf("failed to run command: %s, err: %v, output: %s", cmd.String(), err, string(cmdOutput.Bytes()))
 		}
 	}
 

@@ -39,7 +39,7 @@ func TestRun_FlagValidation(t *testing.T) {
 			"-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id.",
 		},
 		{
-			"-proxy-id, -proxy-inbound-port and -proxy-outbound-port are provided",
+			"-proxy-id, -proxy-inbound-port and non-default -proxy-outbound-port are provided",
 			[]string{"-proxy-uid=1234", "-proxy-id=test", "-proxy-inbound-port=15000", "-proxy-outbound-port=15001"},
 			"-proxy-inbound-port or -proxy-outbound-port cannot be provided together with -proxy-id.",
 		},
