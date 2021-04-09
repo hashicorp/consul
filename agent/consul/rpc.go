@@ -535,9 +535,8 @@ func canRetry(args interface{}, err error) bool {
 		return true
 	}
 
-	// If we are chunking and it doesn't seem to have completed, try again
-	intErr, ok := args.(error)
-	if ok && strings.Contains(intErr.Error(), ErrChunkingResubmit.Error()) {
+	// If we are chunking and it doesn't seem to have completed, try again.
+	if err != nil && strings.Contains(err.Error(), ErrChunkingResubmit.Error()) {
 		return true
 	}
 
