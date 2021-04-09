@@ -1,13 +1,14 @@
 import UseCases from '@hashicorp/react-use-cases'
-import CtaHero from 'components/cta-hero'
-import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
-import PrefooterCTA from '../../components/prefooter-cta'
-import LearnCallout from '../../components/learn-callout'
-import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
-import HcpCalloutSection from 'components/hcp-callout-section'
 import Callouts from '@hashicorp/react-callouts'
-import MiniCTA from '../../components/mini-cta'
+import LearnCallout from '@hashicorp/react-learn-callout'
+
+import MiniCTA from 'components/mini-cta'
+import HcpCalloutSection from 'components/hcp-callout-section'
+import CtaHero from 'components/cta-hero'
+import ConsulEnterpriseComparison from 'components/enterprise-comparison/consul'
+import PrefooterCTA from 'components/prefooter-cta'
+import CaseStudyCarousel from 'components/case-study-carousel'
 
 export default function HomePage() {
   return (
@@ -120,7 +121,7 @@ export default function HomePage() {
 
       <LearnCallout
         headline="Get hands-on experience with Consul"
-        brand="consul"
+        product="consul"
         items={[
           {
             title: 'Deploy HCP Consul with Terraform',
