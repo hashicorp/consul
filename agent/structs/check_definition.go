@@ -24,6 +24,7 @@ type CheckDefinition struct {
 	//
 	ScriptArgs                     []string
 	HTTP                           string
+	H2PING                         string
 	Header                         map[string][]string
 	Method                         string
 	Body                           string
@@ -177,6 +178,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		AliasNode:                      c.AliasNode,
 		AliasService:                   c.AliasService,
 		HTTP:                           c.HTTP,
+		H2PING:                         c.H2PING,
 		GRPC:                           c.GRPC,
 		GRPCUseTLS:                     c.GRPCUseTLS,
 		Header:                         c.Header,
