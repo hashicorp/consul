@@ -541,6 +541,7 @@ func (c *CheckH2PING) check() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
+	defer clientConn.Shutdown(ctx)
 	err = clientConn.Ping(ctx)
 	if err == nil {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, "HTTP2 ping was successful")
