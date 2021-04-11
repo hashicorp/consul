@@ -26,8 +26,8 @@ const (
 	// should be direct and not flow through a mesh gateway.
 	MeshGatewayModeNone MeshGatewayMode = "none"
 
-	// MeshGatewayModeLocal represents that the Upstrea Connect connections
-	// should be made to a mesh gateway in the local datacenter. This is
+	// MeshGatewayModeLocal represents that the Upstream Connect connections
+	// should be made to a mesh gateway in the local datacenter.
 	MeshGatewayModeLocal MeshGatewayMode = "local"
 
 	// MeshGatewayModeRemote represents that the Upstream Connect connections
