@@ -519,6 +519,7 @@ type CheckH2PING struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+        stopWg   sync.WaitGroup
 }
 
 func (c *CheckH2PING) check() {
@@ -559,9 +560,11 @@ func (c *CheckH2PING) Stop() {
 		c.stop = true
 		close(c.stopCh)
 	}
+        c.stopWg.Wait()
 }
 
 func (c *CheckH2PING) run() {
+        defer c.stopWg.Done()
 	// Get the randomized initial pause time
 	initialPauseTime := lib.RandomStagger(c.Interval)
 	next := time.After(initialPauseTime)
@@ -584,6 +587,7 @@ func (c *CheckH2PING) Start() {
 	}
 	c.stop = false
 	c.stopCh = make(chan struct{})
+        c.stopWg.Add(1)
 	go c.run()
 }
 
