@@ -343,21 +343,23 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"TransparentProxy": {
 					"OutboundListenerPort": 808
 				},
-				"Connect": {
-					"UpstreamConfigs": {
-						"redis": {
+				"UpstreamConfig": {
+					"Overrides": [
+						{
+							"Name": "redis",
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
 								"Interval": "2s"
 							}
 						},
-						"finance/billing": {
+						{
+							"Name": "finance--billing",
 							"MeshGateway": {
 								"Mode": "remote"
 							}
 						}
-					},
-					"UpstreamDefaults": {
+					],
+					"Defaults": {
 						"EnvoyClusterJSON": "zip",
 						"EnvoyListenerJSON": "zop",
 						"ConnectTimeoutMs": 5000,
@@ -389,27 +391,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				Mode:             ProxyModeTransparent,
 				TransparentProxy: &TransparentProxyConfig{OutboundListenerPort: 808},
-				Connect: &ConnectConfiguration{
-					UpstreamConfigs: map[string]UpstreamConfig{
-						"redis": {
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
 								MaxFailures: 3,
 								Interval:    2 * time.Second,
 							},
 						},
-						"finance/billing": {
+						{
+							// TODO: enterprise test
+							Name:        "finance--billing",
 							MeshGateway: MeshGatewayConfig{Mode: "remote"},
 						},
 					},
-					UpstreamDefaults: &UpstreamConfig{
+					Defaults: &UpstreamConfig{
 						EnvoyClusterJSON:  "zip",
 						EnvoyListenerJSON: "zop",
 						Protocol:          "http",
 						ConnectTimeoutMs:  5000,
 						Limits: &UpstreamLimits{
-							MaxConnections:        3,
-							MaxPendingRequests:    4,
-							MaxConcurrentRequests: 5,
+							MaxConnections:        intPointer(3),
+							MaxPendingRequests:    intPointer(4),
+							MaxConcurrentRequests: intPointer(5),
 						},
 						PassiveHealthCheck: &PassiveHealthCheck{
 							MaxFailures: 5,
@@ -1187,4 +1192,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 			require.Equal(t, tc.expect, got[0])
 		})
 	}
+}
+
+func intPointer(v int) *int {
+	return &v
 }

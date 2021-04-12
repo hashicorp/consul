@@ -383,6 +383,7 @@ func (u *Upstream) Validate() error {
 	if u.LocalBindPort == 0 && !u.CentrallyConfigured {
 		return fmt.Errorf("upstream local bind port cannot be zero")
 	}
+
 	return nil
 }
 

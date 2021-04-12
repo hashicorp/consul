@@ -12,6 +12,7 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.Notes = s.Notes
 	t.ScriptArgs = s.ScriptArgs
 	t.HTTP = s.HTTP
+	t.H2PING = s.H2PING
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
@@ -21,7 +22,6 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.AliasService = s.AliasService
 	t.DockerContainerID = s.DockerContainerID
 	t.Shell = s.Shell
-	t.H2PING = s.H2PING
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.TLSServerName = s.TLSServerName
@@ -44,6 +44,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Notes = t.Notes
 	s.ScriptArgs = t.ScriptArgs
 	s.HTTP = t.HTTP
+	s.H2PING = t.H2PING
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
@@ -53,7 +54,6 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.AliasService = t.AliasService
 	s.DockerContainerID = t.DockerContainerID
 	s.Shell = t.Shell
-	s.H2PING = t.H2PING
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.TLSServerName = t.TLSServerName
@@ -111,6 +111,7 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.Method = s.Method
 	t.Body = s.Body
 	t.TCP = s.TCP
+	t.H2PING = s.H2PING
 	t.Interval = s.Interval
 	t.OutputMaxSize = uint(s.OutputMaxSize)
 	t.Timeout = s.Timeout
@@ -118,7 +119,6 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.ScriptArgs = s.ScriptArgs
 	t.DockerContainerID = s.DockerContainerID
 	t.Shell = s.Shell
-	t.H2PING = s.H2PING
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
 	t.AliasNode = s.AliasNode
@@ -135,6 +135,7 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.Method = t.Method
 	s.Body = t.Body
 	s.TCP = t.TCP
+	s.H2PING = t.H2PING
 	s.Interval = t.Interval
 	s.OutputMaxSize = uint32(t.OutputMaxSize)
 	s.Timeout = t.Timeout
@@ -142,7 +143,6 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.ScriptArgs = t.ScriptArgs
 	s.DockerContainerID = t.DockerContainerID
 	s.Shell = t.Shell
-	s.H2PING = t.H2PING
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
 	s.AliasNode = t.AliasNode

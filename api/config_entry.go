@@ -115,15 +115,22 @@ type ExposePath struct {
 	ParsedFromCheck bool
 }
 
-type ConnectConfiguration struct {
-	// UpstreamConfigs is a map of <namespace/>service to per-upstream configuration
-	UpstreamConfigs map[string]UpstreamConfig `json:",omitempty" alias:"upstream_configs"`
+type UpstreamConfiguration struct {
+	// Overrides is a slice of per-service configuration. The name field is
+	// required.
+	Overrides []*UpstreamConfig `json:",omitempty"`
 
-	// UpstreamDefaults contains default configuration for all upstreams of a given service
-	UpstreamDefaults *UpstreamConfig `json:",omitempty" alias:"upstream_defaults"`
+	// Defaults contains default configuration for all upstreams of a given
+	// service. The name field must be empty.
+	Defaults *UpstreamConfig `json:",omitempty"`
 }
 
 type UpstreamConfig struct {
+	// Name is only accepted within a service-defaults config entry.
+	Name string `json:",omitempty"`
+	// Namespace is only accepted within a service-defaults config entry.
+	Namespace string `json:",omitempty"`
+
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
@@ -176,18 +183,18 @@ type PassiveHealthCheck struct {
 type UpstreamLimits struct {
 	// MaxConnections is the maximum number of connections the local proxy can
 	// make to the upstream service.
-	MaxConnections int `alias:"max_connections"`
+	MaxConnections *int `alias:"max_connections"`
 
 	// MaxPendingRequests is the maximum number of requests that will be queued
 	// waiting for an available connection. This is mostly applicable to HTTP/1.1
 	// clusters since all HTTP/2 requests are streamed over a single
 	// connection.
-	MaxPendingRequests int `alias:"max_pending_requests"`
+	MaxPendingRequests *int `alias:"max_pending_requests"`
 
 	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
-	MaxConcurrentRequests int `alias:"max_concurrent_requests"`
+	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
 }
 
 type ServiceConfigEntry struct {
@@ -198,12 +205,13 @@ type ServiceConfigEntry struct {
 	Mode             ProxyMode               `json:",omitempty"`
 	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Connect          *ConnectConfiguration   `json:",omitempty"`
 	Expose           ExposeConfig            `json:",omitempty"`
 	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
-	Meta             map[string]string       `json:",omitempty"`
-	CreateIndex      uint64
-	ModifyIndex      uint64
+	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
+
+	Meta        map[string]string `json:",omitempty"`
+	CreateIndex uint64
+	ModifyIndex uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string {

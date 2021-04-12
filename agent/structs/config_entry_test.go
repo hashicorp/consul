@@ -113,22 +113,23 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				connect {
-					upstream_configs {
-						redis {
+				upstream_config {
+					overrides = [
+						{
+							name = "redis"
 							passive_health_check {
 								interval = "2s"
 								max_failures = 3
 							}
-						}
-					
-						"finance/billing" {
+						},
+						{
+							name = "finance--billing"
 							mesh_gateway {
 								mode = "remote"
 							}
-						}
-					}
-					upstream_defaults {
+						},
+					]
+					defaults {
 						connect_timeout_ms = 5
 						protocol = "http"
 						envoy_listener_json = "foo"
@@ -153,22 +154,23 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				Connect {
-					UpstreamConfigs {
-						"redis" {
+				UpstreamConfig {
+					Overrides = [
+						{
+							Name = "redis"
 							PassiveHealthCheck {
 								MaxFailures = 3
 								Interval = "2s"
 							}
-						}
-					
-						"finance/billing" {
+						},
+						{
+							Name = "finance--billing"
 							MeshGateway {
 								Mode = "remote"
 							}
-						}
-					}
-					UpstreamDefaults {
+						},
+					]
+					Defaults {
 						EnvoyListenerJSON = "foo"
 						EnvoyClusterJSON = "bar"
 						ConnectTimeoutMs = 5
@@ -193,19 +195,22 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				Connect: &ConnectConfiguration{
-					UpstreamConfigs: map[string]*UpstreamConfig{
-						"redis": {
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name: "redis",
 							PassiveHealthCheck: &PassiveHealthCheck{
 								MaxFailures: 3,
 								Interval:    2 * time.Second,
 							},
 						},
-						"finance/billing": {
+						{
+							// TODO: do this as an enterprise test
+							Name:        "finance--billing",
 							MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
 						},
 					},
-					UpstreamDefaults: &UpstreamConfig{
+					Defaults: &UpstreamConfig{
 						EnvoyListenerJSON: "foo",
 						EnvoyClusterJSON:  "bar",
 						ConnectTimeoutMs:  5,
@@ -1567,35 +1572,37 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 			input: ServiceConfigEntry{
 				Kind: ServiceDefaults,
 				Name: "web",
-				Connect: &ConnectConfiguration{
-					UpstreamConfigs: map[string]*UpstreamConfig{
-						"redis": {
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:     "redis",
 							Protocol: "TcP",
 						},
-						"memcached": {
+						{
+							Name:             "memcached",
 							ConnectTimeoutMs: -1,
 						},
 					},
-					UpstreamDefaults: &UpstreamConfig{ConnectTimeoutMs: -20},
+					Defaults: &UpstreamConfig{ConnectTimeoutMs: -20},
 				},
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
 			expect: ServiceConfigEntry{
 				Kind: ServiceDefaults,
 				Name: "web",
-				Connect: &ConnectConfiguration{
-					UpstreamConfigs: map[string]*UpstreamConfig{
-						"redis": {
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:             "redis",
 							Protocol:         "tcp",
 							ConnectTimeoutMs: 0,
 						},
-						"memcached": {
+						{
+							Name:             "memcached",
 							ConnectTimeoutMs: 0,
 						},
 					},
-					UpstreamDefaults: &UpstreamConfig{
-						ConnectTimeoutMs: 0,
-					},
+					Defaults: &UpstreamConfig{ConnectTimeoutMs: 0},
 				},
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
