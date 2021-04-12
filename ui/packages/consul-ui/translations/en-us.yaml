@@ -184,6 +184,52 @@ components:
             name: Precedence
             asc: Ascending
             desc: Descending
+    transparent-proxy: Transparent Proxy
+    topology-metrics:
+      source-type:
+        tooltip: This connection was defined in a proxy registration.
+        text: Defined in proxy registration
+      notice:
+        limited-access:
+          header: Limited Access
+          body: This service may have dependencies you won’t see because you don’t have access to them.
+        default-allow:
+          header: Intentions are set to default allow
+          body: Your Intention settings are currently set to default allow. This means that this view will show connections to every service in your cluster. We recommend changing your Intention settings to default deny and creating specific Intentions for upstream and downstream services for this view to be useful.
+          footer:
+            name: Edit intentions
+            URL: dc.services.show.intentions
+        not-defined-intention:
+          header: Connections are not explicitly defined
+          body: There appears to be an Intention defining traffic, but the services are unable to communicate until that connection is explicitly defined as a downstream or Transparent Proxy mode is turned on.
+          footer:
+            name: Read the documentation
+        wildcard-intention:
+          header: Permissive Intention
+          body: One or more of your Intentions are set to allow traffic to and/or from all other services in a namespace. This Topology view will show all of those connections if that remains unchanged. We recommend setting more specific Intentions for upstream and downstream services to make this vizualization more useful.
+          footer:
+            name: Edit intentions
+            URL: dc.services.show.intentions
+      popover:
+        l7:
+          header: Layer 7 permissions
+          body: Certain HTTP request info must be identified.
+          action: View
+        deny:
+          header: Connection Denied
+          body:
+            isExact: Change the action of this intention to allow.
+            notExact: Add an intention that allows these two services to connect.
+          action:
+            isExact: Allow
+            notExact: Create
+        undefined:
+          header: No traffic
+          body: Add the current service as an explicit upstream or turn on Transparent Proxy mode to initiate traffic.
+          action: Documentation
+
+
+
 
 models:
   auth-method:
