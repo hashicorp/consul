@@ -1,8 +1,3 @@
-import { inject as service } from '@ember/service';
-import { set, action } from '@ember/object';
-
-let popstateFired = false;
-
 const _uuid = function() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
@@ -10,10 +5,39 @@ const _uuid = function() {
   });
 };
 
+let popstateFired = false;
+/**
+ * Register a callback to be invoked whenever the browser history changes,
+ * including using forward and back buttons.
+ */
+const route = function(e) {
+  const path = e.state.path;
+  const url = this.getURLForTransition(path);
+  // Ignore initial page load popstate event in Chrome
+  // if (!popstateFired) {
+  //   popstateFired = true;
+  //   if (url === this._previousURL) {
+  //     return;
+  //   }
+  // }
+  if (url === this._previousURL) {
+    if (path === this._previousPath) {
+      return;
+    }
+    this._previousPath = e.state.path;
+    // async
+    this.container.lookup('route:application').refresh();
+  }
+  if (typeof this.callback === 'function') {
+    // TODO: Can we use `settled` or similar to make this `route` method async?
+    // not async
+    this.callback(url);
+  }
+  // used for webkit workaround
+  this._previousURL = url;
+  this._previousPath = e.state.path;
+};
 export default class {
-  @service('-document') doc;
-  @service('env') env;
-
   implementation = 'regexp';
 
   baseURL = '';
@@ -45,8 +69,15 @@ export default class {
     return new this(...arguments);
   }
 
-  constructor(owner) {
+  constructor(owner, doc, env) {
     this.container = Object.entries(owner)[0][1];
+
+    // add the route/state change handler
+    this.route = route.bind(this);
+
+    this.doc = typeof doc === 'undefined' ? this.container.lookup('service:-document') : doc;
+    this.env = typeof env === 'undefined' ? this.container.lookup('service:env') : env;
+
     const base = this.doc.querySelector('base[href]');
     if (base !== null) {
       this.baseURL = base.getAttribute('href');
@@ -60,52 +91,19 @@ export default class {
    */
   initState() {
     this.location = this.location || this.doc.defaultView.location;
-    this.history = this.history || this.doc.defaultView.history;
-    const state = this.history.state;
+    this.machine = this.machine || this.doc.defaultView.history;
+    const state = this.machine.state;
     this.doc.defaultView.addEventListener('popstate', this.route);
     // let path = this.location.pathname;//
     const path = this.formatURL(this.getURLForTransition(this.location.pathname));
-    console.log(path, state.path, 'initState');
     if (state && state.path === path) {
       // preserve existing state
       // used for webkit workaround, since there will be no initial popstate event
       this._previousPath = path;
       this._previousURL = this.getURL();
     } else {
-      console.log('hree');
       this.dispatch('replace', path);
     }
-  }
-
-  optionalParams() {
-    let optional = Object.entries(this.optional || {});
-    return optional.reduce((prev, [key, value]) => {
-      prev[key] = value.match;
-      return prev;
-    }, {});
-  }
-
-  hrefTo(routeName, params, hash) {
-    if (typeof hash.dc !== 'undefined') {
-      delete hash.dc;
-    }
-    if (typeof hash.nspace !== 'undefined') {
-      hash.nspace = `~${hash.nspace}`;
-    }
-    if (typeof this.router === 'undefined') {
-      this.router = this.container.lookup('router:main');
-    }
-    const router = this.router._routerMicrolib;
-    const url = router.generate(routeName, ...params, {
-      queryParams: {},
-    });
-    let withOptional = true;
-    switch (true) {
-      case routeName === 'settings':
-      case routeName.startsWith('docs.'):
-        withOptional = false;
-    }
-    return this.formatURL(url, hash, withOptional);
   }
 
   getURLFrom(url) {
@@ -120,8 +118,6 @@ export default class {
       .replace(new RegExp(`^${this.rootURL}(?=/|$)`), '')
       .replace(/\/\//g, '/'); // remove extra slashes
   }
-
-  getOptionalParamsFromURL() {}
 
   getURLForTransition(url) {
     const optional = {};
@@ -152,21 +148,52 @@ export default class {
       .join('/');
     return url;
   }
-  /**
-   * Returns the current `location.pathname` without `rootURL` or `baseURL`
-   */
-  getURL() {
-    const search = this.location.search || '';
-    let hash = '';
-    if (typeof this.location.hash !== 'undefined') {
-      hash = this.location.hash.substr(0);
-    }
-    const url = this.getURLForTransition(this.location.pathname);
-    return `${url}${search}${hash}`;
+
+  optionalParams() {
+    let optional = Object.entries(this.optional || {});
+    return optional.reduce((prev, [key, value]) => {
+      prev[key] = value.match;
+      return prev;
+    }, {});
   }
+
+  // public entrypoints for app hrefs/URLs
+
+  // visit and transitionTo can't be async/await as they return promise-like
+  // non-promises that get re-wrapped by the addition of async/await
+  visit() {
+    return this.transitionTo(...arguments);
+  }
+
   /**
-   * Takes a full browser URL including rootURL and optional and performs an
-   * ember transition/refresh and browser location update using that
+   * Turns a routeName into a full URL string for anchor hrefs etc.
+   */
+  hrefTo(routeName, params, hash) {
+    if (typeof hash.dc !== 'undefined') {
+      delete hash.dc;
+    }
+    if (typeof hash.nspace !== 'undefined') {
+      hash.nspace = `~${hash.nspace}`;
+    }
+    if (typeof this.router === 'undefined') {
+      this.router = this.container.lookup('router:main');
+    }
+    const router = this.router._routerMicrolib;
+    const url = router.generate(routeName, ...params, {
+      queryParams: {},
+    });
+    let withOptional = true;
+    switch (true) {
+      case routeName === 'settings':
+      case routeName.startsWith('docs.'):
+        withOptional = false;
+    }
+    return this.formatURL(url, hash, withOptional);
+  }
+
+  /**
+   * Takes a full browser URL including rootURL and optional (a full href) and
+   * performs an ember transition/refresh and browser location update using that
    */
   transitionTo(url) {
     const transitionURL = this.getURLForTransition(url);
@@ -181,6 +208,23 @@ export default class {
     }
   }
 
+  //
+
+  // Ember location interface
+
+  /**
+   * Returns the current `location.pathname` without `rootURL` or `baseURL`
+   */
+  getURL() {
+    const search = this.location.search || '';
+    let hash = '';
+    if (typeof this.location.hash !== 'undefined') {
+      hash = this.location.hash.substr(0);
+    }
+    const url = this.getURLForTransition(this.location.pathname);
+    return `${url}${search}${hash}`;
+  }
+
   formatURL(url, optional, withOptional = true) {
     if (url !== '') {
       // remove trailing slashes if they exists
@@ -191,6 +235,7 @@ export default class {
       // ... remove trailing slash from baseURL if it exists
       this.baseURL = this.baseURL.replace(/\/$/, '');
     }
+
     if (withOptional) {
       const temp = url.split('/');
       if (Object.keys(optional || {}).length === 0) {
@@ -208,9 +253,8 @@ export default class {
    * Change URL takes an ember application URL
    */
   changeURL(type, path) {
-    this.path = path; //this.getURLForTransition(path);
-    console.log(path, this.path, `${type}URL`, this.optional);
-    const state = this.history.state;
+    this.path = path;
+    const state = this.machine.state;
     path = this.formatURL(path);
 
     if (!state || state.path !== path) {
@@ -228,52 +272,27 @@ export default class {
     console.log(path, 'replaceURL');
     this.changeURL('replace', path);
   }
+
+  onUpdateURL(callback) {
+    this.callback = callback;
+  }
+
+  //
+
   /**
    * Dispatch takes a full actual browser URL with all the rootURL and optional
    * params if they exist
    */
   dispatch(event, path) {
-    const state = { path, uuid: _uuid() };
-    console.log('dispatch', path);
-    this.history[`${event}State`](state, null, path);
+    const state = {
+      path: path,
+      uuid: _uuid(),
+    };
+    this.machine[`${event}State`](state, null, path);
     // popstate listeners only run from a browser action not when a state change
     // is called directly, so manually call the popstate listener.
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event#the_history_stack
     this.route({ state: state });
-  }
-
-  /**
-   * Register a callback to be invoked whenever the browser history changes,
-   * including using forward and back buttons.
-   */
-  @action
-  route(e) {
-    const path = e.state.path;
-    const url = this.getURLForTransition(path);
-    // Ignore initial page load popstate event in Chrome
-    // if (!popstateFired) {
-    //   popstateFired = true;
-    //   if (url === this._previousURL) {
-    //     return;
-    //   }
-    // }
-    if (url === this._previousURL) {
-      if (path === this._previousPath) {
-        return;
-      }
-      this._previousPath = e.state.path;
-      this.container.lookup('route:application').refresh();
-      return;
-    }
-    if (this.callback) {
-      this.callback(url);
-    }
-    // used for webkit workaround
-    this._previousURL = url;
-    this._previousPath = e.state.path;
-  }
-  onUpdateURL(callback) {
-    this.callback = callback;
   }
 
   willDestroy() {

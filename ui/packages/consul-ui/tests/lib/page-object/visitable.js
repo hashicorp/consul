@@ -1,10 +1,11 @@
-// import { assign } from '../-private/helpers';
-import { getContext, settled, getSettledState, waitUntil } from '@ember/test-helpers';
-import { getWaiters, hasPendingWaiters, getPendingWaiterState } from '@ember/test-waiters';
-const assign = Object.assign;
+import { getContext } from '@ember/test-helpers';
 import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
+import createQueryParams from 'consul-ui/utils/http/create-query-params';
 
-import $ from '-jquery';
+const assign = Object.assign;
+const QueryParams = {
+  stringify: createQueryParams(),
+};
 
 function fillInDynamicSegments(path, params, encoder) {
   return path
@@ -31,10 +32,9 @@ function fillInDynamicSegments(path, params, encoder) {
 }
 
 function appendQueryParams(path, queryParams) {
-  if (Object.keys(queryParams).length) {
-    path += `?${$.param(queryParams)}`;
+  if (Object.keys(queryParams).length > 0) {
+    return `${path}?${QueryParams.stringify(queryParams)}`;
   }
-
   return path;
 }
 /**
@@ -61,16 +61,14 @@ export function visitable(path, encoder = encodeURIComponent) {
       let executionContext = getExecutionContext(this);
 
       return executionContext.runAsync(context => {
-        var params;
+        let params;
         let fullPath = (function _try(paths) {
           let path = paths.shift();
           if (typeof dynamicSegmentsAndQueryParams.nspace !== 'undefined') {
             path = `/:nspace${path}`;
-            // getContext().owner.lookup(`location:regexp-none`).optional = {nspace: dynamicSegmentsAndQueryParams.nspace};
-            // delete dynamicSegmentsAndQueryParams.nspace;
           }
           params = assign({}, dynamicSegmentsAndQueryParams);
-          var fullPath;
+          let fullPath;
           try {
             fullPath = fillInDynamicSegments(path, params, encoder);
           } catch (e) {
@@ -82,68 +80,19 @@ export function visitable(path, encoder = encodeURIComponent) {
           }
           return fullPath;
         })(typeof path === 'string' ? [path] : path.slice(0));
-        fullPath = appendQueryParams(fullPath, params);
-        const app = getContext().owner;
-        const location = app.lookup(`location:regexp-none`);
-        // window.getSettledState = () => getSettledState()
-        // window.getPendingWaiterState = () => getPendingWaiterState()
-        // window.hasPendingWaiters = () => hasPendingWaiters()
-        // return context.visit(fullPath);
-        const handleTransitionResolve = () => {
-          return waitUntil(
-            () => {
-              const state = getSettledState();
-              // state.hasPendingWaiters = hasPendingWaiters();
-              return (
-                !state.hasPendingTimers &&
-                !state.hasRunLoop &&
-                !state.hasPendingWaiters &&
-                !state.hasPendingTransitions
-              );
-            },
-            { timeout: Infinity }
-          ).then(() => {
-            return new Promise(resolve => {
-              setTimeout(() => {
-                resolve(app);
-              }, 0);
-            });
-          });
-          return settled().then(() => app);
-        };
-        const handleTransitionReject = error => {
-          const router = app.router;
-          if (error.error) {
-            throw error.error;
-          } else if (
-            error.name === 'TransitionAborted' &&
-            router._routerMicrolib.activeTransition
-          ) {
-            return router._routerMicrolib.activeTransition.then(
-              handleTransitionResolve,
-              handleTransitionReject
-            );
-          } else if (error.name === 'TransitionAborted') {
-            throw new Error(error.message);
-          } else {
-            throw error;
-          }
-        };
 
-        if (location.location.pathname === '') {
-          const url = location.getURLForTransition(fullPath);
-          location.detect = function() {
-            location.path = url;
-            location.history.state.path = location.location.pathname = `/ui${fullPath}`;
-          };
-          // app.setupRouter();
-          // handleURL calls setupRouter
-          return app.handleURL(`${url}`).then(handleTransitionResolve, handleTransitionReject);
+        fullPath = appendQueryParams(fullPath, params);
+
+        const container = getContext().owner;
+        const locationType = container.lookup('service:env').var('locationType');
+        const location = container.lookup(`location:${locationType}`);
+        // look for a visit on the current location first before just using
+        // visit on the current context/app
+        if (typeof location.visit === 'function') {
+          return location.visit(fullPath);
+        } else {
+          return context.visit(fullPath);
         }
-        // return app.visit(fullPath);
-        return location
-          .transitionTo(fullPath)
-          .then(handleTransitionResolve, handleTransitionReject);
       });
     },
   };
