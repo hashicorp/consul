@@ -65,6 +65,9 @@
     stroke: $gray-300;
     stroke-width: 2;
   }
+  path[data-permission='notDefined'] {
+    stroke-dasharray: 4;
+  }
   path[data-permission='deny'] {
     stroke: $red-500;
   }
