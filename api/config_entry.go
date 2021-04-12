@@ -64,6 +64,28 @@ type MeshGatewayConfig struct {
 	Mode MeshGatewayMode `json:",omitempty"`
 }
 
+type ProxyMode string
+
+const (
+	// ProxyModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence
+	ProxyModeDefault ProxyMode = ""
+
+	// ProxyModeTransparent represents that inbound and outbound application
+	// traffic is being captured and redirected through the proxy.
+	ProxyModeTransparent ProxyMode = "transparent"
+
+	// ProxyModeDirect represents that the proxy's listeners must be dialed directly
+	// by the local application and other proxies.
+	ProxyModeDirect ProxyMode = "direct"
+)
+
+type TransparentProxyConfig struct {
+	// The port of the listener where outbound application traffic is being redirected to.
+	OutboundListenerPort int `json:",omitempty" alias:"outbound_listener_port"`
+}
+
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
 // Users can expose individual paths and/or all HTTP/GRPC paths for checks.
 type ExposeConfig struct {
@@ -171,14 +193,15 @@ type UpstreamLimits struct {
 type ServiceConfigEntry struct {
 	Kind             string
 	Name             string
-	Namespace        string               `json:",omitempty"`
-	Protocol         string               `json:",omitempty"`
-	MeshGateway      MeshGatewayConfig    `json:",omitempty" alias:"mesh_gateway"`
-	Connect          ConnectConfiguration `json:",omitempty"`
-	Expose           ExposeConfig         `json:",omitempty"`
-	TransparentProxy bool                 `json:",omitempty" alias:"transparent_proxy"`
-	ExternalSNI      string               `json:",omitempty" alias:"external_sni"`
-	Meta             map[string]string    `json:",omitempty"`
+	Namespace        string                 `json:",omitempty"`
+	Protocol         string                 `json:",omitempty"`
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Connect          ConnectConfiguration   `json:",omitempty"`
+	Expose           ExposeConfig           `json:",omitempty"`
+	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
+	Meta             map[string]string      `json:",omitempty"`
 	CreateIndex      uint64
 	ModifyIndex      uint64
 }
@@ -211,10 +234,11 @@ type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
 	Namespace        string                 `json:",omitempty"`
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	Config           map[string]interface{} `json:",omitempty"`
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
-	TransparentProxy bool                   `json:",omitempty" alias:"transparent_proxy"`
 	Meta             map[string]string      `json:",omitempty"`
 	CreateIndex      uint64
 	ModifyIndex      uint64

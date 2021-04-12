@@ -913,7 +913,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				&structs.ProxyConfigEntry{
 					Kind:             structs.ProxyDefaults,
 					Name:             structs.ProxyConfigGlobal,
-					TransparentProxy: true,
+					Mode:             structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -921,7 +922,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				Datacenter: "dc1",
 			},
 			expect: structs.ServiceConfigResponse{
-				TransparentProxy: true,
+				Mode:             structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 			},
 		},
 		{
@@ -930,7 +932,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind:             structs.ServiceDefaults,
 					Name:             "foo",
-					TransparentProxy: true,
+					Mode:             structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -938,7 +941,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				Datacenter: "dc1",
 			},
 			expect: structs.ServiceConfigResponse{
-				TransparentProxy: true,
+				Mode:             structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
 			},
 		},
 		{
@@ -947,12 +951,14 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				&structs.ProxyConfigEntry{
 					Kind:             structs.ProxyDefaults,
 					Name:             structs.ProxyConfigGlobal,
-					TransparentProxy: false,
+					Mode:             structs.ProxyModeDirect,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:             structs.ServiceDefaults,
 					Name:             "foo",
-					TransparentProxy: true,
+					Mode:             structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -960,7 +966,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				Datacenter: "dc1",
 			},
 			expect: structs.ServiceConfigResponse{
-				TransparentProxy: true,
+				Mode:             structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
 			},
 		},
 	}
@@ -1245,9 +1252,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 			},
 			request: structs.ServiceConfigRequest{
-				Name:             "api",
-				Datacenter:       "dc1",
-				TransparentProxy: true,
+				Name:       "api",
+				Datacenter: "dc1",
+				Mode:       structs.ProxyModeTransparent,
 
 				// Empty Upstreams/UpstreamIDs
 			},
@@ -1291,7 +1298,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					},
 
 					// TransparentProxy on the config entry but not the config request
-					TransparentProxy: true,
+					Mode:             structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -1301,7 +1309,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				// Empty Upstreams/UpstreamIDs
 			},
 			expect: structs.ServiceConfigResponse{
-				TransparentProxy: true,
+				Mode:             structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,
@@ -1342,9 +1351,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 			},
 			request: structs.ServiceConfigRequest{
-				Name:             "api",
-				Datacenter:       "dc1",
-				TransparentProxy: false,
+				Name:       "api",
+				Datacenter: "dc1",
+				Mode:       structs.ProxyModeDirect,
 
 				// Empty Upstreams/UpstreamIDs
 			},

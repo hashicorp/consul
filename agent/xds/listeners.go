@@ -65,14 +65,19 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		return nil, err
 	}
 
-	// This outboundListener is exclusively used when TransparentProxy mode is active.
+	// This outboundListener is exclusively used when transparent proxy mode is active.
 	// In that situation there is a single listener where we are redirecting outbound traffic,
 	// and each upstream gets a filter chain attached to that listener.
 	var outboundListener *envoy_listener_v3.Listener
 
-	if cfgSnap.Proxy.TransparentProxy {
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent {
+		port := iptables.DefaultTProxyOutboundPort
+		if cfgSnap.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+			port = cfgSnap.Proxy.TransparentProxy.OutboundListenerPort
+		}
+
 		// TODO (freddy) Make DefaultTProxyOutboundPort configurable
-		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", iptables.DefaultTProxyOutboundPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", port, envoy_core_v3.TrafficDirection_OUTBOUND)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			{

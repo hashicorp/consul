@@ -305,7 +305,7 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 	// default the namespace to the namespace of this proxy service
 	currentNamespace := s.proxyID.NamespaceOrDefault()
 
-	if s.proxyCfg.TransparentProxy {
+	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		// When in transparent proxy we will infer upstreams from intentions with this source
 		err := s.cache.Notify(s.ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
 			Datacenter:     s.source.Datacenter,
@@ -350,8 +350,8 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 		if u.Datacenter != "" {
 			dc = u.Datacenter
 		}
-		if s.proxyCfg.TransparentProxy && (dc == "" || dc == s.source.Datacenter) {
-			// In TransparentProxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
+		if s.proxyCfg.Mode == structs.ProxyModeTransparent && (dc == "" || dc == s.source.Datacenter) {
+			// In transparent proxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
 			continue
 		}
 

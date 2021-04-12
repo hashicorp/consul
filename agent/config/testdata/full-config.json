@@ -572,7 +572,10 @@
             }
           ]
         },
-        "transparent_proxy": true,
+        "mode": "transparent",
+        "transparent_proxy": {
+          "outbound_listener_port": 10101
+        },
         "upstreams": [
           {
             "destination_name": "KPtAj2cb",

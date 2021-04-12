@@ -1541,7 +1541,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Address: "10.0.1.1",
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
-					TransparentProxy:       true,
+					Mode:                   structs.ProxyModeTransparent,
 				},
 			},
 			sourceDC: "dc1",
@@ -1606,7 +1606,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Address: "10.0.1.1",
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
-					TransparentProxy:       true,
+					Mode:                   structs.ProxyModeTransparent,
 					Upstreams: structs.Upstreams{
 						{
 							CentrallyConfigured:  true,

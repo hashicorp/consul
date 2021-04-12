@@ -355,9 +355,10 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					return fmt.Errorf("failed to copy global proxy-defaults: %v", err)
 				}
 				reply.ProxyConfig = mapCopy.(map[string]interface{})
+				reply.Mode = proxyConf.Mode
+				reply.TransparentProxy = proxyConf.TransparentProxy
 				reply.MeshGateway = proxyConf.MeshGateway
 				reply.Expose = proxyConf.Expose
-				reply.TransparentProxy = proxyConf.TransparentProxy
 
 				// Extract the global protocol from proxyConf for upstream configs.
 				rawProtocol := proxyConf.Config["protocol"]
@@ -396,8 +397,11 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					}
 					reply.ProxyConfig["protocol"] = serviceConf.Protocol
 				}
-				if serviceConf.TransparentProxy {
-					reply.TransparentProxy = serviceConf.TransparentProxy
+				if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
+					reply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
+				}
+				if serviceConf.Mode != structs.ProxyModeDefault {
+					reply.Mode = serviceConf.Mode
 				}
 			}
 
@@ -413,13 +417,13 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			var (
 				noUpstreamArgs = len(upstreamIDs) == 0 && len(args.Upstreams) == 0
 
-				// Check the args and the resolved value. If it was exclusively set via a config entry, then args.TransparentProxy
-				// will never be true because the service config request does not use the resolved value.
-				tproxy = args.TransparentProxy || reply.TransparentProxy
+				// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
+				// will never be transparent because the service config request does not use the resolved value.
+				tproxy = args.Mode == structs.ProxyModeTransparent || reply.Mode == structs.ProxyModeTransparent
 			)
 
 			// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
-			// If no upstreams were passed, then we should only returned the resolved config if the proxy has TransparentProxy mode enabled.
+			// If no upstreams were passed, then we should only returned the resolved config if the proxy in transparent mode.
 			// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
 			if noUpstreamArgs && !tproxy {
 				return nil
