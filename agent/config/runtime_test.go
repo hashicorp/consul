@@ -2582,7 +2582,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
-									"transparent_proxy": true,
+									"mode": "transparent",
+									"transparent_proxy": {
+										"outbound_listener_port": 10101
+									},
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2619,7 +2622,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										}
 									]
 								}
-								transparent_proxy = true
+								mode = "transparent"
+								transparent_proxy = {
+									outbound_listener_port = 10101
+								}
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2659,7 +2665,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
-								TransparentProxy: true,
+								Mode: structs.ProxyModeTransparent,
+								TransparentProxy: structs.TransparentProxyConfig{
+									OutboundListenerPort: 10101,
+								},
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
@@ -2714,7 +2723,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
-									"transparent_proxy": true,
+									"mode": "transparent",
+									"transparent_proxy": {
+										"outbound_listener_port": 10101
+									},
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2751,7 +2763,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										}
 									]
 								}
-								transparent_proxy = true,
+								mode = "transparent"
+								transparent_proxy = {
+									outbound_listener_port = 10101
+								}
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2791,7 +2806,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
-								TransparentProxy: true,
+								Mode: structs.ProxyModeTransparent,
+								TransparentProxy: structs.TransparentProxyConfig{
+									OutboundListenerPort: 10101,
+								},
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
@@ -3435,7 +3453,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"mesh_gateway": {
 								"mode": "remote"
 							},
-							"transparent_proxy": true
+							"mode": "transparent",
+							"transparent_proxy": {
+								"outbound_listener_port": 10101
+							}
 						}
 					]
 				}
@@ -3454,7 +3475,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
-						transparent_proxy = true
+						mode = "transparent"
+						transparent_proxy = {
+							outbound_listener_port = 10101
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3473,7 +3497,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
-					TransparentProxy: true,
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+					},
 				},
 			}
 		},
@@ -3496,7 +3523,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"MeshGateway": {
 								"Mode": "remote"
 							},
-							"TransparentProxy": true
+							"Mode": "transparent",
+							"TransparentProxy": {
+								"OutboundListenerPort": 10101
+							}
 						}
 					]
 				}
@@ -3515,7 +3545,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
-						TransparentProxy = true
+						Mode = "transparent"
+						TransparentProxy = {
+							OutboundListenerPort = 10101
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3534,7 +3567,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
-					TransparentProxy: true,
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+					},
 				},
 			}
 		},
@@ -3557,7 +3593,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"mesh_gateway": {
 								"mode": "remote"
 							},
-							"transparent_proxy": true
+							"mode": "transparent",
+							"transparent_proxy": {
+								"outbound_listener_port": 10101
+							}
 						}
 					]
 				}
@@ -3576,7 +3615,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
-						transparent_proxy = true
+						mode = "transparent"
+						transparent_proxy = {
+							outbound_listener_port = 10101
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3595,7 +3637,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
-					TransparentProxy: true,
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+					},
 				},
 			}
 		},
@@ -3618,7 +3663,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"MeshGateway": {
 								"Mode": "remote"
 							},
-							"TransparentProxy": true
+							"Mode": "transparent",
+							"TransparentProxy": {
+								"OutboundListenerPort": 10101
+							}
 						}
 					]
 				}
@@ -3637,7 +3685,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
-						TransparentProxy = true
+						Mode = "transparent"
+						TransparentProxy = {
+							OutboundListenerPort = 10101
+						}
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3656,7 +3707,10 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
-					TransparentProxy: true,
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+					},
 				},
 			}
 		},
@@ -5598,7 +5652,10 @@ func TestLoad_FullConfig(t *testing.T) {
 							},
 						},
 					},
-					TransparentProxy: true,
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+					},
 				},
 				Weights: &structs.Weights{
 					Passing: 1,

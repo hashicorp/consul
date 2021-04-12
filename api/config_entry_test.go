@@ -297,7 +297,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"MeshGateway": {
 					"Mode": "remote"
 				},
-				"TransparentProxy": true
+				"Mode": "transparent",
+				"TransparentProxy": {
+					"OutboundListenerPort": 808
+				}
 			}
 			`,
 			expect: &ProxyConfigEntry{
@@ -317,7 +320,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				TransparentProxy: true,
+				Mode:             ProxyModeTransparent,
+				TransparentProxy: TransparentProxyConfig{OutboundListenerPort: 808},
 			},
 		},
 		{
@@ -335,7 +339,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"MeshGateway": {
 					"Mode": "remote"
 				},
-				"TransparentProxy": true,
+				"Mode": "transparent",
+				"TransparentProxy": {
+					"OutboundListenerPort": 808
+				},
 				"Connect": {
 					"UpstreamConfigs": {
 						"redis": {
@@ -380,7 +387,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				TransparentProxy: true,
+				Mode:             ProxyModeTransparent,
+				TransparentProxy: TransparentProxyConfig{OutboundListenerPort: 808},
 				Connect: ConnectConfiguration{
 					UpstreamConfigs: map[string]UpstreamConfig{
 						"redis": {

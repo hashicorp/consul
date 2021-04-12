@@ -591,7 +591,10 @@ services = [
                     }
                 ]
             }
-            transparent_proxy = true
+            mode = "transparent"
+            transparent_proxy = {
+                outbound_listener_port = 10101
+            }
         }
     },
     {

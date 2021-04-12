@@ -85,9 +85,10 @@ type ServiceConfigEntry struct {
 	Kind             string
 	Name             string
 	Protocol         string
-	MeshGateway      MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig      `json:",omitempty"`
-	TransparentProxy bool              `json:",omitempty" alias:"transparent_proxy"`
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
 
 	ExternalSNI string `json:",omitempty" alias:"external_sni"`
 
@@ -223,9 +224,10 @@ type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
 	Config           map[string]interface{}
-	MeshGateway      MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig      `json:",omitempty"`
-	TransparentProxy bool              `json:",omitempty" alias:"transparent_proxy"`
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -595,8 +597,8 @@ type ServiceConfigRequest struct {
 	// MeshGateway contains the mesh gateway configuration from the requesting proxy's registration
 	MeshGateway MeshGatewayConfig
 
-	// TransparentProxy indicates whether the requesting proxy is in transparent proxy mode
-	TransparentProxy bool
+	// Mode indicates how the requesting proxy's listeners are dialed
+	Mode ProxyMode
 
 	UpstreamIDs []ServiceID
 
@@ -859,9 +861,10 @@ type ServiceConfigResponse struct {
 	ProxyConfig       map[string]interface{}
 	UpstreamConfigs   map[string]map[string]interface{}
 	UpstreamIDConfigs OpaqueUpstreamConfigs
-	MeshGateway       MeshGatewayConfig `json:",omitempty"`
-	Expose            ExposeConfig      `json:",omitempty"`
-	TransparentProxy  bool              `json:",omitempty"`
+	MeshGateway       MeshGatewayConfig      `json:",omitempty"`
+	Expose            ExposeConfig           `json:",omitempty"`
+	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
+	Mode              ProxyMode              `json:",omitempty"`
 	QueryMeta
 }
 

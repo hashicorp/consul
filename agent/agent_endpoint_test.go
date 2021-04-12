@@ -196,7 +196,10 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
 			Upstreams:              structs.TestUpstreams(t),
-			TransparentProxy:       true,
+			Mode:                   structs.ProxyModeTransparent,
+			TransparentProxy: structs.TransparentProxyConfig{
+				OutboundListenerPort: 10101,
+			},
 		},
 	}
 	a.State.AddService(srv1, "")
@@ -396,7 +399,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "fa3af167b81f6721",
+		ContentHash: "eb557bc310d4f8a0",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -410,7 +413,7 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "c7739b50900c7483"
+	updatedResponse.ContentHash = "d61c11f438c7eb02"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
