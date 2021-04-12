@@ -1453,21 +1453,15 @@ func TestPassiveHealthCheck_Validate(t *testing.T) {
 		wantMsg string
 	}{
 		{
-			name:    "valid-interval",
-			input:   PassiveHealthCheck{Interval: 2 * time.Second},
+			name:    "valid interval",
+			input:   PassiveHealthCheck{Interval: 0 * time.Second},
 			wantErr: false,
 		},
 		{
-			name:    "negative-interval",
+			name:    "negative interval",
 			input:   PassiveHealthCheck{Interval: -1 * time.Second},
 			wantErr: true,
-			wantMsg: "greater than 0s",
-		},
-		{
-			name:    "zero-interval",
-			input:   PassiveHealthCheck{Interval: 0 * time.Second},
-			wantErr: true,
-			wantMsg: "greater than 0s",
+			wantMsg: "cannot be negative",
 		},
 	}
 
@@ -1492,54 +1486,36 @@ func TestUpstreamLimits_Validate(t *testing.T) {
 	}{
 		{
 			name:    "valid-max-conns",
-			input:   UpstreamLimits{MaxConnections: intPointer(1)},
-			wantErr: false,
-		},
-		{
-			name:    "zero-max-conns",
 			input:   UpstreamLimits{MaxConnections: intPointer(0)},
-			wantErr: true,
-			wantMsg: "at least 0",
+			wantErr: false,
 		},
 		{
 			name:    "negative-max-conns",
 			input:   UpstreamLimits{MaxConnections: intPointer(-1)},
 			wantErr: true,
-			wantMsg: "at least 0",
+			wantMsg: "cannot be negative",
 		},
 		{
 			name:    "valid-max-concurrent",
-			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(1)},
-			wantErr: false,
-		},
-		{
-			name:    "zero-max-concurrent",
 			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(0)},
-			wantErr: true,
-			wantMsg: "at least 0",
+			wantErr: false,
 		},
 		{
 			name:    "negative-max-concurrent",
 			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(-1)},
 			wantErr: true,
-			wantMsg: "at least 0",
+			wantMsg: "cannot be negative",
 		},
 		{
 			name:    "valid-max-pending",
-			input:   UpstreamLimits{MaxPendingRequests: intPointer(1)},
-			wantErr: false,
-		},
-		{
-			name:    "zero-max-pending",
 			input:   UpstreamLimits{MaxPendingRequests: intPointer(0)},
-			wantErr: true,
-			wantMsg: "at least 0",
+			wantErr: false,
 		},
 		{
 			name:    "negative-max-pending",
 			input:   UpstreamLimits{MaxPendingRequests: intPointer(-1)},
 			wantErr: true,
-			wantMsg: "at least 0",
+			wantMsg: "cannot be negative",
 		},
 	}
 
