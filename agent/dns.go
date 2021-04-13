@@ -650,10 +650,6 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		return true
 	}
 
-	if queryKind == "" {
-		return invalid()
-	}
-
 	switch queryKind {
 	case "service":
 		n := len(queryParts)
@@ -688,22 +684,23 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 			lookup.Service = queryParts[0][1:]
 			// _name._tag.service.consul
 			d.serviceLookup(cfg, lookup, req, resp)
-
-			// Consul 0.3 and prior format for SRV queries
-		} else {
-
-			// Support "." in the label, re-join all the parts
-			tag := ""
-			if n >= 2 {
-				tag = strings.Join(queryParts[:n-1], ".")
-			}
-
-			lookup.Tag = tag
-			lookup.Service = queryParts[n-1]
-
-			// tag[.tag].name.service.consul
-			d.serviceLookup(cfg, lookup, req, resp)
+			return true
 		}
+
+		// Consul 0.3 and prior format for SRV queries
+		// Support "." in the label, re-join all the parts
+		tag := ""
+		if n >= 2 {
+			tag = strings.Join(queryParts[:n-1], ".")
+		}
+
+		lookup.Tag = tag
+		lookup.Service = queryParts[n-1]
+
+		// tag[.tag].name.service.consul
+		d.serviceLookup(cfg, lookup, req, resp)
+		return true
+
 	case "connect":
 		if len(queryParts) < 1 {
 			return invalid()
@@ -724,6 +721,8 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		}
 		// name.connect.consul
 		d.serviceLookup(cfg, lookup, req, resp)
+		return true
+
 	case "ingress":
 		if len(queryParts) < 1 {
 			return invalid()
@@ -744,6 +743,8 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		}
 		// name.ingress.consul
 		d.serviceLookup(cfg, lookup, req, resp)
+		return true
+
 	case "node":
 		if len(queryParts) < 1 {
 			return invalid()
@@ -756,6 +757,8 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		// Allow a "." in the node name, just join all the parts
 		node := strings.Join(queryParts, ".")
 		d.nodeLookup(cfg, datacenter, node, req, resp, maxRecursionLevel)
+		return true
+
 	case "query":
 		// ensure we have a query name
 		if len(queryParts) < 1 {
@@ -822,8 +825,10 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 				resp.Answer = append(resp.Answer, aaaaRecord)
 			}
 		}
+		return true
+	default:
+		return invalid()
 	}
-	return true
 }
 
 func (d *DNSServer) trimDomain(query string) string {
