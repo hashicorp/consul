@@ -587,12 +587,6 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 	return
 }
 
-func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
-	d.logger.Warn("QName invalid", "qname", qName)
-	d.addSOA(cfg, resp)
-	resp.SetRcode(req, dns.RcodeNameError)
-}
-
 func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
 	switch len(labels) {
 	case 1:
