@@ -273,34 +273,36 @@ func (d *DNSServer) ReloadConfig(newCfg *config.RuntimeConfig) error {
 // possibly the ECS headers as well if they were present in the
 // original request
 func setEDNS(request *dns.Msg, response *dns.Msg, ecsGlobal bool) {
-	// Enable EDNS if enabled
-	if edns := request.IsEdns0(); edns != nil {
-		// cannot just use the SetEdns0 function as we need to embed
-		// the ECS option as well
-		ednsResp := new(dns.OPT)
-		ednsResp.Hdr.Name = "."
-		ednsResp.Hdr.Rrtype = dns.TypeOPT
-		ednsResp.SetUDPSize(edns.UDPSize())
-
-		// Setup the ECS option if present
-		if subnet := ednsSubnetForRequest(request); subnet != nil {
-			subOp := new(dns.EDNS0_SUBNET)
-			subOp.Code = dns.EDNS0SUBNET
-			subOp.Family = subnet.Family
-			subOp.Address = subnet.Address
-			subOp.SourceNetmask = subnet.SourceNetmask
-			if c := response.Rcode; ecsGlobal || c == dns.RcodeNameError || c == dns.RcodeServerFailure || c == dns.RcodeRefused || c == dns.RcodeNotImplemented {
-				// reply is globally valid and should be cached accordingly
-				subOp.SourceScope = 0
-			} else {
-				// reply is only valid for the subnet it was queried with
-				subOp.SourceScope = subnet.SourceNetmask
-			}
-			ednsResp.Option = append(ednsResp.Option, subOp)
-		}
-
-		response.Extra = append(response.Extra, ednsResp)
+	edns := request.IsEdns0()
+	if edns == nil {
+		return
 	}
+
+	// cannot just use the SetEdns0 function as we need to embed
+	// the ECS option as well
+	ednsResp := new(dns.OPT)
+	ednsResp.Hdr.Name = "."
+	ednsResp.Hdr.Rrtype = dns.TypeOPT
+	ednsResp.SetUDPSize(edns.UDPSize())
+
+	// Setup the ECS option if present
+	if subnet := ednsSubnetForRequest(request); subnet != nil {
+		subOp := new(dns.EDNS0_SUBNET)
+		subOp.Code = dns.EDNS0SUBNET
+		subOp.Family = subnet.Family
+		subOp.Address = subnet.Address
+		subOp.SourceNetmask = subnet.SourceNetmask
+		if c := response.Rcode; ecsGlobal || c == dns.RcodeNameError || c == dns.RcodeServerFailure || c == dns.RcodeRefused || c == dns.RcodeNotImplemented {
+			// reply is globally valid and should be cached accordingly
+			subOp.SourceScope = 0
+		} else {
+			// reply is only valid for the subnet it was queried with
+			subOp.SourceScope = subnet.SourceNetmask
+		}
+		ednsResp.Option = append(ednsResp.Option, subOp)
+	}
+
+	response.Extra = append(response.Extra, ednsResp)
 }
 
 // recursorAddr is used to add a port to the recursor if omitted.
