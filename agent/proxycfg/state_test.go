@@ -1640,7 +1640,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 1)
-						require.Contains(t, snap.ConnectProxy.UpstreamConfig, "*")
+
+						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wc.String())
 					},
 				},
 				// Valid snapshot after roots, leaf, and intentions
