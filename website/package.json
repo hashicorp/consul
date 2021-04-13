@@ -6,7 +6,7 @@
   "dependencies": {
     "@hashicorp/mktg-global-styles": "3.0.1",
     "@hashicorp/mktg-logos": "1.0.2",
-    "@hashicorp/nextjs-scripts": "17.1.0",
+    "@hashicorp/nextjs-scripts": "^18.0.0",
     "@hashicorp/react-alert-banner": "^6.0.1-alpha.17",
     "@hashicorp/react-button": "5.0.0",
     "@hashicorp/react-call-to-action": "3.0.0",
