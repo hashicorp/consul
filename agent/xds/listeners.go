@@ -76,7 +76,6 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 			port = cfgSnap.Proxy.TransparentProxy.OutboundListenerPort
 		}
 
-		// TODO (freddy) Make DefaultTProxyOutboundPort configurable
 		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", port, envoy_core_v3.TrafficDirection_OUTBOUND)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
