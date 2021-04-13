@@ -114,16 +114,16 @@ type AgentServiceConnect struct {
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
-	DestinationServiceName string                 `json:",omitempty"`
-	DestinationServiceID   string                 `json:",omitempty"`
-	LocalServiceAddress    string                 `json:",omitempty"`
-	LocalServicePort       int                    `json:",omitempty"`
-	Mode                   ProxyMode              `json:",omitempty"`
-	TransparentProxy       TransparentProxyConfig `json:",omitempty"`
-	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
-	Upstreams              []Upstream             `json:",omitempty"`
-	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
-	Expose                 ExposeConfig           `json:",omitempty"`
+	DestinationServiceName string                  `json:",omitempty"`
+	DestinationServiceID   string                  `json:",omitempty"`
+	LocalServiceAddress    string                  `json:",omitempty"`
+	LocalServicePort       int                     `json:",omitempty"`
+	Mode                   ProxyMode               `json:",omitempty"`
+	TransparentProxy       *TransparentProxyConfig `json:",omitempty"`
+	Config                 map[string]interface{}  `json:",omitempty" bexpr:"-"`
+	Upstreams              []Upstream              `json:",omitempty"`
+	MeshGateway            MeshGatewayConfig       `json:",omitempty"`
+	Expose                 ExposeConfig            `json:",omitempty"`
 }
 
 const (
