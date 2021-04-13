@@ -797,8 +797,8 @@ func (chk *PassiveHealthCheck) IsZero() bool {
 }
 
 func (chk PassiveHealthCheck) Validate() error {
-	if chk.Interval <= 0*time.Second {
-		return fmt.Errorf("passive health check interval must be greater than 0s")
+	if chk.Interval < 0*time.Second {
+		return fmt.Errorf("passive health check interval cannot be negative")
 	}
 	return nil
 }
@@ -828,14 +828,14 @@ func (ul *UpstreamLimits) IsZero() bool {
 }
 
 func (ul UpstreamLimits) Validate() error {
-	if ul.MaxConnections != nil && *ul.MaxConnections <= 0 {
-		return fmt.Errorf("max connections must be at least 0")
+	if ul.MaxConnections != nil && *ul.MaxConnections < 0 {
+		return fmt.Errorf("max connections cannot be negative")
 	}
-	if ul.MaxPendingRequests != nil && *ul.MaxPendingRequests <= 0 {
-		return fmt.Errorf("max pending requests must be at least 0")
+	if ul.MaxPendingRequests != nil && *ul.MaxPendingRequests < 0 {
+		return fmt.Errorf("max pending requests cannot be negative")
 	}
-	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests <= 0 {
-		return fmt.Errorf("max concurrent requests must be at least 0")
+	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests < 0 {
+		return fmt.Errorf("max concurrent requests cannot be negative")
 	}
 	return nil
 }
