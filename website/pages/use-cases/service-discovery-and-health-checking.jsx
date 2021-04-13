@@ -159,7 +159,6 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
       <FeaturedSlider
         heading="Case Study"
         theme="dark"
-        brand="consul"
         features={[
           {
             logo: {
