@@ -6,13 +6,15 @@ import (
 	"encoding/pem"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func Test_verifyServerCertMatchesURI(t *testing.T) {
@@ -266,7 +268,7 @@ func TestServerSideVerifier(t *testing.T) {
 func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 	require := require.New(t)
 	require.Equal(expect.RootCAs, got.RootCAs)
-	require.Equal(expect.ClientCAs, got.ClientCAs)
+	assertDeepEqual(t, expect.ClientCAs, got.ClientCAs, cmpCertPool)
 	require.Equal(expect.InsecureSkipVerify, got.InsecureSkipVerify)
 	require.Equal(expect.MinVersion, got.MinVersion)
 	require.Equal(expect.CipherSuites, got.CipherSuites)
@@ -291,6 +293,19 @@ func requireEqualTLSConfig(t *testing.T, expect, got *tls.Config) {
 	gotLeaf, err = got.GetClientCertificate(nil)
 	require.Nil(err)
 	require.Equal(expectLeaf, gotLeaf)
+}
+
+// lazyCerts has a func field which can't be compared.
+var cmpCertPool = cmp.Options{
+	cmpopts.IgnoreFields(x509.CertPool{}, "lazyCerts"),
+	cmp.AllowUnexported(x509.CertPool{}),
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
 }
 
 // requireCorrectVerifier invokes got.VerifyPeerCertificate and expects the
