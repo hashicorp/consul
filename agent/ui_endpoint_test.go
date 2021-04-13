@@ -396,6 +396,7 @@ func TestUiServices(t *testing.T) {
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
+			sum.transparentProxySet = false
 			sum.externalSourceSet = nil
 			sum.checks = nil
 		}
@@ -1078,12 +1079,7 @@ func TestUIServiceTopology(t *testing.T) {
 					Address: "198.18.1.2",
 					Proxy: structs.ConnectProxyConfig{
 						DestinationServiceName: "api",
-						Upstreams: structs.Upstreams{
-							{
-								DestinationName: "web",
-								LocalBindPort:   8080,
-							},
-						},
+						Mode:                   structs.ProxyModeTransparent,
 					},
 				},
 				Checks: structs.HealthChecks{
@@ -1210,12 +1206,7 @@ func TestUIServiceTopology(t *testing.T) {
 					Address: "198.18.1.40",
 					Proxy: structs.ConnectProxyConfig{
 						DestinationServiceName: "web",
-						Upstreams: structs.Upstreams{
-							{
-								DestinationName: "redis",
-								LocalBindPort:   123,
-							},
-						},
+						Mode:                   structs.ProxyModeTransparent,
 					},
 				},
 				Checks: structs.HealthChecks{
@@ -1296,8 +1287,10 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 	}
 
-	// Add intentions: deny all, ingress -> api, web -> redis with L7 perms, but omit intention for api -> web
-	// Add ingress config: ingress -> api
+	// ingress -> api gateway config entry (but no intention)
+	// wildcard deny intention
+	// api -> web exact intention
+	// web -> redis exact intention
 	{
 		entries := []structs.ConfigEntryRequest{
 			{
@@ -1316,6 +1309,20 @@ func TestUIServiceTopology(t *testing.T) {
 					Kind:     structs.ServiceDefaults,
 					Name:     "api",
 					Protocol: "tcp",
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "*",
+					Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "*",
+							Action: structs.IntentionActionDeny,
+						},
+					},
 				},
 			},
 			{
@@ -1342,12 +1349,11 @@ func TestUIServiceTopology(t *testing.T) {
 				Datacenter: "dc1",
 				Entry: &structs.ServiceIntentionsConfigEntry{
 					Kind: structs.ServiceIntentions,
-					Name: "*",
-					Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+					Name: "web",
 					Sources: []*structs.SourceIntention{
 						{
-							Name:   "*",
-							Action: structs.IntentionActionDeny,
+							Action: structs.IntentionActionAllow,
+							Name:   "api",
 						},
 					},
 				},
@@ -1419,16 +1425,18 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "tcp",
+				Protocol:         "tcp",
+				TransparentProxy: false,
 				Upstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:           "api",
-							Datacenter:     "dc1",
-							Nodes:          []string{"foo"},
-							InstanceCount:  1,
-							ChecksPassing:  3,
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							Name:             "api",
+							Datacenter:       "dc1",
+							Nodes:            []string{"foo"},
+							InstanceCount:    1,
+							ChecksPassing:    3,
+							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							TransparentProxy: true,
 						},
 						Intention: structs.IntentionDecisionSummary{
 							DefaultAllow:   true,
@@ -1436,6 +1444,7 @@ func TestUIServiceTopology(t *testing.T) {
 							HasPermissions: false,
 							HasExact:       true,
 						},
+						Source: structs.TopologySourceRegistration,
 					},
 				},
 				Downstreams:    []*ServiceTopologySummary{},
@@ -1447,6 +1456,7 @@ func TestUIServiceTopology(t *testing.T) {
 			for _, u := range result.Upstreams {
 				u.externalSourceSet = nil
 				u.checks = nil
+				u.transparentProxySet = false
 			}
 			require.Equal(r, expect, result)
 		})
@@ -1462,17 +1472,19 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "tcp",
+				Protocol:         "tcp",
+				TransparentProxy: true,
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:           "ingress",
-							Kind:           structs.ServiceKindIngressGateway,
-							Datacenter:     "dc1",
-							Nodes:          []string{"edge"},
-							InstanceCount:  1,
-							ChecksPassing:  1,
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							Name:             "ingress",
+							Kind:             structs.ServiceKindIngressGateway,
+							Datacenter:       "dc1",
+							Nodes:            []string{"edge"},
+							InstanceCount:    1,
+							ChecksPassing:    1,
+							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
 							DefaultAllow:   true,
@@ -1480,29 +1492,29 @@ func TestUIServiceTopology(t *testing.T) {
 							HasPermissions: false,
 							HasExact:       true,
 						},
+						Source: structs.TopologySourceRegistration,
 					},
 				},
 				Upstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:           "web",
-							Datacenter:     "dc1",
-							Nodes:          []string{"bar", "baz"},
-							InstanceCount:  2,
-							ChecksPassing:  3,
-							ChecksWarning:  1,
-							ChecksCritical: 2,
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							Name:             "web",
+							Datacenter:       "dc1",
+							Nodes:            []string{"bar", "baz"},
+							InstanceCount:    2,
+							ChecksPassing:    3,
+							ChecksWarning:    1,
+							ChecksCritical:   2,
+							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
 							DefaultAllow:   true,
-							Allowed:        false,
+							Allowed:        true,
 							HasPermissions: false,
-							ExternalSource: "nomad",
-
-							// From wildcard deny
-							HasExact: false,
+							HasExact:       true,
 						},
+						Source: structs.TopologySourceSpecificIntention,
 					},
 				},
 				FilteredByACLs: false,
@@ -1511,10 +1523,12 @@ func TestUIServiceTopology(t *testing.T) {
 
 			// Internal accounting that is not returned in JSON response
 			for _, u := range result.Upstreams {
+				u.transparentProxySet = false
 				u.externalSourceSet = nil
 				u.checks = nil
 			}
 			for _, d := range result.Downstreams {
+				d.transparentProxySet = false
 				d.externalSourceSet = nil
 				d.checks = nil
 			}
@@ -1532,17 +1546,19 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "http",
+				Protocol:         "http",
+				TransparentProxy: false,
 				Upstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:           "redis",
-							Datacenter:     "dc1",
-							Nodes:          []string{"zip"},
-							InstanceCount:  1,
-							ChecksPassing:  2,
-							ChecksCritical: 1,
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							Name:             "redis",
+							Datacenter:       "dc1",
+							Nodes:            []string{"zip"},
+							InstanceCount:    1,
+							ChecksPassing:    2,
+							ChecksCritical:   1,
+							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
 							DefaultAllow:   true,
@@ -1550,27 +1566,27 @@ func TestUIServiceTopology(t *testing.T) {
 							HasPermissions: true,
 							HasExact:       true,
 						},
+						Source: structs.TopologySourceRegistration,
 					},
 				},
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:           "api",
-							Datacenter:     "dc1",
-							Nodes:          []string{"foo"},
-							InstanceCount:  1,
-							ChecksPassing:  3,
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							Name:             "api",
+							Datacenter:       "dc1",
+							Nodes:            []string{"foo"},
+							InstanceCount:    1,
+							ChecksPassing:    3,
+							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							TransparentProxy: true,
 						},
 						Intention: structs.IntentionDecisionSummary{
 							DefaultAllow:   true,
-							Allowed:        false,
+							Allowed:        true,
 							HasPermissions: false,
-							ExternalSource: "nomad",
-
-							// From wildcard deny
-							HasExact: false,
+							HasExact:       true,
 						},
+						Source: structs.TopologySourceSpecificIntention,
 					},
 				},
 				FilteredByACLs: false,
@@ -1579,10 +1595,12 @@ func TestUIServiceTopology(t *testing.T) {
 
 			// Internal accounting that is not returned in JSON response
 			for _, u := range result.Upstreams {
+				u.transparentProxySet = false
 				u.externalSourceSet = nil
 				u.checks = nil
 			}
 			for _, d := range result.Downstreams {
+				d.transparentProxySet = false
 				d.externalSourceSet = nil
 				d.checks = nil
 			}
@@ -1620,6 +1638,7 @@ func TestUIServiceTopology(t *testing.T) {
 							HasPermissions: true,
 							HasExact:       true,
 						},
+						Source: structs.TopologySourceRegistration,
 					},
 				},
 				FilteredByACLs: false,
@@ -1628,6 +1647,7 @@ func TestUIServiceTopology(t *testing.T) {
 
 			// Internal accounting that is not returned in JSON response
 			for _, d := range result.Downstreams {
+				d.transparentProxySet = false
 				d.externalSourceSet = nil
 				d.checks = nil
 			}

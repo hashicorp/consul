@@ -1690,19 +1690,66 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// api and api-proxy on node foo - upstream: web
-	// web and web-proxy on node bar - upstream: redis
-	// web and web-proxy on node baz - upstream: redis
-	// redis and redis-proxy on node zip
 	// wildcard deny intention
-	// web -> redis exact intentino
+	// ingress-gateway on node edge - upstream: api
+	// ingress -> api gateway config entry (but no intention)
+
+	// api and api-proxy on node foo - transparent proxy
+	// api -> web exact intention
+
+	// web and web-proxy on node bar - upstream: redis
+	// web and web-proxy on node baz - transparent proxy
+	// web -> redis exact intention
+
+	// redis and redis-proxy on node zip
+
 	registerTestTopologyEntries(t, codec, "")
 
 	var (
-		api   = structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
-		web   = structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
-		redis = structs.NewServiceName("redis", structs.DefaultEnterpriseMeta())
+		ingress = structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
+		api     = structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
+		web     = structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
+		redis   = structs.NewServiceName("redis", structs.DefaultEnterpriseMeta())
 	)
+
+	t.Run("ingress", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "ingress",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			// foo/api, foo/api-proxy
+			require.Len(r, out.ServiceTopology.Upstreams, 2)
+			require.Len(r, out.ServiceTopology.Downstreams, 0)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				api.String(): {
+					DefaultAllow:   true,
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
+				},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+
+			expectUpstreamSources := map[string]string{
+				api.String(): structs.TopologySourceRegistration,
+			}
+			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)
+			require.Empty(r, out.ServiceTopology.DownstreamSources)
+
+			// The ingress gateway has an explicit upstream
+			require.False(r, out.ServiceTopology.TransparentProxy)
+		})
+	})
 
 	t.Run("api", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
@@ -1715,12 +1762,11 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			require.False(r, out.FilteredByACLs)
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
-			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
-			require.Len(r, out.ServiceTopology.Upstreams, 4)
-			require.Len(r, out.ServiceTopology.Downstreams, 0)
+			// edge/ingress
+			require.Len(r, out.ServiceTopology.Downstreams, 1)
 
-			expectUp := map[string]structs.IntentionDecisionSummary{
-				web.String(): {
+			expectDown := map[string]structs.IntentionDecisionSummary{
+				ingress.String(): {
 					DefaultAllow:   true,
 					Allowed:        false,
 					HasPermissions: false,
@@ -1730,7 +1776,33 @@ func TestInternal_ServiceTopology(t *testing.T) {
 					HasExact: false,
 				},
 			}
+			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+
+			expectDownstreamSources := map[string]string{
+				ingress.String(): structs.TopologySourceRegistration,
+			}
+			require.Equal(r, expectDownstreamSources, out.ServiceTopology.DownstreamSources)
+
+			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+			require.Len(r, out.ServiceTopology.Upstreams, 4)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				web.String(): {
+					DefaultAllow:   true,
+					Allowed:        true,
+					HasPermissions: false,
+					HasExact:       true,
+				},
+			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+
+			expectUpstreamSources := map[string]string{
+				web.String(): structs.TopologySourceSpecificIntention,
+			}
+			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)
+
+			// The only instance of api's proxy is in transparent mode
+			require.True(r, out.ServiceTopology.TransparentProxy)
 		})
 	})
 
@@ -1751,15 +1823,17 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			expectDown := map[string]structs.IntentionDecisionSummary{
 				api.String(): {
 					DefaultAllow:   true,
-					Allowed:        false,
+					Allowed:        true,
 					HasPermissions: false,
-					ExternalSource: "nomad",
-
-					// From wildcard deny
-					HasExact: false,
+					HasExact:       true,
 				},
 			}
 			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+
+			expectDownstreamSources := map[string]string{
+				api.String(): structs.TopologySourceSpecificIntention,
+			}
+			require.Equal(r, expectDownstreamSources, out.ServiceTopology.DownstreamSources)
 
 			// zip/redis, zip/redis-proxy
 			require.Len(r, out.ServiceTopology.Upstreams, 2)
@@ -1773,6 +1847,15 @@ func TestInternal_ServiceTopology(t *testing.T) {
 				},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+
+			expectUpstreamSources := map[string]string{
+				// We prefer from-registration over intention source when there is a mix
+				redis.String(): structs.TopologySourceRegistration,
+			}
+			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)
+
+			// Not all instances of web are in transparent mode
+			require.False(r, out.ServiceTopology.TransparentProxy)
 		})
 	})
 
@@ -1801,6 +1884,15 @@ func TestInternal_ServiceTopology(t *testing.T) {
 				},
 			}
 			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+
+			expectDownstreamSources := map[string]string{
+				web.String(): structs.TopologySourceRegistration,
+			}
+			require.Equal(r, expectDownstreamSources, out.ServiceTopology.DownstreamSources)
+			require.Empty(r, out.ServiceTopology.UpstreamSources)
+
+			// No proxies are in transparent mode
+			require.False(r, out.ServiceTopology.TransparentProxy)
 		})
 	})
 }
@@ -1825,9 +1917,17 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// api and api-proxy on node foo - upstream: web
+	// wildcard deny intention
+	// ingress-gateway on node edge - upstream: api
+	// ingress -> api gateway config entry (but no intention)
+
+	// api and api-proxy on node foo - transparent proxy
+	// api -> web exact intention
+
 	// web and web-proxy on node bar - upstream: redis
-	// web and web-proxy on node baz - upstream: redis
+	// web and web-proxy on node baz - transparent proxy
+	// web -> redis exact intention
+
 	// redis and redis-proxy on node zip
 	registerTestTopologyEntries(t, codec, TestDefaultMasterToken)
 

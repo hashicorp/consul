@@ -19,19 +19,21 @@ import (
 
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind              structs.ServiceKind `json:",omitempty"`
-	Name              string
-	Datacenter        string
-	Tags              []string
-	Nodes             []string
-	ExternalSources   []string
-	externalSourceSet map[string]struct{} // internal to track uniqueness
-	checks            map[string]*structs.HealthCheck
-	InstanceCount     int
-	ChecksPassing     int
-	ChecksWarning     int
-	ChecksCritical    int
-	GatewayConfig     GatewayConfig
+	Kind                structs.ServiceKind `json:",omitempty"`
+	Name                string
+	Datacenter          string
+	Tags                []string
+	Nodes               []string
+	ExternalSources     []string
+	externalSourceSet   map[string]struct{} // internal to track uniqueness
+	checks              map[string]*structs.HealthCheck
+	InstanceCount       int
+	ChecksPassing       int
+	ChecksWarning       int
+	ChecksCritical      int
+	GatewayConfig       GatewayConfig
+	TransparentProxy    bool
+	transparentProxySet bool
 
 	structs.EnterpriseMeta
 }
@@ -61,14 +63,16 @@ type ServiceListingSummary struct {
 type ServiceTopologySummary struct {
 	ServiceSummary
 
+	Source    string
 	Intention structs.IntentionDecisionSummary
 }
 
 type ServiceTopology struct {
-	Protocol       string
-	Upstreams      []*ServiceTopologySummary
-	Downstreams    []*ServiceTopologySummary
-	FilteredByACLs bool
+	Protocol         string
+	TransparentProxy bool
+	Upstreams        []*ServiceTopologySummary
+	Downstreams      []*ServiceTopologySummary
+	FilteredByACLs   bool
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -334,6 +338,7 @@ RPC:
 		sum := ServiceTopologySummary{
 			ServiceSummary: *svc,
 			Intention:      out.ServiceTopology.UpstreamDecisions[sn.String()],
+			Source:         out.ServiceTopology.UpstreamSources[sn.String()],
 		}
 		upstreamResp = append(upstreamResp, &sum)
 	}
@@ -344,15 +349,17 @@ RPC:
 		sum := ServiceTopologySummary{
 			ServiceSummary: *svc,
 			Intention:      out.ServiceTopology.DownstreamDecisions[sn.String()],
+			Source:         out.ServiceTopology.DownstreamSources[sn.String()],
 		}
 		downstreamResp = append(downstreamResp, &sum)
 	}
 
 	topo := ServiceTopology{
-		Protocol:       out.ServiceTopology.MetricsProtocol,
-		Upstreams:      upstreamResp,
-		Downstreams:    downstreamResp,
-		FilteredByACLs: out.FilteredByACLs,
+		TransparentProxy: out.ServiceTopology.TransparentProxy,
+		Protocol:         out.ServiceTopology.MetricsProtocol,
+		Upstreams:        upstreamResp,
+		Downstreams:      downstreamResp,
+		FilteredByACLs:   out.FilteredByACLs,
 	}
 	return topo, nil
 }
@@ -410,6 +417,17 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 				}
 				destination.checks[uid] = check
 			}
+
+			// Only consider the target service to be transparent when all its proxy instances are in that mode.
+			// This is done because the flag is used to display warnings about proxies needing to enable
+			// transparent proxy mode. If ANY instance isn't in the right mode then the warming applies.
+			if svc.Proxy.Mode == structs.ProxyModeTransparent && !destination.transparentProxySet {
+				destination.TransparentProxy = true
+			}
+			if svc.Proxy.Mode != structs.ProxyModeTransparent {
+				destination.TransparentProxy = false
+			}
+			destination.transparentProxySet = true
 		}
 		for _, tag := range svc.Tags {
 			found := false

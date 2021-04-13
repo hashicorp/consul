@@ -35,6 +35,22 @@ const (
 	MeshGatewayModeRemote MeshGatewayMode = "remote"
 )
 
+const (
+	// TODO (freddy) Should we have a TopologySourceMixed when there is a mix of proxy reg and tproxy?
+	//				 Currently we label as proxy-registration if ANY instance has the explicit upstream definition.
+	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions
+	TopologySourceRegistration = "proxy-registration"
+
+	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions
+	TopologySourceSpecificIntention = "specific-intention"
+
+	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions
+	TopologySourceWildcardIntention = "wildcard-intention"
+
+	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy
+	TopologySourceDefaultAllow = "default-allow"
+)
+
 // MeshGatewayConfig controls how Mesh Gateways are configured and used
 // This is a struct to allow for future additions without having more free-hanging
 // configuration items all over the place

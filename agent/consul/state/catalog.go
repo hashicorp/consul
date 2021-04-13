@@ -2853,6 +2853,8 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 	return idx, svc.Protocol == protocol, nil
 }
 
+// TODO(freddy) Split this up. The upstream/downstream logic is very similar.
+// TODO(freddy) Add comprehensive state store test
 func (s *Store) ServiceTopology(
 	ws memdb.WatchSet,
 	dc, service string,
@@ -2863,14 +2865,15 @@ func (s *Store) ServiceTopology(
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
+	sn := structs.NewServiceName(service, entMeta)
+
 	var (
-		maxIdx   uint64
-		protocol string
-		err      error
-
-		sn = structs.NewServiceName(service, entMeta)
+		maxIdx           uint64
+		protocol         string
+		err              error
+		fullyTransparent bool
+		hasTransparent   bool
 	)
-
 	switch kind {
 	case structs.ServiceKindIngressGateway:
 		maxIdx, protocol, err = metricsProtocolForIngressGateway(tx, ws, sn)
@@ -2884,6 +2887,38 @@ func (s *Store) ServiceTopology(
 			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
 		}
 
+		// Fetch connect endpoints for the target service in order to learn if its proxies are configured as
+		// transparent proxies.
+		if entMeta == nil {
+			entMeta = structs.DefaultEnterpriseMeta()
+		}
+		q := Query{Value: service, EnterpriseMeta: *entMeta}
+
+		idx, proxies, err := serviceNodesTxn(tx, ws, indexConnect, q)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch connect endpoints for service %s: %v", sn.String(), err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		if len(proxies) == 0 {
+			break
+		}
+
+		fullyTransparent = true
+		for _, proxy := range proxies {
+			switch proxy.ServiceProxy.Mode {
+			case structs.ProxyModeTransparent:
+				hasTransparent = true
+
+			default:
+				// Only consider the target proxy to be transparent when all instances are in that mode.
+				// This is done because the flag is used to display warnings about proxies needing to enable
+				// transparent proxy mode. If ANY instance isn't in the right mode then the warming applies.
+				fullyTransparent = false
+			}
+		}
+
 	default:
 		return 0, nil, fmt.Errorf("unsupported kind %q", kind)
 	}
@@ -2895,7 +2930,48 @@ func (s *Store) ServiceTopology(
 	if idx > maxIdx {
 		maxIdx = idx
 	}
-	idx, upstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
+
+	var (
+		seenUpstreams   = make(map[string]struct{})
+		upstreamSources = make(map[string]string)
+	)
+	for _, un := range upstreamNames {
+		if _, ok := seenUpstreams[un.String()]; !ok {
+			seenUpstreams[un.String()] = struct{}{}
+		}
+		upstreamSources[un.String()] = structs.TopologySourceRegistration
+	}
+
+	idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	for _, svc := range intentionUpstreams {
+		if _, ok := seenUpstreams[svc.Name.String()]; ok {
+			// Avoid duplicating entry
+			continue
+		}
+		upstreamDecisions[svc.Name.String()] = svc.Decision
+		upstreamNames = append(upstreamNames, svc.Name)
+
+		var source string
+		switch {
+		case svc.Decision.HasExact:
+			source = structs.TopologySourceSpecificIntention
+		case svc.Decision.DefaultAllow:
+			source = structs.TopologySourceDefaultAllow
+		default:
+			source = structs.TopologySourceWildcardIntention
+		}
+		upstreamSources[svc.Name.String()] = source
+	}
+
+	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
 	}
@@ -2903,14 +2979,32 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	var upstreams structs.CheckServiceNodes
+	for _, upstream := range unfilteredUpstreams {
+		sn := upstream.Service.CompoundServiceName()
+		if upstream.Service.Kind == structs.ServiceKindConnectProxy {
+			sn = structs.NewServiceName(upstream.Service.Proxy.DestinationServiceName, &upstream.Service.EnterpriseMeta)
+		}
+
+		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode.
+		if !hasTransparent && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			continue
+		}
+		upstreams = append(upstreams, upstream)
+	}
 
 	matchEntry := structs.IntentionMatchEntry{
 		Namespace: entMeta.NamespaceOrDefault(),
 		Name:      service,
 	}
-	// The given service is a source relative to its upstreams
-	_, srcIntentions, err := compatIntentionMatchOneTxn(tx, ws, matchEntry, structs.IntentionMatchSource)
+	_, srcIntentions, err := compatIntentionMatchOneTxn(
+		tx,
+		ws,
+		matchEntry,
+
+		// The given service is a source relative to its upstreams
+		structs.IntentionMatchSource,
+	)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
@@ -2930,7 +3024,48 @@ func (s *Store) ServiceTopology(
 	if idx > maxIdx {
 		maxIdx = idx
 	}
-	idx, downstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+
+	var (
+		seenDownstreams   = make(map[string]struct{})
+		downstreamSources = make(map[string]string)
+	)
+	for _, dn := range downstreamNames {
+		if _, ok := seenDownstreams[dn.String()]; !ok {
+			seenDownstreams[dn.String()] = struct{}{}
+		}
+		downstreamSources[dn.String()] = structs.TopologySourceRegistration
+	}
+
+	idx, intentionDownstreams, err := s.intentionTopologyTxn(tx, ws, sn, true, defaultAllow)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	for _, svc := range intentionDownstreams {
+		if _, ok := seenDownstreams[svc.Name.String()]; ok {
+			// Avoid duplicating entry
+			continue
+		}
+		downstreamNames = append(downstreamNames, svc.Name)
+		downstreamDecisions[svc.Name.String()] = svc.Decision
+
+		var source string
+		switch {
+		case svc.Decision.HasExact:
+			source = structs.TopologySourceSpecificIntention
+		case svc.Decision.DefaultAllow:
+			source = structs.TopologySourceDefaultAllow
+		default:
+			source = structs.TopologySourceWildcardIntention
+		}
+		downstreamSources[svc.Name.String()] = source
+	}
+
+	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
 	}
@@ -2938,12 +3073,39 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	// The given service is a destination relative to its downstreams
-	_, dstIntentions, err := compatIntentionMatchOneTxn(tx, ws, matchEntry, structs.IntentionMatchDestination)
+	// Store downstreams with at least one instance in transparent proxy mode.
+	// This is to avoid returning downstreams from intentions when none of the downstreams are transparent proxies.
+	tproxyMap := make(map[structs.ServiceName]struct{})
+	for _, downstream := range unfilteredDownstreams {
+		if downstream.Service.Proxy.Mode == structs.ProxyModeTransparent {
+			sn := structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
+			tproxyMap[sn] = struct{}{}
+		}
+	}
+
+	var downstreams structs.CheckServiceNodes
+	for _, downstream := range unfilteredDownstreams {
+		sn := downstream.Service.CompoundServiceName()
+		if downstream.Service.Kind == structs.ServiceKindConnectProxy {
+			sn = structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
+		}
+		if _, ok := tproxyMap[sn]; !ok && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			continue
+		}
+		downstreams = append(downstreams, downstream)
+	}
+
+	_, dstIntentions, err := compatIntentionMatchOneTxn(
+		tx,
+		ws,
+		matchEntry,
+
+		// The given service is a destination relative to its downstreams
+		structs.IntentionMatchDestination,
+	)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
-	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 	for _, dn := range downstreamNames {
 		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), dstIntentions, structs.IntentionMatchSource, defaultAllow, false)
 		if err != nil {
@@ -2954,11 +3116,14 @@ func (s *Store) ServiceTopology(
 	}
 
 	resp := &structs.ServiceTopology{
+		TransparentProxy:    fullyTransparent,
 		MetricsProtocol:     protocol,
 		Upstreams:           upstreams,
 		Downstreams:         downstreams,
 		UpstreamDecisions:   upstreamDecisions,
 		DownstreamDecisions: downstreamDecisions,
+		UpstreamSources:     upstreamSources,
+		DownstreamSources:   downstreamSources,
 	}
 	return maxIdx, resp, nil
 }
@@ -2995,7 +3160,6 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
-// TODO (freddy): Account for ingress gateways
 func (s *Store) downstreamsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	// First fetch services that have discovery chains that eventually route to the target service
 	idx, sources, err := s.discoveryChainSourcesTxn(tx, ws, dc, service)

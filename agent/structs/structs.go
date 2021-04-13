@@ -1924,6 +1924,17 @@ type ServiceTopology struct {
 
 	// MetricsProtocol is the protocol of the service being queried
 	MetricsProtocol string
+
+	// TransparentProxy describes whether all instances of the proxy
+	// service are in transparent mode.
+	TransparentProxy bool
+
+	// (Up|Down)streamSources are maps with labels for why each service is being
+	// returned. Services can be upstreams or downstreams due to
+	// explicit upstream definition or various types of intention policies:
+	// specific, wildcard, or default allow.
+	UpstreamSources   map[string]string
+	DownstreamSources map[string]string
 }
 
 // IndexedConfigEntries has its own encoding logic which differs from
