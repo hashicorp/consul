@@ -545,6 +545,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 
 	m := new(dns.Msg)
 	m.SetQuestion("google.node.consul.", dns.TypeANY)
+	m.SetEdns0(8192, true)
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())

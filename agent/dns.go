@@ -507,7 +507,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	setEDNS(req, m, !errors.Is(err, errECSNotGlobal))
 
-	//d.trimDNSResponse(cfg, network, req, m)
+	d.trimDNSResponse(cfg, network, req, m)
 
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Warn("failed to respond", "error", err)
@@ -1270,10 +1270,8 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 		d.serviceNodeRecords(cfg, lookup.Datacenter, out.Nodes, req, resp, ttl, lookup.MaxRecursionLevel)
 	}
 
-	d.trimDNSResponse(cfg, lookup.Network, req, resp)
-
 	// If the answer is empty and the response isn't truncated, return not found
-	if len(resp.Answer) == 0 && !resp.Truncated {
+	if len(resp.Answer) == 0 {
 		return errNoAnswer
 	}
 	return nil
@@ -1378,10 +1376,8 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 		d.serviceNodeRecords(cfg, out.Datacenter, out.Nodes, req, resp, ttl, maxRecursionLevel)
 	}
 
-	d.trimDNSResponse(cfg, network, req, resp)
-
 	// If the answer is empty and the response isn't truncated, return not found
-	if len(resp.Answer) == 0 && !resp.Truncated {
+	if len(resp.Answer) == 0 {
 		return errNoAnswer
 	}
 	return nil
