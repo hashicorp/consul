@@ -96,7 +96,6 @@ type dnsConfig struct {
 }
 
 type serviceLookup struct {
-	Network           string
 	Datacenter        string
 	Service           string
 	Tag               string
@@ -497,7 +496,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.SetRcode(req, dns.RcodeNotImplemented)
 
 	default:
-		err = d.dispatch(network, resp.RemoteAddr(), req, m, maxRecursionLevelDefault)
+		err = d.dispatch(resp.RemoteAddr(), req, m, maxRecursionLevelDefault)
 		rCode := rCodeFromError(err)
 		if rCode == dns.RcodeNameError || errors.Is(err, errNoAnswer) {
 			d.addSOA(cfg, m)
@@ -639,7 +638,7 @@ func (e ecsNotGlobalError) Unwrap() error {
 
 // dispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
-func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) error {
+func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) error {
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -696,7 +695,6 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		}
 
 		lookup := serviceLookup{
-			Network:           network,
 			Datacenter:        datacenter,
 			Connect:           false,
 			Ingress:           false,
@@ -743,7 +741,6 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		}
 
 		lookup := serviceLookup{
-			Network:           network,
 			Datacenter:        datacenter,
 			Service:           queryParts[len(queryParts)-1],
 			Connect:           true,
@@ -764,7 +761,6 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 		}
 
 		lookup := serviceLookup{
-			Network:           network,
 			Datacenter:        datacenter,
 			Service:           queryParts[len(queryParts)-1],
 			Connect:           false,
@@ -800,7 +796,7 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 
 		// Allow a "." in the query name, just join all the parts.
 		query := strings.Join(queryParts, ".")
-		err := d.preparedQueryLookup(cfg, network, datacenter, query, remoteAddr, req, resp, maxRecursionLevel)
+		err := d.preparedQueryLookup(cfg, datacenter, query, remoteAddr, req, resp, maxRecursionLevel)
 		return ecsNotGlobalError{error: err}
 
 	case "addr":
@@ -1295,7 +1291,7 @@ func ednsSubnetForRequest(req *dns.Msg) *dns.EDNS0_SUBNET {
 }
 
 // preparedQueryLookup is used to handle a prepared query.
-func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, query string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) error {
+func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, datacenter, query string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) error {
 	// Execute the prepared query.
 	args := structs.PreparedQueryExecuteRequest{
 		Datacenter:    datacenter,
@@ -1915,7 +1911,7 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 
 		req.SetQuestion(name, dns.TypeANY)
 		// TODO: handle error response
-		d.dispatch("udp", nil, req, resp, maxRecursionLevel-1)
+		d.dispatch(nil, req, resp, maxRecursionLevel-1)
 
 		return resp.Answer
 	}
