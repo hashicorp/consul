@@ -1774,7 +1774,10 @@ func TestStore_IntentionDecision(t *testing.T) {
 			dst:             "ditto",
 			matchType:       structs.IntentionMatchDestination,
 			defaultDecision: acl.Deny,
-			expect:          structs.IntentionDecisionSummary{Allowed: false},
+			expect: structs.IntentionDecisionSummary{
+				Allowed:      false,
+				DefaultAllow: false,
+			},
 		},
 		{
 			name:            "no matching intention and default allow",
@@ -1782,7 +1785,10 @@ func TestStore_IntentionDecision(t *testing.T) {
 			dst:             "ditto",
 			matchType:       structs.IntentionMatchDestination,
 			defaultDecision: acl.Allow,
-			expect:          structs.IntentionDecisionSummary{Allowed: true},
+			expect: structs.IntentionDecisionSummary{
+				Allowed:      true,
+				DefaultAllow: true,
+			},
 		},
 		{
 			name:      "denied with permissions",

@@ -750,10 +750,12 @@ func (s *Store) IntentionDecision(
 		}
 	}
 
-	var resp structs.IntentionDecisionSummary
+	resp := structs.IntentionDecisionSummary{
+		DefaultAllow: defaultDecision == acl.Allow,
+	}
 	if ixnMatch == nil {
 		// No intention found, fall back to default
-		resp.Allowed = defaultDecision == acl.Allow
+		resp.Allowed = resp.DefaultAllow
 		return resp, nil
 	}
 

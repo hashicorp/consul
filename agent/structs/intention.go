@@ -666,12 +666,14 @@ type IntentionQueryCheckResponse struct {
 // - Whether all actions are allowed
 // - Whether the matching intention has L7 permissions attached
 // - Whether the intention is managed by an external source like k8s
-// - Whether there is an exact, on-wildcard, intention referencing the two services
+// - Whether there is an exact, or wildcard, intention referencing the two services
+// - Whether ACLs are in DefaultAllow mode
 type IntentionDecisionSummary struct {
 	Allowed        bool
 	HasPermissions bool
 	ExternalSource string
 	HasExact       bool
+	DefaultAllow   bool
 }
 
 // IntentionQueryExact holds the parameters for performing a lookup of an

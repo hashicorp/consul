@@ -1721,6 +1721,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectUp := map[string]structs.IntentionDecisionSummary{
 				web.String(): {
+					DefaultAllow:   true,
 					Allowed:        false,
 					HasPermissions: false,
 					ExternalSource: "nomad",
@@ -1749,6 +1750,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectDown := map[string]structs.IntentionDecisionSummary{
 				api.String(): {
+					DefaultAllow:   true,
 					Allowed:        false,
 					HasPermissions: false,
 					ExternalSource: "nomad",
@@ -1764,6 +1766,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectUp := map[string]structs.IntentionDecisionSummary{
 				redis.String(): {
+					DefaultAllow:   true,
 					Allowed:        false,
 					HasPermissions: true,
 					HasExact:       true,
@@ -1791,6 +1794,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectDown := map[string]structs.IntentionDecisionSummary{
 				web.String(): {
+					DefaultAllow:   true,
 					Allowed:        false,
 					HasPermissions: true,
 					HasExact:       true,

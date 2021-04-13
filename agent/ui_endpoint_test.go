@@ -1431,6 +1431,7 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
 							Allowed:        true,
 							HasPermissions: false,
 							HasExact:       true,
@@ -1474,6 +1475,7 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
 							Allowed:        true,
 							HasPermissions: false,
 							HasExact:       true,
@@ -1493,6 +1495,7 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
 							Allowed:        false,
 							HasPermissions: false,
 							ExternalSource: "nomad",
@@ -1542,6 +1545,7 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
 							Allowed:        false,
 							HasPermissions: true,
 							HasExact:       true,
@@ -1559,6 +1563,7 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
 							Allowed:        false,
 							HasPermissions: false,
 							ExternalSource: "nomad",
@@ -1610,6 +1615,7 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
 							Allowed:        false,
 							HasPermissions: true,
 							HasExact:       true,
