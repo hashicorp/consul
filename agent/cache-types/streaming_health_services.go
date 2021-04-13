@@ -113,9 +113,13 @@ func newMaterializer(
 		Logger: deps.Logger,
 		Waiter: &retry.Waiter{
 			MinFailures: 1,
-			MinWait:     0,
-			MaxWait:     60 * time.Second,
-			Jitter:      retry.NewJitter(100),
+			// Start backing off with small increments (200-400ms) which will double
+			// each attempt. (200-400, 400-800, 800-1600, 1600-3200, 3200-6000, 6000
+			// after that). (retry.Wait applies Max limit after jitter right now).
+			Factor:  200 * time.Millisecond,
+			MinWait: 0,
+			MaxWait: 60 * time.Second,
+			Jitter:  retry.NewJitter(100),
 		},
 		Request: newRequestFn,
 	}), nil

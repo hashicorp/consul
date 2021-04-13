@@ -6,8 +6,10 @@ package grpc
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
@@ -20,6 +22,9 @@ func NewHandler(addr net.Addr, register func(server *grpc.Server)) *Handler {
 	srv := grpc.NewServer(
 		grpc.StatsHandler(newStatsHandler(metrics)),
 		grpc.StreamInterceptor((&activeStreamCounter{metrics: metrics}).Intercept),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime: 15 * time.Second,
+		}),
 	)
 	register(srv)
 

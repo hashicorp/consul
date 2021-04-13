@@ -64,15 +64,18 @@ message ConnectProxyConfig {
     // mog: func-to=UpstreamsToStructs func-from=NewUpstreamsFromStructs
     repeated Upstream Upstreams = 6 [(gogoproto.nullable) = false];
 
-    // MeshGateway defines the mesh gateway configuration for this upstream
+    // MeshGateway defines the mesh gateway configuration for upstreams
     MeshGatewayConfig MeshGateway = 7 [(gogoproto.nullable) = false];
 
     // Expose defines whether checks or paths are exposed through the proxy
     ExposeConfig Expose = 8 [(gogoproto.nullable) = false];
 
-    // TransparentProxy enables configuring the service mesh as if all inbound
-    // and outbound traffic is being redirected to this proxy
-    bool TransparentProxy = 9;
+    // Mode represents how the proxy's inbound and upstream listeners are dialed.
+    string Mode = 9 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.ProxyMode"];
+
+    // TransparentProxy defines configuration for when the proxy is in
+    // transparent mode.
+    TransparentProxyConfig TransparentProxy = 10 [(gogoproto.nullable) = false];
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -198,6 +201,15 @@ message ExposePath {
 // name=Structs
 message MeshGatewayConfig {
     string Mode = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/agent/structs.MeshGatewayMode"];
+}
+
+// mog annotation:
+//
+// target=github.com/hashicorp/consul/agent/structs.TransparentProxyConfig
+// output=service.gen.go
+// name=Structs
+message TransparentProxyConfig {
+    int32 OutboundListenerPort = 1;
 }
 
 // ServiceDefinition is used to JSON decode the Service definitions. For

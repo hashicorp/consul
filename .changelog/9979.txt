@@ -1,0 +1,4 @@
+```release-note:bug
+cache: fix a bug in the client agent cache where streaming would disconnect every
+20 minutes and cause delivery delays. [[GH-9979](https://github.com/hashicorp/consul/pull/9979)].
+```

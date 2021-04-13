@@ -18,6 +18,7 @@ import (
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/consul/sdk/iptables"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -30,11 +31,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-)
-
-const (
-	// TODO (freddy) Make this configurable
-	TProxyOutboundPort = 15001
 )
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
@@ -69,13 +65,18 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		return nil, err
 	}
 
-	// This outboundListener is exclusively used when TransparentProxy mode is active.
+	// This outboundListener is exclusively used when transparent proxy mode is active.
 	// In that situation there is a single listener where we are redirecting outbound traffic,
 	// and each upstream gets a filter chain attached to that listener.
 	var outboundListener *envoy_listener_v3.Listener
 
-	if cfgSnap.Proxy.TransparentProxy {
-		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", TProxyOutboundPort, envoy_core_v3.TrafficDirection_OUTBOUND)
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent {
+		port := iptables.DefaultTProxyOutboundPort
+		if cfgSnap.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+			port = cfgSnap.Proxy.TransparentProxy.OutboundListenerPort
+		}
+
+		outboundListener = makeListener(OutboundListenerName, "127.0.0.1", port, envoy_core_v3.TrafficDirection_OUTBOUND)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			{

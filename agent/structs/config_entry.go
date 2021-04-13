@@ -85,9 +85,10 @@ type ServiceConfigEntry struct {
 	Kind             string
 	Name             string
 	Protocol         string
-	MeshGateway      MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig      `json:",omitempty"`
-	TransparentProxy bool              `json:",omitempty" alias:"transparent_proxy"`
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
 
 	ExternalSNI string `json:",omitempty" alias:"external_sni"`
 
@@ -194,7 +195,9 @@ func (cfg *ConnectConfiguration) Normalize() {
 		v.Normalize()
 	}
 
-	cfg.UpstreamDefaults.Normalize()
+	if cfg.UpstreamDefaults != nil {
+		cfg.UpstreamDefaults.Normalize()
+	}
 }
 
 func (cfg ConnectConfiguration) Validate() error {
@@ -206,8 +209,11 @@ func (cfg ConnectConfiguration) Validate() error {
 		}
 	}
 
-	if err := cfg.UpstreamDefaults.Validate(); err != nil {
-		validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults %v", err))
+	if cfg.UpstreamDefaults != nil {
+		err := cfg.UpstreamDefaults.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults %v", err))
+		}
 	}
 
 	return validationErr
@@ -218,9 +224,10 @@ type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
 	Config           map[string]interface{}
-	MeshGateway      MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig      `json:",omitempty"`
-	TransparentProxy bool              `json:",omitempty" alias:"transparent_proxy"`
+	Mode             ProxyMode              `json:",omitempty"`
+	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -590,6 +597,9 @@ type ServiceConfigRequest struct {
 	// MeshGateway contains the mesh gateway configuration from the requesting proxy's registration
 	MeshGateway MeshGatewayConfig
 
+	// Mode indicates how the requesting proxy's listeners are dialed
+	Mode ProxyMode
+
 	UpstreamIDs []ServiceID
 
 	// DEPRECATED
@@ -787,8 +797,8 @@ func (chk *PassiveHealthCheck) IsZero() bool {
 }
 
 func (chk PassiveHealthCheck) Validate() error {
-	if chk.Interval <= 0*time.Second {
-		return fmt.Errorf("passive health check interval must be greater than 0s")
+	if chk.Interval < 0*time.Second {
+		return fmt.Errorf("passive health check interval cannot be negative")
 	}
 	return nil
 }
@@ -818,14 +828,14 @@ func (ul *UpstreamLimits) IsZero() bool {
 }
 
 func (ul UpstreamLimits) Validate() error {
-	if ul.MaxConnections != nil && *ul.MaxConnections <= 0 {
-		return fmt.Errorf("max connections must be at least 0")
+	if ul.MaxConnections != nil && *ul.MaxConnections < 0 {
+		return fmt.Errorf("max connections cannot be negative")
 	}
-	if ul.MaxPendingRequests != nil && *ul.MaxPendingRequests <= 0 {
-		return fmt.Errorf("max pending requests must be at least 0")
+	if ul.MaxPendingRequests != nil && *ul.MaxPendingRequests < 0 {
+		return fmt.Errorf("max pending requests cannot be negative")
 	}
-	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests <= 0 {
-		return fmt.Errorf("max concurrent requests must be at least 0")
+	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests < 0 {
+		return fmt.Errorf("max concurrent requests cannot be negative")
 	}
 	return nil
 }
@@ -851,9 +861,10 @@ type ServiceConfigResponse struct {
 	ProxyConfig       map[string]interface{}
 	UpstreamConfigs   map[string]map[string]interface{}
 	UpstreamIDConfigs OpaqueUpstreamConfigs
-	MeshGateway       MeshGatewayConfig `json:",omitempty"`
-	Expose            ExposeConfig      `json:",omitempty"`
-	TransparentProxy  bool              `json:",omitempty"`
+	MeshGateway       MeshGatewayConfig      `json:",omitempty"`
+	Expose            ExposeConfig           `json:",omitempty"`
+	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
+	Mode              ProxyMode              `json:",omitempty"`
 	QueryMeta
 }
 

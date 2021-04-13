@@ -31,3 +31,9 @@ load helpers
 @test "terminating-gateway is used for the upstream connection" {
   assert_envoy_metric_at_least 127.0.0.1:20000 "s4.default.primary.*cx_total" 1
 }
+
+@test "terminating-gateway adds the Host header for connection to s3" {
+  # Envoy does not rewrite the port
+  # See https://github.com/envoyproxy/envoy/pull/504#discussion_r102614466
+  assert_expected_fortio_host_header "localhost" localhost 5000
+}

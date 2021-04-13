@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
+	http2 "golang.org/x/net/http2"
 )
 
 func uniqueID() string {
@@ -962,6 +963,162 @@ func TestCheckTCPPassing(t *testing.T) {
 	tcpServer = mockTCPServer(`tcp6`)
 	expectTCPStatus(t, tcpServer.Addr().String(), api.HealthPassing)
 	tcpServer.Close()
+}
+
+func TestCheckH2PING(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		desc        string
+		passing     bool
+		timeout     time.Duration
+		connTimeout time.Duration
+	}{
+		{desc: "passing", passing: true, timeout: 1 * time.Second, connTimeout: 1 * time.Second},
+		{desc: "failing because of time out", passing: false, timeout: 1 * time.Nanosecond, connTimeout: 1 * time.Second},
+		{desc: "failing because of closed connection", passing: false, timeout: 1 * time.Nanosecond, connTimeout: 1 * time.Millisecond},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+			server := httptest.NewUnstartedServer(handler)
+			server.EnableHTTP2 = true
+			server.Config.ReadTimeout = tt.connTimeout
+			server.StartTLS()
+			defer server.Close()
+			serverAddress := server.Listener.Addr()
+			target := serverAddress.String()
+
+			notif := mock.NewNotify()
+			logger := testutil.Logger(t)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			cid := structs.NewCheckID("foo", nil)
+			tlsCfg := &api.TLSConfig{
+				InsecureSkipVerify: true,
+			}
+			tlsClientCfg, err := api.SetupTLSConfig(tlsCfg)
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			tlsClientCfg.NextProtos = []string{http2.NextProtoTLS}
+
+			check := &CheckH2PING{
+				CheckID:         cid,
+				H2PING:          target,
+				Interval:        5 * time.Second,
+				Timeout:         tt.timeout,
+				Logger:          logger,
+				TLSClientConfig: tlsClientCfg,
+				StatusHandler:   statusHandler,
+			}
+
+			check.Start()
+			defer check.Stop()
+
+			if tt.passing {
+				retry.Run(t, func(r *retry.R) {
+					if got, want := notif.State(cid), api.HealthPassing; got != want {
+						r.Fatalf("got state %q want %q", got, want)
+					}
+				})
+			} else {
+				retry.Run(t, func(r *retry.R) {
+					if got, want := notif.State(cid), api.HealthCritical; got != want {
+						r.Fatalf("got state %q want %q", got, want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { return })
+	server := httptest.NewUnstartedServer(handler)
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+	serverAddress := server.Listener.Addr()
+	target := serverAddress.String()
+
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+	tlsCfg := &api.TLSConfig{}
+	tlsClientCfg, err := api.SetupTLSConfig(tlsCfg)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	tlsClientCfg.NextProtos = []string{http2.NextProtoTLS}
+
+	check := &CheckH2PING{
+		CheckID:         cid,
+		H2PING:          target,
+		Interval:        5 * time.Second,
+		Timeout:         2 * time.Second,
+		Logger:          logger,
+		TLSClientConfig: tlsClientCfg,
+		StatusHandler:   statusHandler,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	insecureSkipVerifyValue := check.TLSClientConfig.InsecureSkipVerify
+	if insecureSkipVerifyValue {
+		t.Fatalf("The default value for InsecureSkipVerify should be false but was %v", insecureSkipVerifyValue)
+	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.State(cid), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+		expectedOutput := "certificate signed by unknown authority"
+		if !strings.Contains(notif.Output(cid), expectedOutput) {
+			r.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
+		}
+	})
+}
+func TestCheckH2PINGInvalidListener(t *testing.T) {
+	t.Parallel()
+
+	notif := mock.NewNotify()
+	logger := testutil.Logger(t)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+	tlsCfg := &api.TLSConfig{
+		InsecureSkipVerify: true,
+	}
+	tlsClientCfg, err := api.SetupTLSConfig(tlsCfg)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	tlsClientCfg.NextProtos = []string{http2.NextProtoTLS}
+
+	check := &CheckH2PING{
+		CheckID:         cid,
+		H2PING:          "localhost:55555",
+		Interval:        5 * time.Second,
+		Timeout:         1 * time.Second,
+		Logger:          logger,
+		TLSClientConfig: tlsClientCfg,
+		StatusHandler:   statusHandler,
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.State(cid), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+		expectedOutput := "Failed to dial to"
+		if !strings.Contains(notif.Output(cid), expectedOutput) {
+			r.Fatalf("should have included output %s: %v", expectedOutput, notif.OutputMap())
+		}
+
+	})
 }
 
 func TestCheck_Docker(t *testing.T) {

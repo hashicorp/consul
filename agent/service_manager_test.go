@@ -929,7 +929,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			},
 		},
 		{
-			name: "remote upstream config expands local upstream list in tproxy mode",
+			name: "remote upstream config expands local upstream list in transparent mode",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
 					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
@@ -950,7 +950,10 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Proxy: structs.ConnectProxyConfig{
 						DestinationServiceName: "foo",
 						DestinationServiceID:   "foo",
-						TransparentProxy:       true,
+						Mode:                   structs.ProxyModeTransparent,
+						TransparentProxy: structs.TransparentProxyConfig{
+							OutboundListenerPort: 10101,
+						},
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
@@ -970,7 +973,10 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
 					DestinationServiceID:   "foo",
-					TransparentProxy:       true,
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+					},
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
@@ -993,7 +999,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			},
 		},
 		{
-			name: "remote upstream config not added to local upstream list outside of tproxy mode",
+			name: "remote upstream config not added to local upstream list outside of transparent mode",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{
 					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
@@ -1014,7 +1020,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Proxy: structs.ConnectProxyConfig{
 						DestinationServiceName: "foo",
 						DestinationServiceID:   "foo",
-						TransparentProxy:       false,
+						Mode:                   structs.ProxyModeDirect,
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
@@ -1034,6 +1040,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "foo",
 					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeDirect,
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
@@ -1163,6 +1170,84 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_mergeServiceConfig_TransparentProxy(t *testing.T) {
+	type args struct {
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+	}
+	tests := []struct {
+		name string
+		args args
+		want *structs.NodeService
+	}{
+		{
+			name: "inherit transparent proxy settings",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode:             structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDefault,
+						TransparentProxy:       structs.TransparentProxyConfig{},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeTransparent,
+					TransparentProxy:       structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+				},
+			},
+		},
+		{
+			name: "override transparent proxy settings",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					Mode:             structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						Mode:                   structs.ProxyModeDirect,
+						TransparentProxy:       structs.TransparentProxyConfig{OutboundListenerPort: 808},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Mode:                   structs.ProxyModeDirect,
+					TransparentProxy:       structs.TransparentProxyConfig{OutboundListenerPort: 808},
 				},
 			},
 		},

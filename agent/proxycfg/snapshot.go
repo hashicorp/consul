@@ -360,7 +360,7 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		if s.Proxy.TransparentProxy && !s.ConnectProxy.ClusterConfigSet {
+		if s.Proxy.Mode == structs.ProxyModeTransparent && !s.ConnectProxy.ClusterConfigSet {
 			return false
 		}
 		return s.Roots != nil &&

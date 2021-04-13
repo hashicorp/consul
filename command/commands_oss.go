@@ -54,6 +54,7 @@ import (
 	pipebootstrap "github.com/hashicorp/consul/command/connect/envoy/pipe-bootstrap"
 	"github.com/hashicorp/consul/command/connect/expose"
 	"github.com/hashicorp/consul/command/connect/proxy"
+	"github.com/hashicorp/consul/command/connect/redirecttraffic"
 	"github.com/hashicorp/consul/command/debug"
 	"github.com/hashicorp/consul/command/event"
 	"github.com/hashicorp/consul/command/exec"
@@ -77,8 +78,8 @@ import (
 	kvput "github.com/hashicorp/consul/command/kv/put"
 	"github.com/hashicorp/consul/command/leave"
 	"github.com/hashicorp/consul/command/lock"
-	login "github.com/hashicorp/consul/command/login"
-	logout "github.com/hashicorp/consul/command/logout"
+	"github.com/hashicorp/consul/command/login"
+	"github.com/hashicorp/consul/command/logout"
 	"github.com/hashicorp/consul/command/maint"
 	"github.com/hashicorp/consul/command/members"
 	"github.com/hashicorp/consul/command/monitor"
@@ -173,6 +174,7 @@ func init() {
 	Register("connect envoy", func(ui cli.Ui) (cli.Command, error) { return envoy.New(ui), nil })
 	Register("connect envoy pipe-bootstrap", func(ui cli.Ui) (cli.Command, error) { return pipebootstrap.New(ui), nil })
 	Register("connect expose", func(ui cli.Ui) (cli.Command, error) { return expose.New(ui), nil })
+	Register("connect redirect-traffic", func(ui cli.Ui) (cli.Command, error) { return redirecttraffic.New(ui), nil })
 	Register("debug", func(ui cli.Ui) (cli.Command, error) { return debug.New(ui, MakeShutdownCh()), nil })
 	Register("event", func(ui cli.Ui) (cli.Command, error) { return event.New(ui), nil })
 	Register("exec", func(ui cli.Ui) (cli.Command, error) { return exec.New(ui, MakeShutdownCh()), nil })

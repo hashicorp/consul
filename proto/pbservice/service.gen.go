@@ -14,7 +14,8 @@ func ConnectProxyConfigToStructs(s ConnectProxyConfig) structs.ConnectProxyConfi
 	t.Upstreams = UpstreamsToStructs(s.Upstreams)
 	t.MeshGateway = MeshGatewayConfigToStructs(s.MeshGateway)
 	t.Expose = ExposeConfigToStructs(s.Expose)
-	t.TransparentProxy = s.TransparentProxy
+	t.TransparentProxy = TransparentProxyConfigToStructs(s.TransparentProxy)
+	t.Mode = s.Mode
 	return t
 }
 func NewConnectProxyConfigFromStructs(t structs.ConnectProxyConfig) ConnectProxyConfig {
@@ -27,7 +28,8 @@ func NewConnectProxyConfigFromStructs(t structs.ConnectProxyConfig) ConnectProxy
 	s.Upstreams = NewUpstreamsFromStructs(t.Upstreams)
 	s.MeshGateway = NewMeshGatewayConfigFromStructs(t.MeshGateway)
 	s.Expose = NewExposeConfigFromStructs(t.Expose)
-	s.TransparentProxy = t.TransparentProxy
+	s.TransparentProxy = NewTransparentProxyConfigFromStructs(t.TransparentProxy)
+	s.Mode = t.Mode
 	return s
 }
 func ExposeConfigToStructs(s ExposeConfig) structs.ExposeConfig {
@@ -68,6 +70,16 @@ func MeshGatewayConfigToStructs(s MeshGatewayConfig) structs.MeshGatewayConfig {
 func NewMeshGatewayConfigFromStructs(t structs.MeshGatewayConfig) MeshGatewayConfig {
 	var s MeshGatewayConfig
 	s.Mode = t.Mode
+	return s
+}
+func TransparentProxyConfigToStructs(s TransparentProxyConfig) structs.TransparentProxyConfig {
+	var t structs.TransparentProxyConfig
+	t.OutboundListenerPort = int(s.OutboundListenerPort)
+	return t
+}
+func NewTransparentProxyConfigFromStructs(t structs.TransparentProxyConfig) TransparentProxyConfig {
+	var s TransparentProxyConfig
+	s.OutboundListenerPort = int32(t.OutboundListenerPort)
 	return s
 }
 func ServiceConnectToStructs(s ServiceConnect) structs.ServiceConnect {

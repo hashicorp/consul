@@ -343,7 +343,7 @@ func fixupACLLinks(tx ReadTxn, original []pbacl.ACLLink, getName func(ReadTxn, s
 	return links, owned, nil
 }
 
-func resolveTokenPolicyLinks(tx *txn, token *structs.ACLToken, allowMissing bool) (int, error) {
+func resolveTokenPolicyLinks(tx ReadTxn, token *structs.ACLToken, allowMissing bool) (int, error) {
 	var numValid int
 	for linkIndex, link := range token.Policies {
 		if link.ID != "" {
@@ -417,7 +417,7 @@ func fixupTokenPolicyLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACL
 	return token, nil
 }
 
-func resolveTokenRoleLinks(tx *txn, token *structs.ACLToken, allowMissing bool) (int, error) {
+func resolveTokenRoleLinks(tx ReadTxn, token *structs.ACLToken, allowMissing bool) (int, error) {
 	var numValid int
 	for linkIndex, link := range token.Roles {
 		if link.ID != "" {
@@ -491,7 +491,7 @@ func fixupTokenRoleLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLTo
 	return token, nil
 }
 
-func resolveRolePolicyLinks(tx *txn, role *structs.ACLRole, allowMissing bool) error {
+func resolveRolePolicyLinks(tx ReadTxn, role *structs.ACLRole, allowMissing bool) error {
 	for linkIndex, link := range role.Policies {
 		if link.ID == "" {
 			return fmt.Errorf("Encountered a Role with policies linked by Name in the state store")
@@ -602,7 +602,7 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, opts ACLT
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, opts ACLTokenSetOptions) error {
+func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTokenSetOptions) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
@@ -993,7 +993,7 @@ func (s *Store) aclTokenDelete(idx uint64, value, index string, entMeta *structs
 	return tx.Commit()
 }
 
-func aclTokenDeleteTxn(tx *txn, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
+func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing token
 	_, token, err := aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
@@ -1011,7 +1011,7 @@ func aclTokenDeleteTxn(tx *txn, idx uint64, value, index string, entMeta *struct
 	return aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
 }
 
-func aclTokenDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodName string, methodGlobalLocality bool, methodMeta *structs.EnterpriseMeta) error {
+func aclTokenDeleteAllForAuthMethodTxn(tx WriteTxn, idx uint64, methodName string, methodGlobalLocality bool, methodMeta *structs.EnterpriseMeta) error {
 	// collect all the tokens linked with the given auth method.
 	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMeta())
 	if err != nil {
@@ -1068,7 +1068,7 @@ func (s *Store) ACLPolicySet(idx uint64, policy *structs.ACLPolicy) error {
 	return tx.Commit()
 }
 
-func aclPolicySetTxn(tx *txn, idx uint64, policy *structs.ACLPolicy) error {
+func aclPolicySetTxn(tx WriteTxn, idx uint64, policy *structs.ACLPolicy) error {
 	// Check that the ID is set
 	if policy.ID == "" {
 		return ErrMissingACLPolicyID
@@ -1254,7 +1254,7 @@ func (s *Store) aclPolicyDelete(idx uint64, value string, fn aclPolicyGetFn, ent
 	return tx.Commit()
 }
 
-func aclPolicyDeleteTxn(tx *txn, idx uint64, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) error {
+func aclPolicyDeleteTxn(tx WriteTxn, idx uint64, value string, fn aclPolicyGetFn, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing token
 	_, rawPolicy, err := fn(tx, value, entMeta)
 	if err != nil {
@@ -1298,7 +1298,7 @@ func (s *Store) ACLRoleSet(idx uint64, role *structs.ACLRole) error {
 	return tx.Commit()
 }
 
-func aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowMissing bool) error {
+func aclRoleSetTxn(tx WriteTxn, idx uint64, role *structs.ACLRole, allowMissing bool) error {
 	// Check that the ID is set
 	if role.ID == "" {
 		return ErrMissingACLRoleID
@@ -1507,7 +1507,7 @@ func (s *Store) aclRoleDelete(idx uint64, value string, fn aclRoleGetFn, entMeta
 	return tx.Commit()
 }
 
-func aclRoleDeleteTxn(tx *txn, idx uint64, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) error {
+func aclRoleDeleteTxn(tx WriteTxn, idx uint64, value string, fn aclRoleGetFn, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing role
 	_, rawRole, err := fn(tx, value, entMeta)
 	if err != nil {
@@ -1546,7 +1546,7 @@ func (s *Store) ACLBindingRuleSet(idx uint64, rule *structs.ACLBindingRule) erro
 	return tx.Commit()
 }
 
-func aclBindingRuleSetTxn(tx *txn, idx uint64, rule *structs.ACLBindingRule) error {
+func aclBindingRuleSetTxn(tx WriteTxn, idx uint64, rule *structs.ACLBindingRule) error {
 	// Check that the ID and AuthMethod are set
 	if rule.ID == "" {
 		return ErrMissingACLBindingRuleID
@@ -1662,7 +1662,7 @@ func (s *Store) aclBindingRuleDelete(idx uint64, id string, entMeta *structs.Ent
 	return tx.Commit()
 }
 
-func aclBindingRuleDeleteTxn(tx *txn, idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
+func aclBindingRuleDeleteTxn(tx WriteTxn, idx uint64, id string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing binding rule
 	_, rawRule, err := aclBindingRuleGetByID(tx, id, entMeta)
 	if err != nil {
@@ -1681,7 +1681,7 @@ func aclBindingRuleDeleteTxn(tx *txn, idx uint64, id string, entMeta *structs.En
 	return nil
 }
 
-func aclBindingRuleDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodName string, entMeta *structs.EnterpriseMeta) error {
+func aclBindingRuleDeleteAllForAuthMethodTxn(tx WriteTxn, idx uint64, methodName string, entMeta *structs.EnterpriseMeta) error {
 	// collect them all
 	iter, err := aclBindingRuleListByAuthMethod(tx, methodName, entMeta)
 	if err != nil {
@@ -1731,7 +1731,7 @@ func (s *Store) ACLAuthMethodSet(idx uint64, method *structs.ACLAuthMethod) erro
 	return tx.Commit()
 }
 
-func aclAuthMethodSetTxn(tx *txn, idx uint64, method *structs.ACLAuthMethod) error {
+func aclAuthMethodSetTxn(tx WriteTxn, idx uint64, method *structs.ACLAuthMethod) error {
 	// Check that the Name and Type are set
 	if method.Name == "" {
 		return ErrMissingACLAuthMethodName
@@ -1846,7 +1846,7 @@ func (s *Store) aclAuthMethodDelete(idx uint64, name string, entMeta *structs.En
 	return tx.Commit()
 }
 
-func aclAuthMethodDeleteTxn(tx *txn, idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
+func aclAuthMethodDeleteTxn(tx WriteTxn, idx uint64, name string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the existing method
 	_, rawMethod, err := aclAuthMethodGetByName(tx, name, entMeta)
 	if err != nil {

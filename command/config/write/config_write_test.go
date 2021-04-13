@@ -182,7 +182,10 @@ func TestParseConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				transparent_proxy = true
+				mode = "direct"
+				transparent_proxy = {
+					outbound_listener_port = 10101
+				}
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -201,7 +204,10 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				TransparentProxy = true
+				Mode = "direct"
+				TransparentProxy = {
+					outbound_listener_port = 10101
+				}
 			`,
 			snakeJSON: `
 			{
@@ -221,7 +227,10 @@ func TestParseConfigEntry(t *testing.T) {
 				"mesh_gateway": {
 					"mode": "remote"
 				},
-				"transparent_proxy": true
+				"mode": "direct",
+				"transparent_proxy": {
+					"outbound_listener_port": 10101
+				}
 			}
 			`,
 			camelJSON: `
@@ -242,7 +251,10 @@ func TestParseConfigEntry(t *testing.T) {
 				"MeshGateway": {
 					"Mode": "remote"
 				},
-				"TransparentProxy": true
+				"Mode": "direct",
+				"TransparentProxy": {
+					"OutboundListenerPort": 10101
+				}
 			}
 			`,
 			expect: &api.ProxyConfigEntry{
@@ -262,7 +274,10 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
-				TransparentProxy: true,
+				Mode: api.ProxyModeDirect,
+				TransparentProxy: api.TransparentProxyConfig{
+					OutboundListenerPort: 10101,
+				},
 			},
 			expectJSON: &api.ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -281,7 +296,10 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
-				TransparentProxy: true,
+				Mode: api.ProxyModeDirect,
+				TransparentProxy: api.TransparentProxyConfig{
+					OutboundListenerPort: 10101,
+				},
 			},
 		},
 		{
@@ -443,7 +461,10 @@ func TestParseConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
-				transparent_proxy = true
+				mode = "direct"
+				transparent_proxy = {
+					outbound_listener_port = 10101
+				}
 				connect {
 					upstream_configs {
 						"redis" {
@@ -487,7 +508,10 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
-				TransparentProxy = true
+				Mode = "direct"
+				TransparentProxy = {
+					outbound_listener_port = 10101
+				}
 				connect = {
 					upstream_configs = {
 						"redis" = {
@@ -532,7 +556,10 @@ func TestParseConfigEntry(t *testing.T) {
 				"mesh_gateway": {
 					"mode": "remote"
 				},
-				"transparent_proxy": true,
+				"mode": "direct",
+				"transparent_proxy": {
+					"outbound_listener_port": 10101
+				},
 				"connect": {
 					"upstream_configs": {
 						"redis": {
@@ -578,7 +605,10 @@ func TestParseConfigEntry(t *testing.T) {
 				"MeshGateway": {
 					"Mode": "remote"
 				},
-				"TransparentProxy": true,
+				"Mode": "direct",
+				"TransparentProxy": {
+					"OutboundListenerPort": 10101
+				},
 				"Connect": {
 					"UpstreamConfigs": {
 						"redis": {
@@ -623,7 +653,10 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
-				TransparentProxy: true,
+				Mode: api.ProxyModeDirect,
+				TransparentProxy: api.TransparentProxyConfig{
+					OutboundListenerPort: 10101,
+				},
 				Connect: api.ConnectConfiguration{
 					UpstreamConfigs: map[string]api.UpstreamConfig{
 						"redis": {
@@ -638,7 +671,7 @@ func TestParseConfigEntry(t *testing.T) {
 							},
 						},
 					},
-					UpstreamDefaults: api.UpstreamConfig{
+					UpstreamDefaults: &api.UpstreamConfig{
 						EnvoyClusterJSON:  "zip",
 						EnvoyListenerJSON: "zop",
 						Protocol:          "http",

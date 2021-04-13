@@ -104,7 +104,7 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 		if resolver.LoadBalancer != nil {
 			lb = resolver.LoadBalancer
 		}
-		route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 		if err != nil {
 			logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			continue
@@ -114,7 +114,7 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 		// If there is a service-resolver for this service then also setup routes for each subset
 		for name := range resolver.Subsets {
 			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-			route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
+			route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 			if err != nil {
 				logger.Error("failed to make route", "cluster", clusterName, "error", err)
 				continue
@@ -126,11 +126,18 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 	return resources, nil
 }
 
-func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (*envoy_route_v3.RouteConfiguration, error) {
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, autoHostRewrite bool) (*envoy_route_v3.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
 	if err := injectLBToRouteAction(lb, action.Route); err != nil {
 		return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+	}
+
+	// Configure Envoy to rewrite Host header
+	if autoHostRewrite {
+		action.Route.HostRewriteSpecifier = &envoy_route_v3.RouteAction_AutoHostRewrite{
+			AutoHostRewrite: makeBoolValue(true),
+		}
 	}
 
 	return &envoy_route_v3.RouteConfiguration{
