@@ -494,7 +494,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		m.SetRcode(req, dns.RcodeNotImplemented)
 
 	default:
-		ecsGlobal = d.dispatch(network, resp.RemoteAddr(), req, m)
+		ecsGlobal = d.dispatch(network, resp.RemoteAddr(), req, m, maxRecursionLevelDefault)
 	}
 
 	setEDNS(req, m, ecsGlobal)
@@ -587,11 +587,6 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 	return
 }
 
-// dispatch is used to parse a request and invoke the correct handler
-func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg) (ecsGlobal bool) {
-	return d.doDispatch(network, remoteAddr, req, resp, maxRecursionLevelDefault)
-}
-
 func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
 	d.logger.Warn("QName invalid", "qname", qName)
 	d.addSOA(cfg, resp)
@@ -610,9 +605,9 @@ func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
 	}
 }
 
-// doDispatch is used to parse a request and invoke the correct handler.
+// dispatch is used to parse a request and invoke the correct handler.
 // parameter maxRecursionLevel will handle whether recursive call can be performed
-func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) bool {
+func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns.Msg, maxRecursionLevel int) bool {
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -1909,7 +1904,7 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 		resp := &dns.Msg{}
 
 		req.SetQuestion(name, dns.TypeANY)
-		d.doDispatch("udp", nil, req, resp, maxRecursionLevel-1)
+		d.dispatch("udp", nil, req, resp, maxRecursionLevel-1)
 
 		return resp.Answer
 	}
