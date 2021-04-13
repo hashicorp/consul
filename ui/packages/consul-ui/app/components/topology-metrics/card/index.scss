@@ -16,6 +16,9 @@
     font-weight: $typo-weight-semibold;
     margin-bottom: 0 !important;
   }
+  p.empty {
+    padding: 12px !important;
+  }
   div {
     display: inline-flex;
     dl {

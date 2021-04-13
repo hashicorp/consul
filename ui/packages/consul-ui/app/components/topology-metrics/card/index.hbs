@@ -1,3 +1,10 @@
+{{#if (eq @item.Name '*(All Services)')}}
+<a class="topology-metrics-card" href={{href-to 'dc.services.index'}}>
+  <p class="empty">
+    {{@item.Name}}
+  </p>
+</a>
+{{else}}
 <a class="topology-metrics-card"
   href={{if
    (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
@@ -57,3 +64,4 @@
   </div>
   {{yield}}
 </a>
+{{/if}}
