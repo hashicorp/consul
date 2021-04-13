@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -935,7 +936,6 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, uint16(1), subnet.Family)
 			require.Equal(t, tc.SourceNetmask, subnet.SourceNetmask)
-			// scope set to 0 for a globally valid reply
 			require.Equal(t, tc.ExpectedScope, subnet.SourceScope)
 			require.Equal(t, net.ParseIP(tc.SubnetAddr), subnet.Address)
 		})
@@ -6391,9 +6391,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
+		require.Len(t, in.Ns, 1)
 		soaRec, ok := in.Ns[0].(*dns.SOA)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Ns[0])
@@ -6402,10 +6400,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 
-		if in.Rcode != dns.RcodeSuccess {
-			t.Fatalf("Bad: %#v", in)
-		}
-
+		require.Equal(t, dns.RcodeSuccess, in.Rcode)
 	}
 
 	// Check for ipv4 records on ipv6-only service directly and via the
@@ -7624,4 +7619,20 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 			require.FailNow(t, "timeout")
 		}
 	}
+}
+
+func TestECSNotGlobalError(t *testing.T) {
+	t.Run("wrap nil", func(t *testing.T) {
+		e := ecsNotGlobalError{}
+		require.True(t, errors.Is(e, errECSNotGlobal))
+		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
+		require.Equal(t, nil, errors.Unwrap(e))
+	})
+
+	t.Run("wrap some error", func(t *testing.T) {
+		e := ecsNotGlobalError{error: errNameNotFound}
+		require.True(t, errors.Is(e, errECSNotGlobal))
+		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
+		require.Equal(t, errNameNotFound, errors.Unwrap(e))
+	})
 }
