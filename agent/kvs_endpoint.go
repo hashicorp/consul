@@ -80,11 +80,20 @@ func (s *HTTPHandlers) KVSGet(resp http.ResponseWriter, req *http.Request, args 
 		return nil, nil
 	}
 
-	// Check if we are in raw mode with a normal get, write out
-	// the raw body
+	// Check if we are in raw mode with a normal get, write out the raw body
+	// while setting the Content-Type, Content-Security-Policy, and
+	// X-Content-Type-Options headers to prevent XSS attacks from malicious KV
+	// entries. Otherwise, the net/http server will sniff the body to set the
+	// Content-Type. The nosniff option then indicates to the browser that it
+	// should also skip sniffing the body, otherwise it might ignore the Content-Type
+	// header in some situations. The sandbox option provides another layer of defense
+	// using the browser's content security policy to prevent code execution.
 	if _, ok := params["raw"]; ok && method == "KVS.Get" {
 		body := out.Entries[0].Value
 		resp.Header().Set("Content-Length", strconv.FormatInt(int64(len(body)), 10))
+		resp.Header().Set("Content-Type", "text/plain")
+		resp.Header().Set("X-Content-Type-Options", "nosniff")
+		resp.Header().Set("Content-Security-Policy", "sandbox")
 		resp.Write(body)
 		return nil, nil
 	}
