@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -1227,7 +1228,7 @@ func TestStructs_ValidateMetadata(t *testing.T) {
 	// Should get error
 	meta = make(map[string]string)
 	for i := 0; i < metaMaxKeyPairs+1; i++ {
-		meta[string(i)] = "value"
+		meta[fmt.Sprint(i)] = "value"
 	}
 	if err := ValidateMetadata(meta, false); !strings.Contains(err.Error(), "cannot contain more than") {
 		t.Fatalf("should have failed")
