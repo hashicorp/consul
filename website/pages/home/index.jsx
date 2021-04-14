@@ -53,7 +53,7 @@ export default function HomePage() {
               type: 'inbound',
               text: 'Learn more',
               url:
-                'https://learn.hashicorp.com/collections/consul/developer-mesh',
+                'https://learn.hashicorp.com/collections/consul/kubernetes-deploy',
             },
           },
           {
@@ -65,7 +65,7 @@ export default function HomePage() {
               type: 'inbound',
               text: 'Learn more',
               url:
-                'https://learn.hashicorp.com/tutorials/consul/service-mesh-application-secure-networking',
+                'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents',
             },
           },
           {
@@ -89,7 +89,7 @@ export default function HomePage() {
               type: 'inbound',
               text: 'Learn more',
               url:
-                'https://learn.hashicorp.com/tutorials/cloud/get-started-service-discovery',
+                'https://learn.hashicorp.com/tutorials/consul/service-registration-health-checks',
             },
           },
           {
