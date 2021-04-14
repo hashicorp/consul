@@ -955,7 +955,7 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		return 0, nil, fmt.Errorf("failed to fetch %s for %s: %v", requested, target.String(), err)
 	}
 
-	var resp structs.ServiceList
+	resp := make(structs.ServiceList, 0)
 	for _, svc := range services {
 		resp = append(resp, svc.Name)
 	}
