@@ -193,6 +193,10 @@
           {
             "title": "Proxy Integration",
             "path": "connect/proxies/integrate"
+          },
+          {
+            "title": "Deprecated Proxies",
+            "path": "connect/proxies/managed-deprecated"
           }
         ]
       },
