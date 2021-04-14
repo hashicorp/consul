@@ -73,7 +73,7 @@ export default class TopologyMetrics extends Component {
     const wildcardIntention = get(this.args.topology, 'WildcardIntention');
     if (defaultAllow || wildcardIntention) {
       items.push({
-        Name: '*(All Services)',
+        Name: '* (All Services)',
         Datacenter: '',
         Namespace: '',
         Intention: {

@@ -47,25 +47,25 @@
       </Actions.Action>
     </:actions>
   </InformedAction>
-{{else if (eq @type 'notDefined')}}
+{{else if (eq @type 'not-defined')}}
   <InformedAction
     class="warning documentation"
     {{did-insert (set this 'popover')}}
   >
     <:header>
       <h3>
-        {{t "components.consul.topology-metrics.popover.notDefined.header"}}
+        {{t "components.consul.topology-metrics.popover.not-defined.header"}}
       </h3>
     </:header>
     <:body>
       <p>
-        {{t "components.consul.topology-metrics.popover.notDefined.body"}}
+        {{t "components.consul.topology-metrics.popover.not-defined.body"}}
       </p>
     </:body>
     <:actions as |Actions|>
       <Actions.Action class="action">
         <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams" rel="noopener noreferrer" target="_blank">
-          {{t "components.consul.topology-metrics.popover.notDefined.action"}}
+          {{t "components.consul.topology-metrics.popover.not-defined.action"}}
         </a>
       </Actions.Action>
       <Actions.Action>

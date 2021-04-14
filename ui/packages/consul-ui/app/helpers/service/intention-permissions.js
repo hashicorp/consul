@@ -11,7 +11,7 @@ export default helper(function serviceIntentionPermissions([params] /*, hash*/) 
     case !allowed && !hasPermissions:
       return 'deny';
     case allowed && notExplicitlyDefined:
-      return 'notDefined';
+      return 'not-defined';
     default:
       return 'allow';
   }
