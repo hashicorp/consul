@@ -584,7 +584,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	s.clearTokenFromHeaders(req)
 
 	var entMeta structs.EnterpriseMeta
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
 	}

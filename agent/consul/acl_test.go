@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -4023,4 +4024,30 @@ func TestACL_LocalToken(t *testing.T) {
 		_, err := r.fetchAndCacheIdentityFromToken("", nil)
 		require.Equal(t, acl.PermissionDeniedError{Cause: "This is a local token in datacenter \"remote\""}, err)
 	})
+}
+
+func TestACLResolver_AgentMaster(t *testing.T) {
+	var tokens token.Store
+
+	d := &ACLResolverTestDelegate{
+		datacenter: "dc1",
+		enabled:    true,
+	}
+	r := newTestACLResolver(t, d, func(cfg *ACLResolverConfig) {
+		cfg.Tokens = &tokens
+		cfg.Config.NodeName = "foo"
+		cfg.AutoDisable = false
+	})
+
+	tokens.UpdateAgentMasterToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
+
+	ident, authz, err := r.ResolveTokenToIdentityAndAuthorizer("9a184a11-5599-459e-b71a-550e5f9a5a23")
+	require.NoError(t, err)
+	require.NotNil(t, ident)
+	require.Equal(t, "agent-master:foo", ident.ID())
+	require.NotNil(t, authz)
+	require.Equal(t, r.agentMasterAuthz, authz)
+	require.Equal(t, acl.Allow, authz.AgentWrite("foo", nil))
+	require.Equal(t, acl.Allow, authz.NodeRead("bar", nil))
+	require.Equal(t, acl.Deny, authz.NodeWrite("bar", nil))
 }

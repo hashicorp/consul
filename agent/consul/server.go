@@ -443,6 +443,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		AutoDisable: false,
 		Logger:      logger,
 		ACLConfig:   s.aclConfig,
+		Tokens:      flat.Tokens,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {
