@@ -125,6 +125,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.ACLAuthMethodSet(1, method))
 
+	method = &structs.ACLAuthMethod{
+		Name:        "some-method2",
+		Type:        "testing",
+		Description: "test snapshot auth method",
+	}
+	require.NoError(t, fsm.state.ACLAuthMethodSet(1, method))
+
 	bindingRule := &structs.ACLBindingRule{
 		ID:          "85184c52-5997-4a84-9817-5945f2632a17",
 		Description: "test snapshot binding rule",
@@ -549,10 +556,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, bindingRule, bindingRule2)
 
-	// Verify ACL Auth Method is restored
-	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name, nil)
+	// Verify ACL Auth Methods are restored
+	_, authMethods, err := fsm2.state.ACLAuthMethodList(nil, nil)
 	require.NoError(t, err)
-	require.Equal(t, method, method2)
+	require.Len(t, authMethods, 2)
+	require.Equal(t, "some-method", authMethods[0].Name)
+	require.Equal(t, "some-method2", authMethods[1].Name)
 
 	// Verify ACL Token is restored
 	_, rtoken, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
