@@ -119,35 +119,35 @@ func moveDeadNodes(nodes []*nodeState, gossipToTheDeadTime time.Duration) int {
 	return n - numDead
 }
 
-// kRandomNodes is used to select up to k random nodes, excluding any nodes where
-// the filter function returns true. It is possible that less than k nodes are
+// kRandomNodes is used to select up to k random Nodes, excluding any nodes where
+// the exclude function returns true. It is possible that less than k nodes are
 // returned.
-func kRandomNodes(k int, nodes []*nodeState, filterFn func(*nodeState) bool) []*nodeState {
+func kRandomNodes(k int, nodes []*nodeState, exclude func(*nodeState) bool) []Node {
 	n := len(nodes)
-	kNodes := make([]*nodeState, 0, k)
+	kNodes := make([]Node, 0, k)
 OUTER:
 	// Probe up to 3*n times, with large n this is not necessary
 	// since k << n, but with small n we want search to be
 	// exhaustive
 	for i := 0; i < 3*n && len(kNodes) < k; i++ {
-		// Get random node
+		// Get random nodeState
 		idx := randomOffset(n)
-		node := nodes[idx]
+		state := nodes[idx]
 
 		// Give the filter a shot at it.
-		if filterFn != nil && filterFn(node) {
+		if exclude != nil && exclude(state) {
 			continue OUTER
 		}
 
 		// Check if we have this node already
 		for j := 0; j < len(kNodes); j++ {
-			if node == kNodes[j] {
+			if state.Node.Name == kNodes[j].Name {
 				continue OUTER
 			}
 		}
 
 		// Append the node
-		kNodes = append(kNodes, node)
+		kNodes = append(kNodes, state.Node)
 	}
 	return kNodes
 }

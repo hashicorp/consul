@@ -56,10 +56,12 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	}
 	clusters = append(clusters, appCluster)
 
-	// In TransparentProxy mode there needs to be a passthrough cluster for traffic going to destinations
+	// In transparent proxy mode there needs to be a passthrough cluster for traffic going to destinations
 	// that aren't in Consul's catalog.
-	// TODO (freddy): Add cluster-wide setting that can disable this cluster and restrict traffic to catalog destinations.
-	if cfgSnap.Proxy.TransparentProxy {
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
+		cfgSnap.ConnectProxy.ClusterConfig != nil &&
+		!cfgSnap.ConnectProxy.ClusterConfig.TransparentProxy.CatalogDestinationsOnly {
+
 		clusters = append(clusters, &envoy_cluster_v3.Cluster{
 			Name: OriginalDestinationClusterName,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{

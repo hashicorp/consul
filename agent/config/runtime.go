@@ -470,6 +470,7 @@ type RuntimeConfig struct {
 	//     header = map[string][]string
 	//     method = string
 	//     tcp = string
+	//     h2ping = string
 	//     interval = string
 	//     docker_container_id = string
 	//     shell = string

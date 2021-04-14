@@ -169,7 +169,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	return err == nil, err
 }
 
-func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfiguration) error {
+func (s *Store) caSetConfigTxn(idx uint64, tx WriteTxn, config *structs.CAConfiguration) error {
 	// Check for an existing config
 	prev, err := tx.First(tableConnectCAConfig, "id")
 	if err != nil {
@@ -326,7 +326,7 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	}
 
 	// Update the index
-	if err := tx.Insert("index", &IndexEntry{tableConnectCARoots, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCARoots, idx}); err != nil {
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -407,7 +407,7 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	}
 
 	// Update the index
-	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -436,7 +436,7 @@ func (s *Store) CADeleteProviderState(idx uint64, id string) error {
 	if err := tx.Delete(tableConnectCABuiltin, providerState); err != nil {
 		return err
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -476,7 +476,7 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	existing, err := tx.First("index", "id", tableConnectCABuiltinSerial)
+	existing, err := tx.First(tableIndex, "id", tableConnectCABuiltinSerial)
 	if err != nil {
 		return 0, fmt.Errorf("failed built-in CA serial number lookup: %s", err)
 	}
@@ -491,7 +491,7 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 	}
 	next := last + 1
 
-	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltinSerial, next}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectCABuiltinSerial, next}); err != nil {
 		return 0, fmt.Errorf("failed updating index: %s", err)
 	}
 

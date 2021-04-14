@@ -305,7 +305,7 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 	// default the namespace to the namespace of this proxy service
 	currentNamespace := s.proxyID.NamespaceOrDefault()
 
-	if s.proxyCfg.TransparentProxy {
+	if s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		// When in transparent proxy we will infer upstreams from intentions with this source
 		err := s.cache.Notify(s.ctx, cachetype.IntentionUpstreamsName, &structs.ServiceSpecificRequest{
 			Datacenter:     s.source.Datacenter,
@@ -333,6 +333,12 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 	for i := range s.proxyCfg.Upstreams {
 		u := s.proxyCfg.Upstreams[i]
 
+		// Store defaults keyed under wildcard so they can be applied to centrally configured upstreams
+		if u.DestinationName == structs.WildcardSpecifier {
+			snap.ConnectProxy.UpstreamConfig[u.DestinationID().String()] = &u
+			continue
+		}
+
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
 		// Watches should not be created for them.
 		if u.CentrallyConfigured {
@@ -344,8 +350,8 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 		if u.Datacenter != "" {
 			dc = u.Datacenter
 		}
-		if s.proxyCfg.TransparentProxy && (dc == "" || dc == s.source.Datacenter) {
-			// In TransparentProxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
+		if s.proxyCfg.Mode == structs.ProxyModeTransparent && (dc == "" || dc == s.source.Datacenter) {
+			// In transparent proxy mode, watches for upstreams in the local DC are handled by the IntentionUpstreams watch.
 			continue
 		}
 
@@ -795,6 +801,17 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 			u, ok := snap.ConnectProxy.UpstreamConfig[svc.String()]
 			if ok {
 				cfgMap = u.Config
+			} else {
+				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
+				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
+				// by the ResolveServiceConfig endpoint.
+				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardSID.String()]
+				if ok {
+					u = defaults
+					cfgMap = defaults.Config
+					snap.ConnectProxy.UpstreamConfig[svc.String()] = defaults
+				}
 			}
 
 			cfg, err := parseReducedUpstreamConfig(cfgMap)
@@ -808,7 +825,18 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 				)
 			}
 
-			err = s.watchDiscoveryChain(snap, cfg, svc.String(), svc.Name, svc.NamespaceOrDefault())
+			meshGateway := s.proxyCfg.MeshGateway
+			if u != nil {
+				meshGateway = meshGateway.OverlayWith(u.MeshGateway)
+			}
+			watchOpts := discoveryChainWatchOpts{
+				id:          svc.String(),
+				name:        svc.Name,
+				namespace:   svc.NamespaceOrDefault(),
+				cfg:         cfg,
+				meshGateway: meshGateway,
+			}
+			err = s.watchDiscoveryChain(snap, watchOpts)
 			if err != nil {
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
 			}
@@ -1592,7 +1620,12 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		for _, service := range services.Services {
 			u := makeUpstream(service)
 
-			err := s.watchDiscoveryChain(snap, reducedUpstreamConfig{}, u.Identifier(), u.DestinationName, u.DestinationNamespace)
+			watchOpts := discoveryChainWatchOpts{
+				id:        u.Identifier(),
+				name:      u.DestinationName,
+				namespace: u.DestinationNamespace,
+			}
+			err := s.watchDiscoveryChain(snap, watchOpts)
 			if err != nil {
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", u.Identifier(), err)
 			}
@@ -1642,8 +1675,16 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	return upstream
 }
 
-func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, cfg reducedUpstreamConfig, id, name, namespace string) error {
-	if _, ok := snap.ConnectProxy.WatchedDiscoveryChains[id]; ok {
+type discoveryChainWatchOpts struct {
+	id          string
+	name        string
+	namespace   string
+	cfg         reducedUpstreamConfig
+	meshGateway structs.MeshGatewayConfig
+}
+
+func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, opts discoveryChainWatchOpts) error {
+	if _, ok := snap.ConnectProxy.WatchedDiscoveryChains[opts.id]; ok {
 		return nil
 	}
 
@@ -1651,12 +1692,13 @@ func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, cfg reducedUpstreamCon
 	err := s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 		Datacenter:             s.source.Datacenter,
 		QueryOptions:           structs.QueryOptions{Token: s.token},
-		Name:                   name,
+		Name:                   opts.name,
 		EvaluateInDatacenter:   s.source.Datacenter,
-		EvaluateInNamespace:    namespace,
-		OverrideProtocol:       cfg.Protocol,
-		OverrideConnectTimeout: cfg.ConnectTimeout(),
-	}, "discovery-chain:"+id, s.ch)
+		EvaluateInNamespace:    opts.namespace,
+		OverrideProtocol:       opts.cfg.Protocol,
+		OverrideConnectTimeout: opts.cfg.ConnectTimeout(),
+		OverrideMeshGateway:    opts.meshGateway,
+	}, "discovery-chain:"+opts.id, s.ch)
 	if err != nil {
 		cancel()
 		return err
@@ -1664,9 +1706,9 @@ func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, cfg reducedUpstreamCon
 
 	switch s.kind {
 	case structs.ServiceKindIngressGateway:
-		snap.IngressGateway.WatchedDiscoveryChains[id] = cancel
+		snap.IngressGateway.WatchedDiscoveryChains[opts.id] = cancel
 	case structs.ServiceKindConnectProxy:
-		snap.ConnectProxy.WatchedDiscoveryChains[id] = cancel
+		snap.ConnectProxy.WatchedDiscoveryChains[opts.id] = cancel
 	default:
 		cancel()
 		return fmt.Errorf("unsupported kind %s", s.kind)

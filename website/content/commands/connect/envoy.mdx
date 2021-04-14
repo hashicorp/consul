@@ -1,7 +1,8 @@
 ---
 layout: commands
-page_title: 'Commands: Connect Proxy'
-description: The connect proxy subcommand is used to run the Envoy proxy for Connect.
+page_title: 'Commands: Connect Envoy'
+sidebar_title: envoy
+description: The connect envoy subcommand is used to generate a bootstrap configuration for Envoy.
 ---
 
 # Consul Connect Envoy
@@ -86,13 +87,13 @@ proxy configuration needed.
   `envoy_prometheus_bind_addr` would point to the "self_admin" cluster where Envoy metrics
   are exposed. The metrics merging feature in consul-k8s uses this to point to the
   merged metrics endpoint combining Envoy and service metrics.
-	Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
+  Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
 
 - `-prometheus-scrape-path` - Sets the path where Envoy will expose metrics on the
   `envoy_prometheus_bind_addr` listener. Default is `/metrics`. For example, if `envoy_prometheus_bind_addr`
-  is `0.0.0.0:20200`, and this flag is set to `/scrape-metrics`, prometheus metrics would 
+  is `0.0.0.0:20200`, and this flag is set to `/scrape-metrics`, prometheus metrics would
   be scrapable at `0.0.0.0:20200/scrape-metrics`.
-	Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
+  Only applicable when `envoy_prometheus_bind_addr` is set in proxy config.
 
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's

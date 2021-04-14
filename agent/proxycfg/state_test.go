@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -1540,7 +1541,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Address: "10.0.1.1",
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
-					TransparentProxy:       true,
+					Mode:                   structs.ProxyModeTransparent,
 				},
 			},
 			sourceDC: "dc1",
@@ -1605,7 +1606,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Address: "10.0.1.1",
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
-					TransparentProxy:       true,
+					Mode:                   structs.ProxyModeTransparent,
+					Upstreams: structs.Upstreams{
+						{
+							CentrallyConfigured:  true,
+							DestinationName:      structs.WildcardSpecifier,
+							DestinationNamespace: structs.WildcardSpecifier,
+							Config: map[string]interface{}{
+								"connect_timeout_ms": 6000,
+							},
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						},
+					},
 				},
 			},
 			sourceDC: "dc1",
@@ -1622,10 +1634,15 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
 						require.True(t, snap.MeshGateway.IsEmpty())
 						require.True(t, snap.IngressGateway.IsEmpty())
 						require.True(t, snap.TerminatingGateway.IsEmpty())
+
+						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
+						require.Len(t, snap.ConnectProxy.UpstreamConfig, 1)
+
+						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wc.String())
 					},
 				},
 				// Valid snapshot after roots, leaf, and intentions
@@ -1694,16 +1711,25 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 						// Should not have results yet
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
+
+						require.Len(t, snap.ConnectProxy.UpstreamConfig, 2)
+						cfg, ok := snap.ConnectProxy.UpstreamConfig[db.String()]
+						require.True(t, ok)
+
+						// Upstream config should have been inherited from defaults under wildcard key
+						require.Equal(t, cfg.Config["connect_timeout_ms"], 6000)
 					},
 				},
 				// Discovery chain updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
 						"discovery-chain:" + dbStr: genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
-							Name:                 "db",
-							EvaluateInDatacenter: "dc1",
-							EvaluateInNamespace:  "default",
-							Datacenter:           "dc1",
+							Name:                   "db",
+							EvaluateInDatacenter:   "dc1",
+							EvaluateInNamespace:    "default",
+							Datacenter:             "dc1",
+							OverrideConnectTimeout: 6 * time.Second,
+							OverrideMeshGateway:    structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						}),
 					},
 					events: []cache.UpdateEvent{

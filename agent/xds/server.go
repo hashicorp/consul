@@ -52,7 +52,7 @@ const (
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
 
-	// OutboundListenerName is the name we give the outbound Envoy listener when TransparentProxy mode is enabled.
+	// OutboundListenerName is the name we give the outbound Envoy listener when transparent proxy mode is enabled.
 	OutboundListenerName = "outbound_listener"
 
 	// LocalAppClusterName is the name we give the local application "cluster" in
@@ -86,7 +86,7 @@ const (
 	// OriginalDestinationClusterName is the name we give to the passthrough
 	// cluster which redirects transparently-proxied requests to their original
 	// destination. This cluster prevents Consul from blocking connections to
-	// destinations outside of the catalog when in TransparentProxy mode.
+	// destinations outside of the catalog when in transparent proxy mode.
 	OriginalDestinationClusterName = "original-destination"
 
 	// DefaultAuthCheckFrequency is the default value for

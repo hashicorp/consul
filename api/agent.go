@@ -118,11 +118,12 @@ type AgentServiceConnectProxyConfig struct {
 	DestinationServiceID   string                 `json:",omitempty"`
 	LocalServiceAddress    string                 `json:",omitempty"`
 	LocalServicePort       int                    `json:",omitempty"`
+	Mode                   ProxyMode              `json:",omitempty"`
+	TransparentProxy       TransparentProxyConfig `json:",omitempty"`
 	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
 	Upstreams              []Upstream             `json:",omitempty"`
 	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
 	Expose                 ExposeConfig           `json:",omitempty"`
-	TransparentProxy       bool                   `json:",omitempty"`
 }
 
 const (

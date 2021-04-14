@@ -76,6 +76,7 @@ message HealthCheckDefinition {
     repeated string ScriptArgs = 10;
     string DockerContainerID = 11;
     string Shell = 12;
+    string H2PING = 20;
     string GRPC = 13;
     bool GRPCUseTLS = 14;
     string AliasNode = 15;
@@ -86,10 +87,10 @@ message HealthCheckDefinition {
 
 // CheckType is used to create either the CheckMonitor or the CheckTTL.
 // The following types are supported: Script, HTTP, TCP, Docker, TTL, GRPC,
-// Alias. Script,
-// HTTP, Docker, TCP and GRPC all require Interval. Only one of the types may
+// Alias. Script, H2PING,
+// HTTP, Docker, TCP, H2PING and GRPC all require Interval. Only one of the types may
 // to be provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
-// Docker/Interval or GRPC/Interval or AliasService.
+// Docker/Interval or GRPC/Interval or H2PING/Interval or AliasService.
 //
 // mog annotation:
 //
@@ -116,6 +117,7 @@ message CheckType {
     string AliasService = 11;
     string DockerContainerID = 12;
     string Shell = 13;
+    string H2PING = 28;
     string GRPC = 14;
     bool GRPCUseTLS = 15;
     string TLSServerName = 27;

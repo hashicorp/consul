@@ -1579,6 +1579,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		SuccessBeforePassing:           intVal(v.SuccessBeforePassing),
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
+		H2PING:                         stringVal(v.H2PING),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
@@ -1690,7 +1691,8 @@ func (b *builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
 		Expose:                 b.exposeConfVal(v.Expose),
-		TransparentProxy:       boolVal(v.TransparentProxy),
+		Mode:                   b.proxyModeVal(v.Mode),
+		TransparentProxy:       b.transparentProxyConfVal(v.TransparentProxy),
 	}
 }
 
@@ -1740,6 +1742,28 @@ func (b *builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 	out.Checks = boolVal(v.Checks)
 	out.Paths = b.pathsVal(v.Paths)
 	return out
+}
+
+func (b *builder) transparentProxyConfVal(tproxyConf *TransparentProxyConfig) structs.TransparentProxyConfig {
+	var out structs.TransparentProxyConfig
+	if tproxyConf == nil {
+		return out
+	}
+
+	out.OutboundListenerPort = intVal(tproxyConf.OutboundListenerPort)
+	return out
+}
+
+func (b *builder) proxyModeVal(v *string) structs.ProxyMode {
+	if v == nil {
+		return structs.ProxyModeDefault
+	}
+
+	mode, err := structs.ValidateProxyMode(*v)
+	if err != nil {
+		b.err = multierror.Append(b.err, err)
+	}
+	return mode
 }
 
 func (b *builder) pathsVal(v []ExposePath) []structs.ExposePath {

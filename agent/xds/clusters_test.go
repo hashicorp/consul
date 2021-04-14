@@ -629,7 +629,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.TransparentProxy = true
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.ClusterConfigSet = true
+				snap.ConnectProxy.ClusterConfig = &structs.ClusterConfigEntry{
+					TransparentProxy: structs.TransparentProxyClusterConfig{
+						CatalogDestinationsOnly: false,
+					},
+				}
 			},
 		},
 	}

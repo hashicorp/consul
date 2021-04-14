@@ -481,11 +481,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.TransparentProxy = true
+				snap.Proxy.Mode = structs.ProxyModeTransparent
 
 				snap.ConnectProxy.ClusterConfigSet = true
 
-				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in TransparentProxy mode
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
 					t, "google", "default", "dc1",
 					connect.TestClusterID+".consul", "dc1", nil)
@@ -514,7 +514,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "transparent-proxy-catalog-destinations-only",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.TransparentProxy = true
+				snap.Proxy.Mode = structs.ProxyModeTransparent
 
 				snap.ConnectProxy.ClusterConfigSet = true
 				snap.ConnectProxy.ClusterConfig = &structs.ClusterConfigEntry{
@@ -525,7 +525,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				}
 
-				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in TransparentProxy mode
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
 					t, "google", "default", "dc1",
 					connect.TestClusterID+".consul", "dc1", nil)

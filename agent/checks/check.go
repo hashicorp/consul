@@ -1,8 +1,10 @@
 package checks
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
+	http2 "golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
 	"net"
@@ -502,6 +504,86 @@ func (c *CheckHTTP) check() {
 		// CRITICAL
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, result)
 	}
+}
+
+type CheckH2PING struct {
+	CheckID         structs.CheckID
+	ServiceID       structs.ServiceID
+	H2PING          string
+	Interval        time.Duration
+	Timeout         time.Duration
+	Logger          hclog.Logger
+	TLSClientConfig *tls.Config
+	StatusHandler   *StatusHandler
+
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+}
+
+func (c *CheckH2PING) check() {
+	t := &http2.Transport{
+		TLSClientConfig: c.TLSClientConfig,
+	}
+	target := c.H2PING
+	conn, err := tls.Dial("tcp", target, c.TLSClientConfig)
+	if err != nil {
+		message := fmt.Sprintf("Failed to dial to %s: %s", target, err)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
+		return
+	}
+	defer conn.Close()
+	clientConn, err := t.NewClientConn(conn)
+	if err != nil {
+		message := fmt.Sprintf("Failed to create client connection %s", err)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+	err = clientConn.Ping(ctx)
+	if err == nil {
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, "HTTP2 ping was successful")
+	} else {
+		message := fmt.Sprintf("HTTP2 ping failed: %s", err)
+		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
+	}
+}
+
+// Stop is used to stop an H2PING check.
+func (c *CheckH2PING) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+}
+
+func (c *CheckH2PING) run() {
+	// Get the randomized initial pause time
+	initialPauseTime := lib.RandomStagger(c.Interval)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+func (c *CheckH2PING) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if c.Timeout <= 0 {
+		c.Timeout = 10 * time.Second
+	}
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	go c.run()
 }
 
 // CheckTCP is used to periodically make an TCP/UDP connection to

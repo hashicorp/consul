@@ -95,6 +95,14 @@ var expectedFieldConfigMeshGatewayConfig bexpr.FieldConfigurations = bexpr.Field
 	},
 }
 
+var expectedFieldConfigTransparentProxyConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
+	"OutboundListenerPort": &bexpr.FieldConfiguration{
+		StructFieldName:     "OutboundListenerPort",
+		CoerceFn:            bexpr.CoerceInt,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
+}
+
 var expectedFieldConfigExposeConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{
 	"Checks": &bexpr.FieldConfiguration{
 		StructFieldName:     "Checks",
@@ -208,9 +216,13 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 		SubFields:       expectedFieldConfigExposeConfig,
 	},
 	"TransparentProxy": &bexpr.FieldConfiguration{
-		StructFieldName:     "TransparentProxy",
-		CoerceFn:            bexpr.CoerceBool,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+		StructFieldName: "TransparentProxy",
+		SubFields:       expectedFieldConfigTransparentProxyConfig,
+	},
+	"Mode": &bexpr.FieldConfiguration{
+		StructFieldName:     "Mode",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
 }
 

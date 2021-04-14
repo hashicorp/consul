@@ -16,7 +16,7 @@ func (g *Graveyard) insertTombstoneWithTxn(tx WriteTxn, _ string, stone *Tombsto
 			return fmt.Errorf("failed updating tombstone index: %v", err)
 		}
 	} else {
-		if err := tx.Insert("index", &IndexEntry{"tombstones", stone.Index}); err != nil {
+		if err := tx.Insert(tableIndex, &IndexEntry{"tombstones", stone.Index}); err != nil {
 			return fmt.Errorf("failed updating tombstone index: %s", err)
 		}
 	}

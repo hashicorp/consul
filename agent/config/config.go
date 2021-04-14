@@ -411,6 +411,7 @@ type CheckDefinition struct {
 	AliasService                   *string             `mapstructure:"alias_service"`
 	Timeout                        *string             `mapstructure:"timeout"`
 	TTL                            *string             `mapstructure:"ttl"`
+	H2PING                         *string             `mapstructure:"h2ping"`
 	SuccessBeforePassing           *int                `mapstructure:"success_before_passing"`
 	FailuresBeforeCritical         *int                `mapstructure:"failures_before_critical"`
 	DeregisterCriticalServiceAfter *string             `mapstructure:"deregister_critical_service_after" alias:"deregistercriticalserviceafter"`
@@ -460,6 +461,12 @@ type ServiceProxy struct {
 	// (DestinationServiceID is set) but otherwise will be ignored.
 	LocalServicePort *int `mapstructure:"local_service_port"`
 
+	// TransparentProxy configuration.
+	TransparentProxy *TransparentProxyConfig `mapstructure:"transparent_proxy"`
+
+	// Mode represents how the proxy's inbound and upstream listeners are dialed.
+	Mode *string `mapstructure:"mode"`
+
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
 	Config map[string]interface{} `mapstructure:"config"`
@@ -473,10 +480,6 @@ type ServiceProxy struct {
 
 	// Expose defines whether checks or paths are exposed through the proxy
 	Expose *ExposeConfig `mapstructure:"expose"`
-
-	// TransparentProxy toggles whether inbound and outbound traffic is being
-	// redirected to the proxy.
-	TransparentProxy *bool `mapstructure:"transparent_proxy"`
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -520,6 +523,11 @@ type Upstream struct {
 type MeshGatewayConfig struct {
 	// Mesh Gateway Mode
 	Mode *string `mapstructure:"mode"`
+}
+
+type TransparentProxyConfig struct {
+	// Mesh Gateway Mode
+	OutboundListenerPort *int `mapstructure:"outbound_listener_port"`
 }
 
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.

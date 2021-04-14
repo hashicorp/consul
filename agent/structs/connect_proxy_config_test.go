@@ -572,3 +572,37 @@ func TestValidateMeshGatewayMode(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateProxyMode(t *testing.T) {
+	for _, tc := range []struct {
+		modeConstant string
+		modeExplicit string
+		expect       ProxyMode
+		ok           bool
+	}{
+		{string(ProxyModeDefault), "", ProxyModeDefault, true},
+		{string(ProxyModeDirect), "direct", ProxyModeDirect, true},
+		{string(ProxyModeTransparent), "transparent", ProxyModeTransparent, true},
+	} {
+		tc := tc
+
+		t.Run(tc.modeConstant+" (constant)", func(t *testing.T) {
+			got, err := ValidateProxyMode(tc.modeConstant)
+			if tc.ok {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			} else {
+				require.Error(t, err)
+			}
+		})
+		t.Run(tc.modeExplicit+" (explicit)", func(t *testing.T) {
+			got, err := ValidateProxyMode(tc.modeExplicit)
+			if tc.ok {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, got)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
