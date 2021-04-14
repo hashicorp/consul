@@ -200,9 +200,8 @@
             "path": "connect/proxies/integrate"
           },
           {
-            "title": "Managed (Deprecated)",
-            "path": "connect/proxies/managed-deprecated",
-            "hidden": true
+            "title": "Managed Proxies (Deprecated)",
+            "path": "connect/proxies/managed-deprecated"
           }
         ]
       },
