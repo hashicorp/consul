@@ -1594,11 +1594,13 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					Overrides: []*UpstreamConfig{
 						{
 							Name:             "redis",
+							EnterpriseMeta:   *DefaultEnterpriseMeta(),
 							Protocol:         "tcp",
 							ConnectTimeoutMs: 0,
 						},
 						{
 							Name:             "memcached",
+							EnterpriseMeta:   *DefaultEnterpriseMeta(),
 							ConnectTimeoutMs: 0,
 						},
 					},
