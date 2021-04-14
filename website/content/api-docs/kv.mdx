@@ -136,7 +136,7 @@ flags or want to implement a key-space explorer.
 #### Raw Response
 
 When using the `?raw` endpoint, the response is not `application/json`, but
-rather the content type of the uploaded content.
+is instead `text/plain`.
 
 ```
 )k������z^�-�ɑj�q����#u�-R�r��T�D��٬�Y��l,�ιK��Fm��}�#e��
@@ -144,6 +144,10 @@ rather the content type of the uploaded content.
 
 (Yes, that is intentionally a bunch of gibberish characters to showcase the
 response)
+
+!> **Warning:** Consul versions before 1.9.5, 1.8.10 and 1.7.14 detected the content-type
+of the raw KV data which could be used for cross-site scripting (XSS) attacks. This is 
+identified publicly as CVE-2020-25864.
 
 ## Create/Update Key
 
