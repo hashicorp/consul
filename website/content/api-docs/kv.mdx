@@ -145,6 +145,10 @@ is instead `text/plain`.
 (Yes, that is intentionally a bunch of gibberish characters to showcase the
 response)
 
+!> **Warning:** Consul versions before 1.9.5, 1.8.10 and 1.7.14 detected the content-type
+of the raw KV data which could be used for cross-site scripting (XSS) attacks. This is 
+identified publicly as CVE-2020-25864.
+
 ## Create/Update Key
 
 This endpoint updates the value of the specified key. If no key exists at the given
