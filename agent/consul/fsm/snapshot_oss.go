@@ -1,10 +1,11 @@
 package fsm
 
 import (
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
+
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func init() {
@@ -247,7 +248,7 @@ func (s *snapshot) persistACLs(sink raft.SnapshotSink,
 		return err
 	}
 
-	for method := methods.Next(); method != nil; method = rules.Next() {
+	for method := methods.Next(); method != nil; method = methods.Next() {
 		if _, err := sink.Write([]byte{byte(structs.ACLAuthMethodSetRequestType)}); err != nil {
 			return err
 		}
