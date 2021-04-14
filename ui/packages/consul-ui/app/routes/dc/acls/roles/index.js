@@ -23,7 +23,7 @@ export default class IndexRoute extends Route.extend(WithRoleActions) {
     return hash({
       ...this.repo.status({
         items: this.repo.findAllByDatacenter({
-          ns: this.optionalParams().nspace || '',
+          ns: this.optionalParams().nspace,
           dc: this.modelFor('dc').dc.Name,
         }),
       }),

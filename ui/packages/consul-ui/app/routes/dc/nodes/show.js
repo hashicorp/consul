@@ -7,7 +7,7 @@ export default class ShowRoute extends Route {
 
   model(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
     const name = params.name;
     return hash({
       dc: dc,

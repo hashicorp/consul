@@ -19,7 +19,7 @@ export default class ServicesRoute extends Route {
 
   async model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
     const parent = this.routeName
       .split('.')
       .slice(0, -1)

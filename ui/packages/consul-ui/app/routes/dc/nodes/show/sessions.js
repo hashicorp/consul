@@ -20,7 +20,7 @@ export default class SessionsRoute extends Route.extend(WithBlockingActions) {
       .slice(0, -1)
       .join('.');
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
     const node = this.paramsFor(parent).name;
     return hash({
       dc: dc,

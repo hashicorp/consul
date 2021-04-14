@@ -8,7 +8,7 @@ export default class ShowRoute extends SingleRoute {
 
   model(params) {
     const dc = this.modelFor('dc').dc;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
 
     return super.model(...arguments).then(model => {
       return hash({

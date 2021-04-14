@@ -1,3 +1,12 @@
+import { env } from 'consul-ui/env';
+const OPTIONAL = {};
+if (env('CONSUL_NSPACES_ENABLED')) {
+  OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+}
+// if (true) {
+//   OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+// }
+//
 const _uuid = function() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
@@ -121,17 +130,13 @@ export default class FSMWithOptionalLocation {
   }
 
   getURLForTransition(url) {
-    const optional = {};
-    if (this.env.var('CONSUL_NSPACES_ENABLED')) {
-      optional.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
-    }
     this.optional = {};
     url = this.getURLFrom(url)
       .split('/')
       .filter((item, i) => {
         if (i < 3) {
           let found = false;
-          Object.entries(optional).reduce((prev, [key, re]) => {
+          Object.entries(OPTIONAL).reduce((prev, [key, re]) => {
             const res = re.exec(item);
             if (res !== null) {
               prev[key] = {
@@ -151,9 +156,13 @@ export default class FSMWithOptionalLocation {
   }
 
   optionalParams() {
-    let optional = Object.entries(this.optional || {});
-    return optional.reduce((prev, [key, value]) => {
-      prev[key] = value.match;
+    let optional = this.optional || {};
+    return Object.keys(OPTIONAL).reduce((prev, item) => {
+      let value = '';
+      if (typeof optional[item] !== 'undefined') {
+        value = optional[item].match;
+      }
+      prev[item] = value;
       return prev;
     }, {});
   }
@@ -175,6 +184,9 @@ export default class FSMWithOptionalLocation {
     }
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
+    }
+    if (typeof hash.partition !== 'undefined') {
+      hash.partition = `-${hash.partition}`;
     }
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
@@ -242,8 +254,8 @@ export default class FSMWithOptionalLocation {
       if (Object.keys(optional || {}).length === 0) {
         optional = undefined;
       }
-      optional = Object.entries(optional || this.optional || {});
-      optional = optional.reduce((prev, [key, value]) => value.value || value, []);
+      optional = Object.values(optional || this.optional || {});
+      optional = optional.map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

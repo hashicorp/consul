@@ -13,7 +13,7 @@ export default Route.extend({
       typeof repo !== 'undefined'
     );
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
     const create = this.isCreate(...arguments);
     return hash({
       dc: dc,

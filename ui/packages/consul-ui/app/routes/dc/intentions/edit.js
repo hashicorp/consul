@@ -7,7 +7,7 @@ export default class EditRoute extends Route {
 
   async model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
 
     let item;
     if (typeof params.intention_id !== 'undefined') {

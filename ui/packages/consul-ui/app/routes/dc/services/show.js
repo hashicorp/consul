@@ -8,7 +8,7 @@ export default class ShowRoute extends Route {
 
   async model(params, transition) {
     const dc = this.modelFor('dc').dc;
-    const nspace = this.optionalParams().nspace || '';
+    const nspace = this.optionalParams().nspace;
     const slug = params.name;
 
     let chain;
