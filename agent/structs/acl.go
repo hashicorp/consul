@@ -1798,3 +1798,55 @@ func CreateACLAuthorizationResponses(authz acl.Authorizer, requests []ACLAuthori
 
 	return responses, nil
 }
+
+type AgentMasterTokenIdentity struct {
+	agent    string
+	secretID string
+}
+
+func NewAgentMasterTokenIdentity(agent string, secretID string) *AgentMasterTokenIdentity {
+	return &AgentMasterTokenIdentity{
+		agent:    agent,
+		secretID: secretID,
+	}
+}
+
+func (id *AgentMasterTokenIdentity) ID() string {
+	return fmt.Sprintf("agent-master:%s", id.agent)
+}
+
+func (id *AgentMasterTokenIdentity) SecretToken() string {
+	return id.secretID
+}
+
+func (id *AgentMasterTokenIdentity) PolicyIDs() []string {
+	return nil
+}
+
+func (id *AgentMasterTokenIdentity) RoleIDs() []string {
+	return nil
+}
+
+func (id *AgentMasterTokenIdentity) EmbeddedPolicy() *ACLPolicy {
+	return nil
+}
+
+func (id *AgentMasterTokenIdentity) ServiceIdentityList() []*ACLServiceIdentity {
+	return nil
+}
+
+func (id *AgentMasterTokenIdentity) NodeIdentityList() []*ACLNodeIdentity {
+	return nil
+}
+
+func (id *AgentMasterTokenIdentity) IsExpired(asOf time.Time) bool {
+	return false
+}
+
+func (id *AgentMasterTokenIdentity) IsLocal() bool {
+	return true
+}
+
+func (id *AgentMasterTokenIdentity) EnterpriseMetadata() *EnterpriseMeta {
+	return nil
+}

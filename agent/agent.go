@@ -386,13 +386,6 @@ func New(bd BaseDeps) (*Agent, error) {
 
 	a.serviceManager = NewServiceManager(&a)
 
-	// TODO: do this somewhere else, maybe move to newBaseDeps
-	var err error
-	a.aclMasterAuthorizer, err = initializeACLs(bd.RuntimeConfig.NodeName)
-	if err != nil {
-		return nil, err
-	}
-
 	// We used to do this in the Start method. However it doesn't need to go
 	// there any longer. Originally it did because we passed the agent
 	// delegate to some of the cache registrations. Now we just
@@ -656,9 +649,11 @@ func (a *Agent) listenAndServeGRPC() error {
 	}
 
 	xdsServer := &xds.Server{
-		Logger:             a.logger.Named(logging.Envoy),
-		CfgMgr:             a.proxyConfig,
-		ResolveToken:       a.resolveToken,
+		Logger: a.logger.Named(logging.Envoy),
+		CfgMgr: a.proxyConfig,
+		ResolveToken: func(id string) (acl.Authorizer, error) {
+			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
+		},
 		CheckFetcher:       a,
 		CfgFetcher:         a,
 		AuthCheckFrequency: xds.DefaultAuthCheckFrequency,

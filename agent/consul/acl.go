@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -205,6 +206,9 @@ type ACLResolverConfig struct {
 	// ACLConfig is the configuration necessary to pass through to the acl package when creating authorizers
 	// and when authorizing access
 	ACLConfig *acl.Config
+
+	// Tokens is the token store of locally managed tokens
+	Tokens *token.Store
 }
 
 // ACLResolver is the type to handle all your token and policy resolution needs.
@@ -239,6 +243,8 @@ type ACLResolver struct {
 	delegate ACLResolverDelegate
 	aclConf  *acl.Config
 
+	tokens *token.Store
+
 	cache         *structs.ACLCaches
 	identityGroup singleflight.Group
 	policyGroup   singleflight.Group
@@ -250,6 +256,33 @@ type ACLResolver struct {
 	autoDisable  bool
 	disabled     time.Time
 	disabledLock sync.RWMutex
+
+	agentMasterAuthz acl.Authorizer
+}
+
+func agentMasterAuthorizer(nodeName string) (acl.Authorizer, error) {
+	// Build a policy for the agent master token.
+	// The builtin agent master policy allows reading any node information
+	// and allows writes to the agent with the node name of the running agent
+	// only. This used to allow a prefix match on agent names but that seems
+	// entirely unnecessary so it is now using an exact match.
+	policy := &acl.Policy{
+		PolicyRules: acl.PolicyRules{
+			Agents: []*acl.AgentRule{
+				{
+					Node:   nodeName,
+					Policy: acl.PolicyWrite,
+				},
+			},
+			NodePrefixes: []*acl.NodeRule{
+				{
+					Name:   "",
+					Policy: acl.PolicyRead,
+				},
+			},
+		},
+	}
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
@@ -286,14 +319,21 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
 
+	authz, err := agentMasterAuthorizer(config.Config.NodeName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize the agent master authorizer")
+	}
+
 	return &ACLResolver{
-		config:      config.Config,
-		logger:      config.Logger.Named(logging.ACL),
-		delegate:    config.Delegate,
-		aclConf:     config.ACLConfig,
-		cache:       cache,
-		autoDisable: config.AutoDisable,
-		down:        down,
+		config:           config.Config,
+		logger:           config.Logger.Named(logging.ACL),
+		delegate:         config.Delegate,
+		aclConf:          config.ACLConfig,
+		cache:            cache,
+		autoDisable:      config.AutoDisable,
+		down:             down,
+		tokens:           config.Tokens,
+		agentMasterAuthz: authz,
 	}, nil
 }
 
@@ -1131,6 +1171,19 @@ func (r *ACLResolver) disableACLsWhenUpstreamDisabled(err error) error {
 	return err
 }
 
+func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdentity, acl.Authorizer, bool) {
+	// can only resolve local tokens if we were given a token store
+	if r.tokens == nil {
+		return nil, nil, false
+	}
+
+	if r.tokens.IsAgentMasterToken(token) {
+		return structs.NewAgentMasterTokenIdentity(r.config.NodeName, token), r.agentMasterAuthz, true
+	}
+
+	return r.resolveLocallyManagedEnterpriseToken(token)
+}
+
 func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	if !r.ACLsEnabled() {
 		return nil, nil, nil
@@ -1143,6 +1196,10 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	// handle the anonymous token
 	if token == "" {
 		token = anonymousToken
+	}
+
+	if ident, authz, ok := r.resolveLocallyManagedToken(token); ok {
+		return ident, authz, nil
 	}
 
 	if r.delegate.UseLegacyACLs() {
@@ -1199,6 +1256,10 @@ func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity,
 	// handle the anonymous token
 	if token == "" {
 		token = anonymousToken
+	}
+
+	if ident, _, ok := r.resolveLocallyManagedToken(token); ok {
+		return ident, nil
 	}
 
 	if r.delegate.UseLegacyACLs() {

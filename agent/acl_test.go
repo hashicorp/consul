@@ -177,44 +177,9 @@ func TestACL_Version8EnabledByDefault(t *testing.T) {
 	}
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn, nil)
 
-	_, err := a.resolveToken("nope")
+	_, err := a.delegate.ResolveTokenAndDefaultMeta("nope", nil, nil)
 	require.Error(t, err)
 	require.True(t, called)
-}
-
-func TestACL_AgentMasterToken(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, nil)
-	err := a.tokens.Load(a.config.ACLTokens, a.logger)
-	require.NoError(t, err)
-
-	authz, err := a.resolveToken("towel")
-	require.NotNil(t, authz)
-	require.Nil(t, err)
-
-	require.Equal(t, acl.Allow, authz.AgentRead(a.config.NodeName, nil))
-	require.Equal(t, acl.Allow, authz.AgentWrite(a.config.NodeName, nil))
-	require.Equal(t, acl.Allow, authz.NodeRead("foobarbaz", nil))
-	require.Equal(t, acl.Deny, authz.NodeWrite("foobarbaz", nil))
-}
-
-func TestACL_RootAuthorizersDenied(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, nil)
-	authz, err := a.resolveToken("deny")
-	require.Nil(t, authz)
-	require.Error(t, err)
-	require.True(t, acl.IsErrRootDenied(err))
-	authz, err = a.resolveToken("allow")
-	require.Nil(t, authz)
-	require.Error(t, err)
-	require.True(t, acl.IsErrRootDenied(err))
-	authz, err = a.resolveToken("manage")
-	require.Nil(t, authz)
-	require.Error(t, err)
-	require.True(t, acl.IsErrRootDenied(err))
 }
 
 func authzFromPolicy(policy *acl.Policy, cfg *acl.Config) (acl.Authorizer, error) {
@@ -535,7 +500,7 @@ func TestACL_ResolveIdentity(t *testing.T) {
 
 	// just double checkingto ensure if we had used the wrong function
 	// that an error would be produced
-	_, err = a.resolveToken(nodeROSecret)
+	_, err = a.delegate.ResolveTokenAndDefaultMeta(nodeROSecret, nil, nil)
 	require.Error(t, err)
 
 }

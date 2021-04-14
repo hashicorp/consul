@@ -236,9 +236,6 @@ func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 }
 
 func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	if id, authz := s.ResolveEntTokenToIdentityAndAuthorizer(token); id != nil && authz != nil {
-		return id, authz, nil
-	}
 	return s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 }
 
@@ -271,9 +268,6 @@ func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
-	if id, authz := s.ResolveEntTokenToIdentityAndAuthorizer(token); id != nil && authz != nil {
-		return s.acls.filterACLWithAuthorizer(authz, subj)
-	}
 	return s.acls.filterACL(token, subj)
 }
 
