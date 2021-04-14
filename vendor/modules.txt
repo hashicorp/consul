@@ -253,7 +253,7 @@ github.com/hashicorp/hcl/json/token
 # github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
-# github.com/hashicorp/mdns v1.0.1
+# github.com/hashicorp/mdns v1.0.4
 github.com/hashicorp/mdns
 # github.com/hashicorp/memberlist v0.2.2
 github.com/hashicorp/memberlist
@@ -303,7 +303,7 @@ github.com/mattn/go-colorable
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/miekg/dns v1.1.26
+# github.com/miekg/dns v1.1.41
 github.com/miekg/dns
 # github.com/mitchellh/cli v1.1.0
 github.com/mitchellh/cli
@@ -433,7 +433,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20190923162816-aa69164e4478
+# golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -456,15 +456,16 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+# golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.6
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/internal
