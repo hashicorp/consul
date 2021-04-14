@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestSession_Apply(t *testing.T) {
@@ -925,7 +926,7 @@ func TestSession_Apply_BadTTL(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if err.Error() != "Session TTL '10z' invalid: time: unknown unit z in duration 10z" {
+	if err.Error() != `Session TTL '10z' invalid: time: unknown unit "z" in duration "10z"` {
 		t.Fatalf("incorrect error message: %s", err.Error())
 	}
 

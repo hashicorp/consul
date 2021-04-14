@@ -11,9 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func startRPCTLSServer(config *Config) (net.Conn, chan error) {
@@ -215,7 +216,6 @@ func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
 	tlsConn := tlsClient.(*tls.Conn)
 	cs := tlsConn.ConnectionState()
 	require.Equal(t, "foo", cs.NegotiatedProtocol)
-	require.True(t, cs.NegotiatedProtocolIsMutual)
 
 	err = <-errc
 	require.NoError(t, err)

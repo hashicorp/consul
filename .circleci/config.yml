@@ -3,7 +3,7 @@ version: 2.1
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.14.13
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.15.5
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
 
   paths:
@@ -305,7 +305,7 @@ jobs:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "darwin freebsd linux windows"
+      XC_OS: "freebsd linux windows"
       XC_ARCH: "386"
 
   # build all amd64 architecture supported OS binaries
