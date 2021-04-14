@@ -6,6 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/autopilot"
@@ -14,9 +18,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
@@ -127,6 +128,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Config: map[string]interface{}{
 			"SessionID": "952ebfa8-2a42-46f0-bcd3-fd98a842000e",
 		},
+	}
+	require.NoError(fsm.state.ACLAuthMethodSet(1, method))
+
+	method = &structs.ACLAuthMethod{
+		Name:        "some-method2",
+		Type:        "testing",
+		Description: "test snapshot auth method",
 	}
 	require.NoError(fsm.state.ACLAuthMethodSet(1, method))
 
@@ -406,10 +414,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(err)
 	require.Equal(bindingRule, bindingRule2)
 
-	// Verify ACL Auth Method is restored
-	_, method2, err := fsm2.state.ACLAuthMethodGetByName(nil, method.Name, nil)
+	// Verify ACL Auth Methods are restored
+	_, authMethods, err := fsm2.state.ACLAuthMethodList(nil, nil)
 	require.NoError(err)
-	require.Equal(method, method2)
+	require.Len(authMethods, 2)
+	require.Equal("some-method", authMethods[0].Name)
+	require.Equal("some-method2", authMethods[1].Name)
 
 	// Verify ACL Token is restored
 	_, token2, err := fsm2.state.ACLTokenGetByAccessor(nil, token.AccessorID, nil)
