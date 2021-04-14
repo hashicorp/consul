@@ -505,6 +505,10 @@ func testUnmanagedProxy(t *testing.T) *AgentService {
 			LocalServiceAddress:    "127.0.0.2",
 			LocalServicePort:       8080,
 			Upstreams:              testUpstreams(t),
+			Mode:                   ProxyModeTransparent,
+			TransparentProxy: &TransparentProxyConfig{
+				OutboundListenerPort: 808,
+			},
 		},
 		ID:      "web-proxy1",
 		Service: "web-proxy",

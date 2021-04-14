@@ -275,7 +275,7 @@ func TestParseConfigEntry(t *testing.T) {
 					Mode: api.MeshGatewayModeRemote,
 				},
 				Mode: api.ProxyModeDirect,
-				TransparentProxy: api.TransparentProxyConfig{
+				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
 				},
 			},
@@ -297,7 +297,7 @@ func TestParseConfigEntry(t *testing.T) {
 					Mode: api.MeshGatewayModeRemote,
 				},
 				Mode: api.ProxyModeDirect,
-				TransparentProxy: api.TransparentProxyConfig{
+				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
 				},
 			},
@@ -654,10 +654,10 @@ func TestParseConfigEntry(t *testing.T) {
 					Mode: api.MeshGatewayModeRemote,
 				},
 				Mode: api.ProxyModeDirect,
-				TransparentProxy: api.TransparentProxyConfig{
+				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
 				},
-				Connect: api.ConnectConfiguration{
+				Connect: &api.ConnectConfiguration{
 					UpstreamConfigs: map[string]api.UpstreamConfig{
 						"redis": {
 							PassiveHealthCheck: &api.PassiveHealthCheck{

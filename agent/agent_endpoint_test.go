@@ -3519,6 +3519,10 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 					LocalBindPort:   1235,
 				},
 			},
+			Mode: api.ProxyModeTransparent,
+			TransparentProxy: &api.TransparentProxyConfig{
+				OutboundListenerPort: 808,
+			},
 		},
 	}
 

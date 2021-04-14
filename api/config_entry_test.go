@@ -321,7 +321,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Mode: MeshGatewayModeRemote,
 				},
 				Mode:             ProxyModeTransparent,
-				TransparentProxy: TransparentProxyConfig{OutboundListenerPort: 808},
+				TransparentProxy: &TransparentProxyConfig{OutboundListenerPort: 808},
 			},
 		},
 		{
@@ -388,8 +388,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Mode: MeshGatewayModeRemote,
 				},
 				Mode:             ProxyModeTransparent,
-				TransparentProxy: TransparentProxyConfig{OutboundListenerPort: 808},
-				Connect: ConnectConfiguration{
+				TransparentProxy: &TransparentProxyConfig{OutboundListenerPort: 808},
+				Connect: &ConnectConfiguration{
 					UpstreamConfigs: map[string]UpstreamConfig{
 						"redis": {
 							PassiveHealthCheck: &PassiveHealthCheck{

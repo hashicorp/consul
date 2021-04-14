@@ -110,8 +110,8 @@ type TransparentProxyConfig struct {
 	OutboundListenerPort int `json:",omitempty" alias:"outbound_listener_port"`
 }
 
-func (c TransparentProxyConfig) ToAPI() api.TransparentProxyConfig {
-	return api.TransparentProxyConfig{OutboundListenerPort: c.OutboundListenerPort}
+func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
+	return &api.TransparentProxyConfig{OutboundListenerPort: c.OutboundListenerPort}
 }
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed

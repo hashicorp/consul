@@ -46,6 +46,10 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						LocalBindAddress: "127.10.10.10",
 					},
 				},
+				Mode: ProxyModeTransparent,
+				TransparentProxy: TransparentProxyConfig{
+					OutboundListenerPort: 808,
+				},
 			},
 			want: &api.AgentServiceConnectProxyConfig{
 				DestinationServiceName: "web",
@@ -75,6 +79,10 @@ func TestConnectProxyConfig_ToAPI(t *testing.T) {
 						LocalBindPort:    2345,
 						LocalBindAddress: "127.10.10.10",
 					},
+				},
+				Mode: api.ProxyModeTransparent,
+				TransparentProxy: &api.TransparentProxyConfig{
+					OutboundListenerPort: 808,
 				},
 			},
 		},
