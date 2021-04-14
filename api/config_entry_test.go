@@ -401,7 +401,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 						},
 						{
-							// TODO: enterprise test
 							Name:        "finance--billing",
 							MeshGateway: MeshGatewayConfig{Mode: "remote"},
 						},

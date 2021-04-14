@@ -715,7 +715,6 @@ func TestParseConfigEntry(t *testing.T) {
 							ConnectTimeoutMs:  6543,
 						},
 						{
-							// TODO enterprise test
 							Name: "finance--billing",
 							MeshGateway: api.MeshGatewayConfig{
 								Mode: "remote",
