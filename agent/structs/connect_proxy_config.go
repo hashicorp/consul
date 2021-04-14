@@ -324,7 +324,8 @@ type Upstream struct {
 
 	// These are exclusive with LocalBindAddress/LocalBindPort
 	LocalBindSocketPath string `json:",omitempty" alias:"local_bind_socket_path"`
-	LocalBindSocketMode uint32 `json:",omitempty" alias:"local_bind_socket_mode"`
+	// This might be represented as an int, but because it's octal outputs can be a bit strange.
+	LocalBindSocketMode string `json:",omitempty" alias:"local_bind_socket_mode"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
@@ -355,7 +356,7 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 		LocalBindPortSnake    int    `json:"local_bind_port"`
 
 		LocalBindSocketPathSnake string `json:"local_bind_socket_path"`
-		LocalBindSocketModeSnake uint32 `json:"local_bind_socket_mode"`
+		LocalBindSocketModeSnake string `json:"local_bind_socket_mode"`
 
 		MeshGatewaySnake MeshGatewayConfig `json:"mesh_gateway"`
 
@@ -384,7 +385,7 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	if t.LocalBindSocketPath == "" {
 		t.LocalBindSocketPath = aux.LocalBindSocketPathSnake
 	}
-	if t.LocalBindSocketMode == 0 {
+	if t.LocalBindSocketMode == "" {
 		t.LocalBindSocketMode = aux.LocalBindSocketModeSnake
 	}
 	if t.MeshGateway.Mode == "" {

@@ -2689,7 +2689,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										DestinationType:     "service",
 										DestinationName:     "db2",
 										LocalBindSocketPath: "/tmp/socketpath",
-										LocalBindSocketMode: 0644,
+										LocalBindSocketMode: "0644",
 									},
 								},
 							},

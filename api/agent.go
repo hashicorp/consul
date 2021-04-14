@@ -408,7 +408,7 @@ type Upstream struct {
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`
 	LocalBindSocketPath  string                 `json:",omitempty"`
-	LocalBindSocketMode  uint32                 `json:",omitempty"`
+	LocalBindSocketMode  string                 `json:",omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 	CentrallyConfigured  bool                   `json:",omitempty" bexpr:"-"`

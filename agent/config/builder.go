@@ -1896,18 +1896,15 @@ func uint64Val(v *uint64) uint64 {
 }
 
 // Expect an octal permissions string, e.g. 0644
-func (b *builder) unixPermissionsVal(name string, v *string) uint32 {
-
+func (b *builder) unixPermissionsVal(name string, v *string) string {
 	if v == nil {
-		return 0
+		return ""
 	}
-	if strings.HasPrefix(*v, "0") {
-		if mode, err := strconv.ParseUint(*v, 0, 32); err == nil {
-			return uint32(mode)
-		}
+	if _, err := strconv.ParseUint(*v, 8, 32); err == nil {
+		return *v
 	}
 	b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid mode: %s", name, *v))
-	return 0
+	return "0"
 }
 
 func (b *builder) portVal(name string, v *int) int {

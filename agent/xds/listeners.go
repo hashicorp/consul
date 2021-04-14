@@ -558,11 +558,15 @@ func makePortListenerWithDefault(name, addr string, port int, trafficDirection e
 	return makePortListener(name, addr, port, trafficDirection)
 }
 
-// TODO markan INVESTIGATE sanitizing path name (path.filepath) clean/validate. (Maybe check if sanitizer alters things, then fail)
-func makePipeListener(name, path string, mode uint32, trafficDirection envoy_core_v3.TrafficDirection) *envoy_listener_v3.Listener {
+func makePipeListener(name, path string, mode_str string, trafficDirection envoy_core_v3.TrafficDirection) *envoy_listener_v3.Listener {
+	// We've already validated this, so it should not fail.
+	mode, err := strconv.ParseUint(mode_str, 0, 32)
+	if err != nil {
+		mode = 0
+	}
 	return &envoy_listener_v3.Listener{
 		Name:             fmt.Sprintf("%s:%s", name, path),
-		Address:          makePipeAddress(path, mode),
+		Address:          makePipeAddress(path, uint32(mode)),
 		TrafficDirection: trafficDirection,
 	}
 }
