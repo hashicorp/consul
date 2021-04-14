@@ -49,7 +49,7 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
 `)}
             ]
           },
-          "Mode": ${fake.random.boolean()},
+          "Mode": "${fake.helpers.randomize(['', 'direct', 'transparent'])}",
           "DestinationServiceName": "${location.pathname.slice(4)}"
           ${ location.pathname.slice(4) === "service-0" ? `
           ,
