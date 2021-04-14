@@ -270,7 +270,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			rule, err := s.agent.resolveToken(token)
+			rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
 				return

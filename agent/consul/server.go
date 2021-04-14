@@ -455,6 +455,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		AutoDisable: false,
 		Logger:      logger,
 		ACLConfig:   s.aclConfig,
+		Tokens:      flat.tokens,
 	}
 	// Initialize the ACL resolver.
 	if s.acls, err = NewACLResolver(&aclConfig); err != nil {

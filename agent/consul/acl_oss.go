@@ -36,3 +36,8 @@ func (_ *ACLResolver) resolveEnterpriseIdentityAndPolicies(_ structs.ACLIdentity
 	// this function does nothing in OSS
 	return nil, nil, nil
 }
+
+// resolveLocallyManagedEnterpriseToken will resolve a managed service provider token to an identity and authorizer
+func (_ *ACLResolver) resolveLocallyManagedEnterpriseToken(_ string) (structs.ACLIdentity, acl.Authorizer, bool) {
+	return nil, nil, false
+}
