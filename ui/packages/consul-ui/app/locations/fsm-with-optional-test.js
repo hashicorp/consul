@@ -1,56 +1,27 @@
-import RegExpLocation from './regexp';
+import FSMWithOptionalLocation from './fsm-with-optional';
+import { FSM, Location } from './fsm';
+
 import { settled } from '@ember/test-helpers';
 
-// a simple state machine that the History API happens to more or less implement
-// it should really be an EventTarget but what we need here is simple enough
-class StateMachine {
-  state = {};
-  constructor(location, listener = () => {}) {
-    this.listener = listener;
-    this.location = location;
-  }
-  /**
-   * @param state The infinite/extended state or context
-   * @param _ `_` was meant to be title but was never used, don't use this
-   *          argument for anything unless browsers change, see:
-   *          https://github.com/whatwg/html/issues/2174
-   * @param path The state/event
-   */
-  pushState(state, _, path) {
-    this.state = state;
-    this.location.pathname = path;
-    this.listener({ state: this.state });
-  }
-  replaceState() {
-    return this.pushState(...arguments);
-  }
-}
-
-class Location {
-  pathname = '';
-  search = '';
-  hash = '';
-}
-
-export default class extends RegExpLocation {
-  implementation = 'regexp-none';
+export default class FSMWithOptionalTestLocation extends FSMWithOptionalLocation {
+  implementation = 'fsm-with-optional-test';
   static create() {
     return new this(...arguments);
   }
   constructor() {
     super(...arguments);
     this.location = new Location();
-    this.machine = new StateMachine(this.location);
+    this.machine = new FSM(this.location);
 
     // Browsers add event listeners to the state machine via the
     // document/defaultView
     this.doc = {
       defaultView: {
         addEventListener: (event, cb) => {
-          this.machine = new StateMachine(this.location, cb);
+          this.machine = new FSM(this.location, cb);
         },
         removeEventListener: (event, cb) => {
-          this.machine = new StateMachine();
+          this.machine = new FSM();
         },
       },
     };

@@ -37,8 +37,9 @@ const route = function(e) {
   this._previousURL = url;
   this._previousPath = e.state.path;
 };
-export default class {
-  implementation = 'regexp';
+export default class FSMWithOptionalLocation {
+  // extend FSMLocation
+  implementation = 'fsm-with-optional';
 
   baseURL = '';
   /**

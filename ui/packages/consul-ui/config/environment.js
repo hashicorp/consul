@@ -41,7 +41,7 @@ module.exports = function(environment, $ = process.env) {
     modulePrefix: 'consul-ui',
     environment,
     rootURL: '/ui/',
-    locationType: 'regexp',
+    locationType: 'fsm-with-optional',
     historySupportMiddleware: true,
 
     // We use a complete dynamically (from Consul) configured torii provider.
@@ -117,7 +117,7 @@ module.exports = function(environment, $ = process.env) {
   switch (true) {
     case environment === 'test':
       ENV = Object.assign({}, ENV, {
-        locationType: 'regexp-none',
+        locationType: 'fsm-with-optional-test',
 
         // During testing ACLs default to being turned on
         operatorConfig: {
