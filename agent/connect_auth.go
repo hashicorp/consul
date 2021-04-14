@@ -55,7 +55,7 @@ func (a *Agent) ConnectAuthorize(token string,
 	// We do this manually here since the RPC request below only verifies
 	// service:read.
 	var authzContext acl.AuthorizerContext
-	authz, err := a.resolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return returnErr(err)
 	}
@@ -109,7 +109,7 @@ func (a *Agent) ConnectAuthorize(token string,
 	// specifying the anonymous token, which will get the default behavior. The
 	// default behavior if ACLs are disabled is to allow connections to mimic the
 	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	authz, err = a.resolveToken("")
+	authz, err = a.delegate.ResolveToken("")
 	if err != nil {
 		return returnErr(err)
 	}

@@ -148,6 +148,7 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 		AutoDisable: true,
 		CacheConfig: clientACLCacheConfig,
 		ACLConfig:   newACLConfig(c.logger),
+		Tokens:      flat.tokens,
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {

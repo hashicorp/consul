@@ -8,44 +8,11 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-// resolveToken is the primary interface used by ACL-checkers in the agent
-// endpoints, which is the one place where we do some ACL enforcement on
-// clients. Some of the enforcement is normative (e.g. self and monitor)
-// and some is informative (e.g. catalog and health).
-func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
-	return a.resolveTokenAndDefaultMeta(id, nil, nil)
-}
-
-// resolveTokenAndDefaultMeta is used to resolve an ACL token secret to an
-// acl.Authorizer and to default any enterprise specific metadata for the request.
-// The defaulted metadata is then used to fill in an acl.AuthorizationContext.
-func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	// ACLs are disabled
-	if !a.delegate.ACLsEnabled() {
-		return nil, nil
-	}
-
-	if acl.RootAuthorizer(id) != nil {
-		return nil, acl.ErrRootDenied
-	}
-
-	if a.tokens.IsAgentMasterToken(id) {
-		return a.aclMasterAuthorizer, nil
-	}
-
-	return a.delegate.ResolveTokenAndDefaultMeta(id, entMeta, authzContext)
-}
-
-// resolveIdentityFromToken is used to resolve an ACLToken's secretID to a structs.ACLIdentity
-func (a *Agent) resolveIdentityFromToken(secretID string) (structs.ACLIdentity, error) {
-	return a.delegate.ResolveTokenToIdentity(secretID)
-}
-
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	ident, err := a.resolveIdentityFromToken(secretID)
+	ident, err := a.delegate.ResolveTokenToIdentity(secretID)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}
@@ -59,36 +26,11 @@ func (a *Agent) aclAccessorID(secretID string) string {
 	return ident.ID()
 }
 
-func initializeACLs(nodeName string) (acl.Authorizer, error) {
-	// Build a policy for the agent master token.
-	// The builtin agent master policy allows reading any node information
-	// and allows writes to the agent with the node name of the running agent
-	// only. This used to allow a prefix match on agent names but that seems
-	// entirely unnecessary so it is now using an exact match.
-	policy := &acl.Policy{
-		PolicyRules: acl.PolicyRules{
-			Agents: []*acl.AgentRule{
-				{
-					Node:   nodeName,
-					Policy: acl.PolicyWrite,
-				},
-			},
-			NodePrefixes: []*acl.NodeRule{
-				{
-					Name:   "",
-					Policy: acl.PolicyRead,
-				},
-			},
-		},
-	}
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-}
-
 // vetServiceRegister makes sure the service registration action is allowed by
 // the given token.
 func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.resolveToken(token)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -134,7 +76,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 // token.
 func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.resolveToken(token)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -167,7 +109,7 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 // given token.
 func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.resolveToken(token)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -212,7 +154,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 // vetCheckUpdate makes sure that a check update is allowed by the given token.
 func (a *Agent) vetCheckUpdate(token string, checkID structs.CheckID) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.resolveToken(token)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -249,7 +191,7 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 // filterMembers redacts members that the token doesn't have access to.
 func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.resolveToken(token)
+	rule, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -278,7 +220,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 // filterServices redacts services that the token doesn't have access to.
 func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*structs.NodeService) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.resolveToken(token)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -306,7 +248,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map
 // filterChecks redacts checks that the token doesn't have access to.
 func (a *Agent) filterChecks(token string, checks *map[structs.CheckID]*structs.HealthCheck) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.resolveToken(token)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}

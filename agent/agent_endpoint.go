@@ -50,7 +50,7 @@ func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (s *HTTPServer) AgentMetrics(resp http.ResponseWriter, req *http.Request) (
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func (s *HTTPServer) AgentReload(resp http.ResponseWriter, req *http.Request) (i
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) 
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	// need to resolve to default the meta
-	_, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	_, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +322,7 @@ func (s *HTTPServer) AgentService(resp http.ResponseWriter, req *http.Request) (
 			ws.Add(svcState.WatchCh)
 
 			// Check ACLs.
-			authz, err := s.agent.resolveToken(token)
+			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				return "", nil, err
 			}
@@ -363,7 +363,7 @@ func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +445,7 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +477,7 @@ func (s *HTTPServer) AgentLeave(resp http.ResponseWriter, req *http.Request) (in
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +495,7 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +547,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -599,7 +599,7 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &checkID.EnterpriseMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &checkID.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +687,7 @@ func (s *HTTPServer) agentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 		return nil, err
 	}
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &cid.EnterpriseMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &cid.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -764,7 +764,7 @@ func (s *HTTPServer) AgentHealthServiceByID(resp http.ResponseWriter, req *http.
 
 	// need to resolve to default the meta
 	var authzContext acl.AuthorizerContext
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
 	if err != nil {
 		return nil, err
 	}
@@ -816,7 +816,7 @@ func (s *HTTPServer) AgentHealthServiceByName(resp http.ResponseWriter, req *htt
 
 	// need to resolve to default the meta
 	var authzContext acl.AuthorizerContext
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, &authzContext)
 	if err != nil {
 		return nil, err
 	}
@@ -892,7 +892,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	var token string
 	s.parseToken(req, &token)
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1021,7 +1021,7 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1074,7 +1074,7 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		return nil, err
 	}
 
-	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &sid.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1123,7 +1123,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1144,7 +1144,7 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1216,7 +1216,7 @@ func (s *HTTPServer) AgentToken(resp http.ResponseWriter, req *http.Request) (in
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1428,7 +1428,7 @@ func (s *HTTPServer) AgentHost(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -104,7 +104,7 @@ func (s *HTTPServer) ACLRulesTranslate(resp http.ResponseWriter, req *http.Reque
 
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.resolveToken(token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1153,7 +1153,7 @@ func (s *HTTPServer) ACLAuthorize(resp http.ResponseWriter, req *http.Request) (
 			return nil, err
 		}
 	} else {
-		authz, err := s.agent.resolveToken(request.Token)
+		authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(request.Token, nil, nil)
 		if err != nil {
 			return nil, err
 		} else if authz == nil {
