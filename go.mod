@@ -11,7 +11,6 @@ replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054
 require (
 	github.com/Microsoft/go-winio v0.4.3 // indirect
 	github.com/NYTimes/gziphandler v1.0.1
-	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 	github.com/armon/go-metrics v0.3.4
 	github.com/armon/go-radix v1.0.0
@@ -23,7 +22,6 @@ require (
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
 	github.com/envoyproxy/go-control-plane v0.9.5
 	github.com/frankban/quicktest v1.11.1 // indirect
-	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-querystring v1.0.0 // indirect
@@ -79,8 +77,8 @@ require (
 	github.com/prometheus/client_golang v1.4.0
 	github.com/rboyer/safeio v0.2.1
 	github.com/ryanuber/columnize v2.1.0+incompatible
-	github.com/shirou/gopsutil v2.20.9+incompatible
-	github.com/stretchr/testify v1.5.1
+	github.com/shirou/gopsutil/v3 v3.20.10
+	github.com/stretchr/testify v1.6.1
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.0.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
