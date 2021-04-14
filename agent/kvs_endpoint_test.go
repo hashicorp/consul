@@ -450,6 +450,31 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 	}
 	assertIndex(t, resp)
 
+	// Check the headers
+	contentTypeHdr := resp.Header().Values("Content-Type")
+	if len(contentTypeHdr) != 1 {
+		t.Fatalf("expected 1 value for Content-Type header, got %d: %+v", len(contentTypeHdr), contentTypeHdr)
+	}
+	if contentTypeHdr[0] != "text/plain" {
+		t.Fatalf("expected Content-Type header to be \"text/plain\", got %q", contentTypeHdr[0])
+	}
+
+	optionsHdr := resp.Header().Values("X-Content-Type-Options")
+	if len(optionsHdr) != 1 {
+		t.Fatalf("expected 1 value for X-Content-Type-Options header, got %d: %+v", len(optionsHdr), optionsHdr)
+	}
+	if optionsHdr[0] != "nosniff" {
+		t.Fatalf("expected X-Content-Type-Options header to be \"nosniff\", got %q", optionsHdr[0])
+	}
+
+	cspHeader := resp.Header().Values("Content-Security-Policy")
+	if len(cspHeader) != 1 {
+		t.Fatalf("expected 1 value for Content-Security-Policy header, got %d: %+v", len(optionsHdr), optionsHdr)
+	}
+	if cspHeader[0] != "sandbox" {
+		t.Fatalf("expected X-Content-Type-Options header to be \"sandbox\", got %q", optionsHdr[0])
+	}
+
 	// Check the body
 	if !bytes.Equal(resp.Body.Bytes(), []byte("test")) {
 		t.Fatalf("bad: %s", resp.Body.Bytes())
@@ -476,6 +501,52 @@ func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 	}
 	if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
 		t.Fatalf("expected conflicting args error")
+	}
+}
+
+func TestKVSEndpoint_GET(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	buf := bytes.NewBuffer([]byte("test"))
+	req, _ := http.NewRequest("PUT", "/v1/kv/test", buf)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res := obj.(bool); !res {
+		t.Fatalf("should work")
+	}
+
+	req, _ = http.NewRequest("GET", "/v1/kv/test", nil)
+	resp = httptest.NewRecorder()
+	_, err = a.srv.KVSEndpoint(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// The following headers are only included when returning a raw KV response
+
+	contentTypeHdr := resp.Header().Values("Content-Type")
+	if len(contentTypeHdr) != 0 {
+		t.Fatalf("expected no Content-Type header, got %d: %+v", len(contentTypeHdr), contentTypeHdr)
+	}
+
+	optionsHdr := resp.Header().Values("X-Content-Type-Options")
+	if len(optionsHdr) != 0 {
+		t.Fatalf("expected no X-Content-Type-Options header, got %d: %+v", len(optionsHdr), optionsHdr)
+	}
+
+	cspHeader := resp.Header().Values("Content-Security-Policy")
+	if len(cspHeader) != 0 {
+		t.Fatalf("expected no Content-Security-Policy header, got %d: %+v", len(optionsHdr), optionsHdr)
 	}
 }
 
