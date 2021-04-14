@@ -60,7 +60,7 @@ func (a *Agent) ConnectAuthorize(token string,
 	// We do this manually here since the RPC request below only verifies
 	// service:read.
 	var authzContext acl.AuthorizerContext
-	authz, err := a.resolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return returnErr(err)
 	}

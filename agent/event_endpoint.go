@@ -78,7 +78,7 @@ func (s *HTTPHandlers) EventList(resp http.ResponseWriter, req *http.Request) (i
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
-	authz, err := s.agent.resolveToken(token)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
