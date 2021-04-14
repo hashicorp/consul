@@ -20,7 +20,6 @@
 @import '~@hashicorp/react-enterprise-alert/style.css';
 @import '~@hashicorp/react-featured-slider/style.css';
 @import '~@hashicorp/react-learn-callout/style.css';
-@import '~@hashicorp/react-product-downloader/dist/style.css';
 @import '~@hashicorp/react-product-features-list/style.css';
 @import '~@hashicorp/react-search/style.css';
 @import '~@hashicorp/react-subnav/style.css';
@@ -40,7 +39,6 @@
 @import '../components/use-cases-layout/style.css';
 
 /* Local Pages */
-@import './downloads/style.css';
 @import './community/style.css';
 @import './home/style.css';
 
