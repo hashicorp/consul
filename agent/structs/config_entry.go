@@ -217,6 +217,10 @@ type UpstreamConfiguration struct {
 }
 
 func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
+	if c == nil {
+		return nil
+	}
+
 	var c2 UpstreamConfiguration
 	if len(c.Overrides) > 0 {
 		c2.Overrides = make([]*UpstreamConfig, 0, len(c.Overrides))
