@@ -750,10 +750,12 @@ func (s *Store) IntentionDecision(
 		}
 	}
 
-	var resp structs.IntentionDecisionSummary
+	resp := structs.IntentionDecisionSummary{
+		DefaultAllow: defaultDecision == acl.Allow,
+	}
 	if ixnMatch == nil {
 		// No intention found, fall back to default
-		resp.Allowed = defaultDecision == acl.Allow
+		resp.Allowed = resp.DefaultAllow
 		return resp, nil
 	}
 
@@ -931,6 +933,11 @@ func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}
 	return result, nil
 }
 
+type ServiceWithDecision struct {
+	Name     structs.ServiceName
+	Decision structs.IntentionDecisionSummary
+}
+
 // IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
 // intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
@@ -938,6 +945,25 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
+
+	idx, services, err := s.intentionTopologyTxn(tx, ws, target, downstreams, defaultDecision)
+	if err != nil {
+		requested := "upstreams"
+		if downstreams {
+			requested = "downstreams"
+		}
+		return 0, nil, fmt.Errorf("failed to fetch %s for %s: %v", requested, target.String(), err)
+	}
+
+	resp := make(structs.ServiceList, 0)
+	for _, svc := range services {
+		resp = append(resp, svc.Name)
+	}
+	return idx, resp, nil
+}
+
+func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
+	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, []ServiceWithDecision, error) {
 
 	var maxIdx uint64
 
@@ -997,7 +1023,7 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 	if downstreams {
 		decisionMatchType = structs.IntentionMatchSource
 	}
-	result := make(structs.ServiceList, 0, len(allServices))
+	result := make([]ServiceWithDecision, 0, len(allServices))
 	for _, candidate := range allServices {
 		if candidate.Name == structs.ConsulServiceName {
 			continue
@@ -1014,7 +1040,11 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		if !decision.Allowed || target.Matches(candidate) {
 			continue
 		}
-		result = append(result, candidate)
+
+		result = append(result, ServiceWithDecision{
+			Name:     candidate,
+			Decision: decision,
+		})
 	}
 	return maxIdx, result, err
 }

@@ -573,11 +573,50 @@ func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registra
 func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token string) {
 	t.Helper()
 
-	// api and api-proxy on node foo - upstream: web
+	// ingress-gateway on node edge - upstream: api
+	// api and api-proxy on node foo - transparent proxy
 	// web and web-proxy on node bar - upstream: redis
-	// web and web-proxy on node baz - upstream: redis
+	// web and web-proxy on node baz - transparent proxy
 	// redis and redis-proxy on node zip
 	registrations := map[string]*structs.RegisterRequest{
+		"Node edge": {
+			Datacenter: "dc1",
+			Node:       "edge",
+			ID:         types.NodeID("8e3481c0-760e-4b5f-a3b8-6c8c559e8a15"),
+			Address:    "127.0.0.1",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "edge",
+					CheckID: "edge:alive",
+					Name:    "edge-liveness",
+					Status:  api.HealthPassing,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service ingress on edge": {
+			Datacenter:     "dc1",
+			Node:           "edge",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindIngressGateway,
+				ID:      "ingress",
+				Service: "ingress",
+				Port:    8443,
+				Address: "198.18.1.1",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "edge",
+					CheckID:     "edge:ingress",
+					Name:        "ingress-liveness",
+					Status:      api.HealthPassing,
+					ServiceID:   "ingress",
+					ServiceName: "ingress",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
 		"Node foo": {
 			Datacenter: "dc1",
 			Node:       "foo",
@@ -627,13 +666,8 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Port:    8443,
 				Address: "198.18.1.2",
 				Proxy: structs.ConnectProxyConfig{
+					Mode:                   structs.ProxyModeTransparent,
 					DestinationServiceName: "api",
-					Upstreams: structs.Upstreams{
-						{
-							DestinationName: "web",
-							LocalBindPort:   8080,
-						},
-					},
 				},
 			},
 			Checks: structs.HealthChecks{
@@ -767,13 +801,8 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Port:    8443,
 				Address: "198.18.1.40",
 				Proxy: structs.ConnectProxyConfig{
+					Mode:                   structs.ProxyModeTransparent,
 					DestinationServiceName: "web",
-					Upstreams: structs.Upstreams{
-						{
-							DestinationName: "redis",
-							LocalBindPort:   123,
-						},
-					},
 				},
 			},
 			Checks: structs.HealthChecks{
@@ -855,7 +884,10 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 	}
 	registerTestCatalogEntriesMap(t, codec, registrations)
 
-	// Add intentions: deny all, web -> redis with L7 perms, but omit intention for api -> web
+	// ingress -> api gateway config entry (but no intention)
+	// wildcard deny intention
+	// api -> web exact intention
+	// web -> redis exact intention
 	entries := []structs.ConfigEntryRequest{
 		{
 			Datacenter: "dc1",
@@ -864,6 +896,39 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.IngressGatewayConfigEntry{
+				Kind: structs.IngressGateway,
+				Name: "ingress",
+				Listeners: []structs.IngressListener{
+					{
+						Port:     8443,
+						Protocol: "http",
+						Services: []structs.IngressService{
+							{
+								Name: "api",
+							},
+						},
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						Action: structs.IntentionActionAllow,
+						Name:   "api",
+					},
 				},
 			},
 			WriteRequest: structs.WriteRequest{Token: token},
