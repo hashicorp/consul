@@ -1,5 +1,31 @@
 ## UNRELEASED
 
+SECURITY:
+
+* Add content-type headers to raw KV responses to prevent XSS attacks [CVE-2020-25864](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25864) [[GH-10023](https://github.com/hashicorp/consul/issues/10023)]
+* audit-logging: Parse endpoint URL to prevent requests from bypassing the audit log [CVE-2021-28156](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-28156)
+
+IMPROVEMENTS:
+
+* api: `AutopilotServerHelath` now handles the 429 status code returned by the v1/operator/autopilot/health endpoint and still returned the parsed reply which will indicate server healthiness [[GH-8599](https://github.com/hashicorp/consul/issues/8599)]
+* client: when a client agent is attempting to dereigster a service, anddoes not have access to the ACL token used to register a service, attempt to use the agent token instead of the default user token. If no agent token is set, fall back to the default user token. [[GH-9683](https://github.com/hashicorp/consul/issues/9683)]
+* connect: Automatically rewrite the Host header for Terminating Gateway HTTP services [[GH-9042](https://github.com/hashicorp/consul/issues/9042)]
+* ui: support stricter content security policies [[GH-9847](https://github.com/hashicorp/consul/issues/9847)]
+
+BUG FIXES:
+
+* api: ensure v1/health/ingress/:service endpoint works properly when streaming is enabled [[GH-9967](https://github.com/hashicorp/consul/issues/9967)]
+* areas: Fixes a bug which would prevent newer servers in a network areas from connecting to servers running a version of Consul prior to 1.7.3.
+* audit-logging: (Enterprise only) Fixed an issue that resulted in usage of the agent master token or managed service provider tokens from being resolved properly. [[GH-10013](https://github.com/hashicorp/consul/issues/10013)]
+* cache: fix a bug in the client agent cache where streaming could potentially leak resources. [[GH-9978](https://github.com/hashicorp/consul/pull/9978)]. [[GH-9978](https://github.com/hashicorp/consul/issues/9978)]
+* cache: fix a bug in the client agent cache where streaming would disconnect every
+20 minutes and cause delivery delays. [[GH-9979](https://github.com/hashicorp/consul/pull/9979)]. [[GH-9979](https://github.com/hashicorp/consul/issues/9979)]
+* command: when generating envoy bootstrap configs to stdout do not mix informational logs into the json [[GH-9980](https://github.com/hashicorp/consul/issues/9980)]
+* config: correct config key from `advertise_addr_ipv6` to `advertise_addr_wan_ipv6` [[GH-9851](https://github.com/hashicorp/consul/issues/9851)]
+* http: fix a bug in Consul Enterprise that would cause the UI to believe namespaces were supported, resulting in warning logs and incorrect UI behaviour. [[GH-9923](https://github.com/hashicorp/consul/issues/9923)]
+* snapshot: fixes a bug that would cause snapshots to be missing all but the first ACL Auth Method. [[GH-10025](https://github.com/hashicorp/consul/issues/10025)]
+* ui: Fix intention form cancel button [[GH-9901](https://github.com/hashicorp/consul/issues/9901)]
+
 ## 1.9.4 (March 04, 2021)
 
 IMPROVEMENTS:
