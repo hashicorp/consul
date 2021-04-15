@@ -102,17 +102,19 @@ export default class FSMWithOptionalLocation {
   initState() {
     this.location = this.location || this.doc.defaultView.location;
     this.machine = this.machine || this.doc.defaultView.history;
-    const state = this.machine.state;
     this.doc.defaultView.addEventListener('popstate', this.route);
-    // let path = this.location.pathname;//
-    const path = this.formatURL(this.getURLForTransition(this.location.pathname));
-    if (state && state.path === path) {
+
+    const state = this.machine.state;
+    const url = this.getURL();
+    const href = this.formatURL(url);
+
+    if (state && state.path === href) {
       // preserve existing state
       // used for webkit workaround, since there will be no initial popstate event
-      this._previousPath = path;
-      this._previousURL = this.getURL();
+      this._previousPath = href;
+      this._previousURL = url;
     } else {
-      this.dispatch('replace', path);
+      this.dispatch('replace', href);
     }
   }
 

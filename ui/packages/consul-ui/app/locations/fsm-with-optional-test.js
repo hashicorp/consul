@@ -59,6 +59,9 @@ export default class FSMWithOptionalTestLocation extends FSMWithOptionalLocation
       // and we still need access to router above
       this.rootURL = router.rootURL.replace(/\/$/, '');
       // do some pre-setup setup so getURL can work
+      // this is machine setup that would be nice to via machine
+      // instantiation, its basically initialState
+      // move machine instantiation here once its an event target
       this.machine.state.path = this.location.pathname = `${this.rootURL}${path}`;
       this.path = this.getURL();
       // handleURL calls setupRouter for us
