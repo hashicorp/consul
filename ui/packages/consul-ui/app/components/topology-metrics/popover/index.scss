@@ -27,4 +27,9 @@
     @extend %with-layers-mask, %as-pseudo;
     background-color: $gray-300;
   }
+  &.not-defined > button::before,
+  &.not-defined .tippy-arrow::after {
+    @extend %with-alert-triangle-mask, %as-pseudo;
+    color: $yellow-500;
+  }
 }

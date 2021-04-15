@@ -81,15 +81,17 @@
       @oncreate={{action @oncreate}}
     />
   </div>
-{{#if (gt @topology.Upstreams.length 0)}}
+{{#if (gt this.upstreams.length 0)}}
   <div id="upstream-column">
-  {{#each-in (group-by "Datacenter" @topology.Upstreams) as |dc upstreams|}}
+  {{#each-in (group-by "Datacenter" this.upstreams) as |dc upstreams|}}
     <div
       id="upstream-container"
       {{did-insert this.setHeight 'upstream-lines'}}
-      {{did-update this.setHeight 'upstream-lines' @topology.Upstreams}}
+      {{did-update this.setHeight 'upstream-lines' this.upstreams}}
     >
+    {{#if dc}}
       <p>{{dc}}</p>
+    {{/if}}
     {{#each upstreams as |item|}}
       <TopologyMetrics::Card
         @dc={{@dc}}
@@ -119,7 +121,7 @@
       @view={{this.upView}}
       @center={{this.centerDimensions}}
       @lines={{this.upLines}}
-      @items={{@topology.Upstreams}}
+      @items={{this.upstreams}}
       @oncreate={{action @oncreate}}
     />
   </div>

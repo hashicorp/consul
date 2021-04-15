@@ -4,22 +4,21 @@
 >
 
 {{#if (eq @type 'deny')}}
-
   <InformedAction
     class="dangerous"
     {{did-insert (set this 'popover')}}
   >
     <:header>
       <h3>
-        Connection Denied
+        {{t "components.consul.topology-metrics.popover.deny.header"}}
       </h3>
     </:header>
     <:body>
       <p>
         {{#if @item.Intention.HasExact}}
-          Change the action of this intention to allow.
+          {{t "components.consul.topology-metrics.popover.deny.body.isExact"}}
         {{else}}
-          Add an intention that allows these two services to connect.
+          {{t "components.consul.topology-metrics.popover.deny.body.notExact"}}
         {{/if}}
       </p>
     </:body>
@@ -31,9 +30,9 @@
           type="button"
         >
           {{#if @item.Intention.HasExact}}
-            Allow
+            {{t "components.consul.topology-metrics.popover.deny.action.isExact"}}
           {{else}}
-            Create
+            {{t "components.consul.topology-metrics.popover.deny.action.notExact"}}
           {{/if}}
         </button>
       </Actions.Action>
@@ -48,29 +47,25 @@
       </Actions.Action>
     </:actions>
   </InformedAction>
-
-{{else}}
-
+{{else if (eq @type 'not-defined')}}
   <InformedAction
-    class="info"
+    class="warning documentation"
     {{did-insert (set this 'popover')}}
   >
     <:header>
       <h3>
-        Layer 7 permissions
+        {{t "components.consul.topology-metrics.popover.not-defined.header"}}
       </h3>
     </:header>
     <:body>
       <p>
-        Certain HTTP request info must be identified.
+        {{t "components.consul.topology-metrics.popover.not-defined.body"}}
       </p>
     </:body>
     <:actions as |Actions|>
       <Actions.Action class="action">
-        <a
-          href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}
-        >
-            View
+        <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams" rel="noopener noreferrer" target="_blank">
+          {{t "components.consul.topology-metrics.popover.not-defined.action"}}
         </a>
       </Actions.Action>
       <Actions.Action>
@@ -84,7 +79,38 @@
       </Actions.Action>
     </:actions>
   </InformedAction>
-
+{{else}}
+  <InformedAction
+    class="info"
+    {{did-insert (set this 'popover')}}
+  >
+    <:header>
+      <h3>
+        {{t "components.consul.topology-metrics.popover.l7.header"}}
+      </h3>
+    </:header>
+    <:body>
+      <p>
+        {{t "components.consul.topology-metrics.popover.l7.body"}}
+      </p>
+    </:body>
+    <:actions as |Actions|>
+      <Actions.Action class="action">
+        <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>
+          {{t "components.consul.topology-metrics.popover.l7.action"}}
+        </a>
+      </Actions.Action>
+      <Actions.Action>
+        <button
+          {{on 'click' (fn (optional this.popoverController.hide))}}
+          class="cancel"
+          type="button"
+        >
+          Close
+        </button>
+      </Actions.Action>
+    </:actions>
+  </InformedAction>
 {{/if}}
   <button
     {{with-overlay

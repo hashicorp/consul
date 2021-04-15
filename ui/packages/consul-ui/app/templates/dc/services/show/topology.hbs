@@ -23,7 +23,36 @@ as |route|>
       </EmptyState>
     {{else}}
       {{#if topology.FilteredByACLs}}
-        <TopologyMetrics::Notice::LimitedAccess />
+        <TopologyMetrics::Notice
+          @type="info"
+          @for="limited-access"
+          @action={{false}}
+        />
+      {{/if}}
+      {{#if topology.DefaultAllow}}
+        <TopologyMetrics::Notice
+          @type="warning"
+          @for="default-allow"
+          @internal={{true}}
+          @action={{true}}
+        />
+      {{/if}}
+      {{#if topology.WildcardIntention}}
+        <TopologyMetrics::Notice
+          @type="warning"
+          @for="wildcard-intention"
+          @internal={{true}}
+          @action={{true}}
+        />
+      {{/if}}
+      {{#if topology.undefinedIntention}}
+        <TopologyMetrics::Notice
+          @type="warning"
+          @for="not-defined-intention"
+          @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
+          @internal={{false}}
+          @action={{true}}
+        />
       {{/if}}
       <TopologyMetrics
         @nspace={{nspace}}

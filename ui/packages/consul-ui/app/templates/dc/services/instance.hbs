@@ -58,6 +58,9 @@ as |route|>
             </h1>
             <Consul::ExternalSource @item={{item}} />
             <Consul::Kind @item={{item}} @withInfo={{true}} />
+            {{#if (eq proxy.ServiceProxy.Mode 'transparent')}}
+              <Consul::TransparentProxy />
+            {{/if}}
           </BlockSlot>
           <BlockSlot @name="nav">
             <dl>

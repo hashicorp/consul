@@ -1,0 +1,81 @@
+#upstream-container .topology-metrics-card:not(:last-child),
+#downstream-container .topology-metrics-card:not(:last-child) {
+  margin-bottom: 8px;
+}
+#upstream-container .topology-metrics-card,
+#downstream-container .topology-metrics-card {
+  display: block;
+  color: $gray-700;
+  overflow: hidden;
+  background-color: $white;
+  border-radius: $decor-radius-100;
+  border: 1px solid $gray-200;
+  p {
+    padding: 12px 12px 0 12px;
+    font-size: $typo-size-500;
+    font-weight: $typo-weight-semibold;
+    margin-bottom: 0 !important;
+  }
+  p.empty {
+    padding: 12px !important;
+  }
+  div {
+    display: inline-flex;
+    dl {
+      display: inline-flex;
+      margin-right: 8px;
+    }
+    dd {
+      color: $gray-700;
+    }
+    span {
+      margin-right: 8px;
+    }
+    span::before,
+    dt::before {
+      margin-right: 4px;
+    }
+    .nspace dt::before,
+    .health dt::before {
+      margin-top: 2px;
+    }
+    .nspace dt::before {
+      @extend %with-folder-outline-mask, %as-pseudo;
+    }
+    .health dt::before {
+      @extend %with-help-circle-outline-mask, %as-pseudo;
+    }
+    .nspace dt::before {
+      @extend %with-folder-outline-mask, %as-pseudo;
+    }
+    .health dt::before {
+      @extend %with-help-circle-outline-mask, %as-pseudo;
+    }
+    .nspace dt::before,
+    .health dt::before {
+      background-color: $gray-500;
+    }
+    .passing::before {
+      @extend %with-check-circle-fill-color-mask, %as-pseudo;
+      background-color: $green-500;
+    }
+    .warning::before {
+      @extend %with-alert-triangle-color-mask, %as-pseudo;
+      background-color: $orange-500;
+    }
+    .critical::before {
+      @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+      background-color: $red-500;
+    }
+    .empty::before {
+      @extend %with-minus-square-fill-mask, %as-pseudo;
+      color: $gray-500;
+    }
+  }
+  .details {
+    padding: 0 12px 12px 12px;
+  }
+  div.stats {
+    border-top: 1px solid $gray-200;
+  }
+}

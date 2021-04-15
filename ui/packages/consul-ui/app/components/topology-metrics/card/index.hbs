@@ -1,4 +1,11 @@
-<a class="card"
+{{#if (eq @item.Name '* (All Services)')}}
+<a class="topology-metrics-card" href={{href-to 'dc.services.index'}}>
+  <p class="empty">
+    {{@item.Name}}
+  </p>
+</a>
+{{else}}
+<a class="topology-metrics-card"
   href={{if
    (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
     (href-to "nspace.dc.services.show.index" (concat '~' @item.Namespace) @item.Datacenter @item.Name)
@@ -10,6 +17,9 @@
   <p>
     {{@item.Name}}
   </p>
+  {{#if (eq @item.Source 'proxy-registration')}}
+    <TopologyMetrics::SourceType />
+  {{/if}}
   <div class="details">
   {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))}}
     <dl class="nspace">
@@ -54,3 +64,4 @@
   </div>
   {{yield}}
 </a>
+{{/if}}
