@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.9.5 (April 15, 2021)
 
 SECURITY:
 
