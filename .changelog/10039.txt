@@ -1,0 +1,3 @@
+```release-note:bug
+ui: ensure proxy instance API requests perform blocking queries correctly
+```
