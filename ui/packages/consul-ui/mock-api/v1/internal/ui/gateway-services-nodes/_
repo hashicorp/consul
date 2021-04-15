@@ -56,7 +56,7 @@ ${ fake.random.number({min: 1, max: 10}) > 2 ? `
     "GatewayConfig": {
       "Addresses": [
         ${
-          range(fake.random.number({min: 1, max: 7}).map(
+          range(fake.random.number({min: 1, max: 7})).map(
             function(item, i)
             {
               return `"${fake.random.number({min: 1, max: 10}) > 8 ? `*.`: ``}${fake.internet.domainName()}:${fake.random.number({min: 0, max: 65535})}"`;
