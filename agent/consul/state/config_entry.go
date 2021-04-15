@@ -16,7 +16,6 @@ type ConfigEntryLinkIndex struct {
 }
 
 type discoveryChainConfigEntry interface {
-	structs.ConfigEntry
 	// ListRelatedServices returns a list of other names of services referenced
 	// in this config entry.
 	ListRelatedServices() []structs.ServiceID
@@ -426,7 +425,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 	queue := []structs.ServiceName{destination}
 	for len(queue) > 0 {
 		// The "link" index returns config entries that reference a service
-		iter, err := tx.Get(tableConfigEntries, "link", queue[0].ToServiceID())
+		iter, err := tx.Get(tableConfigEntries, indexLink, queue[0].ToServiceID())
 		if err != nil {
 			return 0, nil, err
 		}
@@ -598,7 +597,7 @@ func validateProposedConfigEntryInServiceGraph(
 		sid := structs.NewServiceID(name, entMeta)
 		checkChains[sid] = struct{}{}
 
-		iter, err := tx.Get(tableConfigEntries, "link", sid)
+		iter, err := tx.Get(tableConfigEntries, indexLink, sid)
 		if err != nil {
 			return err
 		}
