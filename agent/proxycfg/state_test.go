@@ -381,6 +381,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 	indexedRoots, issuedCert := TestCerts(t)
 
+	// Used to account for differences in OSS/ent implementations of ServiceID.String()
+	var (
+		db      = structs.NewServiceName("db", nil)
+		billing = structs.NewServiceName("billing", nil)
+		api     = structs.NewServiceName("api", nil)
+	)
+
 	rootWatchEvent := func() cache.UpdateEvent {
 		return cache.UpdateEvent{
 			CorrelationID: rootsWatchID,
@@ -471,7 +478,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				leafWatchID:                     genVerifyLeafWatch("web", "dc1"),
 				intentionsWatchID:               genVerifyIntentionWatch("web", "dc1"),
 				"upstream:prepared_query:query": genVerifyPreparedQueryWatch("query", "dc1"),
-				"discovery-chain:api": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api",
 					EvaluateInDatacenter: "dc1",
 					EvaluateInNamespace:  "default",
@@ -480,7 +487,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: meshGatewayProxyConfigValue,
 					},
 				}),
-				"discovery-chain:api-failover-remote?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-failover-remote?dc=dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-remote",
 					EvaluateInDatacenter: "dc2",
 					EvaluateInNamespace:  "default",
@@ -489,7 +496,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: structs.MeshGatewayModeRemote,
 					},
 				}),
-				"discovery-chain:api-failover-local?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-failover-local?dc=dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-local",
 					EvaluateInDatacenter: "dc2",
 					EvaluateInNamespace:  "default",
@@ -498,7 +505,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: structs.MeshGatewayModeLocal,
 					},
 				}),
-				"discovery-chain:api-failover-direct?dc=dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-failover-direct?dc=dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-failover-direct",
 					EvaluateInDatacenter: "dc2",
 					EvaluateInNamespace:  "default",
@@ -507,7 +514,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						Mode: structs.MeshGatewayModeNone,
 					},
 				}),
-				"discovery-chain:api-dc2": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+				fmt.Sprintf("discovery-chain:%s-dc2", api.String()): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 					Name:                 "api-dc2",
 					EvaluateInDatacenter: "dc1",
 					EvaluateInNamespace:  "default",
@@ -648,15 +655,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			stages:   []verificationStage{stage0, stage1},
 		}
 	}
-
-	// Used in terminating-gateway cases to account for differences in OSS/ent implementations of ServiceID.String()
-	db := structs.NewServiceName("db", nil)
-	dbStr := db.String()
-
-	billing := structs.NewServiceName("billing", nil)
-
-	api := structs.NewServiceName("api", nil)
-	apiStr := api.String()
 
 	dbIxnMatch := &structs.IndexedIntentionMatches{
 		Matches: []structs.Intentions{
@@ -973,7 +971,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							},
 						})
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
-						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, api.String())
 					},
 				},
 				{
@@ -994,7 +992,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"discovery-chain:api": genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + api.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                 "api",
 							EvaluateInDatacenter: "dc1",
 							EvaluateInNamespace:  "default",
@@ -1003,7 +1001,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:api",
+							CorrelationID: "discovery-chain:" + api.String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "dc1", "trustdomain.consul", "dc1", nil),
 							},
@@ -1012,16 +1010,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.IngressGateway.WatchedUpstreams, 1)
-						require.Len(t, snap.IngressGateway.WatchedUpstreams["api"], 1)
+						require.Len(t, snap.IngressGateway.WatchedUpstreams[api.String()], 1)
 					},
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"upstream-target:api.default.dc1:api": genVerifyServiceWatch("api", "", "dc1", true),
+						"upstream-target:api.default.dc1:" + api.String(): genVerifyServiceWatch("api", "", "dc1", true),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "upstream-target:api.default.dc1:api",
+							CorrelationID: "upstream-target:api.default.dc1:" + api.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -1041,10 +1039,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.IngressGateway.WatchedUpstreamEndpoints, 1)
-						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints, "api")
-						require.Len(t, snap.IngressGateway.WatchedUpstreamEndpoints["api"], 1)
-						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints["api"], "api.default.dc1")
-						require.Equal(t, snap.IngressGateway.WatchedUpstreamEndpoints["api"]["api.default.dc1"],
+						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints, api.String())
+						require.Len(t, snap.IngressGateway.WatchedUpstreamEndpoints[api.String()], 1)
+						require.Contains(t, snap.IngressGateway.WatchedUpstreamEndpoints[api.String()], "api.default.dc1")
+						require.Equal(t, snap.IngressGateway.WatchedUpstreamEndpoints[api.String()]["api.default.dc1"],
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{
@@ -1108,7 +1106,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Len(t, snap.IngressGateway.Hosts, 1)
 						require.Len(t, snap.IngressGateway.Upstreams, 1)
 						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
-						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, api.String())
 					},
 				},
 				{
@@ -1272,11 +1270,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"external-service:" + dbStr: genVerifyServiceWatch("db", "", "dc1", false),
+						"external-service:" + db.String(): genVerifyServiceWatch("db", "", "dc1", false),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "external-service:" + dbStr,
+							CorrelationID: "external-service:" + db.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -1317,11 +1315,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"external-service:" + apiStr: genVerifyServiceWatch("api", "", "dc1", false),
+						"external-service:" + api.String(): genVerifyServiceWatch("api", "", "dc1", false),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "external-service:" + apiStr,
+							CorrelationID: "external-service:" + api.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -1410,11 +1408,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"service-leaf:" + dbStr: genVerifyLeafWatch("db", "dc1"),
+						"service-leaf:" + db.String(): genVerifyLeafWatch("db", "dc1"),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "service-leaf:" + dbStr,
+							CorrelationID: "service-leaf:" + db.String(),
 							Result:        issuedCert,
 							Err:           nil,
 						},
@@ -1428,11 +1426,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						serviceIntentionsIDPrefix + dbStr: genVerifyIntentionWatch("db", "dc1"),
+						serviceIntentionsIDPrefix + db.String(): genVerifyIntentionWatch("db", "dc1"),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: serviceIntentionsIDPrefix + dbStr,
+							CorrelationID: serviceIntentionsIDPrefix + db.String(),
 							Result:        dbIxnMatch,
 							Err:           nil,
 						},
@@ -1449,11 +1447,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						serviceConfigIDPrefix + dbStr: genVerifyResolvedConfigWatch("db", "dc1"),
+						serviceConfigIDPrefix + db.String(): genVerifyResolvedConfigWatch("db", "dc1"),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: serviceConfigIDPrefix + dbStr,
+							CorrelationID: serviceConfigIDPrefix + db.String(),
 							Result:        dbConfig,
 							Err:           nil,
 						},
@@ -1468,11 +1466,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"service-resolver:" + dbStr: genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
+						"service-resolver:" + db.String(): genVerifyResolverWatch("db", "dc1", structs.ServiceResolver),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "service-resolver:" + dbStr,
+							CorrelationID: "service-resolver:" + db.String(),
 							Result:        dbResolver,
 							Err:           nil,
 						},
@@ -1542,6 +1540,11 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
 					Mode:                   structs.ProxyModeTransparent,
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "db",
+						},
+					},
 				},
 			},
 			sourceDC: "dc1",
@@ -1557,10 +1560,18 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
-						require.True(t, snap.ConnectProxy.IsEmpty())
 						require.True(t, snap.MeshGateway.IsEmpty())
 						require.True(t, snap.IngressGateway.IsEmpty())
 						require.True(t, snap.TerminatingGateway.IsEmpty())
+
+						require.False(t, snap.ConnectProxy.IsEmpty())
+						expectUpstreams := map[string]*structs.Upstream{
+							db.String(): {
+								DestinationName:      "db",
+								DestinationNamespace: structs.IntentionDefaultNamespace,
+							},
+						}
+						require.Equal(t, expectUpstreams, snap.ConnectProxy.UpstreamConfig)
 					},
 				},
 				{
@@ -1707,7 +1718,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.Valid(), "should still be valid")
 
 						// Should start watch for db's chain
-						require.Contains(t, snap.ConnectProxy.WatchedDiscoveryChains, dbStr)
+						require.Contains(t, snap.ConnectProxy.WatchedDiscoveryChains, db.String())
 
 						// Should not have results yet
 						require.Empty(t, snap.ConnectProxy.DiscoveryChain)
@@ -1723,7 +1734,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				// Discovery chain updates should be stored
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"discovery-chain:" + dbStr: genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+						"discovery-chain:" + db.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
 							Name:                   "db",
 							EvaluateInDatacenter:   "dc1",
 							EvaluateInNamespace:    "default",
@@ -1734,7 +1745,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:" + dbStr,
+							CorrelationID: "discovery-chain:" + db.String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", "trustdomain.consul", "dc1", nil),
 							},
@@ -1743,16 +1754,16 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreams[dbStr], 1)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams[db.String()], 1)
 					},
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
-						"upstream-target:db.default.dc1:" + dbStr: genVerifyServiceWatch("db", "", "dc1", true),
+						"upstream-target:db.default.dc1:" + db.String(): genVerifyServiceWatch("db", "", "dc1", true),
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "upstream-target:db.default.dc1:" + dbStr,
+							CorrelationID: "upstream-target:db.default.dc1:" + db.String(),
 							Result: &structs.IndexedCheckServiceNodes{
 								Nodes: structs.CheckServiceNodes{
 									{
@@ -1772,10 +1783,10 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints, 1)
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, dbStr)
-						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbStr], 1)
-						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbStr], "db.default.dc1")
-						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[dbStr]["db.default.dc1"],
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints, db.String())
+						require.Len(t, snap.ConnectProxy.WatchedUpstreamEndpoints[db.String()], 1)
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreamEndpoints[db.String()], "db.default.dc1")
+						require.Equal(t, snap.ConnectProxy.WatchedUpstreamEndpoints[db.String()]["db.default.dc1"],
 							structs.CheckServiceNodes{
 								{
 									Node: &structs.Node{

@@ -436,28 +436,6 @@ func (k UpstreamKey) String() string {
 	)
 }
 
-// Identifier returns a string representation that uniquely identifies the
-// upstream in a canonical but human readable way.
-func (u *Upstream) Identifier() string {
-	name := u.DestinationName
-	typ := u.DestinationType
-
-	if typ != UpstreamDestTypePreparedQuery && u.DestinationNamespace != "" && u.DestinationNamespace != IntentionDefaultNamespace {
-		name = u.DestinationNamespace + "/" + u.DestinationName
-	}
-	if u.Datacenter != "" {
-		name += "?dc=" + u.Datacenter
-	}
-
-	// Service is default type so never prefix it. This is more readable and long
-	// term it is the only type that matters so we can drop the prefix and have
-	// nicer naming in metrics etc.
-	if typ == "" || typ == UpstreamDestTypeService {
-		return name
-	}
-	return typ + ":" + name
-}
-
 // String implements Stringer by returning the Identifier.
 func (u *Upstream) String() string {
 	return u.Identifier()

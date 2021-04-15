@@ -190,6 +190,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	})
 
+	db := structs.NewServiceName("db", nil)
+
 	// Create test cases using some of the common data above.
 	tests := []*testcase_BasicLifecycle{
 		{
@@ -217,18 +219,18 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
 						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-							"db": dbDefaultChain(),
+							db.String(): dbDefaultChain(),
 						},
 						WatchedDiscoveryChains: map[string]context.CancelFunc{},
 						WatchedUpstreams:       nil, // Clone() clears this out
 						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							"db": {
+							db.String(): {
 								"db.default.dc1": TestUpstreamNodes(t),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
 						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							"db": {},
+							db.String(): {},
 						},
 						UpstreamConfig: map[string]*structs.Upstream{
 							upstreams[0].Identifier(): &upstreams[0],
@@ -271,19 +273,19 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
 						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
-							"db": dbSplitChain(),
+							db.String(): dbSplitChain(),
 						},
 						WatchedDiscoveryChains: map[string]context.CancelFunc{},
 						WatchedUpstreams:       nil, // Clone() clears this out
 						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							"db": {
+							db.String(): {
 								"v1.db.default.dc1": TestUpstreamNodes(t),
 								"v2.db.default.dc1": TestUpstreamNodesAlternate(t),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
 						WatchedGatewayEndpoints: map[string]map[string]structs.CheckServiceNodes{
-							"db": {},
+							db.String(): {},
 						},
 						UpstreamConfig: map[string]*structs.Upstream{
 							upstreams[0].Identifier(): &upstreams[0],
