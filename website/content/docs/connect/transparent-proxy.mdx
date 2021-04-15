@@ -43,7 +43,8 @@ enabling traffic redirection.
 
 * For a service on a VM to be a part of the service mesh, it needs to run a Connect sidecar proxy.
 * The [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) command needs to be run on the VM to
-set it up to redirect all inbound and outbound traffic to that VM through the sidecar proxy.
+set it up to redirect all inbound and outbound traffic to that VM through the sidecar proxy. Note that this will modify
+iptables rules on the host which can affect reachability of the VM unless the command is run within a network namespace.
 * Services need to be registered with Consul.
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
 Otherwise, all Connect services can talk to all other services.
@@ -123,9 +124,9 @@ transparent_proxy {
 
 ## Known Limitations
 
-* For services on VMs, transparent proxy is only supported if there is one service per VM. This is because the traffic
-redirection rules are applicable to the whole VM and are responsible for directing traffic from one service to it’s
-sidecar proxy.
+* For services on VMs, transparent proxy only supports one service per VM, or per network namespace. This is
+because the traffic redirection rules are applicable to the entire namespace (including the default namespace) and will
+direct all outbound traffic from the service to it’s sidecar proxy.
 * Currently transparent proxy is only supported for services within a single Consul datacenter.
 
 
@@ -179,4 +180,4 @@ config entry to configure the mode to be transparent as shown above in the [Conf
 Now, once Service Intentions are set up, other services can reach this service's address via an address known to Consul,
 and the traffic will go through the proxy.
 
-~> **Note** Only one service is supported per VM. See [Known Limitations](#known-limitations)
+~> **Note** Only one service is supported per VM, or per network namespace. See [Known Limitations](#known-limitations)
