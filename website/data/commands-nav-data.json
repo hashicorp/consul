@@ -245,6 +245,10 @@
       {
         "title": "expose",
         "path": "connect/expose"
+      },
+      {
+        "title": "redirect-traffic",
+        "path": "connect/redirect-traffic"
       }
     ]
   },

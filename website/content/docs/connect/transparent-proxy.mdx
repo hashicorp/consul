@@ -16,13 +16,13 @@ Previously, service mesh users would need to explicitly define upstreams for a s
 proxy, and dial the local listener to reach the appropriate upstream. Users would also have to set intentions to allow
 specific services to talk to one another. Transparent proxying reduces this duplication, by determining upstreams
 implicitly from Service Intentions. Explicit upstreams are still supported in the [proxy service
-registration](https://www.consul.io/docs/connect/registration/service-registration) on VMs and via the
-[annotation](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
+registration](/docs/connect/registration/service-registration) on VMs and via the
+[annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
 
-To support transparent proxying, Consul now supports a command `consul connect redirect-traffic` to redirect traffic
-through an inbound and outbound listener on Envoy. It also watches Service Intentions and configures the Envoy proxy
-with the appropriate upstream IPs. In Consul on Kubernetes, the traffic redirection command is automatically set up via
-an init container.
+To support transparent proxying, Consul now supports a command 
+[`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and 
+outbound listener on Envoy. It also watches Service Intentions and configures the Envoy proxy with the appropriate 
+upstream IPs. In Consul on Kubernetes, the traffic redirection command is automatically set up via an init container.
 
 ## Prerequisites
 
@@ -40,8 +40,8 @@ enabling traffic redirection.
 ### VMs
 
 * For a service on a VM to be a part of the service mesh, it needs to run a Connect Envoy proxy.
-* The `consul connect redirect-traffic` command needs to be run on the VM to set it up to redirect all inbound and
-outbound traffic to that VM through the Envoy proxy.
+* The [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) command needs to be run on the VM to 
+set it up to redirect all inbound and outbound traffic to that VM through the Envoy proxy.
 * Services need to be registered with Consul and Service Intentions should be set up to allow intended services to
 connect to each other.
 
@@ -145,7 +145,7 @@ proxy for all applications in a Kubernetes cluster is `connectInject.transparent
 Each Pod for the service will be configured with iptables rules to direct all inbound and outbound traffic through an
 inbound and outbound listener on the Envoy proxy. The proxy will be configured to know how to route traffic to the
 appropriate upstream services based on [Service
-Intentions](https://www.consul.io/docs/connect/config-entries/service-intentions). This means Connect services no longer
+Intentions](/docs/connect/config-entries/service-intentions). This means Connect services no longer
 need to use the `consul.hashicorp.com/connect-service-upstreams` annotation to configure upstreams explicitly. Once the
 Service Intentions are set, they can simply address the upstream services using KubeDNS.
 
@@ -163,7 +163,7 @@ spec:
 ```
 
 In the example above, if another service wants to reach `sample-app` via transparent proxying, it just needs a
-[ServiceIntention](https://www.consul.io/docs/connect/config-entries/service-intentions) allowing it to talk to
+[ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
 `sample-app` and then it can dial `sample-app.svc.cluster.local`, using
 [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/).
 
