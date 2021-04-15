@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/hcl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
@@ -1542,6 +1544,75 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 		expect ServiceConfigEntry
 	}{
 		{
+			// This will do nothing to normalization, but it will fail at validation later
+			name: "upstream config override no name",
+			input: ServiceConfigEntry{
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:     "good",
+							Protocol: "grpc",
+						},
+						{
+							Protocol: "http2",
+						},
+						{
+							Name:     "also-good",
+							Protocol: "http",
+						},
+					},
+				},
+			},
+			expect: ServiceConfigEntry{
+				Kind:           ServiceDefaults,
+				Name:           "web",
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:           "good",
+							EnterpriseMeta: *DefaultEnterpriseMeta(),
+							Protocol:       "grpc",
+						},
+						{
+							EnterpriseMeta: *DefaultEnterpriseMeta(),
+							Protocol:       "http2",
+						},
+						{
+							Name:           "also-good",
+							EnterpriseMeta: *DefaultEnterpriseMeta(),
+							Protocol:       "http",
+						},
+					},
+				},
+			},
+		},
+		{
+			// This will do nothing to normalization, but it will fail at validation later
+			name: "upstream config defaults with name",
+			input: ServiceConfigEntry{
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						Name:     "also-good",
+						Protocol: "http2",
+					},
+				},
+			},
+			expect: ServiceConfigEntry{
+				Kind:           ServiceDefaults,
+				Name:           "web",
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						Name:     "also-good",
+						Protocol: "http2",
+					},
+				},
+			},
+		},
+		{
 			name: "fill-in-kind",
 			input: ServiceConfigEntry{
 				Name: "web",
@@ -1603,7 +1674,9 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 							ConnectTimeoutMs: 0,
 						},
 					},
-					Defaults: &UpstreamConfig{ConnectTimeoutMs: 0},
+					Defaults: &UpstreamConfig{
+						ConnectTimeoutMs: 0,
+					},
 				},
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
@@ -1615,6 +1688,108 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 			err := tc.input.Normalize()
 			require.NoError(t, err)
 			require.Equal(t, tc.expect, tc.input)
+		})
+	}
+}
+
+func TestServiceConfigEntry_Validate(t *testing.T) {
+	tt := []struct {
+		name      string
+		input     *ServiceConfigEntry
+		expect    *ServiceConfigEntry
+		expectErr string
+	}{
+		{
+			name: "upstream config override no name",
+			input: &ServiceConfigEntry{
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:     "good",
+							Protocol: "grpc",
+						},
+						{
+							Protocol: "http2",
+						},
+						{
+							Name:     "also-good",
+							Protocol: "http",
+						},
+					},
+				},
+			},
+			expectErr: `error in upstream override for : Name is required`,
+		},
+		{
+			name: "upstream config defaults with name",
+			input: &ServiceConfigEntry{
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Defaults: &UpstreamConfig{
+						Name:     "also-good",
+						Protocol: "http2",
+					},
+				},
+			},
+			expectErr: `error in upstream defaults: Name must be empty`,
+		},
+		{
+			name: "connect-kitchen-sink",
+			input: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:     "redis",
+							Protocol: "TcP",
+						},
+						{
+							Name:             "memcached",
+							ConnectTimeoutMs: -1,
+						},
+					},
+					Defaults: &UpstreamConfig{ConnectTimeoutMs: -20},
+				},
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
+			},
+			expect: &ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				UpstreamConfig: &UpstreamConfiguration{
+					Overrides: []*UpstreamConfig{
+						{
+							Name:             "redis",
+							EnterpriseMeta:   *DefaultEnterpriseMeta(),
+							Protocol:         "tcp",
+							ConnectTimeoutMs: 0,
+						},
+						{
+							Name:             "memcached",
+							EnterpriseMeta:   *DefaultEnterpriseMeta(),
+							ConnectTimeoutMs: 0,
+						},
+					},
+					Defaults: &UpstreamConfig{ConnectTimeoutMs: 0},
+				},
+				EnterpriseMeta: *DefaultEnterpriseMeta(),
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			// normalize before validate since they always happen in that order
+			require.NoError(t, tc.input.Normalize())
+
+			err := tc.input.Validate()
+			if tc.expectErr != "" {
+				testutil.RequireErrorContains(t, err, tc.expectErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, tc.input)
+			}
 		})
 	}
 }
