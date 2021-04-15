@@ -478,7 +478,7 @@ func TestKVSEndpoint_GET(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte("test"))
