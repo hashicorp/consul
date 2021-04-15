@@ -9,20 +9,21 @@ description: |-
 # Transparent Proxy
 
 Transparent proxy allows users to reach other services in the service mesh while ensuring that inbound and outbound
-traffic for services in the mesh are directed through the Envoy proxy. This makes it more likely that traffic is secure
+traffic for services in the mesh are directed through the sidecar proxy. This makes it more likely that traffic is secure
 and only reaches intended destinations since the proxy can enforce security and policy like TLS and Service Intentions.
 
-Previously, service mesh users would need to explicitly define upstreams for a service as a local listener on the Envoy
+Previously, service mesh users would need to explicitly define upstreams for a service as a local listener on the sidecar
 proxy, and dial the local listener to reach the appropriate upstream. Users would also have to set intentions to allow
 specific services to talk to one another. Transparent proxying reduces this duplication, by determining upstreams
 implicitly from Service Intentions. Explicit upstreams are still supported in the [proxy service
 registration](/docs/connect/registration/service-registration) on VMs and via the
 [annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
 
-To support transparent proxying, Consul now supports a command 
-[`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and 
-outbound listener on Envoy. It also watches Service Intentions and configures the Envoy proxy with the appropriate 
-upstream IPs. In Consul on Kubernetes, the traffic redirection command is automatically set up via an init container.
+To support transparent proxying, Consul now supports a command
+[`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and
+outbound listener on the sidecar. It also watches Service Intentions and configures the Envoy proxy with the appropriate
+upstream IPs. If the default ACL policy is "allow", then Service Intentions are not required. In Consul on Kubernetes,
+the traffic redirection command is automatically set up via an init container.
 
 ## Prerequisites
 
@@ -32,18 +33,20 @@ Transparent proxy requires Consul >= `1.10.0`.
 
 * To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to
 the Consul version requirements.
-* Service Intentions should be set up to allow intended services to connect to each other.
+* If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
+Otherwise, all Connect services can talk to all other services.
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.
 
 ### VMs
 
-* For a service on a VM to be a part of the service mesh, it needs to run a Connect Envoy proxy.
-* The [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) command needs to be run on the VM to 
-set it up to redirect all inbound and outbound traffic to that VM through the Envoy proxy.
-* Services need to be registered with Consul and Service Intentions should be set up to allow intended services to
-connect to each other.
+* For a service on a VM to be a part of the service mesh, it needs to run a Connect sidecar proxy.
+* The [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) command needs to be run on the VM to
+set it up to redirect all inbound and outbound traffic to that VM through the sidecar proxy.
+* Services need to be registered with Consul.
+* If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
+Otherwise, all Connect services can talk to all other services.
 
 
 ## Configuration
@@ -103,8 +106,8 @@ port = 20000
 Similar to `mesh_gateway.mode`, the new proxy mode will have the following string values:
 * "" - The empty string represents the default value for the feature, and allows for the mode to be overridden by
 central configuration, like “service-defaults”.
-* "direct" - Explicitly disables configuring Envoy as a transparent proxy, falling back to only configuring explicit upstreams.
-* "transparent" - Explicitly enables configuring Envoy as a transparent proxy.
+* "direct" - Explicitly disables configuring transparent proxy, falling back to only configuring explicit upstreams.
+* "transparent" - Explicitly enables configuring transparent proxy.
 
 Additionally, the new Cluster config entry is scoped to the set of federated Consul datacenters and can be used to allow or block
 traffic to external destinations. This example shows blocking traffic to external destinations (outside of Consul's catalog):
@@ -143,7 +146,7 @@ Transparent proxy is enabled by default in Consul-helm >=`0.32.0`. The Helm valu
 proxy for all applications in a Kubernetes cluster is `connectInject.transparentProxy.defaultEnabled`.
 
 Each Pod for the service will be configured with iptables rules to direct all inbound and outbound traffic through an
-inbound and outbound listener on the Envoy proxy. The proxy will be configured to know how to route traffic to the
+inbound and outbound listener on the sidecar proxy. The proxy will be configured to know how to route traffic to the
 appropriate upstream services based on [Service
 Intentions](/docs/connect/config-entries/service-intentions). This means Connect services no longer
 need to use the `consul.hashicorp.com/connect-service-upstreams` annotation to configure upstreams explicitly. Once the
@@ -170,7 +173,7 @@ In the example above, if another service wants to reach `sample-app` via transpa
 ### VMs
 To use transparent proxy on VMs, the service needs to be registered with Consul and a connect proxy needs to be added to
 the mesh on the VM. Then, traffic redirection rules need to be set up to direct inbound and outbound traffic through the
-Envoy connect proxy. Then, to enable transparent proxy mode to reach this service, you can set apply a service defaults
+sidecar connect proxy. Then, to enable transparent proxy mode to reach this service, you can set apply a service defaults
 config entry to configure the mode to be transparent as shown above in the [Configuration section](#configuration).
 
 Now, once Service Intentions are set up, other services can reach this service's address via an address known to Consul,
