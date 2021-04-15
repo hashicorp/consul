@@ -55,17 +55,14 @@ export default class FSMWithOptionalTestLocation extends FSMWithOptionalLocation
 
     // the first time around, set up location via handleURL
     if (this.location.pathname === '') {
-      const url = this.getURLForTransition(path);
-      // detect lets us set these properties in the correct order
-      this.detect = function() {
-        this.path = url;
-        this.machine.state.path = this.location.pathname = `${this.rootURL.replace(
-          /\/$/,
-          ''
-        )}${path}`;
-      };
+      // getting rootURL straight from env would be nicer but is non-standard
+      // and we still need access to router above
+      this.rootURL = router.rootURL.replace(/\/$/, '');
+      // do some pre-setup setup so getURL can work
+      this.machine.state.path = this.location.pathname = `${this.rootURL}${path}`;
+      this.path = this.getURL();
       // handleURL calls setupRouter for us
-      return app.handleURL(`${url}`).then(handleTransitionResolve, handleTransitionReject);
+      return app.handleURL(`${this.path}`).then(handleTransitionResolve, handleTransitionReject);
     }
     // anything else, just transitionTo like normal
     return this.transitionTo(path).then(handleTransitionResolve, handleTransitionReject);
