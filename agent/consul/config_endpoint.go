@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics/prometheus"
-
 	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
 
@@ -44,7 +44,8 @@ var ConfigSummaries = []prometheus.SummaryDefinition{
 
 // The ConfigEntry endpoint is used to query centralized config information
 type ConfigEntry struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // Apply does an upsert of the given config entry.
@@ -458,8 +459,15 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				usConfigs = make(map[structs.ServiceID]map[string]interface{})
 			)
 			if serviceConf != nil && serviceConf.UpstreamConfig != nil {
-				for _, override := range serviceConf.UpstreamConfig.Overrides {
+				for i, override := range serviceConf.UpstreamConfig.Overrides {
 					if override.Name == "" {
+						c.logger.Warn(
+							"Skipping UpstreamConfig.Overrides entry without a required name field",
+							"entryIndex", i,
+							"kind", serviceConf.GetKind(),
+							"name", serviceConf.GetName(),
+							"namespace", serviceConf.GetEnterpriseMeta().NamespaceOrEmpty(),
+						)
 						continue // skip this impossible condition
 					}
 					seenUpstreams[override.ServiceID()] = struct{}{}
