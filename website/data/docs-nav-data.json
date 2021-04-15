@@ -142,6 +142,10 @@
             "path": "connect/config-entries"
           },
           {
+            "title": "Cluster",
+            "path": "connect/config-entries/cluster"
+          },
+          {
             "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
