@@ -1029,9 +1029,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							mysql.String(): {
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Overrides: []*structs.UpstreamConfig{
+							{
+								Name:     "mysql",
 								Protocol: "http",
 							},
 						},
@@ -1070,9 +1071,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							mysql.String(): {
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Overrides: []*structs.UpstreamConfig{
+							{
+								Name:     "mysql",
 								Protocol: "http",
 							},
 						},
@@ -1115,8 +1117,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamDefaults: &structs.UpstreamConfig{
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Defaults: &structs.UpstreamConfig{
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						},
 					},
@@ -1154,7 +1156,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 		},
 		{
-			name: "upstream_configs overrides all",
+			name: "upstream_config.overrides override all",
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
@@ -1171,8 +1173,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamDefaults: &structs.UpstreamConfig{
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Defaults: &structs.UpstreamConfig{
 							Protocol:    "http",
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 							PassiveHealthCheck: &structs.PassiveHealthCheck{
@@ -1180,8 +1182,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 								MaxFailures: 2,
 							},
 						},
-						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							mysql.String(): {
+						Overrides: []*structs.UpstreamConfig{
+							{
+								Name:        "mysql",
 								Protocol:    "grpc",
 								MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
 							},
@@ -1239,12 +1242,13 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamDefaults: &structs.UpstreamConfig{
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Defaults: &structs.UpstreamConfig{
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						},
-						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							mysql.String(): {
+						Overrides: []*structs.UpstreamConfig{
+							{
+								Name:     "mysql",
 								Protocol: "grpc",
 							},
 						},
@@ -1286,12 +1290,13 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamDefaults: &structs.UpstreamConfig{
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Defaults: &structs.UpstreamConfig{
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						},
-						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							mysql.String(): {
+						Overrides: []*structs.UpstreamConfig{
+							{
+								Name:     "mysql",
 								Protocol: "grpc",
 							},
 						},
@@ -1338,12 +1343,13 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
 					Name: "api",
-					Connect: &structs.ConnectConfiguration{
-						UpstreamDefaults: &structs.UpstreamConfig{
+					UpstreamConfig: &structs.UpstreamConfiguration{
+						Defaults: &structs.UpstreamConfig{
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
 						},
-						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							mysql.String(): {
+						Overrides: []*structs.UpstreamConfig{
+							{
+								Name:     "mysql",
 								Protocol: "grpc",
 							},
 						},

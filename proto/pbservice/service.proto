@@ -209,6 +209,7 @@ message MeshGatewayConfig {
 // output=service.gen.go
 // name=Structs
 message TransparentProxyConfig {
+    // mog: func-to=int func-from=int32
     int32 OutboundListenerPort = 1;
 }
 

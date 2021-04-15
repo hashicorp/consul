@@ -465,21 +465,32 @@ func TestParseConfigEntry(t *testing.T) {
 				transparent_proxy = {
 					outbound_listener_port = 10101
 				}
-				connect {
-					upstream_configs {
-						"redis" {
+				upstream_config {
+					overrides = [
+						{
+							name = "redis"
 							passive_health_check {
 								max_failures = 3
 								interval = "2s"
 							}
-						}
-						"finance/billing" {
+							envoy_listener_json = "{ \"listener-foo\": 5 }"
+							envoy_cluster_json = "{ \"cluster-bar\": 5 }"
+							protocol = "grpc"
+							connect_timeout_ms = 6543
+						},
+						{
+							name = "finance--billing"
 							mesh_gateway {
 								mode = "remote"
 							}
+							limits {
+								max_connections = 1111
+								max_pending_requests = 2222
+								max_concurrent_requests = 3333
+							}
 						}
-					}
-					upstream_defaults {
+					]
+					defaults {
 						envoy_cluster_json = "zip"
 						envoy_listener_json = "zop"
 						connect_timeout_ms = 5000
@@ -512,33 +523,44 @@ func TestParseConfigEntry(t *testing.T) {
 				TransparentProxy = {
 					outbound_listener_port = 10101
 				}
-				connect = {
-					upstream_configs = {
-						"redis" = {
-							passive_health_check = {
-								max_failures = 3
-								interval = "2s"
+				UpstreamConfig {
+					Overrides = [
+						{
+							Name = "redis"
+							PassiveHealthCheck {
+								MaxFailures = 3
+								Interval = "2s"
+							}
+							EnvoyListenerJson = "{ \"listener-foo\": 5 }"
+							EnvoyClusterJson = "{ \"cluster-bar\": 5 }"
+							Protocol = "grpc"
+							ConnectTimeoutMs = 6543
+						},
+						{
+							Name = "finance--billing"
+							MeshGateway {
+								Mode = "remote"
+							}
+							Limits {
+								MaxConnections = 1111
+								MaxPendingRequests = 2222
+								MaxConcurrentRequests = 3333
 							}
 						}
-						"finance/billing" = {
-							mesh_gateway = {
-								mode = "remote"
-							}
+					]
+					Defaults {
+						EnvoyClusterJson = "zip"
+						EnvoyListenerJson = "zop"
+						ConnectTimeoutMs = 5000
+						Protocol = "http"
+						Limits {
+							MaxConnections = 3
+							MaxPendingRequests = 4
+							MaxConcurrentRequests = 5
 						}
-					}
-					upstream_defaults = {
-						envoy_cluster_json = "zip"
-						envoy_listener_json = "zop"
-						connect_timeout_ms = 5000
-						protocol = "http"
-						limits = {
-							max_connections = 3
-							max_pending_requests = 4
-							max_concurrent_requests = 5
-						}
-						passive_health_check = {
-							max_failures = 5
-							interval = "4s"
+						PassiveHealthCheck {
+							MaxFailures = 5
+							Interval = "4s"
 						}
 					}
 				}
@@ -560,21 +582,32 @@ func TestParseConfigEntry(t *testing.T) {
 				"transparent_proxy": {
 					"outbound_listener_port": 10101
 				},
-				"connect": {
-					"upstream_configs": {
-						"redis": {
+				"upstream_config": {
+					"overrides": [
+						{
+							"name": "redis",
 							"passive_health_check": {
 								"max_failures": 3,
 								"interval": "2s"
-							}
+							},
+							"envoy_listener_json": "{ \"listener-foo\": 5 }",
+							"envoy_cluster_json": "{ \"cluster-bar\": 5 }",
+							"protocol": "grpc",
+							"connect_timeout_ms": 6543
 						},
-						"finance/billing": {
+						{
+							"name": "finance--billing",
 							"mesh_gateway": {
 								"mode": "remote"
+							},
+							"limits": {
+								"max_connections": 1111,
+								"max_pending_requests": 2222,
+								"max_concurrent_requests": 3333
 							}
 						}
-					},
-					"upstream_defaults": {
+					],
+					"defaults": {
 						"envoy_cluster_json": "zip",
 						"envoy_listener_json": "zop",
 						"connect_timeout_ms": 5000,
@@ -609,23 +642,34 @@ func TestParseConfigEntry(t *testing.T) {
 				"TransparentProxy": {
 					"OutboundListenerPort": 10101
 				},
-				"Connect": {
-					"UpstreamConfigs": {
-						"redis": {
+				"UpstreamConfig": {
+					"Overrides": [
+						{
+							"Name": "redis",
 							"PassiveHealthCheck": {
 								"MaxFailures": 3,
 								"Interval": "2s"
-							}
+							},
+							"EnvoyListenerJson": "{ \"listener-foo\": 5 }",
+							"EnvoyClusterJson": "{ \"cluster-bar\": 5 }",
+							"Protocol": "grpc",
+							"ConnectTimeoutMs": 6543
 						},
-						"finance/billing": {
+						{
+							"Name": "finance--billing",
 							"MeshGateway": {
 								"Mode": "remote"
+							},
+							"Limits": {
+								"MaxConnections": 1111,
+								"MaxPendingRequests": 2222,
+								"MaxConcurrentRequests": 3333
 							}
 						}
-					},
-					"UpstreamDefaults": {
-						"EnvoyClusterJSON": "zip",
-						"EnvoyListenerJSON": "zop",
+					],
+					"Defaults": {
+						"EnvoyClusterJson": "zip",
+						"EnvoyListenerJson": "zop",
 						"ConnectTimeoutMs": 5000,
 						"Protocol": "http",
 						"Limits": {
@@ -634,8 +678,8 @@ func TestParseConfigEntry(t *testing.T) {
 							"MaxConcurrentRequests": 5
 						},
 						"PassiveHealthCheck": {
-								"MaxFailures": 5,
-								"Interval": "4s"
+							"MaxFailures": 5,
+							"Interval": "4s"
 						}
 					}
 				}
@@ -657,29 +701,40 @@ func TestParseConfigEntry(t *testing.T) {
 				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
 				},
-				Connect: &api.ConnectConfiguration{
-					UpstreamConfigs: map[string]api.UpstreamConfig{
-						"redis": {
+				UpstreamConfig: &api.UpstreamConfiguration{
+					Overrides: []*api.UpstreamConfig{
+						{
+							Name: "redis",
 							PassiveHealthCheck: &api.PassiveHealthCheck{
 								MaxFailures: 3,
 								Interval:    2 * time.Second,
 							},
+							EnvoyListenerJSON: `{ "listener-foo": 5 }`,
+							EnvoyClusterJSON:  `{ "cluster-bar": 5 }`,
+							Protocol:          "grpc",
+							ConnectTimeoutMs:  6543,
 						},
-						"finance/billing": {
+						{
+							Name: "finance--billing",
 							MeshGateway: api.MeshGatewayConfig{
 								Mode: "remote",
 							},
+							Limits: &api.UpstreamLimits{
+								MaxConnections:        intPointer(1111),
+								MaxPendingRequests:    intPointer(2222),
+								MaxConcurrentRequests: intPointer(3333),
+							},
 						},
 					},
-					UpstreamDefaults: &api.UpstreamConfig{
+					Defaults: &api.UpstreamConfig{
 						EnvoyClusterJSON:  "zip",
 						EnvoyListenerJSON: "zop",
 						Protocol:          "http",
 						ConnectTimeoutMs:  5000,
 						Limits: &api.UpstreamLimits{
-							MaxConnections:        3,
-							MaxPendingRequests:    4,
-							MaxConcurrentRequests: 5,
+							MaxConnections:        intPointer(3),
+							MaxPendingRequests:    intPointer(4),
+							MaxConcurrentRequests: intPointer(5),
 						},
 						PassiveHealthCheck: &api.PassiveHealthCheck{
 							MaxFailures: 5,
@@ -2676,4 +2731,8 @@ func TestParseConfigEntry(t *testing.T) {
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
+}
+
+func intPointer(v int) *int {
+	return &v
 }

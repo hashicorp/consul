@@ -395,6 +395,7 @@ var xxx_messageInfo_MeshGatewayConfig proto.InternalMessageInfo
 // output=service.gen.go
 // name=Structs
 type TransparentProxyConfig struct {
+	// mog: func-to=int func-from=int32
 	OutboundListenerPort int32 `protobuf:"varint,1,opt,name=OutboundListenerPort,proto3" json:"OutboundListenerPort,omitempty"`
 }
 

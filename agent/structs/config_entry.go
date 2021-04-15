@@ -89,10 +89,8 @@ type ServiceConfigEntry struct {
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
 	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose           ExposeConfig           `json:",omitempty"`
-
-	ExternalSNI string `json:",omitempty" alias:"external_sni"`
-
-	Connect *ConnectConfiguration `json:",omitempty"`
+	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -102,6 +100,7 @@ type ServiceConfigEntry struct {
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
 	e2 := *e
 	e2.Expose = e.Expose.Clone()
+	e2.UpstreamConfig = e.UpstreamConfig.Clone()
 	return &e2
 }
 
@@ -131,20 +130,48 @@ func (e *ServiceConfigEntry) Normalize() error {
 
 	e.Kind = ServiceDefaults
 	e.Protocol = strings.ToLower(e.Protocol)
-
-	e.Connect.Normalize()
 	e.EnterpriseMeta.Normalize()
 
-	return nil
+	var validationErr error
+
+	if e.UpstreamConfig != nil {
+		for _, override := range e.UpstreamConfig.Overrides {
+			err := override.NormalizeWithName(&e.EnterpriseMeta)
+			if err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+			}
+		}
+
+		if e.UpstreamConfig.Defaults != nil {
+			err := e.UpstreamConfig.Defaults.NormalizeWithoutName()
+			if err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults: %v", err))
+			}
+		}
+	}
+
+	return validationErr
 }
 
 func (e *ServiceConfigEntry) Validate() error {
+	if e.Name == "" {
+		return fmt.Errorf("Name is required")
+	}
+
 	validationErr := validateConfigEntryMeta(e.Meta)
 
-	if e.Connect != nil {
-		err := e.Connect.Validate()
-		if err != nil {
-			validationErr = multierror.Append(validationErr, err)
+	if e.UpstreamConfig != nil {
+		for _, override := range e.UpstreamConfig.Overrides {
+			err := override.ValidateWithName()
+			if err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+			}
+		}
+
+		if e.UpstreamConfig.Defaults != nil {
+			if err := e.UpstreamConfig.Defaults.ValidateWithoutName(); err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults: %v", err))
+			}
 		}
 	}
 
@@ -179,44 +206,32 @@ func (e *ServiceConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	return &e.EnterpriseMeta
 }
 
-type ConnectConfiguration struct {
-	// UpstreamConfigs is a map of <namespace/>service to per-upstream configuration
-	UpstreamConfigs map[string]*UpstreamConfig `json:",omitempty" alias:"upstream_configs"`
+type UpstreamConfiguration struct {
+	// Overrides is a slice of per-service configuration. The name field is
+	// required.
+	Overrides []*UpstreamConfig `json:",omitempty"`
 
-	// UpstreamDefaults contains default configuration for all upstreams of a given service
-	UpstreamDefaults *UpstreamConfig `json:",omitempty" alias:"upstream_defaults"`
+	// Defaults contains default configuration for all upstreams of a given
+	// service. The name field must be empty.
+	Defaults *UpstreamConfig `json:",omitempty"`
 }
 
-func (cfg *ConnectConfiguration) Normalize() {
-	if cfg == nil {
-		return
-	}
-	for _, v := range cfg.UpstreamConfigs {
-		v.Normalize()
-	}
-
-	if cfg.UpstreamDefaults != nil {
-		cfg.UpstreamDefaults.Normalize()
-	}
-}
-
-func (cfg ConnectConfiguration) Validate() error {
-	var validationErr error
-
-	for k, v := range cfg.UpstreamConfigs {
-		if err := v.Validate(); err != nil {
-			validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream config for %s: %v", k, err))
+func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
+	var c2 UpstreamConfiguration
+	if len(c.Overrides) > 0 {
+		c2.Overrides = make([]*UpstreamConfig, 0, len(c.Overrides))
+		for _, o := range c.Overrides {
+			dup := o.Clone()
+			c2.Overrides = append(c2.Overrides, &dup)
 		}
 	}
 
-	if cfg.UpstreamDefaults != nil {
-		err := cfg.UpstreamDefaults.Validate()
-		if err != nil {
-			validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults %v", err))
-		}
+	if c.Defaults != nil {
+		def2 := c.Defaults.Clone()
+		c2.Defaults = &def2
 	}
 
-	return validationErr
+	return &c2
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
@@ -651,6 +666,11 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
+	// Name is only accepted within a service-defaults config entry.
+	Name string `json:",omitempty"`
+	// EnterpriseMeta is only accepted within a service-defaults config entry.
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
 	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
@@ -688,6 +708,29 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
+func (cfg UpstreamConfig) Clone() UpstreamConfig {
+	cfg2 := cfg
+
+	cfg2.Limits = cfg.Limits.Clone()
+	cfg2.PassiveHealthCheck = cfg.PassiveHealthCheck.Clone()
+
+	return cfg2
+}
+
+func (cfg *UpstreamConfig) ServiceID() ServiceID {
+	if cfg.Name == "" {
+		return ServiceID{}
+	}
+	return NewServiceID(cfg.Name, &cfg.EnterpriseMeta)
+}
+
+func (cfg *UpstreamConfig) ServiceName() ServiceName {
+	if cfg.Name == "" {
+		return ServiceName{}
+	}
+	return NewServiceName(cfg.Name, &cfg.EnterpriseMeta)
+}
+
 func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	// Avoid storing empty values in the map, since these can act as overrides
 	if cfg.EnvoyListenerJSON != "" {
@@ -713,15 +756,48 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	}
 }
 
-func (cfg *UpstreamConfig) Normalize() {
+func (cfg *UpstreamConfig) NormalizeWithoutName() error {
+	return cfg.normalize(false, nil)
+}
+func (cfg *UpstreamConfig) NormalizeWithName(entMeta *EnterpriseMeta) error {
+	return cfg.normalize(true, entMeta)
+}
+func (cfg *UpstreamConfig) normalize(named bool, entMeta *EnterpriseMeta) error {
+	if named {
+		// If the upstream namespace is omitted it inherits that of the enclosing
+		// config entry.
+		cfg.EnterpriseMeta.MergeNoWildcard(entMeta)
+		cfg.EnterpriseMeta.Normalize()
+	}
+
 	cfg.Protocol = strings.ToLower(cfg.Protocol)
 
 	if cfg.ConnectTimeoutMs < 0 {
 		cfg.ConnectTimeoutMs = 0
 	}
+	return nil
 }
 
-func (cfg UpstreamConfig) Validate() error {
+func (cfg UpstreamConfig) ValidateWithoutName() error {
+	return cfg.validate(false)
+}
+func (cfg UpstreamConfig) ValidateWithName() error {
+	return cfg.validate(true)
+}
+func (cfg UpstreamConfig) validate(named bool) error {
+	if named {
+		if cfg.Name == "" {
+			return fmt.Errorf("Name is required")
+		}
+	} else {
+		if cfg.Name != "" {
+			return fmt.Errorf("Name must be empty")
+		}
+		if cfg.EnterpriseMeta.NamespaceOrEmpty() != "" {
+			return fmt.Errorf("Namespace must be empty")
+		}
+	}
+
 	var validationErr error
 
 	if cfg.PassiveHealthCheck != nil {
@@ -758,8 +834,11 @@ func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, er
 		return cfg, err
 	}
 
-	err = decoder.Decode(m)
-	cfg.Normalize()
+	if err := decoder.Decode(m); err != nil {
+		return cfg, err
+	}
+
+	err = cfg.NormalizeWithoutName()
 
 	return cfg, err
 }
@@ -791,6 +870,14 @@ type PassiveHealthCheck struct {
 	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
 }
 
+func (chk *PassiveHealthCheck) Clone() *PassiveHealthCheck {
+	if chk == nil {
+		return nil
+	}
+	chk2 := *chk
+	return &chk2
+}
+
 func (chk *PassiveHealthCheck) IsZero() bool {
 	zeroVal := PassiveHealthCheck{}
 	return *chk == zeroVal
@@ -820,6 +907,25 @@ type UpstreamLimits struct {
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
 	MaxConcurrentRequests *int `json:",omitempty" alias:"max_concurrent_requests"`
+}
+
+func (ul *UpstreamLimits) Clone() *UpstreamLimits {
+	if ul == nil {
+		return nil
+	}
+	return &UpstreamLimits{
+		MaxConnections:        intPointerCopy(ul.MaxConnections),
+		MaxPendingRequests:    intPointerCopy(ul.MaxPendingRequests),
+		MaxConcurrentRequests: intPointerCopy(ul.MaxConcurrentRequests),
+	}
+}
+
+func intPointerCopy(v *int) *int {
+	if v == nil {
+		return nil
+	}
+	v2 := *v
+	return &v2
 }
 
 func (ul *UpstreamLimits) IsZero() bool {

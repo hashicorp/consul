@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics/prometheus"
-
 	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	memdb "github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/copystructure"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/copystructure"
 )
 
 var ConfigSummaries = []prometheus.SummaryDefinition{
@@ -43,7 +44,8 @@ var ConfigSummaries = []prometheus.SummaryDefinition{
 
 // The ConfigEntry endpoint is used to query centralized config information
 type ConfigEntry struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // Apply does an upsert of the given config entry.
@@ -449,23 +451,30 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
-			// Then store upstreams inferred from service-defaults
-			if serviceConf != nil && serviceConf.Connect != nil {
-				for sid := range serviceConf.Connect.UpstreamConfigs {
-					seenUpstreams[structs.ServiceIDFromString(sid)] = struct{}{}
-				}
-			}
-
-			// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
-			usConfigs := make(map[structs.ServiceID]map[string]interface{})
-
+			// Then store upstreams inferred from service-defaults and mapify the overrides.
 			var (
+				upstreamConfigs  = make(map[structs.ServiceID]*structs.UpstreamConfig)
 				upstreamDefaults *structs.UpstreamConfig
-				upstreamConfigs  map[string]*structs.UpstreamConfig
+				// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
+				usConfigs = make(map[structs.ServiceID]map[string]interface{})
 			)
-			if serviceConf != nil && serviceConf.Connect != nil {
-				if serviceConf.Connect.UpstreamDefaults != nil {
-					upstreamDefaults = serviceConf.Connect.UpstreamDefaults
+			if serviceConf != nil && serviceConf.UpstreamConfig != nil {
+				for i, override := range serviceConf.UpstreamConfig.Overrides {
+					if override.Name == "" {
+						c.logger.Warn(
+							"Skipping UpstreamConfig.Overrides entry without a required name field",
+							"entryIndex", i,
+							"kind", serviceConf.GetKind(),
+							"name", serviceConf.GetName(),
+							"namespace", serviceConf.GetEnterpriseMeta().NamespaceOrEmpty(),
+						)
+						continue // skip this impossible condition
+					}
+					seenUpstreams[override.ServiceID()] = struct{}{}
+					upstreamConfigs[override.ServiceID()] = override
+				}
+				if serviceConf.UpstreamConfig.Defaults != nil {
+					upstreamDefaults = serviceConf.UpstreamConfig.Defaults
 
 					// Store the upstream defaults under a wildcard key so that they can be applied to
 					// upstreams that are inferred from intentions and do not have explicit upstream configuration.
@@ -475,9 +484,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
 					usConfigs[wildcard] = cfgMap
 				}
-				if serviceConf.Connect.UpstreamConfigs != nil {
-					upstreamConfigs = serviceConf.Connect.UpstreamConfigs
-				}
 			}
 
 			for upstream := range seenUpstreams {
@@ -486,7 +492,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				// The protocol of an upstream is resolved in this order:
 				// 1. Default protocol from proxy-defaults (how all services should be addressed)
 				// 2. Protocol for upstream service defined in its service-defaults (how the upstream wants to be addressed)
-				// 3. Protocol defined for the upstream in the service-defaults.(upstream_defaults|upstream_configs) of the downstream
+				// 3. Protocol defined for the upstream in the service-defaults.(upstream_config.defaults|upstream_config.overrides) of the downstream
 				// 	  (how the downstream wants to address it)
 				protocol := proxyConfGlobalProtocol
 
@@ -518,14 +524,14 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				// The goal is to flatten the mesh gateway mode in this order:
 				// 	0. Value from centralized upstream_defaults
 				// 	1. Value from local proxy registration
-				// 	2. Value from centralized upstream_configs
+				// 	2. Value from centralized upstream_config
 				// 	3. Value from local upstream definition. This last step is done in the client's service manager.
 				if !args.MeshGateway.IsZero() {
 					resolvedCfg["mesh_gateway"] = args.MeshGateway
 				}
 
-				if upstreamConfigs[upstream.String()] != nil {
-					upstreamConfigs[upstream.String()].MergeInto(resolvedCfg)
+				if upstreamConfigs[upstream] != nil {
+					upstreamConfigs[upstream].MergeInto(resolvedCfg)
 				}
 
 				if len(resolvedCfg) > 0 {
