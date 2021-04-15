@@ -1,12 +1,12 @@
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
-if (env('CONSUL_NSPACES_ENABLED')) {
-  OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
-}
 // if (true) {
 //   OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 // }
 //
+if (env('CONSUL_NSPACES_ENABLED')) {
+  OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+}
 const _uuid = function() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
