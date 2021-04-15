@@ -9,6 +9,9 @@ description: Configuring Kubernetes Health Checks
 -> 0.26+: This feature is available in consul-helm versions 0.26 and higher and is defaulted on.
 To disable it, set `connectInject.healthChecks.enabled: false`.
 
+-> **Note**: As of consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`, syncing of the Kubernetes readiness status
+is always on, and turning it off is no longer configurable.
+
 ~> This topic requires familiarity with [Kubernetes Health Checks](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
 
 This page describes how to enable Consul on Kubernetes to sync the Kubernetes readiness status to Consul for service mesh uses cases.
