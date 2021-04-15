@@ -1719,7 +1719,7 @@ func TestServiceConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `error in upstream override for : Name is required`,
+			expectErr: `Name is required`,
 		},
 		{
 			name: "upstream config defaults with name",
