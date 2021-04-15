@@ -226,6 +226,10 @@
         "path": "connect/intentions-legacy"
       },
       {
+        "title": "Transparent Proxy",
+        "path": "connect/transparent-proxy"
+      },
+      {
         "title": "Observability",
         "routes": [
           {
@@ -422,6 +426,10 @@
           {
             "title": "Overview",
             "path": "k8s/connect"
+          },
+          {
+            "title": "Transparent Proxy",
+            "path": "connect/transparent-proxy-k8s"
           },
           {
             "title": "Ingress Gateways",
