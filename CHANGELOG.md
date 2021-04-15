@@ -1,5 +1,18 @@
 ## UNRELEASED
 
+SECURITY:
+
+* Add content-type headers to raw KV responses to prevent XSS attacks [CVE-2020-25864](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25864) [[GH-10023](https://github.com/hashicorp/consul/issues/10023)]
+* audit-logging: Parse endpoint URL to prevent requests from bypassing the audit log [CVE-2021-28156](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-28156)
+
+BUG FIXES:
+
+* areas: Fixes a bug which would prevent newer servers in a network areas from connecting to servers running a version of Consul prior to 1.7.3.
+* audit-logging: (Enterprise only) Fixed an issue that resulted in usage of the agent master token or managed service provider tokens from being resolved properly. [[GH-10013](https://github.com/hashicorp/consul/issues/10013)]
+* command: when generating envoy bootstrap configs to stdout do not mix informational logs into the json [[GH-9980](https://github.com/hashicorp/consul/issues/9980)]
+* config: correct config key from `advertise_addr_ipv6` to `advertise_addr_wan_ipv6` [[GH-9851](https://github.com/hashicorp/consul/issues/9851)]
+* snapshot: fixes a bug that would cause snapshots to be missing all but the first ACL Auth Method. [[GH-10025](https://github.com/hashicorp/consul/issues/10025)]
+
 ## 1.8.9 (March 04, 2021)
 
 IMPROVEMENTS:
