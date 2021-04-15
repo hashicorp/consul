@@ -36,7 +36,7 @@ export default class ProxyService extends RepositoryService {
   }
 
   @dataSource('/:ns/:dc/proxy-instance/:serviceId/:node/:id')
-  findInstanceBySlug(params, nspace, configuration) {
+  findInstanceBySlug(params, configuration) {
     return this.findAllBySlug(params, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
