@@ -142,6 +142,10 @@
             "path": "connect/config-entries"
           },
           {
+            "title": "Cluster",
+            "path": "connect/config-entries/cluster"
+          },
+          {
             "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
           },
@@ -220,6 +224,10 @@
       {
         "title": "Service-to-service permissions - Intentions (Legacy Mode)",
         "path": "connect/intentions-legacy"
+      },
+      {
+        "title": "Transparent Proxy <sup>Beta</sup>",
+        "path": "connect/transparent-proxy"
       },
       {
         "title": "Observability",
@@ -418,6 +426,10 @@
           {
             "title": "Overview",
             "path": "k8s/connect"
+          },
+          {
+            "title": "Transparent Proxy",
+            "href": "/docs/connect/transparent-proxy"
           },
           {
             "title": "Ingress Gateways",

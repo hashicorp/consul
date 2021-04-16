@@ -81,6 +81,8 @@ registering a proxy instance.
     "destination_service_id": "redis1",
     "local_service_address": "127.0.0.1",
     "local_service_port": 9090,
+    "mode": "transparent",
+    "transparent_proxy": {},
     "config": {},
     "upstreams": [],
     "mesh_gateway": {},
@@ -114,6 +116,22 @@ registering a proxy instance.
   proxy should attempt to connect to the local application instance on.
   Defaults to the port advertised by the service instance identified by
   `destination_service_id` if it exists otherwise it may be empty in responses.
+
+- `mode` `(string: "")` <sup>Beta</sup> - One of \`direct\` or \`transparent\`. Added in v1.10.0.
+  - `"transparent"` - represents that inbound and outbound application traffic is being
+    captured and redirected through the proxy. This mode does not enable the traffic redirection
+    itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
+  - `"direct"` - represents that the proxy's listeners must be dialed directly by the local 
+     application and other proxies.
+  - `""` - Default mode. The default mode will be `"direct"` if no other configuration
+    applies. The order of precedence for setting the mode is
+    1.  Proxy Service's `Proxy` configuration
+    2.  The `service-defaults` configuration for the service.
+    3.  The `global` `proxy-defaults`.
+
+- `transparent_proxy` `(object: {})` <sup>Beta</sup> - Specifies the configuration specific to proxies in `transparent` mode.
+  The format is defined in the [Transparent Proxy Configuration Reference](#transparent-proxy-configuration-reference).
+  Added in v1.10.0.
 
 - `config` `(object: {})` - Specifies opaque config JSON that will be
   stored and returned along with the service instance from future API calls.
@@ -193,6 +211,26 @@ followed by documentation for each attribute.
   reference](/docs/connect/proxies/envoy#proxy-upstream-config-options)
 - `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
   for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
+
+### Transparent Proxy Configuration Reference <sup>Beta</sup>
+
+The following examples show additional configuration for transparent proxies.
+
+Added in v1.10.0.
+
+-> Note that `snake_case` is used here as it works in both [config file and API
+registrations](/docs/agent/services#service-definition-parameter-case).
+
+#### Configure a proxy listener for outbound traffic on port 22500
+
+```json
+{
+  "outbound_listener_port": 22500
+}
+```
+
+- `outbound_listener_port` `(int: 15001)` - The port the proxy should listen on for outbound traffic.
+   This must be the port where outbound application traffic is captured and redirected to.
 
 ### Mesh Gateway Configuration Reference
 
