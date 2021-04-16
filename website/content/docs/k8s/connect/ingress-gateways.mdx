@@ -10,13 +10,13 @@ description: Configuring Ingress Gateways on Kubernetes
 
 ~> This topic requires familiarity with [Ingress Gateways](/docs/connect/ingress-gateway).
 
-This page describes how to enable external access to Connect service mesh services running inside Kubernetes using Consul ingress gateways.
+This page describes how to enable external access to Connect Service Mesh services running inside Kubernetes using Consul ingress gateways.
 See [Ingress Gateways](/docs/connect/ingress-gateway) for more information on use-cases and how it works.
 
 Adding an ingress gateway is a multi-step process that consists of the following steps:
 
-- Setting the helm chart configuration
-- Deploying the helm chart
+- Setting the Helm chart configuration
+- Deploying the Helm chart
 - Configuring the gateway
 - Defining an Intention (if ACLs are enabled)
 - Deploying your application to Kubernetes
@@ -24,7 +24,7 @@ Adding an ingress gateway is a multi-step process that consists of the following
 
 ## Setting the helm chart configuration
 
-When deploying the helm chart you must provide helm with a custom yaml file that contains your environment configuration.
+When deploying the Helm chart you must provide Helm with a custom YAML file that contains your environment configuration.
 
 ```yaml
 global:
@@ -43,8 +43,9 @@ ingressGateways:
 
 ~> **Note:** this will create a public unauthenticated LoadBalancer in your cluster, please take appropriate security considerations.
 
-The yaml snippet is the launching point for a valid configuration that must be supplied when installing using the [official consul-helm chart](https://hub.helm.sh/charts/hashicorp/consul).
-Information on additional options can be found in the [Helm reference](/docs/k8s/helm). Configuration options for ingress gateways reside under the [ingressGateways](/docs/k8s/helm#v-ingressgateways) entry.
+The YAML snippet is the launching point for a valid configuration that must be supplied when installing using the [official consul-helm chart](https://hub.helm.sh/charts/hashicorp/consul).
+Information on additional options can be found in the [Helm reference](/docs/k8s/helm).
+Configuration options for ingress gateways reside under the [ingressGateways](/docs/k8s/helm#v-ingressgateways) entry.
 
 The gateways stanza is where you will define and configure the set of ingress gateways you want deployed to your environment.
 The only required field for each entry is `name`, though entries may contain any of the fields found in the `defaults` stanza.
@@ -52,7 +53,7 @@ Values in this section override the values from the defaults stanza for the give
 the annotations from the defaults stanza will be _appended_ to any user-defined annotations defined in the gateways stanza rather than being overridden.
 Please refer to the ingress gateway configuration [documentation](/docs/k8s/helm#v-ingressgateways-defaults) for a detailed explanation of each option.
 
-## Deploying the helm chart
+## Deploying the Helm chart
 
 Ensure you have the latest consul-helm chart and install Consul via helm using the following
 [guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
@@ -60,7 +61,8 @@ as previously discussed.
 
 ## Configuring the gateway
 
-Now that Consul has been installed with ingress gateways enabled, you must configure the gateways via the [`IngressGateway`](/docs/connect/config-entries/ingress-gateway) custom resource.
+Now that Consul has been installed with ingress gateways enabled,
+you can configure the gateways via the [`IngressGateway`](/docs/connect/config-entries/ingress-gateway) custom resource.
 
 Here is an example `IngressGateway` resource:
 
@@ -163,29 +165,51 @@ Now you will deploy a sample application which echoes “hello world”
 
 ```yaml
 apiVersion: v1
+kind: Service
+metadata:
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: static-server
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: static-server
-  annotations:
-    'consul.hashicorp.com/connect-inject': 'true'
 spec:
-  containers:
-    # This name will be the service name in Consul.
-    - name: static-server
-      image: hashicorp/http-echo:latest
-      args:
-        - -text="hello world"
-        - -listen=:8080
-      ports:
-        - containerPort: 8080
-          name: http
-    # If ACLs are enabled, the serviceAccountName must match the Consul service name.
-  serviceAccountName: static-server
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        # This name will be the service name in Consul.
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-server
 ```
 
 ```shell-session

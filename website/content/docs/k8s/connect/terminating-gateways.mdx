@@ -12,8 +12,8 @@ description: Configuring Terminating Gateways on Kubernetes
 
 Adding a terminating gateway is a multi-step process:
 
-- Update the helm chart with terminating gateway config options
-- Deploy the helm chart
+- Update the Helm chart with terminating gateway config options
+- Deploy the Helm chart
 - Access the Consul agent
 - Register external services with Consul
 
@@ -32,7 +32,7 @@ terminatingGateways:
   enabled: true
 ```
 
-## Deploying the helm chart
+## Deploying the Helm chart
 
 Ensure you have the latest consul-helm chart and install Consul via helm using the following
 [guide](/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
@@ -145,7 +145,7 @@ service "example-https" {
 }
 ```
 
-Now fetch the id of the terminating gateway token
+Now fetch the ID of the terminating gateway token
 
 ```shell-session
 consul acl token list | grep -B 6 -- "- terminating-gateway-terminating-gateway-token" | grep AccessorID
@@ -219,6 +219,16 @@ Finally define and deploy the external services as upstreams for the internal me
 An example deployment is provided which will serve as a static client for the terminating gateway service.
 
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:

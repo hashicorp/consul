@@ -434,6 +434,26 @@ and consider if they're appropriate for your deployment.
     should be a multi-line string matching the Tolerations
     (https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) array in a Pod spec.
 
+  - `topologySpreadConstraints` ((#v-server-topologyspreadconstraints)) (`string: ""`) - Pod topology spread constraints for server pods.
+    This should be a multi-line YAML string matching the `topologySpreadConstraints` array
+    (https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) in a Pod Spec.
+
+    This requires K8S >= 1.18 (beta) or 1.19 (stable).
+
+    Example:
+
+    ```yaml
+    topologySpreadConstraints: |
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: {{ template "consul.name" . }}
+            release: "{{ .Release.Name }}"
+            component: server
+    ```
+
   - `nodeSelector` ((#v-server-nodeselector)) (`string: null`) - This value defines `nodeSelector` (https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
     labels for server pod assignment, formatted as a multi-line string.
 
@@ -987,6 +1007,16 @@ and consider if they're appropriate for your deployment.
 
   - `consulWriteInterval` ((#v-synccatalog-consulwriteinterval)) (`string: null`) - Override the default interval to perform syncing operations creating Consul services.
 
+  - `extraLabels` ((#v-synccatalog-extralabels)) (`map`) - Extra labels to attach to the sync catalog pods. This should be a YAML map.
+
+    Example:
+
+    ```yaml
+    extraLabels:
+      labelKey: label-value
+      anotherLabelKey: another-label-value
+    ```
+
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
   - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - True if you want to enable connect injection. Set to "-" to inherit from
@@ -1000,16 +1030,12 @@ and consider if they're appropriate for your deployment.
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
-  - `healthChecks` ((#v-connectinject-healthchecks)) - Enables synchronization of Kubernetes health probe status with Consul.
-    NOTE: It is highly recommended to enable TLS with this feature because it requires
-    making calls to Consul clients across the cluster. Without TLS enabled, these calls
-    could leak ACL tokens should the cluster network become compromised.
+  - `transparentProxy` ((#v-connectinject-transparentproxy)) - Configures Transparent Proxy for Consul Service mesh services.
+    Using this feature requires Consul 1.10.0-beta1+ and consul-k8s 0.26.0-beta1+.
 
-    - `enabled` ((#v-connectinject-healthchecks-enabled)) (`boolean: true`) - Enables the Consul Health Check controller which syncs the readiness status of
-      connect-injected pods with Consul.
-
-    - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: 1m`) - If `healthChecks.enabled` is set to `true`, `reconcilePeriod` defines how often a full state
-      reconcile is done after the initial reconcile at startup is completed.
+    - `defaultEnabled` ((#v-connectinject-transparentproxy-defaultenabled)) (`boolean: true`) - If true, then all Consul Service mesh will run with transparent proxy enabled by default,
+      i.e. we enforce that all traffic within the pod will go through the proxy.
+      This value is overridable via the "consul.hashicorp.com/transparent-proxy" pod annotation.
 
   - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
     via annotations on a per-pod basis.
@@ -1047,16 +1073,6 @@ and consider if they're appropriate for your deployment.
       NOTE: This is *not* the path that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-path` annotation.
-
-  - `cleanupController` ((#v-connectinject-cleanupcontroller)) - Cleanup controller cleans up Consul service instances that remain registered
-    despite their pods no longer running. This could happen if the pod's `preStop`
-    hook failed to execute for some reason.
-
-    - `reconcilePeriod` ((#v-connectinject-cleanupcontroller-reconcileperiod)) (`string: 5m`) - How often to do a full reconcile where the controller looks at all pods
-      and service instances and ensure the state is correct.
-      The controller reacts to each delete event immediately but if it misses
-      an event due to being down or a network issue, the reconcile loop will
-      handle cleaning up any missed deleted pods.
 
   - `envoyExtraArgs` ((#v-connectinject-envoyextraargs)) (`string: null`) - Used to pass arguments to the injected envoy sidecar.
     Valid arguments to pass to envoy can be found here: https://www.envoyproxy.io/docs/envoy/latest/operations/cli
@@ -1130,28 +1146,6 @@ and consider if they're appropriate for your deployment.
       to be given a prefix. For example, if `mirroringK8SPrefix` is set to "k8s-", a
       pod in the k8s `staging` namespace will be registered into the
       `k8s-staging` Consul namespace.
-
-  - `certs` ((#v-connectinject-certs)) - The certs section configures how the webhook TLS certs are configured.
-    These are the TLS certs for the Kube apiserver communicating to the
-    webhook. By default, the injector will generate and manage its own certs,
-    but this requires the ability for the injector to update its own
-    MutatingWebhookConfiguration. In a production environment, custom certs
-    should probably be used. Configure the values below to enable this.
-
-    - `secretName` ((#v-connectinject-certs-secretname)) (`string: null`) - Name of the secret that has the TLS certificate and
-      private key to serve the injector webhook. If this is null, then the
-      injector will default to its automatic management mode that will assign
-      a service account to the injector to generate its own certificates.
-
-    - `caBundle` ((#v-connectinject-certs-cabundle)) (`string: ""`) - Base64-encoded PEM-encoded certificate bundle for the
-      CA that signed the TLS certificate that the webhook serves. This must
-      be set if secretName is non-null.
-
-    - `certName` ((#v-connectinject-certs-certname)) (`string: tls.crt`) - Name of the file within the secret for
-      the TLS cert.
-
-    - `keyName` ((#v-connectinject-certs-keyname)) (`string: tls.key`) - Name of the file within the secret for
-      the private TLS key.
 
   - `nodeSelector` ((#v-connectinject-nodeselector)) (`string: null`) - Selector labels for connectInject pod assignment, formatted as a multi-line string.
     ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
