@@ -25,6 +25,16 @@
   @extend %main-nav-horizontal;
   margin-left: auto;
 }
+%main-nav-vertical-hoisted {
+  top: 11px;
+}
+%main-nav-vertical-hoisted > .popover-menu > label > button {
+  @extend %main-nav-horizontal-action;
+  border: none;
+}
+%main-nav-vertical-hoisted.is-active > label > * {
+  @extend %main-nav-horizontal-action-active;
+}
 %main-nav-sidebar,
 main {
   @extend %transition-pushover;

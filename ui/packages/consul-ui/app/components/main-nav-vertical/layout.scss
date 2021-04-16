@@ -40,3 +40,8 @@
 %main-nav-vertical-menu-panel {
   min-width: 248px;
 }
+%main-nav-vertical-hoisted {
+  visibility: visible;
+  position: fixed;
+  z-index: 10;
+}

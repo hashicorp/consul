@@ -40,6 +40,12 @@
   background-color: var(--gray-150);
   border-color: var(--gray-999);
 }
+%main-nav-vertical .popover-menu[aria-label]::before {
+  content: attr(aria-label);
+  display: block;
+  margin-top: -.5rem;
+  margin-bottom: .5rem;
+}
 %main-nav-vertical .is-local span:last-of-type {
   @extend %pill-200;
   color: var(--gray-000);
