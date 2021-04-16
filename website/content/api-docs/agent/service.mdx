@@ -87,36 +87,38 @@ $ curl \
 The filter is executed against each value in the service mapping with the
 following selectors and filter operations being supported:
 
-| Selector                               | Supported Operations                               |
-| -------------------------------------- | -------------------------------------------------- |
-| `Address`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Connect.Native`                       | Equal, Not Equal                                   |
-| `EnableTagOverride`                    | Equal, Not Equal                                   |
-| `ID`                                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Kind`                                 | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Meta`                                 | Is Empty, Is Not Empty, In, Not In                 |
-| `Meta.<any>`                           | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Port`                                 | Equal, Not Equal                                   |
-| `Proxy.DestinationServiceID`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.DestinationServiceName`         | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.LocalServiceAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.LocalServicePort`               | Equal, Not Equal                                   |
-| `Proxy.MeshGateway.Mode`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.Upstreams`                      | Is Empty, Is Not Empty                             |
-| `Proxy.Upstreams.Datacenter`           | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.Upstreams.DestinationName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.Upstreams.DestinationNamespace` | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.Upstreams.DestinationType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.Upstreams.LocalBindAddress`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Proxy.Upstreams.LocalBindPort`        | Equal, Not Equal                                   |
-| `Proxy.Upstreams.MeshGateway.Mode`     | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `Service`                              | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `TaggedAddresses`                      | Is Empty, Is Not Empty, In, Not In                 |
-| `TaggedAddresses.<any>.Address`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
-| `TaggedAddresses.<any>.Port`           | Equal, Not Equal                                   |
-| `Tags`                                 | In, Not In, Is Empty, Is Not Empty                 |
-| `Weights.Passing`                      | Equal, Not Equal                                   |
-| `Weights.Warning`                      | Equal, Not Equal                                   |
+| Selector                                      | Supported Operations                               |
+| --------------------------------------------- | -------------------------------------------------- |
+| `Address`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                              | Equal, Not Equal                                   |
+| `EnableTagOverride`                           | Equal, Not Equal                                   |
+| `ID`                                          | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                        | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                        | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`                | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`                      | Equal, Not Equal                                   |
+| `Proxy.Mode`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.TransparentProxy.OutboundListenerPort` | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`                      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                             | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`               | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                             | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`                  | Equal, Not Equal                                   |
+| `Tags`                                        | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                             | Equal, Not Equal                                   |
+| `Weights.Warning`                             | Equal, Not Equal                                   |
 
 ## Get Service Configuration
 
@@ -196,6 +198,10 @@ $ curl \
     "DestinationServiceID": "web",
     "LocalServiceAddress": "127.0.0.1",
     "LocalServicePort": 8080,
+    "Mode": "transparent",
+    "TransparentProxy": {
+      "OutboundListenerPort": 22500
+    },
     "Config": {
       "foo": "bar"
     },

@@ -1,0 +1,238 @@
+---
+layout: docs
+page_title: Connect - Transparent Proxy
+sidebar_title: Transparent Proxy <sup>Beta</sup>
+description: |-
+  Transparent proxy is used to direct inbound and outbound traffic to services via the Envoy proxy and configure
+  upstreams via intentions.
+---
+
+# Transparent Proxy <sup>Beta</sup>
+
+Transparent proxy allows users to reach other services in the service mesh while ensuring that inbound and outbound
+traffic for services in the mesh are directed through the sidecar proxy. This makes it more likely that traffic is secure
+and only reaches intended destinations since the proxy can enforce security and policy like TLS and Service Intentions.
+
+Previously, service mesh users would need to explicitly define upstreams for a service as a local listener on the sidecar
+proxy, and dial the local listener to reach the appropriate upstream. Users would also have to set intentions to allow
+specific services to talk to one another. Transparent proxying reduces this duplication, by determining upstreams
+implicitly from Service Intentions. Explicit upstreams are still supported in the [proxy service
+registration](/docs/connect/registration/service-registration) on VMs and via the
+[annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
+
+To support transparent proxying, Consul now supports a command
+[`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and
+outbound listener on the sidecar. It also watches Service Intentions and configures the Envoy proxy with the appropriate
+upstream IPs. If the default ACL policy is "allow", then Service Intentions are not required. In Consul on Kubernetes,
+the traffic redirection command is automatically set up via an init container.
+
+## Prerequisites
+
+Transparent proxy requires Consul >= `1.10.0`.
+
+### Kubernetes
+
+* To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to
+the Consul version requirements.
+* If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
+Otherwise, all Connect services can talk to all other services.
+
+The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
+enabling traffic redirection.
+
+### VMs
+
+* For a service on a VM to be a part of the service mesh, it needs to run a Connect sidecar proxy.
+* The [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) command needs to be run on the VM to
+set it up to redirect all inbound and outbound traffic to that VM through the sidecar proxy. Note that this will modify
+iptables rules on the host which can affect reachability of the VM unless the command is run within a network namespace.
+* Services need to be registered with Consul.
+* If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
+Otherwise, all Connect services can talk to all other services.
+
+
+## Configuration
+
+### Kubernetes
+
+Transparent proxy can be enabled in Kubernetes on the whole cluster via the Helm value:
+
+```yaml
+connectInject:
+  transparentProxy:
+    defaultEnabled: true
+```
+
+It can also be enabled on a per service basis via the annotation `consul.hashicorp.com/transparent-proxy=true` on the
+Pod for each service:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/transparent-proxy': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: static-server
+```
+
+### VMs
+
+In other environments, transparent proxy can be enabled via Proxy Defaults and Service Defaults config entries, or via
+the proxy service registration:
+```
+# Proxy defaults apply to all proxies.
+kind = "proxy-defaults"
+name = "global"
+
+mode = "transparent"
+transparent_proxy {
+  outbound_listener_port = 15001
+}
+```
+```
+# Service defaults apply to all instances of the web service.
+kind = "service-defaults"
+name = "web"
+
+mode = "transparent"
+transparent_proxy {
+  outbound_listener_port = 15001
+}
+```
+```
+# Proxy service registrations apply to a single proxy instance.
+name = "web-sidecar-proxy"
+kind = "connect-proxy"
+proxy {
+  mode = "transparent"
+  transparent_proxy {
+    outbound_listener_port = 15001
+  }
+  destination_service_name = "web"
+  local_service_port = 8080
+}
+port = 20000
+```
+
+Similar to `mesh_gateway.mode`, the new proxy mode will have the following string values:
+* "" - The empty string represents the default value for the feature, and allows for the mode to be overridden by
+central configuration, like “service-defaults”.
+* "direct" - Explicitly disables configuring transparent proxy, falling back to only configuring explicit upstreams.
+* "transparent" - Explicitly enables configuring transparent proxy.
+
+Additionally, the new Cluster config entry is scoped to the set of federated Consul datacenters and can be used to allow or block
+traffic to external destinations. This example shows blocking traffic to external destinations (outside of Consul's catalog):
+
+```
+kind = "cluster"
+name = "cluster"
+
+transparent_proxy {
+  catalog_destinations_only = true
+}
+```
+
+## Known Limitations
+
+* For services on VMs, transparent proxy only supports one service per VM, or per network namespace. This is
+because the traffic redirection rules are applicable to the entire namespace (including the default namespace) and will
+direct all outbound traffic from the service to it’s sidecar proxy.
+* Currently transparent proxy is only supported for services within a single Consul datacenter.
+
+
+## Using Transparent Proxy
+
+### Kubernetes
+
+In Kubernetes, services can reach other services via their
+[KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) address or via Pod IPs, and that
+traffic will be transparently sent through the proxy. Connect services in Kubernetes are required to have a Kubernetes
+service selecting the Pods.
+
+~> Note: In order to use KubeDNS, the Kubernetes service name will need to match the Consul service name. This will be the
+case by default, unless the service Pods have the annotation `consul.hashicorp.com/connect-service` overriding the
+Consul service name.
+
+Transparent proxy is enabled by default in Consul-helm >=`0.32.0`. The Helm value used to enable/disable transparent
+proxy for all applications in a Kubernetes cluster is `connectInject.transparentProxy.defaultEnabled`.
+
+Each Pod for the service will be configured with iptables rules to direct all inbound and outbound traffic through an
+inbound and outbound listener on the sidecar proxy. The proxy will be configured to know how to route traffic to the
+appropriate upstream services based on [Service
+Intentions](/docs/connect/config-entries/service-intentions). This means Connect services no longer
+need to use the `consul.hashicorp.com/connect-service-upstreams` annotation to configure upstreams explicitly. Once the
+Service Intentions are set, they can simply address the upstream services using KubeDNS.
+
+As of Consul-k8s >= `0.26.0` and Consul-helm >= `0.32.0`, a Kubernetes service that selects application pods is required
+for Connect applications, i.e:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app
+  namespace: default
+spec:
+  selector:
+    app: sample-app
+  ports:
+    - protocol: TCP
+      port: 80
+```
+
+In the example above, if another service wants to reach `sample-app` via transparent proxying,
+it can dial `sample-app.default.svc.cluster.local`, using
+[KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/).
+If ACLs with default "deny" policy are enabled, it also needs a
+[ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
+`sample-app`.
+
+### VMs
+To use transparent proxy on VMs, the service needs to be registered with Consul and a connect proxy needs to be added to
+the mesh on the VM. Then, traffic redirection rules need to be set up to direct inbound and outbound traffic through the
+sidecar connect proxy. Then, to enable transparent proxy mode to reach this service, you can set apply a service defaults
+config entry to configure the mode to be transparent as shown above in the [Configuration section](#configuration).
+
+Now, once Service Intentions are set up, other services can reach this service's address via an address known to Consul,
+and the traffic will go through the proxy.
+
+~> **Note** Only one service is supported per VM, or per network namespace. See [Known Limitations](#known-limitations)

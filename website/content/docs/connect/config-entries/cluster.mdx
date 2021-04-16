@@ -1,0 +1,77 @@
+---
+layout: docs
+page_title: 'Configuration Entry Kind: Cluster'
+description: >-
+  The cluster config entry kind allows for globally defining default
+  configuration across all services mesh proxies.
+  Settings in this config entry apply across all namespaces and federated datacenters.
+  Currently, only one cluster entry is supported.
+---
+
+# Cluster <sup>Beta</sup>
+
+-> **v1.10.0+:** This config entry is supported in Consul versions 1.10.0+.
+
+The `cluster` config entry kind allows for globally defining
+default configuration that applies to all service mesh proxies.
+Settings in this config entry apply across all namespaces and federated datacenters.
+
+## Sample Config Entries
+
+### Proxy traffic to catalog destinations only
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+Kind      = "cluster"
+Name      = "cluster"
+TransparentProxy {
+  CatalogDestinationsOnly = true
+}
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+**NOTE:** The `cluster` config entry can only be created in the `default`
+namespace and it will apply to proxies across **all** namespaces.
+
+```hcl
+Kind      = "cluster"
+Name      = "cluster"
+Namespace = "default" # Can only be set to "default".
+TransparentProxy {
+  CatalogDestinationsOnly = true
+}
+```
+
+</Tab>
+</Tabs>
+
+## Available Fields
+
+- `Kind` - Must be set to `cluster`
+
+- `Name` `(string: <required>)` - Must be set to `cluster`
+
+- `Namespace` `(string: "default")` <EnterpriseAlert inline /> - Specifies the namespace the config entry will apply to.
+  Must be set to `default`
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs.
+
+- `TransparentProxy` `(TransparentProxyConfig: <optional>)` - Controls configuration specific to proxies in
+  `transparent` [mode](/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.
+
+  - `CatalogDestinationsOnly` `(bool: false)` - Determines whether sidecar proxies operating in transparent mode can
+    proxy traffic to IP addresses not registered in Consul's catalog. If enabled, traffic will only be proxied
+    to upstreams with service registrations in the catalog.
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+Reading a `cluster` config entry requires no specific privileges.
+
+Creating, updating, or deleting a `cluster` config entry requires
+`operator:write`.

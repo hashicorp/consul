@@ -211,6 +211,32 @@ spec:
      <li>[Consul's built-in proxy](/docs/connect/proxies/built-in)</li></ul>`,
     },
     {
+      name: 'Mode',
+      type: `string: ""`,
+      description: `One of \`direct\` or \`transparent\`. 
+                    \`transparent\` represents that inbound and outbound application traffic is being 
+                    captured and redirected through the proxy. This mode does not enable the traffic redirection
+                     itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
+                    \`direct\` represents that the proxy's listeners must be dialed directly by the local 
+                    application and other proxies.
+                    Added in v1.10.0.`,
+      yaml: false,
+    },
+    {
+      name: 'TransparentProxy',
+      type: 'TransparentProxyConfig: <optional>',
+      description: `Controls configuration specific to proxies in transparent mode. Added in v1.10.0.`,
+      children: [
+        {
+          name: 'OutboundListenerPort',
+          type: 'int: "15001"',
+          description: `The port the proxy should listen on for outbound traffic. This must be the port where 
+                        outbound application traffic is captured and redirected to.`,
+        },
+      ],
+      yaml: false,
+    },
+    {
       name: 'MeshGateway',
       type: 'MeshGatewayConfig: <optional>',
       description: `Controls the default
