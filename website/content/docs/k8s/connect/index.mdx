@@ -31,57 +31,87 @@ accept and establish connections using Connect, enabling the pod to communicate
 to clients and dependencies exclusively over authorized and encrypted
 connections.
 
--> **Note:** The pod specifications in this section are valid and use
+-> **Note:** The examples in this section are valid and use
 publicly available images. If you've installed the Connect injector, feel free
-to run the pod specifications in this section to try Connect with Kubernetes.
+to run the examples in this section to try Connect with Kubernetes.
 Please note the documentation below this section on how to properly install
 and configure the Connect injector.
 
 ### Accepting Inbound Connections
 
-An example pod is shown below with Connect enabled to accept inbound
-connections. Notice that the pod would still be fully functional without
-Connect. Minimal to zero modifications are required to pod specifications to
-enable Connect in Kubernetes.
+An example Deployment is shown below with Connect enabled to accept inbound
+connections. Notice that the Deployment would still be fully functional without
+Connect. Minimal to zero modifications are required to enable Connect in Kubernetes.
+Notice also that even though we're using a Deployment here, the same configuration
+would work on a Pod, a StatefulSet, or a DaemonSet.
 
-This pod specification starts a server that responds to any
+This Deployment specification starts a server that responds to any
 HTTP request with the static text "hello world".
 
+-> **Note:** As of consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`, having a Kubernetes
+service is **required** to run services on the Consul Service Mesh.
+
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: static-server
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: static-server
-  annotations:
-    'consul.hashicorp.com/connect-inject': 'true'
 spec:
-  containers:
-    # This name will be the service name in Consul.
-    - name: static-server
-      image: hashicorp/http-echo:latest
-      args:
-        - -text="hello world"
-        - -listen=:8080
-      ports:
-        - containerPort: 8080
-          name: http
-    # If ACLs are enabled, the serviceAccountName must match the Consul service name.
-  serviceAccountName: static-server
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        # This name will be the service name in Consul.
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-server
 ```
 
 The only change for Connect is the addition of the
 `consul.hashicorp.com/connect-inject` annotation. This enables injection
-for this pod. The injector can also be
+for the Pod in this Deployment. The injector can also be
 [configured](/docs/k8s/connect#installation-and-configuration)
 to automatically inject unless explicitly disabled, but the default
 installation requires opt-in using the annotation shown above.
 
-This will start a Connect sidecar that listens on a random port registered
+~> **A common mistake** is to set the annotation on the Deployment or
+other resource. Ensure that the injector annotations are specified on
+the _pod specification template_ as shown above.
+
+This will start a sidecar proxy that listens on port `20000` registered
 with Consul and proxies valid inbound connections to port 8080 in the pod.
 To establish a connection to the pod using Connect, a client must use another Connect
 proxy. The client Connect proxy will use Consul service discovery to find
@@ -93,40 +123,67 @@ This is useful to transition to Connect by allowing both Connect and
 non-Connect connections. To restrict access to only Connect-authorized clients,
 any listeners should bind to localhost only (such as `127.0.0.1`).
 
-The service name registered in Consul will be set to the name of the first
-container in the Pod. This can be customized with the `consul.hashicorp.com/connect-service`
+-> **Note:** As of consul `v1.10.0-beta1`, consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`,
+all Consul Service Mesh services will run with transparent proxy enabled by default. Running with transparent
+proxy will enforce all inbound and outbound traffic to go through the Envoy proxy.
+
+The service name registered in Consul will be set to the name of the Kubernetes service
+associated with the Pod. This can be customized with the `consul.hashicorp.com/connect-service`
 annotation. If using ACLs, this name must be the same as the Pod's `ServiceAccount` name.
 
 ### Connecting to Connect-Enabled Services
 
-The example pod specification below configures a pod that is capable
+The example Deployment specification below configures a Deployment that is capable
 of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
 connection via Connect.
 
+-> **Note:** As of consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`, having a Kubernetes
+Service is **required** to run services on the Consul Service Mesh.
+
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: static-client
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: static-client
-  annotations:
-    'consul.hashicorp.com/connect-inject': 'true'
-    'consul.hashicorp.com/connect-service-upstreams': 'static-server:1234'
 spec:
-  containers:
-    # This name will be the service name in Consul.
-    - name: static-client
-      image: tutum/curl:latest
-      # Just spin & wait forever, we'll use `kubectl exec` to demo
-      command: ['/bin/sh', '-c', '--']
-      args: ['while true; do sleep 30; done;']
-    # If ACLs are enabled, the serviceAccountName must match the Consul service name.
-  serviceAccountName: static-client
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/connect-service-upstreams': 'static-server:1234'
+    spec:
+      containers:
+        # This name will be the service name in Consul.
+        - name: static-client
+          image: tutum/curl:latest
+          # Just spin & wait forever, we'll use `kubectl exec` to demo
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      serviceAccountName: static-client
 ```
 
 Pods must specify upstream dependencies with the
@@ -139,12 +196,12 @@ mutual TLS and identifying as the source service (`static-client` in this
 example).
 
 The injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
-and `<NAME>_CONNECT_SERVICE_PORT` in every container in the pod for every defined
+and `<NAME>_CONNECT_SERVICE_PORT` in every container in the Pod for every defined
 upstream. This is analogous to the standard Kubernetes service environment variables, but
 point instead to the correct local proxy port to establish connections via
 Connect.
 
-Any containers running in the pod that need to establish connections
+Any containers running in the Pod that need to establish connections
 to dependencies must be reconfigured to use the local upstream address either
 directly or using the environment variables set by the injector (defined above).
 This means pods should not use Kubernetes service DNS or environment
@@ -173,13 +230,19 @@ command terminated with exit code 52
 
 ### Available Annotations
 
-Annotations can be used to configure the injection behavior.
+Pod annotations can be used to configure the injection behavior.
 
 - `consul.hashicorp.com/connect-inject` - If this is "true" then injection
   is enabled. If this is "false" then injection is explicitly disabled.
   The default injector behavior requires pods to opt-in to injection by
   specifying this value as "true". This default can be changed in the
   injector's configuration if desired.
+
+- `consul.hashicorp.com/transparent-proxy` <sup>Beta</sup> - If this is "true", this Pod
+   will run with transparent proxy enabled. This means you can use Kubernetes
+   DNS to access upstream services and all inbound and outbound traffic within
+   the pod is redirected to go through the proxy.
+   Using this annotation requires consul-k8s `v0.26.0-beta1` or higher.
 
 - `consul.hashicorp.com/connect-service` - For pods that accept inbound
   connections, this specifies the name of the service that is being
@@ -290,46 +353,6 @@ Annotations can be used to configure the injection behavior.
 - `consul.hashicorp.com/prometheus-scrape-path` - Override the default Helm value [`connectInject.metrics.defaultPrometheusScrapePath`](/docs/k8s/helm#v-connectinject-metrics-defaultprometheusscrapepath).
 - `consul.hashicorp.com/service-metrics-port` - Set the port where the Connect service exposes metrics.
 - `consul.hashicorp.com/service-metrics-path` - Set the path where the Connect service exposes metrics.
-
-### Deployments, StatefulSets, etc.
-
-The annotations for configuring Connect must be on the pod specification.
-Since higher level resources such as Deployments wrap pod specification
-templates, Connect can be used with all of these higher level constructs, too.
-
-An example `Deployment` below shows how to enable Connect injection:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: consul-example-deployment
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: consul-example
-  template:
-    metadata:
-      labels:
-        app: consul-example
-      annotations:
-        'consul.hashicorp.com/connect-inject': 'true'
-    spec:
-      containers:
-        - name: consul-example
-          image: 'nginx'
-      serviceAccountName: consul-example
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: consul-example
-```
-
-~> **A common mistake** is to set the annotation on the Deployment or
-other resource. Ensure that the injector annotations are specified on
-the _pod specification template_ as shown above.
 
 ## Installation and Configuration
 
