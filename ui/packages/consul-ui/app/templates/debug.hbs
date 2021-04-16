@@ -13,7 +13,7 @@
             class={{if (is-href (to-route child.url)) 'is-active'}}
           >
             <DocfyLink @to={{child.url}}>
-              {{child.title}}
+              {{classify child.title}}
             </DocfyLink>
           </li>
   {{/each}}
@@ -28,7 +28,7 @@
             }}
           >
             <DocfyLink @to={{child.url}}>
-              {{child.title}}
+              {{classify child.title}}
             </DocfyLink>
           </li>
     {{/each}}
