@@ -7,6 +7,7 @@
 - [Installation](#installation)
 - [Yarn Commands](#yarn-commands)
 - [Running / Development](#running--development)
+  - [Environment Variables](#environment-variables)
   - [Contributing/Engineering Documentation](#contributingengineering-documentation)
   - [Browser 'Debug Utility' Functions and 'Environment' Variables](#browser-debug-utility-functions-and-environment-variables)
   - [Code Generators](#code-generators)
@@ -86,6 +87,15 @@ Example:
 ```bash
 CONSUL_HTTP_ADDR=http://10.0.0.1:8500 make start-consul
 ```
+
+### Environment Variables
+
+There are various environment variable you can use whilst running `make start` or `make test` to configure various features:
+
+| Variable | Default Value | Description |
+| -------- | ------------- | ----------- |
+| `TESTEM_AUTOLAUNCH` | Chrome | Controls which browser to open tests in. A setting of "" means 'let me manually open the browser' |
+| `EMBER_TEST_REPORT` |  | Output a test report |
 
 ### Contributing/Engineering Documentation
 
