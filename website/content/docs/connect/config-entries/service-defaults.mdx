@@ -52,7 +52,9 @@ spec:
 <Tabs>
 <Tab heading="HCL">
 
-Set the default protocol for all sidecar proxies:
+Set default connection limits and mesh gateway mode across all upstreams
+of "counting" and also override the mesh gateway mode used when dialing
+the "dashboard" service in the "frontend" namespace.
 
 ```hcl
 Kind = "service-defaults"
