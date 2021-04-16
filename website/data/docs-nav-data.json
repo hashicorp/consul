@@ -226,7 +226,7 @@
         "path": "connect/intentions-legacy"
       },
       {
-        "title": "Transparent Proxy",
+        "title": "Transparent Proxy <sup>Beta</sup>",
         "path": "connect/transparent-proxy"
       },
       {
