@@ -1,12 +1,13 @@
 ---
 layout: docs
 page_title: Connect - Transparent Proxy
+sidebar_title: Transparent Proxy <sup>Beta</sup>
 description: |-
   Transparent proxy is used to direct inbound and outbound traffic to services via the Envoy proxy and configure
   upstreams via intentions.
 ---
 
-# Transparent Proxy
+# Transparent Proxy <sup>Beta</sup>
 
 Transparent proxy allows users to reach other services in the service mesh while ensuring that inbound and outbound
 traffic for services in the mesh are directed through the sidecar proxy. This makes it more likely that traffic is secure
@@ -63,7 +64,55 @@ connectInject:
 ```
 
 It can also be enabled on a per service basis via the annotation `consul.hashicorp.com/transparent-proxy=true` on the
-Pods for each service.
+Pod for each service:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/transparent-proxy': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: static-server
+```
 
 ### VMs
 
@@ -139,7 +188,7 @@ In Kubernetes, services can reach other services via their
 traffic will be transparently sent through the proxy. Connect services in Kubernetes are required to have a Kubernetes
 service selecting the Pods.
 
-Note: In order to use KubeDNS, the Kubernetes service name will need to match the Consul service name. This will be the
+~> Note: In order to use KubeDNS, the Kubernetes service name will need to match the Consul service name. This will be the
 case by default, unless the service Pods have the annotation `consul.hashicorp.com/connect-service` overriding the
 Consul service name.
 
@@ -161,15 +210,21 @@ apiVersion: v1
 kind: Service
 metadata:
   name: sample-app
+  namespace: default
 spec:
   selector:
     app: sample-app
+  ports:
+    - protocol: TCP
+      port: 80
 ```
 
-In the example above, if another service wants to reach `sample-app` via transparent proxying, it just needs a
-[ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
-`sample-app` and then it can dial `sample-app.svc.cluster.local`, using
+In the example above, if another service wants to reach `sample-app` via transparent proxying,
+it can dial `sample-app.default.svc.cluster.local`, using
 [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/).
+If ACLs with default "deny" policy are enabled, it also needs a
+[ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
+`sample-app`.
 
 ### VMs
 To use transparent proxy on VMs, the service needs to be registered with Consul and a connect proxy needs to be added to

@@ -429,7 +429,7 @@
           },
           {
             "title": "Transparent Proxy",
-            "path": "connect/transparent-proxy-k8s"
+            "href": "/docs/connect/transparent-proxy",
           },
           {
             "title": "Ingress Gateways",
