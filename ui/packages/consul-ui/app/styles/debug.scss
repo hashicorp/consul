@@ -1,6 +1,9 @@
-@import './base/reset/index';
-@import './base/index';
+@import './app';
 @import 'prism-coldark-dark';
+
+// temporary component debugging setup
+@import 'consul-ui/components/main-nav-vertical/debug';
+
 .docs {
   .tabular-collection,
   .list-collection {
@@ -31,8 +34,12 @@
     }
     ol,
     ul {
-      list-style-position: inside;
+      list-style-position: outside;
       margin-bottom: 1rem;
+      margin-left: 2rem;
+    }
+    ul {
+      list-style-type: disc;
     }
   }
   .docfy-demo {
