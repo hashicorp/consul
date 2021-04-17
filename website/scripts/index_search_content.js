@@ -1,3 +1,3 @@
 const { indexDocsContent } = require('@hashicorp/react-search/tools')
 
-indexDocsContent()
+indexDocsContent({ frontmatterKeys: ['page_title', 'description'] })
