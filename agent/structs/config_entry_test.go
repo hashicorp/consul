@@ -48,7 +48,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			name: "proxy-defaults",
 			snake: `
 				kind = "proxy-defaults"
-				name = "main"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -66,7 +65,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			`,
 			camel: `
 				Kind = "proxy-defaults"
-				Name = "main"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -84,7 +82,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			`,
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
-				Name: "main",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -1418,7 +1415,6 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 		"proxy-default entry": {
 			Entry: &ProxyConfigEntry{
 				Kind: ProxyDefaults,
-				Name: ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"foo": "bar",
 				},

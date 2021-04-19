@@ -80,7 +80,6 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},

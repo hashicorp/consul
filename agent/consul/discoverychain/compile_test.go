@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 type compileTestCase struct {
@@ -1018,7 +1019,6 @@ func testcase_DatacenterRedirect_WithMeshGateways() compileTestCase {
 	entries := newEntries()
 	entries.GlobalProxy = &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		MeshGateway: structs.MeshGatewayConfig{
 			Mode: structs.MeshGatewayModeRemote,
 		},
@@ -1265,7 +1265,6 @@ func testcase_DatacenterFailover_WithMeshGateways() compileTestCase {
 	entries := newEntries()
 	entries.GlobalProxy = &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		MeshGateway: structs.MeshGatewayConfig{
 			Mode: structs.MeshGatewayModeRemote,
 		},
@@ -1404,7 +1403,6 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 	entries := newEntries()
 	entries.GlobalProxy = &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "grpc",
 		},
@@ -2497,7 +2495,6 @@ func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.Se
 func setGlobalProxyProtocol(entries *structs.DiscoveryChainConfigEntries, protocol string) {
 	entries.GlobalProxy = &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": protocol,
 		},

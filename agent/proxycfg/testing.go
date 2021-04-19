@@ -10,14 +10,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
 // TestCacheTypes encapsulates all the different cache types proxycfg.State will
@@ -951,7 +952,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries,
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1004,7 +1004,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1028,7 +1027,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "grpc",
 				},
@@ -1059,7 +1057,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1261,7 +1258,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries,
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},

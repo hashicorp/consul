@@ -15,8 +15,16 @@ func testIndexerTableConfigEntries() map[string]indexerTestCase {
 				expected: []byte("proxy-defaults\x00name\x00"),
 			},
 			write: indexValue{
-				source:   &structs.ProxyConfigEntry{Name: "NaMe"},
-				expected: []byte("proxy-defaults\x00name\x00"),
+				source:   &structs.ProxyConfigEntry{},
+				expected: []byte("proxy-defaults\x00global\x00"),
+			},
+			extra: []indexerTestCase{
+				{
+					write: indexValue{
+						source:   &structs.ServiceConfigEntry{Name: "NaMe"},
+						expected: []byte("service-defaults\x00name\x00"),
+					},
+				},
 			},
 		},
 		indexKind: {

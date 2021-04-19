@@ -125,7 +125,6 @@ func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
 		Datacenter: "dc1",
 		Entry: &structs.ProxyConfigEntry{
 			Kind:        "proxy-defaults",
-			Name:        "global",
 			MeshGateway: structs.MeshGatewayConfig{Mode: "local"},
 		},
 	}
@@ -317,7 +316,6 @@ operator = "read"
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
@@ -409,7 +407,6 @@ func TestConfigEntry_ListAll(t *testing.T) {
 	entries := []structs.ConfigEntry{
 		&structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
-			Name: "global",
 		},
 		&structs.ServiceConfigEntry{
 			Kind: structs.ServiceDefaults,
@@ -530,7 +527,6 @@ operator = "read"
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
@@ -565,7 +561,6 @@ operator = "read"
 	proxyConf, ok := out.Entries[0].(*structs.ProxyConfigEntry)
 	require.Len(out.Entries, 1)
 	require.True(ok)
-	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
 	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
 }
 
@@ -615,7 +610,6 @@ operator = "read"
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
@@ -650,7 +644,6 @@ operator = "read"
 
 	require.Equal("foo", svcConf.Name)
 	require.Equal(structs.ServiceDefaults, svcConf.Kind)
-	require.Equal(structs.ProxyConfigGlobal, proxyConf.Name)
 	require.Equal(structs.ProxyDefaults, proxyConf.Kind)
 }
 
@@ -774,7 +767,6 @@ operator = "write"
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
@@ -809,9 +801,7 @@ operator = "write"
 	// Try to delete the global proxy config without a token.
 	args = structs.ConfigEntryRequest{
 		Datacenter: s1.config.Datacenter,
-		Entry: &structs.ProxyConfigEntry{
-			Name: structs.ProxyConfigGlobal,
-		},
+		Entry:      &structs.ProxyConfigEntry{},
 	}
 	err = msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &out)
 	if !acl.IsErrPermissionDenied(err) {
@@ -846,7 +836,6 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"foo": 1,
 		},
@@ -912,7 +901,6 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind:             structs.ProxyDefaults,
-					Name:             structs.ProxyConfigGlobal,
 					Mode:             structs.ProxyModeTransparent,
 					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 				},
@@ -950,7 +938,6 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind:             structs.ProxyDefaults,
-					Name:             structs.ProxyConfigGlobal,
 					Mode:             structs.ProxyModeDirect,
 					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
 				},
@@ -1021,7 +1008,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "grpc",
 					},
@@ -1063,7 +1049,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "grpc",
 					},
@@ -1160,7 +1145,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "udp",
 					},
@@ -1424,7 +1408,6 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"global": 1,
 		},
@@ -1590,7 +1573,6 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -1664,7 +1646,6 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -1773,7 +1754,6 @@ operator = "write"
 	state := s1.fsm.State()
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
@@ -1831,7 +1811,6 @@ func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
 		Datacenter: "dc1",
 		Entry: &structs.ProxyConfigEntry{
 			Kind:   "proxy-defaults",
-			Name:   "global",
 			Expose: expose,
 		},
 	}

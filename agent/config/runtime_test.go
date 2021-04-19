@@ -3486,7 +3486,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind:           structs.ProxyDefaults,
-					Name:           structs.ProxyConfigGlobal,
 					EnterpriseMeta: *defaultEntMeta,
 					Config: map[string]interface{}{
 						"bar": "abc",
@@ -3556,7 +3555,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind:           structs.ProxyDefaults,
-					Name:           structs.ProxyConfigGlobal,
 					EnterpriseMeta: *defaultEntMeta,
 					Config: map[string]interface{}{
 						"bar": "abc",
@@ -5330,7 +5328,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		ConfigEntryBootstrap: []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
 				Kind:           structs.ProxyDefaults,
-				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: *defaultEntMeta,
 				Config: map[string]interface{}{
 					"foo": "bar",

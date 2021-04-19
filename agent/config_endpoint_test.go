@@ -7,10 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestConfig_Get(t *testing.T) {
@@ -41,7 +42,6 @@ func TestConfig_Get(t *testing.T) {
 		{
 			Datacenter: "dc1",
 			Entry: &structs.ProxyConfigEntry{
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"foo": "bar",
 					"bar": 1,
@@ -85,7 +85,6 @@ func TestConfig_Get(t *testing.T) {
 		value := obj.(structs.ConfigEntry)
 		require.Equal(t, value.GetKind(), structs.ProxyDefaults)
 		entry := value.(*structs.ProxyConfigEntry)
-		require.Equal(t, structs.ProxyConfigGlobal, entry.Name)
 		require.Contains(t, entry.Config, "foo")
 		require.Equal(t, "bar", entry.Config["foo"])
 	})

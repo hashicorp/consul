@@ -1799,7 +1799,6 @@ func TestDNS_IngressServiceLookup(t *testing.T) {
 			Datacenter: "dc1",
 			Entry: &structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},

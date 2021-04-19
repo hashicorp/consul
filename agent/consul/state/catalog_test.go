@@ -5507,7 +5507,6 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		}
 
 		proxyDefaults := &structs.ProxyConfigEntry{
-			Name: structs.ProxyConfigGlobal,
 			Kind: structs.ProxyDefaults,
 			Config: map[string]interface{}{
 				"protocol": "http",
@@ -5616,7 +5615,6 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 
 	// Default protocol to http
 	proxyDefaults := &structs.ProxyConfigEntry{
-		Name: structs.ProxyConfigGlobal,
 		Kind: structs.ProxyDefaults,
 		Config: map[string]interface{}{
 			"protocol": "http",
@@ -6810,7 +6808,6 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	}))
 	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -7017,7 +7014,6 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 	}))
 	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
@@ -7138,7 +7134,6 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -7294,7 +7289,6 @@ func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 	// Update the routing so that api's upstream routes to our target and watches should fire
 	defaults := structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},

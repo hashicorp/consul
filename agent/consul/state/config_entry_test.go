@@ -17,7 +17,6 @@ func TestStore_ConfigEntry(t *testing.T) {
 
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: "global",
 		Config: map[string]interface{}{
 			"DestinationServiceName": "foo",
 		},
@@ -34,7 +33,6 @@ func TestStore_ConfigEntry(t *testing.T) {
 	// Update
 	updated := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: "global",
 		Config: map[string]interface{}{
 			"DestinationServiceName": "bar",
 		},
@@ -81,7 +79,6 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: "global",
 		Config: map[string]interface{}{
 			"DestinationServiceName": "foo",
 		},
@@ -98,7 +95,6 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 	// Update with invalid index
 	updated := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: "global",
 		Config: map[string]interface{}{
 			"DestinationServiceName": "bar",
 		},
@@ -228,7 +224,6 @@ func TestStore_ConfigEntries(t *testing.T) {
 	// Create some config entries.
 	entry1 := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: "test1",
 	}
 	entry2 := &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
@@ -322,7 +317,6 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "tcp", // loses
 					},
@@ -363,7 +357,6 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -505,7 +498,6 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -541,7 +533,6 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -902,7 +893,6 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1505,7 +1495,6 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 		s := testConfigStateStore(t)
 		expected := &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
-			Name: "global",
 			Config: map[string]interface{}{
 				"protocol": "http2",
 			},
@@ -1580,7 +1569,6 @@ func TestSourcesForTarget(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1615,7 +1603,6 @@ func TestSourcesForTarget(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1641,7 +1628,6 @@ func TestSourcesForTarget(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1670,7 +1656,6 @@ func TestSourcesForTarget(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1697,7 +1682,6 @@ func TestSourcesForTarget(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1740,7 +1724,6 @@ func TestSourcesForTarget(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1856,7 +1839,6 @@ func TestTargetsForSource(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1891,7 +1873,6 @@ func TestTargetsForSource(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1916,7 +1897,6 @@ func TestTargetsForSource(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1944,7 +1924,6 @@ func TestTargetsForSource(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -1971,7 +1950,6 @@ func TestTargetsForSource(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
@@ -2061,7 +2039,6 @@ func TestStore_ValidateServiceIntentionsErrorOnIncompatibleProtocols(t *testing.
 	proxyDefaults := func(protocol string) *structs.ProxyConfigEntry {
 		return &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
-			Name: structs.ProxyConfigGlobal,
 			Config: map[string]interface{}{
 				"protocol": protocol,
 			},

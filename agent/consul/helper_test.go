@@ -7,14 +7,15 @@ import (
 	"net/rpc"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/types"
 )
 
 func waitForLeader(servers ...*Server) error {
@@ -893,7 +894,6 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 			Datacenter: "dc1",
 			Entry: &structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},

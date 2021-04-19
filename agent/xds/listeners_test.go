@@ -179,7 +179,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
 						Config: map[string]interface{}{
 							"protocol": "http",
 						},
@@ -194,7 +193,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
 						Config: map[string]interface{}{
 							"protocol": "http2",
 						},
@@ -209,7 +207,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
 						Config: map[string]interface{}{
 							"protocol": "grpc",
 						},
