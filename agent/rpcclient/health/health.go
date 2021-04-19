@@ -59,15 +59,17 @@ func (c *Client) getServiceNodes(
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
 
+	// TODO: if UseStreaming, elif !UseCache, else cache
+
 	if !req.QueryOptions.UseCache {
 		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 
 	if req.Source.Node == "" {
-		sr, err := newServiceRequest(req, c.MaterializerDeps)
-		if err != nil {
-			return out, cache.ResultMeta{}, err
+		sr := serviceRequest{
+			ServiceSpecificRequest: req,
+			deps:                   c.MaterializerDeps,
 		}
 
 		result, err := c.ViewStore.Get(ctx, sr)
@@ -109,21 +111,8 @@ func (c *Client) Notify(
 	return c.Cache.Notify(ctx, cacheName, &req, correlationID, ch)
 }
 
-func newServiceRequest(req structs.ServiceSpecificRequest, deps MaterializerDeps) (serviceRequest, error) {
-	view, err := newHealthView(req)
-	if err != nil {
-		return serviceRequest{}, err
-	}
-	return serviceRequest{
-		ServiceSpecificRequest: req,
-		view:                   view,
-		deps:                   deps,
-	}, nil
-}
-
 type serviceRequest struct {
 	structs.ServiceSpecificRequest
-	view *healthView
 	deps MaterializerDeps
 }
 
@@ -135,11 +124,15 @@ func (r serviceRequest) Type() string {
 	return "service-health"
 }
 
-func (r serviceRequest) NewMaterializer() *submatview.Materializer {
+func (r serviceRequest) NewMaterializer() (*submatview.Materializer, error) {
+	view, err := newHealthView(r.ServiceSpecificRequest)
+	if err != nil {
+		return nil, err
+	}
 	return submatview.NewMaterializer(submatview.Deps{
-		View:    r.view,
+		View:    view,
 		Client:  r.deps.Client,
 		Logger:  r.deps.Logger,
 		Request: newMaterializerRequest(r.ServiceSpecificRequest),
-	})
+	}), nil
 }

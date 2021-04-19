@@ -73,7 +73,7 @@ func (s *Store) Run(ctx context.Context) {
 // TODO: godoc
 type Request interface {
 	cache.Request
-	NewMaterializer() *Materializer
+	NewMaterializer() (*Materializer, error)
 	Type() string
 }
 
@@ -82,7 +82,10 @@ type Request interface {
 // See agent/cache.Cache.Get for complete documentation.
 func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	info := req.CacheInfo()
-	key, e := s.getEntry(req)
+	key, e, err := s.getEntry(req)
+	if err != nil {
+		return Result{}, err
+	}
 	defer s.releaseEntry(key)
 
 	ctx, cancel := context.WithTimeout(ctx, info.Timeout)
@@ -108,7 +111,10 @@ func (s *Store) Notify(
 	updateCh chan<- cache.UpdateEvent,
 ) error {
 	info := req.CacheInfo()
-	key, e := s.getEntry(req)
+	key, e, err := s.getEntry(req)
+	if err != nil {
+		return err
+	}
 
 	go func() {
 		defer s.releaseEntry(key)
@@ -150,7 +156,7 @@ func (s *Store) Notify(
 
 // getEntry from the store, and increment the requests counter. releaseEntry
 // must be called when the request is finished to decrement the counter.
-func (s *Store) getEntry(req Request) (string, entry) {
+func (s *Store) getEntry(req Request) (string, entry, error) {
 	info := req.CacheInfo()
 	key := makeEntryKey(req.Type(), info)
 
@@ -160,11 +166,15 @@ func (s *Store) getEntry(req Request) (string, entry) {
 	if ok {
 		e.requests++
 		s.byKey[key] = e
-		return key, e
+		return key, e, nil
+	}
+
+	mat, err := req.NewMaterializer()
+	if err != nil {
+		return "", e, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	mat := req.NewMaterializer()
 	go mat.Run(ctx)
 
 	e = entry{
@@ -173,7 +183,7 @@ func (s *Store) getEntry(req Request) (string, entry) {
 		requests:     1,
 	}
 	s.byKey[key] = e
-	return key, e
+	return key, e, nil
 }
 
 // idleTTL is the duration of time an entry should remain in the Store after the
