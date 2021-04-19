@@ -8,16 +8,14 @@ import (
 	"github.com/hashicorp/consul/agent/submatview"
 )
 
+// TODO: godoc
 type Client struct {
-	NetRPC           NetRPC
-	Cache            CacheGetter
-	ViewStore        MaterializedViewStore
-	MaterializerDeps MaterializerDeps
-	// CacheName to use for service health.
-	CacheName string
-	// CacheNameNotStreaming is the name of the cache type to use for any requests
-	// that are not supported by the streaming backend (ex: Ingress=true).
-	CacheNameNotStreaming string
+	NetRPC              NetRPC
+	Cache               CacheGetter
+	ViewStore           MaterializedViewStore
+	MaterializerDeps    MaterializerDeps
+	CacheName           string
+	UseStreamingBackend bool
 }
 
 type NetRPC interface {
@@ -38,6 +36,15 @@ func (c *Client) ServiceNodes(
 	ctx context.Context,
 	req structs.ServiceSpecificRequest,
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
+	if c.useStreaming(req) && (req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0) {
+		result, err := c.ViewStore.Get(ctx, c.newServiceRequest(req))
+		if err != nil {
+			return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, err
+		}
+		// TODO: can we store non-pointer
+		return *result.Value.(*structs.IndexedCheckServiceNodes), cache.ResultMeta{Index: result.Index}, err
+	}
+
 	out, md, err := c.getServiceNodes(ctx, req)
 	if err != nil {
 		return out, md, err
@@ -58,34 +65,12 @@ func (c *Client) getServiceNodes(
 	req structs.ServiceSpecificRequest,
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
-
-	// TODO: if UseStreaming, elif !UseCache, else cache
-
 	if !req.QueryOptions.UseCache {
 		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 
-	if req.Source.Node == "" {
-		sr := serviceRequest{
-			ServiceSpecificRequest: req,
-			deps:                   c.MaterializerDeps,
-		}
-
-		result, err := c.ViewStore.Get(ctx, sr)
-		if err != nil {
-			return out, cache.ResultMeta{}, err
-		}
-		// TODO: can we store non-pointer
-		return *result.Value.(*structs.IndexedCheckServiceNodes), cache.ResultMeta{Index: result.Index}, err
-	}
-
-	cacheName := c.CacheName
-	if req.Ingress || req.Source.Node != "" {
-		cacheName = c.CacheNameNotStreaming
-	}
-
-	raw, md, err := c.Cache.Get(ctx, cacheName, &req)
+	raw, md, err := c.Cache.Get(ctx, c.CacheName, &req)
 	if err != nil {
 		return out, md, err
 	}
@@ -104,11 +89,23 @@ func (c *Client) Notify(
 	correlationID string,
 	ch chan<- cache.UpdateEvent,
 ) error {
-	cacheName := c.CacheName
-	if req.Ingress || req.Source.Node != "" {
-		cacheName = c.CacheNameNotStreaming
+	if c.useStreaming(req) {
+		sr := c.newServiceRequest(req)
+		return c.ViewStore.Notify(ctx, sr, correlationID, ch)
 	}
-	return c.Cache.Notify(ctx, cacheName, &req, correlationID, ch)
+
+	return c.Cache.Notify(ctx, c.CacheName, &req, correlationID, ch)
+}
+
+func (c *Client) useStreaming(req structs.ServiceSpecificRequest) bool {
+	return c.UseStreamingBackend && !req.Ingress && req.Source.Node == ""
+}
+
+func (c *Client) newServiceRequest(req structs.ServiceSpecificRequest) serviceRequest {
+	return serviceRequest{
+		ServiceSpecificRequest: req,
+		deps:                   c.MaterializerDeps,
+	}
 }
 
 type serviceRequest struct {
