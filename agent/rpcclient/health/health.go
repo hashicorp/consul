@@ -15,9 +15,9 @@ type Client struct {
 	MaterializerDeps MaterializerDeps
 	// CacheName to use for service health.
 	CacheName string
-	// CacheNameIngress is the name of the cache type to use for ingress
-	// service health.
-	CacheNameIngress string
+	// CacheNameNotStreaming is the name of the cache type to use for any requests
+	// that are not supported by the streaming backend (ex: Ingress=true).
+	CacheNameNotStreaming string
 }
 
 type NetRPC interface {
@@ -81,8 +81,8 @@ func (c *Client) getServiceNodes(
 	}
 
 	cacheName := c.CacheName
-	if req.Ingress {
-		cacheName = c.CacheNameIngress
+	if req.Ingress || req.Source.Node != "" {
+		cacheName = c.CacheNameNotStreaming
 	}
 
 	raw, md, err := c.Cache.Get(ctx, cacheName, &req)
@@ -105,8 +105,8 @@ func (c *Client) Notify(
 	ch chan<- cache.UpdateEvent,
 ) error {
 	cacheName := c.CacheName
-	if req.Ingress {
-		cacheName = c.CacheNameIngress
+	if req.Ingress || req.Source.Node != "" {
+		cacheName = c.CacheNameNotStreaming
 	}
 	return c.Cache.Notify(ctx, cacheName, &req, correlationID, ch)
 }
