@@ -665,7 +665,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
-            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+            - "3d:6b:98:55:78:4e:52:17:4e:17:ba:f3:bf:0b:96:2a"
       - attach_workspace:
           at: .
       - run:
@@ -886,7 +886,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push cherry-picked commits back to github
           fingerprints:
-            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+            - "3d:6b:98:55:78:4e:52:17:4e:17:ba:f3:bf:0b:96:2a"
       - run: .circleci/scripts/cherry-picker.sh
       - run: *notify-slack-failure
 
