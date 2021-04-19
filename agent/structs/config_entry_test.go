@@ -1700,6 +1700,13 @@ func TestServiceConfigEntry_Validate(t *testing.T) {
 		expectErr string
 	}{
 		{
+			name: "wildcard name is not allowed",
+			input: &ServiceConfigEntry{
+				Name: WildcardSpecifier,
+			},
+			expectErr: `must be the name of a service, and not a wildcard`,
+		},
+		{
 			name: "upstream config override no name",
 			input: &ServiceConfigEntry{
 				Name: "web",
