@@ -25,7 +25,7 @@ export default function HomePage() {
             link: {
               text: 'Get started',
               url:
-                'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS',
             },
           },
           {
@@ -112,7 +112,7 @@ export default function HomePage() {
               type: 'inbound',
               text: 'Learn more',
               url:
-                'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS',
             },
           },
         ]}
