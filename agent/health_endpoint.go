@@ -219,12 +219,8 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	useStreaming := s.agent.config.UseStreamingBackend && args.MinQueryIndex > 0 && !args.Ingress
+	useStreaming := s.agent.config.UseStreamingBackend && args.MinQueryIndex > 0 && !args.Ingress && args.Source.Node == ""
 	args.QueryOptions.UseCache = s.agent.config.HTTPUseCache && (args.QueryOptions.UseCache || useStreaming)
-
-	if args.QueryOptions.UseCache && useStreaming && args.Source.Node != "" {
-		return nil, BadRequestError{Reason: "'near' query param can not be used with streaming"}
-	}
 
 	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
 	if err != nil {
