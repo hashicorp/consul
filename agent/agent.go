@@ -540,7 +540,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
-			Node:       a.config.NodeName,
 			Datacenter: a.config.Datacenter,
 			Segment:    a.config.SegmentName,
 		},
