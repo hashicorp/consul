@@ -157,6 +157,9 @@ func (e *ServiceConfigEntry) Validate() error {
 	if e.Name == "" {
 		return fmt.Errorf("Name is required")
 	}
+	if e.Name == WildcardSpecifier {
+		return fmt.Errorf("service-defaults name must be the name of a service, and not a wildcard")
+	}
 
 	validationErr := validateConfigEntryMeta(e.Meta)
 
