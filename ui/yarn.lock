@@ -5428,7 +5428,7 @@ ember-auto-import@^1.5.2, ember-auto-import@^1.5.3, ember-auto-import@^1.6.0:
     walk-sync "^0.3.3"
     webpack "^4.43.0"
 
-ember-basic-dropdown@^3.0.10, ember-basic-dropdown@^3.0.16:
+ember-basic-dropdown@^3.0.16:
   version "3.0.16"
   resolved "https://registry.yarnpkg.com/ember-basic-dropdown/-/ember-basic-dropdown-3.0.16.tgz#287fcde57b5a37405d89cc65e0a4ad9a2e8e1b0b"
   integrity sha512-ctVQL63nWoZ6+Lvb6aCo70SUA8ieMz5fQa0BuQKeV2LQx8njXDiZZ96gaK0PBn60glNghbIr1ZKU+wmnIT++5w==
@@ -5473,7 +5473,7 @@ ember-changeset-validations@~3.9.0:
     ember-get-config "^0.2.4"
     ember-validators "^2.0.0"
 
-ember-changeset@3.10.1, ember-changeset@^3.9.1:
+ember-changeset@^3.9.1:
   version "3.10.1"
   resolved "https://registry.yarnpkg.com/ember-changeset/-/ember-changeset-3.10.1.tgz#d6f06bc55f867a2c1ac7c5fd780776bd1e5a9b60"
   integrity sha512-4FoGKRcKxixSr+NBQ+ZoiwwbJE0/fuZRULUp9M1RIHejYhst+U8/ni47SsphrMhoRAcZCeyl+JqlBMlwR7v50g==
@@ -13964,7 +13964,7 @@ validate-npm-package-name@^3.0.0:
   dependencies:
     builtins "^1.0.3"
 
-validated-changeset@0.10.0, validated-changeset@~0.10.0:
+validated-changeset@~0.10.0:
   version "0.10.0"
   resolved "https://registry.yarnpkg.com/validated-changeset/-/validated-changeset-0.10.0.tgz#2e8188c089ab282c1b51fba3c289073f6bd14c8b"
   integrity sha512-n8NB3ol6Tbi0O7bnq1wz81m5Wd1gfHw0HUcH4MatOfqO3DyXzWZV+bUaNq6wThXn20rMFB82C8pTNFSWbgXJLA==
