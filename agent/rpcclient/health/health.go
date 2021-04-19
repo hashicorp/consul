@@ -86,3 +86,11 @@ func (c *Client) Notify(
 	}
 	return c.Cache.Notify(ctx, cacheName, &req, correlationID, ch)
 }
+
+func (c *Client) UseStreaming(req structs.ServiceSpecificRequest) bool {
+	if req.Ingress || req.Source.Node != "" {
+		return false
+	}
+
+	return req.QueryOptions.UseCache || req.QueryOptions.MinQueryIndex > 0
+}
