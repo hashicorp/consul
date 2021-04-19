@@ -32,16 +32,12 @@ as |item index|>
     <span>
       {{format-number item.MeshServiceInstances.length}} {{pluralize item.MeshServiceInstances.length 'Service' without-count=true}}
     </span>
-    <dl>
-      <dt>
-        <CopyButton
-          @value={{item.Address}}
-          @name="Address"
-        />
-      </dt>
-      <dd>
-        {{item.Address}}
-      </dd>
-    </dl>
+    <span>
+      <CopyButton
+        @value={{item.Address}}
+        @name="Address"
+      />
+      {{item.Address}}
+    </span>
   </BlockSlot>
 </ListCollection>

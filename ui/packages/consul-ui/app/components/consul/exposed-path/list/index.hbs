@@ -9,15 +9,13 @@
     <li>
       <div class="header">
       {{#let (concat @address ':' path.ListenerPort path.Path) as |combinedAddress|}}
-        <p class="combined-address">
-          <span>
-            {{combinedAddress}}
-          </span>
+        <span>
+          {{combinedAddress}}
           <CopyButton
             @value={{combinedAddress}}
             @name="Address"
           />
-        </p>
+        </span>
       {{/let}}
       </div>
       <div class="detail">

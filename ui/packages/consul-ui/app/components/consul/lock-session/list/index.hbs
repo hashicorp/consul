@@ -5,15 +5,13 @@
   </BlockSlot>
   <BlockSlot @name="details">
     {{#if item.ID}}
-    <dl>
-      <dt>
-        <CopyButton
-          @value={{item.ID}}
-          @name="ID"
-        />
-      </dt>
-      <dd>{{item.ID}}</dd>
-    </dl>
+    <span>
+      <CopyButton
+        @value={{item.ID}}
+        @name="ID"
+      />
+      {{item.ID}}
+    </span>
     {{/if}}
     {{#if item.LockDelay}}
     <dl class="lock-delay">

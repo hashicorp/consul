@@ -54,18 +54,13 @@ as |item index|>
     </dl>
   {{/if}}
   {{#each item.GatewayConfig.Addresses as |address|}}
-    <dl>
-      <dt>
-        <span>Address</span>
-      </dt>
-      <dd>
-        <CopyButton
-          @value={{address}}
-          @name="Address"
-        />
-        {{address}}
-      </dd>
-    </dl>
+    <span>
+      <CopyButton
+        @value={{address}}
+        @name="Address"
+      />
+      {{address}}
+    </span>
   {{/each}}
   </BlockSlot>
 </ListCollection>
