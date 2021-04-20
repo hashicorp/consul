@@ -7,12 +7,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 var KVSummaries = []prometheus.SummaryDefinition{
@@ -122,11 +123,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	// Apply the update.
 	resp, err := k.srv.raftApply(structs.KVSRequestType, args)
 	if err != nil {
-		k.logger.Error("Raft apply failed", "error", err)
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("raft apply failed: %w", err)
 	}
 
 	// Check if the return type is a bool.

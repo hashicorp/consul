@@ -6,12 +6,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var SessionEndpointSummaries = []prometheus.SummaryDefinition{
@@ -147,8 +148,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	// Apply the update
 	resp, err := s.srv.raftApply(structs.SessionRequestType, args)
 	if err != nil {
-		s.logger.Error("Apply failed", "error", err)
-		return err
+		return fmt.Errorf("apply failed: %w", err)
 	}
 
 	if args.Op == structs.SessionCreate && args.Session.TTL != "" {
@@ -158,10 +158,6 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		// If we destroyed a session, it might potentially have a TTL,
 		// and we need to clear the timer
 		s.srv.clearSessionTimer(args.Session.ID)
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	// Check if the return type is a string

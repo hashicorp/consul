@@ -13,16 +13,17 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	memdb "github.com/hashicorp/go-memdb"
+	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/template"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -250,12 +251,8 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 
 	req.Token.SetHash(true)
 
-	resp, err := a.srv.raftApply(structs.ACLBootstrapRequestType, &req)
+	_, err = a.srv.raftApply(structs.ACLBootstrapRequestType, &req)
 	if err != nil {
-		return err
-	}
-
-	if err, ok := resp.(error); ok {
 		return err
 	}
 
@@ -729,17 +726,13 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		req.ProhibitUnprivileged = true
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLTokenSetRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLTokenSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token write request: %v", err)
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
 	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	// Don't check expiration times here as it doesn't really matter.
 	if _, updatedToken, err := a.srv.fsm.State().ACLTokenGetByAccessor(nil, token.AccessorID, nil); err == nil && updatedToken != nil {
@@ -885,17 +878,13 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		TokenIDs: []string{args.TokenID},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token delete request: %v", err)
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
 	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	if reply != nil {
 		*reply = token.AccessorID
@@ -1218,17 +1207,13 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		Policies: structs.ACLPolicies{policy},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLPolicySetRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLPolicySetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply policy upsert request: %v", err)
 	}
 
 	// Remove from the cache to prevent stale cache usage
 	a.srv.acls.cache.RemovePolicy(policy.ID)
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	if _, policy, err := a.srv.fsm.State().ACLPolicyGetByID(nil, policy.ID, &policy.EnterpriseMeta); err == nil && policy != nil {
 		*reply = *policy
@@ -1282,16 +1267,12 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		PolicyIDs: []string{args.PolicyID},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
+	_, err = a.srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply policy delete request: %v", err)
 	}
 
 	a.srv.acls.cache.RemovePolicy(policy.ID)
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	*reply = policy.Name
 
@@ -1687,17 +1668,13 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		Roles: structs.ACLRoles{role},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLRoleSetRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLRoleSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply role upsert request: %v", err)
 	}
 
 	// Remove from the cache to prevent stale cache usage
 	a.srv.acls.cache.RemoveRole(role.ID)
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	if _, role, err := a.srv.fsm.State().ACLRoleGetByID(nil, role.ID, &role.EnterpriseMeta); err == nil && role != nil {
 		*reply = *role
@@ -1747,16 +1724,12 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		RoleIDs: []string{args.RoleID},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
+	_, err = a.srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply role delete request: %v", err)
 	}
 
 	a.srv.acls.cache.RemoveRole(role.ID)
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	*reply = role.Name
 
@@ -2014,12 +1987,9 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		BindingRules: structs.ACLBindingRules{rule},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLBindingRuleSetRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLBindingRuleSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply binding rule upsert request: %v", err)
-	}
-	if respErr, ok := resp.(error); ok {
-		return fmt.Errorf("Failed to apply binding rule upsert request: %v", respErr)
 	}
 
 	if _, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, rule.ID, &rule.EnterpriseMeta); err == nil && rule != nil {
@@ -2070,13 +2040,9 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 		BindingRuleIDs: []string{args.BindingRuleID},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLBindingRuleDeleteRequestType, &req)
+	_, err = a.srv.raftApply(structs.ACLBindingRuleDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply binding rule delete request: %v", err)
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	*reply = true
@@ -2266,13 +2232,9 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		AuthMethods: structs.ACLAuthMethods{method},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLAuthMethodSetRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLAuthMethodSetRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply auth method upsert request: %v", err)
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	if _, method, err := a.srv.fsm.State().ACLAuthMethodGetByName(nil, method.Name, &method.EnterpriseMeta); err == nil && method != nil {
@@ -2328,13 +2290,9 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 		EnterpriseMeta:  args.EnterpriseMeta,
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLAuthMethodDeleteRequestType, &req)
+	_, err = a.srv.raftApply(structs.ACLAuthMethodDeleteRequestType, &req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply auth method delete request: %v", err)
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 
 	*reply = true
@@ -2583,17 +2541,13 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 		TokenIDs: []string{token.AccessorID},
 	}
 
-	resp, err := a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
+	_, err = a.srv.raftApply(structs.ACLTokenDeleteRequestType, req)
 	if err != nil {
 		return fmt.Errorf("Failed to apply token delete request: %v", err)
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
 	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
 
 	*reply = true
 

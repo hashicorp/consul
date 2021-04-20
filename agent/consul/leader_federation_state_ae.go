@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -117,12 +118,9 @@ func (s *Server) updateOurFederationState(curr *structs.FederationState) error {
 
 	if s.config.Datacenter == s.config.PrimaryDatacenter {
 		// We are the primary, so we can't do an RPC as we don't have a replication token.
-		resp, err := s.raftApply(structs.FederationStateRequestType, args)
+		_, err := s.raftApply(structs.FederationStateRequestType, args)
 		if err != nil {
 			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
 		}
 	} else {
 		args.WriteRequest = structs.WriteRequest{
@@ -225,12 +223,9 @@ func (s *Server) pruneStaleFederationStates() error {
 				Datacenter: dc,
 			},
 		}
-		resp, err := s.raftApply(structs.FederationStateRequestType, &req)
+		_, err := s.raftApply(structs.FederationStateRequestType, &req)
 		if err != nil {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, err)
-		}
-		if respErr, ok := resp.(error); ok {
-			return fmt.Errorf("Failed to delete federation state %s: %v", dc, respErr)
 		}
 	}
 

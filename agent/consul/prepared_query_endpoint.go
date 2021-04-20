@@ -7,13 +7,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 )
 
 var PreparedQuerySummaries = []prometheus.SummaryDefinition{
@@ -128,15 +129,10 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	}
 
 	// Commit the query to the state store.
-	resp, err := p.srv.raftApply(structs.PreparedQueryRequestType, args)
+	_, err = p.srv.raftApply(structs.PreparedQueryRequestType, args)
 	if err != nil {
-		p.logger.Error("Raft apply failed", "error", err)
-		return err
+		return fmt.Errorf("raft apply failed: %w", err)
 	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
 	return nil
 }
 
