@@ -7,10 +7,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 var FederationStateSummaries = []prometheus.SummaryDefinition{
@@ -84,9 +85,6 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	resp, err := c.srv.raftApply(structs.FederationStateRequestType, args)
 	if err != nil {
 		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
 	}
 	if respBool, ok := resp.(bool); ok {
 		*reply = respBool

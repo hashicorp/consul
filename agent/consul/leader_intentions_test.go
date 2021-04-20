@@ -108,14 +108,8 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		if req.Op != structs.IntentionOpDelete {
 			req2.Intention.Hash = req.Intention.Hash // not part of Clone
 		}
-		resp, err := s.raftApply(structs.IntentionRequestType, req2)
-		if err != nil {
-			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
-		}
-		return nil
+		_, err := s.raftApply(structs.IntentionRequestType, req2)
+		return err
 	}
 
 	// Directly insert legacy intentions into raft in dc1.
@@ -442,14 +436,11 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	var retained []*structs.Intention
 	for _, ixn := range ixns {
 		ixn2 := *ixn
-		resp, err := s1pre.raftApply(structs.IntentionRequestType, &structs.IntentionRequest{
+		_, err := s1pre.raftApply(structs.IntentionRequestType, &structs.IntentionRequest{
 			Op:        structs.IntentionOpCreate,
 			Intention: &ixn2,
 		})
 		require.NoError(t, err)
-		if respErr, ok := resp.(error); ok {
-			t.Fatalf("respErr: %v", respErr)
-		}
 
 		if _, present := ixn.Meta["unit-test-discarded"]; !present {
 			retained = append(retained, ixn)

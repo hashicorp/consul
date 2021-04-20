@@ -86,14 +86,8 @@ func (r *aclTokenReplicator) DeleteLocalBatch(srv *Server, batch []string) error
 		TokenIDs: batch,
 	}
 
-	resp, err := srv.raftApply(structs.ACLTokenDeleteRequestType, &req)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-	return nil
+	_, err := srv.raftApply(structs.ACLTokenDeleteRequestType, &req)
+	return err
 }
 
 func (r *aclTokenReplicator) LenPendingUpdates() int {
@@ -116,15 +110,8 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 		FromReplication:   true,
 	}
 
-	resp, err := srv.raftApply(structs.ACLTokenSetRequestType, &req)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err := srv.raftApply(structs.ACLTokenSetRequestType, &req)
+	return err
 }
 
 ///////////////////////
@@ -199,14 +186,8 @@ func (r *aclPolicyReplicator) DeleteLocalBatch(srv *Server, batch []string) erro
 		PolicyIDs: batch,
 	}
 
-	resp, err := srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-	return nil
+	_, err := srv.raftApply(structs.ACLPolicyDeleteRequestType, &req)
+	return err
 }
 
 func (r *aclPolicyReplicator) LenPendingUpdates() int {
@@ -226,16 +207,8 @@ func (r *aclPolicyReplicator) UpdateLocalBatch(ctx context.Context, srv *Server,
 		Policies: r.updated[start:end],
 	}
 
-	resp, err := srv.raftApply(structs.ACLPolicySetRequestType, &req)
-	if err != nil {
-		return err
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err := srv.raftApply(structs.ACLPolicySetRequestType, &req)
+	return err
 }
 
 ////////////////////////////////
@@ -334,16 +307,8 @@ func (r *aclRoleReplicator) DeleteLocalBatch(srv *Server, batch []string) error 
 		RoleIDs: batch,
 	}
 
-	resp, err := srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
-	if err != nil {
-		return err
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err := srv.raftApply(structs.ACLRoleDeleteRequestType, &req)
+	return err
 }
 
 func (r *aclRoleReplicator) LenPendingUpdates() int {
@@ -364,14 +329,6 @@ func (r *aclRoleReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, s
 		AllowMissingLinks: true,
 	}
 
-	resp, err := srv.raftApply(structs.ACLRoleSetRequestType, &req)
-	if err != nil {
-		return err
-	}
-
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err := srv.raftApply(structs.ACLRoleSetRequestType, &req)
+	return err
 }

@@ -22,15 +22,8 @@ func (s *Server) setSystemMetadataKey(key, val string) error {
 		Entry: &structs.SystemMetadataEntry{Key: key, Value: val},
 	}
 
-	resp, err := s.raftApply(structs.SystemMetadataRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err := s.raftApply(structs.SystemMetadataRequestType, args)
+	return err
 }
 
 func (s *Server) deleteSystemMetadataKey(key string) error {
@@ -39,13 +32,6 @@ func (s *Server) deleteSystemMetadataKey(key string) error {
 		Entry: &structs.SystemMetadataEntry{Key: key},
 	}
 
-	resp, err := s.raftApply(structs.SystemMetadataRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
+	_, err := s.raftApply(structs.SystemMetadataRequestType, args)
+	return err
 }
