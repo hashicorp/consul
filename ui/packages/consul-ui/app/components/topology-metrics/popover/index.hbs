@@ -59,7 +59,7 @@
     </:header>
     <:body>
       <p>
-        {{t "components.consul.topology-metrics.popover.not-defined.body"}}
+        {{t "components.consul.topology-metrics.popover.not-defined.body" downstream=@item.Name upstream=@service.Name }}
       </p>
     </:body>
     <:actions as |Actions|>
