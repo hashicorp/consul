@@ -552,16 +552,16 @@ func canRetry(args interface{}, err error) bool {
 
 // ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, req structs.RPCInfo, reply interface{}) (bool, error) {
 	var firstCheck time.Time
 
 	// Handle DC forwarding
-	dc := info.RequestDatacenter()
+	dc := req.RequestDatacenter()
 	if dc != s.config.Datacenter {
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
 		// it, falling back on the anonymous token on the other end.
-		if token := info.TokenSecret(); token != "" {
+		if token := req.TokenSecret(); token != "" {
 			done, ident, err := s.ResolveIdentityFromToken(token)
 			if done {
 				if err != nil && !acl.IsErrNotFound(err) {
@@ -569,18 +569,18 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{
 				}
 				if ident != nil && ident.IsLocal() {
 					// Strip it from the request.
-					info.SetTokenSecret("")
-					defer info.SetTokenSecret(token)
+					req.SetTokenSecret("")
+					defer req.SetTokenSecret(token)
 				}
 			}
 		}
 
-		err := s.forwardDC(method, dc, args, reply)
+		err := s.forwardDC(method, dc, req, reply)
 		return true, err
 	}
 
 	// Check if we can allow a stale read, ensure our local DB is initialized
-	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
+	if req.IsRead() && req.AllowStaleRead() && !s.raft.LastContact().IsZero() {
 		return false, nil
 	}
 
@@ -603,8 +603,8 @@ CHECK_LEADER:
 	// Handle the case of a known leader
 	if leader != nil {
 		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, args, reply)
-		if rpcErr != nil && canRetry(info, rpcErr) {
+			method, req, reply)
+		if rpcErr != nil && canRetry(req, rpcErr) {
 			goto RETRY
 		}
 		return true, rpcErr
