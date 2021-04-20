@@ -50,6 +50,7 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -373,15 +374,21 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 	}
 
-	cacheName := cachetype.HealthServicesName
-	if bd.RuntimeConfig.UseStreamingBackend {
-		cacheName = cachetype.StreamingHealthServicesName
+	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
+	conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
+	if err != nil {
+		return nil, err
 	}
+
 	a.rpcClientHealth = &health.Client{
-		Cache:                 bd.Cache,
-		NetRPC:                &a,
-		CacheName:             cacheName,
-		CacheNameNotStreaming: cachetype.HealthServicesName,
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cachetype.HealthServicesName,
+		ViewStore: bd.ViewStore,
+		MaterializerDeps: health.MaterializerDeps{
+			Client: pbsubscribe.NewStateChangeSubscriptionClient(conn),
+			Logger: bd.Logger.Named("rpcclient.health"),
+		},
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -532,6 +539,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	default:
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLDefaultPolicy)
 	}
+
+	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
