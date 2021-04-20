@@ -1874,3 +1874,9 @@
   -webkit-mask-image: $webhook-svg;
   mask-image: $webhook-svg;
 }
+
+%without-mask {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-color: $transparent !important;
+}
