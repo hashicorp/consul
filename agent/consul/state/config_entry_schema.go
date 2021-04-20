@@ -33,15 +33,6 @@ func configTableSchema() *memdb.TableSchema {
 					prefixIndex: indexFromConfigEntryKindName,
 				},
 			},
-			indexKind: {
-				Name:         indexKind,
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromConfigEntryKindQuery,
-					writeIndex: indexKindFromConfigEntry,
-				},
-			},
 			indexLink: {
 				Name:         indexLink,
 				AllowMissing: true,
@@ -77,17 +68,6 @@ func indexFromConfigEntry(raw interface{}) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(c.GetKind()))
 	b.String(strings.ToLower(c.GetName()))
-	return b.Bytes(), nil
-}
-
-func indexFromConfigEntryKindQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(ConfigEntryKindQuery)
-	if !ok {
-		return nil, fmt.Errorf("type must be ConfigEntryKindQuery: %T", raw)
-	}
-
-	var b indexBuilder
-	b.String(strings.ToLower(q.Kind))
 	return b.Bytes(), nil
 }
 

@@ -327,7 +327,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
 			// blocking query, this function will be rerun and these state store lookups will both be current.
 			// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
-			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}

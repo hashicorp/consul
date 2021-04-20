@@ -16,7 +16,6 @@ type ConfigEntryLinkIndex struct {
 }
 
 type discoveryChainConfigEntry interface {
-	structs.ConfigEntry
 	// ListRelatedServices returns a list of other names of services referenced
 	// in this config entry.
 	ListRelatedServices() []structs.ServiceID
@@ -426,7 +425,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 	queue := []structs.ServiceName{destination}
 	for len(queue) > 0 {
 		// The "link" index returns config entries that reference a service
-		iter, err := tx.Get(tableConfigEntries, "link", queue[0].ToServiceID())
+		iter, err := tx.Get(tableConfigEntries, indexLink, queue[0].ToServiceID())
 		if err != nil {
 			return 0, nil, err
 		}
@@ -598,7 +597,7 @@ func validateProposedConfigEntryInServiceGraph(
 		sid := structs.NewServiceID(name, entMeta)
 		checkChains[sid] = struct{}{}
 
-		iter, err := tx.Get(tableConfigEntries, "link", sid)
+		iter, err := tx.Get(tableConfigEntries, indexLink, sid)
 		if err != nil {
 			return err
 		}
@@ -853,7 +852,7 @@ func readDiscoveryChainConfigEntriesTxn(
 	sid := structs.NewServiceID(serviceName, entMeta)
 
 	// Grab the proxy defaults if they exist.
-	idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, structs.DefaultEnterpriseMeta())
+	idx, proxy, err := getProxyConfigEntryTxn(tx, ws, structs.ProxyConfigGlobal, overrides, entMeta)
 	if err != nil {
 		return 0, nil, err
 	} else if proxy != nil {
@@ -1169,6 +1168,7 @@ func configEntryWithOverridesTxn(
 ) (uint64, structs.ConfigEntry, error) {
 	if len(overrides) > 0 {
 		kn := NewConfigEntryKindName(kind, name, entMeta)
+		kn.Normalize()
 		entry, ok := overrides[kn]
 		if ok {
 			return 0, entry, nil // a nil entry implies it should act like it is erased
@@ -1186,7 +1186,7 @@ func protocolForService(
 	svc structs.ServiceName,
 ) (uint64, string, error) {
 	// Get the global proxy defaults (for default protocol)
-	maxIdx, proxyConfig, err := configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+	maxIdx, proxyConfig, err := configEntryTxn(tx, ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, &svc.EnterpriseMeta)
 	if err != nil {
 		return 0, "", err
 	}
@@ -1230,6 +1230,11 @@ type ConfigEntryKindName struct {
 	structs.EnterpriseMeta
 }
 
+// NewConfigEntryKindName returns a new ConfigEntryKindName. The EnterpriseMeta
+// values will be normalized based on the kind.
+//
+// Any caller which modifies the EnterpriseMeta field must call Normalize before
+// persisting or using the value as a map key.
 func NewConfigEntryKindName(kind, name string, entMeta *structs.EnterpriseMeta) ConfigEntryKindName {
 	ret := ConfigEntryKindName{
 		Kind: kind,
@@ -1240,7 +1245,7 @@ func NewConfigEntryKindName(kind, name string, entMeta *structs.EnterpriseMeta) 
 	}
 
 	ret.EnterpriseMeta = *entMeta
-	ret.EnterpriseMeta.Normalize()
+	ret.Normalize()
 	return ret
 }
 
@@ -1252,4 +1257,16 @@ func newConfigEntryQuery(c structs.ConfigEntry) ConfigEntryKindName {
 type ConfigEntryKindQuery struct {
 	Kind string
 	structs.EnterpriseMeta
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q ConfigEntryKindQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q ConfigEntryKindQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
 }
