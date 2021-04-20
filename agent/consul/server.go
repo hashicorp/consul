@@ -400,7 +400,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 
 	configReplicatorConfig := ReplicatorConfig{
 		Name:     logging.ConfigEntry,
-		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig},
+		Delegate: &FunctionReplicator{ReplicateFn: s.replicateConfig, Name: "config"},
 		Rate:     s.config.ConfigReplicationRate,
 		Burst:    s.config.ConfigReplicationBurst,
 		Logger:   s.logger,
