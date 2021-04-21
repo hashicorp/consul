@@ -117,25 +117,15 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		EndpointType: newDeltaType(g, stream, EndpointType, nil),
 	}
 
-	var deltaRetryFrequency = s.DeltaRetryFrequency
-	if deltaRetryFrequency == 0 {
-		deltaRetryFrequency = DefaultDeltaRetryFrequency
-	}
-
 	var retryTimer <-chan time.Time
 	extendRetryTimer := func() {
-		g.Logger.Trace("retrying response", "after", deltaRetryFrequency)
-		retryTimer = time.After(deltaRetryFrequency)
-	}
-
-	var authCheckFrequency = s.AuthCheckFrequency
-	if authCheckFrequency == 0 {
-		authCheckFrequency = DefaultAuthCheckFrequency
+		g.Logger.Trace("retrying response", "after", s.DeltaRetryFrequency)
+		retryTimer = time.After(s.DeltaRetryFrequency)
 	}
 
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
-		authTimer = time.After(authCheckFrequency)
+		authTimer = time.After(s.AuthCheckFrequency)
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {

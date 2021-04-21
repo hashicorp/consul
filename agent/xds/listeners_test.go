@@ -35,7 +35,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 		// test input.
 		setup              func(snap *proxycfg.ConfigSnapshot)
 		overrideGoldenName string
-		serverSetup        func(*Server)
 		generatorSetup     func(*ResourceGenerator)
 	}{
 		{

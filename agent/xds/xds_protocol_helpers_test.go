@@ -155,13 +155,15 @@ func newTestServerScenarioInner(
 		envoy.Close()
 	})
 
-	s := &Server{
-		Logger:              testutil.Logger(t),
-		CfgMgr:              mgr,
-		ResolveToken:        resolveToken,
-		AuthCheckFrequency:  authCheckFrequency,
-		DeltaRetryFrequency: 250 * time.Millisecond,
-	}
+	s := NewServer(
+		testutil.Logger(t),
+		mgr,
+		resolveToken,
+		nil, /*checkFetcher HTTPCheckFetcher*/
+		nil, /*cfgFetcher ConfigFetcher*/
+	)
+	s.AuthCheckFrequency = authCheckFrequency
+	s.DeltaRetryFrequency = 250 * time.Millisecond
 
 	errCh := make(chan error, 1)
 	go func() {

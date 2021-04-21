@@ -147,6 +147,33 @@ type Server struct {
 	DisableV2Protocol bool
 }
 
+func NewServer(
+	logger hclog.Logger,
+	cfgMgr ConfigManager,
+	resolveToken ACLResolverFunc,
+	checkFetcher HTTPCheckFetcher,
+	cfgFetcher ConfigFetcher,
+) *Server {
+	s := &Server{
+		Logger:       logger,
+		CfgMgr:       cfgMgr,
+		ResolveToken: resolveToken,
+		CheckFetcher: checkFetcher,
+		CfgFetcher:   cfgFetcher,
+	}
+
+	var authCheckFrequency = s.AuthCheckFrequency
+	if authCheckFrequency == 0 {
+		authCheckFrequency = DefaultAuthCheckFrequency
+	}
+
+	var deltaRetryFrequency = s.DeltaRetryFrequency
+	if deltaRetryFrequency == 0 {
+		deltaRetryFrequency = DefaultDeltaRetryFrequency
+	}
+	return s
+}
+
 // StreamAggregatedResources implements
 // envoy_discovery_v3.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
 // the only xDS API we directly support for now.
@@ -266,14 +293,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 		},
 	}
 
-	var authCheckFrequency = s.AuthCheckFrequency
-	if authCheckFrequency == 0 {
-		authCheckFrequency = DefaultAuthCheckFrequency
-	}
-
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
-		authTimer = time.After(authCheckFrequency)
+		authTimer = time.After(s.AuthCheckFrequency)
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
