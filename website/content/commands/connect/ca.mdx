@@ -81,6 +81,13 @@ Usage: `consul connect ca set-config [options]`
   The format of this config file matches the request payload documented in the
   [Update CA Configuration API](/api/connect/ca#update-ca-configuration).
 
+- `-force-without-cross-signing` `(bool: <optional>)` - Indicates that the CA change
+  should be forced to complete even if the current CA doesn't support cross
+  signing. Changing root without cross-signing may cause temporary connection
+  failures until the rollout completes. See [Forced Rotation Without
+  Cross-Signing](/docs/connect/ca#forced-rotation-without-cross-signing)
+  for more detail.
+
 The output looks like this:
 
 ```
