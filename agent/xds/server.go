@@ -154,24 +154,15 @@ func NewServer(
 	checkFetcher HTTPCheckFetcher,
 	cfgFetcher ConfigFetcher,
 ) *Server {
-	s := &Server{
-		Logger:       logger,
-		CfgMgr:       cfgMgr,
-		ResolveToken: resolveToken,
-		CheckFetcher: checkFetcher,
-		CfgFetcher:   cfgFetcher,
+	return &Server{
+		Logger:              logger,
+		CfgMgr:              cfgMgr,
+		ResolveToken:        resolveToken,
+		CheckFetcher:        checkFetcher,
+		CfgFetcher:          cfgFetcher,
+		AuthCheckFrequency:  DefaultAuthCheckFrequency,
+		DeltaRetryFrequency: DefaultDeltaRetryFrequency,
 	}
-
-	var authCheckFrequency = s.AuthCheckFrequency
-	if authCheckFrequency == 0 {
-		authCheckFrequency = DefaultAuthCheckFrequency
-	}
-
-	var deltaRetryFrequency = s.DeltaRetryFrequency
-	if deltaRetryFrequency == 0 {
-		deltaRetryFrequency = DefaultDeltaRetryFrequency
-	}
-	return s
 }
 
 // StreamAggregatedResources implements
