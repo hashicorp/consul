@@ -134,8 +134,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 
 	// All 3 response that have something to return should return with new version
 	// note that the ordering is not deterministic in general. Trying to make this
-	// test order-agnostic though is a massive pain since we are comparing
-	// non-identical JSON strings (so can simply sort by anything) and because we
+	// test order-agnostic though is a massive pain because we
 	// don't know the order the nonces will be assigned. For now we rely and
 	// require our implementation to always deliver updates in a specific order
 	// which is reasonable anyway to ensure consistency of the config Envoy sees.
@@ -777,9 +776,8 @@ func assertResponseSent(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse, w
 }
 
 // assertResponse is a helper to test a envoy.DiscoveryResponse matches the
-// JSON representation we expect. We use JSON because the responses use protobuf
-// Any type which includes binary protobuf encoding and would make creating
-// expected structs require the same code that is under test!
+// expected value. We use JSON during comparison here because the responses use protobuf
+// Any type which includes binary protobuf encoding.
 func assertResponse(t *testing.T, got, want *envoy_api_v2.DiscoveryResponse) {
 	t.Helper()
 

@@ -740,9 +740,8 @@ func assertDeltaResponseSent(t *testing.T, ch chan *envoy_discovery_v3.DeltaDisc
 }
 
 // assertDeltaResponse is a helper to test a envoy.DeltaDiscoveryResponse matches the
-// JSON representation we expect. We use JSON because the responses use protobuf
-// Any type which includes binary protobuf encoding and would make creating
-// expected structs require the same code that is under test!
+// expected value. We use JSON during comparison here because the responses use protobuf
+// Any type which includes binary protobuf encoding.
 func assertDeltaResponse(t *testing.T, got, want *envoy_discovery_v3.DeltaDiscoveryResponse) {
 	t.Helper()
 
