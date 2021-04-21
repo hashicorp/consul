@@ -118,7 +118,7 @@ spec:
 
 In other environments, transparent proxy can be enabled via Proxy Defaults and Service Defaults config entries, or via
 the proxy service registration:
-```
+```json
 # Proxy defaults apply to all proxies.
 kind = "proxy-defaults"
 name = "global"
@@ -128,7 +128,7 @@ transparent_proxy {
   outbound_listener_port = 15001
 }
 ```
-```
+```json
 # Service defaults apply to all instances of the web service.
 kind = "service-defaults"
 name = "web"
@@ -138,7 +138,7 @@ transparent_proxy {
   outbound_listener_port = 15001
 }
 ```
-```
+```json
 # Proxy service registrations apply to a single proxy instance.
 name = "web-sidecar-proxy"
 kind = "connect-proxy"
@@ -162,7 +162,7 @@ central configuration, like “service-defaults”.
 Additionally, the new Cluster config entry is scoped to the set of federated Consul datacenters and can be used to allow or block
 traffic to external destinations. This example shows blocking traffic to external destinations (outside of Consul's catalog):
 
-```
+```json
 kind = "cluster"
 name = "cluster"
 
