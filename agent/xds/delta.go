@@ -89,7 +89,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		currentVersions = make(map[string]map[string]string)
 	)
 
-	g := newResourceGenerator(
+	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xDS", "v3"),
 		s.CheckFetcher,
 		s.CfgFetcher,
@@ -101,25 +101,25 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 	// Configure handlers for each type of request we currently care about.
 	handlers := map[string]*xDSDeltaType{
-		ListenerType: newDeltaType(g, stream, ListenerType, func(kind structs.ServiceKind) bool {
+		ListenerType: newDeltaType(generator, stream, ListenerType, func(kind structs.ServiceKind) bool {
 			return cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
-		RouteType: newDeltaType(g, stream, RouteType, func(kind structs.ServiceKind) bool {
+		RouteType: newDeltaType(generator, stream, RouteType, func(kind structs.ServiceKind) bool {
 			return cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
-		ClusterType: newDeltaType(g, stream, ClusterType, func(kind structs.ServiceKind) bool {
+		ClusterType: newDeltaType(generator, stream, ClusterType, func(kind structs.ServiceKind) bool {
 			// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
 			// no clusters.
 			return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
 				cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
 				cfgSnap.Kind == structs.ServiceKindIngressGateway
 		}),
-		EndpointType: newDeltaType(g, stream, EndpointType, nil),
+		EndpointType: newDeltaType(generator, stream, EndpointType, nil),
 	}
 
 	var retryTimer <-chan time.Time
 	extendRetryTimer := func() {
-		g.Logger.Trace("retrying response", "after", s.DeltaRetryFrequency)
+		generator.Logger.Trace("retrying response", "after", s.DeltaRetryFrequency)
 		retryTimer = time.After(s.DeltaRetryFrequency)
 	}
 
@@ -150,7 +150,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return nil
 			}
 
-			g.logTraceRequest("Incremental xDS v3", req)
+			generator.logTraceRequest("Incremental xDS v3", req)
 
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
@@ -161,20 +161,20 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return nil // not a type we care about
 			}
 			if handler.Recv(req) {
-				g.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+				generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
 			}
 
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				g.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
 			}
 
 		case cfgSnap = <-stateCh:
-			newRes, err := g.allResourcesFromSnapshot(cfgSnap)
+			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
 				return err
 			}
@@ -220,9 +220,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			// state machine.
 			defer watchCancel()
 
-			g.Logger = g.Logger.With("service_id", proxyID.String()) // enhance future logs
+			generator.Logger = generator.Logger.With("service_id", proxyID.String()) // enhance future logs
 
-			g.Logger.Trace("watching proxy, pending initial proxycfg snapshot for xDS")
+			generator.Logger.Trace("watching proxy, pending initial proxycfg snapshot for xDS")
 
 			// Now wait for the config so we can check ACL
 			state = stateDeltaPendingInitialConfig
@@ -239,14 +239,14 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			switch cfgSnap.Kind {
 			case structs.ServiceKindConnectProxy:
 			case structs.ServiceKindTerminatingGateway:
-				g.Logger = g.Logger.Named(logging.TerminatingGateway)
+				generator.Logger = generator.Logger.Named(logging.TerminatingGateway)
 			case structs.ServiceKindMeshGateway:
-				g.Logger = g.Logger.Named(logging.MeshGateway)
+				generator.Logger = generator.Logger.Named(logging.MeshGateway)
 			case structs.ServiceKindIngressGateway:
-				g.Logger = g.Logger.Named(logging.IngressGateway)
+				generator.Logger = generator.Logger.Named(logging.IngressGateway)
 			}
 
-			g.Logger.Trace("Got initial config snapshot")
+			generator.Logger.Trace("Got initial config snapshot")
 
 			// Lets actually process the config we just got or we'll mis responding
 			fallthrough
@@ -260,7 +260,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			extendAuthTimer()
 
 			if !ready {
-				g.Logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
+				generator.Logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
 				continue
 			}
 
@@ -275,12 +275,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			}
 			if len(pendingTypes) > 0 {
 				sort.Strings(pendingTypes)
-				g.Logger.Trace("Skipping delta computation because there are responses in flight",
+				generator.Logger.Trace("Skipping delta computation because there are responses in flight",
 					"pendingTypeUrls", pendingTypes)
 				continue
 			}
 
-			g.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
+			generator.Logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
 
 			sentType := make(map[string]struct{}) // use this to only do one kind of mutation per type per execution
 			for _, op := range xDSUpdateOrder {

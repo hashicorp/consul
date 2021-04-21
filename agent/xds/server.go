@@ -246,7 +246,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 		proxyID     structs.ServiceID
 	)
 
-	g := newResourceGenerator(
+	generator := newResourceGenerator(
 		s.Logger.Named(logging.XDS).With("xdsVersion", "v2"),
 		s.CheckFetcher,
 		s.CfgFetcher,
@@ -259,12 +259,12 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	// Configure handlers for each type of request
 	handlers := map[string]*xDSType{
 		EndpointType: {
-			generator: g,
+			generator: generator,
 			typeURL:   EndpointType,
 			stream:    stream,
 		},
 		ClusterType: {
-			generator: g,
+			generator: generator,
 			typeURL:   ClusterType,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
@@ -276,7 +276,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			},
 		},
 		RouteType: {
-			generator: g,
+			generator: generator,
 			typeURL:   RouteType,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
@@ -284,7 +284,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			},
 		},
 		ListenerType: {
-			generator: g,
+			generator: generator,
 			typeURL:   ListenerType,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
@@ -320,7 +320,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 				return nil
 			}
 
-			g.logTraceRequest("SOTW xDS v2", req)
+			generator.logTraceRequest("SOTW xDS v2", req)
 
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
@@ -329,7 +329,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				g.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
@@ -363,7 +363,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// state machine.
 			defer watchCancel()
 
-			g.Logger.Trace("watching proxy, pending initial proxycfg snapshot",
+			generator.Logger.Trace("watching proxy, pending initial proxycfg snapshot",
 				"service_id", proxyID.String())
 
 			// Now wait for the config so we can check ACL
@@ -381,14 +381,14 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			switch cfgSnap.Kind {
 			case structs.ServiceKindConnectProxy:
 			case structs.ServiceKindTerminatingGateway:
-				g.Logger = g.Logger.Named(logging.TerminatingGateway)
+				generator.Logger = generator.Logger.Named(logging.TerminatingGateway)
 			case structs.ServiceKindMeshGateway:
-				g.Logger = g.Logger.Named(logging.MeshGateway)
+				generator.Logger = generator.Logger.Named(logging.MeshGateway)
 			case structs.ServiceKindIngressGateway:
-				g.Logger = g.Logger.Named(logging.IngressGateway)
+				generator.Logger = generator.Logger.Named(logging.IngressGateway)
 			}
 
-			g.Logger.Trace("Got initial config snapshot",
+			generator.Logger.Trace("Got initial config snapshot",
 				"service_id", cfgSnap.ProxyID.String())
 
 			// Lets actually process the config we just got or we'll mis responding
@@ -402,7 +402,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// timer is first started.
 			extendAuthTimer()
 
-			g.Logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
+			generator.Logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
 				"service_id", cfgSnap.ProxyID.String())
 
 			// See if any handlers need to have the current (possibly new) config
