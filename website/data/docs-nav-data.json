@@ -651,6 +651,10 @@
       {
         "title": "Telemetry",
         "path": "agent/telemetry"
+      },
+      {
+        "title": "Sentinel",
+        "path": "agent/sentinel"
       }
     ]
   },
