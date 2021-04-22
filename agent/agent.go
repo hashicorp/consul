@@ -50,7 +50,6 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -386,7 +385,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		CacheName: cachetype.HealthServicesName,
 		ViewStore: bd.ViewStore,
 		MaterializerDeps: health.MaterializerDeps{
-			Client: pbsubscribe.NewStateChangeSubscriptionClient(conn),
+			Conn:   conn,
 			Logger: bd.Logger.Named("rpcclient.health"),
 		},
 	}
@@ -1392,6 +1391,8 @@ func (a *Agent) ShutdownAgent() error {
 	if a.cache != nil {
 		a.cache.Close()
 	}
+
+	a.rpcClientHealth.Close()
 
 	var err error
 	if a.delegate != nil {

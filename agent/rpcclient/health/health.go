@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // TODO: godoc
@@ -108,6 +109,14 @@ func (c *Client) newServiceRequest(req structs.ServiceSpecificRequest) serviceRe
 	}
 }
 
+// Close any underlying connections used by the client.
+func (c *Client) Close() error {
+	if c == nil {
+		return nil
+	}
+	return c.MaterializerDeps.Conn.Close()
+}
+
 type serviceRequest struct {
 	structs.ServiceSpecificRequest
 	deps MaterializerDeps
@@ -128,7 +137,7 @@ func (r serviceRequest) NewMaterializer() (*submatview.Materializer, error) {
 	}
 	return submatview.NewMaterializer(submatview.Deps{
 		View:    view,
-		Client:  r.deps.Client,
+		Client:  pbsubscribe.NewStateChangeSubscriptionClient(r.deps.Conn),
 		Logger:  r.deps.Logger,
 		Request: newMaterializerRequest(r.ServiceSpecificRequest),
 	}), nil

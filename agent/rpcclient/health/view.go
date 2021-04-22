@@ -8,15 +8,15 @@ import (
 
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 type MaterializerDeps struct {
-	Client submatview.StreamClient
+	Conn   *grpc.ClientConn
 	Logger hclog.Logger
 }
 
