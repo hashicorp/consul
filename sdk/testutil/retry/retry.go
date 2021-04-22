@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -38,9 +37,13 @@ type R struct {
 	output []string
 }
 
+func (r *R) Helper() {}
+
+var runFailed = struct{}{}
+
 func (r *R) FailNow() {
 	r.fail = true
-	runtime.Goexit()
+	panic(runFailed)
 }
 
 func (r *R) Fatal(args ...interface{}) {
@@ -93,6 +96,7 @@ func Run(t Failer, f func(r *R)) {
 }
 
 func RunWith(r Retryer, t Failer, f func(r *R)) {
+	t.Helper()
 	run(r, t, f)
 }
 
@@ -100,22 +104,21 @@ func dedup(a []string) string {
 	if len(a) == 0 {
 		return ""
 	}
-	m := map[string]int{}
-	for _, s := range a {
-		m[s] = m[s] + 1
-	}
+	seen := map[string]struct{}{}
 	var b bytes.Buffer
 	for _, s := range a {
-		if _, ok := m[s]; ok {
-			b.WriteString(s)
-			b.WriteRune('\n')
-			delete(m, s)
+		if _, ok := seen[s]; ok {
+			continue
 		}
+		seen[s] = struct{}{}
+		b.WriteString(s)
+		b.WriteRune('\n')
 	}
 	return b.String()
 }
 
 func run(r Retryer, t Failer, f func(r *R)) {
+	t.Helper()
 	rr := &R{}
 	fail := func() {
 		t.Helper()
@@ -125,19 +128,19 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		}
 		t.FailNow()
 	}
-	for r.NextOr(fail) {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for r.NextOr(t, fail) {
+		func() {
+			defer func() {
+				if p := recover(); p != nil && p != runFailed {
+					panic(p)
+				}
+			}()
 			f(rr)
 		}()
-		wg.Wait()
-		if rr.fail {
-			rr.fail = false
-			continue
+		if !rr.fail {
+			return
 		}
-		break
+		rr.fail = false
 	}
 }
 
@@ -161,7 +164,7 @@ func ThreeTimes() *Counter {
 type Retryer interface {
 	// NextOr returns true if the operation should be repeated.
 	// Otherwise, it calls fail and returns false.
-	NextOr(fail func()) bool
+	NextOr(t Failer, fail func()) bool
 }
 
 // Counter repeats an operation a given number of
@@ -173,7 +176,8 @@ type Counter struct {
 	count int
 }
 
-func (r *Counter) NextOr(fail func()) bool {
+func (r *Counter) NextOr(t Failer, fail func()) bool {
+	t.Helper()
 	if r.count == r.Count {
 		fail()
 		return false
@@ -196,7 +200,8 @@ type Timer struct {
 	stop time.Time
 }
 
-func (r *Timer) NextOr(fail func()) bool {
+func (r *Timer) NextOr(t Failer, fail func()) bool {
+	t.Helper()
 	if r.stop.IsZero() {
 		r.stop = time.Now().Add(r.Timeout)
 		return true
