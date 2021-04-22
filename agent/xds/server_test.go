@@ -6,7 +6,6 @@ import (
 	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -39,7 +38,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (empty payload)
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -48,45 +47,40 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)
 
-	convert := func(v3 *envoy_discovery_v3.DiscoveryResponse) *envoy_api_v2.DiscoveryResponse {
-		v2, err := convertDiscoveryResponseToV2(v3)
-		require.NoError(t, err)
-		return v2
-	}
 	expectClusterResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     ClusterType,
+			TypeUrl:     ClusterType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestCluster_v2(t, snap, "tcp:local_app"),
 				makeTestCluster_v2(t, snap, "tcp:db"),
 				makeTestCluster_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 	expectEndpointResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     EndpointType,
+			TypeUrl:     EndpointType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestEndpoints_v2(t, snap, "tcp:db"),
 				makeTestEndpoints_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 	expectListenerResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     ListenerType,
+			TypeUrl:     ListenerType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestListener_v2(t, snap, "tcp:public_listener"),
 				makeTestListener_v2(t, snap, "tcp:db"),
 				makeTestListener_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(1, 1))
@@ -94,11 +88,11 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	// Envoy then tries to discover endpoints for those clusters. Technically it
 	// includes the cluster names in the ResourceNames field but we ignore that
 	// completely for now so not bothering to simulate that.
-	envoy.SendReq(t, EndpointType, 0, 0)
+	envoy.SendReq(t, EndpointType_v2, 0, 0)
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)
-	envoy.SendReq(t, ClusterType, 1, 1)
+	envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 	// We should get a response immediately since the config is already present in
 	// the server for endpoints. Note that this should not be racy if the server
@@ -110,15 +104,15 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Envoy now sends listener request along with next endpoint one
-	envoy.SendReq(t, ListenerType, 0, 0)
-	envoy.SendReq(t, EndpointType, 1, 2)
+	envoy.SendReq(t, ListenerType_v2, 0, 0)
+	envoy.SendReq(t, EndpointType_v2, 1, 2)
 
 	// And should get a response immediately.
 	assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(1, 3))
 
 	// Now send Route request along with next listener one
-	envoy.SendReq(t, RouteType, 0, 0)
-	envoy.SendReq(t, ListenerType, 1, 3)
+	envoy.SendReq(t, RouteType_v2, 0, 0)
+	envoy.SendReq(t, ListenerType_v2, 1, 3)
 
 	// We don't serve routes yet so this should block with no response
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -163,9 +157,9 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	// In this case we are simulating that Envoy failed to apply the Listener
 	// response but did apply the other types so all get the new nonces, but
 	// listener stays on v1.
-	envoy.SendReq(t, ClusterType, 2, 4)
-	envoy.SendReq(t, EndpointType, 2, 5)
-	envoy.SendReq(t, ListenerType, 1, 6)
+	envoy.SendReq(t, ClusterType_v2, 2, 4)
+	envoy.SendReq(t, EndpointType_v2, 2, 5)
+	envoy.SendReq(t, ListenerType_v2, 1, 6)
 
 	// Even though we nacked, we should still NOT get then v2 listeners
 	// redelivered since nothing has changed.
@@ -202,7 +196,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (empty payload)
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -216,51 +210,46 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 	})
 	mgr.DeliverConfig(t, sid, snap)
 
-	convert := func(v3 *envoy_discovery_v3.DiscoveryResponse) *envoy_api_v2.DiscoveryResponse {
-		v2, err := convertDiscoveryResponseToV2(v3)
-		require.NoError(t, err)
-		return v2
-	}
 	expectClusterResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     ClusterType,
+			TypeUrl:     ClusterType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestCluster_v2(t, snap, "tcp:local_app"),
 				makeTestCluster_v2(t, snap, "http2:db"),
 				makeTestCluster_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 	expectEndpointResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     EndpointType,
+			TypeUrl:     EndpointType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestEndpoints_v2(t, snap, "http2:db"),
 				makeTestEndpoints_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 	expectListenerResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     ListenerType,
+			TypeUrl:     ListenerType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestListener_v2(t, snap, "tcp:public_listener"),
 				makeTestListener_v2(t, snap, "http2:db"),
 				makeTestListener_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 
 	runStep(t, "no-rds", func(t *testing.T) {
 
 		// REQ: clusters
-		envoy.SendReq(t, ClusterType, 0, 0)
+		envoy.SendReq(t, ClusterType_v2, 0, 0)
 
 		// RESP: clusters
 		assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(1, 1))
@@ -268,10 +257,10 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		assertChanBlocked(t, envoy.stream.sendCh)
 
 		// REQ: endpoints
-		envoy.SendReq(t, EndpointType, 0, 0)
+		envoy.SendReq(t, EndpointType_v2, 0, 0)
 
 		// ACK: clusters
-		envoy.SendReq(t, ClusterType, 1, 1)
+		envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 		// RESP: endpoints
 		assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(1, 2))
@@ -279,10 +268,10 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		assertChanBlocked(t, envoy.stream.sendCh)
 
 		// REQ: listeners
-		envoy.SendReq(t, ListenerType, 0, 0)
+		envoy.SendReq(t, ListenerType_v2, 0, 0)
 
 		// ACK: endpoints
-		envoy.SendReq(t, EndpointType, 1, 2)
+		envoy.SendReq(t, EndpointType_v2, 1, 2)
 
 		// RESP: listeners
 		assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(1, 3))
@@ -290,7 +279,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		assertChanBlocked(t, envoy.stream.sendCh)
 
 		// ACK: listeners
-		envoy.SendReq(t, ListenerType, 1, 3)
+		envoy.SendReq(t, ListenerType_v2, 1, 3)
 
 		assertChanBlocked(t, envoy.stream.sendCh)
 	})
@@ -310,16 +299,16 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 
 	// update this test helper to reflect the RDS-linked listener
 	expectListenerResponse = func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
-		return convert(&envoy_discovery_v3.DiscoveryResponse{
+		return &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(v),
-			TypeUrl:     ListenerType,
+			TypeUrl:     ListenerType_v2,
 			Nonce:       hexString(n),
 			Resources: makeTestResources_v2(t,
 				makeTestListener_v2(t, snap, "tcp:public_listener"),
 				makeTestListener_v2(t, snap, "http2:db:rds"),
 				makeTestListener_v2(t, snap, "tcp:geo-cache"),
 			),
-		})
+		}
 	}
 
 	runStep(t, "with-rds", func(t *testing.T) {
@@ -331,27 +320,27 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		assertChanBlocked(t, envoy.stream.sendCh)
 
 		// ACK: listeners (but also stray ACKs of the other registered types)
-		envoy.SendReq(t, ClusterType, 2, 4)
-		envoy.SendReq(t, EndpointType, 2, 5)
-		envoy.SendReq(t, ListenerType, 2, 6)
+		envoy.SendReq(t, ClusterType_v2, 2, 4)
+		envoy.SendReq(t, EndpointType_v2, 2, 5)
+		envoy.SendReq(t, ListenerType_v2, 2, 6)
 
 		// REQ: routes
-		envoy.SendReq(t, RouteType, 0, 0)
+		envoy.SendReq(t, RouteType_v2, 0, 0)
 
 		// RESP: routes
-		assertResponseSent(t, envoy.stream.sendCh, convert(&envoy_discovery_v3.DiscoveryResponse{
+		assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
 			VersionInfo: hexString(2),
-			TypeUrl:     RouteType,
+			TypeUrl:     RouteType_v2,
 			Nonce:       hexString(7),
 			Resources: makeTestResources_v2(t,
 				makeTestRoute_v2(t, "http2:db"),
 			),
-		}))
+		})
 
 		assertChanBlocked(t, envoy.stream.sendCh)
 
 		// ACK: routes
-		envoy.SendReq(t, RouteType, 2, 7)
+		envoy.SendReq(t, RouteType_v2, 2, 7)
 	})
 
 	envoy.Close()
@@ -364,12 +353,6 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 }
 
 func TestServer_StreamAggregatedResources_v2_ACLEnforcement(t *testing.T) {
-	convert := func(v3 *envoy_discovery_v3.DiscoveryResponse) *envoy_api_v2.DiscoveryResponse {
-		v2, err := convertDiscoveryResponseToV2(v3)
-		require.NoError(t, err)
-		return v2
-	}
-
 	tests := []struct {
 		name        string
 		defaultDeny bool
@@ -460,19 +443,19 @@ func TestServer_StreamAggregatedResources_v2_ACLEnforcement(t *testing.T) {
 			// Send initial listener discover, in real life Envoy always sends cluster
 			// first but it doesn't really matter and listener has a response that
 			// includes the token in the ext rbac filter so lets us test more stuff.
-			envoy.SendReq(t, ListenerType, 0, 0)
+			envoy.SendReq(t, ListenerType_v2, 0, 0)
 
 			if !tt.wantDenied {
-				assertResponseSent(t, envoy.stream.sendCh, convert(&envoy_discovery_v3.DiscoveryResponse{
+				assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
 					VersionInfo: hexString(1),
-					TypeUrl:     ListenerType,
+					TypeUrl:     ListenerType_v2,
 					Nonce:       hexString(1),
 					Resources: makeTestResources_v2(t,
 						makeTestListener_v2(t, snap, "tcp:public_listener"),
 						makeTestListener_v2(t, snap, "tcp:db"),
 						makeTestListener_v2(t, snap, "tcp:geo-cache"),
 					),
-				}))
+				})
 				// Close the client stream since all is well. We _don't_ do this in the
 				// expected error case because we want to verify the error closes the
 				// stream from server side.
@@ -517,12 +500,6 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedDur
 	)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
-	convert := func(v3 *envoy_discovery_v3.DiscoveryResponse) *envoy_api_v2.DiscoveryResponse {
-		v2, err := convertDiscoveryResponseToV2(v3)
-		require.NoError(t, err)
-		return v2
-	}
-
 	getError := func() (gotErr error, ok bool) {
 		select {
 		case err := <-errCh:
@@ -537,7 +514,7 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedDur
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 	{
 		err, ok := getError()
 		require.NoError(t, err)
@@ -556,23 +533,23 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedDur
 	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, convert(&envoy_discovery_v3.DiscoveryResponse{
+	assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
 		VersionInfo: hexString(1),
-		TypeUrl:     ClusterType,
+		TypeUrl:     ClusterType_v2,
 		Nonce:       hexString(1),
 		Resources: makeTestResources_v2(t,
 			makeTestCluster_v2(t, snap, "tcp:local_app"),
 			makeTestCluster_v2(t, snap, "tcp:db"),
 			makeTestCluster_v2(t, snap, "tcp:geo-cache"),
 		),
-	}))
+	})
 
 	// Now nuke the ACL token.
 	validToken.Store("")
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)
-	envoy.SendReq(t, ClusterType, 1, 1)
+	envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 	select {
 	case err := <-errCh:
@@ -614,12 +591,6 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInB
 	)
 	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
-	convert := func(v3 *envoy_discovery_v3.DiscoveryResponse) *envoy_api_v2.DiscoveryResponse {
-		v2, err := convertDiscoveryResponseToV2(v3)
-		require.NoError(t, err)
-		return v2
-	}
-
 	getError := func() (gotErr error, ok bool) {
 		select {
 		case err := <-errCh:
@@ -634,7 +605,7 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInB
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 	{
 		err, ok := getError()
 		require.NoError(t, err)
@@ -653,20 +624,20 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInB
 	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, convert(&envoy_discovery_v3.DiscoveryResponse{
+	assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
 		VersionInfo: hexString(1),
-		TypeUrl:     ClusterType,
+		TypeUrl:     ClusterType_v2,
 		Nonce:       hexString(1),
 		Resources: makeTestResources_v2(t,
 			makeTestCluster_v2(t, snap, "tcp:local_app"),
 			makeTestCluster_v2(t, snap, "tcp:db"),
 			makeTestCluster_v2(t, snap, "tcp:geo-cache"),
 		),
-	}))
+	})
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)
-	envoy.SendReq(t, ClusterType, 1, 1)
+	envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -707,7 +678,7 @@ func TestServer_StreamAggregatedResources_v2_IngressEmptyResponse(t *testing.T) 
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -716,34 +687,29 @@ func TestServer_StreamAggregatedResources_v2_IngressEmptyResponse(t *testing.T) 
 	snap := proxycfg.TestConfigSnapshotIngressGatewayNoServices(t)
 	mgr.DeliverConfig(t, sid, snap)
 
-	convert := func(v3 *envoy_discovery_v3.DiscoveryResponse) *envoy_api_v2.DiscoveryResponse {
-		v2, err := convertDiscoveryResponseToV2(v3)
-		require.NoError(t, err)
-		return v2
-	}
-	emptyClusterResp := convert(&envoy_discovery_v3.DiscoveryResponse{
+	emptyClusterResp := &envoy_api_v2.DiscoveryResponse{
 		VersionInfo: hexString(1),
-		TypeUrl:     ClusterType,
+		TypeUrl:     ClusterType_v2,
 		Nonce:       hexString(1),
-	})
-	emptyListenerResp := convert(&envoy_discovery_v3.DiscoveryResponse{
+	}
+	emptyListenerResp := &envoy_api_v2.DiscoveryResponse{
 		VersionInfo: hexString(1),
-		TypeUrl:     ListenerType,
+		TypeUrl:     ListenerType_v2,
 		Nonce:       hexString(2),
-	})
-	emptyRouteResp := convert(&envoy_discovery_v3.DiscoveryResponse{
+	}
+	emptyRouteResp := &envoy_api_v2.DiscoveryResponse{
 		VersionInfo: hexString(1),
-		TypeUrl:     RouteType,
+		TypeUrl:     RouteType_v2,
 		Nonce:       hexString(3),
-	})
+	}
 
 	assertResponseSent(t, envoy.stream.sendCh, emptyClusterResp)
 
 	// Send initial listener discover
-	envoy.SendReq(t, ListenerType, 0, 0)
+	envoy.SendReq(t, ListenerType_v2, 0, 0)
 	assertResponseSent(t, envoy.stream.sendCh, emptyListenerResp)
 
-	envoy.SendReq(t, RouteType, 0, 0)
+	envoy.SendReq(t, RouteType_v2, 0, 0)
 	assertResponseSent(t, envoy.stream.sendCh, emptyRouteResp)
 
 	envoy.Close()

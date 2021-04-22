@@ -36,16 +36,20 @@ const (
 	apiTypePrefix = "type.googleapis.com/"
 
 	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
+	EndpointType    = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
+	EndpointType_v2 = apiTypePrefix + "envoy.api.v2.ClusterLoadAssignment"
 
 	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
+	ClusterType    = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
+	ClusterType_v2 = apiTypePrefix + "envoy.api.v2.Cluster"
 
 	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
+	RouteType    = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
+	RouteType_v2 = apiTypePrefix + "envoy.api.v2.RouteConfiguration"
 
 	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
+	ListenerType    = apiTypePrefix + "envoy.config.listener.v3.Listener"
+	ListenerType_v2 = apiTypePrefix + "envoy.api.v2.Listener"
 
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
