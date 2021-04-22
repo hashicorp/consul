@@ -156,12 +156,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
 
-			handler, ok := handlers[req.TypeUrl]
-			if !ok {
-				return nil // not a type we care about
-			}
-			if handler.Recv(req) {
-				generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+			if handler, ok := handlers[req.TypeUrl]; ok {
+				if handler.Recv(req) {
+					generator.Logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
+				}
 			}
 
 			if node == nil && req.Node != nil {
