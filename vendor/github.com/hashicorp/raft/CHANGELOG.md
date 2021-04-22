@@ -1,5 +1,7 @@
 # UNRELEASED
 
+# 1.2.0 (October 5th, 2020)
+
 IMPROVEMENTS
 
 * Remove `StartAsLeader` configuration option [[GH-364](https://github.com/hashicorp/raft/pull/386)]

@@ -151,25 +151,36 @@ type Config struct {
 	// an inconsistent log.
 	MaxAppendEntries int
 
+	// BatchApplyCh indicates whether we should buffer applyCh
+	// to size MaxAppendEntries. This enables batch log commitment,
+	// but breaks the timeout guarantee on Apply. Specifically,
+	// a log can be added to the applyCh buffer but not actually be
+	// processed until after the specified timeout.
+	BatchApplyCh bool
+
 	// If we are a member of a cluster, and RemovePeer is invoked for the
 	// local node, then we forget all peers and transition into the follower state.
 	// If ShutdownOnRemove is is set, we additional shutdown Raft. Otherwise,
 	// we can become a leader of a cluster containing only this node.
 	ShutdownOnRemove bool
 
-	// TrailingLogs controls how many logs we leave after a snapshot. This is
-	// used so that we can quickly replay logs on a follower instead of being
-	// forced to send an entire snapshot.
+	// TrailingLogs controls how many logs we leave after a snapshot. This is used
+	// so that we can quickly replay logs on a follower instead of being forced to
+	// send an entire snapshot. The value passed here is the initial setting used.
+	// This can be tuned during operation using ReloadConfig.
 	TrailingLogs uint64
 
-	// SnapshotInterval controls how often we check if we should perform a snapshot.
-	// We randomly stagger between this value and 2x this value to avoid the entire
-	// cluster from performing a snapshot at once.
+	// SnapshotInterval controls how often we check if we should perform a
+	// snapshot. We randomly stagger between this value and 2x this value to avoid
+	// the entire cluster from performing a snapshot at once. The value passed
+	// here is the initial setting used. This can be tuned during operation using
+	// ReloadConfig.
 	SnapshotInterval time.Duration
 
 	// SnapshotThreshold controls how many outstanding logs there must be before
 	// we perform a snapshot. This is to prevent excessive snapshots when we can
-	// just replay a small set of logs.
+	// just replay a small set of logs. The value passed here is the initial
+	// setting used. This can be tuned during operation using ReloadConfig.
 	SnapshotThreshold uint64
 
 	// LeaderLeaseTimeout is used to control how long the "lease" lasts
@@ -211,6 +222,47 @@ type Config struct {
 	skipStartup bool
 }
 
+// ReloadableConfig is the subset of Config that may be reconfigured during
+// runtime using raft.ReloadConfig. We choose to duplicate fields over embedding
+// or accepting a Config but only using specific fields to keep the API clear.
+// Reconfiguring some fields is potentially dangerous so we should only
+// selectively enable it for fields where that is allowed.
+type ReloadableConfig struct {
+	// TrailingLogs controls how many logs we leave after a snapshot. This is used
+	// so that we can quickly replay logs on a follower instead of being forced to
+	// send an entire snapshot. The value passed here updates the setting at runtime
+	// which will take effect as soon as the next snapshot completes and truncation
+	// occurs.
+	TrailingLogs uint64
+
+	// SnapshotInterval controls how often we check if we should perform a snapshot.
+	// We randomly stagger between this value and 2x this value to avoid the entire
+	// cluster from performing a snapshot at once.
+	SnapshotInterval time.Duration
+
+	// SnapshotThreshold controls how many outstanding logs there must be before
+	// we perform a snapshot. This is to prevent excessive snapshots when we can
+	// just replay a small set of logs.
+	SnapshotThreshold uint64
+}
+
+// apply sets the reloadable fields on the passed Config to the values in
+// `ReloadableConfig`. It returns a copy of Config with the fields from this
+// ReloadableConfig set.
+func (rc *ReloadableConfig) apply(to Config) Config {
+	to.TrailingLogs = rc.TrailingLogs
+	to.SnapshotInterval = rc.SnapshotInterval
+	to.SnapshotThreshold = rc.SnapshotThreshold
+	return to
+}
+
+// fromConfig copies the reloadable fields from the passed Config.
+func (rc *ReloadableConfig) fromConfig(from Config) {
+	rc.TrailingLogs = from.TrailingLogs
+	rc.SnapshotInterval = from.SnapshotInterval
+	rc.SnapshotThreshold = from.SnapshotThreshold
+}
+
 // DefaultConfig returns a Config with usable defaults.
 func DefaultConfig() *Config {
 	return &Config{
@@ -238,20 +290,20 @@ func ValidateConfig(config *Config) error {
 	}
 	if config.ProtocolVersion < protocolMin ||
 		config.ProtocolVersion > ProtocolVersionMax {
-		return fmt.Errorf("Protocol version %d must be >= %d and <= %d",
+		return fmt.Errorf("ProtocolVersion %d must be >= %d and <= %d",
 			config.ProtocolVersion, protocolMin, ProtocolVersionMax)
 	}
 	if len(config.LocalID) == 0 {
 		return fmt.Errorf("LocalID cannot be empty")
 	}
 	if config.HeartbeatTimeout < 5*time.Millisecond {
-		return fmt.Errorf("Heartbeat timeout is too low")
+		return fmt.Errorf("HeartbeatTimeout is too low")
 	}
 	if config.ElectionTimeout < 5*time.Millisecond {
-		return fmt.Errorf("Election timeout is too low")
+		return fmt.Errorf("ElectionTimeout is too low")
 	}
 	if config.CommitTimeout < time.Millisecond {
-		return fmt.Errorf("Commit timeout is too low")
+		return fmt.Errorf("CommitTimeout is too low")
 	}
 	if config.MaxAppendEntries <= 0 {
 		return fmt.Errorf("MaxAppendEntries must be positive")
@@ -260,16 +312,16 @@ func ValidateConfig(config *Config) error {
 		return fmt.Errorf("MaxAppendEntries is too large")
 	}
 	if config.SnapshotInterval < 5*time.Millisecond {
-		return fmt.Errorf("Snapshot interval is too low")
+		return fmt.Errorf("SnapshotInterval is too low")
 	}
 	if config.LeaderLeaseTimeout < 5*time.Millisecond {
-		return fmt.Errorf("Leader lease timeout is too low")
+		return fmt.Errorf("LeaderLeaseTimeout is too low")
 	}
 	if config.LeaderLeaseTimeout > config.HeartbeatTimeout {
-		return fmt.Errorf("Leader lease timeout cannot be larger than heartbeat timeout")
+		return fmt.Errorf("LeaderLeaseTimeout cannot be larger than heartbeat timeout")
 	}
 	if config.ElectionTimeout < config.HeartbeatTimeout {
-		return fmt.Errorf("Election timeout must be equal or greater than Heartbeat Timeout")
+		return fmt.Errorf("ElectionTimeout must be equal or greater than Heartbeat Timeout")
 	}
 	return nil
 }

@@ -5,7 +5,6 @@ package prometheus
 import (
 	"fmt"
 	"log"
-	"math"
 	"regexp"
 	"strings"
 	"sync"
@@ -31,17 +30,16 @@ type PrometheusOpts struct {
 	Expiration time.Duration
 	Registerer prometheus.Registerer
 
-	// Gauges, Summaries, and Counters allow us to pre-declare metrics by giving their Name, Help, and ConstLabels to
-	// the PrometheusSink when it is created. Metrics declared in this way will be initialized at zero and will not be
-	// deleted when their expiry is reached.
-	// - Gauges and Summaries will be set to NaN when they expire.
-	// - Counters continue to Collect their last known value.
-	// Ex:
-	// PrometheusOpts{
+	// Gauges, Summaries, and Counters allow us to pre-declare metrics by giving
+	// their Name, Help, and ConstLabels to the PrometheusSink when it is created.
+	// Metrics declared in this way will be initialized at zero and will not be
+	// deleted or altered when their expiry is reached.
+	//
+	// Ex: PrometheusOpts{
 	//     Expiration: 10 * time.Second,
 	//     Gauges: []GaugeDefinition{
 	//         {
-	//	         Name: []string{ "application", "component", "measurement"},
+	//           Name: []string{ "application", "component", "measurement"},
 	//           Help: "application_component_measurement provides an example of how to declare static metrics",
 	//           ConstLabels: []metrics.Label{ { Name: "my_label", Value: "does_not_change" }, },
 	//         },
@@ -139,21 +137,24 @@ func (p *PrometheusSink) Describe(c chan<- *prometheus.Desc) {
 // logic to clean up ephemeral metrics if their value haven't been set for a
 // duration exceeding our allowed expiration time.
 func (p *PrometheusSink) Collect(c chan<- prometheus.Metric) {
+	p.collectAtTime(c, time.Now())
+}
+
+// collectAtTime allows internal testing of the expiry based logic here without
+// mocking clocks or making tests timing sensitive.
+func (p *PrometheusSink) collectAtTime(c chan<- prometheus.Metric, t time.Time) {
 	expire := p.expiration != 0
-	now := time.Now()
 	p.gauges.Range(func(k, v interface{}) bool {
 		if v == nil {
 			return true
 		}
 		g := v.(*gauge)
 		lastUpdate := g.updatedAt
-		if expire && lastUpdate.Add(p.expiration).Before(now) {
+		if expire && lastUpdate.Add(p.expiration).Before(t) {
 			if g.canDelete {
 				p.gauges.Delete(k)
 				return true
 			}
-			// We have not observed the gauge this interval so we don't know its value.
-			g.Set(math.NaN())
 		}
 		g.Collect(c)
 		return true
@@ -164,13 +165,11 @@ func (p *PrometheusSink) Collect(c chan<- prometheus.Metric) {
 		}
 		s := v.(*summary)
 		lastUpdate := s.updatedAt
-		if expire && lastUpdate.Add(p.expiration).Before(now) {
+		if expire && lastUpdate.Add(p.expiration).Before(t) {
 			if s.canDelete {
 				p.summaries.Delete(k)
 				return true
 			}
-			// We have observed nothing in this interval.
-			s.Observe(math.NaN())
 		}
 		s.Collect(c)
 		return true
@@ -181,12 +180,11 @@ func (p *PrometheusSink) Collect(c chan<- prometheus.Metric) {
 		}
 		count := v.(*counter)
 		lastUpdate := count.updatedAt
-		if expire && lastUpdate.Add(p.expiration).Before(now) {
+		if expire && lastUpdate.Add(p.expiration).Before(t) {
 			if count.canDelete {
 				p.counters.Delete(k)
 				return true
 			}
-			// Counters remain at their previous value when not observed, so we do not set it to NaN.
 		}
 		count.Collect(c)
 		return true
