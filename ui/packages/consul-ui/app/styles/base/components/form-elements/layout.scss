@@ -7,9 +7,6 @@
 %form-element a {
   display: inline;
 }
-%form-element-note > code {
-  display: inline-block;
-}
 %form-element [type='text'],
 %form-element [type='password'] {
   display: inline-flex;
@@ -50,7 +47,4 @@
 %form-element-label + em {
   margin-top: -0.5em;
   margin-bottom: 0.5em;
-}
-%form-element-note > code {
-  padding: 0 4px;
 }

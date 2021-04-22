@@ -1,5 +1,8 @@
 @import './skin';
 @import './layout';
+%form h2 {
+  @extend %h200;
+}
 /* TODO: This is positioning the element */
 /* probably should be in a special %form class*/
 %form-element {
@@ -11,6 +14,9 @@
 %form button + em,
 %form-element > em {
   @extend %form-element-note;
+}
+%form-element-note > code {
+  @extend %inline-code;
 }
 %form-element-error > strong {
   @extend %inline-alert-error;

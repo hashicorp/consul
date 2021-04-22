@@ -38,10 +38,11 @@ as |route|>
 
         @filter={{filters}}
         />
-  {{/if}}
-        <p>
-          Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress-gateway" target="_blank" rel="noopener noreferrer">documentation</a>.
-        </p>
+      {{/if}}
+        {{t
+          "routes.dc.services.show.upstreams.intro"
+          htmlSafe=true
+        }}
         <DataCollection
           @type="service"
           @sort={{sort.value}}
