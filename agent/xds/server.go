@@ -94,10 +94,6 @@ const (
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
 	DefaultAuthCheckFrequency = 5 * time.Minute
-
-	// DefaultDeltaRetryFrequency is the default value for
-	// Server.DeltaRetryFrequency to use when the zero value is provided.
-	DefaultDeltaRetryFrequency = 30 * time.Second
 )
 
 // ACLResolverFunc is a shim to resolve ACLs. Since ACL enforcement is so far
@@ -144,10 +140,6 @@ type Server struct {
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
 
-	// DeltaRetryFrequency is how long to wait before trying to send an update
-	// after a failure to originally do so at the scheduled time.
-	DeltaRetryFrequency time.Duration
-
 	DisableV2Protocol bool
 }
 
@@ -159,13 +151,12 @@ func NewServer(
 	cfgFetcher ConfigFetcher,
 ) *Server {
 	return &Server{
-		Logger:              logger,
-		CfgMgr:              cfgMgr,
-		ResolveToken:        resolveToken,
-		CheckFetcher:        checkFetcher,
-		CfgFetcher:          cfgFetcher,
-		AuthCheckFrequency:  DefaultAuthCheckFrequency,
-		DeltaRetryFrequency: DefaultDeltaRetryFrequency,
+		Logger:             logger,
+		CfgMgr:             cfgMgr,
+		ResolveToken:       resolveToken,
+		CheckFetcher:       checkFetcher,
+		CfgFetcher:         cfgFetcher,
+		AuthCheckFrequency: DefaultAuthCheckFrequency,
 	}
 }
 

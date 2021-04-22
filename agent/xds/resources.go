@@ -39,7 +39,7 @@ func (g *ResourceGenerator) allResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSna
 	for _, typeUrl := range []string{ListenerType, RouteType, ClusterType, EndpointType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to generate xDS resources for %q: %v", typeUrl, err)
 		}
 		all[typeUrl] = res
 	}

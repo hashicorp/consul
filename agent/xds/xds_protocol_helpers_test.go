@@ -163,7 +163,6 @@ func newTestServerScenarioInner(
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
 	s.AuthCheckFrequency = authCheckFrequency
-	s.DeltaRetryFrequency = 250 * time.Millisecond
 
 	errCh := make(chan error, 1)
 	go func() {

@@ -118,12 +118,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		EndpointType: newDeltaType(generator, stream, EndpointType, nil),
 	}
 
-	var retryTimer <-chan time.Time
-	extendRetryTimer := func() {
-		generator.Logger.Trace("retrying response", "after", s.DeltaRetryFrequency)
-		retryTimer = time.After(s.DeltaRetryFrequency)
-	}
-
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
 		authTimer = time.After(s.AuthCheckFrequency)
@@ -189,13 +183,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			resourceMap = newResourceMap
 			currentVersions = newVersions
 			ready = true
-
-		case <-retryTimer:
 		}
-
-		// It doesn't matter why, we can reset this timer since we're doing the
-		// state machine again now.
-		retryTimer = nil
 
 		// Trigger state machine
 		switch state {
@@ -293,7 +281,6 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 					op.Remove,
 				)
 				if err != nil {
-					extendRetryTimer() // TODO: remove this
 					return status.Errorf(codes.Unavailable,
 						"failed to send %sreply for type %q: %v",
 						op.errorLogNameReplyPrefix(),
