@@ -1,0 +1,59 @@
+[
+  {
+    "title": "Internals",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "internals"
+      },
+      {
+        "title": "ACL",
+        "path": "internals/acl"
+      }
+    ]
+  },
+  {
+    "title": "Get Started",
+    "routes": [
+      {
+        "title": "Manual Bootstrap",
+        "path": "install/manual-bootstrap"
+      }
+    ]
+  },
+  {
+    "title": "Connect",
+    "routes": [
+      {
+        "title": "Proxies",
+        "routes": [
+          {
+            "title": "Managed (Deprecated)",
+            "path": "connect/proxies/managed-deprecated"
+          }
+        ]
+      },
+      {
+        "title": "Security",
+        "path": "connect/security"
+      }
+    ]
+  },
+  {
+    "title": "Agent",
+    "routes": [
+      {
+        "title": "RPC",
+        "path": "agent/rpc"
+      },
+      {
+        "title": "Sentinel",
+        "path": "agent/sentinel"
+      }
+    ]
+  },
+  {
+    "title": "Guides",
+    "path": "guides"
+  }
+]
