@@ -323,7 +323,7 @@ func TestStore_Notify_ManyRequests(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		req2 = &fakeRequest{client: req.client, key: "key2"}
+		req2 = &fakeRequest{client: req.client, key: "key2", index: 22}
 
 		require.NoError(t, store.Notify(ctx, req2, cID, ch1))
 		go func() {
