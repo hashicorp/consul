@@ -33,9 +33,13 @@ func TestStore_Get(t *testing.T) {
 		newEventServiceHealthRegister(22, 2, "srv1"))
 
 	runStep(t, "from empty store, starts materializer", func(t *testing.T) {
-		result, err := store.Get(ctx, req)
-		require.NoError(t, err)
-		require.Equal(t, uint64(22), result.Index)
+		var result Result
+		retry.Run(t, func(r *retry.R) {
+			var err error
+			result, err = store.Get(ctx, req)
+			require.NoError(r, err)
+			require.Equal(r, uint64(22), result.Index)
+		})
 
 		r, ok := result.Value.(fakeResult)
 		require.True(t, ok)
@@ -240,15 +244,17 @@ func TestStore_Notify(t *testing.T) {
 	})
 
 	runStep(t, "updates are received", func(t *testing.T) {
-		select {
-		case update := <-ch:
-			require.NoError(t, update.Err)
-			require.Equal(t, cID, update.CorrelationID)
-			require.Equal(t, uint64(22), update.Meta.Index)
-			require.Equal(t, uint64(22), update.Result.(fakeResult).index)
-		case <-time.After(100 * time.Millisecond):
-			t.Fatalf("expected Get to unblock when new events are received")
-		}
+		retry.Run(t, func(r *retry.R) {
+			select {
+			case update := <-ch:
+				require.NoError(r, update.Err)
+				require.Equal(r, cID, update.CorrelationID)
+				require.Equal(r, uint64(22), update.Meta.Index)
+				require.Equal(r, uint64(22), update.Result.(fakeResult).index)
+			case <-time.After(100 * time.Millisecond):
+				r.Stop(fmt.Errorf("expected Get to unblock when new events are received"))
+			}
+		})
 
 		req.client.QueueEvents(newEventServiceHealthRegister(24, 2, "srv1"))
 
