@@ -541,7 +541,7 @@ func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.Co
 	} else if acl.IsErrPermissionDenied(err) {
 		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
 	} else if err != nil {
-		return err
+		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
 	}
 
 	var authzContext acl.AuthorizerContext
