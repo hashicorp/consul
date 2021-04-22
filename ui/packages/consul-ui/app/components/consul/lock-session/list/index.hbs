@@ -4,7 +4,6 @@
     <span>{{item.Name}}</span>
   </BlockSlot>
   <BlockSlot @name="details">
-    {{#if item.ID}}
     <span>
       <CopyButton
         @value={{item.ID}}
@@ -12,8 +11,6 @@
       />
       {{item.ID}}
     </span>
-    {{/if}}
-    {{#if item.LockDelay}}
     <dl class="lock-delay">
       <dt>
         <Tooltip>
@@ -22,8 +19,6 @@
       </dt>
       <dd data-test-session-delay>{{item.LockDelay}}</dd>
     </dl>
-    {{/if}}
-    {{#if item.TTL}}
     <dl class="ttl">
       <dt>
         <Tooltip>
@@ -32,8 +27,6 @@
       </dt>
       <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
     </dl>
-    {{/if}}
-    {{#if item.Behavior}}
     <dl class="behavior">
       <dt>
         <Tooltip>
@@ -42,8 +35,6 @@
       </dt>
       <dd>{{item.Behavior}}</dd>
     </dl>
-    {{/if}}
-    {{#if (gt item.Checks.length 0)}}
     <dl class="checks">
       <dt>
         <Tooltip>
@@ -56,7 +47,6 @@
       {{/each}}
       </dd>
     </dl>
-    {{/if}}
   </BlockSlot>
 {{#if (can "delete sessions")}}
   <BlockSlot @name="actions">
