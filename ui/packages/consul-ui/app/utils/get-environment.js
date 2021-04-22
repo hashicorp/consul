@@ -95,6 +95,10 @@ export default function(config = {}, win = window, doc = document) {
         return typeof operatorConfig.ACLsEnabled === 'undefined'
           ? false
           : operatorConfig.ACLsEnabled;
+      case 'CONSUL_PARTITIONS_ENABLED':
+        return typeof operatorConfig.PartitionsEnabled === 'undefined'
+          ? false
+          : operatorConfig.PartitionsEnabled;
       case 'CONSUL_DATACENTER_LOCAL':
         return operatorConfig.LocalDatacenter;
       case 'CONSUL_UI_CONFIG':
@@ -164,6 +168,9 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_SSO_ENABLE':
               prev['CONSUL_SSO_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
+            case 'CONSUL_PARTITIONS_ENABLE':
+              prev['CONSUL_PARTITIONS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+              break;
             case 'CONSUL_METRICS_PROXY_ENABLE':
               prev['CONSUL_METRICS_PROXY_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
@@ -199,6 +206,7 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_ACLS_ENABLED':
       case 'CONSUL_NSPACES_ENABLED':
       case 'CONSUL_SSO_ENABLED':
+      case 'CONSUL_PARTITIONS_ENABLED':
       case 'CONSUL_METRICS_PROVIDER':
       case 'CONSUL_METRICS_PROXY_ENABLE':
       case 'CONSUL_SERVICE_DASHBOARD_URL':

@@ -2,7 +2,7 @@
 
 The Consul UI has a set of debug/engineering utility functions that only exist in non-production environments (they are noop'ed from production builds using Ember's `runInDebug`). You can call these either straight from Web Inspectors `console`, or by using `javascript:` URLs i.e. `javascript:Routes()`.
 
-Below is a list of the most commonly used functions as bookmarklets followed by more detailed documentation on these utilities. The bookmarklets can be added to your browser by dragging the bookmarklet link into your browsers Bookmarks Bar.
+Below is a list of the most commonly used functions as bookmarklets followed by more detailed documentation on these utilities. The bookmarklets can be added to your browser by dragging the bookmarklet link into your browsers Bookmarks Bar. Please add any new commonly used environment variables as bookmarklets here for other engineers to use.
 
 | Link/Bookmarklet | Description |
 | ---- | ----------- |
@@ -10,6 +10,7 @@ Below is a list of the most commonly used functions as bookmarklets followed by 
 | [Save Current Scenario](javascript:Scenario()) | Opens a tab with links to allow you to create a bookmarklet or share a URL of your current scenario (your Consul UI relarted development/debug cookies) |
 | [Enable ACLs](javascript:Scenario('CONSUL_ACLS_ENABLE=1')) | Enable ACLs |
 | [Enable Nspaces](javascript:Scenario('CONSUL_NSPACES_ENABLE=1')) | Enable Namespace Support |
+| [Enable Partitions](javascript:Scenario('CONSUL_PARTITIONS_ENABLE=1')) | Enable Admin Partition Support |
 | [Enable SSO ](javascript:Scenario('CONSUL_SSO_ENABLE=1')) | Enable SSO Support |
 | [Enable Metrics](javascript:Scenario('CONSUL_METRICS_PROXY_ENABLE=1;CONSUL_METRICS_PROVIDER=prometheus')) | Enable all configuration required for viewing the full Metrics Visualization |
 
@@ -18,4 +19,42 @@ Below is a list of the most commonly used functions as bookmarklets followed by 
 | `Routes(url)` | url: The url to pass the DSL to, if left `undefined` just use a blank tab | Provides a way to easily print out Embers Route DSL for the application or to pass it straight to any third party utility such as ember-diagonal |
 | `Scenario(str)` | str: 'Cookie formatted' string, if left `undefined` open a new tab with a link/bookmarklet to the current Scenario | Provides a way to easily save and reload scenarios of configurations via URLs or bookmarklets |
 
+
+You can also configure these manually or example using Web Inspector to set a cookie as follows:
+
+```bash
+CONSUL_ACLS_ENABLE=1
+```
+
+This will enable the ACLs login page, to which you can login with any ACL
+token/secret.
+
+| Variable | Default Value | Description |
+| -------- | ------------- | ----------- |
+| `CONSUL_ACLS_ENABLE` | false | Enable/disable ACLs support. |
+| `CONSUL_ACLS_LEGACY` | false | Enable/disable legacy ACLs support. |
+| `CONSUL_NSPACES_ENABLE` | false | Enable/disable Namespace support. |
+| `CONSUL_SSO_ENABLE` | false | Enable/disable SSO support. |
+| `CONSUL_OIDC_PROVIDER_URL` | undefined | Provide a OIDC provider URL for SSO. |
+| `CONSUL_LATENCY` | 0 | Add a latency to network requests (milliseconds) |
+| `CONSUL_METRICS_POLL_INTERVAL` | 10000 | Change the interval between requests to the metrics provider (milliseconds) |
+| `CONSUL_METRICS_PROXY_ENABLE` | false | Enable/disable the metrics proxy |
+| `CONSUL_METRICS_PROVIDER` | | Set the metrics provider to use for the Topology Tab |
+| `CONSUL_SERVICE_DASHBOARD_URL` | | Set the template URL to use for Service Dashboard links |
+| `CONSUL_UI_CONFIG` | | Set the entire `ui_config` for the UI as JSON if you don't want to use the above singular variables |
+| `CONSUL_SERVICE_COUNT` | (random) | Configure the number of services that the API returns. |
+| `CONSUL_NODE_COUNT` | (random) | Configure the number of nodes that the API returns. |
+| `CONSUL_KV_COUNT` | (random) | Configure the number of KV entires that the API returns. |
+| `CONSUL_INTENTION_COUNT` | (random) | Configure the number of intentions that the API returns. |
+| `CONSUL_POLICY_COUNT` | (random) | Configure the number of policies that the API returns. |
+| `CONSUL_ROLE_COUNT` | (random) | Configure the number of roles that the API returns. |
+| `CONSUL_NSPACE_COUNT` | (random) | Configure the number of namespaces that the API returns. |
+| `CONSUL_UPSTREAM_COUNT` | (random) | Configure the number of upstreams that the API returns. |
+| `CONSUL_EXPOSED_COUNT` | (random) | Configure the number of exposed paths that the API returns. |
+| `CONSUL_CHECK_COUNT` | (random) | Configure the number of health checks that the API returns. |
+| `CONSUL_OIDC_PROVIDER_COUNT` | (random) | Configure the number of OIDC providers that the API returns. |
+| `CONSUL_RESOURCE_<singular-resource-name>_<access-type>` | true | Configure permissions e.g `CONSUL_RESOURCE_INTENTION_WRITE=false`. |
+| `DEBUG_ROUTES_ENDPOINT` | undefined | When using the window.Routes() debug utility ([see utility functions](#browser-debug-utility-functions)), use a URL to pass the route DSL to. %s in the URL will be replaced with the route DSL - http://url.com?routes=%s  |
+
+See `./mock-api` for more details.
 
