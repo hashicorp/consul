@@ -194,6 +194,19 @@ func registerWithGRPC(b grpcresolver.Builder) {
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 //  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
 func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
+	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
+	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
+	raftGauges := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"raft", "fsm", "lastRestoreDuration"},
+			Help: "This measures how long the last FSM restore (from disk or leader) took.",
+		},
+		{
+			Name: []string{"raft", "leader", "oldestLogAge"},
+			Help: "This measures how old the oldest log in the leader's log store is.",
+		},
+	}
+
 	// Build slice of slices for all gauge definitions
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
@@ -204,7 +217,9 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
 		Gauges,
+		raftGauges,
 	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var gaugeDefs []prometheus.GaugeDefinition
