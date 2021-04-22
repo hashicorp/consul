@@ -200,7 +200,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	})
 	mgr.DeliverConfig(t, sid, snap)
 
-	require.True(t, t.Run("no-rds", func(t *testing.T) {
+	runStep(t, "no-rds", func(t *testing.T) {
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: ClusterType,
 			Nonce:   hexString(1),
@@ -273,7 +273,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 
 		// And no other response yet
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-	}))
+	})
 
 	// -- reconfigure with a no-op discovery chain
 
@@ -288,7 +288,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	})
 	mgr.DeliverConfig(t, sid, snap)
 
-	require.True(t, t.Run("with-rds", func(t *testing.T) {
+	runStep(t, "with-rds", func(t *testing.T) {
 		// Just the "db" listener sees a change
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: ListenerType,
@@ -330,7 +330,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		envoy.SendDeltaReqACK(t, RouteType, 5, true, nil)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-	}))
+	})
 
 	envoy.Close()
 	select {

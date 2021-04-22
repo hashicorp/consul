@@ -257,7 +257,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		})
 	}
 
-	require.True(t, t.Run("no-rds", func(t *testing.T) {
+	runStep(t, "no-rds", func(t *testing.T) {
 
 		// REQ: clusters
 		envoy.SendReq(t, ClusterType, 0, 0)
@@ -293,7 +293,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		envoy.SendReq(t, ListenerType, 1, 3)
 
 		assertChanBlocked(t, envoy.stream.sendCh)
-	}))
+	})
 
 	// -- reconfigure with a no-op discovery chain
 
@@ -322,7 +322,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		})
 	}
 
-	require.True(t, t.Run("with-rds", func(t *testing.T) {
+	runStep(t, "with-rds", func(t *testing.T) {
 		// RESP: listeners (but also a stray update of the other registered types)
 		assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(2, 4))
 		assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(2, 5))
@@ -352,7 +352,7 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 
 		// ACK: routes
 		envoy.SendReq(t, RouteType, 2, 7)
-	}))
+	})
 
 	envoy.Close()
 	select {
