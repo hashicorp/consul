@@ -413,7 +413,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			for _, typeURL := range []string{ClusterType, EndpointType, RouteType, ListenerType} {
 				handler := handlers[typeURL]
 				if err := handler.SendIfNew(cfgSnap, configVersion, &nonce); err != nil {
-					return err
+					return status.Errorf(codes.Unavailable,
+						"failed to send reply for type %q: %v",
+						typeURL, err)
 				}
 			}
 		}

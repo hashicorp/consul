@@ -294,8 +294,11 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 					op.Remove,
 				)
 				if err != nil {
-					extendRetryTimer()
-					return err
+					extendRetryTimer() // TODO: remove this
+					return status.Errorf(codes.Unavailable,
+						"failed to send %sreply for type %q: %v",
+						op.errorLogNameReplyPrefix(),
+						op.TypeUrl, err)
 				}
 				if sent {
 					sentType[op.TypeUrl] = struct{}{}
@@ -334,6 +337,19 @@ type xDSUpdateOperation struct {
 	TypeUrl string
 	Upsert  bool
 	Remove  bool
+}
+
+func (op *xDSUpdateOperation) errorLogNameReplyPrefix() string {
+	switch {
+	case op.Upsert && op.Remove:
+		return "upsert/remove "
+	case op.Upsert:
+		return "upsert "
+	case op.Remove:
+		return "remove "
+	default:
+		return ""
+	}
 }
 
 type xDSDeltaType struct {
