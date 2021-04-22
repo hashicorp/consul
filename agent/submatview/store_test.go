@@ -391,10 +391,9 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ttl := 10 * time.Millisecond
-	patchIdleTTL(t, ttl)
-
 	store := NewStore(hclog.New(nil))
+	ttl := 10 * time.Millisecond
+	store.idleTTL = ttl
 	go store.Run(ctx)
 
 	req := &fakeRequest{
@@ -428,14 +427,6 @@ func TestStore_Run_ExpiresEntries(t *testing.T) {
 	defer store.lock.Unlock()
 	require.Len(t, store.byKey, 0)
 	require.Equal(t, ttlcache.NotIndexed, e.expiry.Index())
-}
-
-func patchIdleTTL(t *testing.T, ttl time.Duration) {
-	orig := idleTTL
-	idleTTL = ttl
-	t.Cleanup(func() {
-		idleTTL = orig
-	})
 }
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {

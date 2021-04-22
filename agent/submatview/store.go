@@ -17,6 +17,11 @@ type Store struct {
 	lock       sync.RWMutex
 	byKey      map[string]entry
 	expiryHeap *ttlcache.ExpiryHeap
+
+	// idleTTL is the duration of time an entry should remain in the Store after the
+	// last request for that entry has been terminated. It is a field on the struct
+	// so that it can be patched in tests without need a lock.
+	idleTTL time.Duration
 }
 
 type entry struct {
@@ -33,6 +38,7 @@ func NewStore(logger hclog.Logger) *Store {
 		logger:     logger,
 		byKey:      make(map[string]entry),
 		expiryHeap: ttlcache.NewExpiryHeap(),
+		idleTTL:    20 * time.Minute,
 	}
 }
 
@@ -186,10 +192,6 @@ func (s *Store) getEntry(req Request) (string, entry, error) {
 	return key, e, nil
 }
 
-// idleTTL is the duration of time an entry should remain in the Store after the
-// last request for that entry has been terminated.
-var idleTTL = 20 * time.Minute
-
 // releaseEntry decrements the request count and starts an expiry timer if the
 // count has reached 0. Must be called once for every call to getEntry.
 func (s *Store) releaseEntry(key string) {
@@ -204,12 +206,12 @@ func (s *Store) releaseEntry(key string) {
 	}
 
 	if e.expiry.Index() == ttlcache.NotIndexed {
-		e.expiry = s.expiryHeap.Add(key, idleTTL)
+		e.expiry = s.expiryHeap.Add(key, s.idleTTL)
 		s.byKey[key] = e
 		return
 	}
 
-	s.expiryHeap.Update(e.expiry.Index(), idleTTL)
+	s.expiryHeap.Update(e.expiry.Index(), s.idleTTL)
 }
 
 // makeEntryKey matches agent/cache.makeEntryKey, but may change in the future.
