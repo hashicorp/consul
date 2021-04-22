@@ -344,13 +344,27 @@ type xDSDeltaType struct {
 	typeURL      string
 	allowEmptyFn func(kind structs.ServiceKind) bool
 
-	registered      bool
-	wildcard        bool
+	// registered indicates if this type has been requested at least once by
+	// the proxy
+	registered bool
+
+	// wildcard indicates that this type was requested with no preference for
+	// specific resource names. subscribe/unsubscribe are ignored.
+	wildcard bool
+
+	// sentToEnvoyOnce is true after we've sent one response to envoy.
 	sentToEnvoyOnce bool
 
-	// name => version (as envoy has CONFIRMED)
+	// resourceVersions is the current view of CONFIRMED/ACKed updates to
+	// envoy's view of the loaded resources.
+	//
+	// name => version
 	resourceVersions map[string]string
 
+	// pendingUpdates is a set of un-ACKed updates to the 'resourceVersions'
+	// map. Once we get an ACK from envoy we'll update the resourceVersions map
+	// and strike the entry from this map.
+	//
 	// nonce -> name -> version
 	pendingUpdates map[string]map[string]string
 }
