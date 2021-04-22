@@ -20,6 +20,7 @@ func TestReplicationRestart(t *testing.T) {
 			ReplicateFn: func(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 				return 1, false, nil
 			},
+			Name: "foo",
 		},
 
 		Rate:  1,
