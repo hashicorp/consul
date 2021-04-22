@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -174,17 +175,15 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		case cfgSnap = <-stateCh:
 			newRes, err := generator.allResourcesFromSnapshot(cfgSnap)
 			if err != nil {
-				return err
+				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
 			}
 
 			// index and hash the xDS structures
-			newResourceMap, err := indexResources(newRes)
-			if err != nil {
-				return err
-			}
+			newResourceMap := indexResources(generator.Logger, newRes)
+
 			newVersions, err := computeResourceVersions(newResourceMap)
 			if err != nil {
-				return err
+				return status.Errorf(codes.Unavailable, "failed to compute xDS resource versions: %v", err)
 			}
 
 			resourceMap = newResourceMap
@@ -653,7 +652,7 @@ func computeResourceVersions(resourceMap IndexedResources) (map[string]map[strin
 	for typeUrl, resources := range resourceMap {
 		m, err := hashResourceMap(resources)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to hash resources for %q: %v", typeUrl, err)
 		}
 		out[typeUrl] = m
 	}
@@ -671,20 +670,21 @@ func emptyIndexedResources() IndexedResources {
 	}
 }
 
-func indexResources(resources map[string][]proto.Message) (IndexedResources, error) {
+func indexResources(logger hclog.Logger, resources map[string][]proto.Message) IndexedResources {
 	data := emptyIndexedResources()
 
 	for typeURL, typeRes := range resources {
 		for _, res := range typeRes {
 			name := getResourceName(res)
 			if name == "" {
-				return nil, fmt.Errorf("unexpected xDS type found in delta snapshot: %s", typeURL)
+				logger.Warn("skipping unexpected xDS type found in delta snapshot", "typeURL", typeURL)
+			} else {
+				data[typeURL][name] = res
 			}
-			data[typeURL][name] = res
 		}
 	}
 
-	return data, nil
+	return data
 }
 
 func getResourceName(res proto.Message) string {
@@ -708,7 +708,7 @@ func hashResourceMap(resources map[string]proto.Message) (map[string]string, err
 	for name, res := range resources {
 		h, err := hashResource(res)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to hash resource %q: %v", name, err)
 		}
 		m[name] = h
 	}
