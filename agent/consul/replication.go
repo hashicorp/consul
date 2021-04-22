@@ -22,6 +22,7 @@ const (
 
 type ReplicatorDelegate interface {
 	Replicate(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (index uint64, exit bool, err error)
+	MetricName() string
 }
 
 type ReplicatorConfig struct {
@@ -100,6 +101,9 @@ func (r *Replicator) Run(ctx context.Context) error {
 			return nil
 		}
 		if err != nil {
+			metrics.SetGauge([]string{"leader", "replication", r.delegate.MetricName(), "status"},
+				0,
+			)
 			// reset the lastRemoteIndex when there is an RPC failure. This should cause a full sync to be done during
 			// the next round of replication
 			atomic.StoreUint64(&r.lastRemoteIndex, 0)
@@ -113,6 +117,13 @@ func (r *Replicator) Run(ctx context.Context) error {
 			}
 			continue
 		}
+
+		metrics.SetGauge([]string{"leader", "replication", r.delegate.MetricName(), "status"},
+			1,
+		)
+		metrics.SetGauge([]string{"leader", "replication", r.delegate.MetricName(), "index"},
+			float32(index),
+		)
 
 		atomic.StoreUint64(&r.lastRemoteIndex, index)
 		r.logger.Debug("replication completed through remote index", "index", index)
@@ -128,6 +139,11 @@ type ReplicatorFunc func(ctx context.Context, lastRemoteIndex uint64, logger hcl
 
 type FunctionReplicator struct {
 	ReplicateFn ReplicatorFunc
+	Name        string
+}
+
+func (r *FunctionReplicator) MetricName() string {
+	return r.Name
 }
 
 func (r *FunctionReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
@@ -169,6 +185,10 @@ type IndexReplicatorDelegate interface {
 type IndexReplicator struct {
 	Delegate IndexReplicatorDelegate
 	Logger   hclog.Logger
+}
+
+func (r *IndexReplicator) MetricName() string {
+	return r.Delegate.MetricName()
 }
 
 func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64, _ hclog.Logger) (uint64, bool, error) {

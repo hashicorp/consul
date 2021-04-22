@@ -812,10 +812,19 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 		}
 
 		if err != nil {
+			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
+				0,
+			)
 			lastRemoteIndex = 0
 			s.updateACLReplicationStatusError()
 			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
 		} else {
+			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
+				1,
+			)
+			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "index"},
+				float32(index),
+			)
 			lastRemoteIndex = index
 			s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
 			legacyACLLogger.Debug("Legacy ACL replication completed through remote index", "index", index)
@@ -873,7 +882,7 @@ type replicateFunc func(ctx context.Context, logger hclog.Logger, lastRemoteInde
 func (s *Server) runACLPolicyReplicator(ctx context.Context) error {
 	policyLogger := s.aclReplicationLogger(structs.ACLReplicatePolicies.SingularNoun())
 	policyLogger.Info("started ACL Policy replication")
-	return s.runACLReplicator(ctx, policyLogger, structs.ACLReplicatePolicies, s.replicateACLPolicies)
+	return s.runACLReplicator(ctx, policyLogger, structs.ACLReplicatePolicies, s.replicateACLPolicies, "acl-policies")
 }
 
 // This function is only intended to be run as a managed go routine, it will block until
@@ -881,7 +890,7 @@ func (s *Server) runACLPolicyReplicator(ctx context.Context) error {
 func (s *Server) runACLRoleReplicator(ctx context.Context) error {
 	roleLogger := s.aclReplicationLogger(structs.ACLReplicateRoles.SingularNoun())
 	roleLogger.Info("started ACL Role replication")
-	return s.runACLReplicator(ctx, roleLogger, structs.ACLReplicateRoles, s.replicateACLRoles)
+	return s.runACLReplicator(ctx, roleLogger, structs.ACLReplicateRoles, s.replicateACLRoles, "acl-roles")
 }
 
 // This function is only intended to be run as a managed go routine, it will block until
@@ -889,7 +898,7 @@ func (s *Server) runACLRoleReplicator(ctx context.Context) error {
 func (s *Server) runACLTokenReplicator(ctx context.Context) error {
 	tokenLogger := s.aclReplicationLogger(structs.ACLReplicateTokens.SingularNoun())
 	tokenLogger.Info("started ACL Token replication")
-	return s.runACLReplicator(ctx, tokenLogger, structs.ACLReplicateTokens, s.replicateACLTokens)
+	return s.runACLReplicator(ctx, tokenLogger, structs.ACLReplicateTokens, s.replicateACLTokens, "acl-tokens")
 }
 
 // This function is only intended to be run as a managed go routine, it will block until
@@ -899,6 +908,7 @@ func (s *Server) runACLReplicator(
 	logger hclog.Logger,
 	replicationType structs.ACLReplicationType,
 	replicateFunc replicateFunc,
+	metricName string,
 ) error {
 	var failedAttempts uint
 	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
@@ -919,6 +929,9 @@ func (s *Server) runACLReplicator(
 		}
 
 		if err != nil {
+			metrics.SetGauge([]string{"leader", "replication", metricName, "status"},
+				0,
+			)
 			lastRemoteIndex = 0
 			s.updateACLReplicationStatusError()
 			logger.Warn("ACL replication error (will retry if still leader)",
@@ -935,6 +948,12 @@ func (s *Server) runACLReplicator(
 				// do nothing
 			}
 		} else {
+			metrics.SetGauge([]string{"leader", "replication", metricName, "status"},
+				1,
+			)
+			metrics.SetGauge([]string{"leader", "replication", metricName, "index"},
+				float32(index),
+			)
 			lastRemoteIndex = index
 			s.updateACLReplicationStatusIndex(replicationType, index)
 			logger.Debug("ACL replication completed through remote index",
