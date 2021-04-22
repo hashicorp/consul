@@ -3,13 +3,13 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Yarn Commands](#yarn-commands)
 - [Running / Development](#running--development)
-  - [Browser 'Environment' Variables](#browser-environment-variables)
-  - [Browser 'Debug Utility' Functions](#browser-debug-utility-functions)
+  - [Environment Variables](#environment-variables)
+  - [Contributing/Engineering Documentation](#contributingengineering-documentation)
+  - [Browser 'Debug Utility' Functions and 'Environment' Variables](#browser-debug-utility-functions-and-environment-variables)
   - [Code Generators](#code-generators)
   - [Running Tests](#running-tests)
   - [Linting](#linting)
@@ -88,62 +88,26 @@ Example:
 CONSUL_HTTP_ADDR=http://10.0.0.1:8500 make start-consul
 ```
 
+### Environment Variables
 
-### Browser 'Environment' Variables
-
-In order to configure different configurations of Consul you can use Web
-Inspector in your browser to set various cookie which to emulate different
-configurations whislt using the mock API.
-
-For example: to enable ACLs, use Web Inspector to set a cookie as follows:
-
-```bash
-CONSUL_ACLS_ENABLE=1
-```
-
-This will enable the ACLs login page, to which you can login with any ACL
-token/secret.
+There are various environment variable you can use whilst running `make start` or `make test` to configure various features:
 
 | Variable | Default Value | Description |
 | -------- | ------------- | ----------- |
-| `CONSUL_ACLS_ENABLE` | false | Enable/disable ACLs support. |
-| `CONSUL_ACLS_LEGACY` | false | Enable/disable legacy ACLs support. |
-| `CONSUL_NSPACES_ENABLE` | false | Enable/disable Namespace support. |
-| `CONSUL_SSO_ENABLE` | false | Enable/disable SSO support. |
-| `CONSUL_OIDC_PROVIDER_URL` | undefined | Provide a OIDC provider URL for SSO. |
-| `CONSUL_LATENCY` | 0 | Add a latency to network requests (milliseconds) |
-| `CONSUL_METRICS_POLL_INTERVAL` | 10000 | Change the interval between requests to the metrics provider (milliseconds) |
-| `CONSUL_METRICS_PROXY_ENABLE` | false | Enable/disable the metrics proxy |
-| `CONSUL_METRICS_PROVIDER` | | Set the metrics provider to use for the Topology Tab |
-| `CONSUL_SERVICE_DASHBOARD_URL` | | Set the template URL to use for Service Dashboard links |
-| `CONSUL_UI_CONFIG` | | Set the entire `ui_config` for the UI as JSON if you don't want to use the above singular variables |
-| `CONSUL_SERVICE_COUNT` | (random) | Configure the number of services that the API returns. |
-| `CONSUL_NODE_COUNT` | (random) | Configure the number of nodes that the API returns. |
-| `CONSUL_KV_COUNT` | (random) | Configure the number of KV entires that the API returns. |
-| `CONSUL_INTENTION_COUNT` | (random) | Configure the number of intentions that the API returns. |
-| `CONSUL_POLICY_COUNT` | (random) | Configure the number of policies that the API returns. |
-| `CONSUL_ROLE_COUNT` | (random) | Configure the number of roles that the API returns. |
-| `CONSUL_NSPACE_COUNT` | (random) | Configure the number of namespaces that the API returns. |
-| `CONSUL_UPSTREAM_COUNT` | (random) | Configure the number of upstreams that the API returns. |
-| `CONSUL_EXPOSED_COUNT` | (random) | Configure the number of exposed paths that the API returns. |
-| `CONSUL_CHECK_COUNT` | (random) | Configure the number of health checks that the API returns. |
-| `CONSUL_OIDC_PROVIDER_COUNT` | (random) | Configure the number of OIDC providers that the API returns. |
-| `CONSUL_RESOURCE_<singular-resource-name>_<access-type>` | true | Configure permissions e.g `CONSUL_RESOURCE_INTENTION_WRITE=false`. |
-| `DEBUG_ROUTES_ENDPOINT` | undefined | When using the window.Routes() debug utility ([see utility functions](#browser-debug-utility-functions)), use a URL to pass the route DSL to. %s in the URL will be replaced with the route DSL - http://url.com?routes=%s  |
+| `TESTEM_AUTOLAUNCH` | Chrome | Controls which browser to open tests in. A setting of "" means 'let me manually open the browser' |
+| `EMBER_TEST_REPORT` |  | Output a test report |
 
-See `./mock-api` for more details.
+### Contributing/Engineering Documentation
 
-### Browser 'Debug Utility' Functions
+We have an in-app (only during development) component storybook and
+documentation site which can be visited using the [Eng Docs](http://localhost:4200/ui/docs)
+link in the top navigation of the UI.
 
-We currently have one 'debug utility', that only exists during development (they
-are removed from the production build using Embers `runInDebug`). You can call
-these either straight from the console in WebInspector, or by using javascript
-URLs i.e. `javascript:Routes()`
+### Browser 'Debug Utility' Functions and 'Environment' Variables
 
-| Variable | Arguments | Description |
-| -------- | --------- | ----------- |
-| `Routes(url)` | url: The url to pass the DSL to, if left `undefined` just use a blank tab | Provides a way to easily print out Embers Route DSL for the application or to pass it straight to any third party utility such as ember-diagonal |
-| `Scenario(str)` | str: 'Cookie formatted' string, if left `undefined` open a new tab with a link/bookmarklet to the current Scenario | Provides a way to easily save and reload scenarios of configurations via URLs or bookmarklets |
+Run `make start` then visit http://localhost:4200/ui/docs/bookmarklets for a
+list of debug/engineering utilities you can use to help development of the UI
+under certain scenarios.
 
 ### Code Generators
 
