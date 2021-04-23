@@ -470,26 +470,11 @@ function docker_consul_exec {
   docker_exec envoy_consul-${DC}_1 "$@"
 }
 
-function get_envoy_pid {
-  local BOOTSTRAP_NAME=$1
-  local DC=${2:-primary}
-  run ps aux
-  [ "$status" == 0 ]
-  echo "$output" 1>&2
-  PID="$(echo "$output" | grep "envoy -c /workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json" | awk '{print $1}')"
-  [ -n "$PID" ]
-
-  echo "$PID"
-}
-
 function kill_envoy {
   local BOOTSTRAP_NAME=$1
   local DC=${2:-primary}
 
-  PID="$(get_envoy_pid $BOOTSTRAP_NAME "$DC")"
-  echo "PID = $PID"
-
-  kill -TERM $PID
+  pkill -TERM -f "envoy -c /workdir/$DC/envoy/${BOOTSTRAP_NAME}-bootstrap.json"
 }
 
 function must_match_in_statsd_logs {
