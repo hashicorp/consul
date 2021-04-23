@@ -3,6 +3,8 @@ package retry
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // delta defines the time band a test run should complete in.
@@ -19,18 +21,14 @@ func TestRetryer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var iters, fails int
-			fail := func() { fails++ }
+			var iters int
 			start := time.Now()
-			for tt.r.NextOr(t, fail) {
+			for tt.r.Continue() {
 				iters++
 			}
 			dur := time.Since(start)
 			if got, want := iters, 3; got != want {
 				t.Fatalf("got %d retries want %d", got, want)
-			}
-			if got, want := fails, 1; got != want {
-				t.Fatalf("got %d FailNow calls want %d", got, want)
 			}
 			// since the first iteration happens immediately
 			// the retryer waits only twice for three iterations.
@@ -41,3 +39,32 @@ func TestRetryer(t *testing.T) {
 		})
 	}
 }
+
+func TestRunWith(t *testing.T) {
+	t.Run("calls FailNow after exceeding retries", func(t *testing.T) {
+		ft := &fakeT{}
+		iter := 0
+		RunWith(&Counter{Count: 3, Wait: time.Millisecond}, ft, func(r *R) {
+			iter++
+			r.FailNow()
+		})
+
+		require.Equal(t, 3, iter)
+		require.Equal(t, 1, ft.fails)
+	})
+}
+
+type fakeT struct {
+	fails int
+}
+
+func (f *fakeT) Helper() {}
+
+func (f *fakeT) Log(args ...interface{}) {
+}
+
+func (f *fakeT) FailNow() {
+	f.fails++
+}
+
+var _ Failer = &fakeT{}
