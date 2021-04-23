@@ -1,0 +1,3 @@
+```release-note:bug
+cli: snapshot inspect command would panic on invalid input. [[GH-10091](https://github.com/hashicorp/consul/pull/10091)]
+```
