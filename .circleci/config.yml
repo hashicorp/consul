@@ -755,14 +755,14 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_13_7: &ENVOY_TESTS
+  envoy-integration-test-1_13_8: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.13.7"
+      ENVOY_VERSION: "1.13.8"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -795,20 +795,20 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_14_6:
+  envoy-integration-test-1_14_7:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.14.6"
+      ENVOY_VERSION: "1.14.7"
 
-  envoy-integration-test-1_15_3:
+  envoy-integration-test-1_15_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.15.3"
+      ENVOY_VERSION: "1.15.4"
 
-  envoy-integration-test-1_16_2:
+  envoy-integration-test-1_16_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.2"
+      ENVOY_VERSION: "1.16.3"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -945,16 +945,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_13_7:
+      - envoy-integration-test-1_13_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_14_6:
+      - envoy-integration-test-1_14_7:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_3:
+      - envoy-integration-test-1_15_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_2:
+      - envoy-integration-test-1_16_3:
           requires:
             - dev-build
   website:
