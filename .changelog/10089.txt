@@ -1,0 +1,4 @@
+```release-note:improvement
+cli: snapshot inspect command can now inspect raw snapshots from a server's data
+dir. [[GH-10089](https://github.com/hashicorp/consul/pull/10089)]
+```
