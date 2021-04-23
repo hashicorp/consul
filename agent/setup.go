@@ -200,6 +200,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		consul.SessionGauges,
 		grpc.StatsGauges,
 		usagemetrics.Gauges,
+		consul.ReplicationGauges,
 		Gauges,
 	}
 	// Flatten definitions
