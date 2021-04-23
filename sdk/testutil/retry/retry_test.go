@@ -1,6 +1,7 @@
 package retry
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -52,15 +53,35 @@ func TestRunWith(t *testing.T) {
 		require.Equal(t, 3, iter)
 		require.Equal(t, 1, ft.fails)
 	})
+
+	t.Run("Stop ends the retrying", func(t *testing.T) {
+		ft := &fakeT{}
+		iter := 0
+		RunWith(&Counter{Count: 5, Wait: time.Millisecond}, ft, func(r *R) {
+			iter++
+			if iter == 2 {
+				r.Stop(fmt.Errorf("do not proceed"))
+			}
+			r.Fatalf("not yet")
+		})
+
+		require.Equal(t, 2, iter)
+		require.Equal(t, 1, ft.fails)
+		require.Len(t, ft.out, 1)
+		require.Contains(t, ft.out[0], "not yet\n")
+		require.Contains(t, ft.out[0], "do not proceed\n")
+	})
 }
 
 type fakeT struct {
 	fails int
+	out   []string
 }
 
 func (f *fakeT) Helper() {}
 
 func (f *fakeT) Log(args ...interface{}) {
+	f.out = append(f.out, fmt.Sprint(args...))
 }
 
 func (f *fakeT) FailNow() {
