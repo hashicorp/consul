@@ -80,6 +80,10 @@ steps:
         echo "Not posting slack failure notifications for non-master branch"
       fi
 
+  # This step is a no-op in OSS, it is used by enterprise
+  add-private-ssh-key: &add-private-ssh-key
+    run: "true"
+
 commands:
   assume-role:
     description: "Assume role to an ARN"
@@ -110,6 +114,7 @@ jobs:
     docker:
       - image: *GOLANG_IMAGE
     steps:
+      - *add-private-ssh-key
       - checkout
       - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
       - run: *notify-slack-failure
@@ -121,6 +126,7 @@ jobs:
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
+      - *add-private-ssh-key
       - checkout
       - run:
           name: Install golangci-lint
@@ -149,6 +155,7 @@ jobs:
     environment:
       <<: *ENVIRONMENT
     steps:
+      - *add-private-ssh-key
       - checkout
       - run:
           command: make update-vendor
@@ -166,6 +173,7 @@ jobs:
     environment:
       <<: *ENVIRONMENT
     steps:
+      - *add-private-ssh-key
       - checkout
       - run:
           name: Install protobuf
@@ -204,6 +212,7 @@ jobs:
       # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
       # but we can run a little over that limit.
     steps:
+      - *add-private-ssh-key
       - checkout
       - attach_workspace:
           at: /go/bin
@@ -254,6 +263,7 @@ jobs:
       # https://circleci.com/docs/2.0/configuration-reference/#docker-executor
       # but we can run a little over that limit.
     steps:
+      - *add-private-ssh-key
       - checkout
       - run: *install-gotestsum
       - run: go mod download
@@ -287,6 +297,7 @@ jobs:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
+      - *add-private-ssh-key
       - checkout
       - attach_workspace:
           at: /go/bin
@@ -323,6 +334,7 @@ jobs:
       <<: *ENVIRONMENT
       GOTAGS: "" # No tags for OSS but there are for enterprise
     steps:
+      - *add-private-ssh-key
       - checkout
       - attach_workspace:
           at: /go/bin
@@ -355,6 +367,7 @@ jobs:
     environment: &build-env
       <<: *ENVIRONMENT
     steps:
+      - *add-private-ssh-key
       - checkout
       - run: ./build-support/scripts/build-local.sh
 
@@ -380,7 +393,7 @@ jobs:
       XC_ARCH: "amd64"
 
   # build all arm/arm64 architecture supported OS binaries
-  build-arm:
+  build-arm: &build-arm
     docker:
       - image: *GOLANG_IMAGE
     environment:
@@ -388,6 +401,7 @@ jobs:
       CGO_ENABLED: 1
       GOOS: linux
     steps:
+      - *add-private-ssh-key
       - checkout
       - run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
       - run:
@@ -418,6 +432,7 @@ jobs:
     environment:
       <<: *ENVIRONMENT
     steps:
+      - *add-private-ssh-key
       - checkout
       - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in master branch after rebuilding UI
           at: .
@@ -645,6 +660,7 @@ jobs:
     docker:
       - image: *GOLANG_IMAGE
     steps:
+      - *add-private-ssh-key
       - checkout
       - attach_workspace:
           at: ./pkg
@@ -662,6 +678,7 @@ jobs:
     docker:
       - image: *GOLANG_IMAGE
     steps:
+      - *add-private-ssh-key
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
