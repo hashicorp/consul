@@ -8,15 +8,24 @@ const COLOR_RED = "\x1b[31m";
 runCheck([
   {
     contentDir: "website/content/docs",
-    navDataFiles: ["website/data/docs-nav-data.json"],
+    navDataFiles: [
+      "website/data/docs-nav-data.json",
+      "website/data/docs-nav-data-hidden.json",
+    ],
   },
   {
     contentDir: "website/content/api-docs",
-    navDataFiles: ["website/data/api-docs-nav-data.json"],
+    navDataFiles: [
+      "website/data/api-docs-nav-data.json",
+      "website/data/api-docs-nav-data-hidden.json",
+    ],
   },
   {
     contentDir: "website/content/commands",
-    navDataFiles: ["website/data/commands-nav-data.json"],
+    navDataFiles: [
+      "website/data/commands-nav-data.json",
+      "website/data/commands-nav-data-hidden.json",
+    ],
   },
 ]);
 
