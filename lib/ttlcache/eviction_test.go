@@ -47,8 +47,8 @@ func TestExpiryHeap(t *testing.T) {
 		testNoMessage(t, ch)
 	})
 
-	runStep(t, "update entry3 to expire first", func(t *testing.T) {
-		h.Update(entry3.heapIndex, 10*time.Millisecond)
+	runStep(t, "update so that entry3 expires first", func(t *testing.T) {
+		h.Update(entry.heapIndex, 2000*time.Millisecond)
 		assert.Equal(t, 1, entry.heapIndex)
 		assert.Equal(t, 0, entry3.heapIndex)
 		testMessage(t, ch)
@@ -56,11 +56,18 @@ func TestExpiryHeap(t *testing.T) {
 	})
 
 	runStep(t, "0th element change triggers a notify", func(t *testing.T) {
-		h.Update(entry3.heapIndex, 20)
+		h.Update(entry3.heapIndex, 1500*time.Millisecond)
 		assert.Equal(t, 1, entry.heapIndex) // no move
 		assert.Equal(t, 0, entry3.heapIndex)
 		testMessage(t, ch)
 		testNoMessage(t, ch) // one message
+	})
+
+	runStep(t, "update can not decrease expiry time", func(t *testing.T) {
+		h.Update(entry.heapIndex, 100*time.Millisecond)
+		assert.Equal(t, 1, entry.heapIndex) // no move
+		assert.Equal(t, 0, entry3.heapIndex)
+		testNoMessage(t, ch) // no notify, because no change in the heap
 	})
 }
 

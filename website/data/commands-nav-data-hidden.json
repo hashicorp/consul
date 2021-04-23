@@ -1,0 +1,21 @@
+[
+  {
+    "title": "Connect",
+    "routes": [
+      {
+        "title": "redirect-traffic",
+        "path": "connect/redirect-traffic"
+      }
+    ]
+  },
+
+  {
+    "title": "Intention",
+    "routes": [
+      {
+        "title": "list",
+        "path": "intention/list"
+      }
+    ]
+  }
+]

@@ -50,6 +50,9 @@ pre code,
 %form-element-error > strong {
   @extend %p3;
 }
+%main-content p code {
+  @extend %inline-code;
+}
 
 %radio-group label {
   line-height: $typo-lead-200;

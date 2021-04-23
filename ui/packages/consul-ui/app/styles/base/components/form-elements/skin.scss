@@ -11,16 +11,10 @@ textarea:disabled + .CodeMirror,
 %form-element-text-input:read-only {
   cursor: not-allowed;
 }
-%form h2 {
-  @extend %h200;
-}
 %form fieldset > p,
 %form-element-note,
 %form-element-text-input::placeholder {
   color: $gray-400;
-}
-%form-element-note > code {
-  border-radius: $decor-radius-100;
 }
 %form-element-error > input,
 %form-element-error > textarea {
@@ -38,8 +32,4 @@ textarea:disabled + .CodeMirror,
 }
 %form-element-label {
   color: var(--typo-contrast-999, inherit);
-}
-%form-element-note > code {
-  background-color: $gray-200;
-  color: var(--typo-brand-600, inherit);
 }

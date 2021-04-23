@@ -22,7 +22,7 @@ func TestRetryer(t *testing.T) {
 			var iters, fails int
 			fail := func() { fails++ }
 			start := time.Now()
-			for tt.r.NextOr(fail) {
+			for tt.r.NextOr(t, fail) {
 				iters++
 			}
 			dur := time.Since(start)
