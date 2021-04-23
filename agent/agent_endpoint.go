@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -511,6 +512,66 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
 	return nil, s.agent.ForceLeave(addr, prune)
+}
+
+func (s *HTTPHandlers) AgentReachability(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var token string
+	s.parseToken(req, &token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+		return nil, acl.ErrPermissionDenied
+	}
+
+	// Check if the WAN is being queried
+	wan := false
+	if other := req.URL.Query().Get("wan"); other != "" {
+		wan = true
+	}
+
+	segment := req.URL.Query().Get("segment")
+	if wan {
+		switch segment {
+		case "", api.AllSegments:
+			// The zero value and the special "give me all members"
+			// key are ok, otherwise the argument doesn't apply to
+			// the WAN.
+		default:
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, "Cannot provide a segment with wan=true")
+			return nil, nil
+		}
+	}
+
+	var (
+		timeoutStr = req.URL.Query().Get("timeout")
+		timeout    time.Duration
+	)
+	if timeoutStr != "" {
+		timeout, err = time.ParseDuration(timeoutStr)
+		if err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, "Malformed timeout parameter")
+			return nil, nil
+		}
+	}
+
+	out, err := s.agent.CheckReachability(wan, segment, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	if out == nil {
+		out = make([]*structs.ReachabilityResponse, 0)
+	}
+
+	return reachabilityResponses{Responses: out}, nil
+}
+
+type reachabilityResponses struct {
+	Responses []*structs.ReachabilityResponse
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync

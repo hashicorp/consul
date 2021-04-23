@@ -135,6 +135,9 @@ func (a *TestACLAgent) Leave() error {
 func (a *TestACLAgent) LANMembers() []serf.Member {
 	return nil
 }
+func (a *TestACLAgent) LANSegments() map[string]*serf.Serf {
+	return map[string]*serf.Serf{}
+}
 func (a *TestACLAgent) LANMembersAllSegments() ([]serf.Member, error) {
 	return nil, fmt.Errorf("Unimplemented")
 }

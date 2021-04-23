@@ -7,50 +7,46 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-type ReachabilityRequest struct {
-	Datacenter string
-	WAN        bool
-	Segment    string
-	QueryOptions
-}
-
-func (r *ReachabilityRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-type ReachabilityResponses struct {
-	Responses []*ReachabilityResponse
-	QueryMeta
-}
-
 type ReachabilityResponse struct {
-	WAN        bool   `json:",omitempty"`
-	Datacenter string `json:",omitempty"` // for WAN
-	Segment    string `json:",omitempty"` // for LAN
+	// Node is the name of the node conducting the test.
+	Node string
 
-	Error string `json:",omitempty"`
+	// Datacenter is the datacenter name that this response describes.
+	Datacenter string
+
+	// WAN indicates if this response was from the WAN serf pool.
+	WAN bool `json:",omitempty"`
+
+	// Segment has the network segment this response describes.
+	Segment string `json:",omitempty"`
 
 	NumNodes    int
 	LiveMembers []string
 
-	Acks []string // include duplicates
+	// Acks contains the node name of each ACK received. This contains
+	// duplicates if duplicates were received.
+	Acks []string
 
-	// 	total := float64(time.Now().Sub(start)) / float64(time.Second)
-	QueryTime time.Duration
-	// 	timeToLast := float64(last.Sub(start)) / float64(time.Second)
+	QueryTimeout       time.Duration
+	QueryTime          time.Duration
 	TimeToLastResponse time.Duration
 }
 
 func (r *ReachabilityResponse) MarshalJSON() ([]byte, error) {
 	type Alias ReachabilityResponse
 	exported := &struct {
+		QueryTimeout       string `json:",omitempty"`
 		QueryTime          string `json:",omitempty"`
 		TimeToLastResponse string `json:",omitempty"`
 		*Alias
 	}{
+		QueryTimeout:       r.QueryTimeout.String(),
 		QueryTime:          r.QueryTime.String(),
 		TimeToLastResponse: r.TimeToLastResponse.String(),
 		Alias:              (*Alias)(r),
+	}
+	if r.QueryTimeout == 0 {
+		exported.QueryTimeout = ""
 	}
 	if r.QueryTime == 0 {
 		exported.QueryTime = ""
@@ -65,6 +61,7 @@ func (r *ReachabilityResponse) MarshalJSON() ([]byte, error) {
 func (r *ReachabilityResponse) UnmarshalJSON(data []byte) error {
 	type Alias ReachabilityResponse
 	aux := &struct {
+		QueryTimeout       string
 		QueryTime          string
 		TimeToLastResponse string
 		*Alias
@@ -75,6 +72,11 @@ func (r *ReachabilityResponse) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	var err error
+	if aux.QueryTimeout != "" {
+		if r.QueryTimeout, err = time.ParseDuration(aux.QueryTimeout); err != nil {
+			return err
+		}
+	}
 	if aux.QueryTime != "" {
 		if r.QueryTime, err = time.ParseDuration(aux.QueryTime); err != nil {
 			return err

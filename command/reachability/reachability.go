@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/mitchellh/cli"
 
@@ -24,20 +25,25 @@ type cmd struct {
 	help   string
 	client *api.Client
 
-	verbose bool // TODO: detailed, like 'consul members'
+	verbose bool
 	wan     bool
 	segment string
+	timeout time.Duration
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.verbose, "verbose", false, "verbose mode")
 	c.flags.BoolVar(&c.wan, "wan", false,
-		"If the agent is in server mode, this can be used to return the other "+
-			"peers in the WAN pool.")
+		"If the agent is in server mode, this can be used to test the reachability "+
+			"of the WAN pool from this node.")
 	c.flags.StringVar(&c.segment, "segment", api.AllSegments,
 		"(Enterprise-only) If provided, output is filtered to only nodes in"+
 			"the given segment.")
+	c.flags.DurationVar(&c.timeout, "timeout", 0,
+		"Maximum amount of time to let the serf query run for, specified as a "+
+			"duration like \"1s\" or \"3h\". The default value is 0 which "+
+			"means to use a heuristic value derived from pool size.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -47,6 +53,11 @@ func (c *cmd) init() {
 
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
+		return 1
+	}
+
+	if c.timeout < 0 {
+		c.UI.Error("Timeout must be positive")
 		return 1
 	}
 
@@ -71,7 +82,7 @@ func (c *cmd) Run(args []string) int {
 		Segment: c.segment,
 		WAN:     c.wan,
 	}
-	responses, _, err := c.client.Operator().ReachabilityProbe(opts, nil)
+	responses, _, err := c.client.Agent().ReachabilityProbe(opts, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("error: %s", err))
 		return 1
@@ -101,28 +112,25 @@ func (c *cmd) formatResponse(response *api.ReachabilityResponse, failed *bool) s
 		liveMembers[member] = struct{}{}
 	}
 
-	poolName := fmt.Sprintf("%s (LAN)", response.Datacenter)
+	poolName := fmt.Sprintf("%s in %s (LAN)", response.Node, response.Datacenter)
 	if response.WAN {
 		poolName = "WAN"
 	} else if response.Segment != "" {
 		poolName = fmt.Sprintf("%s [%s]", poolName, response.Segment)
 	}
 
-	// TODO: fix datacenter in reply
 	buf.WriteString(fmt.Sprintf("%s:\n", poolName))
 	buf.WriteString(fmt.Sprintf("    Total Members: %d\n", response.NumNodes))
 	buf.WriteString(fmt.Sprintf("    Live Members:  %d\n", len(liveMembers)))
 
 	var (
 		dups     = false
-		numAcks  = 0
 		acksFrom = make(map[string]struct{}, response.NumNodes)
 	)
 	for _, ack := range response.Acks {
 		if c.verbose {
 			buf.WriteString(fmt.Sprintf("    Ack from: %q\n", ack))
 		}
-		numAcks++
 		if _, ok := acksFrom[ack]; ok {
 			dups = true
 			buf.WriteString(fmt.Sprintf("    Duplicate response from: %q\n", ack))
@@ -131,8 +139,7 @@ func (c *cmd) formatResponse(response *api.ReachabilityResponse, failed *bool) s
 	}
 
 	if c.verbose {
-		// total := float64(time.Now().Sub(start)) / float64(time.Second)
-		// timeToLast := float64(last.Sub(start)) / float64(time.Second)
+		buf.WriteString(fmt.Sprintf("    Query timeout: %s\n", response.QueryTimeout))
 		buf.WriteString(fmt.Sprintf("    Query time: %s\n", response.QueryTime))
 		buf.WriteString(fmt.Sprintf("    Time to last response: %s\n", response.TimeToLastResponse))
 	}
@@ -143,7 +150,10 @@ func (c *cmd) formatResponse(response *api.ReachabilityResponse, failed *bool) s
 		*failed = true
 	}
 
-	n := len(liveMembers)
+	var (
+		numAcks = len(response.Acks)
+		n       = len(liveMembers)
+	)
 	if numAcks == n {
 		buf.WriteString("    OK: Successfully contacted all live nodes\n")
 

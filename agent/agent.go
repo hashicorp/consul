@@ -128,6 +128,7 @@ type delegate interface {
 	LANMembers() []serf.Member
 	LANMembersAllSegments() ([]serf.Member, error)
 	LANSegmentMembers(segment string) ([]serf.Member, error)
+	LANSegments() map[string]*serf.Serf
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string, prune bool) error

@@ -1145,6 +1145,11 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
+// WANPool just returns the underlying serf instance for the WAN.
+func (s *Server) WANPool() *serf.Serf {
+	return s.serfWAN
+}
+
 // RemoveFailedNode is used to remove a failed node from the cluster
 func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	var removeFn func(*serf.Serf, string) error

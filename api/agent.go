@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // ServiceKind is the kind of service being registered.
@@ -1202,4 +1204,106 @@ func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMe
 	}
 
 	return wm, resp.StatusCode, nil
+}
+
+// TODO: docs
+type ReachabilityOpts struct {
+	// WAN is whether to show members from the WAN.
+	WAN bool
+
+	// Segment is the LAN segment to show members for. Setting this to the
+	// AllSegments value above will show members in all segments.
+	Segment string
+
+	// QueryTimeout is the maximum amount of time to let the serf query run
+	// for, The zero value "means to use a heuristic value derived from pool
+	// size.
+	QueryTimeout time.Duration
+}
+
+// TODO: docs
+func (a *Agent) ReachabilityProbe(opts ReachabilityOpts, q *WriteOptions) (*ReachabilityResponses, *WriteMeta, error) {
+	r := a.c.newRequest("PUT", "/v1/agent/reachability")
+	r.setWriteOptions(q)
+	r.params.Set("segment", opts.Segment)
+	if opts.WAN {
+		r.params.Set("wan", "1")
+	}
+	if opts.QueryTimeout > 0 {
+		r.params.Set("timeout", opts.QueryTimeout.String())
+	}
+
+	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	var out ReachabilityResponses
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, wm, nil
+}
+
+type ReachabilityResponses struct {
+	Responses []*ReachabilityResponse
+}
+
+type ReachabilityResponse struct {
+	// Node is the name of the node conducting the test.
+	Node string
+
+	// Datacenter is the datacenter name that this response describes.
+	Datacenter string
+
+	// WAN indicates if this response was from the WAN serf pool.
+	WAN bool `json:",omitempty"`
+
+	// Segment has the network segment this response describes.
+	Segment string `json:",omitempty"`
+
+	NumNodes    int
+	LiveMembers []string
+
+	// Acks contains the node name of each ACK received. This contains
+	// duplicates if duplicates were received.
+	Acks []string
+
+	QueryTimeout       time.Duration
+	QueryTime          time.Duration
+	TimeToLastResponse time.Duration
+}
+
+func (r *ReachabilityResponse) UnmarshalJSON(data []byte) error {
+	type Alias ReachabilityResponse
+	aux := &struct {
+		QueryTimeout       string
+		QueryTime          string
+		TimeToLastResponse string
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.QueryTimeout != "" {
+		if r.QueryTimeout, err = time.ParseDuration(aux.QueryTimeout); err != nil {
+			return err
+		}
+	}
+	if aux.QueryTime != "" {
+		if r.QueryTime, err = time.ParseDuration(aux.QueryTime); err != nil {
+			return err
+		}
+	}
+	if aux.TimeToLastResponse != "" {
+		if r.TimeToLastResponse, err = time.ParseDuration(aux.TimeToLastResponse); err != nil {
+			return err
+		}
+	}
+	return nil
 }

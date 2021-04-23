@@ -56,6 +56,7 @@ func init() {
 	registerEndpoint("/v1/agent/connect/authorize", []string{"POST"}, (*HTTPHandlers).AgentConnectAuthorize)
 	registerEndpoint("/v1/agent/connect/ca/roots", []string{"GET"}, (*HTTPHandlers).AgentConnectCARoots)
 	registerEndpoint("/v1/agent/connect/ca/leaf/", []string{"GET"}, (*HTTPHandlers).AgentConnectCALeafCert)
+	registerEndpoint("/v1/agent/reachability", []string{"PUT"}, (*HTTPHandlers).AgentReachability)
 	registerEndpoint("/v1/agent/service/register", []string{"PUT"}, (*HTTPHandlers).AgentRegisterService)
 	registerEndpoint("/v1/agent/service/deregister/", []string{"PUT"}, (*HTTPHandlers).AgentDeregisterService)
 	registerEndpoint("/v1/agent/service/maintenance/", []string{"PUT"}, (*HTTPHandlers).AgentServiceMaintenance)
@@ -109,7 +110,6 @@ func init() {
 	registerEndpoint("/v1/operator/autopilot/configuration", []string{"GET", "PUT"}, (*HTTPHandlers).OperatorAutopilotConfiguration)
 	registerEndpoint("/v1/operator/autopilot/health", []string{"GET"}, (*HTTPHandlers).OperatorServerHealth)
 	registerEndpoint("/v1/operator/autopilot/state", []string{"GET"}, (*HTTPHandlers).OperatorAutopilotState)
-	registerEndpoint("/v1/operator/reachability", []string{"PUT"}, (*HTTPHandlers).ReachabilityProbe)
 	registerEndpoint("/v1/query", []string{"GET", "POST"}, (*HTTPHandlers).PreparedQueryGeneral)
 	// specific prepared query endpoints have more complex rules for allowed methods, so
 	// the prefix is registered with no methods.
