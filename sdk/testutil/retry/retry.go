@@ -34,6 +34,7 @@ type Failer interface {
 // R provides context for the retryer.
 type R struct {
 	fail   bool
+	done   bool
 	output []string
 }
 
@@ -75,6 +76,12 @@ func (r *R) Check(err error) {
 
 func (r *R) log(s string) {
 	r.output = append(r.output, decorate(s))
+}
+
+// Stop retrying, and fail the test with the specified error.
+func (r *R) Stop(err error) {
+	r.log(err.Error())
+	r.done = true
 }
 
 func decorate(s string) string {
@@ -120,6 +127,16 @@ func dedup(a []string) string {
 func run(r Retryer, t Failer, f func(r *R)) {
 	t.Helper()
 	rr := &R{}
+
+	fail := func() {
+		t.Helper()
+		out := dedup(rr.output)
+		if out != "" {
+			t.Log(out)
+		}
+		t.FailNow()
+	}
+
 	for r.Continue() {
 		func() {
 			defer func() {
@@ -129,17 +146,17 @@ func run(r Retryer, t Failer, f func(r *R)) {
 			}()
 			f(rr)
 		}()
-		if !rr.fail {
+
+		switch {
+		case rr.done:
+			fail()
+			return
+		case !rr.fail:
 			return
 		}
 		rr.fail = false
 	}
-
-	out := dedup(rr.output)
-	if out != "" {
-		t.Log(out)
-	}
-	t.FailNow()
+	fail()
 }
 
 // DefaultFailer provides default retry.Run() behavior for unit tests.
