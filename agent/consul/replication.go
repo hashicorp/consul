@@ -7,12 +7,64 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
 )
+
+var ReplicationGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"leader", "replication", "acl-policies", "status"},
+		Help: "Tracks the current health of ACL policy replication on the leader",
+	},
+	{
+		Name: []string{"leader", "replication", "acl-policies", "index"},
+		Help: "Tracks the index of ACL policies in the primary that the secondary has successfully replicated",
+	},
+	{
+		Name: []string{"leader", "replication", "acl-tokens", "status"},
+		Help: "Tracks the current health of ACL token replication on the leader",
+	},
+	{
+		Name: []string{"leader", "replication", "acl-tokens", "index"},
+		Help: "Tracks the index of ACL tokens in the primary that the secondary has successfully replicated",
+	},
+	{
+		Name: []string{"leader", "replication", "acl-roles", "status"},
+		Help: "Tracks the current health of ACL role replication on the leader",
+	},
+	{
+		Name: []string{"leader", "replication", "acl-roles", "index"},
+		Help: "Tracks the index of ACL roles in the primary that the secondary has successfully replicated",
+	},
+	{
+		Name: []string{"leader", "replication", "config-entries", "status"},
+		Help: "Tracks the current health of config entry replication on the leader",
+	},
+	{
+		Name: []string{"leader", "replication", "config-entries", "index"},
+		Help: "Tracks the index of config entries in the primary that the secondary has successfully replicated",
+	},
+	{
+		Name: []string{"leader", "replication", "federation-state", "status"},
+		Help: "Tracks the current health of federation state replication on the leader",
+	},
+	{
+		Name: []string{"leader", "replication", "federation-state", "index"},
+		Help: "Tracks the index of federation states in the primary that the secondary has successfully replicated",
+	},
+	{
+		Name: []string{"leader", "replication", "namespaces", "status"},
+		Help: "Tracks the current health of federation state replication on the leader",
+	},
+	{
+		Name: []string{"leader", "replication", "namespaces", "index"},
+		Help: "Tracks the index of federation states in the primary that the secondary has successfully replicated",
+	},
+}
 
 const (
 	// replicationMaxRetryWait is the maximum number of seconds to wait between
