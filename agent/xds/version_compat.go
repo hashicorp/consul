@@ -11,6 +11,7 @@ import (
 	envoy_route_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_grpc_stats_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/grpc_stats/v2alpha"
 	envoy_http_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	envoy_tls_inspector_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/listener/tls_inspector/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
@@ -23,6 +24,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_trace_v2 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v2"
 	envoy_trace_v3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
+	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -492,6 +494,8 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		return nil
 	case *envoy_tls_v2.DownstreamTlsContext:
 		return nil
+	case *envoy_grpc_stats_v2.FilterConfig:
+		return nil
 	default:
 		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
 	}
@@ -577,4 +581,5 @@ func init() {
 	reg2(&envoy_metrics_v2.DogStatsdSink{}, &envoy_metrics_v3.DogStatsdSink{})
 	reg2(&envoy_metrics_v2.StatsdSink{}, &envoy_metrics_v3.StatsdSink{})
 	reg2(&envoy_trace_v2.ZipkinConfig{}, &envoy_trace_v3.ZipkinConfig{})
+	reg2(&envoy_grpc_stats_v2.FilterConfig{}, &envoy_grpc_stats_v3.FilterConfig{})
 }

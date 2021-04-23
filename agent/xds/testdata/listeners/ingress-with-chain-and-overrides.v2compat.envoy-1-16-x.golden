@@ -29,6 +29,13 @@
                 },
                 "httpFilters": [
                   {
+                    "name": "envoy.filters.http.grpc_stats",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.config.filter.http.grpc_stats.v2alpha.FilterConfig",
+                      "statsForAllMethods": true
+                    }
+                  },
+                  {
                     "name": "envoy.filters.http.grpc_http1_bridge"
                   },
                   {

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -238,6 +239,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
+	latestEnvoyVersion_v2 := proxysupport.EnvoyVersionsV2[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -280,6 +282,9 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					})
 
 					t.Run("v2-compat", func(t *testing.T) {
+						if !stringslice.Contains(proxysupport.EnvoyVersionsV2, envoyVersion) {
+							t.Skip()
+						}
 						respV2, err := convertDiscoveryResponseToV2(r)
 						require.NoError(t, err)
 
@@ -292,7 +297,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 
 						gName += ".v2compat"
 
-						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
 			}
