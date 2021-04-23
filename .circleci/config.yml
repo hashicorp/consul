@@ -574,7 +574,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push updated static asset commit back to github
           fingerprints:
-            - "3d:6b:98:55:78:4e:52:17:4e:17:ba:f3:bf:0b:96:2a"
+            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
       - attach_workspace:
           at: .
       - run:
@@ -583,9 +583,9 @@ jobs:
             # check if there are any changes in ui-v2/
             # if there are, we commit the ui static asset file
             # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
-            if ! git diff --quiet --exit-code HEAD^! ui-v2/; then
-              git config --local user.email "hashicorp-ci@users.noreply.github.com"
-              git config --local user.name "hashicorp-ci"
+            if ! git diff --quiet --exit-code HEAD^! ui/; then
+              git config --local user.email "github-team-consul-core@hashicorp.com"
+              git config --local user.name "hc-github-team-consul-core"
 
               short_sha=$(git rev-parse --short HEAD)
               git add agent/bindata_assetfs.go
@@ -741,7 +741,7 @@ jobs:
       - checkout
       - add_ssh_keys: # needs a key to push cherry-picked commits back to github
           fingerprints:
-            - "3d:6b:98:55:78:4e:52:17:4e:17:ba:f3:bf:0b:96:2a"
+            - "fc:55:84:15:0a:1d:c8:e9:06:d0:e8:9c:7b:a9:b7:31"
       - run: .circleci/scripts/cherry-picker.sh
 
   trigger-oss-merge:

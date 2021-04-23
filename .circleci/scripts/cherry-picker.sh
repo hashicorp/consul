@@ -97,8 +97,8 @@ fi
 
 # loop through all labels on the PR
 for label in $labels; do
-    git config --local user.email "hashicorp-ci@users.noreply.github.com"
-    git config --local user.name "hashicorp-ci"
+    git config --local user.email "github-team-consul-core@hashicorp.com"
+    git config --local user.name "hc-github-team-consul-core"
     status "checking label: $label"
     # TODO: enable this when replatform is merged into stable-website
     # if the label matches docs-cherrypick, it will attempt to cherry-pick to stable-website
