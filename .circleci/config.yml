@@ -694,11 +694,11 @@ jobs:
       ENVOY_VERSION: "1.12.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1_13_8:
+  envoy-integration-test-1_13_7:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.13.8"
+      ENVOY_VERSION: "1.13.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   envoy-integration-test-1_14_7:
@@ -846,7 +846,7 @@ workflows:
       - envoy-integration-test-1_12_7:
           requires:
             - dev-build
-      - envoy-integration-test-1_13_8:
+      - envoy-integration-test-1_13_7:
           requires:
             - dev-build
       - envoy-integration-test-1_14_7:
