@@ -149,11 +149,17 @@ func TestSnapshotInspectKVDetailsDepthFilterCommand(t *testing.T) {
 	want := golden(t, t.Name(), ui.OutputWriter.String())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
-  
+
 // TestSnapshotInspectCommandRaw test reading a snaphost directly from a raft
 // data dir.
 func TestSnapshotInspectCommandRaw(t *testing.T) {
 	filepath := "./testdata/raw/state.bin"
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{filepath}
+
+	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
