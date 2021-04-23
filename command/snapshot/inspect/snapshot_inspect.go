@@ -69,6 +69,7 @@ func (c *cmd) Run(args []string) int {
 	readFile, meta, err := snapshot.Read(hclog.New(nil), f)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
+		return 1
 	}
 	defer func() {
 		if err := readFile.Close(); err != nil {

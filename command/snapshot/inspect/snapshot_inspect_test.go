@@ -95,3 +95,20 @@ func TestSnapshotInspectCommand(t *testing.T) {
 	want := golden(t, t.Name(), ui.OutputWriter.String())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
+
+func TestSnapshotInspectInvalidFile(t *testing.T) {
+	// Attempt to open a non-snapshot file.
+	filepath := "./testdata/TestSnapshotInspectCommand.golden"
+
+	// Inspect the snapshot
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{filepath}
+
+	code := c.Run(args)
+	// Just check it was an error code returned and not a panic - originally this
+	// would panic.
+	if code == 0 {
+		t.Fatalf("should return an error code")
+	}
+}
