@@ -120,15 +120,7 @@ func dedup(a []string) string {
 func run(r Retryer, t Failer, f func(r *R)) {
 	t.Helper()
 	rr := &R{}
-	fail := func() {
-		t.Helper()
-		out := dedup(rr.output)
-		if out != "" {
-			t.Log(out)
-		}
-		t.FailNow()
-	}
-	for r.NextOr(t, fail) {
+	for r.Continue() {
 		func() {
 			defer func() {
 				if p := recover(); p != nil && p != runFailed {
@@ -142,6 +134,12 @@ func run(r Retryer, t Failer, f func(r *R)) {
 		}
 		rr.fail = false
 	}
+
+	out := dedup(rr.output)
+	if out != "" {
+		t.Log(out)
+	}
+	t.FailNow()
 }
 
 // DefaultFailer provides default retry.Run() behavior for unit tests.
@@ -162,9 +160,9 @@ func ThreeTimes() *Counter {
 // Retryer provides an interface for repeating operations
 // until they succeed or an exit condition is met.
 type Retryer interface {
-	// NextOr returns true if the operation should be repeated.
-	// Otherwise, it calls fail and returns false.
-	NextOr(t Failer, fail func()) bool
+	// NextOr returns true if the operation should be repeated, otherwise it
+	// returns false to indicate retrying should stop.
+	Continue() bool
 }
 
 // Counter repeats an operation a given number of
@@ -176,10 +174,8 @@ type Counter struct {
 	count int
 }
 
-func (r *Counter) NextOr(t Failer, fail func()) bool {
-	t.Helper()
+func (r *Counter) Continue() bool {
 	if r.count == r.Count {
-		fail()
 		return false
 	}
 	if r.count > 0 {
@@ -200,14 +196,12 @@ type Timer struct {
 	stop time.Time
 }
 
-func (r *Timer) NextOr(t Failer, fail func()) bool {
-	t.Helper()
+func (r *Timer) Continue() bool {
 	if r.stop.IsZero() {
 		r.stop = time.Now().Add(r.Timeout)
 		return true
 	}
 	if time.Now().After(r.stop) {
-		fail()
 		return false
 	}
 	time.Sleep(r.Wait)
