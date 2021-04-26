@@ -66,7 +66,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
-	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
+
+	grpcLogInitOnce.Do(func() {
+		grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
+	})
 
 	for _, w := range result.Warnings {
 		d.Logger.Warn(w)
@@ -122,6 +125,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 
 	return d, nil
 }
+
+// grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and
+// causes data races when it is re-initialized.
+var grpcLogInitOnce sync.Once
 
 func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil.Configurator) *pool.ConnPool {
 	var rpcSrcAddr *net.TCPAddr
