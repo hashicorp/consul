@@ -178,6 +178,35 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			"failed parsing Proxy.Config: 1 error(s) decoding:\n\n* cannot parse 'bind_port' as int:",
 		},
 		{
+			"proxyID with proxy outbound port",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
+			},
+			&api.AgentServiceRegistration{
+				Kind:    api.ServiceKindConnectProxy,
+				ID:      "test-proxy-id",
+				Name:    "test-proxy",
+				Port:    20000,
+				Address: "1.1.1.1",
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					DestinationServiceName: "foo",
+					TransparentProxy: &api.TransparentProxyConfig{
+						OutboundListenerPort: 21000,
+					},
+				},
+			},
+			iptables.Config{
+				ProxyUserID:       "1234",
+				ProxyInboundPort:  20000,
+				ProxyOutboundPort: 21000,
+			},
+			"",
+		},
+		{
 			"proxyID provided, but Consul is not reachable",
 			func() cmd {
 				var c cmd

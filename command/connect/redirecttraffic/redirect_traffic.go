@@ -142,8 +142,10 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			cfg.ProxyInboundPort = trCfg.BindPort
 		}
 
-		// todo: Change once it's configurable
 		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
+		if svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+			cfg.ProxyOutboundPort = svc.Proxy.TransparentProxy.OutboundListenerPort
+		}
 	} else {
 		cfg.ProxyInboundPort = c.proxyInboundPort
 		cfg.ProxyOutboundPort = c.proxyOutboundPort
