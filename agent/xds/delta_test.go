@@ -47,9 +47,10 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 	snap := newTestSnapshot(t, nil, "")
 
-	// Send initial cluster discover (empty payload)
+	// Send initial cluster discover. We'll assume we are testing a partial
+	// reconnect and include some initial resource versions that will be
+	// cleaned up.
 	envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-		// We'll assume we are testing a partial "reconnect"
 		InitialResourceVersions: mustMakeVersionMap(t,
 			makeTestCluster(t, snap, "tcp:geo-cache"),
 		),
@@ -80,7 +81,9 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		ResourceNamesSubscribe: []string{
 			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 			// "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-			// see what happens if you try to subscribe to an unknown thing
+			//
+			// Include "fake-endpoints" here to test subscribing to an unknown
+			// thing and have consul tell us there's no data for it.
 			"fake-endpoints",
 		},
 	})
@@ -105,7 +108,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 	// Envoy now sends listener request
-	// { "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener" }
 	envoy.SendDeltaReq(t, ListenerType, nil)
 
 	// It also (in parallel) issues the endpoint ACK
@@ -161,7 +163,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	// And no other response yet
 	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
-	// TODO: test NACK
+	// TODO(rb): test NACK
 
 	envoy.Close()
 	select {
@@ -186,7 +188,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (empty payload)
-	// { "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster" }
 	envoy.SendDeltaReq(t, ClusterType, nil)
 
 	// Check no response sent yet
@@ -212,12 +213,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		})
 
 		// Envoy then tries to discover endpoints for those clusters.
-		// {
-		//   "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-		//   "resourceNamesSubscribe": [
-		//     "api.default.dc1.internal.2902259a-31e7-62e0-fccc-0d482f347e98.consul"
-		//   ]
-		// }
 		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 			ResourceNamesSubscribe: []string{
 				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
@@ -226,7 +221,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		})
 
 		// It also (in parallel) issues the cluster ACK
-		// { "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster", "responseNonce": "00000001" }"
 		envoy.SendDeltaReqACK(t, ClusterType, 1, true, nil)
 
 		// We should get a response immediately since the config is already present in
@@ -246,11 +240,9 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends listener request
-		// { "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener" }
 		envoy.SendDeltaReq(t, ListenerType, nil)
 
 		// It also (in parallel) issues the endpoint ACK
-		// { "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment", "responseNonce": "00000002" }
 		envoy.SendDeltaReqACK(t, EndpointType, 2, true, nil)
 
 		// And should get a response immediately.
@@ -268,7 +260,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// ACKs the listener
-		// { "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.Listener", "responseNonce": "00000003" }
 		envoy.SendDeltaReqACK(t, ListenerType, 3, true, nil)
 
 		// And no other response yet
@@ -302,12 +293,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// Envoy now sends routes request
-		// {
-		//   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-		//   "resourceNamesSubscribe": [
-		//     "db"
-		//   ]
-		// }
 		envoy.SendDeltaReq(t, RouteType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 			ResourceNamesSubscribe: []string{
 				"db",
@@ -315,7 +300,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		})
 
 		// ACKs the listener
-		// { "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.Listener", "responseNonce": "00000003" }
 		envoy.SendDeltaReqACK(t, ListenerType, 4, true, nil)
 
 		// And should get a response immediately.
