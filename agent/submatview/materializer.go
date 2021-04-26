@@ -249,8 +249,9 @@ func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result
 			result.Index = m.index
 
 			if m.err != nil {
+				err := m.err
 				m.lock.Unlock()
-				return result, m.err
+				return result, err
 			}
 
 			result.Value = m.view.Result(m.index)

@@ -2,6 +2,7 @@ package submatview
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -98,10 +99,11 @@ func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	defer cancel()
 
 	result, err := e.materializer.getFromView(ctx, info.MinIndex)
-
-	// TODO: does context.DeadlineExceeded need to be translated into a nil error
-	// to match the old interface?
-
+	// context.DeadlineExceeded is translated to nil to match the behaviour of
+	// agent/cache.Cache.Get.
+	if err == nil || errors.Is(err, context.DeadlineExceeded) {
+		return result, nil
+	}
 	return result, err
 }
 
