@@ -289,15 +289,15 @@ func genVerifyDiscoveryChainWatch(expected *structs.DiscoveryChainRequest) verif
 	}
 }
 
-func genVerifyClusterConfigWatch(expectedDatacenter string) verifyWatchRequest {
+func genVerifyMeshConfigWatch(expectedDatacenter string) verifyWatchRequest {
 	return func(t testing.TB, cacheType string, request cache.Request) {
 		require.Equal(t, cachetype.ConfigEntryName, cacheType)
 
 		reqReal, ok := request.(*structs.ConfigEntryQuery)
 		require.True(t, ok)
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
-		require.Equal(t, structs.ClusterConfigCluster, reqReal.Name)
-		require.Equal(t, structs.ClusterConfig, reqReal.Kind)
+		require.Equal(t, structs.MeshConfigMesh, reqReal.Name)
+		require.Equal(t, structs.MeshConfig, reqReal.Kind)
 	}
 }
 
@@ -1554,9 +1554,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
 							"api", "", "dc1", false),
-						leafWatchID:          genVerifyLeafWatch("api", "dc1"),
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						clusterConfigEntryID: genVerifyClusterConfigWatch("dc1"),
+						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
+						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
@@ -1588,7 +1588,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Err:           nil,
 						},
 						{
-							CorrelationID: clusterConfigEntryID,
+							CorrelationID: meshConfigEntryID,
 							Result: &structs.ConfigEntryResponse{
 								Entry: nil, // no explicit config
 							},
@@ -1603,8 +1603,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.MeshGateway.IsEmpty())
 						require.True(t, snap.IngressGateway.IsEmpty())
 						require.True(t, snap.TerminatingGateway.IsEmpty())
-						require.True(t, snap.ConnectProxy.ClusterConfigSet)
-						require.Nil(t, snap.ConnectProxy.ClusterConfig)
+						require.True(t, snap.ConnectProxy.MeshConfigSet)
+						require.Nil(t, snap.ConnectProxy.MeshConfig)
 					},
 				},
 			},
@@ -1639,9 +1639,9 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						rootsWatchID: genVerifyRootsWatch("dc1"),
 						intentionUpstreamsID: genVerifyServiceSpecificRequest(intentionUpstreamsID,
 							"api", "", "dc1", false),
-						leafWatchID:          genVerifyLeafWatch("api", "dc1"),
-						intentionsWatchID:    genVerifyIntentionWatch("api", "dc1"),
-						clusterConfigEntryID: genVerifyClusterConfigWatch("dc1"),
+						leafWatchID:       genVerifyLeafWatch("api", "dc1"),
+						intentionsWatchID: genVerifyIntentionWatch("api", "dc1"),
+						meshConfigEntryID: genVerifyMeshConfigWatch("dc1"),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "proxy without roots/leaf/intentions is not valid")
@@ -1671,12 +1671,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							Err:           nil,
 						},
 						{
-							CorrelationID: clusterConfigEntryID,
+							CorrelationID: meshConfigEntryID,
 							Result: &structs.ConfigEntryResponse{
-								Entry: &structs.ClusterConfigEntry{
-									Kind:             structs.ClusterConfig,
-									Name:             structs.ClusterConfigCluster,
-									TransparentProxy: structs.TransparentProxyClusterConfig{},
+								Entry: &structs.MeshConfigEntry{
+									Kind:             structs.MeshConfig,
+									Name:             structs.MeshConfigMesh,
+									TransparentProxy: structs.TransparentProxyMeshConfig{},
 								},
 							},
 							Err: nil,
@@ -1690,8 +1690,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.True(t, snap.MeshGateway.IsEmpty())
 						require.True(t, snap.IngressGateway.IsEmpty())
 						require.True(t, snap.TerminatingGateway.IsEmpty())
-						require.True(t, snap.ConnectProxy.ClusterConfigSet)
-						require.NotNil(t, snap.ConnectProxy.ClusterConfig)
+						require.True(t, snap.ConnectProxy.MeshConfigSet)
+						require.NotNil(t, snap.ConnectProxy.MeshConfig)
 					},
 				},
 				// Receiving an intention should lead to spinning up a discovery chain watch

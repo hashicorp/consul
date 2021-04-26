@@ -46,7 +46,7 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
-	clusterConfigEntryID               = "cluster-config"
+	meshConfigEntryID                  = "mesh"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	serviceIDPrefix                    = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
@@ -318,12 +318,12 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 		}
 
 		err = s.cache.Notify(s.ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
-			Kind:           structs.ClusterConfig,
-			Name:           structs.ClusterConfigCluster,
+			Kind:           structs.MeshConfig,
+			Name:           structs.MeshConfigMesh,
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-		}, clusterConfigEntryID, s.ch)
+		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return err
 		}
@@ -887,22 +887,22 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
 
-	case u.CorrelationID == clusterConfigEntryID:
+	case u.CorrelationID == meshConfigEntryID:
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
 		if resp.Entry != nil {
-			clusterConf, ok := resp.Entry.(*structs.ClusterConfigEntry)
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
 			if !ok {
 				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 			}
-			snap.ConnectProxy.ClusterConfig = clusterConf
+			snap.ConnectProxy.MeshConfig = meshConf
 		} else {
-			snap.ConnectProxy.ClusterConfig = nil
+			snap.ConnectProxy.MeshConfig = nil
 		}
-		snap.ConnectProxy.ClusterConfigSet = true
+		snap.ConnectProxy.MeshConfigSet = true
 
 	default:
 		return s.handleUpdateUpstreams(u, &snap.ConnectProxy.ConfigSnapshotUpstreams)

@@ -61,8 +61,8 @@ type configSnapshotConnectProxy struct {
 	Intentions    structs.Intentions
 	IntentionsSet bool
 
-	ClusterConfig    *structs.ClusterConfigEntry
-	ClusterConfigSet bool
+	MeshConfig    *structs.MeshConfigEntry
+	MeshConfigSet bool
 }
 
 func (c *configSnapshotConnectProxy) IsEmpty() bool {
@@ -80,7 +80,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.WatchedServiceChecks) == 0 &&
 		len(c.PreparedQueryEndpoints) == 0 &&
 		len(c.UpstreamConfig) == 0 &&
-		!c.ClusterConfigSet
+		!c.MeshConfigSet
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -360,7 +360,7 @@ type ConfigSnapshot struct {
 func (s *ConfigSnapshot) Valid() bool {
 	switch s.Kind {
 	case structs.ServiceKindConnectProxy:
-		if s.Proxy.Mode == structs.ProxyModeTransparent && !s.ConnectProxy.ClusterConfigSet {
+		if s.Proxy.Mode == structs.ProxyModeTransparent && !s.ConnectProxy.MeshConfigSet {
 			return false
 		}
 		return s.Roots != nil &&
