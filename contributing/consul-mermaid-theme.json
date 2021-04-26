@@ -1,0 +1,4 @@
+{
+  "theme": "default",
+  "themeCSS": ".node rect { fill: rgb(220, 71, 125); stroke-width: 1; stroke: black; } .node .label { color: white; } "
+}
