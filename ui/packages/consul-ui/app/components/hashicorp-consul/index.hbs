@@ -36,7 +36,7 @@
                 <MenuItem
                   data-test-datacenter-picker
                   class={{concat (if (eq @dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
-                  @href={{href-mut (hash dc=item.Name)}}
+                  @href={{href-to '.' params=(hash dc=item.Name)}}
                 >
                   <BlockSlot @name="label">
                     {{item.Name}}
@@ -105,41 +105,6 @@
           </li>
     {{/if}}
     {{/let}}
-          <li
-            class="dcs"
-            data-test-datacenter-menu
-          >
-              Datacenter
-              <PopoverMenu @position="left" as |components|>
-                <BlockSlot @name="trigger">
-                  {{@dc.Name}}
-                </BlockSlot>
-                <BlockSlot @name="menu">
-                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                  <DataSource
-                    @src="/*/*/datacenters"
-                    @onchange={{action (mut @dcs) value="data"}}
-                    @loading="lazy"
-                  />
-                  {{#each (sort-by 'Name' @dcs) as |item|}}
-                    <MenuItem
-                      data-test-datacenter-picker
-                      class={{concat (if (eq @dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
-                      @href={{href-to '.' params=(hash dc=item.Name)}}
-                    >
-                      <BlockSlot @name="label">
-                        {{item.Name}}
-                      {{#if item.Local}}
-                        <span>Local</span>
-                      {{/if}}
-                      </BlockSlot>
-                    </MenuItem>
-                  {{/each}}
-                  {{/let}}
-                </BlockSlot>
-              </PopoverMenu>
-
-          </li>
 {{#if (can "read services")}}
           <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
