@@ -1,0 +1,8 @@
+dc:
+  services:
+    show:
+      upstreams:
+        intro: |
+          <p>
+            Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your <code>Host:</code> header uses the correct domain name for the gateway to correctly proxy to its upstreams. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/ingress-gateways" target="_blank" rel="noopener noreferrer">documentation</a>.
+          </p>
