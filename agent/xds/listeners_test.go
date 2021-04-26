@@ -493,12 +493,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 					"google.default.dc1": {
 						structs.CheckServiceNode{
 							Node: &structs.Node{
+								// There should be filter chain matching rules for all service and node addrs
 								Address:    "8.8.8.8",
 								Datacenter: "dc1",
+								TaggedAddresses: map[string]string{
+									"wan": "8.8.8.9",
+								},
 							},
 							Service: &structs.NodeService{
 								Service: "google",
+								Address: "9.9.9.9",
 								Port:    9090,
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"wan": {
+										Address: "9.9.9.10",
+									},
+								},
 							},
 						},
 					},
@@ -508,6 +518,48 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(
 					t, "no-endpoints", "default", "dc1",
 					connect.TestClusterID+".consul", "dc1", nil)
+			},
+		},
+		{
+			name:   "transparent-proxy-k8s",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.ClusterConfigSet = true
+
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
+					t, "google", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+
+				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
+					"google.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								// Node address and tagged address should be excluded for k8s services
+								Address:    "8.8.8.8",
+								Datacenter: "dc1",
+								TaggedAddresses: map[string]string{
+									"wan": "8.8.8.9",
+								},
+							},
+							Service: &structs.NodeService{
+								Service: "google",
+								Address: "9.9.9.9",
+								Port:    9090,
+								Meta: map[string]string{
+									structs.MetaExternalSource: "kubernetes",
+								},
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"wan": {
+										Address: "9.9.9.10",
+									},
+								},
+							},
+						},
+					},
+				}
 			},
 		},
 		{

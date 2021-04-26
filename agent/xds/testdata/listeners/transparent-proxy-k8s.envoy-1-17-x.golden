@@ -40,14 +40,6 @@
           "filterChainMatch": {
             "prefixRanges": [
               {
-                "addressPrefix": "8.8.8.8",
-                "prefixLen": 32
-              },
-              {
-                "addressPrefix": "8.8.8.9",
-                "prefixLen": 32
-              },
-              {
                 "addressPrefix": "9.9.9.10",
                 "prefixLen": 32
               },

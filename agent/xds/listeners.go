@@ -156,18 +156,29 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 				if e.Service.Address != "" {
 					uniqueAddrs[e.Service.Address] = struct{}{}
 				}
-				if e.Node.Address != "" {
-					uniqueAddrs[e.Node.Address] = struct{}{}
-				}
-
-				for _, tagged := range e.Node.TaggedAddresses {
-					if tagged != "" {
-						uniqueAddrs[tagged] = struct{}{}
-					}
-				}
 				for _, tagged := range e.Service.TaggedAddresses {
 					if tagged.Address != "" {
 						uniqueAddrs[tagged.Address] = struct{}{}
+					}
+				}
+
+				// For services registered by consul-k8s, only match on service addresses.
+				// Otherwise if multiple upstream services are on the same node we would
+				// have duplicate node addresses across filter chain matches and Envoy
+				// would reject the outbound listener.
+				// This does not apply outside of kubernetes because in VMs we only support
+				// one service instance per host.
+				// TODO: Nomad should likely be added here once they support tproxy
+				if source := e.Service.Meta[structs.MetaExternalSource]; source == "kubernetes" {
+					continue
+				}
+
+				if e.Node.Address != "" {
+					uniqueAddrs[e.Node.Address] = struct{}{}
+				}
+				for _, tagged := range e.Node.TaggedAddresses {
+					if tagged != "" {
+						uniqueAddrs[tagged] = struct{}{}
 					}
 				}
 			}
