@@ -13,6 +13,12 @@ import (
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
+// Store of Materializers. Store implements an interface similar to
+// agent/cache.Cache, and allows a single Materliazer to fulfill multiple requests
+// as long as the requests are identical.
+// Store is used in place of agent/cache.Cache because with the streaming
+// backend there is no longer any need to run a background goroutine to refresh
+// stored values.
 type Store struct {
 	logger     hclog.Logger
 	lock       sync.RWMutex
@@ -34,6 +40,8 @@ type entry struct {
 	requests int
 }
 
+// NewStore creates and returns a Store that is ready for use. The caller must
+// call Store.Run (likely in a separate goroutine) to start the expiration loop.
 func NewStore(logger hclog.Logger) *Store {
 	return &Store{
 		logger:     logger,
@@ -54,10 +62,14 @@ func (s *Store) Run(ctx context.Context) {
 		case <-ctx.Done():
 			timer.Stop()
 			return
+
+		// the first item in the heap has changed, restart the timer with the
+		// new TTL.
 		case <-s.expiryHeap.NotifyCh:
 			timer.Stop()
 			continue
 
+		// the TTL for the first item has been reached, attempt an expiration.
 		case <-timer.Wait():
 			s.lock.Lock()
 
@@ -77,10 +89,18 @@ func (s *Store) Run(ctx context.Context) {
 	}
 }
 
-// TODO: godoc
+// Request is used to request data from the Store.
+// Note that cache.Request is required, but some of the fields cache.RequestInfo
+// fields are ignored (ex: MaxAge, and MustRevalidate).
 type Request interface {
 	cache.Request
+	// NewMaterializer will be called if there is no active materializer to fulfil
+	// the request. It should return a Materializer appropriate for streaming
+	// data to fulfil this request.
 	NewMaterializer() (*Materializer, error)
+	// Type should return a string which uniquely identifies this type of request.
+	// The returned value is used as the prefix of the key used to index
+	// entries in the Store.
 	Type() string
 }
 

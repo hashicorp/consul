@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
-// TODO: godoc
+// Client provides access to service health data.
 type Client struct {
 	NetRPC              NetRPC
 	Cache               CacheGetter
