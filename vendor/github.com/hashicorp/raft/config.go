@@ -160,7 +160,7 @@ type Config struct {
 
 	// If we are a member of a cluster, and RemovePeer is invoked for the
 	// local node, then we forget all peers and transition into the follower state.
-	// If ShutdownOnRemove is is set, we additional shutdown Raft. Otherwise,
+	// If ShutdownOnRemove is set, we additional shutdown Raft. Otherwise,
 	// we can become a leader of a cluster containing only this node.
 	ShutdownOnRemove bool
 
@@ -178,8 +178,8 @@ type Config struct {
 	SnapshotInterval time.Duration
 
 	// SnapshotThreshold controls how many outstanding logs there must be before
-	// we perform a snapshot. This is to prevent excessive snapshots when we can
-	// just replay a small set of logs. The value passed here is the initial
+	// we perform a snapshot. This is to prevent excessive snapshotting by
+	// replaying a small set of logs instead. The value passed here is the initial
 	// setting used. This can be tuned during operation using ReloadConfig.
 	SnapshotThreshold uint64
 
@@ -189,7 +189,7 @@ type Config struct {
 	// step down as leader.
 	LeaderLeaseTimeout time.Duration
 
-	// The unique ID for this server across all time. When running with
+	// LocalID is a unique ID for this server across all time. When running with
 	// ProtocolVersion < 3, you must set this to be the same as the network
 	// address of your transport.
 	LocalID ServerID
@@ -203,19 +203,18 @@ type Config struct {
 	// Defaults to os.Stderr.
 	LogOutput io.Writer
 
-	// LogLevel represents a log level. If a no matching string is specified,
-	// hclog.NoLevel is assumed.
+	// LogLevel represents a log level. If the value does not match a known
+	// logging level hclog.NoLevel is used.
 	LogLevel string
 
-	// Logger is a user-provided hc-log logger. If nil, a logger writing to
+	// Logger is a user-provided logger. If nil, a logger writing to
 	// LogOutput with LogLevel is used.
 	Logger hclog.Logger
 
 	// NoSnapshotRestoreOnStart controls if raft will restore a snapshot to the
 	// FSM on start. This is useful if your FSM recovers from other mechanisms
 	// than raft snapshotting. Snapshot metadata will still be used to initialize
-	// raft's configuration and index values. This is used in NewRaft and
-	// RestoreCluster.
+	// raft's configuration and index values.
 	NoSnapshotRestoreOnStart bool
 
 	// skipStartup allows NewRaft() to bypass all background work goroutines

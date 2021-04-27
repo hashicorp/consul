@@ -206,7 +206,7 @@ type Raft struct {
 // server. Any further attempts to bootstrap will return an error that can be
 // safely ignored.
 //
-// One sane approach is to bootstrap a single server with a configuration
+// One approach is to bootstrap a single server with a configuration
 // listing just itself as a Voter, then invoke AddVoter() on it to add other
 // servers to the cluster.
 func BootstrapCluster(conf *Config, logs LogStore, stable StableStore,

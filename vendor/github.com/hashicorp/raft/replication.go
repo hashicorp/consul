@@ -381,6 +381,7 @@ func (r *Raft) heartbeat(s *followerReplication, stopCh chan struct{}) {
 		start := time.Now()
 		if err := r.trans.AppendEntries(s.peer.ID, s.peer.Address, &req, &resp); err != nil {
 			r.logger.Error("failed to heartbeat to", "peer", s.peer.Address, "error", err)
+			r.observe(FailedHeartbeatObservation{PeerID: s.peer.ID, LastContact: s.LastContact()})
 			failures++
 			select {
 			case <-time.After(backoff(failureWait, failures, maxFailureScale)):

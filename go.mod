@@ -2,9 +2,6 @@ module github.com/hashicorp/consul
 
 go 1.13
 
-// TODO(banks): remove once new version of raft is published...
-replace github.com/hashicorp/raft => /Users/banks/src/hashicorp/raft
-
 replace github.com/hashicorp/consul/api => ./api
 
 replace github.com/hashicorp/consul/sdk => ./sdk
@@ -55,7 +52,7 @@ require (
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/memberlist v0.2.3
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.2.0
+	github.com/hashicorp/raft v1.3.0
 	github.com/hashicorp/raft-autopilot v0.1.2
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.9.5

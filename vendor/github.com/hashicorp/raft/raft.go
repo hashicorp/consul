@@ -347,10 +347,7 @@ func (r *Raft) setLeadershipTransferInProgress(v bool) {
 
 func (r *Raft) getLeadershipTransferInProgress() bool {
 	v := atomic.LoadInt32(&r.leaderState.leadershipTransferInProgress)
-	if v == 1 {
-		return true
-	}
-	return false
+	return v == 1
 }
 
 func (r *Raft) setupLeaderState() {
@@ -1762,16 +1759,6 @@ func (r *Raft) setState(state RaftState) {
 	if oldState != state {
 		r.observe(state)
 	}
-}
-
-// LookupServer looks up a server by ServerID.
-func (r *Raft) lookupServer(id ServerID) *Server {
-	for _, server := range r.configurations.latest.Servers {
-		if server.ID != r.localID {
-			return &server
-		}
-	}
-	return nil
 }
 
 // pickServer returns the follower that is most up to date and participating in quorum.
