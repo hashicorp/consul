@@ -176,25 +176,28 @@ processing 500 commits/second, that is only about 20 seconds worth of logs.
 Assuming the leader is able to write out a snapshot and truncate the logs in
 less than 20 seconds, there will only be 20 seconds worth of "recent" logs
 available on the leader right after the leader has taken a snapshot and never
-more than about 80 seconds worth assuming it is snapshotting and truncating logs
-every 60 seconds.
+more than about 80 seconds worth assuming it is taking a snapshot and truncating
+logs every 60 seconds.
 
 In this state, followers must be able to restore a snapshot into memory and
-resume replication in under 80 seconds other wise they will never be able to
+resume replication in under 80 seconds otherwise they will never be able to
 rejoin the cluster until write rates reduce. If they take more than 20 seconds
 then there will be a chance that they are unlucky with timing when they restart
-and have to download a snapshot again from the servers. The chances of this
-increase as the restore time increases.
+and have to download a snapshot again from the servers one or more times. If
+they take 50 seconds or more then they will likely fail to catch up more often
+than they succeed and will remain non-voters for some time until they happen to
+complete the restore just before the leader truncates its logs.
 
-The follower will be left
-continually downloading snapshots from the leader which are always too old to
-use by the time they are restored. This can put additional strain on the leader
-transferring large snapshots repeatedly.
+In the worst case, the follower will be left continually downloading snapshots
+from the leader which are always too old to use by the time they are restored.
+This can put additional strain on the leader transferring large snapshots
+repeatedly as well as reduce the fault tolerance and serving capacity of the
+cluster.
 
 Since Consul 1.5.3
 [`raft_trailing_logs`](/docs/agent/options#_raft_trailing_logs) has been
 configurable. Increasing it allows the leader to retain more logs and give
-followers more time to restore and catch back up. The tradeoff is potentially
+followers more time to restore and catch up. The tradeoff is potentially
 slower appends which eventually might affect write throughput and latency
 negatively so setting it arbitrarily high is not recommended. Before Consul
 1.10.0 it required a rolling restart to change this configuration on the leader
@@ -329,7 +332,7 @@ These metrics are used to monitor the health of the Consul servers.
 | `consul.raft.leader.dispatchLog`                    | Measures the time it takes for the leader to write log entries to disk.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | ms                                | timer   |
 | `consul.raft.leader.dispatchNumLogs`                | Measures the number of logs committed to disk in a batch.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | logs                              | gauge   |
 | `consul.raft.leader.lastContact`                    | Measures the time since the leader was last able to contact the follower nodes when checking its leader lease. It can be used as a measure for how stable the Raft timing is and how close the leader is to timing out its lease.The lease timeout is 500 ms times the [`raft_multiplier` configuration](/docs/agent/options#raft_multiplier), so this telemetry value should not be getting close to that configured value, otherwise the Raft timing is marginal and might need to be tuned, or more powerful servers might be needed. See the [Server Performance](/docs/install/performance) guide for more details. | ms                                | timer   |
-| `consul.raft.leader.oldestLogAge`                   | The number of milliseconds since the _oldest_ log in the leader's log store was written. This can be important for replication health where write rate is high and the snapshot is large as followers may be unable to recover from a restart if restoring takes longer than the minimum value for the current leader. Compare this with `consul.raft.fsm.lastRestoreDuration` and `consul.raft.rpc.installSnapshot` to monitor. In normal usage this gauge value will grow linearly over time until a snapshot completes on the leader and the log is truncated.                                                                                             | ms                                | gauge   |
+| `consul.raft.leader.oldestLogAge`                   | The number of milliseconds since the _oldest_ log in the leader's log store was written. This can be important for replication health where write rate is high and the snapshot is large as followers may be unable to recover from a restart if restoring takes longer than the minimum value for the current leader. Compare this with `consul.raft.fsm.lastRestoreDuration` and `consul.raft.rpc.installSnapshot` to monitor. In normal usage this gauge value will grow linearly over time until a snapshot completes on the leader and the log is truncated. Note: this metric won't be emitted until the leader writes a snapshot. After an upgrade to Consul 1.10.0 it won't be emitted until the oldest log was written after the upgrade. | ms                                | gauge   |
 | `consul.raft.replication.heartbeat`                 | Measures the time taken to invoke appendEntries on a peer, so that it doesn’t timeout on a periodic basis.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | ms                                | timer   |
 | `consul.raft.replication.appendEntries`             | Measures the time it takes to replicate log entries to followers. This is a general indicator of the load pressure on the Consul servers, as well as the performance of the communication between the servers.                                                                                                                                                                                                                                                                                                                                                                                                                                                       | ms                                | timer   |
 | `consul.raft.replication.appendEntries.rpc`         | Measures the time taken by the append entries RFC, to replicate the log entries of a leader agent onto its follower agent(s)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | ms                                | timer   |
