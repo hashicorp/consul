@@ -77,14 +77,28 @@ func TestStore_Get(t *testing.T) {
 		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
 	})
 
-	runStep(t, "blocks with an index that is not yet in the view", func(t *testing.T) {
-		req.index = 23
+	chResult := make(chan resultOrError, 1)
+	req.index = 40
+	go func() {
+		result, err := store.Get(ctx, req)
+		chResult <- resultOrError{Result: result, Err: err}
+	}()
 
-		chResult := make(chan resultOrError, 1)
-		go func() {
-			result, err := store.Get(ctx, req)
-			chResult <- resultOrError{Result: result, Err: err}
-		}()
+	runStep(t, "blocks with an index that is not yet in the view", func(t *testing.T) {
+		select {
+		case <-chResult:
+			t.Fatalf("expected Get to block")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		store.lock.Lock()
+		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		store.lock.Unlock()
+		require.Equal(t, 1, e.requests)
+	})
+
+	runStep(t, "blocks when an event is received but the index is still below minIndex", func(t *testing.T) {
+		req.client.QueueEvents(newEventServiceHealthRegister(24, 1, "srv1"))
 
 		select {
 		case <-chResult:
@@ -96,9 +110,10 @@ func TestStore_Get(t *testing.T) {
 		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
 		store.lock.Unlock()
 		require.Equal(t, 1, e.requests)
+	})
 
-		req.client.QueueEvents(newEventServiceHealthRegister(24, 1, "srv1"))
-
+	runStep(t, "unblocks when an event with index past minIndex", func(t *testing.T) {
+		req.client.QueueEvents(newEventServiceHealthRegister(41, 1, "srv1"))
 		var getResult resultOrError
 		select {
 		case getResult = <-chResult:
@@ -107,17 +122,17 @@ func TestStore_Get(t *testing.T) {
 		}
 
 		require.NoError(t, getResult.Err)
-		require.Equal(t, uint64(24), getResult.Result.Index)
+		require.Equal(t, uint64(41), getResult.Result.Index)
 
 		r, ok := getResult.Result.Value.(fakeResult)
 		require.True(t, ok)
 		require.Len(t, r.srvs, 2)
-		require.Equal(t, uint64(24), r.index)
+		require.Equal(t, uint64(41), r.index)
 
 		store.lock.Lock()
 		defer store.lock.Unlock()
 		require.Len(t, store.byKey, 1)
-		e = store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
 		require.Equal(t, 0, e.expiry.Index())
 		require.Equal(t, 0, e.requests)
 

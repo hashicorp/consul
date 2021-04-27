@@ -235,8 +235,7 @@ func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result
 
 	// If our index is > req.Index return right away. If index is zero then we
 	// haven't loaded a snapshot at all yet which means we should wait for one on
-	// the update chan. Note it's opts.MinIndex that the cache is using here the
-	// request min index might be different and from initial user request.
+	// the update chan.
 	if result.Index > 0 && result.Index > minIndex {
 		return result, nil
 	}
@@ -248,26 +247,28 @@ func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result
 			m.lock.Lock()
 			result.Index = m.index
 
-			if m.err != nil {
+			switch {
+			case m.err != nil:
 				err := m.err
 				m.lock.Unlock()
 				return result, err
-			}
-
-			result.Value = m.view.Result(m.index)
-			// Grab the new updateCh in case we need to keep waiting for the next update.
-			updateCh = m.updateCh
-			m.lock.Unlock()
-
-			if result.Index <= minIndex {
-				// The result is still older/same as the requested index, continue to
-				// wait for further updates.
+			case result.Index <= minIndex:
+				// get a reference to the new updateCh, the previous one was closed
+				updateCh = m.updateCh
+				m.lock.Unlock()
 				continue
 			}
 
+			result.Value = m.view.Result(m.index)
+			m.lock.Unlock()
 			return result, nil
 
 		case <-ctx.Done():
+			// Update the result value to the latest because callers may still
+			// use the value when the error is context.DeadlineExceeded
+			m.lock.Lock()
+			result.Value = m.view.Result(m.index)
+			m.lock.Unlock()
 			return result, ctx.Err()
 		}
 	}

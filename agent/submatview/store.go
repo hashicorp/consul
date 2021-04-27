@@ -154,10 +154,6 @@ func (s *Store) Notify(
 			case ctx.Err() != nil:
 				return
 			case err != nil:
-				// TODO: cache.Notify sends errors on updateCh, should this do the same?
-				// It seems like only fetch errors would ever get sent along and eventually
-				// logged, so sending may not provide any benefit here.
-
 				s.logger.Warn("handling error in Store.Notify",
 					"error", err,
 					"request-type", req.Type(),
@@ -170,7 +166,6 @@ func (s *Store) Notify(
 				CorrelationID: correlationID,
 				Result:        result.Value,
 				Meta:          cache.ResultMeta{Index: result.Index},
-				Err:           err,
 			}
 			select {
 			case updateCh <- u:
