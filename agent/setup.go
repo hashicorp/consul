@@ -286,6 +286,14 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 			Name: []string{"raft", "leader", "lastContact"},
 			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
 		},
+		{
+			Name: []string{"raft", "snapshot", "persist"},
+			Help: "Measures the time it takes raft to write a new snapshot to disk.",
+		},
+		{
+			Name: []string{"raft", "rpc", "installSnapshot"},
+			Help: "Measures the time it takes the raft leader to install a snapshot on a follower that is catching up after being down or has just joined the cluster.",
+		},
 	}
 
 	var summaries = [][]prometheus.SummaryDefinition{
