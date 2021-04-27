@@ -108,9 +108,8 @@ export default class TopologyMetrics extends Component {
     // Calculate viewBox dimensions
     this.downView = document.getElementById('downstream-lines').getBoundingClientRect();
     const upstreamLines = document.getElementById('upstream-lines').getBoundingClientRect();
-    if (document.getElementById('upstream-column')) {
-      const upstreamColumn = document.getElementById('upstream-column').getBoundingClientRect();
-
+    const upstreamColumn = document.getElementById('upstream-column').getBoundingClientRect();
+    if (upstreamColumn) {
       this.upView = {
         x: upstreamLines.x,
         y: upstreamLines.y,
