@@ -33,6 +33,22 @@ type Config struct {
 	// ProxyInboundPort is the port of the proxy's outbound listener.
 	ProxyOutboundPort int
 
+	// ExcludeInboundPorts is the list of ports that should be excluded
+	// from inbound traffic redirection.
+	ExcludeInboundPorts []string
+
+	// ExcludeOutboundPorts is the list of ports that should be excluded
+	// from outbound traffic redirection.
+	ExcludeOutboundPorts []string
+
+	// ExcludeOutboundCIDRs is the list of IP CIDRs that should be excluded
+	// from outbound traffic redirection.
+	ExcludeOutboundCIDRs []string
+
+	// ExcludeUIDs is the list of additional user IDs to exclude
+	// from traffic redirection.
+	ExcludeUIDs []string
+
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
 }
@@ -90,6 +106,19 @@ func Setup(cfg Config) error {
 
 		// Redirect remaining outbound traffic to Envoy.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-j", ProxyOutputRedirectChain)
+
+		// We are using "insert" (-I) instead of "append" (-A) so the the provided rules take precedence over default ones.
+		for _, outboundPort := range cfg.ExcludeOutboundPorts {
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-p", "tcp", "--dport", outboundPort, "-j", "RETURN")
+		}
+
+		for _, outboundIP := range cfg.ExcludeOutboundCIDRs {
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-d", outboundIP, "-j", "RETURN")
+		}
+
+		for _, uid := range cfg.ExcludeUIDs {
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-m", "owner", "--uid-owner", uid, "-j", "RETURN")
+		}
 	}
 
 	// Configure inbound rules.
@@ -102,6 +131,10 @@ func Setup(cfg Config) error {
 
 		// Redirect remaining inbound traffic to Envoy.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyInboundChain, "-p", "tcp", "-j", ProxyInboundRedirectChain)
+
+		for _, inboundPort := range cfg.ExcludeInboundPorts {
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyInboundChain, "-p", "tcp", "--dport", inboundPort, "-j", "RETURN")
+		}
 	}
 
 	return cfg.IptablesProvider.ApplyRules()
