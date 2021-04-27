@@ -147,6 +147,106 @@ you will need to apply a function such as InfluxDB's [`non_negative_difference()
 Sudden large changes to the `consul.client.rpc` metrics (greater than 50% deviation from baseline).
 `consul.client.rpc.exceeded` or `consul.client.rpc.failed` count > 0, as it implies that an agent is being rate-limited or fails to make an RPC request to a Consul server
 
+### Raft Replication Capacity Issues
+
+| Metric Name                  | Description                                                                                                                                                                       | Unit     | Type    |
+| :--------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------ |
+| `consul.raft.fsm.lastRestoreDuration`               | Measures the time taken to restore the FSM from a snapshot on an agent restart or from the leader calling installSnapshot. This is a gauge that holds it's value since most servers only restore during restarts which are typically infrequent.                                                                                                                                                                                                                                                                                                                                                                                                              | ms                                | gauge   |
+| `consul.raft.leader.oldestLogAge`                   | The number of milliseconds since the _oldest_ log in the leader's log store was written. This can be important for replication health where write rate is high and the snapshot is large as followers may be unable to recover from a restart if restoring takes longer than the minimum value for the current leader. Compare this with `consul.raft.fsm.lastRestoreDuration` and `consul.raft.rpc.installSnapshot` to monitor. In normal usage this gauge value will grow linearly over time until a snapshot completes on the leader and the log is truncated.                                                                                             | ms                                | gauge   |
+| `consul.raft.rpc.installSnapshot`                   | Measures the time taken to process the installSnapshot RPC call. This metric should only be seen on agents which are currently in the follower state.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | ms                                | timer   |
+
+**Why they're important:** These metrics allow operators to monitor the health
+and capacity of raft replication on servers. **When Consul is handling large
+amounts of data and high write throughput** it is possible for the cluster to
+get into the following state:
+ * Write throughput is high (say 500 commits per second or more) and constant
+ * The leader is writing out a large snapshot every minute or so
+ * The snapshot is large enough that it takes considerable time to restore from
+   disk on a restart or from the leader if a follower gets behind
+ * Disk IO available allows the leader to write a snapshot faster than it can be
+   restored from disk on a follower
+
+Under these conditions, a follower after a restart may be unable to catch up on
+replication and become a voter again since it takes longer to restore from disk
+or the leader than the leader takes to write a new snapshot and truncate its
+logs. Servers retain
+[`raft_trailing_logs`](/docs/agent/options#_raft_trailing_logs) (default
+`10240`) log entries even if their snapshot was more recent. On a leader
+processing 500 commits/second, that is only about 20 seconds worth of logs.
+Assuming the leader is able to write out a snapshot and truncate the logs in
+less than 20 seconds, there will only be 20 seconds worth of "recent" logs
+available on the leader right after the leader has taken a snapshot and never
+more than about 80 seconds worth assuming it is snapshotting and truncating logs
+every 60 seconds.
+
+In this state, followers must be able to restore a snapshot into memory and
+resume replication in under 80 seconds other wise they will never be able to
+rejoin the cluster until write rates reduce. If they take more than 20 seconds
+then there will be a chance that they are unlucky with timing when they restart
+and have to download a snapshot again from the servers. The chances of this
+increase as the restore time increases.
+
+The follower will be left
+continually downloading snapshots from the leader which are always too old to
+use by the time they are restored. This can put additional strain on the leader
+transferring large snapshots repeatedly.
+
+Since Consul 1.5.3
+[`raft_trailing_logs`](/docs/agent/options#_raft_trailing_logs) has been
+configurable. Increasing it allows the leader to retain more logs and give
+followers more time to restore and catch back up. The tradeoff is potentially
+slower appends which eventually might affect write throughput and latency
+negatively so setting it arbitrarily high is not recommended. Before Consul
+1.10.0 it required a rolling restart to change this configuration on the leader
+though and since no followers could restart without loosing health this could
+mean loosing cluster availability and needing to recover the cluster from a loss
+of quorum.
+
+Since Consul 1.10.0
+[`raft_trailing_logs`](/docs/agent/options#_raft_trailing_logs) is now
+reloadable with `consul reload` or `SIGHUP` allowing operators to increase this
+without the leader restarting or loosing leadership allowing the cluster to be
+recovered gracefully.
+
+Monitoring these metrics can help avoid or diagnose this state.
+
+**What to look for:**
+
+`consul.raft.leader.oldestLogAge` should look like a saw-tooth wave increasing
+linearly with time until the leader takes a snapshot and then jumping down as
+the oldest logs are truncated. The lowest point on that line should remain
+comfortably higher (i.e. 2x or more) than the time it takes to restore a
+snapshot.
+
+There are two ways a snapshot can be restored on a follower: from disk on
+startup or from the leader during an `installSnapshot` RPC. The leader only
+sends an `installSnapshot` RPC if the follower is new and has no state, or if
+it's state is too old for it to catch up with the leaders logs.
+
+`consul.raft.fsm.lastRestoreDuration` shows the time it took to restore from
+either source the last time it happened. Most of the time this is when the
+server was started. It's a gauge that will always show the last restore duration
+(in Consul 1.10.0 and later) however long ago that was.
+
+`consul.raft.rpc.installSnapshot` is the timing information from the leader's
+perspective when it installs a new snapshot on a follower. It includes the time
+spent transferring the data as well as the follower restoring it. Since these
+events are typically infrequent, you may need to graph the last value observed,
+for example using `max_over_time` with a large range in Prometheus. While the
+restore part will also be reflected in `lastRestoreDuration`, it can be useful
+to observe this too since the logs need to be able to cover this entire
+operation including the snapshot delivery to ensure followers can always catch
+up safely.
+
+Graphing `consul.raft.leader.oldestLogAge` on the same axes as the other two
+metrics here can help see at a glance if restore times are creeping dangerously
+close to the limit of what the leader is retaining at the current write rate.
+
+Note that if servers don't restart often, then the snapshot could have grown
+significantly since the last restore happened so last restore times might not
+reflect what would happen if an agent restarts now.
+
+
 ## Metrics Reference
 
 This is a full list of metrics emitted by Consul.
