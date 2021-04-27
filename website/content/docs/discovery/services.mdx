@@ -120,11 +120,9 @@ different versions, or any other service level labels.
 We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
 for service definition names and tags for [compatibility with external DNS](/docs/agent/services#service-and-tag-names-with-dns)
 
-The `address` field can be used to specify a service-specific IP address or hostname. 
-
-Because hostname can be used, **we do not perform any validation of this field server side**.
-
-By default, the IP address of the agent is used, and this does not need to be provided.
+The `address` field is optional, and can be used to specify a service-specific IP address or a hostname. 
+There is no server-side validation of this field, and it can be set to any string. When this value is not provided,
+the IP address of the agent node is used by default.
 The `port` field can be used as well to make a service-oriented architecture
 simpler to configure; this way, the address and port of a service can
 be discovered.
