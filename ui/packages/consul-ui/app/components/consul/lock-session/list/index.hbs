@@ -8,6 +8,7 @@
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
+    {{#if item.Name}}
     <dl>
       <dt>
         <CopyButton
@@ -17,6 +18,7 @@
       </dt>
       <dd>{{item.ID}}</dd>
     </dl>
+    {{/if}}
     <dl class="lock-delay">
       <dt>
         <Tooltip>
