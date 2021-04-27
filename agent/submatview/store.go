@@ -109,7 +109,7 @@ type Request interface {
 // See agent/cache.Cache.Get for complete documentation.
 func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	info := req.CacheInfo()
-	key, e, err := s.getEntry(req)
+	key, materializer, err := s.readEntry(req)
 	if err != nil {
 		return Result{}, err
 	}
@@ -118,7 +118,7 @@ func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	ctx, cancel := context.WithTimeout(ctx, info.Timeout)
 	defer cancel()
 
-	result, err := e.materializer.getFromView(ctx, info.MinIndex)
+	result, err := materializer.getFromView(ctx, info.MinIndex)
 	// context.DeadlineExceeded is translated to nil to match the behaviour of
 	// agent/cache.Cache.Get.
 	if err == nil || errors.Is(err, context.DeadlineExceeded) {
@@ -139,7 +139,7 @@ func (s *Store) Notify(
 	updateCh chan<- cache.UpdateEvent,
 ) error {
 	info := req.CacheInfo()
-	key, e, err := s.getEntry(req)
+	key, materializer, err := s.readEntry(req)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (s *Store) Notify(
 
 		index := info.MinIndex
 		for {
-			result, err := e.materializer.getFromView(ctx, index)
+			result, err := materializer.getFromView(ctx, index)
 			switch {
 			case ctx.Err() != nil:
 				return
@@ -182,9 +182,9 @@ func (s *Store) Notify(
 	return nil
 }
 
-// getEntry from the store, and increment the requests counter. releaseEntry
+// readEntry from the store, and increment the requests counter. releaseEntry
 // must be called when the request is finished to decrement the counter.
-func (s *Store) getEntry(req Request) (string, entry, error) {
+func (s *Store) readEntry(req Request) (string, *Materializer, error) {
 	info := req.CacheInfo()
 	key := makeEntryKey(req.Type(), info)
 
@@ -194,12 +194,12 @@ func (s *Store) getEntry(req Request) (string, entry, error) {
 	if ok {
 		e.requests++
 		s.byKey[key] = e
-		return key, e, nil
+		return key, e.materializer, nil
 	}
 
 	mat, err := req.NewMaterializer()
 	if err != nil {
-		return "", e, err
+		return "", nil, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -211,11 +211,11 @@ func (s *Store) getEntry(req Request) (string, entry, error) {
 		requests:     1,
 	}
 	s.byKey[key] = e
-	return key, e, nil
+	return key, e.materializer, nil
 }
 
 // releaseEntry decrements the request count and starts an expiry timer if the
-// count has reached 0. Must be called once for every call to getEntry.
+// count has reached 0. Must be called once for every call to readEntry.
 func (s *Store) releaseEntry(key string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()

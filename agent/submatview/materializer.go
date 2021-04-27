@@ -79,7 +79,7 @@ func NewMaterializer(deps Deps) *Materializer {
 		retryWaiter: deps.Waiter,
 		updateCh:    make(chan struct{}),
 	}
-	if deps.Waiter == nil {
+	if v.retryWaiter == nil {
 		v.retryWaiter = &retry.Waiter{
 			MinFailures: 1,
 			// Start backing off with small increments (200-400ms) which will double

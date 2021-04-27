@@ -42,7 +42,6 @@ func (c *Client) ServiceNodes(
 		if err != nil {
 			return structs.IndexedCheckServiceNodes{}, cache.ResultMeta{}, err
 		}
-		// TODO: can we store non-pointer
 		return *result.Value.(*structs.IndexedCheckServiceNodes), cache.ResultMeta{Index: result.Index}, err
 	}
 
