@@ -126,7 +126,11 @@ type trafficRedirectProxyConfig struct {
 
 // generateConfigFromFlags generates iptables.Config based on command flags.
 func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
-	cfg := iptables.Config{ProxyUserID: c.proxyUID}
+	cfg := iptables.Config{
+		ProxyUserID:       c.proxyUID,
+		ProxyInboundPort:  c.proxyInboundPort,
+		ProxyOutboundPort: c.proxyOutboundPort,
+	}
 
 	// When proxyID is provided, we set up cfg with values
 	// from proxy's service registration in Consul.
@@ -193,9 +197,6 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 				cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(exposePath.ListenerPort))
 			}
 		}
-	} else {
-		cfg.ProxyInboundPort = c.proxyInboundPort
-		cfg.ProxyOutboundPort = c.proxyOutboundPort
 	}
 
 	for _, port := range c.excludeInboundPorts {

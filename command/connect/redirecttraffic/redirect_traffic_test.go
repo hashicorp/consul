@@ -502,6 +502,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			if c.proxyService != nil {
 				testServer, err := testutil.NewTestServerConfigT(t, nil)
 				require.NoError(t, err)
+				testServer.WaitForLeader(t)
 				defer testServer.Stop()
 
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
