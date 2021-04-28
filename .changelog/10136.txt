@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Adding a notice about how TransparentProxy mode affects the Upstreams list at the top of tab view
+```

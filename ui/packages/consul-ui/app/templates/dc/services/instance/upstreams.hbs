@@ -35,6 +35,30 @@ as |route|>
           @filter={{filters}}
         />
       {{/if}}
+      {{#if (eq proxy.ServiceProxy.Mode 'transparent')}}
+      <Notice
+        @type="warning"
+      as |notice|>
+        <notice.Header>
+          <h3>{{t "routes.dc.services.instance.upstreams.tproxy-mode.header"}}</h3>
+        </notice.Header>
+        <notice.Body>
+          <p>
+           {{t "routes.dc.services.instance.upstreams.tproxy-mode.body"}}
+          </p>
+        </notice.Body>
+        <notice.Footer>
+          <p>
+            <Action
+              @href={{concat (env 'CONSUL_DOCS_URL') '/connect/transparent-proxy'}}
+              @external={{true}}
+            >
+              {{t "routes.dc.services.instance.upstreams.tproxy-mode.footer"}}
+            </Action>
+          </p>
+        </notice.Footer>
+      </Notice>
+      {{/if}}
       <DataCollection
         @type="upstream-instance"
         @sort={{sort.value}}
