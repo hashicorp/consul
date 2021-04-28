@@ -49,7 +49,7 @@ export default function DownloadsPage(staticProps) {
           <p>
             <a href="/docs/download-tools">&raquo; Download Consul Tools</a>
           </p>
-          <div className="release-candidate">
+          <div className={s.releaseCandidate}>
             <p>Note for ARM users:</p>
 
             <ul>
@@ -70,12 +70,14 @@ export default function DownloadsPage(staticProps) {
               &quot;armhf&quot; || echo &quot;armel&quot;
             </code>
           </div>
-          <p>
-            A beta for consul v1.10.0 is available! The release can be
-            <a href="https://releases.hashicorp.com/consul/1.10.0-beta1/">
-              downloaded here
-            </a>
-          </p>
+          <div className={s.releaseCandidate}>
+            <p>
+              A beta for consul v1.10.0 is available! The release can be{' '}
+              <a href="https://releases.hashicorp.com/consul/1.10.0-beta1/">
+                downloaded here
+              </a>
+            </p>
+          </div>
         </>
       }
       {...staticProps}
