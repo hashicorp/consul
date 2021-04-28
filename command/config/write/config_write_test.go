@@ -2624,10 +2624,10 @@ func TestParseConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "cluster",
+			name: "mesh",
 			snake: `
-				kind = "cluster"
-				name = "cluster"
+				kind = "mesh"
+				name = "mesh"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -2637,8 +2637,8 @@ func TestParseConfigEntry(t *testing.T) {
 				}
 			`,
 			camel: `
-				Kind = "cluster"
-				Name = "cluster"
+				Kind = "mesh"
+				Name = "mesh"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -2649,8 +2649,8 @@ func TestParseConfigEntry(t *testing.T) {
 			`,
 			snakeJSON: `
 			{
-				"kind": "cluster",
-				"name": "cluster",
+				"kind": "mesh",
+				"name": "mesh",
 				"meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -2662,8 +2662,8 @@ func TestParseConfigEntry(t *testing.T) {
 			`,
 			camelJSON: `
 			{
-				"Kind": "cluster",
-				"Name": "cluster",
+				"Kind": "mesh",
+				"Name": "mesh",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -2673,14 +2673,14 @@ func TestParseConfigEntry(t *testing.T) {
 				}
 			}
 			`,
-			expect: &api.ClusterConfigEntry{
-				Kind: "cluster",
-				Name: "cluster",
+			expect: &api.MeshConfigEntry{
+				Kind: api.MeshConfig,
+				Name: api.MeshConfigMesh,
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
 				},
-				TransparentProxy: api.TransparentProxyClusterConfig{
+				TransparentProxy: api.TransparentProxyMeshConfig{
 					CatalogDestinationsOnly: true,
 				},
 			},

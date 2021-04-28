@@ -483,7 +483,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
 
-				snap.ConnectProxy.ClusterConfigSet = true
+				snap.ConnectProxy.MeshConfigSet = true
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
 				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
@@ -516,11 +516,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
 
-				snap.ConnectProxy.ClusterConfigSet = true
-				snap.ConnectProxy.ClusterConfig = &structs.ClusterConfigEntry{
-					Kind: structs.ClusterConfig,
-					Name: structs.ClusterConfigCluster,
-					TransparentProxy: structs.TransparentProxyClusterConfig{
+				snap.ConnectProxy.MeshConfigSet = true
+				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
+					Kind: structs.MeshConfig,
+					Name: structs.MeshConfigMesh,
+					TransparentProxy: structs.TransparentProxyMeshConfig{
 						CatalogDestinationsOnly: true,
 					},
 				}
