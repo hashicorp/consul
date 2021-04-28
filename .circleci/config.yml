@@ -233,12 +233,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: &codecov_upload
-          name: codecov upload
-          when: always
-          # The -C flag shouldn't be necessary, but it fails to find the commit
-          # without it.
-          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1"
       - run: *notify-slack-failure
 
   go-test-race:
@@ -312,7 +306,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # split off a job for the SDK package since it is separate
@@ -345,7 +338,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # build all distros
@@ -773,10 +765,6 @@ jobs:
       - run:
           working_directory: ui/packages/consul-ui
           command: make test-coverage-ci
-      - run:
-          name: codecov ui upload
-          working_directory: ui/packages/consul-ui
-          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
   envoy-integration-test-1_14_6: &ENVOY_TESTS
@@ -874,7 +862,6 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
