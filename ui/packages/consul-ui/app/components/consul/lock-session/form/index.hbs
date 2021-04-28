@@ -28,7 +28,7 @@
           <dd>{{api.data.Behavior}}</dd>
 {{#if form.data.Delay }}
           <dt>Delay</dt>
-          <dd>{{api.data.LockDelay}}</dd>
+          <dd>{{duration-from api.data.LockDelay}}</dd>
 {{/if}}
 {{#if form.data.TTL }}
           <dt>TTL</dt>
