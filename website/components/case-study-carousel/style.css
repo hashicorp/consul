@@ -231,6 +231,8 @@
       }
 
       & .person-name {
+        padding-right: 16px;
+
         & h5 {
           margin: 0;
 
