@@ -163,7 +163,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 
 		// Set the proxy's outbound port.
 		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
-		if svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+		if svc.Proxy.TransparentProxy != nil && svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
 			cfg.ProxyOutboundPort = svc.Proxy.TransparentProxy.OutboundListenerPort
 		}
 
