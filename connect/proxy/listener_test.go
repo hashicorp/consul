@@ -26,6 +26,7 @@ func testSetupMetrics(t *testing.T) *metrics.InmemSink {
 	s := metrics.NewInmemSink(10*time.Second, 300*time.Second)
 	cfg := metrics.DefaultConfig("consul.proxy.test")
 	cfg.EnableHostname = false
+	cfg.EnableRuntimeMetrics = false
 	metrics.NewGlobal(cfg, s)
 	return s
 }
@@ -45,6 +46,7 @@ func assertCurrentGaugeValue(t *testing.T, sink *metrics.InmemSink,
 		currentInterval.RLock()
 		if len(currentInterval.Gauges) > 0 {
 			got = currentInterval.Gauges[name].Value
+			currentInterval.RUnlock()
 			break
 		}
 		currentInterval.RUnlock()
@@ -132,8 +134,9 @@ func TestPublicListener(t *testing.T) {
 
 	// Run proxy
 	go func() {
-		err := l.Serve()
-		require.NoError(t, err)
+		if err := l.Serve(); err != nil {
+			t.Errorf("failed to listen: %v", err.Error())
+		}
 	}()
 	defer l.Close()
 	l.Wait()
@@ -200,8 +203,9 @@ func TestUpstreamListener(t *testing.T) {
 
 	// Run proxy
 	go func() {
-		err := l.Serve()
-		require.NoError(t, err)
+		if err := l.Serve(); err != nil {
+			t.Errorf("failed to listen: %v", err.Error())
+		}
 	}()
 	defer l.Close()
 	l.Wait()
