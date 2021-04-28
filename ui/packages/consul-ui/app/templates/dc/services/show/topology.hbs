@@ -3,7 +3,7 @@
 as |route|>
   <EventSource @src={{topology}} />
   <div class="tab-section">
-    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0))}}
+    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not topology.DefaultAllow) (not topology.WildcardIntention))}}
       <EmptyState>
         <BlockSlot @name="header">
           <h2>
