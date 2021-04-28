@@ -1,0 +1,3 @@
+```release-note:feature
+catalog: add option to v1/health/service/:service endpoint to prefer returning connect capable nodes over underlying nodes if some are present
+```

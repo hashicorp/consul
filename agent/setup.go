@@ -144,7 +144,7 @@ func registerCacheTypes(bd BaseDeps) error {
 			Client: pbsubscribe.NewStateChangeSubscriptionClient(conn),
 			Logger: bd.Logger,
 		}
-		bd.Cache.RegisterType(cachetype.StreamingHealthServicesName, cachetype.NewStreamingHealthServices(matDeps))
+		bd.Cache.RegisterType(cachetype.StreamingHealthServicesName, cachetype.NewStreamingHealthServices(matDeps, bd.Cache))
 	}
 	return nil
 }

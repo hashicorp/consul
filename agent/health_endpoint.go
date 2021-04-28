@@ -209,6 +209,9 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	default:
 		// serviceHealth is the default type
 		prefix = "/v1/health/service/"
+		if _, ok := params["prefer-connect"]; ok {
+			args.PreferConnect = true
+		}
 	}
 
 	// Pull out the service name

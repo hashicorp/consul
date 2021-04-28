@@ -1922,13 +1922,20 @@ func (s *Store) CombinedCheckServiceNodes(ws memdb.WatchSet, service structs.Ser
 
 // CheckServiceNodes is used to query all nodes and checks for a given service.
 func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
-	return s.checkServiceNodes(ws, serviceName, false, entMeta)
+	return s.checkServiceNodes(ws, serviceName, false, false, entMeta)
+}
+
+// CheckPreferConnectServiceNodes is used to query all nodes and checks for
+// Connect compatible endpoints for a given service and if none are found it
+// returns just the given service.
+func (s *Store) CheckPreferConnectServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+	return s.checkServiceNodes(ws, serviceName, false, true, entMeta)
 }
 
 // CheckConnectServiceNodes is used to query all nodes and checks for Connect
 // compatible endpoints for a given service.
 func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
-	return s.checkServiceNodes(ws, serviceName, true, entMeta)
+	return s.checkServiceNodes(ws, serviceName, true, false, entMeta)
 }
 
 // CheckIngressServiceNodes is used to query all nodes and checks for ingress
@@ -1959,7 +1966,7 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 
 	var results structs.CheckServiceNodes
 	for sn := range names {
-		idx, n, err := checkServiceNodesTxn(tx, ws, sn.Name, false, &sn.EnterpriseMeta)
+		idx, n, err := checkServiceNodesTxn(tx, ws, sn.Name, false, false, &sn.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -1969,14 +1976,39 @@ func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, 
 	return maxIdx, results, nil
 }
 
-func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func (s *Store) checkServiceNodes(
+	ws memdb.WatchSet,
+	serviceName string,
+	connect bool,
+	preferConnect bool,
+	entMeta *structs.EnterpriseMeta,
+) (uint64, structs.CheckServiceNodes, error) {
+	if connect && preferConnect {
+		return 0, nil, errors.New("cannot specify connect=true and preferConnect=true at the same time")
+	}
+
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return checkServiceNodesTxn(tx, ws, serviceName, connect, entMeta)
+	return checkServiceNodesTxn(tx, ws, serviceName, connect, preferConnect, entMeta)
 }
 
-func checkServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func checkServiceNodesTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	serviceName string,
+	connect bool,
+	preferConnect bool,
+	entMeta *structs.EnterpriseMeta,
+) (uint64, structs.CheckServiceNodes, error) {
+	onlyReturnTypicalKinds := false
+	if preferConnect {
+		connect = true // temporarily flip this flag for the first pass
+	}
+
+	var maxIndex uint64
+START_OVER:
+	// Function for lookup
 	index := indexService
 	if connect {
 		index = indexConnect
@@ -2010,6 +2042,9 @@ func checkServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, con
 	serviceNames := make(map[structs.ServiceName]struct{}, 2)
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		sn := service.(*structs.ServiceNode)
+		if onlyReturnTypicalKinds && sn.ServiceKind != structs.ServiceKindTypical {
+			continue // skip it
+		}
 		results = append(results, sn)
 
 		name := structs.NewServiceName(sn.ServiceName, &sn.EnterpriseMeta)
@@ -2102,7 +2137,21 @@ func checkServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, con
 		ws.Add(iter.WatchCh())
 	}
 
-	return parseCheckServiceNodes(tx, fallbackWS, idx, results, err)
+	maxIndex = lib.MaxUint64(maxIndex, idx)
+	if preferConnect && len(results) == 0 {
+		connect = false
+		preferConnect = false
+		onlyReturnTypicalKinds = true
+		goto START_OVER
+	}
+
+	idx, nodes, err := parseCheckServiceNodes(tx, fallbackWS, idx, results, err)
+	if err != nil {
+		return 0, nil, err
+	}
+	maxIndex = lib.MaxUint64(maxIndex, idx)
+
+	return maxIndex, nodes, nil
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
@@ -3137,7 +3186,7 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 	)
 	for _, u := range names {
 		// Collect typical then connect instances
-		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta)
+		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, false, &u.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -3146,7 +3195,7 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 		}
 		resp = append(resp, csn...)
 
-		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta)
+		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, false, &u.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}

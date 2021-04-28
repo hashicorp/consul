@@ -568,6 +568,10 @@ type ServiceSpecificRequest struct {
 	TagFilter      bool // Controls tag filtering
 	Source         QuerySource
 
+	// PreferConnect if true will default to returning Connect-compatible
+	// services, but if none are found it will return standard services.
+	PreferConnect bool
+
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
 
@@ -618,6 +622,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Filter,
 		r.EnterpriseMeta,
 		r.Ingress,
+		r.PreferConnect,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

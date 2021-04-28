@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -12,9 +16,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHealth_ChecksInState(t *testing.T) {
@@ -1078,6 +1079,213 @@ node "foo" {
 	assert.Len(resp.Nodes, 1)
 }
 
+func TestHealth_ServiceNodes_PreferConnectProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, nil)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	register := func(t *testing.T, args *structs.RegisterRequest) {
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+	}
+	deregister := func(t *testing.T, args *structs.DeregisterRequest) {
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Deregister", &args, &out))
+	}
+	writeConfigEntry := func(t *testing.T, args *structs.ConfigEntryRequest) {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+	}
+
+	type testcase struct {
+		name        string
+		setup       func(*testing.T)
+		serviceName string
+		expectKinds map[structs.ServiceKind]int
+	}
+
+	serialCases := []testcase{
+		{
+			"register 1 app",
+			func(*testing.T) {
+				args := structs.TestRegisterRequest(t)
+				args.Service.ID = "foo-0"
+				args.Service.Service = "foo"
+				args.Check = &structs.HealthCheck{
+					Name:      "app",
+					Status:    api.HealthPassing,
+					ServiceID: args.Service.ID,
+				}
+				register(t, args)
+			},
+			"foo",
+			map[structs.ServiceKind]int{
+				structs.ServiceKindTypical: 1,
+			},
+		},
+		{
+			"register an irrelevant proxy",
+			func(*testing.T) {
+				args := structs.TestRegisterRequestProxy(t)
+				args.Service.ID = "foo-proxy-0"
+				args.Service.Service = "foo-proxy"
+				args.Service.Proxy.DestinationServiceName = "bar"
+				args.Check = &structs.HealthCheck{
+					Name:      "proxy",
+					Status:    api.HealthPassing,
+					ServiceID: args.Service.ID,
+				}
+				register(t, args)
+			},
+			"foo",
+			map[structs.ServiceKind]int{
+				structs.ServiceKindTypical: 1,
+			},
+		},
+		{
+			"register a proxy",
+			func(*testing.T) {
+				args := structs.TestRegisterRequestProxy(t)
+				args.Service.ID = "foo-proxy-1"
+				args.Service.Service = "foo-proxy"
+				args.Service.Proxy.DestinationServiceName = "foo"
+				args.Check = &structs.HealthCheck{
+					Name:      "proxy",
+					Status:    api.HealthPassing,
+					ServiceID: args.Service.ID,
+				}
+				register(t, args)
+			},
+			"foo",
+			map[structs.ServiceKind]int{
+				structs.ServiceKindConnectProxy: 1,
+			},
+		},
+		{
+			"register another proxy",
+			func(*testing.T) {
+				args := structs.TestRegisterRequestProxy(t)
+				args.Service.ID = "another-proxy-0"
+				args.Service.Service = "another-proxy"
+				args.Service.Proxy.DestinationServiceName = "foo"
+				args.Check = &structs.HealthCheck{
+					Name:      "proxy",
+					Status:    api.HealthPassing,
+					ServiceID: args.Service.ID,
+				}
+				register(t, args)
+			},
+			"foo",
+			map[structs.ServiceKind]int{
+				structs.ServiceKindConnectProxy: 2,
+			},
+		},
+		{
+			"register a terminating gateway",
+			func(*testing.T) {
+				register(t, &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       "foo",
+					Address:    "127.0.0.1",
+					Service: &structs.NodeService{
+						Kind:    structs.ServiceKindTerminatingGateway,
+						Service: "gateway",
+						Port:    443,
+					},
+					Check: &structs.HealthCheck{
+						Name:      "gateway",
+						Status:    api.HealthPassing,
+						ServiceID: "gateway",
+					},
+				})
+				writeConfigEntry(t, &structs.ConfigEntryRequest{
+					Op:         structs.ConfigEntryUpsert,
+					Datacenter: "dc1",
+					Entry: &structs.TerminatingGatewayConfigEntry{
+						Kind: "terminating-gateway",
+						Name: "gateway",
+						Services: []structs.LinkedService{
+							{
+								Name: "foo",
+							},
+						},
+					},
+				})
+			},
+			"foo",
+			map[structs.ServiceKind]int{
+				structs.ServiceKindConnectProxy:       2,
+				structs.ServiceKindTerminatingGateway: 1,
+			},
+		},
+		{
+			"delete all connect endpoints",
+			func(t *testing.T) {
+				deregister(t, &structs.DeregisterRequest{
+					Datacenter: "dc1",
+					Node:       "foo",
+					ServiceID:  "foo-proxy-1",
+				})
+				deregister(t, &structs.DeregisterRequest{
+					Datacenter: "dc1",
+					Node:       "foo",
+					ServiceID:  "another-proxy-0",
+				})
+				deregister(t, &structs.DeregisterRequest{
+					Datacenter: "dc1",
+					Node:       "foo",
+					ServiceID:  "gateway",
+				})
+				writeConfigEntry(t, &structs.ConfigEntryRequest{
+					Op:         structs.ConfigEntryDelete,
+					Datacenter: "dc1",
+					Entry: &structs.TerminatingGatewayConfigEntry{
+						Kind: "terminating-gateway",
+						Name: "gateway",
+					},
+				})
+			},
+			"foo",
+			map[structs.ServiceKind]int{
+				structs.ServiceKindTypical: 1,
+			},
+		},
+	}
+
+	for _, tc := range serialCases {
+		require.True(t, t.Run(tc.name, func(t *testing.T) {
+			if tc.setup != nil {
+				tc.setup(t)
+			}
+
+			req := structs.ServiceSpecificRequest{
+				PreferConnect: true,
+				Datacenter:    "dc1",
+				ServiceName:   tc.serviceName,
+			}
+			var resp structs.IndexedCheckServiceNodes
+			require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+
+			gotKinds := make(map[structs.ServiceKind]int)
+			for _, csn := range resp.Nodes {
+				gotKinds[csn.Service.Kind]++
+			}
+
+			require.Equal(t, tc.expectKinds, gotKinds)
+		}), "subtest %q failed; skipping rest", tc.name)
+	}
+}
+
 func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1197,6 +1405,7 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 		assert.Equal(r, 443, resp.Nodes[1].Service.Port)
 	})
 }
+
 func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

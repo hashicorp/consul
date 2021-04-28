@@ -5,11 +5,12 @@ import (
 	"sort"
 
 	"github.com/armon/go-metrics"
+	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-memdb"
 )
 
 // Health endpoint is used to query the health information
@@ -189,6 +190,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		f = h.serviceNodesTagFilter
 	case args.Ingress:
 		f = h.serviceNodesIngress
+	case args.PreferConnect:
+		f = h.serviceNodesPreferConnect
 	default:
 		f = h.serviceNodesDefault
 	}
@@ -254,6 +257,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		if args.Ingress {
 			key = "ingress"
 		}
+		// TODO(rb): handle PreferConnect here as well?
 
 		metrics.IncrCounterWithLabels([]string{"health", key, "query"}, 1,
 			[]metrics.Label{{Name: "service", Value: args.ServiceName}})
@@ -306,4 +310,8 @@ func (h *Health) serviceNodesTagFilter(ws memdb.WatchSet, s *state.Store, args *
 
 func (h *Health) serviceNodesDefault(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
 	return s.CheckServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
+}
+
+func (h *Health) serviceNodesPreferConnect(ws memdb.WatchSet, s *state.Store, args *structs.ServiceSpecificRequest) (uint64, structs.CheckServiceNodes, error) {
+	return s.CheckPreferConnectServiceNodes(ws, args.ServiceName, &args.EnterpriseMeta)
 }
