@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Updating the wording for the banner and the popover for a service with an upstream that is not explicitly defined.
+```
