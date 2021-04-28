@@ -5,14 +5,13 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/rpc/subscribe"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 type subscribeBackend struct {
 	srv      *Server
-	connPool *agentgrpc.ClientConnPool
+	connPool GRPCClientConner
 }
 
 // TODO: refactor Resolve methods to an ACLBackend that can be used by all

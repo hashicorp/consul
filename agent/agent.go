@@ -373,15 +373,21 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 	}
 
-	cacheName := cachetype.HealthServicesName
-	if bd.RuntimeConfig.UseStreamingBackend {
-		cacheName = cachetype.StreamingHealthServicesName
+	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
+	conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
+	if err != nil {
+		return nil, err
 	}
+
 	a.rpcClientHealth = &health.Client{
-		Cache:            bd.Cache,
-		NetRPC:           &a,
-		CacheName:        cacheName,
-		CacheNameIngress: cachetype.HealthServicesName,
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cachetype.HealthServicesName,
+		ViewStore: bd.ViewStore,
+		MaterializerDeps: health.MaterializerDeps{
+			Conn:   conn,
+			Logger: bd.Logger.Named("rpcclient.health"),
+		},
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -533,6 +539,8 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLDefaultPolicy)
 	}
 
+	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
+
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
@@ -540,7 +548,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
-			Node:       a.config.NodeName,
 			Datacenter: a.config.Datacenter,
 			Segment:    a.config.SegmentName,
 		},
@@ -1384,6 +1391,8 @@ func (a *Agent) ShutdownAgent() error {
 	if a.cache != nil {
 		a.cache.Close()
 	}
+
+	a.rpcClientHealth.Close()
 
 	var err error
 	if a.delegate != nil {

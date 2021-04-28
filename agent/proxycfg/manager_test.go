@@ -352,10 +352,7 @@ func testManager_BasicLifecycle(
 	require := require.New(t)
 	logger := testutil.Logger(t)
 	state := local.NewState(local.Config{}, logger, &token.Store{})
-	source := &structs.QuerySource{
-		Node:       "node1",
-		Datacenter: "dc1",
-	}
+	source := &structs.QuerySource{Datacenter: "dc1"}
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}
