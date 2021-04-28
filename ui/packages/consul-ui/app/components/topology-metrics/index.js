@@ -108,14 +108,16 @@ export default class TopologyMetrics extends Component {
     // Calculate viewBox dimensions
     this.downView = document.getElementById('downstream-lines').getBoundingClientRect();
     const upstreamLines = document.getElementById('upstream-lines').getBoundingClientRect();
-    const upstreamColumn = document.getElementById('upstream-column').getBoundingClientRect();
+    const upstreamColumn = document.getElementById('upstream-column');
 
-    this.upView = {
-      x: upstreamLines.x,
-      y: upstreamLines.y,
-      width: upstreamLines.width,
-      height: upstreamColumn.height,
-    };
+    if (upstreamColumn) {
+      this.upView = {
+        x: upstreamLines.x,
+        y: upstreamLines.y,
+        width: upstreamLines.width,
+        height: upstreamColumn.getBoundingClientRect().height + 10,
+      };
+    }
 
     // Get Card elements positions
     const downCards = [
