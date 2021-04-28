@@ -10,10 +10,11 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -44,6 +45,7 @@ type Listener struct {
 	// `connection refused`. Retry loops and sleeps are unpleasant workarounds and
 	// this is cheap and correct.
 	listeningChan chan struct{}
+	listener      net.Listener
 
 	logger hclog.Logger
 
@@ -136,14 +138,15 @@ func (l *Listener) Serve() error {
 		return errors.New("serve called on a closed listener")
 	}
 
-	listen, err := l.listenFunc()
+	var err error
+	l.listener, err = l.listenFunc()
 	if err != nil {
 		return err
 	}
 	close(l.listeningChan)
 
 	for {
-		conn, err := listen.Accept()
+		conn, err := l.listener.Accept()
 		if err != nil {
 			if atomic.LoadInt32(&l.stopFlag) == 1 {
 				return nil
@@ -151,6 +154,7 @@ func (l *Listener) Serve() error {
 			return err
 		}
 
+		l.connWG.Add(1)
 		go l.handleConn(conn)
 	}
 }
@@ -158,6 +162,8 @@ func (l *Listener) Serve() error {
 // handleConn is the internal connection handler goroutine.
 func (l *Listener) handleConn(src net.Conn) {
 	defer src.Close()
+	// Make sure Listener.Close waits for this conn to be cleaned up.
+	defer l.connWG.Done()
 
 	dst, err := l.dialFunc()
 	if err != nil {
@@ -168,11 +174,6 @@ func (l *Listener) handleConn(src net.Conn) {
 	// Track active conn now (first function call) and defer un-counting it when
 	// it closes.
 	defer l.trackConn()()
-
-	// Make sure Close() waits for this conn to be cleaned up. Note defer is
-	// before conn.Close() so runs after defer conn.Close().
-	l.connWG.Add(1)
-	defer l.connWG.Done()
 
 	// Note no need to defer dst.Close() since conn handles that for us.
 	conn := NewConn(src, dst)
@@ -246,6 +247,10 @@ func (l *Listener) Close() error {
 		close(l.stopChan)
 		// Wait for all conns to close
 		l.connWG.Wait()
+
+		if l.listener != nil {
+			l.listener.Close()
+		}
 	}
 	return nil
 }
