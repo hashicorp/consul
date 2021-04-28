@@ -26,7 +26,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/centralized-service-registry.png?url'),
+          url: require('./img/discovery-health-checking/service_registry.svg?url'),
         }}
       />
 
@@ -46,7 +46,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/health-monitoring.svg?url'),
+          url: require('./img/discovery-health-checking/health_monitoring.svg?url'),
         }}
       />
 
@@ -66,7 +66,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/ecosystem.svg?url'),
+          url: require('./img/discovery-health-checking/control_plane.svg?url'),
         }}
       />
 
@@ -131,7 +131,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
           ],
         }}
         image={{
-          url: require('./img/multi-region.svg?url'),
+          url: require('./img/discovery-health-checking/map.svg?url'),
         }}
       />
 
@@ -151,7 +151,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
             ],
           }}
           image={{
-            url: require('./img/services-screenshot.png?url'),
+            url: require('./img/discovery-health-checking/consul_screenshot@2x.png?url'),
           }}
         />
       </div>

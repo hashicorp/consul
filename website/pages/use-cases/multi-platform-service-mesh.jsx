@@ -24,7 +24,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/multi-dc-multi-region.svg?url'),
+          url: require('./img/multi-platform-service-mesh/multi-datacenter.svg?url'),
         }}
       />
 
@@ -44,7 +44,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/service-to-service.svg?url'),
+          url: require('./img/multi-platform-service-mesh/service-to-service.svg?url'),
         }}
       />
 
@@ -64,7 +64,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/website-app-aware-intentions.png?url'),
+          url: require('./img/multi-platform-service-mesh/traffic_mgmt@3x.png?url'),
         }}
       />
 
@@ -83,7 +83,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/IntegrateAndExtend.svg?url'),
+          url: require('./img/multi-platform-service-mesh/kubernetes_extend.svg?url'),
         }}
       />
 
@@ -95,7 +95,7 @@ export default function MultiPlatformServiceMeshPage() {
           textSide: 'right',
         }}
         image={{
-          url: require('./img/connect-and-extend.svg?url'),
+          url: require('./img/multi-platform-service-mesh/extend-mesh.svg?url'),
         }}
       />
 
@@ -107,7 +107,7 @@ export default function MultiPlatformServiceMeshPage() {
           textSide: 'left',
         }}
         image={{
-          url: require('./img/robust-ecosystem.svg?url'),
+          url: require('./img/multi-platform-service-mesh/robust_ecosystem.svg?url'),
         }}
       />
 
@@ -126,7 +126,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/website-mesh-viz.png?url'),
+          url: require('./img/multi-platform-service-mesh/observability@3x.png?url'),
         }}
       />
 
@@ -146,7 +146,7 @@ export default function MultiPlatformServiceMeshPage() {
             ],
           }}
           image={{
-            url: require('./img/services-screenshot.png?url'),
+            url: require('./img/discovery-health-checking/consul_screenshot@2x.png?url'),
           }}
         />
       </div>
