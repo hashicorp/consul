@@ -225,7 +225,7 @@ export default function HomePage() {
               description:
                 'Enable services to locate other services running in any environment and provide real-time health status.',
               image: {
-                url: require('./img/use-cases/service-discovery-and-health-checking.svg?url'),
+                url: require('./img/use-cases/discovery_health_checking.svg?url'),
                 format: 'svg',
               },
               link: {
@@ -238,7 +238,7 @@ export default function HomePage() {
               description:
                 'Reduce burden of manual, ticket-based networking tasks.',
               image: {
-                url: require('./img/use-cases/network-infrastructure-automation.svg?url'),
+                url: require('./img/use-cases/network_automation.svg?url'),
                 format: 'svg',
               },
               link: {
@@ -251,7 +251,7 @@ export default function HomePage() {
               description:
                 'Secure, modern application networking across any cloud or runtime.',
               image: {
-                url: require('./img/use-cases/multi-platform-service-mesh.svg?url'),
+                url: require('./img/use-cases/service_mesh.svg?url'),
                 format: 'svg',
               },
               link: {
@@ -268,7 +268,7 @@ export default function HomePage() {
         title="HCP Consul"
         chin="Available on AWS"
         description="A fully managed service mesh to discover and securely connect any service."
-        image={require('./img/hcp-consul.svg?url')}
+        image={require('./img/hcp_consul.svg?url')}
         links={[
           {
             text: 'Learn More',
