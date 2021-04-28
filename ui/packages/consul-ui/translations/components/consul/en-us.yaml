@@ -126,7 +126,7 @@ topology-metrics:
         URL: dc.services.show.intentions
     not-defined-intention:
       header: Connections are not explicitly defined
-      body: There appears to be an Intention defining traffic, but the services are unable to communicate until that connection is explicitly defined as a downstream or Transparent Proxy mode is turned on.
+      body: There appears to be an Intention allowing traffic, but the services are unable to communicate until that connection is enabled by defining an explicit upstream or proxies are set to 'transparent' mode.
       footer: Read the documentation
     wildcard-intention:
       header: Permissive Intention
@@ -149,5 +149,5 @@ topology-metrics:
         notExact: Create
     not-defined:
       header: No traffic
-      body: Add the current service as an explicit upstream or turn on Transparent Proxy mode to initiate traffic.
+      body: Add "{upstream}" as an explicit upstream of "{downstream}" or set the "{downstream}" proxy to "transparent" mode to enable traffic.
       action: Documentation
