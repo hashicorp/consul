@@ -14,15 +14,18 @@ import (
 )
 
 // Store of Materializers. Store implements an interface similar to
-// agent/cache.Cache, and allows a single Materliazer to fulfill multiple requests
+// agent/cache.Cache, and allows a single Materializer to fulfil multiple requests
 // as long as the requests are identical.
 // Store is used in place of agent/cache.Cache because with the streaming
 // backend there is no longer any need to run a background goroutine to refresh
 // stored values.
 type Store struct {
-	logger     hclog.Logger
-	lock       sync.RWMutex
-	byKey      map[string]entry
+	logger hclog.Logger
+	lock   sync.RWMutex
+	byKey  map[string]entry
+
+	// expiryHeap tracks entries with 0 remaining requests. Entries are ordered
+	// by most recent expiry first.
 	expiryHeap *ttlcache.ExpiryHeap
 
 	// idleTTL is the duration of time an entry should remain in the Store after the

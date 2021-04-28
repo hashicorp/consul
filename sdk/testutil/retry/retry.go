@@ -177,7 +177,7 @@ func ThreeTimes() *Counter {
 // Retryer provides an interface for repeating operations
 // until they succeed or an exit condition is met.
 type Retryer interface {
-	// NextOr returns true if the operation should be repeated, otherwise it
+	// Continue returns true if the operation should be repeated, otherwise it
 	// returns false to indicate retrying should stop.
 	Continue() bool
 }
