@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: fixes a bug that would cause context cancellation errors when a cache entry expired while requests were active.
+```

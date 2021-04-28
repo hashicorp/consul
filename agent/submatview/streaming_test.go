@@ -1,13 +1,95 @@
-package cachetype
+package submatview
 
 import (
+	"context"
 	"fmt"
+	"sync"
+
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 )
+
+// TestStreamingClient is a mock StreamingClient for testing that allows
+// for queueing up custom events to a subscriber.
+type TestStreamingClient struct {
+	expectedNamespace string
+	subClients        []*subscribeClient
+	lock              sync.RWMutex
+	events            []eventOrErr
+}
+
+type eventOrErr struct {
+	Err   error
+	Event *pbsubscribe.Event
+}
+
+func NewTestStreamingClient(ns string) *TestStreamingClient {
+	return &TestStreamingClient{expectedNamespace: ns}
+}
+
+func (s *TestStreamingClient) Subscribe(
+	ctx context.Context,
+	req *pbsubscribe.SubscribeRequest,
+	_ ...grpc.CallOption,
+) (pbsubscribe.StateChangeSubscription_SubscribeClient, error) {
+	if req.Namespace != s.expectedNamespace {
+		return nil, fmt.Errorf("wrong SubscribeRequest.Namespace %v, expected %v",
+			req.Namespace, s.expectedNamespace)
+	}
+	c := &subscribeClient{
+		events: make(chan eventOrErr, 32),
+		ctx:    ctx,
+	}
+	s.lock.Lock()
+	s.subClients = append(s.subClients, c)
+	for _, event := range s.events {
+		c.events <- event
+	}
+	s.lock.Unlock()
+	return c, nil
+}
+
+type subscribeClient struct {
+	grpc.ClientStream
+	events chan eventOrErr
+	ctx    context.Context
+}
+
+func (s *TestStreamingClient) QueueEvents(events ...*pbsubscribe.Event) {
+	s.lock.Lock()
+	for _, e := range events {
+		s.events = append(s.events, eventOrErr{Event: e})
+		for _, c := range s.subClients {
+			c.events <- eventOrErr{Event: e}
+		}
+	}
+	s.lock.Unlock()
+}
+
+func (s *TestStreamingClient) QueueErr(err error) {
+	s.lock.Lock()
+	s.events = append(s.events, eventOrErr{Err: err})
+	for _, c := range s.subClients {
+		c.events <- eventOrErr{Err: err}
+	}
+	s.lock.Unlock()
+}
+
+func (c *subscribeClient) Recv() (*pbsubscribe.Event, error) {
+	select {
+	case eoe := <-c.events:
+		if eoe.Err != nil {
+			return nil, eoe.Err
+		}
+		return eoe.Event, nil
+	case <-c.ctx.Done():
+		return nil, c.ctx.Err()
+	}
+}
 
 func newEndOfSnapshotEvent(index uint64) *pbsubscribe.Event {
 	return &pbsubscribe.Event{
@@ -22,13 +104,6 @@ func newNewSnapshotToFollowEvent() *pbsubscribe.Event {
 	}
 }
 
-// newEventServiceHealthRegister returns a realistically populated service
-// health registration event for tests. The nodeNum is a
-// logical node and is used to create the node name ("node%d") but also change
-// the node ID and IP address to make it a little more realistic for cases that
-// need that. nodeNum should be less than 64k to make the IP address look
-// realistic. Any other changes can be made on the returned event to avoid
-// adding too many options to callers.
 func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {
 	node := fmt.Sprintf("node%d", nodeNum)
 	nodeID := types.NodeID(fmt.Sprintf("11111111-2222-3333-4444-%012d", nodeNum))
@@ -54,46 +129,9 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 						ID:      svc,
 						Service: svc,
 						Port:    8080,
-						Weights: &pbservice.Weights{
-							Passing: 1,
-							Warning: 1,
-						},
-						// Empty sadness
-						Proxy: pbservice.ConnectProxyConfig{
-							MeshGateway: pbservice.MeshGatewayConfig{},
-							Expose:      pbservice.ExposeConfig{},
-						},
-						EnterpriseMeta: pbcommon.EnterpriseMeta{},
 						RaftIndex: pbcommon.RaftIndex{
 							CreateIndex: index,
 							ModifyIndex: index,
-						},
-					},
-					Checks: []*pbservice.HealthCheck{
-						{
-							Node:           node,
-							CheckID:        "serf-health",
-							Name:           "serf-health",
-							Status:         "passing",
-							EnterpriseMeta: pbcommon.EnterpriseMeta{},
-							RaftIndex: pbcommon.RaftIndex{
-								CreateIndex: index,
-								ModifyIndex: index,
-							},
-						},
-						{
-							Node:           node,
-							CheckID:        types.CheckID("service:" + svc),
-							Name:           "service:" + svc,
-							ServiceID:      svc,
-							ServiceName:    svc,
-							Type:           "ttl",
-							Status:         "passing",
-							EnterpriseMeta: pbcommon.EnterpriseMeta{},
-							RaftIndex: pbcommon.RaftIndex{
-								CreateIndex: index,
-								ModifyIndex: index,
-							},
 						},
 					},
 				},
@@ -102,13 +140,6 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 	}
 }
 
-// TestEventServiceHealthDeregister returns a realistically populated service
-// health deregistration event for tests. The nodeNum is a
-// logical node and is used to create the node name ("node%d") but also change
-// the node ID and IP address to make it a little more realistic for cases that
-// need that. nodeNum should be less than 64k to make the IP address look
-// realistic. Any other changes can be made on the returned event to avoid
-// adding too many options to callers.
 func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {
 	node := fmt.Sprintf("node%d", nodeNum)
 
@@ -129,12 +160,6 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 							Passing: 1,
 							Warning: 1,
 						},
-						// Empty sadness
-						Proxy: pbservice.ConnectProxyConfig{
-							MeshGateway: pbservice.MeshGatewayConfig{},
-							Expose:      pbservice.ExposeConfig{},
-						},
-						EnterpriseMeta: pbcommon.EnterpriseMeta{},
 						RaftIndex: pbcommon.RaftIndex{
 							// The original insertion index since a delete doesn't update
 							// this. This magic value came from state store tests where we
