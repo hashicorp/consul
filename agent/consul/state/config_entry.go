@@ -362,7 +362,7 @@ func validateProposedConfigEntryInGraph(
 			return err
 		}
 	case structs.ServiceIntentions:
-	case structs.ClusterConfig:
+	case structs.MeshConfig:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}

@@ -59,8 +59,8 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	// In transparent proxy mode there needs to be a passthrough cluster for traffic going to destinations
 	// that aren't in Consul's catalog.
 	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
-		cfgSnap.ConnectProxy.ClusterConfig != nil &&
-		!cfgSnap.ConnectProxy.ClusterConfig.TransparentProxy.CatalogDestinationsOnly {
+		cfgSnap.ConnectProxy.MeshConfig != nil &&
+		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
 
 		clusters = append(clusters, &envoy_cluster_v3.Cluster{
 			Name: OriginalDestinationClusterName,

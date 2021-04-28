@@ -4156,8 +4156,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"config_entries": {
 					"bootstrap": [
 						{
-							"kind": "cluster",
-							"name": "cluster",
+							"kind": "mesh",
+							"name": "mesh",
 							"meta" : {
 								"foo": "bar",
 								"gir": "zim"
@@ -4173,8 +4173,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl: []string{`
 				config_entries {
 				  bootstrap {
-					kind = "cluster"
-					name = "cluster"
+					kind = "mesh"
+					name = "mesh"
 					meta {
 						"foo" = "bar"
 						"gir" = "zim"
@@ -4189,15 +4189,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
-				&structs.ClusterConfigEntry{
-					Kind: "cluster",
-					Name: "cluster",
+				&structs.MeshConfigEntry{
+					Kind: structs.MeshConfig,
+					Name: structs.MeshConfigMesh,
 					Meta: map[string]string{
 						"foo": "bar",
 						"gir": "zim",
 					},
 					EnterpriseMeta: *defaultEntMeta,
-					TransparentProxy: structs.TransparentProxyClusterConfig{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
 						CatalogDestinationsOnly: true,
 					},
 				},
@@ -4211,8 +4211,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"config_entries": {
 					"bootstrap": [
 						{
-							"Kind": "cluster",
-							"Name": "cluster",
+							"Kind": "mesh",
+							"Name": "mesh",
 							"Meta" : {
 								"foo": "bar",
 								"gir": "zim"
@@ -4228,8 +4228,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl: []string{`
 				config_entries {
 				  bootstrap {
-					Kind = "cluster"
-					Name = "cluster"
+					Kind = "mesh"
+					Name = "mesh"
 					Meta {
 						"foo" = "bar"
 						"gir" = "zim"
@@ -4244,15 +4244,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
-				&structs.ClusterConfigEntry{
-					Kind: "cluster",
-					Name: "cluster",
+				&structs.MeshConfigEntry{
+					Kind: structs.MeshConfig,
+					Name: structs.MeshConfigMesh,
 					Meta: map[string]string{
 						"foo": "bar",
 						"gir": "zim",
 					},
 					EnterpriseMeta: *defaultEntMeta,
-					TransparentProxy: structs.TransparentProxyClusterConfig{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
 						CatalogDestinationsOnly: true,
 					},
 				},

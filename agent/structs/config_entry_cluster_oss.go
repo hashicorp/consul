@@ -2,6 +2,6 @@
 
 package structs
 
-func (e *ClusterConfigEntry) validateEnterpriseMeta() error {
+func (e *MeshConfigEntry) validateEnterpriseMeta() error {
 	return nil
 }

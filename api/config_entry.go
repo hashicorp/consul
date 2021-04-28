@@ -21,10 +21,10 @@ const (
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
-	ClusterConfig      string = "cluster"
+	MeshConfig         string = "mesh"
 
-	ProxyConfigGlobal    string = "global"
-	ClusterConfigCluster string = "cluster"
+	ProxyConfigGlobal string = "global"
+	MeshConfigMesh    string = "mesh"
 )
 
 type ConfigEntry interface {
@@ -294,8 +294,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &TerminatingGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case ServiceIntentions:
 		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
-	case ClusterConfig:
-		return &ClusterConfigEntry{Kind: kind, Name: name}, nil
+	case MeshConfig:
+		return &MeshConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
