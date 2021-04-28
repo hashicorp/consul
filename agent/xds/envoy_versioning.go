@@ -14,6 +14,7 @@ var (
 	minSupportedVersion = version.Must(version.NewVersion("1.14.0"))
 
 	minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
+	minVersionAllowingMultipleIncrementalXDSChanges          = version.Must(version.NewVersion("1.16.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
@@ -28,6 +29,8 @@ type supportedProxyFeatures struct {
 	// add version dependent feature flags here
 
 	GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS bool
+
+	IncrementalXDSUpdatesMustBeSerial bool
 }
 
 func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
@@ -67,6 +70,10 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
 		sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
+	}
+
+	if version.LessThan(minVersionAllowingMultipleIncrementalXDSChanges) {
+		sf.IncrementalXDSUpdatesMustBeSerial = true
 	}
 
 	return sf, nil
