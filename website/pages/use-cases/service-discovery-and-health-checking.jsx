@@ -26,7 +26,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/discovery-health-checking/service_registry.svg?url'),
+          url: require('./img/discovery-health-checking/centralized-service-registry.png'),
         }}
       />
 
@@ -46,7 +46,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/discovery-health-checking/health_monitoring.svg?url'),
+          url: require('./img/discovery-health-checking/health-monitoring.png'),
         }}
       />
 
@@ -66,7 +66,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/discovery-health-checking/control_plane.svg?url'),
+          url: require('./img/discovery-health-checking/extesnsible-api.png'),
         }}
       />
 
@@ -131,7 +131,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
           ],
         }}
         image={{
-          url: require('./img/discovery-health-checking/map.svg?url'),
+          url: require('./img/discovery-health-checking/Map.png'),
         }}
       />
 

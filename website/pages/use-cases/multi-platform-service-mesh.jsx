@@ -24,7 +24,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/multi-platform-service-mesh/multi-datacenter.svg?url'),
+          url: require('./img/multi-platform-service-mesh/muilti-datacenter.png'),
         }}
       />
 
@@ -44,7 +44,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/multi-platform-service-mesh/service-to-service.svg?url'),
+          url: require('./img/multi-platform-service-mesh/service-to-service.png'),
         }}
       />
 
@@ -83,7 +83,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/multi-platform-service-mesh/kubernetes_extend.svg?url'),
+          url: require('./img/multi-platform-service-mesh/kubernetes-extend.png'),
         }}
       />
 
@@ -107,7 +107,7 @@ export default function MultiPlatformServiceMeshPage() {
           textSide: 'left',
         }}
         image={{
-          url: require('./img/multi-platform-service-mesh/robust_ecosystem.svg?url'),
+          url: require('./img/multi-platform-service-mesh/Ecosystem.png'),
         }}
       />
 

@@ -24,7 +24,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/network-automation/automation.svg?url'),
+          url: require('./img/network-automation/load-balancing.png'),
         }}
       />
 
@@ -43,7 +43,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/network-automation/firewalling.svg?url'),
+          url: require('./img/network-automation/firewalling.png'),
         }}
       />
 
@@ -63,7 +63,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/network-automation/health_checks.svg?url'),
+          url: require('./img/network-automation/health-checks-visibility.png'),
         }}
       />
 
@@ -82,7 +82,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/network-automation/ecosystem.svg?url'),
+          url: require('./img/network-automation/ecosystem-extend.png'),
         }}
       />
 
@@ -102,7 +102,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/network-automation/architecture.svg?url'),
+          url: require('./img/network-automation/architecture-extend.png'),
         }}
       />
 
