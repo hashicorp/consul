@@ -5,9 +5,11 @@ import (
 
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
-	"github.com/hashicorp/consul/sdk/testutil"
+
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestDetermineEnvoyVersionFromNode(t *testing.T) {
@@ -100,9 +102,9 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	// Insert a bunch of valid versions.
 	for _, v := range []string{
 		"1.13.1", "1.13.2", "1.13.3", "1.13.4", "1.13.6", "1.13.7",
-		"1.14.1", "1.14.2", "1.14.3", "1.14.4", "1.14.5", "1.14.6",
-		"1.15.0", "1.15.1", "1.15.2", "1.15.3",
-		"1.16.0", "1.16.1", "1.16.2",
+		"1.14.1", "1.14.2", "1.14.3", "1.14.4", "1.14.5", "1.14.6", "1.14.7",
+		"1.15.0", "1.15.1", "1.15.2", "1.15.3", "1.15.4",
+		"1.16.0", "1.16.1", "1.16.2", "1.16.3",
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{}}
 	}
