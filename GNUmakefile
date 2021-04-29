@@ -382,6 +382,9 @@ proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 module-versions:
 	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
 
+.PHONY: envoy-library
+envoy-library:
+	@$(SHELL) $(CURDIR)/build-support/scripts/envoy-library-references.sh
 
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
