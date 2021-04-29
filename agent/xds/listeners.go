@@ -1583,7 +1583,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			Name: "envoy.filters.http.grpc_http1_bridge",
 		}}, cfg.HttpFilters...)
 
-		// In envoy 1.14.x the default value "stats_for_all_methods=true"e was
+		// In envoy 1.14.x the default value "stats_for_all_methods=true" was
 		// deprecated, and was changed to "false" in 1.18.x. Avoid using the
 		// default. TODO: we may want to expose this to users somehow easily.
 		grpcStatsFilter, err := makeEnvoyHTTPFilter(
