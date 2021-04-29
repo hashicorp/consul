@@ -1,6 +1,7 @@
 package write
 
 import (
+	"bytes"
 	"io"
 	"strings"
 	"testing"
@@ -112,6 +113,36 @@ func TestConfigWrite(t *testing.T) {
 		code := c.Run([]string{})
 		require.NotEqual(t, 0, code)
 		require.NotEmpty(t, ui.ErrorWriter.String())
+	})
+
+	t.Run("mesh config entry", func(t *testing.T) {
+		stdin := new(bytes.Buffer)
+		stdin.WriteString(`
+kind = "mesh"
+meta {
+	"foo" = "bar"
+	"gir" = "zim"
+}
+transparent_proxy {
+	catalog_destinations_only = true
+}
+`)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdin
+
+		code := c.Run([]string{"-http-addr=" + a.HTTPAddr(), "-"})
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: mesh/mesh`)
+		require.Equal(t, 0, code)
+
+		entry, _, err := client.ConfigEntries().Get(api.MeshConfig, api.MeshConfigMesh, nil)
+		require.NoError(t, err)
+		proxy, ok := entry.(*api.MeshConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, map[string]string{"foo": "bar", "gir": "zim"}, proxy.Meta)
 	})
 }
 
