@@ -27,8 +27,8 @@ To configure a service, either provide the service definition as a
 `-config-file` option to the agent or place it inside the `-config-dir` of the
 agent. The file must end in the `.json` or `.hcl` extension to be loaded by
 Consul. Check definitions can be updated by sending a `SIGHUP` to the agent.
-Alternatively, the service can be registered dynamically using the [HTTP
-API](/api).
+Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
+using the [HTTP API](/api).
 
 A service definition is a configuration that looks like the following. This
 example shows all possible fields, but note that only a few are required.
@@ -71,7 +71,7 @@ example shows all possible fields, but note that only a few are required.
       "mode": "transparent",
       "transparent_proxy": {
         "outbound_listener_port": 22500
-      }      
+      },
       "config": {},
       "upstreams": [],
       "mesh_gateway": {
@@ -120,7 +120,7 @@ different versions, or any other service level labels.
 We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
 for service definition names and tags for [compatibility with external DNS](/docs/agent/services#service-and-tag-names-with-dns)
 
-The `address` field is optional, and can be used to specify a service-specific IP address or a hostname. 
+The `address` field is optional, and can be used to specify a service-specific IP address or a hostname.
 There is no server-side validation of this field, and it can be set to any string. When this value is not provided,
 the IP address of the agent node is used by default.
 The `port` field can be used as well to make a service-oriented architecture
@@ -275,8 +275,9 @@ deprecated and has been removed as of Consul 1.1.
 
 ## Multiple Service Definitions
 
-Multiple services definitions can be provided at once using the plural
-`services` key in your configuration file.
+Multiple services definitions can be provided at once when registering services
+via the agent configuration by using the plural `services` key (registering
+multiple services in this manner is not supported using the HTTP API).
 
 ```javascript
 {
