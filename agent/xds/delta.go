@@ -289,13 +289,9 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				if sent {
 					sentType[op.TypeUrl] = struct{}{}
 					if generator.ProxyFeatures.IncrementalXDSUpdatesMustBeSerial {
-						// Versions of Envoy prior to 1.16.0 could crash if
-						// multiple in-flight changes to resources were
-						// happening during incremental xDS. To prevent that we
-						// force serial updates on those older versions.
-						//
-						// issue: https://github.com/envoyproxy/envoy/issues/11877
-						// PR:    https://github.com/envoyproxy/envoy/pull/12069
+						// For more justification for this hacky fix, check the
+						// comments associated with
+						// generator.ProxyFeatures.IncrementalXDSUpdatesMustBeSerial
 						break
 					}
 				}

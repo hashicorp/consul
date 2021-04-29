@@ -28,8 +28,22 @@ type unsupportedVersion struct {
 type supportedProxyFeatures struct {
 	// add version dependent feature flags here
 
+	// GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS is needed to paper
+	// over some weird envoy behavior.
+	//
+	// For some reason Envoy versions prior to 1.16.0 when sent an empty CDS
+	// list via the incremental xDS protocol will correctly ack the message and
+	// just never request LDS resources.
 	GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS bool
 
+	// IncrementalXDSUpdatesMustBeSerial is needed to avoid an envoy crash.
+	//
+	// Versions of Envoy prior to 1.16.0 could crash if multiple in-flight
+	// changes to resources were happening during incremental xDS. To prevent
+	// that we force serial updates on those older versions.
+	//
+	// issue: https://github.com/envoyproxy/envoy/issues/11877
+	// PR:    https://github.com/envoyproxy/envoy/pull/12069
 	IncrementalXDSUpdatesMustBeSerial bool
 }
 

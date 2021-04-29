@@ -64,9 +64,8 @@ func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.
 		return resources, nil
 	}
 
-	// For some reason Envoy versions prior to 1.16.0 when sent an empty CDS
-	// list via the incremental xDS protocol will correctly ack the message and
-	// just never request LDS resources.
+	// For more justification for this hacky fix, check the comments associated
+	// with s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
 
 	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
 	return []proto.Message{
