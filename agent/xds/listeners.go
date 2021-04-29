@@ -14,11 +14,11 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/hashicorp/consul/sdk/iptables"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/iptables"
 )
 
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
@@ -1581,6 +1582,24 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{{
 			Name: "envoy.filters.http.grpc_http1_bridge",
 		}}, cfg.HttpFilters...)
+
+		// In envoy 1.14.x the default value "stats_for_all_methods=true" was
+		// deprecated, and was changed to "false" in 1.18.x. Avoid using the
+		// default. TODO: we may want to expose this to users somehow easily.
+		grpcStatsFilter, err := makeEnvoyHTTPFilter(
+			"envoy.filters.http.grpc_stats",
+			&envoy_grpc_stats_v3.FilterConfig{
+				PerMethodStatSpecifier: &envoy_grpc_stats_v3.FilterConfig_StatsForAllMethods{
+					StatsForAllMethods: makeBoolValue(true),
+				},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{
+			grpcStatsFilter,
+		}, cfg.HttpFilters...)
 	}
 
 	return makeFilter("envoy.filters.network.http_connection_manager", cfg)
