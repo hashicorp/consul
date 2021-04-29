@@ -26,7 +26,7 @@ git clone git@github.com:envoyproxy/go-control-plane
 cd go-control-plane
 git co -b consul-temp "${LIBRARY_VERSION}"
 
-IFS=$'\n' candiates=($(find . -name *.pb.go -a -type f | sed 's@/[^/]*\.pb\.go$@@' | sort -u))
+IFS=$'\n' candidates=($(find . -name *.pb.go -a -type f | sed 's@/[^/]*\.pb\.go$@@' | sort -u))
 
 echo "Generating a fresh ${OUTFILE} file..."
 cat <<-EOF > "${OUTFILE}"
@@ -37,7 +37,7 @@ package xds
 import (
 EOF
 
-for cand in "${candiates[@]}"; do
+for cand in "${candidates[@]}"; do
     import_name="${cand#./}"
     echo "	_ \"github.com/envoyproxy/go-control-plane/${import_name}\"" >> "${OUTFILE}"
 done
