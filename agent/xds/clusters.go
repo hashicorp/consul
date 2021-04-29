@@ -71,7 +71,9 @@ func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.
 	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
 	return []proto.Message{
 		&envoy_cluster_v3.Cluster{
-			Name: stubName,
+			Name:                 stubName,
+			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
 			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: stubName,
 				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
