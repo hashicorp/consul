@@ -59,6 +59,19 @@
       ul {
         margin-bottom: 0;
       }
+      figure {
+        margin-bottom: .5rem;
+      }
+      figcaption {
+        margin-bottom: .5rem;
+        color: var(--gray-400);
+        font-style: italic;
+      }
+      figure > [type=text] {
+        border: 1px solid var(--gray-999);
+        width: 100%;
+        padding: .5rem;
+      }
     }
     // &__snippets__tabs__button {
     //   display: none;
