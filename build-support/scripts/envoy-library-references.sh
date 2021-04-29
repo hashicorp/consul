@@ -1,5 +1,22 @@
 #!/bin/bash
 
+####
+# envoy-library-references.sh
+#
+# This script ensures that all of the protobuf packages present in the
+# github.com/envoyproxy/go-control-plane library are referenced in the consul
+# codebase somewhere so that the ultimate binary doesn't eliminate those
+# packages. When the packages are linked in they use proto.RegisterFile() to
+# globally register the types in the protobuf machinery so that they are
+# available for decoding.
+#
+# We primarily need this for the Escape Hatch feature where users can provide
+# arbitrary xDS JSON for Consul to decode. If extension points use *any.Any and
+# use an extention package that Consul itself doesn't use then it won't decode
+# unless the package is linked into the binary.
+#
+####
+
 set -euo pipefail
 unset CDPATH
 
