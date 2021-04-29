@@ -42,8 +42,7 @@ module.exports = {
   treeFor: function(name) {
     const tree = this._super.treeFor.apply(this, arguments);
     if (name === 'app') {
-      const prodlike = ['production', 'staging'];
-      if (prodlike.includes(process.env.EMBER_ENV)) {
+      if (['production', 'test'].includes(process.env.EMBER_ENV)) {
         return mergeTrees([tree, writeFile('components/debug/navigation/index.hbs', '')]);
       }
     }

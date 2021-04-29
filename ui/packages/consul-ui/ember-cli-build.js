@@ -3,6 +3,9 @@ const Funnel = require('broccoli-funnel');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
 module.exports = function(defaults) {
+  // available environments
+  // ['production', 'development', 'staging', 'test'];
+
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
 
@@ -14,8 +17,8 @@ module.exports = function(defaults) {
   const sourcemaps = !['production'].includes(env);
 
   // setup up different build configuration depending on environment
-  if(!['testing'].includes(env)) {
-    // exclude any component/pageobject.js files from anything but testing
+  if(!['test'].includes(env)) {
+    // exclude any component/pageobject.js files from anything but test
     excludeFiles = excludeFiles.concat([
       'components/**/pageobject.js',
       'components/**/*.test-support.js',
@@ -23,20 +26,20 @@ module.exports = function(defaults) {
     ])
   }
 
-  if(['testing', 'production'].includes(env)) {
+  if(['test', 'production'].includes(env)) {
     // exclude our debug initializer, route and template
     excludeFiles = excludeFiles.concat([
       'instance-initializers/debug.js',
       'templates/debug.hbs',
       'components/debug/**/*.*'
     ])
-    // exclude any debug like addons from production or testing environments
+    // exclude any debug like addons from production or test environments
     addons.blacklist = [
       // exclude docfy
       '@docfy/ember'
     ];
   } else {
-    // add debug css is we are not in testing or production environments
+    // add debug css is we are not in test or production environments
     outputPaths.app = {
       css: {
         'debug': '/assets/debug.css'
