@@ -3,8 +3,9 @@ package xds
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestParseProxyConfig(t *testing.T) {

@@ -226,7 +226,7 @@ const bootstrapTemplate = `{
       "resource_api_version": "V3"
     },
     "ads_config": {
-      "api_type": "GRPC",
+      "api_type": "DELTA_GRPC",
       "transport_api_version": "V3",
       "grpc_services": {
         "initial_metadata": [

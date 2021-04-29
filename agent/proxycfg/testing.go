@@ -10,14 +10,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
 // TestCacheTypes encapsulates all the different cache types proxycfg.State will
@@ -752,6 +753,10 @@ func TestConfigSnapshotDiscoveryChainWithEntries(t testing.T, additionalEntries 
 	return testConfigSnapshotDiscoveryChain(t, "simple", additionalEntries...)
 }
 
+func TestConfigSnapshotDiscoveryChainDefaultWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "default", additionalEntries...)
+}
+
 func TestConfigSnapshotDiscoveryChainDefault(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "default")
 }
@@ -796,6 +801,8 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
+			Intentions:    nil, // no intentions defined
+			IntentionsSet: true,
 		},
 		Datacenter: "dc1",
 	}
@@ -1316,7 +1323,9 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries, additionalEntries...)
 	}
 
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
+	dbChain := discoverychain.TestCompileConfigEntries(
+		t, "db", "default", "dc1",
+		connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
 
 	upstreams := structs.TestUpstreams(t)
 	snap := ConfigSnapshotUpstreams{

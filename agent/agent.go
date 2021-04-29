@@ -655,16 +655,15 @@ func (a *Agent) listenAndServeGRPC() error {
 		return nil
 	}
 
-	xdsServer := &xds.Server{
-		Logger: a.logger.Named(logging.Envoy),
-		CfgMgr: a.proxyConfig,
-		ResolveToken: func(id string) (acl.Authorizer, error) {
+	xdsServer := xds.NewServer(
+		a.logger.Named(logging.Envoy),
+		a.proxyConfig,
+		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
-		CheckFetcher:       a,
-		CfgFetcher:         a,
-		AuthCheckFrequency: xds.DefaultAuthCheckFrequency,
-	}
+		a,
+		a,
+	)
 
 	tlsConfig := a.tlsConfigurator
 	// gRPC uses the same TLS settings as the HTTPS API. If HTTPS is not enabled
