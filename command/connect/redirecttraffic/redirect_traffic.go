@@ -3,6 +3,8 @@ package redirecttraffic
 import (
 	"flag"
 	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -34,10 +36,14 @@ type cmd struct {
 	client *api.Client
 
 	// Flags.
-	proxyUID          string
-	proxyID           string
-	proxyInboundPort  int
-	proxyOutboundPort int
+	proxyUID             string
+	proxyID              string
+	proxyInboundPort     int
+	proxyOutboundPort    int
+	excludeInboundPorts  []string
+	excludeOutboundPorts []string
+	excludeOutboundCIDRs []string
+	excludeUIDs          []string
 }
 
 func (c *cmd) init() {
@@ -48,6 +54,14 @@ func (c *cmd) init() {
 	c.flags.IntVar(&c.proxyInboundPort, "proxy-inbound-port", 0, "The inbound port that the proxy is listening on.")
 	c.flags.IntVar(&c.proxyOutboundPort, "proxy-outbound-port", iptables.DefaultTProxyOutboundPort,
 		"The outbound port that the proxy is listening on. When not provided, 15001 is used by default.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.excludeInboundPorts), "exclude-inbound-port",
+		"Inbound port to exclude from traffic redirection. May be provided multiple times.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.excludeOutboundPorts), "exclude-outbound-port",
+		"Outbound port to exclude from traffic redirection. May be provided multiple times.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.excludeOutboundCIDRs), "exclude-outbound-cidr",
+		"Outbound CIDR to exclude from traffic redirection. May be provided multiple times.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.excludeUIDs), "exclude-uid",
+		"Additional user ID to exclude from traffic redirection. May be provided multiple times.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -105,12 +119,18 @@ func (c *cmd) Help() string {
 // with only the configuration values that we need to parse from Proxy.Config
 // to apply traffic redirection rules.
 type trafficRedirectProxyConfig struct {
-	BindPort int `mapstructure:"bind_port"`
+	BindPort           int    `mapstructure:"bind_port"`
+	PrometheusBindAddr string `mapstructure:"envoy_prometheus_bind_addr"`
+	StatsBindAddr      string `mapstructure:"envoy_stats_bind_addr"`
 }
 
 // generateConfigFromFlags generates iptables.Config based on command flags.
 func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
-	cfg := iptables.Config{ProxyUserID: c.proxyUID}
+	cfg := iptables.Config{
+		ProxyUserID:       c.proxyUID,
+		ProxyInboundPort:  c.proxyInboundPort,
+		ProxyOutboundPort: c.proxyOutboundPort,
+	}
 
 	// When proxyID is provided, we set up cfg with values
 	// from proxy's service registration in Consul.
@@ -132,21 +152,67 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			return iptables.Config{}, fmt.Errorf("service %s is not a proxy service", c.proxyID)
 		}
 
-		cfg.ProxyInboundPort = svc.Port
+		// Decode proxy's opaque config so that we can use it later to configure
+		// traffic redirection with iptables.
 		var trCfg trafficRedirectProxyConfig
 		if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
 			return iptables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
 		}
 
+		// Set the proxy's inbound port.
+		cfg.ProxyInboundPort = svc.Port
 		if trCfg.BindPort != 0 {
 			cfg.ProxyInboundPort = trCfg.BindPort
 		}
 
-		// todo: Change once it's configurable
+		// Set the proxy's outbound port.
 		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
-	} else {
-		cfg.ProxyInboundPort = c.proxyInboundPort
-		cfg.ProxyOutboundPort = c.proxyOutboundPort
+		if svc.Proxy.TransparentProxy != nil && svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+			cfg.ProxyOutboundPort = svc.Proxy.TransparentProxy.OutboundListenerPort
+		}
+
+		// Exclude envoy_prometheus_bind_addr port from inbound redirection rules.
+		if trCfg.PrometheusBindAddr != "" {
+			_, port, err := net.SplitHostPort(trCfg.PrometheusBindAddr)
+			if err != nil {
+				return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_prometheus_bind_addr: %s", err)
+			}
+
+			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
+		}
+
+		// Exclude envoy_stats_bind_addr port from inbound redirection rules.
+		if trCfg.StatsBindAddr != "" {
+			_, port, err := net.SplitHostPort(trCfg.StatsBindAddr)
+			if err != nil {
+				return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_stats_bind_addr: %s", err)
+			}
+
+			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
+		}
+
+		// Exclude the ListenerPort from Expose configs from inbound traffic redirection.
+		for _, exposePath := range svc.Proxy.Expose.Paths {
+			if exposePath.ListenerPort != 0 {
+				cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(exposePath.ListenerPort))
+			}
+		}
+	}
+
+	for _, port := range c.excludeInboundPorts {
+		cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
+	}
+
+	for _, port := range c.excludeOutboundPorts {
+		cfg.ExcludeOutboundPorts = append(cfg.ExcludeOutboundPorts, port)
+	}
+
+	for _, cidr := range c.excludeOutboundCIDRs {
+		cfg.ExcludeOutboundCIDRs = append(cfg.ExcludeOutboundCIDRs, cidr)
+	}
+
+	for _, uid := range c.excludeUIDs {
+		cfg.ExcludeUIDs = append(cfg.ExcludeUIDs, uid)
 	}
 
 	return cfg, nil
