@@ -16,23 +16,24 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesForConnectProxy(cInfo, cfgSnap.ConnectProxy.DiscoveryChain)
+		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return routesForIngressGateway(cInfo, cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+		return s.routesForIngressGateway(cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
 	case structs.ServiceKindTerminatingGateway:
-		return s.routesFromSnapshotTerminatingGateway(cInfo, cfgSnap)
+		return s.routesFromSnapshotTerminatingGateway(cfgSnap)
+	case structs.ServiceKindMeshGateway:
+		return nil, nil // mesh gateways will never have routes
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -40,18 +41,14 @@ func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesForConnectProxy(
-	cInfo connectionInfo,
-	chains map[string]*structs.CompiledDiscoveryChain,
-) ([]proto.Message, error) {
-
+func (s *ResourceGenerator) routesForConnectProxy(chains map[string]*structs.CompiledDiscoveryChain) ([]proto.Message, error) {
 	var resources []proto.Message
 	for id, chain := range chains {
 		if chain.IsDefault() {
 			continue
 		}
 
-		virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, id, chain, []string{"*"})
+		virtualHost, err := makeUpstreamRouteForDiscoveryChain(id, chain, []string{"*"})
 		if err != nil {
 			return nil, err
 		}
@@ -73,11 +70,10 @@ func routesForConnectProxy(
 
 // routesFromSnapshotTerminatingGateway returns the xDS API representation of the "routes" in the snapshot.
 // For any HTTP service we will return a default route.
-func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
-	logger := s.Logger.Named(logging.TerminatingGateway)
 
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
@@ -106,7 +102,7 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 		}
 		route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 		if err != nil {
-			logger.Error("failed to make route", "cluster", clusterName, "error", err)
+			s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 			continue
 		}
 		resources = append(resources, route)
@@ -116,7 +112,7 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 			if err != nil {
-				logger.Error("failed to make route", "cluster", clusterName, "error", err)
+				s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
 				continue
 			}
 			resources = append(resources, route)
@@ -163,8 +159,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 
 // routesForIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesForIngressGateway(
-	cInfo connectionInfo,
+func (s *ResourceGenerator) routesForIngressGateway(
 	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
 	chains map[string]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {
@@ -191,7 +186,7 @@ func routesForIngressGateway(
 			}
 
 			domains := generateUpstreamIngressDomains(listenerKey, u)
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, domains)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
 			if err != nil {
 				return nil, err
 			}
@@ -251,7 +246,6 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 }
 
 func makeUpstreamRouteForDiscoveryChain(
-	cInfo connectionInfo,
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
@@ -268,7 +262,7 @@ func makeUpstreamRouteForDiscoveryChain(
 		routes = make([]*envoy_route_v3.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
-			routeMatch := makeRouteMatchForDiscoveryRoute(cInfo, discoveryRoute)
+			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute)
 
 			var (
 				routeAction *envoy_route_v3.Route_Route
@@ -397,7 +391,7 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()

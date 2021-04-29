@@ -256,12 +256,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						tt.setup(snap)
 					}
 
-					s := Server{Logger: testutil.Logger(t)}
-					cInfo := connectionInfo{
-						Token:         "my-token",
-						ProxyFeatures: sf,
-					}
-					routes, err := s.routesFromSnapshot(cInfo, snap)
+					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
+					g.ProxyFeatures = sf
+
+					routes, err := g.routesFromSnapshot(snap)
 					require.NoError(t, err)
 
 					sort.Slice(routes, func(i, j int) bool {

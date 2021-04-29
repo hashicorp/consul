@@ -24,6 +24,7 @@ const (
 	FSM                string = "fsm"
 	GatewayLocator     string = "gateway_locator"
 	HTTP               string = "http"
+	IngressGateway     string = "ingress_gateway"
 	Intentions         string = "intentions"
 	Internal           string = "internal"
 	KV                 string = "kvs"

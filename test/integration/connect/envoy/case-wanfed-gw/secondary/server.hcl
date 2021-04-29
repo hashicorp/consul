@@ -7,6 +7,7 @@ primary_gateways = [
   "consul-primary:4431",
 ]
 primary_gateways_interval = "5s"
+retry_interval_wan        = "5s"
 ca_file                   = "/workdir/secondary/tls/consul-agent-ca.pem"
 cert_file                 = "/workdir/secondary/tls/secondary-server-consul-0.pem"
 key_file                  = "/workdir/secondary/tls/secondary-server-consul-0-key.pem"

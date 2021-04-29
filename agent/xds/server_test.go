@@ -1,159 +1,118 @@
 package xds
 
 import (
-	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-// testManager is a mock of proxycfg.Manager that's simpler to control for
-// testing. It also implements ConnectAuthz to allow control over authorization.
-type testManager struct {
-	sync.Mutex
-	chans   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot
-	cancels chan structs.ServiceID
-	authz   map[string]connectAuthzResult
-}
+// NOTE: For these tests, prefer not using xDS protobuf "factory" methods if
+// possible to avoid using them to test themselves.
+//
+// Stick to very straightforward stuff in xds_protocol_helpers_test.go.
 
-type connectAuthzResult struct {
-	authz    bool
-	reason   string
-	m        *cache.ResultMeta
-	err      error
-	validate func(req *structs.ConnectAuthorizeRequest) error
-}
-
-func newTestManager(t *testing.T) *testManager {
-	return &testManager{
-		chans:   map[structs.ServiceID]chan *proxycfg.ConfigSnapshot{},
-		cancels: make(chan structs.ServiceID, 10),
-		authz:   make(map[string]connectAuthzResult),
-	}
-}
-
-// RegisterProxy simulates a proxy registration
-func (m *testManager) RegisterProxy(t *testing.T, proxyID structs.ServiceID) {
-	m.Lock()
-	defer m.Unlock()
-	m.chans[proxyID] = make(chan *proxycfg.ConfigSnapshot, 1)
-}
-
-// Deliver simulates a proxy registration
-func (m *testManager) DeliverConfig(t *testing.T, proxyID structs.ServiceID, cfg *proxycfg.ConfigSnapshot) {
-	t.Helper()
-	m.Lock()
-	defer m.Unlock()
-	select {
-	case m.chans[proxyID] <- cfg:
-	case <-time.After(10 * time.Millisecond):
-		t.Fatalf("took too long to deliver config")
-	}
-}
-
-// Watch implements ConfigManager
-func (m *testManager) Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc) {
-	m.Lock()
-	defer m.Unlock()
-	// ch might be nil but then it will just block forever
-	return m.chans[proxyID], func() {
-		m.cancels <- proxyID
-	}
-}
-
-// AssertWatchCancelled checks that the most recent call to a Watch cancel func
-// was from the specified proxyID and that one is made in a short time. This
-// probably won't work if you are running multiple Watches in parallel on
-// multiple proxyIDS due to timing/ordering issues but I don't think we need to
-// do that.
-func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID structs.ServiceID) {
-	t.Helper()
-	select {
-	case got := <-m.cancels:
-		require.Equal(t, proxyID, got)
-	case <-time.After(50 * time.Millisecond):
-		t.Fatalf("timed out waiting for Watch cancel for %s", proxyID)
-	}
-}
-
-func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
-	mgr := newTestManager(t)
+func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	envoy := NewTestEnvoy(t, "web-sidecar-proxy", "")
-	defer envoy.Close()
-
-	s := Server{
-		Logger:       testutil.Logger(t),
-		CfgMgr:       mgr,
-		ResolveToken: aclResolve,
-	}
+	scenario := newTestServerScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
-
-	go func() {
-		err := s.StreamAggregatedResources(envoy.stream)
-		require.NoError(t, err)
-	}()
 
 	// Register the proxy to create state needed to Watch() on
 	mgr.RegisterProxy(t, sid)
 
-	// Send initial cluster discover
-	envoy.SendReq(t, ClusterType, 0, 0)
+	// Send initial cluster discover (empty payload)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Deliver a new snapshot
-	snap := proxycfg.TestConfigSnapshot(t)
+	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
+	expectClusterResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     ClusterType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestCluster_v2(t, snap, "tcp:local_app"),
+				makeTestCluster_v2(t, snap, "tcp:db"),
+				makeTestCluster_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+	expectEndpointResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     EndpointType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestEndpoints_v2(t, snap, "tcp:db"),
+				makeTestEndpoints_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+	expectListenerResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     ListenerType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestListener_v2(t, snap, "tcp:public_listener"),
+				makeTestListener_v2(t, snap, "tcp:db"),
+				makeTestListener_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+
+	assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(1, 1))
 
 	// Envoy then tries to discover endpoints for those clusters. Technically it
 	// includes the cluster names in the ResourceNames field but we ignore that
 	// completely for now so not bothering to simulate that.
-	envoy.SendReq(t, EndpointType, 0, 0)
+	envoy.SendReq(t, EndpointType_v2, 0, 0)
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)
-	envoy.SendReq(t, ClusterType, 1, 1)
+	envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 	// We should get a response immediately since the config is already present in
 	// the server for endpoints. Note that this should not be racy if the server
 	// is behaving well since the Cluster send above should be blocked until we
 	// deliver a new config version.
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(1, 2))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(1, 2))
 
 	// And no other response yet
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Envoy now sends listener request along with next endpoint one
-	envoy.SendReq(t, ListenerType, 0, 0)
-	envoy.SendReq(t, EndpointType, 1, 2)
+	envoy.SendReq(t, ListenerType_v2, 0, 0)
+	envoy.SendReq(t, EndpointType_v2, 1, 2)
 
 	// And should get a response immediately.
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 1, 3))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(1, 3))
 
 	// Now send Route request along with next listener one
-	envoy.SendReq(t, RouteType, 0, 0)
-	envoy.SendReq(t, ListenerType, 1, 3)
+	envoy.SendReq(t, RouteType_v2, 0, 0)
+	envoy.SendReq(t, ListenerType_v2, 1, 3)
 
 	// We don't serve routes yet so this should block with no response
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -169,14 +128,13 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	// All 3 response that have something to return should return with new version
 	// note that the ordering is not deterministic in general. Trying to make this
-	// test order-agnostic though is a massive pain since we are comparing
-	// non-identical JSON strings (so can simply sort by anything) and because we
+	// test order-agnostic though is a massive pain because we
 	// don't know the order the nonces will be assigned. For now we rely and
 	// require our implementation to always deliver updates in a specific order
 	// which is reasonable anyway to ensure consistency of the config Envoy sees.
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 2, 4))
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(2, 5))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 2, 6))
+	assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(2, 4))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(2, 5))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(2, 6))
 
 	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
 	// all the others (same version) but NACK the listener. This is the most
@@ -199,9 +157,9 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// In this case we are simulating that Envoy failed to apply the Listener
 	// response but did apply the other types so all get the new nonces, but
 	// listener stays on v1.
-	envoy.SendReq(t, ClusterType, 2, 4)
-	envoy.SendReq(t, EndpointType, 2, 5)
-	envoy.SendReq(t, ListenerType, 1, 6) // v1 is a NACK
+	envoy.SendReq(t, ClusterType_v2, 2, 4)
+	envoy.SendReq(t, EndpointType_v2, 2, 5)
+	envoy.SendReq(t, ListenerType_v2, 1, 6)
 
 	// Even though we nacked, we should still NOT get then v2 listeners
 	// redelivered since nothing has changed.
@@ -211,177 +169,190 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	snap.ConnectProxy.Leaf = proxycfg.TestLeafForCA(t, snap.Roots.Roots[0])
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 3, 7))
-	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(3, 8))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 3, 9))
-}
+	assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(3, 7))
+	assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(3, 8))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(3, 9))
 
-func expectEndpointsJSON(v, n uint64) string {
-	return `{
-		"versionInfo": "` + hexString(v) + `",
-		"resources": [
-			{
-				"@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-				"clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-				"endpoints": [
-					{
-						"lbEndpoints": [
-							{
-								"endpoint": {
-									"address": {
-										"socketAddress": {
-											"address": "10.10.1.1",
-											"portValue": 8080
-										}
-									}
-								},
-								"healthStatus": "HEALTHY",
-								"loadBalancingWeight": 1
-							},
-							{
-								"endpoint": {
-									"address": {
-										"socketAddress": {
-											"address": "10.10.1.2",
-											"portValue": 8080
-										}
-									}
-								},
-								"healthStatus": "HEALTHY",
-								"loadBalancingWeight": 1
-							}
-						]
-					}
-				]
-			},
-			{
-				"@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-				"clusterName": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-				"endpoints": [
-					{
-						"lbEndpoints": [
-							{
-								"endpoint": {
-									"address": {
-										"socketAddress": {
-											"address": "10.10.1.1",
-											"portValue": 8080
-										}
-									}
-								},
-								"healthStatus": "HEALTHY",
-								"loadBalancingWeight": 1
-							},
-							{
-								"endpoint": {
-									"address": {
-										"socketAddress": {
-											"address": "10.10.1.2",
-											"portValue": 8080
-										}
-									}
-								},
-								"healthStatus": "HEALTHY",
-								"loadBalancingWeight": 1
-							}
-						]
-					}
-				]
-			}
-		],
-		"typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-		"nonce": "` + hexString(n) + `"
-	}`
-}
-
-func expectedUpstreamTransportSocketJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext", false, sni)
-}
-
-func expectedPublicTransportSocketJSON(snap *proxycfg.ConfigSnapshot) string {
-	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext", true, "")
-}
-
-func expectedTransportSocketJSON(
-	snap *proxycfg.ConfigSnapshot,
-	extType string,
-	requireClientCert bool,
-	sni string,
-) string {
-	// Assume just one root for now, can get fancier later if needed.
-	caPEM := snap.Roots.Roots[0].RootCert
-	reqClient := ""
-	if requireClientCert {
-		reqClient = `,
-		"requireClientCertificate": true`
-	}
-
-	upstreamSNI := ""
-	if sni != "" {
-		upstreamSNI = `,
-		"sni": "` + sni + `"`
-	}
-
-	return `{
-	"name": "tls",
-	"typedConfig": {
-		"@type": "` + extType + `",
-		"commonTlsContext": {
-			"tlsParams": {},
-			"tlsCertificates": [
-				{
-					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.Leaf().CertPEM, "\n", "\\n", -1) + `"
-					},
-					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.Leaf().PrivateKeyPEM, "\n", "\\n", -1) + `"
-					}
-				}
-			],
-			"validationContext": {
-				"trustedCa": {
-					"inlineString": "` + strings.Replace(caPEM, "\n", "\\n", -1) + `"
-				}
-			}
-		}
-		` + reqClient + `
-		` + upstreamSNI + `
- 		}
-	}`
-}
-
-func assertChanBlocked(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryResponse) {
-	t.Helper()
+	envoy.Close()
 	select {
-	case r := <-ch:
-		t.Fatalf("chan should block but received: %v", r)
-	case <-time.After(10 * time.Millisecond):
-		return
-	}
-}
-
-func assertResponseSent(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
-	t.Helper()
-	select {
-	case r := <-ch:
-		assertResponse(t, r, wantJSON)
+	case err := <-errCh:
+		require.NoError(t, err)
 	case <-time.After(50 * time.Millisecond):
-		t.Fatalf("no response received after 50ms")
+		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
 
-// assertResponse is a helper to test a envoy.DiscoveryResponse matches the
-// JSON representation we expect. We use JSON because the responses use protobuf
-// Any type which includes binary protobuf encoding and would make creating
-// expected structs require the same code that is under test!
-func assertResponse(t *testing.T, r *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
-	t.Helper()
-	gotJSON := protoToJSON(t, r)
-	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
+func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		// Allow all
+		return acl.RootAuthorizer("manage"), nil
+	}
+	scenario := newTestServerScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
+
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, sid)
+
+	// Send initial cluster discover (empty payload)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
+
+	// Check no response sent yet
+	assertChanBlocked(t, envoy.stream.sendCh)
+
+	// Deliver a new snapshot
+	// Deliver a new snapshot (tcp with one http upstream)
+	snap := newTestSnapshot(t, nil, "http2", &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "db",
+		Protocol: "http2",
+	})
+	mgr.DeliverConfig(t, sid, snap)
+
+	expectClusterResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     ClusterType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestCluster_v2(t, snap, "tcp:local_app"),
+				makeTestCluster_v2(t, snap, "http2:db"),
+				makeTestCluster_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+	expectEndpointResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     EndpointType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestEndpoints_v2(t, snap, "http2:db"),
+				makeTestEndpoints_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+	expectListenerResponse := func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     ListenerType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestListener_v2(t, snap, "tcp:public_listener"),
+				makeTestListener_v2(t, snap, "http2:db"),
+				makeTestListener_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+
+	runStep(t, "no-rds", func(t *testing.T) {
+
+		// REQ: clusters
+		envoy.SendReq(t, ClusterType_v2, 0, 0)
+
+		// RESP: clusters
+		assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(1, 1))
+
+		assertChanBlocked(t, envoy.stream.sendCh)
+
+		// REQ: endpoints
+		envoy.SendReq(t, EndpointType_v2, 0, 0)
+
+		// ACK: clusters
+		envoy.SendReq(t, ClusterType_v2, 1, 1)
+
+		// RESP: endpoints
+		assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(1, 2))
+
+		assertChanBlocked(t, envoy.stream.sendCh)
+
+		// REQ: listeners
+		envoy.SendReq(t, ListenerType_v2, 0, 0)
+
+		// ACK: endpoints
+		envoy.SendReq(t, EndpointType_v2, 1, 2)
+
+		// RESP: listeners
+		assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(1, 3))
+
+		assertChanBlocked(t, envoy.stream.sendCh)
+
+		// ACK: listeners
+		envoy.SendReq(t, ListenerType_v2, 1, 3)
+
+		assertChanBlocked(t, envoy.stream.sendCh)
+	})
+
+	// -- reconfigure with a no-op discovery chain
+
+	snap = newTestSnapshot(t, snap, "http2", &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "db",
+		Protocol: "http2",
+	}, &structs.ServiceRouterConfigEntry{
+		Kind:   structs.ServiceRouter,
+		Name:   "db",
+		Routes: nil,
+	})
+	mgr.DeliverConfig(t, sid, snap)
+
+	// update this test helper to reflect the RDS-linked listener
+	expectListenerResponse = func(v, n uint64) *envoy_api_v2.DiscoveryResponse {
+		return &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(v),
+			TypeUrl:     ListenerType_v2,
+			Nonce:       hexString(n),
+			Resources: makeTestResources_v2(t,
+				makeTestListener_v2(t, snap, "tcp:public_listener"),
+				makeTestListener_v2(t, snap, "http2:db:rds"),
+				makeTestListener_v2(t, snap, "tcp:geo-cache"),
+			),
+		}
+	}
+
+	runStep(t, "with-rds", func(t *testing.T) {
+		// RESP: listeners (but also a stray update of the other registered types)
+		assertResponseSent(t, envoy.stream.sendCh, expectClusterResponse(2, 4))
+		assertResponseSent(t, envoy.stream.sendCh, expectEndpointResponse(2, 5))
+		assertResponseSent(t, envoy.stream.sendCh, expectListenerResponse(2, 6))
+
+		assertChanBlocked(t, envoy.stream.sendCh)
+
+		// ACK: listeners (but also stray ACKs of the other registered types)
+		envoy.SendReq(t, ClusterType_v2, 2, 4)
+		envoy.SendReq(t, EndpointType_v2, 2, 5)
+		envoy.SendReq(t, ListenerType_v2, 2, 6)
+
+		// REQ: routes
+		envoy.SendReq(t, RouteType_v2, 0, 0)
+
+		// RESP: routes
+		assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
+			VersionInfo: hexString(2),
+			TypeUrl:     RouteType_v2,
+			Nonce:       hexString(7),
+			Resources: makeTestResources_v2(t,
+				makeTestRoute_v2(t, "http2:db"),
+			),
+		})
+
+		assertChanBlocked(t, envoy.stream.sendCh)
+
+		// ACK: routes
+		envoy.SendReq(t, RouteType_v2, 2, 7)
+	})
+
+	envoy.Close()
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
 }
 
-func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
-
+func TestServer_StreamAggregatedResources_v2_ACLEnforcement(t *testing.T) {
 	tests := []struct {
 		name        string
 		defaultDeny bool
@@ -438,7 +409,6 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mgr := newTestManager(t)
 			aclResolve := func(id string) (acl.Authorizer, error) {
 				if !tt.defaultDeny {
 					// Allow all
@@ -455,19 +425,9 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				require.NoError(t, err)
 				return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 			}
-			envoy := NewTestEnvoy(t, "web-sidecar-proxy", tt.token)
-			defer envoy.Close()
 
-			s := Server{
-				Logger:       testutil.Logger(t),
-				CfgMgr:       mgr,
-				ResolveToken: aclResolve,
-			}
-
-			errCh := make(chan error, 1)
-			go func() {
-				errCh <- s.StreamAggregatedResources(envoy.stream)
-			}()
+			scenario := newTestServerScenario(t, aclResolve, "web-sidecar-proxy", tt.token, 0)
+			mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 			sid := structs.NewServiceID("web-sidecar-proxy", nil)
 			// Register the proxy to create state needed to Watch() on
@@ -476,17 +436,26 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			// Deliver a new snapshot
 			snap := tt.cfgSnap
 			if snap == nil {
-				snap = proxycfg.TestConfigSnapshot(t)
+				snap = newTestSnapshot(t, nil, "")
 			}
 			mgr.DeliverConfig(t, sid, snap)
 
 			// Send initial listener discover, in real life Envoy always sends cluster
 			// first but it doesn't really matter and listener has a response that
-			// includes the token in the ext authz filter so lets us test more stuff.
-			envoy.SendReq(t, ListenerType, 0, 0)
+			// includes the token in the ext rbac filter so lets us test more stuff.
+			envoy.SendReq(t, ListenerType_v2, 0, 0)
 
 			if !tt.wantDenied {
-				assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 1, 1))
+				assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
+					VersionInfo: hexString(1),
+					TypeUrl:     ListenerType_v2,
+					Nonce:       hexString(1),
+					Resources: makeTestResources_v2(t,
+						makeTestListener_v2(t, snap, "tcp:public_listener"),
+						makeTestListener_v2(t, snap, "tcp:db"),
+						makeTestListener_v2(t, snap, "tcp:geo-cache"),
+					),
+				})
 				// Close the client stream since all is well. We _don't_ do this in the
 				// expected error case because we want to verify the error closes the
 				// stream from server side.
@@ -509,7 +478,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 	}
 }
 
-func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuringDiscoveryRequest(t *testing.T) {
+func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedDuringDiscoveryRequest(t *testing.T) {
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
 
@@ -519,7 +488,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
 			return nil, acl.ErrNotFound
@@ -527,20 +495,10 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 
 		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 	}
-	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
-	defer envoy.Close()
-
-	s := Server{
-		Logger:             testutil.Logger(t),
-		CfgMgr:             mgr,
-		ResolveToken:       aclResolve,
-		AuthCheckFrequency: 1 * time.Hour, // make sure this doesn't kick in
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- s.StreamAggregatedResources(envoy.stream)
-	}()
+	scenario := newTestServerScenario(t, aclResolve, "web-sidecar-proxy", token,
+		1*time.Hour, // make sure this doesn't kick in
+	)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	getError := func() (gotErr error, ok bool) {
 		select {
@@ -556,7 +514,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 	{
 		err, ok := getError()
 		require.NoError(t, err)
@@ -572,17 +530,26 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	}
 
 	// Deliver a new snapshot
-	snap := proxycfg.TestConfigSnapshot(t)
+	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
+	assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
+		VersionInfo: hexString(1),
+		TypeUrl:     ClusterType_v2,
+		Nonce:       hexString(1),
+		Resources: makeTestResources_v2(t,
+			makeTestCluster_v2(t, snap, "tcp:local_app"),
+			makeTestCluster_v2(t, snap, "tcp:db"),
+			makeTestCluster_v2(t, snap, "tcp:geo-cache"),
+		),
+	})
 
 	// Now nuke the ACL token.
 	validToken.Store("")
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)
-	envoy.SendReq(t, ClusterType, 1, 1)
+	envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 	select {
 	case err := <-errCh:
@@ -598,7 +565,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	}
 }
 
-func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBackground(t *testing.T) {
+func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInBackground(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -612,7 +579,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
 			return nil, acl.ErrNotFound
@@ -620,20 +586,10 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 
 		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
 	}
-	envoy := NewTestEnvoy(t, "web-sidecar-proxy", token)
-	defer envoy.Close()
-
-	s := Server{
-		Logger:             testutil.Logger(t),
-		CfgMgr:             mgr,
-		ResolveToken:       aclResolve,
-		AuthCheckFrequency: 100 * time.Millisecond, // Make this short.
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- s.StreamAggregatedResources(envoy.stream)
-	}()
+	scenario := newTestServerScenario(t, aclResolve, "web-sidecar-proxy", token,
+		100*time.Millisecond, // Make this short.
+	)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	getError := func() (gotErr error, ok bool) {
 		select {
@@ -649,7 +605,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover (OK)
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 	{
 		err, ok := getError()
 		require.NoError(t, err)
@@ -665,14 +621,23 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	}
 
 	// Deliver a new snapshot
-	snap := proxycfg.TestConfigSnapshot(t)
+	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)
 
-	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
+	assertResponseSent(t, envoy.stream.sendCh, &envoy_api_v2.DiscoveryResponse{
+		VersionInfo: hexString(1),
+		TypeUrl:     ClusterType_v2,
+		Nonce:       hexString(1),
+		Resources: makeTestResources_v2(t,
+			makeTestCluster_v2(t, snap, "tcp:local_app"),
+			makeTestCluster_v2(t, snap, "tcp:db"),
+			makeTestCluster_v2(t, snap, "tcp:geo-cache"),
+		),
+	})
 
 	// It also (in parallel) issues the next cluster request (which acts as an ACK
 	// of the version we sent)
-	envoy.SendReq(t, ClusterType, 1, 1)
+	envoy.SendReq(t, ClusterType_v2, 1, 1)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -699,33 +664,21 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	}
 }
 
-func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
-	mgr := newTestManager(t)
+func TestServer_StreamAggregatedResources_v2_IngressEmptyResponse(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
 	}
-	envoy := NewTestEnvoy(t, "ingress-gateway", "")
-	defer envoy.Close()
-
-	s := Server{
-		Logger:       testutil.Logger(t),
-		CfgMgr:       mgr,
-		ResolveToken: aclResolve,
-	}
+	scenario := newTestServerScenario(t, aclResolve, "ingress-gateway", "", 0)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
 
 	sid := structs.NewServiceID("ingress-gateway", nil)
-
-	go func() {
-		err := s.StreamAggregatedResources(envoy.stream)
-		require.NoError(t, err)
-	}()
 
 	// Register the proxy to create state needed to Watch() on
 	mgr.RegisterProxy(t, sid)
 
 	// Send initial cluster discover
-	envoy.SendReq(t, ClusterType, 0, 0)
+	envoy.SendReq(t, ClusterType_v2, 0, 0)
 
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
@@ -734,31 +687,105 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 	snap := proxycfg.TestConfigSnapshotIngressGatewayNoServices(t)
 	mgr.DeliverConfig(t, sid, snap)
 
-	emptyClusterJSON := `{
-		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-		"resources": [],
-		"nonce": "` + hexString(1) + `"
-		}`
-	emptyListenerJSON := `{
-		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-		"resources": [],
-		"nonce": "` + hexString(2) + `"
-		}`
-	emptyRouteJSON := `{
-		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-		"resources": [],
-		"nonce": "` + hexString(3) + `"
-		}`
+	emptyClusterResp := &envoy_api_v2.DiscoveryResponse{
+		VersionInfo: hexString(1),
+		TypeUrl:     ClusterType_v2,
+		Nonce:       hexString(1),
+	}
+	emptyListenerResp := &envoy_api_v2.DiscoveryResponse{
+		VersionInfo: hexString(1),
+		TypeUrl:     ListenerType_v2,
+		Nonce:       hexString(2),
+	}
+	emptyRouteResp := &envoy_api_v2.DiscoveryResponse{
+		VersionInfo: hexString(1),
+		TypeUrl:     RouteType_v2,
+		Nonce:       hexString(3),
+	}
 
-	assertResponseSent(t, envoy.stream.sendCh, emptyClusterJSON)
+	assertResponseSent(t, envoy.stream.sendCh, emptyClusterResp)
 
 	// Send initial listener discover
-	envoy.SendReq(t, ListenerType, 0, 0)
-	assertResponseSent(t, envoy.stream.sendCh, emptyListenerJSON)
+	envoy.SendReq(t, ListenerType_v2, 0, 0)
+	assertResponseSent(t, envoy.stream.sendCh, emptyListenerResp)
 
-	envoy.SendReq(t, RouteType, 0, 0)
-	assertResponseSent(t, envoy.stream.sendCh, emptyRouteJSON)
+	envoy.SendReq(t, RouteType_v2, 0, 0)
+	assertResponseSent(t, envoy.stream.sendCh, emptyRouteResp)
+
+	envoy.Close()
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
+func assertChanBlocked(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse) {
+	t.Helper()
+	select {
+	case r := <-ch:
+		t.Fatalf("chan should block but received: %v", r)
+	case <-time.After(10 * time.Millisecond):
+		return
+	}
+}
+
+func assertResponseSent(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse, want *envoy_api_v2.DiscoveryResponse) {
+	t.Helper()
+	select {
+	case got := <-ch:
+		assertResponse(t, got, want)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("no response received after 50ms")
+	}
+}
+
+// assertResponse is a helper to test a envoy.DiscoveryResponse matches the
+// expected value. We use JSON during comparison here because the responses use protobuf
+// Any type which includes binary protobuf encoding.
+func assertResponse(t *testing.T, got, want *envoy_api_v2.DiscoveryResponse) {
+	t.Helper()
+
+	gotJSON := protoToJSON(t, got)
+	wantJSON := protoToJSON(t, want)
+	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
+}
+
+func makeTestResources_v2(t *testing.T, resources ...proto.Message) []*any.Any {
+	var ret []*any.Any
+	for _, res := range resources {
+		any, err := ptypes.MarshalAny(res)
+		require.NoError(t, err)
+		ret = append(ret, any)
+	}
+	return ret
+}
+
+func makeTestListener_v2(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_api_v2.Listener {
+	v3 := makeTestListener(t, snap, fixtureName)
+	v2, err := convertListenerToV2(v3)
+	require.NoError(t, err)
+	return v2
+}
+
+func makeTestCluster_v2(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_api_v2.Cluster {
+	v3 := makeTestCluster(t, snap, fixtureName)
+	v2, err := convertClusterToV2(v3)
+	require.NoError(t, err)
+	return v2
+}
+
+func makeTestEndpoints_v2(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_api_v2.ClusterLoadAssignment {
+	v3 := makeTestEndpoints(t, snap, fixtureName)
+	v2, err := convertClusterLoadAssignmentToV2(v3)
+	require.NoError(t, err)
+	return v2
+}
+
+func makeTestRoute_v2(t *testing.T, fixtureName string) *envoy_api_v2.RouteConfiguration {
+	v3 := makeTestRoute(t, fixtureName)
+	v2, err := convertRouteConfigurationToV2(v3)
+	require.NoError(t, err)
+	return v2
 }

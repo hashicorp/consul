@@ -22,7 +22,7 @@ const (
 )
 
 // endpointsFromSnapshot returns the xDS API representation of the "endpoints"
-func (s *Server) endpointsFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -43,7 +43,7 @@ func (s *Server) endpointsFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.Confi
 
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
 // (upstream instances) in the snapshot.
-func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0,
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
@@ -88,7 +88,7 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 	return resources, nil
 }
 
-func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, endpoints structs.CheckServiceNodes) (structs.CheckServiceNodes, error) {
+func (s *ResourceGenerator) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, endpoints structs.CheckServiceNodes) (structs.CheckServiceNodes, error) {
 	// locally execute the subsets filter
 	if subset.Filter != "" {
 		filter, err := bexpr.CreateFilter(subset.Filter, nil, endpoints)
@@ -105,11 +105,11 @@ func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, en
 	return endpoints, nil
 }
 
-func (s *Server) endpointsFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	return s.endpointsFromServicesAndResolvers(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
 }
 
-func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	datacenters := cfgSnap.MeshGateway.Datacenters()
 	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
 
@@ -206,11 +206,11 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 	return resources, nil
 }
 
-func (s *Server) endpointsFromServicesAndResolvers(
+func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	services map[structs.ServiceName]structs.CheckServiceNodes,
-	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry) ([]proto.Message, error) {
-
+	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry,
+) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0, len(services))
 
 	// generate the endpoints for the linked service groups
@@ -259,7 +259,7 @@ func (s *Server) endpointsFromServicesAndResolvers(
 	return resources, nil
 }
 
-func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 	createdClusters := make(map[string]bool)
 	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
@@ -297,7 +297,7 @@ func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
 	}
 }
 
-func (s *Server) endpointsFromDiscoveryChain(
+func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	id string,
 	chain *structs.CompiledDiscoveryChain,
 	datacenter string,
