@@ -522,6 +522,17 @@ type CheckH2PING struct {
 	stopWg   sync.WaitGroup
 }
 
+func shutdownHTTP2ClientConn(clientConn *http2.ClientConn, timeout time.Duration, checkIDString string, logger hclog.Logger) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout/2)
+	defer cancel()
+	err := clientConn.Shutdown(ctx)
+	if err != nil {
+		logger.Warn("Shutdown of H2Ping check client connection gave an error",
+			"check", checkIDString,
+			"error", err)
+	}
+}
+
 func (c *CheckH2PING) check() {
 	t := &http2.Transport{
 		TLSClientConfig: c.TLSClientConfig,
@@ -540,9 +551,9 @@ func (c *CheckH2PING) check() {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthCritical, message)
 		return
 	}
+	defer shutdownHTTP2ClientConn(clientConn, c.Timeout, c.CheckID.String(), c.Logger)
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
-	defer clientConn.Shutdown(ctx)
 	err = clientConn.Ping(ctx)
 	if err == nil {
 		c.StatusHandler.updateCheck(c.CheckID, api.HealthPassing, "HTTP2 ping was successful")
