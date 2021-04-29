@@ -45,6 +45,14 @@ Usage: `consul connect redirect-traffic [options]`
 
 - `-proxy-uid` - The user ID of the proxy to exclude from traffic redirection.
 
+- `-exclude-inbound-port` - Inbound port to exclude from traffic redirection. May be provided multiple times.
+
+- `exclude-outbound-cidr` -  Outbound CIDR to exclude from traffic redirection. May be provided multiple times.
+
+- `exclude-outbound-port` - Outbound port to exclude from traffic redirection. May be provided multiple times.
+
+- `exclude-uid` - Additional user ID to exclude from traffic redirection. May be provided multiple times.
+
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'
