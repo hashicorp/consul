@@ -46,7 +46,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/discovery-health-checking/health-monitoring.png'),
+          url: '/img/health-checking.png',
         }}
       />
 
