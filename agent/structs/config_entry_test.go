@@ -1310,7 +1310,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			name: "mesh",
 			snake: `
 				kind = "mesh"
-				name = "mesh"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1321,7 +1320,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			`,
 			camel: `
 				Kind = "mesh"
-				Name = "mesh"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1331,8 +1329,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 			`,
 			expect: &MeshConfigEntry{
-				Kind: MeshConfig,
-				Name: MeshConfigMesh,
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",

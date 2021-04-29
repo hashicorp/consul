@@ -1674,8 +1674,6 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							CorrelationID: meshConfigEntryID,
 							Result: &structs.ConfigEntryResponse{
 								Entry: &structs.MeshConfigEntry{
-									Kind:             structs.MeshConfig,
-									Name:             structs.MeshConfigMesh,
 									TransparentProxy: structs.TransparentProxyMeshConfig{},
 								},
 							},

@@ -2627,7 +2627,6 @@ func TestParseConfigEntry(t *testing.T) {
 			name: "mesh",
 			snake: `
 				kind = "mesh"
-				name = "mesh"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -2638,7 +2637,6 @@ func TestParseConfigEntry(t *testing.T) {
 			`,
 			camel: `
 				Kind = "mesh"
-				Name = "mesh"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -2650,7 +2648,6 @@ func TestParseConfigEntry(t *testing.T) {
 			snakeJSON: `
 			{
 				"kind": "mesh",
-				"name": "mesh",
 				"meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -2663,7 +2660,6 @@ func TestParseConfigEntry(t *testing.T) {
 			camelJSON: `
 			{
 				"Kind": "mesh",
-				"Name": "mesh",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -2674,8 +2670,6 @@ func TestParseConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &api.MeshConfigEntry{
-				Kind: api.MeshConfig,
-				Name: api.MeshConfigMesh,
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",

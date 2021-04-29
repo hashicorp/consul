@@ -1,7 +1,6 @@
 package api
 
 type MeshConfigEntry struct {
-	Kind             string
 	Name             string
 	Namespace        string                     `json:",omitempty"`
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
@@ -15,11 +14,11 @@ type TransparentProxyMeshConfig struct {
 }
 
 func (e *MeshConfigEntry) GetKind() string {
-	return e.Kind
+	return MeshConfig
 }
 
 func (e *MeshConfigEntry) GetName() string {
-	return e.Name
+	return MeshConfigMesh
 }
 
 func (e *MeshConfigEntry) GetNamespace() string {

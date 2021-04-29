@@ -7,9 +7,6 @@ import (
 )
 
 type MeshConfigEntry struct {
-	Kind string
-	Name string
-
 	// TransparentProxy contains cluster-wide options pertaining to TPROXY mode
 	// when enabled.
 	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
@@ -36,7 +33,7 @@ func (e *MeshConfigEntry) GetName() string {
 		return ""
 	}
 
-	return e.Name
+	return MeshConfigMesh
 }
 
 func (e *MeshConfigEntry) GetMeta() map[string]string {
@@ -51,11 +48,7 @@ func (e *MeshConfigEntry) Normalize() error {
 		return fmt.Errorf("config entry is nil")
 	}
 
-	e.Kind = MeshConfig
-	e.Name = MeshConfigMesh
-
 	e.EnterpriseMeta.Normalize()
-
 	return nil
 }
 
@@ -63,11 +56,6 @@ func (e *MeshConfigEntry) Validate() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
-
-	if e.Name != MeshConfigMesh {
-		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, MeshConfigMesh)
-	}
-
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
 	}

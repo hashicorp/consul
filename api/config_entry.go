@@ -295,7 +295,7 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	case ServiceIntentions:
 		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
 	case MeshConfig:
-		return &MeshConfigEntry{Kind: kind, Name: name}, nil
+		return &MeshConfigEntry{}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

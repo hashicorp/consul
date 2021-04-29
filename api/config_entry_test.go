@@ -1141,7 +1141,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			body: `
 			{
 				"Kind": "mesh",
-				"Name": "mesh",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -1152,8 +1151,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &MeshConfigEntry{
-				Kind: "mesh",
-				Name: "mesh",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
