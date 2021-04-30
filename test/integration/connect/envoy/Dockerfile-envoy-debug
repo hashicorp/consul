@@ -1,0 +1,16 @@
+ARG ENVOY_VERSION
+
+FROM docker.mirror.hashicorp.services/envoyproxy/envoy-debug:v${ENVOY_VERSION}
+
+RUN apt-get update -y
+RUN apt-get install -y --no-install-recommends python3 binutils
+
+COPY _third-party/envoy/tools/stack_decode.py /bin/stack_decode.py
+RUN chmod 755 /bin/stack_decode.py
+
+RUN mkdir -p /opt/bin && mv /usr/local/bin/envoy /opt/bin
+
+COPY _run-debug-envoy.sh /usr/local/bin/envoy
+RUN chmod 755 /usr/local/bin/envoy
+
+ENTRYPOINT []
