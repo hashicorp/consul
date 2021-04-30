@@ -383,6 +383,18 @@ module-versions:
 	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
 
 
+.PHONY: envoy-regen
+envoy-regen:
+	$(info regenerating envoy golden files)
+	@for d in endpoints listeners routes clusters rbac; do \
+		if [[ -d "agent/xds/testdata/$${d}" ]]; then \
+			find "agent/xds/testdata/$${d}" -name '*.golden' -delete ; \
+		fi \
+	done
+	@go test -tags '$(GOTAGS)' ./agent/xds -update
+	@find "command/connect/envoy/testdata" -name '*.golden' -delete
+	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version proto test-envoy-integ
