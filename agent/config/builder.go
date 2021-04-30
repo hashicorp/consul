@@ -1102,7 +1102,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		Watches:                     c.Watches,
 	}
 
-	rt.UseStreamingBackend = boolVal(c.UseStreamingBackend)
+	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
