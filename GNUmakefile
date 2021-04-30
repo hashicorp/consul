@@ -377,6 +377,18 @@ proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
 
 
+.PHONY: envoy-regen
+envoy-regen:
+	$(info regenerating envoy golden files)
+	@for d in endpoints listeners routes clusters rbac; do \
+		if [[ -d "agent/xds/testdata/$${d}" ]]; then \
+			find "agent/xds/testdata/$${d}" -name '*.golden' -delete ; \
+		fi \
+	done
+	@go test -tags '$(GOTAGS)' ./agent/xds -update
+	@find "command/connect/envoy/testdata" -name '*.golden' -delete
+	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
+
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version proto test-envoy-integ
