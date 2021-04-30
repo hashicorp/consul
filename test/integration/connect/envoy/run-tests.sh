@@ -43,6 +43,10 @@ fi
 ENVOY_IMAGE="${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}"
 ORIGINAL_ENVOY_IMAGE="${ENVOY_IMAGE}"
 if [[ -n "${DEBUG_ENVOY}" ]]; then
+    if [[ "${ENVOY_VERSION}" =~ ^1\.15\. ]]; then
+        echo "Envoy version ${ENVOY_VERSION} does not have a debug build at envoyproxy/envoy-debug on docker hub" >&2
+        exit 1
+    fi
     ENVOY_IMAGE="consul-dev-envoy-sidecar:${ENVOY_VERSION}"
 fi
 
