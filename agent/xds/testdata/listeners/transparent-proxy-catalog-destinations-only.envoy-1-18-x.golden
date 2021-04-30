@@ -40,7 +40,7 @@
           "filterChainMatch": {
             "prefixRanges": [
               {
-                "addressPrefix": "8.8.8.8",
+                "addressPrefix": "10.0.0.1",
                 "prefixLen": 32
               }
             ]
