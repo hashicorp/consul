@@ -33,11 +33,6 @@
 .consul-service-instance-list .detail {
   overflow-x: visible !important;
 }
-.consul-service-list .detail,
-.consul-node-list .detail,
-.consul-upstream-list .detail {
-  padding-left: 25px;
-}
 .consul-intention-permission-list > ul {
   border-top: 1px solid $gray-200;
 }
