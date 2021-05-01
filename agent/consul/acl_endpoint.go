@@ -2380,7 +2380,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	if err != nil {
 		return err
 	} else if method == nil {
-		return acl.ErrNotFound
+		return fmt.Errorf("auth method %q not found", auth.AuthMethod)
 	}
 
 	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
