@@ -6,12 +6,16 @@ export default function CtaHero() {
   return (
     <div className={s.ctaHero}>
       <TextSplit
+        product="consul"
         heading="Service Mesh for any runtime or cloud"
         content="Consul automates networking for simple and secure application delivery."
-        brand="consul"
         links={[
           { type: 'none', text: 'Download Consul', url: '/downloads' },
-          { type: 'none', text: 'Explore Tutorials', url: 'https://learn.hashicorp.com/consul' },
+          {
+            type: 'none',
+            text: 'Explore Tutorials',
+            url: 'https://learn.hashicorp.com/consul',
+          },
         ]}
         linkStyle="buttons"
       >

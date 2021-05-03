@@ -12,13 +12,6 @@
       padding-top: 88px;
     }
 
-    & .g-use-cases {
-      & .icon {
-        min-height: 140px;
-        margin-bottom: 25px;
-      }
-    }
-
     & h2 {
       margin: 0;
       text-align: center;

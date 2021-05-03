@@ -1,0 +1,18 @@
+.logo {
+  width: 105px;
+}
+
+.releaseCandidate {
+  background-color: var(--gray-6);
+  padding: 1rem;
+  border-radius: 3px;
+  margin: 24px 0;
+
+  & :first-child {
+    margin-top: 0;
+  }
+
+  & :last-child {
+    margin-bottom: 0;
+  }
+}

@@ -24,7 +24,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/DynamicLoadBalancing.svg?url'),
+          url: require('./img/network-automation/load-balancing.png'),
         }}
       />
 
@@ -43,7 +43,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/DynamicFirewalling.svg?url'),
+          url: require('./img/network-automation/firewalling.png'),
         }}
       />
 
@@ -63,7 +63,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/ConsulACI.png?url'),
+          url: require('./img/network-automation/health-checks-visibility.png'),
         }}
       />
 
@@ -82,7 +82,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/NIA_logo_grid.svg?url'),
+          url: require('./img/network-automation/ecosystem-extend.png'),
         }}
       />
 
@@ -102,7 +102,7 @@ export default function NetworkInfrastructureAutomationPage() {
           ],
         }}
         image={{
-          url: require('./img/flexible-architecture.svg?url'),
+          url: require('./img/network-automation/architecture-extend.png'),
         }}
       />
 
@@ -123,7 +123,7 @@ export default function NetworkInfrastructureAutomationPage() {
             ],
           }}
           image={{
-            url: require('./img/services-screenshot.png?url'),
+            url: require('./img/discovery-health-checking/consul_screenshot@2x.png?url'),
           }}
         />
       </div>

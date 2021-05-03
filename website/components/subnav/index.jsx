@@ -24,7 +24,7 @@ export default function ConsulSubnav() {
             'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav',
         },
       ]}
-      currentPath={router.pathname}
+      currentPath={router.asPath}
       menuItemsAlign="right"
       menuItems={subnavItems}
       constrainWidth
