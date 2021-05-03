@@ -133,6 +133,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
+		// The rest of this loop is used exclusively for transparent proxies.
+		// Below we create a filter chain per upstream, rather than a listener per upstream
+		// as we do for explicit upstreams above.
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 			id,
 			"",

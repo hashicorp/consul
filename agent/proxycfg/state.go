@@ -1023,8 +1023,10 @@ func (s *state) resetWatchesFromChain(
 		watchedChainEndpoints bool
 		needGateways          = make(map[string]struct{})
 	)
+
+	chainID := chain.ID()
 	for _, target := range chain.Targets {
-		if target.ID == chain.ID() {
+		if target.ID == chainID {
 			watchedChainEndpoints = true
 		}
 
