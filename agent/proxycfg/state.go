@@ -1019,8 +1019,15 @@ func (s *state) resetWatchesFromChain(
 		cancelFn()
 	}
 
-	needGateways := make(map[string]struct{})
+	var (
+		watchedChainSource bool
+		needGateways       = make(map[string]struct{})
+	)
 	for _, target := range chain.Targets {
+		if target.ID == chain.ID() {
+			watchedChainSource = true
+		}
+
 		s.logger.Trace("initializing watch of target",
 			"upstream", id,
 			"chain", chain.ServiceName,
@@ -1052,6 +1059,39 @@ func (s *state) resetWatchesFromChain(
 		}
 
 		snap.WatchedUpstreams[id][target.ID] = cancel
+	}
+
+	// If the discovery chain's targets do not lead to watching all endpoints
+	// for the upstream, then create a separate watch for those too.
+	// This is needed in transparent mode because if there is some service A that
+	// redirects to service B, the dialing proxy needs to associate A's virtual IP
+	// with A's discovery chain.
+	//
+	// Outside of transparent mode we only watch the chain target, B,
+	// since A is a virtual service and traffic will not be sent to it.
+	if !watchedChainSource && s.proxyCfg.Mode == structs.ProxyModeTransparent {
+		s.logger.Trace("initializing watch of chain source",
+			"upstream", id,
+			"chain", chain.ServiceName,
+		)
+
+		entMeta := structs.NewEnterpriseMeta(chain.Namespace)
+
+		ctx, cancel := context.WithCancel(s.ctx)
+		err := s.watchConnectProxyService(
+			ctx,
+			"upstream-target:"+chain.ID()+":"+id,
+			chain.ServiceName,
+			chain.Datacenter,
+			"",
+			&entMeta,
+		)
+		if err != nil {
+			cancel()
+			return err
+		}
+
+		snap.WatchedUpstreams[id][chain.ID()] = cancel
 	}
 
 	for dc := range needGateways {

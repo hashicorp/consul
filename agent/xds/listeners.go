@@ -146,18 +146,20 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
+		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id][chain.ID()]
 		uniqueAddrs := make(map[string]struct{})
 
-		for _, t := range chain.Targets {
-			// Match on the virtual IP for the upstream service.
-			// We do not match on all endpoints here since it would lead to load balancing across
-			// all instances when any instance address is dialed.
-			for _, e := range endpoints[t.ID] {
-				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
-					uniqueAddrs[vip.Address] = struct{}{}
-				}
+		// Match on the virtual IP for the upstream service (identified by the chain's ID).
+		// We do not match on all endpoints here since it would lead to load balancing across
+		// all instances when any instance address is dialed.
+		for _, e := range endpoints {
+			if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+				uniqueAddrs[vip.Address] = struct{}{}
 			}
+		}
+		if len(uniqueAddrs) > 1 {
+			s.Logger.Warn("detected multiple virtual IPs for an upstream, all will be used to match traffic",
+				"upstream", id)
 		}
 
 		// For every potential address we collected, create the appropriate address prefix to match on.

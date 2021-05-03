@@ -88,6 +88,12 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 	return target.Service == c.ServiceName && target.Namespace == c.Namespace
 }
 
+// ID returns an ID that endoces the service, namespace, and datacenter.
+// This ID allows us to compare a discovery chain target to the chain upstream itself.
+func (c *CompiledDiscoveryChain) ID() string {
+	return chainID("", c.ServiceName, c.Namespace, c.Datacenter)
+}
+
 const (
 	DiscoveryGraphNodeTypeRouter   = "router"
 	DiscoveryGraphNodeTypeSplitter = "splitter"
@@ -229,13 +235,16 @@ func NewDiscoveryTarget(service, serviceSubset, namespace, datacenter string) *D
 	return t
 }
 
-func (t *DiscoveryTarget) setID() {
+func chainID(subset, service, namespace, dc string) string {
 	// NOTE: this format is similar to the SNI syntax for simplicity
-	if t.ServiceSubset == "" {
-		t.ID = fmt.Sprintf("%s.%s.%s", t.Service, t.Namespace, t.Datacenter)
-	} else {
-		t.ID = fmt.Sprintf("%s.%s.%s.%s", t.ServiceSubset, t.Service, t.Namespace, t.Datacenter)
+	if subset == "" {
+		return fmt.Sprintf("%s.%s.%s", service, namespace, dc)
 	}
+	return fmt.Sprintf("%s.%s.%s.%s", subset, service, namespace, dc)
+}
+
+func (t *DiscoveryTarget) setID() {
+	t.ID = fmt.Sprintf("%s.%s.%s.%s", t.ServiceSubset, t.Service, t.Namespace, t.Datacenter)
 }
 
 func (t *DiscoveryTarget) String() string {
