@@ -197,9 +197,9 @@ the following selectors and filter operations being supported:
 | `ServiceTags` | In, Not In, Is Empty, Is Not Empty                 |
 | `Status`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
-## List Nodes for Service
+## List Service Instances for Service ((list-nodes-for-service))
 
-This endpoint returns the nodes providing the service indicated on the path.
+This endpoint returns the service instances providing the service indicated on the path.
 Users can also build in support for dynamic load balancing and other features by
 incorporating the use of health checks.
 
@@ -397,9 +397,9 @@ following selectors and filter operations being supported:
 | `Service.Weights.Passing`                             | Equal, Not Equal                                   |
 | `Service.Weights.Warning`                             | Equal, Not Equal                                   |
 
-## List Nodes for Connect-capable Service
+## List Service Instances for Connect-enabled Service
 
-This endpoint returns the nodes providing a
+This endpoint returns the service instances providing a
 [Connect-capable](/docs/connect) service in a given datacenter.
 This will include both proxies and native integrations. A service may
 register both Connect-capable and incapable services at the same time,
@@ -412,11 +412,11 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 Parameters and response format are the same as
 [`/health/service/:service`](/api/health#list-nodes-for-service).
 
-## List Nodes for Ingress Gateways Associated to a Service
+## List Service Instances for Ingress Gateways Associated with Service
 
 -> **1.8.0+:** This API is available in Consul versions 1.8.0 and later.
 
-This endpoint returns the nodes providing a [ingress
+This endpoint returns the service instances providing a [ingress
 gateway](/docs/connect/ingress-gateway) for a service in a given datacenter.
 
 | Method | Path                       | Produces           |
