@@ -500,7 +500,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 							Service: &structs.NodeService{
 								Service: "google",
+								Address: "9.9.9.9",
 								Port:    9090,
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual": {Address: "10.0.0.1"},
+								},
 							},
 						},
 					},
@@ -540,7 +544,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 							Service: &structs.NodeService{
 								Service: "google",
+								Address: "9.9.9.9",
 								Port:    9090,
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual": {Address: "10.0.0.1"},
+								},
 							},
 						},
 					},
