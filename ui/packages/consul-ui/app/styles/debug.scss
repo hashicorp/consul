@@ -4,7 +4,14 @@
 // temporary component debugging setup
 @import 'consul-ui/components/main-nav-vertical/debug';
 
+.is-debug .brand-loader {
+  display: none !important;
+}
+
 .docs {
+  [role='banner'] nav:first-of-type {
+    height: calc(100vh - var(--chrome-height, 47px));
+  }
   .tabular-collection,
   .list-collection {
     height: 300px !important;
