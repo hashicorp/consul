@@ -208,14 +208,15 @@ incorporating the use of health checks.
 | `GET`  | `/health/service/:service` | `application/json` |
 
 The table below shows this endpoint's support for
+[streaming](/api/features/streaming),
 [blocking queries](/api/features/blocking),
 [consistency modes](/api/features/consistency),
 [agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
-| ---------------- | ----------------- | -------------------- | ------------------------ |
-| `YES`            | `all`             | `background refresh` | `node:read,service:read` |
+| Streaming | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
+| ----------| ---------------- | ----------------- | -------------------- | ------------------------ |
+| `partial` | `YES`            | `all`             | `background refresh` | `node:read,service:read` |
 
 ### Parameters
 
@@ -424,6 +425,11 @@ gateway](/docs/connect/ingress-gateway) for a service in a given datacenter.
 
 Parameters and response format are the same as
 [`/health/service/:service`](/api/health#list-nodes-for-service).
+
+**Note** that unlike `/health/connect/:service` and `/health/service/:service` this
+endpoint does not support [streaming](/api/features/streaming), and will use
+[blocking queries](/api/features/blocking).
+
 
 ## List Checks in State
 
