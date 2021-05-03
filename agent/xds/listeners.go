@@ -146,8 +146,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		// For filter chains used by the transparent proxy, we need to match on multiple destination addresses.
-		// These might be: the ClusterIP in k8s, or any of the service instance addresses.
 		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
 		uniqueAddrs := make(map[string]struct{})
 
