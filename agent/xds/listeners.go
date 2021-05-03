@@ -32,6 +32,8 @@ import (
 	"github.com/hashicorp/consul/sdk/iptables"
 )
 
+const virtualIPTag = "virtual"
+
 // listenersFromSnapshot returns the xDS API representation of the "listeners" in the snapshot.
 func (s *ResourceGenerator) listenersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
@@ -144,30 +146,16 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			return nil, err
 		}
 
-		// For filter chains used by the transparent proxy, we need to match on multiple destination addresses.
-		// These might be: the ClusterIP in k8s, or any of the service instance addresses.
 		endpoints := cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id]
 		uniqueAddrs := make(map[string]struct{})
 
 		for _, t := range chain.Targets {
-			// Store all the possible IP addresses that might be used to dial this endpoint
+			// Match on the virtual IP for the upstream service.
+			// We do not match on all endpoints here since it would lead to load balancing across
+			// all instances when any instance address is dialed.
 			for _, e := range endpoints[t.ID] {
-				if e.Service.Address != "" {
-					uniqueAddrs[e.Service.Address] = struct{}{}
-				}
-				if e.Node.Address != "" {
-					uniqueAddrs[e.Node.Address] = struct{}{}
-				}
-
-				for _, tagged := range e.Node.TaggedAddresses {
-					if tagged != "" {
-						uniqueAddrs[tagged] = struct{}{}
-					}
-				}
-				for _, tagged := range e.Service.TaggedAddresses {
-					if tagged.Address != "" {
-						uniqueAddrs[tagged.Address] = struct{}{}
-					}
+				if vip := e.Service.TaggedAddresses[virtualIPTag]; vip.Address != "" {
+					uniqueAddrs[vip.Address] = struct{}{}
 				}
 			}
 		}
