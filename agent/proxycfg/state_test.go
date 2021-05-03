@@ -1802,6 +1802,45 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						)
 					},
 				},
+				// Discovery chain updates should be stored
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						"discovery-chain:" + db.String(): genVerifyDiscoveryChainWatch(&structs.DiscoveryChainRequest{
+							Name:                   "db",
+							EvaluateInDatacenter:   "dc1",
+							EvaluateInNamespace:    "default",
+							Datacenter:             "dc1",
+							OverrideConnectTimeout: 6 * time.Second,
+							OverrideMeshGateway:    structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						}),
+					},
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: "discovery-chain:db",
+							Result: &structs.DiscoveryChainResponse{
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", "trustdomain.consul", "dc1", nil,
+									&structs.ServiceResolverConfigEntry{
+										Kind: structs.ServiceResolver,
+										Name: "db",
+										Redirect: &structs.ServiceResolverRedirect{
+											Service: "mysql",
+										},
+									},
+								),
+							},
+							Err: nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams, 1)
+						require.Len(t, snap.ConnectProxy.WatchedUpstreams[db.String()], 2)
+
+						// In transparent mode we watch the upstream's endpoints even if the upstream is not a target of its chain.
+						// This will happen in cases like redirects.
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[db.String()], "db.default.dc1")
+						require.Contains(t, snap.ConnectProxy.WatchedUpstreams[db.String()], "mysql.default.dc1")
+					},
+				},
 				// Empty list of upstreams should clean everything up
 				{
 					requiredWatches: map[string]verifyWatchRequest{
