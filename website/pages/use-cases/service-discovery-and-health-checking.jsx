@@ -26,7 +26,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/centralized-service-registry.png?url'),
+          url: require('./img/discovery-health-checking/centralized-service-registry.png'),
         }}
       />
 
@@ -46,7 +46,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/health-monitoring.svg?url'),
+          url: '/img/health-checking.png',
         }}
       />
 
@@ -66,7 +66,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         image={{
-          url: require('./img/ecosystem.svg?url'),
+          url: require('./img/discovery-health-checking/extesnsible-api.png'),
         }}
       />
 
@@ -131,7 +131,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
           ],
         }}
         image={{
-          url: require('./img/multi-region.svg?url'),
+          url: require('./img/discovery-health-checking/Map.png'),
         }}
       />
 
@@ -151,7 +151,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
             ],
           }}
           image={{
-            url: require('./img/services-screenshot.png?url'),
+            url: require('./img/discovery-health-checking/consul_screenshot@2x.png?url'),
           }}
         />
       </div>
@@ -159,7 +159,6 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
       <FeaturedSlider
         heading="Case Study"
         theme="dark"
-        brand="consul"
         features={[
           {
             logo: {
@@ -167,8 +166,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
               alt: 'Mercedes-Benz',
             },
             image: {
-              url:
-                'https://www.datocms-assets.com/2885/1589432019-mercedes-card-d0e7f12d215e93fee7011984315e94b7.jpg',
+              url: require('./img/discovery-health-checking/mercedes-case-study.png'),
               alt: 'Mercedes-Benz Case Study',
             },
             heading: 'On the Road Again',
