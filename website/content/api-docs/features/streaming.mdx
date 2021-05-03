@@ -1,0 +1,43 @@
+---
+layout: api
+page_title: Streaming
+description: |-
+  Some API endpoints support a feature known as "streaming". Change events
+  are published to a stream topic, allowing clients to build a localized
+  view, and removing the need to send full state-of-the-world responses
+  every time data changes.
+---
+
+# Streaming
+
+A few endpoints in Consul support a feature known as "streaming". With streaming
+the Consul servers publish change events to a topic. Clients can subscribe to a
+topic to receive these change events. The clients use the change events to build
+a local "materialized view". Clients are then able to handle requests using that view.
+Streaming improves on [blocking queries][1] by significantly reducing the quantity
+of data sent from servers to clients, while still allowing clients to handle
+read requests.
+
+Streaming, first introduced in Consul 1.10, is a replacement for [blocking queries][1],
+and is only supported by a small number of endpoints. If streaming is supported by an
+endpoint, it will be used when either the `index` or `cached` query parameters are set.
+
+Endpoints that support streaming return an HTTP header named
+`X-Consul-Index`. This is a unique identifier representing the current state of
+the requested resource.
+
+On subsequent requests for this resource, the client can set the `index` query
+string parameter to the value of `X-Consul-Index`, indicating that the client
+wishes to wait for any changes subsequent to that index.
+
+When `index` is set, the HTTP request will "hang" until a change in the system
+occurs, or the maximum timeout is reached. A critical note is that the return of
+a blocking request is **no guarantee** of a change. It is possible that the
+timeout was reached or that there was an idempotent write that does not affect
+the result of the query.
+
+Note that streaming does not support all query parameters used by blocking queries, and
+that some response headers (ex: `X-Consul-LastContact` and `X-Consul-KnownLeader`) are not
+set because the data is not available.
+
+[1]: /api-docs/features/blocking
