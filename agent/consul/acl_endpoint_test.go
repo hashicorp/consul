@@ -4628,7 +4628,7 @@ func TestACLEndpoint_Login(t *testing.T) {
 		}
 		resp := structs.ACLToken{}
 
-		testutil.RequireErrorContains(t, acl.Login(&req, &resp), "ACL not found")
+		testutil.RequireErrorContains(t, acl.Login(&req, &resp), fmt.Sprintf("auth method %q not found", method.Name+"-notexist"))
 	})
 
 	t.Run("invalid method token", func(t *testing.T) {
