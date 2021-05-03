@@ -244,7 +244,7 @@ func chainID(subset, service, namespace, dc string) string {
 }
 
 func (t *DiscoveryTarget) setID() {
-	t.ID = fmt.Sprintf("%s.%s.%s.%s", t.ServiceSubset, t.Service, t.Namespace, t.Datacenter)
+	t.ID = chainID(t.ServiceSubset, t.Service, t.Namespace, t.Datacenter)
 }
 
 func (t *DiscoveryTarget) String() string {

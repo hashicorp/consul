@@ -1020,12 +1020,12 @@ func (s *state) resetWatchesFromChain(
 	}
 
 	var (
-		watchedChainSource bool
-		needGateways       = make(map[string]struct{})
+		watchedChainEndpoints bool
+		needGateways          = make(map[string]struct{})
 	)
 	for _, target := range chain.Targets {
 		if target.ID == chain.ID() {
-			watchedChainSource = true
+			watchedChainEndpoints = true
 		}
 
 		s.logger.Trace("initializing watch of target",
@@ -1069,7 +1069,7 @@ func (s *state) resetWatchesFromChain(
 	//
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
-	if !watchedChainSource && s.proxyCfg.Mode == structs.ProxyModeTransparent {
+	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
 		s.logger.Trace("initializing watch of chain source",
 			"upstream", id,
 			"chain", chain.ServiceName,
