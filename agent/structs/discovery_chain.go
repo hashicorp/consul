@@ -88,7 +88,7 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 	return target.Service == c.ServiceName && target.Namespace == c.Namespace
 }
 
-// ID returns an ID that endoces the service, namespace, and datacenter.
+// ID returns an ID that encodes the service, namespace, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
 	return chainID("", c.ServiceName, c.Namespace, c.Datacenter)
