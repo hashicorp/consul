@@ -1,7 +1,7 @@
 export default {
   Name: item => item.Name,
   Tags: item => item.Service.Tags || [],
-  ID: (item, value) => item.Service.ID || '',
+  ID: item => item.Service.ID || '',
   Address: item => item.Address || '',
   Port: item => (item.Service.Port || '').toString(),
   ['Service.Meta']: item =>

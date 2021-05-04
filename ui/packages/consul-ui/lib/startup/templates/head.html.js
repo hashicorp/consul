@@ -9,7 +9,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
   <link rel="apple-touch-icon" href="${rootURL}assets/apple-touch-icon.png">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/vendor.css">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/${
-  environment === 'development' ? 'debug' : appName
+    !['test', 'production'].includes(environment) ? 'debug' : appName
 }.css">
   ${
     environment === 'test' ? `<link rel="stylesheet" href="${rootURL}assets/test-support.css">` : ``
