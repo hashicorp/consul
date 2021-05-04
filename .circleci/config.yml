@@ -958,8 +958,19 @@ jobs:
             terraform destroy -auto-approve
       - run: *notify-slack-failure
 
+  noop:
+    docker:
+      - image: docker.mirror.hashicorp.services/alpine:latest
+    steps:
+      - run: 'echo ok'
+
 workflows:
   version: 2
+  # verify-ci is a no-op workflow that must run on every PR. It is used in a
+  # branch protection rule to detect when CI workflows are not running.
+  verify-ci:
+    jobs: [noop]
+
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
