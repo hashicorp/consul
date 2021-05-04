@@ -76,6 +76,9 @@ message ConnectProxyConfig {
     // TransparentProxy defines configuration for when the proxy is in
     // transparent mode.
     TransparentProxyConfig TransparentProxy = 10 [(gogoproto.nullable) = false];
+
+      // LocalServiceSocketPath is the path to the unix domain socket for the local service instance
+    string LocalServiceSocketPath = 11;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -236,6 +239,8 @@ message ServiceDefinition {
     map<string, string> Meta = 6;
     // mog: func-to=int func-from=int32
     int32 Port = 7;
+    // Path for socket
+    string SocketPath = 18;
     CheckType Check = 8 [(gogoproto.nullable) = false];
     // mog: func-to=CheckTypesToStructs func-from=NewCheckTypesFromStructs
     repeated CheckType Checks = 9;

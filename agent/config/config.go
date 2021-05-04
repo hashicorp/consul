@@ -375,6 +375,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress `mapstructure:"tagged_addresses"`
 	Meta              map[string]string         `mapstructure:"meta"`
 	Port              *int                      `mapstructure:"port"`
+	SocketPath        *string                   `mapstructure:"socket_path"`
 	Check             *CheckDefinition          `mapstructure:"check"`
 	Checks            []CheckDefinition         `mapstructure:"checks"`
 	Token             *string                   `mapstructure:"token"`
@@ -461,6 +462,10 @@ type ServiceProxy struct {
 	// (DestinationServiceID is set) but otherwise will be ignored.
 	LocalServicePort *int `mapstructure:"local_service_port"`
 
+	// LocalServiceSocketPath is the socket of the local service instance. It is optional
+	// and should only be specified for "side-car" style proxies.
+	LocalServiceSocketPath string `mapstructure:"local_service_socket_path"`
+
 	// TransparentProxy configuration.
 	TransparentProxy *TransparentProxyConfig `mapstructure:"transparent_proxy"`
 
@@ -514,7 +519,7 @@ type Upstream struct {
 	// destined for this upstream service. Required.
 	LocalBindPort *int `mapstructure:"local_bind_port"`
 
-	// These are exclusive with LocalBindAddress/LocalBindPort
+	// These are exclusive with LocalBindAddress/LocalBindPort. These are created under our control.
 	LocalBindSocketPath *string `mapstructure:"local_bind_socket_path"`
 	LocalBindSocketMode *string `mapstructure:"local_bind_socket_mode"`
 

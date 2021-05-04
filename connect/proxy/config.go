@@ -98,7 +98,6 @@ func (uc *UpstreamConfig) ConnectTimeout() time.Duration {
 	return 10000 * time.Millisecond
 }
 
-// markan START TOMORROW HERE; discover where this is applied
 // applyDefaults sets zero-valued params to a sane default.
 func (uc *UpstreamConfig) applyDefaults() {
 	if uc.DestinationType == "" {
@@ -115,7 +114,6 @@ func (uc *UpstreamConfig) applyDefaults() {
 // String returns a string that uniquely identifies the Upstream. Used for
 // identifying the upstream in log output and map keys.
 func (uc *UpstreamConfig) String() string {
-	// TODO markan upfactor
 	addr := uc.LocalBindSocketPath
 	if addr == "" {
 		addr = fmt.Sprintf(
@@ -250,6 +248,9 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	}
 	cfg.PublicListener.BindAddress = resp.Address
 	cfg.PublicListener.BindPort = resp.Port
+	if resp.Proxy.LocalServiceSocketPath != "" {
+		w.logger.Error("Unhandled unix domain socket config %+v %+v", resp.Proxy, cfg.PublicListener)
+	}
 	cfg.PublicListener.LocalServiceAddress = ipaddr.FormatAddressPort(
 		resp.Proxy.LocalServiceAddress, resp.Proxy.LocalServicePort)
 

@@ -161,6 +161,10 @@ type ConnectProxyConfig struct {
 	// (DestinationServiceID is set) but otherwise will be ignored.
 	LocalServicePort int `json:",omitempty" alias:"local_service_port"`
 
+	// LocalServiceSocketPath is the socket of the local service instance. It is optional
+	// and should only be specified for "side-car" style proxies.
+	LocalServiceSocketPath string `json:",omitempty" alias:"local_service_socket_path"`
+
 	// Mode represents how the proxy's inbound and upstream listeners are dialed.
 	Mode ProxyMode
 
@@ -190,9 +194,9 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 		DestinationServiceIDSnake   string                 `json:"destination_service_id"`
 		LocalServiceAddressSnake    string                 `json:"local_service_address"`
 		LocalServicePortSnake       int                    `json:"local_service_port"`
+		LocalServiceSocketPathSnake string                 `json:"local_service_socket_path"`
 		MeshGatewaySnake            MeshGatewayConfig      `json:"mesh_gateway"`
 		TransparentProxySnake       TransparentProxyConfig `json:"transparent_proxy"`
-
 		*Alias
 	}{
 		Alias: (*Alias)(t),
@@ -211,6 +215,9 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.LocalServicePort == 0 {
 		t.LocalServicePort = aux.LocalServicePortSnake
+	}
+	if t.LocalServiceSocketPath == "" {
+		t.LocalServiceSocketPath = aux.LocalServiceSocketPathSnake
 	}
 	if t.MeshGateway.Mode == "" {
 		t.MeshGateway.Mode = aux.MeshGatewaySnake.Mode
@@ -246,6 +253,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		DestinationServiceID:   c.DestinationServiceID,
 		LocalServiceAddress:    c.LocalServiceAddress,
 		LocalServicePort:       c.LocalServicePort,
+		LocalServiceSocketPath: c.LocalServiceSocketPath,
 		Mode:                   api.ProxyMode(c.Mode),
 		TransparentProxy:       c.TransparentProxy.ToAPI(),
 		Config:                 c.Config,

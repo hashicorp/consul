@@ -1641,6 +1641,14 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
 		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
+
+	if (v.Port != nil || v.Address != nil) && (v.SocketPath != nil) {
+		b.err = multierror.Append(
+			fmt.Errorf("service %s cannot have both socket path %s and address/port",
+				stringVal(v.Name), stringVal(v.SocketPath)), b.err)
+
+	}
+
 	return &structs.ServiceDefinition{
 		Kind:              kind,
 		ID:                stringVal(v.ID),
@@ -1650,6 +1658,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              intVal(v.Port),
+		SocketPath:        stringVal(v.SocketPath),
 		Token:             stringVal(v.Token),
 		EnableTagOverride: boolVal(v.EnableTagOverride),
 		Weights:           serviceWeights,
@@ -1688,6 +1697,7 @@ func (b *builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 		DestinationServiceID:   stringVal(v.DestinationServiceID),
 		LocalServiceAddress:    stringVal(v.LocalServiceAddress),
 		LocalServicePort:       intVal(v.LocalServicePort),
+		LocalServiceSocketPath: stringVal(&v.LocalServiceSocketPath),
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),

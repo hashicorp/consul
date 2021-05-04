@@ -807,10 +807,12 @@ type Services map[string][]string
 // in the state store and are filled in on the way out by parseServiceNodes().
 // This is also why PartialClone() skips them, because we know they are blank
 // already so it would be a waste of time to copy them.
+// This is somewhat complicated when the address is really a unix domain socket; technically that
+// will override the address field, but in practice the two use cases should not overlap.
 type ServiceNode struct {
 	ID                       types.NodeID
 	Node                     string
-	Address                  string // TODO markan; this is slippery when we have sockets; the addr:path pattern falls apart.
+	Address                  string
 	Datacenter               string
 	TaggedAddresses          map[string]string
 	NodeMeta                 map[string]string
@@ -823,6 +825,7 @@ type ServiceNode struct {
 	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
+	ServiceSocketPath        string
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
@@ -864,6 +867,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
 		ServiceAddress:           s.ServiceAddress,
+		ServiceSocketPath:        s.ServiceSocketPath,
 		ServiceTaggedAddresses:   svcTaggedAddrs,
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
@@ -889,6 +893,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Address:           s.ServiceAddress,
 		TaggedAddresses:   s.ServiceTaggedAddresses,
 		Port:              s.ServicePort,
+		SocketPath:        s.ServiceSocketPath,
 		Meta:              s.ServiceMeta,
 		Weights:           &s.ServiceWeights,
 		EnableTagOverride: s.ServiceEnableTagOverride,
@@ -973,13 +978,11 @@ const (
 )
 
 // Type to hold a address and port of a service
-// TODO markan, think about this around sockets
 type ServiceAddress struct {
 	Address string
 	Port    int
 }
 
-// TODO markan, think about this around sockets
 func (a ServiceAddress) ToAPIServiceAddress() api.ServiceAddress {
 	return api.ServiceAddress{Address: a.Address, Port: a.Port}
 }
@@ -997,7 +1000,8 @@ type NodeService struct {
 	Address           string
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Meta              map[string]string
-	Port              int
+	Port              int    `json:",omitempty"`
+	SocketPath        string `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
 
@@ -1160,9 +1164,9 @@ func (s *NodeService) Validate() error {
 					"services"))
 		}
 
-		if s.Port == 0 {
+		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf(
-				"Port must be set for a Connect proxy"))
+				"Port or SocketPath must be set for a Connect proxy"))
 		}
 
 		if s.Connect.Native {
@@ -1263,6 +1267,10 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for a %s", s.Kind))
 		}
 
+		if s.Proxy.LocalServiceSocketPath != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceSocketPath configuration is invalid for a %s", s.Kind))
+		}
+
 		if len(s.Proxy.Upstreams) != 0 {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for a %s", s.Kind))
 		}
@@ -1296,6 +1304,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		s.SocketPath != other.SocketPath ||
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
@@ -1367,6 +1376,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceAddress:           s.Address,
 		ServiceTaggedAddresses:   s.TaggedAddresses,
 		ServicePort:              s.Port,
+		ServiceSocketPath:        s.SocketPath,
 		ServiceMeta:              s.Meta,
 		ServiceWeights:           theWeights,
 		ServiceEnableTagOverride: s.EnableTagOverride,
