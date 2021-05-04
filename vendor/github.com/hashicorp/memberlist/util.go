@@ -185,18 +185,18 @@ func decodeCompoundMessage(buf []byte) (trunc int, parts [][]byte, err error) {
 		err = fmt.Errorf("missing compound length byte")
 		return
 	}
-	numParts := uint8(buf[0])
+	numParts := int(buf[0])
 	buf = buf[1:]
 
 	// Check we have enough bytes
-	if len(buf) < int(numParts*2) {
+	if len(buf) < numParts*2 {
 		err = fmt.Errorf("truncated len slice")
 		return
 	}
 
 	// Decode the lengths
 	lengths := make([]uint16, numParts)
-	for i := 0; i < int(numParts); i++ {
+	for i := 0; i < numParts; i++ {
 		lengths[i] = binary.BigEndian.Uint16(buf[i*2 : i*2+2])
 	}
 	buf = buf[numParts*2:]
@@ -204,7 +204,7 @@ func decodeCompoundMessage(buf []byte) (trunc int, parts [][]byte, err error) {
 	// Split each message
 	for idx, msgLen := range lengths {
 		if len(buf) < int(msgLen) {
-			trunc = int(numParts) - idx
+			trunc = numParts - idx
 			return
 		}
 

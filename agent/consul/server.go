@@ -21,7 +21,6 @@ import (
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
@@ -35,6 +34,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/consul/wanfed"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -251,7 +251,7 @@ type Server struct {
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
 	serfWAN                *serf.Serf
-	memberlistTransportWAN memberlist.IngestionAwareTransport
+	memberlistTransportWAN wanfed.IngestionAwareTransport
 	gatewayLocator         *GatewayLocator
 
 	// serverLookup tracks server consuls in the local datacenter.
@@ -500,7 +500,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 
 		// This is always a *memberlist.NetTransport or something which wraps
 		// it which satisfies this interface.
-		s.memberlistTransportWAN = config.SerfWANConfig.MemberlistConfig.Transport.(memberlist.IngestionAwareTransport)
+		s.memberlistTransportWAN = config.SerfWANConfig.MemberlistConfig.Transport.(wanfed.IngestionAwareTransport)
 
 		// See big comment above why we are doing this.
 		if serfBindPortWAN == 0 {
