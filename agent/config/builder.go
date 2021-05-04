@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1640,6 +1641,14 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
 		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
+
+	if (v.Port != nil || v.Address != nil) && (v.SocketPath != nil) {
+		b.err = multierror.Append(
+			fmt.Errorf("service %s cannot have both socket path %s and address/port",
+				stringVal(v.Name), stringVal(v.SocketPath)), b.err)
+
+	}
+
 	return &structs.ServiceDefinition{
 		Kind:              kind,
 		ID:                stringVal(v.ID),
@@ -1649,6 +1658,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
 		Port:              intVal(v.Port),
+		SocketPath:        stringVal(v.SocketPath),
 		Token:             stringVal(v.Token),
 		EnableTagOverride: boolVal(v.EnableTagOverride),
 		Weights:           serviceWeights,
@@ -1687,6 +1697,7 @@ func (b *builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 		DestinationServiceID:   stringVal(v.DestinationServiceID),
 		LocalServiceAddress:    stringVal(v.LocalServiceAddress),
 		LocalServicePort:       intVal(v.LocalServicePort),
+		LocalServiceSocketPath: stringVal(&v.LocalServiceSocketPath),
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
@@ -1706,6 +1717,8 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
 			LocalBindPort:        intVal(u.LocalBindPort),
+			LocalBindSocketPath:  stringVal(u.LocalBindSocketPath),
+			LocalBindSocketMode:  b.unixPermissionsVal("local_bind_socket_mode", u.LocalBindSocketMode),
 			Config:               u.Config,
 			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}
@@ -1890,6 +1903,18 @@ func uint64Val(v *uint64) uint64 {
 		return 0
 	}
 	return *v
+}
+
+// Expect an octal permissions string, e.g. 0644
+func (b *builder) unixPermissionsVal(name string, v *string) string {
+	if v == nil {
+		return ""
+	}
+	if _, err := strconv.ParseUint(*v, 8, 32); err == nil {
+		return *v
+	}
+	b.err = multierror.Append(b.err, fmt.Errorf("%s: invalid mode: %s", name, *v))
+	return "0"
 }
 
 func (b *builder) portVal(name string, v *int) int {

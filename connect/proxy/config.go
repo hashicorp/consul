@@ -106,7 +106,7 @@ func (uc *UpstreamConfig) applyDefaults() {
 	if uc.DestinationNamespace == "" {
 		uc.DestinationNamespace = "default"
 	}
-	if uc.LocalBindAddress == "" {
+	if uc.LocalBindAddress == "" && uc.LocalBindSocketPath == "" {
 		uc.LocalBindAddress = "127.0.0.1"
 	}
 }
@@ -114,7 +114,13 @@ func (uc *UpstreamConfig) applyDefaults() {
 // String returns a string that uniquely identifies the Upstream. Used for
 // identifying the upstream in log output and map keys.
 func (uc *UpstreamConfig) String() string {
-	return fmt.Sprintf("%s:%d->%s:%s/%s", uc.LocalBindAddress, uc.LocalBindPort,
+	addr := uc.LocalBindSocketPath
+	if addr == "" {
+		addr = fmt.Sprintf(
+			"%s:%d",
+			uc.LocalBindAddress, uc.LocalBindPort)
+	}
+	return fmt.Sprintf("%s->%s:%s/%s", addr,
 		uc.DestinationType, uc.DestinationNamespace, uc.DestinationName)
 }
 
@@ -242,6 +248,9 @@ func (w *AgentConfigWatcher) handler(blockVal watch.BlockingParamVal,
 	}
 	cfg.PublicListener.BindAddress = resp.Address
 	cfg.PublicListener.BindPort = resp.Port
+	if resp.Proxy.LocalServiceSocketPath != "" {
+		w.logger.Error("Unhandled unix domain socket config %+v %+v", resp.Proxy, cfg.PublicListener)
+	}
 	cfg.PublicListener.LocalServiceAddress = ipaddr.FormatAddressPort(
 		resp.Proxy.LocalServiceAddress, resp.Proxy.LocalServicePort)
 

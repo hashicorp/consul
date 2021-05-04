@@ -400,10 +400,17 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		return makeClusterFromUserConfig(cfg.LocalClusterJSON)
 	}
 
-	addr := cfgSnap.Proxy.LocalServiceAddress
-	if addr == "" {
-		addr = "127.0.0.1"
+	var endpoint *envoy_endpoint_v3.LbEndpoint
+	if cfgSnap.Proxy.LocalServiceSocketPath != "" {
+		endpoint = makePipeEndpoint(cfgSnap.Proxy.LocalServiceSocketPath)
+	} else {
+		addr := cfgSnap.Proxy.LocalServiceAddress
+		if addr == "" {
+			addr = "127.0.0.1"
+		}
+		endpoint = makeEndpoint(addr, port)
 	}
+
 	c = &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ConnectTimeout:       ptypes.DurationProto(time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond),
@@ -413,7 +420,7 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
-						makeEndpoint(addr, port),
+						endpoint,
 					},
 				},
 			},
