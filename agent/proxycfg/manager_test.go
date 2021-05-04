@@ -235,6 +235,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						UpstreamConfig: map[string]*structs.Upstream{
 							upstreams[0].Identifier(): &upstreams[0],
 							upstreams[1].Identifier(): &upstreams[1],
+							upstreams[2].Identifier(): &upstreams[2],
 						},
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
@@ -290,6 +291,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						UpstreamConfig: map[string]*structs.Upstream{
 							upstreams[0].Identifier(): &upstreams[0],
 							upstreams[1].Identifier(): &upstreams[1],
+							upstreams[2].Identifier(): &upstreams[2],
 						},
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},

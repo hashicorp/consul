@@ -228,6 +228,17 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 		},
 		{
+			name:   "downstream-service-with-unix-sockets",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Address = ""
+				snap.Port = 0
+				snap.Proxy.LocalServiceAddress = ""
+				snap.Proxy.LocalServicePort = 0
+				snap.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
+			},
+		},
+		{
 			name:   "expose-paths-new-cluster-http2",
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

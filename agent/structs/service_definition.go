@@ -16,6 +16,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress
 	Meta              map[string]string
 	Port              int
+	SocketPath        string
 	Check             CheckType
 	Checks            CheckTypes
 	Weights           *Weights
@@ -67,6 +68,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 		Address:           s.Address,
 		Meta:              s.Meta,
 		Port:              s.Port,
+		SocketPath:        s.SocketPath,
 		Weights:           s.Weights,
 		EnableTagOverride: s.EnableTagOverride,
 		EnterpriseMeta:    s.EnterpriseMeta,

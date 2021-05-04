@@ -66,6 +66,16 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "listener-unix-domain-socket",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].LocalBindAddress = ""
+				snap.Proxy.Upstreams[0].LocalBindPort = 0
+				snap.Proxy.Upstreams[0].LocalBindSocketPath = "/tmp/service-mesh/client-1/grpc-employee-server"
+				snap.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
+			},
+		},
+		{
 			name:   "http-public-listener",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

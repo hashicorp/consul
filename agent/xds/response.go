@@ -38,6 +38,17 @@ func createResponse(typeURL string, version, nonce string, resources []proto.Mes
 	return resp, nil
 }
 
+func makePipeAddress(path string, mode uint32) *envoy_core_v3.Address {
+	return &envoy_core_v3.Address{
+		Address: &envoy_core_v3.Address_Pipe{
+			Pipe: &envoy_core_v3.Pipe{
+				Path: path,
+				Mode: mode,
+			},
+		},
+	}
+}
+
 func makeAddress(ip string, port int) *envoy_core_v3.Address {
 	return &envoy_core_v3.Address{
 		Address: &envoy_core_v3.Address_SocketAddress{

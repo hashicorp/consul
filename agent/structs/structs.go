@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"net"
 	"reflect"
 	"regexp"
 	"sort"
@@ -808,6 +807,8 @@ type Services map[string][]string
 // in the state store and are filled in on the way out by parseServiceNodes().
 // This is also why PartialClone() skips them, because we know they are blank
 // already so it would be a waste of time to copy them.
+// This is somewhat complicated when the address is really a unix domain socket; technically that
+// will override the address field, but in practice the two use cases should not overlap.
 type ServiceNode struct {
 	ID                       types.NodeID
 	Node                     string
@@ -824,6 +825,7 @@ type ServiceNode struct {
 	ServiceWeights           Weights
 	ServiceMeta              map[string]string
 	ServicePort              int
+	ServiceSocketPath        string
 	ServiceEnableTagOverride bool
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
@@ -865,6 +867,7 @@ func (s *ServiceNode) PartialClone() *ServiceNode {
 		ServiceName:              s.ServiceName,
 		ServiceTags:              tags,
 		ServiceAddress:           s.ServiceAddress,
+		ServiceSocketPath:        s.ServiceSocketPath,
 		ServiceTaggedAddresses:   svcTaggedAddrs,
 		ServicePort:              s.ServicePort,
 		ServiceMeta:              nsmeta,
@@ -890,6 +893,7 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 		Address:           s.ServiceAddress,
 		TaggedAddresses:   s.ServiceTaggedAddresses,
 		Port:              s.ServicePort,
+		SocketPath:        s.ServiceSocketPath,
 		Meta:              s.ServiceMeta,
 		Weights:           &s.ServiceWeights,
 		EnableTagOverride: s.ServiceEnableTagOverride,
@@ -996,7 +1000,8 @@ type NodeService struct {
 	Address           string
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Meta              map[string]string
-	Port              int
+	Port              int    `json:",omitempty"`
+	SocketPath        string `json:",omitempty"` // TODO This might be integrated into Address somehow, but not sure about the ergonomics. Only one of (address,port) or socketpath can be defined.
 	Weights           *Weights
 	EnableTagOverride bool
 
@@ -1159,9 +1164,9 @@ func (s *NodeService) Validate() error {
 					"services"))
 		}
 
-		if s.Port == 0 {
+		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf(
-				"Port must be set for a Connect proxy"))
+				"Port or SocketPath must be set for a Connect proxy"))
 		}
 
 		if s.Connect.Native {
@@ -1188,17 +1193,13 @@ func (s *NodeService) Validate() error {
 			}
 			upstreamKeys[uk] = struct{}{}
 
-			addr := u.LocalBindAddress
-			if addr == "" {
-				addr = "127.0.0.1"
-			}
-			addr = net.JoinHostPort(addr, fmt.Sprintf("%d", u.LocalBindPort))
+			addr := u.UpstreamAddressToString()
 
 			// Centrally configured upstreams will fail this check if there are multiple because they do not have an address/port.
 			// Only consider non-centrally configured upstreams in this check since those are the ones we create listeners for.
 			if _, ok := bindAddrs[addr]; ok && !u.CentrallyConfigured {
 				result = multierror.Append(result, fmt.Errorf(
-					"upstreams cannot contain duplicates by local bind address and port; %q is specified twice", addr))
+					"upstreams cannot contain duplicates by local bind address and port or unix path; %q is specified twice", addr))
 				continue
 			}
 			bindAddrs[addr] = struct{}{}
@@ -1266,6 +1267,10 @@ func (s *NodeService) Validate() error {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServicePort configuration is invalid for a %s", s.Kind))
 		}
 
+		if s.Proxy.LocalServiceSocketPath != "" {
+			result = multierror.Append(result, fmt.Errorf("The Proxy.LocalServiceSocketPath configuration is invalid for a %s", s.Kind))
+		}
+
 		if len(s.Proxy.Upstreams) != 0 {
 			result = multierror.Append(result, fmt.Errorf("The Proxy.Upstreams configuration is invalid for a %s", s.Kind))
 		}
@@ -1299,6 +1304,7 @@ func (s *NodeService) IsSame(other *NodeService) bool {
 		!reflect.DeepEqual(s.Tags, other.Tags) ||
 		s.Address != other.Address ||
 		s.Port != other.Port ||
+		s.SocketPath != other.SocketPath ||
 		!reflect.DeepEqual(s.TaggedAddresses, other.TaggedAddresses) ||
 		!reflect.DeepEqual(s.Weights, other.Weights) ||
 		!reflect.DeepEqual(s.Meta, other.Meta) ||
@@ -1370,6 +1376,7 @@ func (s *NodeService) ToServiceNode(node string) *ServiceNode {
 		ServiceAddress:           s.Address,
 		ServiceTaggedAddresses:   s.TaggedAddresses,
 		ServicePort:              s.Port,
+		ServiceSocketPath:        s.SocketPath,
 		ServiceMeta:              s.Meta,
 		ServiceWeights:           theWeights,
 		ServiceEnableTagOverride: s.EnableTagOverride,
