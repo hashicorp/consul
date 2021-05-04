@@ -12,7 +12,7 @@
     "@hashicorp/react-call-to-action": "3.0.1",
     "@hashicorp/react-callouts": "7.0.2",
     "@hashicorp/react-content": "7.0.1",
-    "@hashicorp/react-docs-page": "13.1.4",
+    "@hashicorp/react-docs-page": "13.1.7-alpha.10",
     "@hashicorp/react-featured-slider": "4.0.0",
     "@hashicorp/react-hashi-stack-menu": "2.0.3",
     "@hashicorp/react-head": "3.0.2",
