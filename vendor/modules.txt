@@ -32,7 +32,7 @@ github.com/NYTimes/gziphandler
 github.com/StackExchange/wmi
 # github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 github.com/armon/circbuf
-# github.com/armon/go-metrics v0.3.6
+# github.com/armon/go-metrics v0.3.7
 github.com/armon/go-metrics
 github.com/armon/go-metrics/circonus
 github.com/armon/go-metrics/datadog
@@ -481,7 +481,7 @@ github.com/hashicorp/mdns
 github.com/hashicorp/memberlist
 # github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 github.com/hashicorp/net-rpc-msgpackrpc
-# github.com/hashicorp/raft v1.2.0
+# github.com/hashicorp/raft v1.3.0
 github.com/hashicorp/raft
 # github.com/hashicorp/raft-autopilot v0.1.2
 github.com/hashicorp/raft-autopilot

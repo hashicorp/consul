@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/ipaddr"
@@ -1466,6 +1467,9 @@ func TestServer_ReloadConfig(t *testing.T) {
 		c.Build = "1.5.0"
 		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
+		// Set one raft param to be non-default in the initial config, others are
+		// default.
+		c.RaftConfig.TrailingLogs = 1234
 	})
 	defer os.RemoveAll(dir1)
 	defer s.Shutdown()
@@ -1480,6 +1484,14 @@ func TestServer_ReloadConfig(t *testing.T) {
 		RPCRateLimit:         1000,
 		RPCMaxBurst:          10000,
 		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
+		// Reset the custom one to default be removing it from config file (it will
+		// be a zero value here).
+		RaftTrailingLogs: 0,
+
+		// Set a different Raft param to something custom now
+		RaftSnapshotThreshold: 4321,
+
+		// Leave other raft fields default
 	}
 	require.NoError(t, s.ReloadConfig(rc))
 
@@ -1496,6 +1508,98 @@ func TestServer_ReloadConfig(t *testing.T) {
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+
+	// Check raft config
+	defaults := DefaultConfig()
+	got := s.raft.ReloadableConfig()
+	require.Equal(t, uint64(4321), got.SnapshotThreshold,
+		"should have be reloaded to new value")
+	require.Equal(t, defaults.RaftConfig.SnapshotInterval, got.SnapshotInterval,
+		"should have remained the default interval")
+	require.Equal(t, defaults.RaftConfig.TrailingLogs, got.TrailingLogs,
+		"should have reloaded to default trailing_logs")
+
+	// Now check that update each of those raft fields separately works correctly
+	// too.
+}
+
+func TestServer_computeRaftReloadableConfig(t *testing.T) {
+
+	defaults := DefaultConfig().RaftConfig
+
+	cases := []struct {
+		name string
+		rc   ReloadableConfig
+		want raft.ReloadableConfig
+	}{
+		{
+			// This case is the common path - reload is called with a ReloadableConfig
+			// populated from the RuntimeConfig which has zero values for the fields.
+			// On startup we selectively pick non-zero runtime config fields to
+			// override defaults so we need to do the same.
+			name: "Still defaults",
+			rc:   ReloadableConfig{},
+			want: raft.ReloadableConfig{
+				SnapshotThreshold: defaults.SnapshotThreshold,
+				SnapshotInterval:  defaults.SnapshotInterval,
+				TrailingLogs:      defaults.TrailingLogs,
+			},
+		},
+		{
+			name: "Threshold set",
+			rc: ReloadableConfig{
+				RaftSnapshotThreshold: 123456,
+			},
+			want: raft.ReloadableConfig{
+				SnapshotThreshold: 123456,
+				SnapshotInterval:  defaults.SnapshotInterval,
+				TrailingLogs:      defaults.TrailingLogs,
+			},
+		},
+		{
+			name: "interval set",
+			rc: ReloadableConfig{
+				RaftSnapshotInterval: 13 * time.Minute,
+			},
+			want: raft.ReloadableConfig{
+				SnapshotThreshold: defaults.SnapshotThreshold,
+				SnapshotInterval:  13 * time.Minute,
+				TrailingLogs:      defaults.TrailingLogs,
+			},
+		},
+		{
+			name: "trailing logs set",
+			rc: ReloadableConfig{
+				RaftTrailingLogs: 78910,
+			},
+			want: raft.ReloadableConfig{
+				SnapshotThreshold: defaults.SnapshotThreshold,
+				SnapshotInterval:  defaults.SnapshotInterval,
+				TrailingLogs:      78910,
+			},
+		},
+		{
+			name: "all set",
+			rc: ReloadableConfig{
+				RaftSnapshotThreshold: 123456,
+				RaftSnapshotInterval:  13 * time.Minute,
+				RaftTrailingLogs:      78910,
+			},
+			want: raft.ReloadableConfig{
+				SnapshotThreshold: 123456,
+				SnapshotInterval:  13 * time.Minute,
+				TrailingLogs:      78910,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := computeRaftReloadableConfig(tc.rc)
+			require.Equal(t, tc.want, got)
+		})
+	}
 }
 
 func TestServer_RPC_RateLimit(t *testing.T) {
