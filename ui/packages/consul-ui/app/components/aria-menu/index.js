@@ -129,6 +129,12 @@ export default Component.extend({
     },
     open: function(e) {
       set(this, 'expanded', true);
+      const $items = [...this.dom.elements(MENU_ITEMS, this.$menu)];
+      if ($items.length === 0) {
+        this.dom
+          .element('input[type="checkbox"]', this.$menu.parentElement)
+          .dispatchEvent(new MouseEvent('click'));
+      }
       // Take the trigger out of the tabbing whilst the menu is open
       this.$trigger.setAttribute('tabindex', '-1');
       this._listeners.add(this.dom.document(), {
