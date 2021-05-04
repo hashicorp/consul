@@ -508,6 +508,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
+					// Other targets of the discovery chain should be ignored.
+					// We only match on the upstream's virtual IP, not the IPs of other targets.
+					"google-v2.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "7.7.7.7",
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "google-v2",
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual": {Address: "10.10.10.10"},
+								},
+							},
+						},
+					},
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
