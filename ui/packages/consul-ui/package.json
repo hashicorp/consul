@@ -153,6 +153,7 @@
     "ngraph.graph": "^19.1.0",
     "pretender": "^3.2.0",
     "prettier": "^1.10.2",
+    "pretty-ms": "^7.0.1",
     "qunit-dom": "^1.0.0",
     "react-is": "^17.0.1",
     "sass": "^1.28.0",

@@ -1,0 +1,13 @@
+# duration-from
+
+`{{duration-from nanoseconds}}` is used to format a number in nanoseconds to a
+short golang-like human format, for example:
+
+```hbs preview-template
+<p>{{duration-from 15000000000}}</p>
+<p>{{duration-from 15000010001}}</p>
+```
+
+**Note:** The helper only accepts a javascript number primitive currently
+
+Also see the `temporal` service for the implementation.
