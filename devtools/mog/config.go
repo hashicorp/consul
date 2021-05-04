@@ -20,7 +20,7 @@ type structConfig struct {
 	Source           string
 	Target           target
 	Output           string
-	FuncNameFragment string
+	FuncNameFragment string // general namespace for conversion functions
 	IgnoreFields     stringSet
 	FuncFrom         string
 	FuncTo           string
@@ -62,6 +62,29 @@ type fieldConfig struct {
 	FuncFrom   string
 	FuncTo     string
 	// TODO: Pointer pointerSettings
+
+	cfg    structConfig // for dynamic
+	cfgSet bool
+}
+
+func (c fieldConfig) DynFuncFrom(sourcePtr, targetPtr bool) string {
+	if c.FuncFrom != "" {
+		return c.FuncFrom
+	}
+	if !c.cfgSet {
+		return ""
+	}
+	return funcNameFrom(c.cfg, sourcePtr, targetPtr)
+}
+
+func (c fieldConfig) DynFuncTo(sourcePtr, targetPtr bool) string {
+	if c.FuncTo != "" {
+		return c.FuncTo
+	}
+	if !c.cfgSet {
+		return ""
+	}
+	return funcNameTo(c.cfg, sourcePtr, targetPtr)
 }
 
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
@@ -96,6 +119,7 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 	return c, nil
 }
 
+// TODO: syntax of mog annotations should be in readme
 func parseStructAnnotation(name string, doc []*ast.Comment) (structConfig, error) {
 	c := structConfig{Source: name}
 
@@ -150,6 +174,7 @@ func (c structConfig) Validate() error {
 	return fmtErrors("invalid annotations", errs)
 }
 
+// TODO: syntax of mog annotations should be in readme
 func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 	var c fieldConfig
 
@@ -176,7 +201,7 @@ func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 		case "target":
 			c.TargetName = value
 		case "pointer":
-			// TODO:
+			// TODO(rb): remove as unnecessary?
 		case "func-from":
 			c.FuncFrom = value
 		case "func-to":
@@ -240,6 +265,8 @@ func fmtErrors(msg string, errs []error) error {
 
 // TODO: test cases
 func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
+	// Index the structs by name so any struct can refer to conversion
+	// functions for any other struct.
 	byName := make(map[string]structConfig, len(cfgs))
 	for _, s := range cfgs {
 		byName[s.Source] = s
@@ -251,23 +278,42 @@ func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
 				continue
 			}
 
+			// User supplied override function.
 			if f.FuncTo != "" || f.FuncFrom != "" {
 				continue
 			}
 
-			ident, ok := f.SourceExpr.(*ast.Ident)
-			if !ok {
+			var (
+				ident *ast.Ident
+			)
+			switch x := f.SourceExpr.(type) {
+			case *ast.Ident:
+				ident = x
+			case *ast.StarExpr:
+				var ok bool
+				ident, ok = x.X.(*ast.Ident)
+				if !ok {
+					continue
+				}
+			default:
 				continue
 			}
 
+			// Pull up type information for type of this field and attempt
+			// auto-convert.
+			//
+			// Maybe explicitly skip primitives or stuff like strings?
 			structCfg, ok := byName[ident.Name]
 			if !ok {
 				// TODO: log warning that auto convert did not work
 				continue
 			}
 
-			f.FuncFrom = funcNameFrom(structCfg)
-			f.FuncTo = funcNameTo(structCfg)
+			// Capture this information and use it dynamically to generate
+			// FuncFrom/FuncTo based on the LHS/RHS pointerness.
+			f.cfg = structCfg
+			f.cfgSet = true
+
 			s.Fields[fieldIdx] = f
 		}
 		cfgs[structIdx] = s

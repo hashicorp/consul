@@ -1,13 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
+	"gotest.tools/icmd"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
-	"gotest.tools/v3/icmd"
 )
 
 func TestE2E(t *testing.T) {
@@ -33,5 +34,7 @@ func TestE2E(t *testing.T) {
 
 	actual, err := ioutil.ReadFile(output)
 	assert.NilError(t, err)
+
+	fmt.Printf("OUTPUT\n%s\n", string(actual))
 	golden.Assert(t, string(actual), t.Name()+"-expected-node_gen.go")
 }

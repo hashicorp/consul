@@ -83,7 +83,6 @@ func runMog(opts options) error {
 
 	cfg.Structs = applyAutoConvertFunctions(cfg.Structs)
 
-	log.Printf("Generating code for %d structs", len(cfg.Structs))
 	return generateFiles(cfg, targets)
 }
 

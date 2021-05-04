@@ -6,11 +6,12 @@ import (
 	"go/format"
 	"go/token"
 	"go/types"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
+
+	"github.com/rboyer/safeio"
 )
 
 func generateFiles(cfg config, targets map[string]targetPkg) error {
@@ -30,7 +31,7 @@ func generateFiles(cfg config, targets map[string]targetPkg) error {
 			if err != nil {
 				return fmt.Errorf("failed to generate conversion for %v: %w", sourceStruct.Source, err)
 			}
-			decls = append(decls, gen.To, gen.From)
+			decls = append(decls, gen.Decls()...)
 
 			// TODO: generate round trip testcase
 		}
@@ -110,10 +111,8 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 		}
 
 		o := cfg.typeInfo.Types[sourceField.SourceExpr].Type
-		fmt.Printf("%v, %v %T\n", name, o, o)
-		fmt.Printf("%v, %v %v\n", name, field.Type(), types.AssignableTo(o, field.Type()))
-
-		// TODO: handle pointer
+		_, sourcePtr := o.(*types.Pointer)
+		_, targetPtr := field.Type().(*types.Pointer)
 
 		srcExpr := &ast.SelectorExpr{
 			X:   &ast.Ident{Name: varNameSource},
@@ -125,10 +124,12 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 		}
 
 		to.Body.List = append(to.Body.List,
-			newAssignStmt(targetExpr, srcExpr, sourceField.FuncTo))
+			newAssignStmt(targetExpr, srcExpr,
+				sourceField.DynFuncTo(sourcePtr, targetPtr)))
 
 		from.Body.List = append(from.Body.List,
-			newAssignStmt(srcExpr, targetExpr, sourceField.FuncFrom))
+			newAssignStmt(srcExpr, targetExpr,
+				sourceField.DynFuncFrom(sourcePtr, targetPtr)))
 	}
 
 	returnStmt := &ast.ReturnStmt{Results: []ast.Expr{&ast.Ident{Name: varNameTarget}}}
@@ -138,25 +139,16 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 	from.Body.List = append(from.Body.List, returnStmt)
 
 	g.To = to
+	g.PtrToPtr = generatePtrToPtrFunc(cfg, imports)
+	g.ToPtr = generateStructToPtrFunc(cfg, imports)
+	g.PtrTo = generatePtrToStructFunc(cfg, imports)
+
 	g.From = from
+	g.PtrFromPtr = generatePtrFromPtrFunc(cfg, imports)
+	g.PtrFrom = generatePtrFromStructFunc(cfg, imports)
+	g.FromPtr = generateStructFromPtrFunc(cfg, imports)
 
 	return g, fmtErrors("failed to generate", errs)
-}
-
-// TODO: test case with funcFrom/FuncTo
-func newAssignStmt(left ast.Expr, right ast.Expr, funcName string) *ast.AssignStmt {
-	if funcName != "" {
-		right = &ast.CallExpr{
-			Fun:  &ast.Ident{Name: funcName},
-			Args: []ast.Expr{right},
-		}
-	}
-
-	return &ast.AssignStmt{
-		Lhs: []ast.Expr{left},
-		Tok: token.ASSIGN,
-		Rhs: []ast.Expr{right},
-	}
 }
 
 func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
@@ -172,10 +164,26 @@ func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
 }
 
 type generated struct {
-	To   *ast.FuncDecl
-	From *ast.FuncDecl
+	To                     *ast.FuncDecl
+	PtrTo, ToPtr, PtrToPtr *ast.FuncDecl
+
+	From                         *ast.FuncDecl
+	PtrFrom, FromPtr, PtrFromPtr *ast.FuncDecl
 
 	// TODO: RoundTripTest *ast.FuncDecl
+}
+
+func (g *generated) Decls() []ast.Decl {
+	return []ast.Decl{
+		g.To,
+		g.PtrTo,
+		g.ToPtr,
+		g.PtrToPtr,
+		g.From,
+		g.PtrFrom,
+		g.FromPtr,
+		g.PtrFromPtr,
+	}
 }
 
 func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
@@ -184,8 +192,11 @@ func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
 	}
 
+	funcName := funcNameTo(cfg, false, false)
+
 	return &ast.FuncDecl{
-		Name: &ast.Ident{Name: funcNameTo(cfg)},
+		Doc:  newComments(funcName + " is a struct-to-struct conversion that translates FROM a protobuf"),
+		Name: &ast.Ident{Name: funcName},
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{{
@@ -213,12 +224,155 @@ func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 }
 
-func funcNameTo(cfg structConfig) string {
-	return cfg.Source + "To" + cfg.FuncNameFragment
+func generatePtrToPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	funcName := funcNameTo(cfg, true, true)
+
+	return &ast.FuncDecl{
+		Doc:  newComments(funcName + " is a pointer-to-pointer conversion that translates FROM a protobuf"),
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{{
+					Names: []*ast.Ident{{Name: varNameSource}},
+					Type:  newPointerTo(cfg.Source),
+				}},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: &ast.StarExpr{
+					X: targetType,
+				}}},
+			},
+		},
+		Body: &ast.BlockStmt{List: []ast.Stmt{
+			newIfNilReturnIdent(varNameSource, "nil"),
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{&ast.Ident{Name: varNameTarget}},
+				Tok: token.DEFINE,
+				Rhs: []ast.Expr{
+					&ast.CallExpr{
+						Fun:  &ast.Ident{Name: funcNameTo(cfg, false, false)},
+						Args: []ast.Expr{newPointerTo(varNameSource)},
+					},
+				},
+			},
+			&ast.ReturnStmt{
+				Results: []ast.Expr{newAddressOf(varNameTarget)},
+			},
+		}},
+	}
 }
 
-func funcNameFrom(cfg structConfig) string {
-	return "New" + cfg.Source + "From" + cfg.FuncNameFragment
+func generateStructToPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	funcName := funcNameTo(cfg, false, true)
+
+	return &ast.FuncDecl{
+		Doc:  newComments(funcName + " is a struct-to-pointer conversion that translates FROM a protobuf"),
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{{
+					Names: []*ast.Ident{{Name: varNameSource}},
+					Type:  &ast.Ident{Name: cfg.Source},
+				}},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: &ast.StarExpr{
+					X: targetType,
+				}}},
+			},
+		},
+		Body: &ast.BlockStmt{List: []ast.Stmt{
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{&ast.Ident{Name: varNameTarget}},
+				Tok: token.DEFINE,
+				Rhs: []ast.Expr{
+					&ast.CallExpr{
+						Fun:  &ast.Ident{Name: funcNameTo(cfg, false, false)},
+						Args: []ast.Expr{&ast.Ident{Name: varNameSource}},
+					},
+				},
+			},
+			&ast.ReturnStmt{
+				Results: []ast.Expr{newAddressOf(varNameTarget)},
+			},
+		}},
+	}
+}
+
+func generatePtrToStructFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	funcName := funcNameTo(cfg, true, false)
+
+	return &ast.FuncDecl{
+		Doc:  newComments(funcName + " is a pointer-to-struct conversion that translates FROM a protobuf"),
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{{
+					Names: []*ast.Ident{{Name: varNameSource}},
+					Type:  newPointerTo(cfg.Source),
+				}},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: targetType}},
+			},
+		},
+		Body: &ast.BlockStmt{List: []ast.Stmt{
+			&ast.DeclStmt{Decl: &ast.GenDecl{
+				Tok: token.VAR,
+				Specs: []ast.Spec{
+					&ast.ValueSpec{
+						Names: []*ast.Ident{{Name: varNameTarget}},
+						Type:  targetType,
+					},
+				},
+			}},
+			newIfNilReturnIdent(varNameSource, varNameTarget),
+			&ast.ReturnStmt{
+				Results: []ast.Expr{
+					&ast.CallExpr{
+						Fun:  &ast.Ident{Name: funcNameTo(cfg, false, false)},
+						Args: []ast.Expr{newPointerTo(varNameSource)},
+					},
+				},
+			},
+		}},
+	}
+}
+
+func funcNameTo(cfg structConfig, sourcePtr, targetPtr bool) string {
+	if cfg.FuncNameFragment == "" {
+		panic("FuncNameFragment is required")
+	}
+	return cfg.Source + maybePtr(sourcePtr) + "To" + cfg.FuncNameFragment + maybePtr(targetPtr)
+}
+
+func funcNameFrom(cfg structConfig, sourcePtr, targetPtr bool) string {
+	if cfg.FuncNameFragment == "" {
+		panic("FuncNameFragment is required")
+	}
+	return "New" + cfg.Source + maybePtr(sourcePtr) + "From" + cfg.FuncNameFragment + maybePtr(targetPtr)
+}
+
+func maybePtr(v bool) string {
+	if v {
+		return "Ptr"
+	}
+	return ""
 }
 
 func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
@@ -227,8 +381,11 @@ func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
 	}
 
+	funcName := funcNameFrom(cfg, false, false)
+
 	return &ast.FuncDecl{
-		Name: &ast.Ident{Name: funcNameFrom(cfg)},
+		Doc:  newComments(funcName + " is a struct-to-struct conversion that translates TO a protobuf"),
+		Name: &ast.Ident{Name: funcName},
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
 				List: []*ast.Field{{
@@ -256,16 +413,158 @@ func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 }
 
+func generatePtrFromPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	funcName := funcNameFrom(cfg, true, true)
+
+	return &ast.FuncDecl{
+		Doc:  newComments(funcName + " is a pointer-to-pointer conversion that translates TO a protobuf"),
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{{
+					Names: []*ast.Ident{{Name: varNameTarget}},
+					Type: &ast.StarExpr{
+						X: targetType,
+					},
+				}},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: newPointerTo(cfg.Source)}},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				newIfNilReturnIdent(varNameTarget, "nil"),
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.Ident{Name: varNameSource}},
+					Tok: token.DEFINE,
+					Rhs: []ast.Expr{
+						&ast.CallExpr{
+							Fun:  &ast.Ident{Name: funcNameFrom(cfg, false, false)},
+							Args: []ast.Expr{newPointerTo(varNameTarget)},
+						},
+					},
+				},
+				&ast.ReturnStmt{
+					Results: []ast.Expr{newAddressOf(varNameSource)},
+				},
+			},
+		},
+	}
+}
+
+func generatePtrFromStructFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	funcName := funcNameFrom(cfg, false, true)
+
+	return &ast.FuncDecl{
+		Doc:  newComments(funcName + " is a pointer-to-struct conversion that translates TO a protobuf"),
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{{
+					Names: []*ast.Ident{{Name: varNameTarget}},
+					Type: &ast.StarExpr{
+						X: targetType,
+					},
+				}},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: &ast.Ident{Name: cfg.Source}}},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.DeclStmt{Decl: &ast.GenDecl{
+					Tok: token.VAR,
+					Specs: []ast.Spec{
+						&ast.ValueSpec{
+							Names: []*ast.Ident{{Name: varNameSource}},
+							Type:  &ast.Ident{Name: cfg.Source},
+						},
+					},
+				}},
+				newIfNilReturnIdent(varNameTarget, varNameSource),
+				&ast.ReturnStmt{
+					Results: []ast.Expr{
+						&ast.CallExpr{
+							Fun:  &ast.Ident{Name: funcNameFrom(cfg, false, false)},
+							Args: []ast.Expr{newPointerTo(varNameTarget)},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func generateStructFromPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	funcName := funcNameFrom(cfg, true, false)
+
+	return &ast.FuncDecl{
+		Doc:  newComments(funcName + " is a struct-pointer conversion that translates TO a protobuf"),
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{{
+					Names: []*ast.Ident{{Name: varNameTarget}},
+					Type:  targetType,
+				}},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{{Type: newPointerTo(cfg.Source)}},
+			},
+		},
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.Ident{Name: varNameSource}},
+					Tok: token.DEFINE,
+					Rhs: []ast.Expr{
+						&ast.CallExpr{
+							Fun:  &ast.Ident{Name: funcNameFrom(cfg, false, false)},
+							Args: []ast.Expr{&ast.Ident{Name: varNameTarget}},
+						},
+					},
+				},
+				&ast.ReturnStmt{
+					Results: []ast.Expr{newAddressOf(varNameSource)},
+				},
+			},
+		},
+	}
+}
+
 // TODO: write build tags
 func writeFile(output string, file *ast.File) error {
-	fh, err := os.Create(output)
+	fh, err := safeio.OpenFile(output, 0666)
 	if err != nil {
 		return err
 	}
+	defer fh.Close()
+
 	if _, err := fmt.Fprint(fh, "// Code generated by mog. DO NOT EDIT.\n\n"); err != nil {
 		return err
 	}
-	return format.Node(fh, new(token.FileSet), file)
+	if err := format.Node(fh, new(token.FileSet), file); err != nil {
+		return err
+	}
+
+	return fh.Commit()
 }
 
 type imports struct {
