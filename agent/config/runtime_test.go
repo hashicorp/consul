@@ -2590,6 +2590,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										{
 											"destination_name": "db",
 											"local_bind_port": 7000
+										},
+										{
+											"destination_name": "db2",
+											"local_bind_socket_path": "/tmp/socketpath",
+											"local_bind_socket_mode": "0644"
 										}
 									]
 								}
@@ -2631,6 +2636,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										destination_name = "db"
 										local_bind_port = 7000
 									},
+									{
+									    destination_name = "db2",
+									    local_bind_socket_path = "/tmp/socketpath",
+									    local_bind_socket_mode = "0644"
+									}
 								]
 							}
 						}
@@ -2674,6 +2684,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										DestinationType: "service",
 										DestinationName: "db",
 										LocalBindPort:   7000,
+									},
+									structs.Upstream{
+										DestinationType:     "service",
+										DestinationName:     "db2",
+										LocalBindSocketPath: "/tmp/socketpath",
+										LocalBindSocketMode: "0644",
 									},
 								},
 							},

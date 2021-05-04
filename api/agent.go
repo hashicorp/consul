@@ -118,6 +118,7 @@ type AgentServiceConnectProxyConfig struct {
 	DestinationServiceID   string                  `json:",omitempty"`
 	LocalServiceAddress    string                  `json:",omitempty"`
 	LocalServicePort       int                     `json:",omitempty"`
+	LocalServiceSocketPath string                  `json:",omitempty"`
 	Mode                   ProxyMode               `json:",omitempty"`
 	TransparentProxy       *TransparentProxyConfig `json:",omitempty"`
 	Config                 map[string]interface{}  `json:",omitempty" bexpr:"-"`
@@ -407,6 +408,8 @@ type Upstream struct {
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`
+	LocalBindSocketPath  string                 `json:",omitempty"`
+	LocalBindSocketMode  string                 `json:",omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 	CentrallyConfigured  bool                   `json:",omitempty" bexpr:"-"`

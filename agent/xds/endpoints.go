@@ -287,11 +287,22 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 	return resources, nil
 }
 
+// used in clusters.go
 func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
 	return &envoy_endpoint_v3.LbEndpoint{
 		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
 			Endpoint: &envoy_endpoint_v3.Endpoint{
 				Address: makeAddress(host, port),
+			},
+		},
+	}
+}
+
+func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
+	return &envoy_endpoint_v3.LbEndpoint{
+		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+			Endpoint: &envoy_endpoint_v3.Endpoint{
+				Address: makePipeAddress(path, 0),
 			},
 		},
 	}

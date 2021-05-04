@@ -375,6 +375,7 @@ type ServiceDefinition struct {
 	TaggedAddresses   map[string]ServiceAddress `mapstructure:"tagged_addresses"`
 	Meta              map[string]string         `mapstructure:"meta"`
 	Port              *int                      `mapstructure:"port"`
+	SocketPath        *string                   `mapstructure:"socket_path"`
 	Check             *CheckDefinition          `mapstructure:"check"`
 	Checks            []CheckDefinition         `mapstructure:"checks"`
 	Token             *string                   `mapstructure:"token"`
@@ -461,6 +462,10 @@ type ServiceProxy struct {
 	// (DestinationServiceID is set) but otherwise will be ignored.
 	LocalServicePort *int `mapstructure:"local_service_port"`
 
+	// LocalServiceSocketPath is the socket of the local service instance. It is optional
+	// and should only be specified for "side-car" style proxies.
+	LocalServiceSocketPath string `mapstructure:"local_service_socket_path"`
+
 	// TransparentProxy configuration.
 	TransparentProxy *TransparentProxyConfig `mapstructure:"transparent_proxy"`
 
@@ -503,13 +508,20 @@ type Upstream struct {
 	// datacenter.
 	Datacenter *string `mapstructure:"datacenter"`
 
+	// It would be worth thinking about a separate structure for these four items,
+	// unifying under address as something like "unix:/tmp/foo", "tcp:localhost:80" could make sense
 	// LocalBindAddress is the ip address a side-car proxy should listen on for
-	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
+	// traffic destined for this upstream service. Default if empty and local bind socket
+	// is not present is 127.0.0.1.
 	LocalBindAddress *string `mapstructure:"local_bind_address"`
 
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
 	// destined for this upstream service. Required.
 	LocalBindPort *int `mapstructure:"local_bind_port"`
+
+	// These are exclusive with LocalBindAddress/LocalBindPort. These are created under our control.
+	LocalBindSocketPath *string `mapstructure:"local_bind_socket_path"`
+	LocalBindSocketMode *string `mapstructure:"local_bind_socket_mode"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
