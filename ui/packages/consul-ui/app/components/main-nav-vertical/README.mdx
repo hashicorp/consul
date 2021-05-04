@@ -1,0 +1,71 @@
+---
+class: css
+---
+# MainNavVertical
+
+Used for styles of vertically orientated main application menus/navigation.
+
+Menu item active state is applied on `.is-active` `<li>` elements. Additionally you can use the following placeholders for setting certin states manually:
+
+- `%menu-nav-vertical-action-active` The 'active' or currently selected state.
+- `%menu-nav-vertical-action-intent` The highlighted state, usually for `:hover`
+  and `:focus`.
+
+`%menu-nav-vertical-hoisted` will 'hoist' an `<li>` element to the top of the
+containing block, the containing block defaults to the current viewport. If
+you need to define a different ancestor for a containing block you can use
+`transform` (see below).
+
+```hbs preview-template
+<div class="wrapper">
+  <nav class="main-nav-vertical in-viewport">
+    <ul>
+      <li role="separator">Title</li>
+      <li>
+        <a href="">One</a>
+      </li>
+      <li class="is-active">
+        <a href="">Two (is-active)</a>
+      </li>
+      <li class="with-intent">
+        <a href="">Three (with-intent)</a>
+      </li>
+      <li class="hoisted">
+        <a href="">Four (hoisted)</a>
+      </li>
+      <li role="separator">Title</li>
+      <li class="custom-active">
+        <a href="">One (custom-active)</a>
+      </li>
+      <li>
+        <a href="">Two</a>
+      </li>
+      <li>
+        <a href="">Three</a>
+      </li>
+    </ul>
+  </nav>
+</div>
+```
+
+```css preview-template
+.main-nav-vertical {
+  @extend %main-nav-vertical;
+}
+.main-nav-vertical li.hoisted {
+  @extend %main-nav-vertical-hoisted;
+}
+.main-nav-vertical .with-intent > * {
+  @extend %main-nav-vertical-action-intent;
+}
+.main-nav-vertical .custom-active > * {
+  @extend %main-nav-vertical-action-active;
+}
+.wrapper {
+  /* a transform is required to mark this element as the containing block */
+  /* for hoisting, otherwise the viewport is the containing block */
+  transform: translate(0, 0);
+  background-color: var(--gray-600);
+  padding-top: 64px;
+}
+```
