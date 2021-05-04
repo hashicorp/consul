@@ -13,15 +13,3 @@
   width: 100%;
   padding: 15px;
 }
-
-/* ?? */
-%list-collection > ul > li:nth-child(2) .with-feedback p {
-  bottom: auto;
-  top: 24px;
-}
-%list-collection > ul > li:nth-child(2) p::after {
-  bottom: auto;
-  top: -10px !important;
-  border-bottom-width: 18px;
-  border-top-width: 0;
-}
