@@ -196,6 +196,64 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		_, _, err = config_entries.Get(ServiceDefaults, "foo", nil)
 		require.Error(t, err)
 	})
+
+	t.Run("Mesh", func(t *testing.T) {
+		mesh := &MeshConfigEntry{
+			TransparentProxy: TransparentProxyMeshConfig{CatalogDestinationsOnly: true},
+			Meta: map[string]string{
+				"foo": "bar",
+				"gir": "zim",
+			},
+		}
+		ce := c.ConfigEntries()
+
+		runStep(t, "set and get", func(t *testing.T) {
+			_, wm, err := ce.Set(mesh, nil)
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+			require.NotEqual(t, 0, wm.RequestTime)
+
+			entry, qm, err := ce.Get(MeshConfig, MeshConfigMesh, nil)
+			require.NoError(t, err)
+			require.NotNil(t, qm)
+			require.NotEqual(t, 0, qm.RequestTime)
+
+			result, ok := entry.(*MeshConfigEntry)
+			require.True(t, ok)
+
+			// ignore indexes
+			result.CreateIndex = 0
+			result.ModifyIndex = 0
+			require.Equal(t, mesh, result)
+		})
+
+		runStep(t, "list", func(t *testing.T) {
+			entries, qm, err := ce.List(MeshConfig, nil)
+			require.NoError(t, err)
+			require.NotNil(t, qm)
+			require.NotEqual(t, 0, qm.RequestTime)
+			require.Len(t, entries, 1)
+		})
+
+		runStep(t, "delete", func(t *testing.T) {
+			wm, err := ce.Delete(MeshConfig, MeshConfigMesh, nil)
+			require.NoError(t, err)
+			require.NotNil(t, wm)
+			require.NotEqual(t, 0, wm.RequestTime)
+
+			// verify deletion
+			_, _, err = ce.Get(MeshConfig, MeshConfigMesh, nil)
+			require.Error(t, err)
+		})
+	})
+
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }
 
 func TestDecodeConfigEntry(t *testing.T) {
@@ -1141,7 +1199,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			body: `
 			{
 				"Kind": "mesh",
-				"Name": "mesh",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -1152,8 +1209,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &MeshConfigEntry{
-				Kind: "mesh",
-				Name: "mesh",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",

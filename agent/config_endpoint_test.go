@@ -7,10 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestConfig_Get(t *testing.T) {
@@ -45,6 +46,18 @@ func TestConfig_Get(t *testing.T) {
 				Config: map[string]interface{}{
 					"foo": "bar",
 					"bar": 1,
+				},
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.MeshConfigEntry{
+				TransparentProxy: structs.TransparentProxyMeshConfig{
+					CatalogDestinationsOnly: true,
+				},
+				Meta: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
 				},
 			},
 		},
@@ -94,6 +107,37 @@ func TestConfig_Get(t *testing.T) {
 		resp := httptest.NewRecorder()
 		_, err := a.srv.Config(resp, req)
 		require.Error(t, errors.New("Must provide either a kind or both kind and name"), err)
+	})
+	t.Run("get the single mesh config", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/config/mesh/mesh", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.Config(resp, req)
+		require.NoError(t, err)
+
+		ce, ok := obj.(*structs.MeshConfigEntry)
+		require.True(t, ok, "wrong type %T", obj)
+		// Set indexes to expected values for assertions
+		ce.CreateIndex = 12
+		ce.ModifyIndex = 13
+
+		out, err := a.srv.marshalJSON(req, obj)
+		require.NoError(t, err)
+
+		expected := `
+{
+	"Kind": "mesh",
+	"TransparentProxy": {
+		"CatalogDestinationsOnly": true
+	},
+	"Meta":{
+		"key1": "value1",
+		"key2": "value2"
+	},
+	"CreateIndex": 12,
+	"ModifyIndex": 13
+}
+`
+		require.JSONEq(t, expected, string(out))
 	})
 }
 

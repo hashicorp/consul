@@ -1,6 +1,7 @@
 package write
 
 import (
+	"bytes"
 	"io"
 	"strings"
 	"testing"
@@ -112,6 +113,36 @@ func TestConfigWrite(t *testing.T) {
 		code := c.Run([]string{})
 		require.NotEqual(t, 0, code)
 		require.NotEmpty(t, ui.ErrorWriter.String())
+	})
+
+	t.Run("mesh config entry", func(t *testing.T) {
+		stdin := new(bytes.Buffer)
+		stdin.WriteString(`
+kind = "mesh"
+meta {
+	"foo" = "bar"
+	"gir" = "zim"
+}
+transparent_proxy {
+	catalog_destinations_only = true
+}
+`)
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdin
+
+		code := c.Run([]string{"-http-addr=" + a.HTTPAddr(), "-"})
+		require.Empty(t, ui.ErrorWriter.String())
+		require.Contains(t, ui.OutputWriter.String(),
+			`Config entry written: mesh/mesh`)
+		require.Equal(t, 0, code)
+
+		entry, _, err := client.ConfigEntries().Get(api.MeshConfig, api.MeshConfigMesh, nil)
+		require.NoError(t, err)
+		proxy, ok := entry.(*api.MeshConfigEntry)
+		require.True(t, ok)
+		require.Equal(t, map[string]string{"foo": "bar", "gir": "zim"}, proxy.Meta)
 	})
 }
 
@@ -2627,7 +2658,6 @@ func TestParseConfigEntry(t *testing.T) {
 			name: "mesh",
 			snake: `
 				kind = "mesh"
-				name = "mesh"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -2638,7 +2668,6 @@ func TestParseConfigEntry(t *testing.T) {
 			`,
 			camel: `
 				Kind = "mesh"
-				Name = "mesh"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -2650,7 +2679,6 @@ func TestParseConfigEntry(t *testing.T) {
 			snakeJSON: `
 			{
 				"kind": "mesh",
-				"name": "mesh",
 				"meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -2663,7 +2691,6 @@ func TestParseConfigEntry(t *testing.T) {
 			camelJSON: `
 			{
 				"Kind": "mesh",
-				"Name": "mesh",
 				"Meta" : {
 					"foo": "bar",
 					"gir": "zim"
@@ -2674,8 +2701,6 @@ func TestParseConfigEntry(t *testing.T) {
 			}
 			`,
 			expect: &api.MeshConfigEntry{
-				Kind: api.MeshConfig,
-				Name: api.MeshConfigMesh,
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",

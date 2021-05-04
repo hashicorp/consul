@@ -540,8 +540,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 				snap.ConnectProxy.MeshConfigSet = true
 				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
-					Kind: structs.MeshConfig,
-					Name: structs.MeshConfigMesh,
 					TransparentProxy: structs.TransparentProxyMeshConfig{
 						CatalogDestinationsOnly: true,
 					},

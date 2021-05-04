@@ -428,8 +428,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 	// mesh config entry
 	meshConfig := &structs.MeshConfigEntry{
-		Kind: structs.MeshConfig,
-		Name: structs.MeshConfigMesh,
 		TransparentProxy: structs.TransparentProxyMeshConfig{
 			CatalogDestinationsOnly: true,
 		},

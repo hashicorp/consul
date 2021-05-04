@@ -4157,7 +4157,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"bootstrap": [
 						{
 							"kind": "mesh",
-							"name": "mesh",
 							"meta" : {
 								"foo": "bar",
 								"gir": "zim"
@@ -4174,7 +4173,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				config_entries {
 				  bootstrap {
 					kind = "mesh"
-					name = "mesh"
 					meta {
 						"foo" = "bar"
 						"gir" = "zim"
@@ -4190,8 +4188,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 				&structs.MeshConfigEntry{
-					Kind: structs.MeshConfig,
-					Name: structs.MeshConfigMesh,
 					Meta: map[string]string{
 						"foo": "bar",
 						"gir": "zim",
@@ -4212,7 +4208,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					"bootstrap": [
 						{
 							"Kind": "mesh",
-							"Name": "mesh",
 							"Meta" : {
 								"foo": "bar",
 								"gir": "zim"
@@ -4229,7 +4224,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				config_entries {
 				  bootstrap {
 					Kind = "mesh"
-					Name = "mesh"
 					Meta {
 						"foo" = "bar"
 						"gir" = "zim"
@@ -4245,8 +4239,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
 				&structs.MeshConfigEntry{
-					Kind: structs.MeshConfig,
-					Name: structs.MeshConfigMesh,
 					Meta: map[string]string{
 						"foo": "bar",
 						"gir": "zim",
