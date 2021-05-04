@@ -54,7 +54,10 @@ as |item index|>
         </td>
     </BlockSlot>
     <BlockSlot @name="actions" as |index change checked|>
-      <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
+      <PopoverMenu
+        @expanded={{if (eq checked index) true false}}
+        @onchange={{action change index}} @keyboardAccess={{false}}
+      >
         <BlockSlot @name="trigger">
           More
         </BlockSlot>
@@ -100,7 +103,38 @@ as |item index|>
             </li>
           {{else}}
             <li role="none">
-              <a role="menuitem" tabindex="-1" href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}>View</a>
+              <div role="menu">
+                <InformedAction
+                  class="info kubernetes"
+                >
+                  <:header>
+                    Managed by CRD
+                  </:header>
+                  <:body>
+                    <p>
+                      This intention is being managed through an Intention Custom Resource in your Kubernetes cluster. It is view only in the UI.
+                    </p>
+                  </:body>
+                  <:actions as |Actions|>
+                    <Actions.Action>
+                      <Action
+                        tabindex="-1"
+                        class="action"
+                        @href={{href-to (or @routeName 'dc.intentions.edit') item.ID}}
+                      >
+                        View
+                      </Action>
+                    </Actions.Action>
+                    <Actions.Action>
+                      <Action
+                        @onclick={{action change}}
+                      >
+                        Cancel
+                      </Action>
+                    </Actions.Action>
+                  </:actions>
+                </InformedAction>
+              </div>
             </li>
           {{/if}}
         </BlockSlot>

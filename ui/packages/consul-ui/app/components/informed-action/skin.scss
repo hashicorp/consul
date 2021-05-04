@@ -66,6 +66,13 @@
       background-color: $yellow-050;
     }
   }
+  /* brands */
+  &.kubernetes {
+    header::before {
+      @extend %with-logo-kubernetes-color-icon, %without-mask, %as-pseudo;
+    }
+  }
+  /**/
   > ul > .action > * {
     color: $blue-500;
   }
