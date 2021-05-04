@@ -1,25 +1,62 @@
----
-class: ember
----
 # DataCollection
 
-```hbs
-<DataCollection
-  @search={{''}}
-  @sort={{''}}
-  @filter={{hash
-    searchproperties=(array)
-  }}
-  @items={{array 'hi'}}
-as |collection|>
-  {{collection.items.length}}
-  <collection.Collection>
-    Has Results
-  </collection.Collection>
-  <collection.Empty>
-    Is Empty
-  </collection.Empty>
-</DataCollection>
+The DataCollection component is the component we use for searching, filtering and sorting. It does not dictate any rendering of your data, but it does provide two different states/contextual components for rendering: when there are some results, when there are no results and also (by not using the contextual components) when the amount of results does not matter to what you want to render (say a count of number of results).
+
+The component should be configured with the `@type` attribute, the component will use this to lookup 'specifications' for searching, sorting and filtering in the respective `app/search/predicates`, `app/sort/comparators` and `app/filter/predicates` folders. These specifications define _what_ is searched when you search a list of objects (for example searching Name could mean searching `model.Name` whereas searching Role could mean searching through an array of `item.RoleDefaults`).
+
+The component can also be further configured by specifications for _how_ to search, for example we currently only use `Exact` searching (pretty much an `indexOf` search), but we also have `fuzzy` and `regexp` searching methods available (but disabled until needed). These search 'methods' will use the above specifications again to define _what_ to search. Searching methods (the _how_) are in `utils/search/{exact,fuzzy,regexp}.js` and any new ones should implement at least a single `search` method.
+
+Lastly, a `SearchService` in `services/search.js` configures what is available for _what_ to search and _how_ to search, so if you need to add new models or search methods, that is where to look.
+
+```hbs preview-template
+<figure>
+  <figcaption>Provide a widget to search with</figcaption>
+  <input
+    oninput={{action (mut this.term) value="target.value"}}
+    type="text"
+  />
+</figure>
+
+<figure>
+  <figcaption>Get some data to search on</figcaption>
+  <DataSource @src="/nspace/dc-1/services" as |source|>
+
+    <figure>
+      <figcaption>and show the complete set of data</figcaption>
+      {{#each source.data as |item|}}
+        {{item.Name}},
+      {{/each}}
+    </figure>
+
+    <hr />
+
+    <figure>
+      <figcaption>Use the component</figcaption>
+
+      <DataCollection
+        @type="service"
+        @search={{this.term}}
+        @sort={{'Name:asc'}}
+        @filter={{hash
+          searchproperties=(array 'Name')
+        }}
+        @items={{source.data}}
+      as |collection|>
+        Has {{collection.items.length}} results:<br />
+        <collection.Collection>
+          {{#each collection.items as |item|}}
+            {{item.Name}},
+          {{/each}}
+        </collection.Collection>
+        <collection.Empty>
+          Is Empty
+        </collection.Empty>
+      </DataCollection>
+
+    </figure>
+
+  </DataSource>
+</figure>
 ```
 
 ### Arguments
@@ -30,6 +67,8 @@ as |collection|>
 | `search` | `String` | '' | A search term to use for searching |
 | `sort` | `String` | '' | A sort term to use for sorting on ('Name:asc') |
 | `filter` | `Object` |  | An object whose properties are the properties/values to filter on |
+| `type` | `String` | '' | The name of the specification describing what to search, filter, sort |
+| `searchable` | `String` | `exact` | The name of the method to use for searching |
 
 ### Yields
 

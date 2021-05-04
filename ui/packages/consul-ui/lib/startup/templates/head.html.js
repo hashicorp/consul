@@ -8,7 +8,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
   <link rel="icon" type="image/png" href="${rootURL}assets/favicon-16x16.png" sizes="16x16">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/vendor.css">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/${
-  environment === 'development' ? 'debug' : appName
+    !['test', 'production'].includes(environment) ? 'debug' : appName
 }.css">
   ${
     environment === 'test' ? `<link rel="stylesheet" href="${rootURL}assets/test-support.css">` : ``
