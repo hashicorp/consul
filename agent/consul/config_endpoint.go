@@ -162,8 +162,10 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 		return err
 	}
 
-	if args.Kind != "" && !structs.ValidateConfigEntryKind(args.Kind) {
-		return fmt.Errorf("invalid config entry kind: %s", args.Kind)
+	if args.Kind != "" {
+		if _, err := structs.MakeConfigEntry(args.Kind, ""); err != nil {
+			return fmt.Errorf("invalid config entry kind: %s", args.Kind)
+		}
 	}
 
 	return c.srv.blockingQuery(
