@@ -1123,6 +1123,7 @@ workflows:
             branches:
               only:
                 - master
+                - /release\/\d+\.\d+\.x$/
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:
