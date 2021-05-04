@@ -9,11 +9,14 @@
   transition: min-height 150ms, max-height 150ms;
   min-height: 0;
 }
-%menu-panel [type='checkbox'] ~ * {
+%menu-panel:not(.confirmation) [type='checkbox'] ~ * {
   transition: transform 150ms;
 }
 %menu-panel [type='checkbox']:checked ~ * {
   transform: translateX(calc(-100% - 10px));
+}
+%menu-panel.confirmation [role='menu'] {
+  min-height: 200px !important;
 }
 %menu-panel [role='menuitem'] {
   display: flex;
@@ -37,7 +40,8 @@
   min-height: 143px;
   max-height: 143px;
 }
-%menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
+%menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] * [role='menu'],
+%menu-panel [id$='-']:first-child:checked ~ ul > li > [role='menu'] {
   display: block;
 }
 /**/

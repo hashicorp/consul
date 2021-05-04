@@ -2,7 +2,14 @@
 {{#let (hash
   change=(action "change")
 ) as |api|}}
-<div class="menu-panel {{position}}">
+<div
+  class={{join ' ' (compact (array
+    'menu-panel'
+    position
+    (if isConfirmation 'confirmation')
+  ))}}
+  {{did-insert (action 'connect')}}
+>
   <YieldSlot @name="controls">
     {{yield api}}
   </YieldSlot>
