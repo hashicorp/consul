@@ -2,7 +2,7 @@
   {{#if (gt tags.length 0)}}
     {{#if (has-block)}}
       {{yield
-        (component 'tag-list' item=item)
+        (component 'tag-list' item=@item)
       }}
     {{else}}
 <dl
