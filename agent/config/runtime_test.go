@@ -5648,6 +5648,13 @@ func TestLoad_FullConfig(t *testing.T) {
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
 						},
+						{
+							DestinationType:      "prepared_query",
+							DestinationNamespace: "9nakw0td",
+							DestinationName:      "placeholder",
+							LocalBindSocketPath:  "/foo/bar/upstream",
+							LocalBindSocketMode:  "0600",
+						},
 					},
 					Expose: structs.ExposeConfig{
 						Checks: true,

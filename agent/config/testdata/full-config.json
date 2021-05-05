@@ -358,7 +358,6 @@
     "address": "cOlSOhbp",
     "token": "msy7iWER",
     "port": 24237,
-    "socket_path": "/tmp/rc78ap",
     "weights": {
       "passing": 100,
       "warning": 1
@@ -453,7 +452,6 @@
       "address": "9RhqPSPB",
       "token": "myjKJkWH",
       "port": 72219,
-      "socket_path":"/foo/bar/sock_7IszXMQ1",
       "enable_tag_override": true,
       "check": {
         "id": "qmfeO5if",
@@ -563,7 +561,6 @@
         "destination_service_name": "6L6BVfgH",
         "local_service_address": "127.0.0.2",
         "local_service_port": 23759,
-        "local_service_socket_path": "/foo/bar/local",
         "expose": {
           "checks": true,
           "paths": [
@@ -592,7 +589,12 @@
             "destination_namespace": "9nakw0td",
             "destination_type": "prepared_query",
             "local_bind_address": "127.24.88.0",
-            "local_bind_port": 11884,
+            "local_bind_port": 11884
+          },
+          {
+            "destination_name": "placeholder",
+            "destination_namespace": "9nakw0td",
+            "destination_type": "prepared_query",
             "local_bind_socket_path":  "/foo/bar/upstream",
             "local_bind_socket_mode":  "0600"
           }
