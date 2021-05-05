@@ -958,6 +958,8 @@ jobs:
             terraform destroy -auto-approve
       - run: *notify-slack-failure
 
+  // The noop job is a used as a very fast job in the verify-ci workflow because every workflow
+  // requires at least one job. It does nothing.
   noop:
     docker:
       - image: docker.mirror.hashicorp.services/alpine:latest
