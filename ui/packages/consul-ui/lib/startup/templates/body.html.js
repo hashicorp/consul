@@ -4,7 +4,7 @@
 
 const read = require('fs').readFileSync;
 
-const hbsRe = /{{(@+[a-z]*)}}/g;
+const hbsRe = /{{(@[a-z]*)}}/g;
 
 const hbs = (path, attrs = {}) =>
   read(`${process.cwd()}/app/components/${path}`)
@@ -23,7 +23,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
       </div>
   </noscript>
 ${BrandLoader({
-  color: '#919FA8',
+  color: '#8E96A3',
   width: config.CONSUL_BINARY_TYPE !== 'oss' && config.CONSUL_BINARY_TYPE !== '' ? `394` : `198`,
   subtitle:
     config.CONSUL_BINARY_TYPE !== 'oss' && config.CONSUL_BINARY_TYPE !== '' ? Enterprise() : ``,
