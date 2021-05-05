@@ -18,9 +18,58 @@ Tags are de-duplicated when rendered.
 />
 ```
 
+`TagList` is also a recursive component, which can currently be used for when you need to wrap the `TagList` component in more DOM, but you only want that DOM to appear if your array of tags is non-empty.
+
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    This list has tags therefore the red border div will also be rendered.
+  </figcaption>
+
+  <TagList
+    @item={{hash
+      Tags=(array 'tag' 'tag' 'another-tag')
+    }}
+  as |Tags|>
+    <div style="border: 1px solid red;">
+      <Tags />
+    </div>
+  </TagList>
+
+</figure>
+
+<hr />
+
+<figure>
+  <figcaption>
+    This list has no tags therefore the tags _and_ red border div will **not** be rendered.
+  </figcaption>
+
+  <TagList
+    @item={{hash
+      Tags=(array)
+    }}
+  as |Tags|>
+    <div style="border: 1px solid red;">
+      <Tags />
+    </div>
+  </TagList>
+
+</figure>
+```
+
 ## Arguments
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
 | `item` | `Object` |  | Object with a `Tags` property equalling an array of string tags |
 | `tags` | `Array` |  | An array of string tags |
+
+## Yields
+
+When used as a block level component the `TagList` yields itself, see above example for usage.
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `Tags` | `Array` | The resulting collection of data after searching/sorting/filtering |
