@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.10.0-beta2 (May 05, 2021)
 
 BREAKING CHANGES:
 
