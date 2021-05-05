@@ -4,7 +4,7 @@
 
 const read = require('fs').readFileSync;
 
-const hbsRe = /{{(@+.*)}}/g;
+const hbsRe = /{{(@+[a-z]*)}}/g;
 
 const hbs = (path, attrs = {}) =>
   read(`${process.cwd()}/app/components/${path}`)
