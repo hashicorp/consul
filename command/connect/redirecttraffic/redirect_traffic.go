@@ -197,6 +197,24 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 				cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(exposePath.ListenerPort))
 			}
 		}
+
+		// Exclude any exposed health check ports when Proxy.Expose.Checks is true.
+		if svc.Proxy.Expose.Checks {
+			// Get the health checks of the destination service.
+			checks, err := c.client.Agent().ChecksWithFilter(fmt.Sprintf("ServiceName == %q", svc.Proxy.DestinationServiceName))
+			if err != nil {
+				return iptables.Config{}, err
+			}
+
+			for _, check := range checks {
+				if check.ExposeHTTPPort != 0 {
+					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposeHTTPPort))
+				}
+				if check.ExposeGRPCPort != 0 {
+					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposeGRPCPort))
+				}
+			}
+		}
 	}
 
 	for _, port := range c.excludeInboundPorts {
