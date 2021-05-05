@@ -1,5 +1,6 @@
 @import 'layouts/index';
 
+/* position main app-view when there are/aren't breadcrumbs */
 .app-view {
   margin-top: 50px;
 }
@@ -8,6 +9,35 @@
     margin-top: 10px;
   }
 }
+/**/
+
+/* transition the initial brand-loader out */
+html body > .brand-loader {
+  @extend %transition-pushover;
+  transition-property: transform, opacity;
+  transform: translate(0, 0);
+  opacity: 1;
+}
+html[data-state]:not(.ember-loading) body > .brand-loader {
+  @extend %animation-pushover, %animation-remove-from-flow;
+  opacity: 0;
+}
+@media #{$--sidebar-open} {
+  html[data-state] body > .brand-loader {
+    transform: translate(calc(var(--chrome-width) / 2), 0);
+  }
+}
+/**/
+
+/* hide the Consul::Loader/spinning loader when idle/hide content when loading */
+html.ember-loading .view-loader,
+html[data-state='idle'] .view-loader {
+  display: none;
+}
+.outlet[data-state='loading'] {
+  display: none;
+}
+/**/
 
 /* all forms have a margin below the header */
 html[data-route$='create'] .app-view > header + div > *:first-child,
