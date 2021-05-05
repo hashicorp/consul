@@ -66,6 +66,7 @@ message NodeService {
   map<string, string> Meta = 6;
   // mog: func-to=int func-from=int32
   int32 Port = 7;
+  string SocketPath = 17;
 
   // mog: func-to=WeightsPtrToStructs func-from=NewWeightsPtrFromStructs
   Weights Weights = 8;
