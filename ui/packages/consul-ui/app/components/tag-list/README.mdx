@@ -1,0 +1,26 @@
+# TagList
+
+Template only component for rendering a list of tags. You can pass either/or/and `@tags=tags` and/or `@item=item` (`item` must have a `Tags` property) for ease. If you pass both they are merged and de-duped.
+
+Tags are de-duplicated when rendered.
+
+```hbs preview-template
+<TagList
+  @item={{hash
+    Tags=(array 'tag' 'tag' 'another-tag')
+  }}
+/>
+
+<hr />
+
+<TagList
+  @tags={{array 'another-tag' 'tag' 'tag'}}
+/>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `Object` |  | Object with a `Tags` property equalling an array of string tags |
+| `tags` | `Array` |  | An array of string tags |
