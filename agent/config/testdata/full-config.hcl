@@ -362,7 +362,6 @@ service = {
     address = "cOlSOhbp"
     token = "msy7iWER"
     port = 24237
-    socket_path = "/tmp/rc78ap"
     weights = {
         passing = 100,
         warning = 1
@@ -456,7 +455,6 @@ services = [
         address = "9RhqPSPB"
         token = "myjKJkWH"
         port = 72219
-        socket_path = "/foo/bar/sock_7IszXMQ1"
         enable_tag_override = true
         check = {
             id = "qmfeO5if"
@@ -563,7 +561,6 @@ services = [
             destination_service_id = "6L6BVfgH-id"
             local_service_address = "127.0.0.2"
             local_service_port = 23759
-            local_service_socket_path = "/foo/bar/local"
             config {
                 cedGGtZf = "pWrUNiWw"
             }
@@ -581,6 +578,11 @@ services = [
                     destination_name = "KSd8HsRl"
                     local_bind_port = 11884
                     local_bind_address = "127.24.88.0"
+                },
+                {
+                    destination_type = "prepared_query"
+                    destination_namespace = "9nakw0td"
+                    destination_name = "placeholder"
                     local_bind_socket_path = "/foo/bar/upstream"
                     local_bind_socket_mode = "0600"
                 },

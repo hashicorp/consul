@@ -96,6 +96,7 @@ func ServiceDefinitionToStructs(s ServiceDefinition) structs.ServiceDefinition {
 	t.TaggedAddresses = MapStringServiceAddressToStructs(s.TaggedAddresses)
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
+	t.SocketPath = s.SocketPath
 	t.Check = CheckTypeToStructs(s.Check)
 	t.Checks = CheckTypesToStructs(s.Checks)
 	t.Weights = WeightsPtrToStructs(s.Weights)
@@ -116,6 +117,7 @@ func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinit
 	s.TaggedAddresses = NewMapStringServiceAddressFromStructs(t.TaggedAddresses)
 	s.Meta = t.Meta
 	s.Port = int32(t.Port)
+	s.SocketPath = t.SocketPath
 	s.Check = NewCheckTypeFromStructs(t.Check)
 	s.Checks = NewCheckTypesFromStructs(t.Checks)
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
