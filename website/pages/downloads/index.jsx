@@ -37,7 +37,7 @@ export default function DownloadsPage(staticProps) {
         <img
           className={s.logo}
           alt="Consul"
-          src={require('./img/consul-logo.svg')}
+          src={require('@hashicorp/mktg-logos/product/consul/primary/color.svg')}
         />
       }
       tutorialLink={{
