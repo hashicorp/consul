@@ -623,6 +623,8 @@ BUGFIXES:
 BUG FIXES:
 
 * xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
+* telemetry: fix for a lock contention issue with the Prometheus sink that could cause performance issues [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* telemetry: fix for a lock contention issue with the Dogstatsd sink that could cause performance issues [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
 
 ## 1.7.5 (July 30, 2020)
 
