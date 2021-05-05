@@ -663,7 +663,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no port set",
 			func(x *NodeService) { x.Port = 0 },
-			"Port must",
+			"port or socketpath must",
 		},
 
 		{

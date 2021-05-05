@@ -325,6 +325,7 @@
             "Name": "foo",
             "Port": 0,
             "Proxy": null,
+            "SocketPath": "",
             "TaggedAddresses": {},
             "Tags": [],
             "Token": "hidden",

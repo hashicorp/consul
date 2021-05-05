@@ -36,6 +36,7 @@ func NodeServiceToStructs(s NodeService) structs.NodeService {
 	t.TaggedAddresses = MapStringServiceAddressToStructs(s.TaggedAddresses)
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
+	t.SocketPath = s.SocketPath
 	t.Weights = WeightsPtrToStructs(s.Weights)
 	t.EnableTagOverride = s.EnableTagOverride
 	t.Proxy = ConnectProxyConfigToStructs(s.Proxy)
@@ -55,6 +56,7 @@ func NewNodeServiceFromStructs(t structs.NodeService) NodeService {
 	s.TaggedAddresses = NewMapStringServiceAddressFromStructs(t.TaggedAddresses)
 	s.Meta = t.Meta
 	s.Port = int32(t.Port)
+	s.SocketPath = t.SocketPath
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
 	s.EnableTagOverride = t.EnableTagOverride
 	s.Proxy = NewConnectProxyConfigFromStructs(t.Proxy)
