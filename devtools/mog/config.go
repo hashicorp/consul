@@ -25,7 +25,6 @@ type structConfig struct {
 	FuncFrom         string
 	FuncTo           string
 	Fields           []fieldConfig
-	typeInfo         *types.Info
 }
 
 type stringSet map[string]struct{}
@@ -58,10 +57,10 @@ func newTarget(v string) target {
 type fieldConfig struct {
 	SourceName string
 	SourceExpr ast.Expr
+	SourcePtr  bool // SourcePtr indicates if the source is a pointer type
 	TargetName string
 	FuncFrom   string
 	FuncTo     string
-	// TODO: Pointer pointerSettings
 
 	cfg    structConfig // for dynamic
 	cfgSet bool
@@ -111,7 +110,14 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 		if err := cfg.Validate(); err != nil {
 			return c, fmt.Errorf("invalid config for %v: %w", name, err)
 		}
-		cfg.typeInfo = pkg.pkg.TypesInfo
+
+		// Extract some pointer-ness info about the source.
+		typesInfo := pkg.pkg.TypesInfo
+		for i, sourceField := range cfg.Fields {
+			o := typesInfo.Types[sourceField.SourceExpr].Type
+			_, sourceField.SourcePtr = o.(*types.Pointer)
+			cfg.Fields[i] = sourceField
+		}
 
 		c.Structs = append(c.Structs, cfg)
 	}

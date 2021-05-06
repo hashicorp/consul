@@ -1,12 +1,15 @@
 package src
 
-import core "example.com/org/project/core"
+import "example.com/org/project/core"
 
+// NodeToCore is a struct-to-struct conversion that translates FROM a protobuf
 func NodeToCore(s Node) core.Node {
 	var t core.Node
 	t.ID = s.Iden
 	return t
 }
+
+// NewNodeFromCore is a struct-to-struct conversion that translates TO a protobuf
 func NewNodeFromCore(t core.Node) Node {
 	var s Node
 	s.Iden = t.ID

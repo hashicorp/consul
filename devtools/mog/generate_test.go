@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"go/ast"
-	"go/format"
 	"go/token"
 	"go/types"
 	"math/rand"
@@ -67,9 +65,11 @@ func TestGenerateConversion(t *testing.T) {
 			Package: "example.com/org/project/core",
 			Struct:  "Node",
 		},
-		Fields: []fieldConfig{
-			{SourceName: "Iden", TargetName: "ID"},
-		},
+		Fields: []fieldConfig{{
+			SourceName: "Iden",
+			SourceExpr: &ast.Ident{Name: "string"},
+			TargetName: "ID",
+		}},
 	}
 	target := targetStruct{
 		Fields: []*types.Var{
@@ -84,11 +84,10 @@ func TestGenerateConversion(t *testing.T) {
 	file.Decls = append(file.Decls, imports.Decl())
 	file.Decls = append(file.Decls, gen.To, gen.From)
 
-	buf := new(bytes.Buffer)
-	err = format.Node(buf, new(token.FileSet), file)
+	out, err := astToBytes(&token.FileSet{}, file)
 	assert.NilError(t, err)
 
-	golden.Assert(t, buf.String(), t.Name()+"-expected")
+	golden.Assert(t, string(out), t.Name()+"-expected")
 	// TODO: check gen.RoundTripTest
 }
 
@@ -126,6 +125,7 @@ func TestImports(t *testing.T) {
 		expected := &imports{
 			byPkgPath: map[string]string{"example.com/foo": "foo"},
 			byAlias:   map[string]string{"foo": "example.com/foo"},
+			hasAlias:  make(map[string]struct{}),
 		}
 		assert.DeepEqual(t, expected, imp, gocmp.AllowUnexported(imports{}))
 	})
@@ -142,8 +142,10 @@ func TestImports(t *testing.T) {
 		t.Skip("Decls value depends on previous subtests")
 	}
 	t.Run("Decls", func(t *testing.T) {
-		buf := new(bytes.Buffer)
-		format.Node(buf, new(token.FileSet), imp.Decl())
-		golden.Assert(t, buf.String(), "TestImports-Decls-expected")
+		file := &ast.File{Name: &ast.Ident{Name: "src"}}
+		file.Decls = append(file.Decls, imp.Decl())
+		out, err := astToBytes(&token.FileSet{}, file)
+		assert.NilError(t, err)
+		golden.Assert(t, string(out), "TestImports-Decls-expected")
 	})
 }
