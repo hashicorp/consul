@@ -153,11 +153,10 @@ option to expose the clients and server ports on the host IP instead.
 If you are unable to use auto-join, you can also follow the instructions in
 either of the auto-join sections but instead of using a `provider` key in the
 `-retry-join` flag, you would need to pass the address of at least one
-consul server, e.g: `-retry-join=$CONSUL_SERVER_IP:$SERVER_SERFLAN_PORT`. Also,
-a `kubeconfig` file is not required for manual join. 
+consul server, e.g: `-retry-join=$CONSUL_SERVER_IP:$SERVER_SERFLAN_PORT`. A
+`kubeconfig` file is not required when using manual join.
 
 However, rather than hardcoding the IP, it's recommended to set up a DNS entry
 that would resolve to the consul servers' pod IPs (if using the pod network) or
 host IPs that the server pods are running on (if using host ports).
-
 
