@@ -8,6 +8,12 @@
   padding: 0;
   border: 0;
 }
+%unvisually-hidden {
+  clip: auto;
+  overflow: auto;
+  width: auto;
+  height: auto;
+}
 %visually-hidden-text {
   text-indent: -9000px;
   font-size: 0;

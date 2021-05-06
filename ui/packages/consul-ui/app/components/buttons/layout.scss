@@ -37,7 +37,8 @@
 %copy-button:empty {
   padding: 5px !important;
   margin-right: 0;
-  margin-top: -5px;
+  margin-bottom: -2px;
+  top: -1px;
 }
 %copy-button:not(:empty)::before {
   margin-right: 4px;

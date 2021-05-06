@@ -1,0 +1,27 @@
+%horizontal-kv-list {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+%horizontal-kv-list:empty {
+  display: none;
+}
+%horizontal-kv-list > * > * {
+  display: inline-block;
+}
+%horizontal-kv-list > * {
+  align-self: center;
+  white-space: nowrap;
+}
+%horizontal-kv-list dd + dt,
+%horizontal-kv-list dd + %horizontal-kv-list-hidden-title + dd {
+  margin-left: var(--horizontal-kv-list-separator-width);
+}
+/* this quite possibly should be dealt with by the parent/container not this */
+/* component. It adds the same whitespace separation between multiple kv-lists */
+%horizontal-kv-list + %horizontal-kv-list:not(:first-of-type) {
+  margin-left: var(--horizontal-kv-list-separator-width);
+}
+/**/
+%horizontal-kv-list-visible-title + dd {
+  margin-left: 4px;
+}

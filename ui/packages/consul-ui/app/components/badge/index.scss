@@ -1,0 +1,35 @@
+%badge {
+  @extend %horizontal-kv-list;
+  padding-left: 8px;
+  padding-right: 4px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+%badge,
+%badge + dd {
+  @extend %pill;
+  background-color: var(--gray-100);
+  color: var(--gray-500);
+}
+%badge::after {
+  content: ":";
+  display: inline;
+}
+%badge + dd {
+  padding-right: 8px;
+  margin-left: 0 !important;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+%badge-with-icon::after {
+  display: none;
+}
+%badge-with-icon {
+  @extend %badge;
+  @extend %horizontal-kv-list-visible-title;
+  position: absolute;
+  text-indent: -9000px;
+}
+%badge-with-icon + dd {
+  margin-left: 24px !important;
+}
