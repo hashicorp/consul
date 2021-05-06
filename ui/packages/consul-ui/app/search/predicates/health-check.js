@@ -9,5 +9,5 @@ export default {
   ID: item => item.Service.ID || '',
   Notes: item => item.Notes,
   Output: item => item.Output,
-  ServiceTags: item => asArray(item.ServiceTags || []),
+  ServiceTags: item => asArray(item.ServiceTags),
 };
