@@ -234,8 +234,8 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 	if args.QueryOptions.UseCache {
 		setCacheMeta(resp, &md)
 	}
+	out.QueryMeta.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 	setMeta(resp, &out.QueryMeta)
-	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// FIXME: argument parsing should be done before performing the rpc
 	// Filter to only passing if specified

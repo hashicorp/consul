@@ -1,0 +1,4 @@
+```release-note:bug
+http: fix a bug that caused the `X-Consul-Effective-Consistency` header to be missing on
+request for service health
+```
