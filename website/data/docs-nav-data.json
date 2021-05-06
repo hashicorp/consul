@@ -584,7 +584,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "nia/api/api-overview"
+            "path": "nia/api"
           },
           {
             "title": "Status",
@@ -601,7 +601,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "nia/cli/cli-overview"
+            "path": "nia/cli"
           },
           {
             "title": "task",
