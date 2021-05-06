@@ -1178,6 +1178,16 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/nia/api/api-overview',
+    destination: '/docs/nia/api',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/cli/cli-overview',
+    destination: '/docs/nia/cli',
+    permanent: true,
+  },
+  {
     source: '/use-cases/network-middleware-automation',
     destination: '/use-cases/network-infrastructure-automation',
     permanent: true,
