@@ -5,11 +5,12 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 type DiscoveryChain struct {
@@ -22,7 +23,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 		return ErrConnectNotEnabled
 	}
 
-	if done, err := c.srv.ForwardRPC("DiscoveryChain.Get", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("DiscoveryChain.Get", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"discovery_chain", "get"}, time.Now())

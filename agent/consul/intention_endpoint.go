@@ -80,7 +80,7 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	// datacenter. These will then be replicated to all the other datacenters.
 	args.Datacenter = s.srv.config.PrimaryDatacenter
 
-	if done, err := s.srv.ForwardRPC("Intention.Apply", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Apply", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
@@ -423,7 +423,7 @@ func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.Inde
 	}
 
 	// Forward if necessary
-	if done, err := s.srv.ForwardRPC("Intention.Get", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Get", args, reply); done {
 		return err
 	}
 
@@ -501,7 +501,7 @@ func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.Inde
 	}
 
 	// Forward if necessary
-	if done, err := s.srv.ForwardRPC("Intention.List", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.List", args, reply); done {
 		return err
 	}
 
@@ -571,7 +571,7 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	// Forward if necessary
-	if done, err := s.srv.ForwardRPC("Intention.Match", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Match", args, reply); done {
 		return err
 	}
 
@@ -645,7 +645,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	// Forward maybe
-	if done, err := s.srv.ForwardRPC("Intention.Check", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Check", args, reply); done {
 		return err
 	}
 

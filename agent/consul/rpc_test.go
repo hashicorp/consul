@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"io"
 	"math"
 	"net"
 	"os"
@@ -11,6 +13,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-memdb"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -20,10 +27,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-memdb"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRPC_NoLeader_Fail(t *testing.T) {
@@ -951,4 +954,60 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
 	require.NoError(t, err)
 	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
+}
+
+func TestCanRetry(t *testing.T) {
+	type testCase struct {
+		name     string
+		req      structs.RPCInfo
+		err      error
+		expected bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		require.Equal(t, tc.expected, canRetry(tc.req, tc.err))
+	}
+
+	var testCases = []testCase{
+		{
+			name:     "unexpected error",
+			err:      fmt.Errorf("some arbitrary error"),
+			expected: false,
+		},
+		{
+			name:     "checking error",
+			err:      fmt.Errorf("some wrapping :%w", ErrChunkingResubmit),
+			expected: true,
+		},
+		{
+			name:     "no leader error",
+			err:      fmt.Errorf("some wrapping: %w", structs.ErrNoLeader),
+			expected: true,
+		},
+		{
+			name:     "EOF on read request",
+			req:      isReadRequest{},
+			err:      io.EOF,
+			expected: true,
+		},
+		{
+			name:     "EOF on write request",
+			err:      io.EOF,
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+type isReadRequest struct {
+	structs.RPCInfo
+}
+
+func (r isReadRequest) IsRead() bool {
+	return true
 }

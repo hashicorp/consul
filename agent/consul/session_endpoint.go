@@ -45,7 +45,7 @@ func fixupSessionSpecificRequest(args *structs.SessionSpecificRequest) {
 // Apply is used to apply a modifying request to the data store. This should
 // only be used for operations that modify the data
 func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
-	if done, err := s.srv.ForwardRPC("Session.Apply", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.Apply", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"session", "apply"}, time.Now())
@@ -170,7 +170,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 // Get is used to retrieve a single session
 func (s *Session) Get(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.Get", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.Get", args, reply); done {
 		return err
 	}
 
@@ -211,7 +211,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 // List is used to list all the active sessions
 func (s *Session) List(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.List", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.List", args, reply); done {
 		return err
 	}
 
@@ -245,7 +245,7 @@ func (s *Session) List(args *structs.SessionSpecificRequest,
 // NodeSessions is used to get all the sessions for a particular node
 func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.NodeSessions", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.NodeSessions", args, reply); done {
 		return err
 	}
 
@@ -279,7 +279,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 // Renew is used to renew the TTL on a single session
 func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
-	if done, err := s.srv.ForwardRPC("Session.Renew", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Session.Renew", args, reply); done {
 		return err
 	}
 

@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/proto"
 
+	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,8 +20,6 @@ import (
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
 	"github.com/hashicorp/consul/tlsutil"
-	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/mitchellh/mapstructure"
 )
 
 type AutoConfigOptions struct {
@@ -107,7 +108,7 @@ func (a *jwtAuthorizer) Authorize(req *pbautoconf.AutoConfigRequest) (AutoConfig
 type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
 	DatacenterJoinAddresses(segment string) ([]string, error)
-	ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error)
+	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
 
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
@@ -339,7 +340,7 @@ func (ac *AutoConfig) InitialConfiguration(req *pbautoconf.AutoConfigRequest, re
 	}
 
 	// forward to the leader
-	if done, err := ac.backend.ForwardRPC("AutoConfig.InitialConfiguration", req, req, resp); done {
+	if done, err := ac.backend.ForwardRPC("AutoConfig.InitialConfiguration", req, resp); done {
 		return err
 	}
 
