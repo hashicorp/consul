@@ -116,9 +116,10 @@ func TestConfig_Get(t *testing.T) {
 
 		ce, ok := obj.(*structs.MeshConfigEntry)
 		require.True(t, ok, "wrong type %T", obj)
-		// Set indexes to expected values for assertions
+		// Set indexes and EnterpriseMeta to expected values for assertions
 		ce.CreateIndex = 12
 		ce.ModifyIndex = 13
+		ce.EnterpriseMeta = structs.EnterpriseMeta{}
 
 		out, err := a.srv.marshalJSON(req, obj)
 		require.NoError(t, err)
