@@ -61,38 +61,63 @@
 }
 
 .cta {
-  padding: 24px;
-  padding-bottom: 51px;
-  border: 1px solid var(--gray-5);
+  max-width: 525px;
+  border: var(--gray-5) 1px solid;
+  padding: 32px;
+  position: relative;
+  margin-top: 44px;
+  margin-left: auto;
+  margin-right: auto;
 
-  & img {
-    max-height: 50%;
-    max-width: 100%;
-    margin-bottom: 36px;
+  @media (min-width: 1120px) {
+    margin-top: unset;
+    margin-left: unset;
+    margin-right: unset;
+
+    /* Pull this down on Desktop to line the
+     * buttons up with the other CTA buttons */
+    margin-bottom: -38px;
   }
-}
 
-.ctaContent {
-  display: flex;
-  @media (width < 520px) {
-    flex-direction: column;
+  & > h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    max-width: 135px;
   }
 
-  & .ctaHeading {
-    @media (width >= 520px) {
-      width: 40%;
-    }
+  & > p {
+    color: var(--gray-3);
+    margin-top: 28px;
+    margin-bottom: 40px;
+  }
 
-    & h4 {
-      margin-top: 0;
-      @media (width >= 520px) {
-        width: 100px;
+  & .stackIcon {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+
+    & svg {
+      position: absolute;
+      max-width: 100%;
+      left: 209px;
+      top: -34px;
+
+      @media (max-width: 600px) {
+        right: 20px;
+        left: unset;
+      }
+
+      @media (max-width: 470px) {
+        position: unset;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 18px;
       }
     }
   }
+}
 
-  & p {
-    margin-top: 0;
-    margin-bottom: 24px;
-  }
+.description {
+  composes: .g-type-body-small from global;
 }
