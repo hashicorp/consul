@@ -25,7 +25,6 @@ Settings in this config entry apply across all namespaces and federated datacent
 
 ```hcl
 Kind      = "mesh"
-Name      = "mesh"
 
 TransparentProxy {
   CatalogDestinationsOnly = true
@@ -40,7 +39,6 @@ namespace and it will apply to proxies across **all** namespaces.
 
 ```hcl
 Kind      = "mesh"
-Name      = "mesh"
 Namespace = "default" # Can only be set to "default".
 
 TransparentProxy {
@@ -54,8 +52,6 @@ TransparentProxy {
 ## Available Fields
 
 - `Kind` - Must be set to `mesh`
-
-- `Name` `(string: <required>)` - Must be set to `mesh`
 
 - `Namespace` `(string: "default")` <EnterpriseAlert inline /> - Specifies the namespace the config entry will apply to.
   Must be set to `default`

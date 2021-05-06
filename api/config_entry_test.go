@@ -204,6 +204,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"gir": "zim",
 			},
+			Namespace: defaultNamespace,
 		}
 		ce := c.ConfigEntries()
 

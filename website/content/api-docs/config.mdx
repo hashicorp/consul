@@ -125,7 +125,8 @@ The table below shows this endpoint's support for
   is specified as part of the URL.
 
 - `name` `(string: <required>)` - Specifies the name of the entry to read. This
-  is specified as part of the URL.
+  is specified as part of the URL. The name of the `proxy-defaults` config entry
+  must be `global`, and the name of the `mesh` config entry must be `mesh`.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to query.
   This value may be provided by either the `ns` URL query parameter or in the
@@ -267,7 +268,8 @@ The table below shows this endpoint's support for
   is specified as part of the URL.
 
 - `name` `(string: <required>)` - Specifies the name of the entry to delete. This
-  is specified as part of the URL.
+  is specified as part of the URL. The name of the `proxy-defaults` config entry
+  must be `global`, and the name of the `mesh` config entry must be `mesh`.
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to delete from.
   This value may be provided by either the `ns` URL query parameter or in the
