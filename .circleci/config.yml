@@ -702,8 +702,21 @@ jobs:
       - store_test_results:
           path: *TEST_RESULTS_DIR
 
+  # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
+  # requires at least one job. It does nothing.
+  noop:
+    docker:
+      - image: docker.mirror.hashicorp.services/alpine:latest
+    steps:
+      - run: 'echo ok'
+
 workflows:
   version: 2
+  # verify-ci is a no-op workflow that must run on every PR. It is used in a
+  # branch protection rule to detect when CI workflows are not running.
+  verify-ci:
+    jobs: [noop]
+
   go-tests:
     jobs:
       - check-vendor:
