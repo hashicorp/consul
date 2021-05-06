@@ -173,8 +173,8 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
 func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
-	// Check for existing configuration.
-	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
+	q := newConfigEntryQuery(conf)
+	existing, err := tx.First(tableConfigEntries, indexID, q)
 	if err != nil {
 		return fmt.Errorf("failed configuration lookup: %s", err)
 	}
@@ -195,7 +195,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) err
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = validateProposedConfigEntryInGraph(tx, conf.GetKind(), conf.GetName(), conf, conf.GetEnterpriseMeta())
+	err = validateProposedConfigEntryInGraph(tx, q, conf)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -255,7 +255,8 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 
 // TODO: accept structs.ConfigEntry instead of individual fields
 func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
-	existing, err := tx.First(tableConfigEntries, indexID, NewConfigEntryKindName(kind, name, entMeta))
+	q := NewConfigEntryKindName(kind, name, entMeta)
+	existing, err := tx.First(tableConfigEntries, indexID, q)
 	if err != nil {
 		return fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -285,7 +286,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *s
 		}
 	}
 
-	err = validateProposedConfigEntryInGraph(tx, kind, name, nil, entMeta)
+	err = validateProposedConfigEntryInGraph(tx, q, nil)
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -334,53 +335,46 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 // to the caller that they can correct.
 func validateProposedConfigEntryInGraph(
 	tx ReadTxn,
-	kind, name string,
-	proposedEntry structs.ConfigEntry,
-	entMeta *structs.EnterpriseMeta,
+	kindName ConfigEntryKindName,
+	newEntry structs.ConfigEntry,
 ) error {
-	validateAllChains := false
-
-	switch kind {
+	switch kindName.Kind {
 	case structs.ProxyDefaults:
-		if name != structs.ProxyConfigGlobal {
+		// TODO: why handle an invalid case?
+		if kindName.Name != structs.ProxyConfigGlobal {
 			return nil
 		}
-		validateAllChains = true
 	case structs.ServiceDefaults:
 	case structs.ServiceRouter:
 	case structs.ServiceSplitter:
 	case structs.ServiceResolver:
 	case structs.IngressGateway:
-		err := checkGatewayClash(tx, name, structs.IngressGateway, structs.TerminatingGateway, entMeta)
+		err := checkGatewayClash(tx, kindName, structs.TerminatingGateway)
 		if err != nil {
 			return err
 		}
 	case structs.TerminatingGateway:
-		err := checkGatewayClash(tx, name, structs.TerminatingGateway, structs.IngressGateway, entMeta)
+		err := checkGatewayClash(tx, kindName, structs.IngressGateway)
 		if err != nil {
 			return err
 		}
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
 	default:
-		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
+		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
 
-	return validateProposedConfigEntryInServiceGraph(tx, kind, name, proposedEntry, validateAllChains, entMeta)
+	return validateProposedConfigEntryInServiceGraph(tx, kindName, newEntry)
 }
 
-func checkGatewayClash(
-	tx ReadTxn,
-	name, selfKind, otherKind string,
-	entMeta *structs.EnterpriseMeta,
-) error {
-	_, entry, err := configEntryTxn(tx, nil, otherKind, name, entMeta)
+func checkGatewayClash(tx ReadTxn, kindName ConfigEntryKindName, otherKind string) error {
+	_, entry, err := configEntryTxn(tx, nil, otherKind, kindName.Name, &kindName.EnterpriseMeta)
 	if err != nil {
 		return err
 	}
 	if entry != nil {
 		return fmt.Errorf("cannot create a %q config entry with name %q, "+
-			"a %q config entry with that name already exists", selfKind, name, otherKind)
+			"a %q config entry with that name already exists", kindName.Kind, kindName.Name, otherKind)
 	}
 	return nil
 }
@@ -483,10 +477,8 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 
 func validateProposedConfigEntryInServiceGraph(
 	tx ReadTxn,
-	kind, name string,
-	proposedEntry structs.ConfigEntry,
-	validateAllChains bool,
-	entMeta *structs.EnterpriseMeta,
+	kindName ConfigEntryKindName,
+	newEntry structs.ConfigEntry,
 ) error {
 	// Collect all of the chains that could be affected by this change
 	// including our own.
@@ -497,9 +489,8 @@ func validateProposedConfigEntryInServiceGraph(
 		enforceIngressProtocolsMatch bool
 	)
 
-	if validateAllChains {
-		// Must be proxy-defaults/global.
-
+	switch kindName.Kind {
+	case structs.ProxyDefaults:
 		// Check anything that has a discovery chain entry. In the future we could
 		// somehow omit the ones that have a default protocol configured.
 
@@ -537,31 +528,31 @@ func validateProposedConfigEntryInServiceGraph(
 			checkIntentions = append(checkIntentions, ixn)
 		}
 
-	} else if kind == structs.ServiceIntentions {
+	case structs.ServiceIntentions:
 		// Check that the protocols match.
 
 		// This is the case for deleting a config entry
-		if proposedEntry == nil {
+		if newEntry == nil {
 			return nil
 		}
 
-		ixn, ok := proposedEntry.(*structs.ServiceIntentionsConfigEntry)
+		ixn, ok := newEntry.(*structs.ServiceIntentionsConfigEntry)
 		if !ok {
-			return fmt.Errorf("type %T is not a service intentions config entry", proposedEntry)
+			return fmt.Errorf("type %T is not a service intentions config entry", newEntry)
 		}
 		checkIntentions = append(checkIntentions, ixn)
 
-	} else if kind == structs.IngressGateway {
+	case structs.IngressGateway:
 		// Checking an ingress pointing to multiple chains.
 
 		// This is the case for deleting a config entry
-		if proposedEntry == nil {
+		if newEntry == nil {
 			return nil
 		}
 
-		ingress, ok := proposedEntry.(*structs.IngressGatewayConfigEntry)
+		ingress, ok := newEntry.(*structs.IngressGatewayConfigEntry)
 		if !ok {
-			return fmt.Errorf("type %T is not an ingress gateway config entry", proposedEntry)
+			return fmt.Errorf("type %T is not an ingress gateway config entry", newEntry)
 		}
 		checkIngress = append(checkIngress, ingress)
 
@@ -569,12 +560,12 @@ func validateProposedConfigEntryInServiceGraph(
 		// validating the protocol equivalence.
 		enforceIngressProtocolsMatch = true
 
-	} else {
+	default:
 		// Must be a single chain.
 
 		// Check to see if we should ensure L7 intentions have an L7 protocol.
 		_, ixn, err := getServiceIntentionsConfigEntryTxn(
-			tx, nil, name, nil, entMeta,
+			tx, nil, kindName.Name, nil, &kindName.EnterpriseMeta,
 		)
 		if err != nil {
 			return err
@@ -594,7 +585,7 @@ func validateProposedConfigEntryInServiceGraph(
 			checkIntentions = append(checkIntentions, ixn)
 		}
 
-		sid := structs.NewServiceID(name, entMeta)
+		sid := structs.NewServiceID(kindName.Name, &kindName.EnterpriseMeta)
 		checkChains[sid] = struct{}{}
 
 		iter, err := tx.Get(tableConfigEntries, indexLink, sid)
@@ -630,7 +621,7 @@ func validateProposedConfigEntryInServiceGraph(
 	}
 
 	overrides := map[ConfigEntryKindName]structs.ConfigEntry{
-		NewConfigEntryKindName(kind, name, entMeta): proposedEntry,
+		kindName: newEntry,
 	}
 
 	var (
