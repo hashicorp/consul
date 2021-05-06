@@ -296,6 +296,11 @@
         "path": "intention/get"
       },
       {
+        "title": "list",
+        "path": "intention/list",
+        "hidden": true
+      },
+      {
         "title": "match",
         "path": "intention/match"
       }
