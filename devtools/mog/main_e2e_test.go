@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -35,6 +34,6 @@ func TestE2E(t *testing.T) {
 	actual, err := ioutil.ReadFile(output)
 	assert.NilError(t, err)
 
-	fmt.Printf("OUTPUT\n%s\n", string(actual))
+	t.Logf("OUTPUT\n%s\n", string(actual))
 	golden.Assert(t, string(actual), t.Name()+"-expected-node_gen.go")
 }

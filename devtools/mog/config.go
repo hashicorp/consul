@@ -6,7 +6,6 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
-	"go/types"
 	"strings"
 )
 
@@ -58,6 +57,7 @@ type fieldConfig struct {
 	SourceName string
 	SourceExpr ast.Expr
 	SourcePtr  bool // SourcePtr indicates if the source is a pointer type
+	SourceType ast.Expr
 	TargetName string
 	FuncFrom   string
 	FuncTo     string
@@ -66,24 +66,32 @@ type fieldConfig struct {
 	cfgSet bool
 }
 
-func (c fieldConfig) DynFuncFrom(sourcePtr, targetPtr bool) string {
-	if c.FuncFrom != "" {
+type Direction string
+
+func (d Direction) String() string { return string(d) }
+
+const (
+	DirFrom Direction = "From"
+	DirTo             = "To"
+)
+
+func (c fieldConfig) UserFuncName(direction Direction) string {
+	if direction == DirFrom {
 		return c.FuncFrom
 	}
-	if !c.cfgSet {
-		return ""
-	}
-	return funcNameFrom(c.cfg, sourcePtr, targetPtr)
+	return c.FuncTo
 }
 
-func (c fieldConfig) DynFuncTo(sourcePtr, targetPtr bool) string {
-	if c.FuncTo != "" {
-		return c.FuncTo
-	}
+// ConvertFuncName returns the name of a function that takes 2 pointers and
+// returns nothing.
+func (c fieldConfig) ConvertFuncName(direction Direction) string {
 	if !c.cfgSet {
 		return ""
 	}
-	return funcNameTo(c.cfg, sourcePtr, targetPtr)
+	if c.UserFuncName(direction) != "" {
+		return ""
+	}
+	return funcName(c.cfg, direction)
 }
 
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
@@ -115,7 +123,16 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 		typesInfo := pkg.pkg.TypesInfo
 		for i, sourceField := range cfg.Fields {
 			o := typesInfo.Types[sourceField.SourceExpr].Type
-			_, sourceField.SourcePtr = o.(*types.Pointer)
+			sourceField.SourceType, sourceField.SourcePtr = astTypeFromTypesType(nil, o, true)
+			// TODO (fails on stuff like maps)
+			// if sourceField.SourceType == nil {
+			// 	return c, fmt.Errorf("source struct %v field %v is not a basic/named type nor a pointer to a basic/named type: %T",
+			// 		name, sourceField.SourceName, o)
+			// }
+
+			// TODO: this could use some improvement
+			sourceField.SourceType = stripCurrentPackagePrefix(sourceField.SourceType, c.SourcePkg.Name)
+
 			cfg.Fields[i] = sourceField
 		}
 

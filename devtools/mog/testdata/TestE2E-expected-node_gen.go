@@ -4,134 +4,59 @@ package sourcepkg
 
 import "github.com/hashicorp/mog/internal/e2e/core"
 
-// NodeToCore is a struct-to-struct conversion that translates FROM a protobuf
-func NodeToCore(s Node) core.ClusterNode {
-	var t core.ClusterNode
+func NodeToCore(s *Node, t *core.ClusterNode) {
+	if s == nil {
+		return
+	}
 	t.ID = s.ID
-	t.F1 = WorkloadToCore(s.F1)
-	t.F2 = WorkloadPtrToCorePtr(s.F2)
-	t.F3 = WorkloadPtrToCore(s.F3)
-	t.F4 = WorkloadToCorePtr(s.F4)
-	return t
-}
-
-// NodePtrToCore is a pointer-to-struct conversion that translates FROM a protobuf
-func NodePtrToCore(s *Node) core.ClusterNode {
-	var t core.ClusterNode
-	if s == nil {
-		return t
+	WorkloadToCore(&s.F1, &t.F1)
+	{
+		if s.F2 != nil {
+			var x core.Workload
+			WorkloadToCore(s.F2, &x)
+			t.F2 = &x
+		}
 	}
-	return NodeToCore(*s)
-}
-
-// NodeToCorePtr is a struct-to-pointer conversion that translates FROM a protobuf
-func NodeToCorePtr(s Node) *core.ClusterNode {
-	t := NodeToCore(s)
-	return &t
-}
-
-// NodePtrToCorePtr is a pointer-to-pointer conversion that translates FROM a protobuf
-func NodePtrToCorePtr(s *Node) *core.ClusterNode {
-	if s == nil {
-		return nil
+	if s.F3 != nil {
+		WorkloadToCore(s.F3, &t.F3)
 	}
-	t := NodeToCore(*s)
-	return &t
+	{
+		var x core.Workload
+		WorkloadToCore(&s.F4, &x)
+		t.F4 = &x
+	}
 }
-
-// NewNodeFromCore is a struct-to-struct conversion that translates TO a protobuf
-func NewNodeFromCore(t core.ClusterNode) Node {
-	var s Node
+func NodeFromCore(t *core.ClusterNode, s *Node) {
+	if s == nil {
+		return
+	}
 	s.ID = t.ID
-	s.F1 = NewWorkloadFromCore(t.F1)
-	s.F2 = NewWorkloadPtrFromCorePtr(t.F2)
-	s.F3 = NewWorkloadPtrFromCore(t.F3)
-	s.F4 = NewWorkloadFromCorePtr(t.F4)
-	return s
-}
-
-// NewNodeFromCorePtr is a pointer-to-struct conversion that translates TO a protobuf
-func NewNodeFromCorePtr(t *core.ClusterNode) Node {
-	var s Node
-	if t == nil {
-		return s
+	WorkloadFromCore(&t.F1, &s.F1)
+	{
+		if t.F2 != nil {
+			var x Workload
+			WorkloadFromCore(t.F2, &x)
+			s.F2 = &x
+		}
 	}
-	return NewNodeFromCore(*t)
-}
-
-// NewNodePtrFromCore is a struct-pointer conversion that translates TO a protobuf
-func NewNodePtrFromCore(t core.ClusterNode) *Node {
-	s := NewNodeFromCore(t)
-	return &s
-}
-
-// NewNodePtrFromCorePtr is a pointer-to-pointer conversion that translates TO a protobuf
-func NewNodePtrFromCorePtr(t *core.ClusterNode) *Node {
-	if t == nil {
-		return nil
+	{
+		var x Workload
+		WorkloadFromCore(&t.F3, &x)
+		s.F3 = &x
 	}
-	s := NewNodeFromCore(*t)
-	return &s
+	if t.F4 != nil {
+		WorkloadFromCore(t.F4, &s.F4)
+	}
 }
-
-// WorkloadToCore is a struct-to-struct conversion that translates FROM a protobuf
-func WorkloadToCore(s Workload) core.Workload {
-	var t core.Workload
+func WorkloadToCore(s *Workload, t *core.Workload) {
+	if s == nil {
+		return
+	}
 	t.ID = s.ID
-	return t
 }
-
-// WorkloadPtrToCore is a pointer-to-struct conversion that translates FROM a protobuf
-func WorkloadPtrToCore(s *Workload) core.Workload {
-	var t core.Workload
+func WorkloadFromCore(t *core.Workload, s *Workload) {
 	if s == nil {
-		return t
+		return
 	}
-	return WorkloadToCore(*s)
-}
-
-// WorkloadToCorePtr is a struct-to-pointer conversion that translates FROM a protobuf
-func WorkloadToCorePtr(s Workload) *core.Workload {
-	t := WorkloadToCore(s)
-	return &t
-}
-
-// WorkloadPtrToCorePtr is a pointer-to-pointer conversion that translates FROM a protobuf
-func WorkloadPtrToCorePtr(s *Workload) *core.Workload {
-	if s == nil {
-		return nil
-	}
-	t := WorkloadToCore(*s)
-	return &t
-}
-
-// NewWorkloadFromCore is a struct-to-struct conversion that translates TO a protobuf
-func NewWorkloadFromCore(t core.Workload) Workload {
-	var s Workload
 	s.ID = t.ID
-	return s
-}
-
-// NewWorkloadFromCorePtr is a pointer-to-struct conversion that translates TO a protobuf
-func NewWorkloadFromCorePtr(t *core.Workload) Workload {
-	var s Workload
-	if t == nil {
-		return s
-	}
-	return NewWorkloadFromCore(*t)
-}
-
-// NewWorkloadPtrFromCore is a struct-pointer conversion that translates TO a protobuf
-func NewWorkloadPtrFromCore(t core.Workload) *Workload {
-	s := NewWorkloadFromCore(t)
-	return &s
-}
-
-// NewWorkloadPtrFromCorePtr is a pointer-to-pointer conversion that translates TO a protobuf
-func NewWorkloadPtrFromCorePtr(t *core.Workload) *Workload {
-	if t == nil {
-		return nil
-	}
-	s := NewWorkloadFromCore(*t)
-	return &s
 }
