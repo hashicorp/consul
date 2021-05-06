@@ -21,7 +21,7 @@ export default function CalloutBlade({ title, callouts }) {
                   <InlineSvg src={callout.icon} className={styles.icon} />
                   <div className={styles.flexWrapper}>
                     <div className={styles.infoWrapper}>
-                      <h5>{callout.title}</h5>
+                      {callout.title && <h5>{callout.title}</h5>}
                       <p>{callout.description}</p>
                     </div>
                     <div className={styles.linkWrapper}>
