@@ -20,7 +20,10 @@ export default function ApiDocsLayout(props) {
 }
 
 export async function getStaticPaths() {
-  const paths = await generateStaticPaths({ localContentDir, navDataFile })
+  const paths = await generateStaticPaths({
+    localContentDir,
+    navDataFile,
+  })
   return { paths, fallback: false }
 }
 
