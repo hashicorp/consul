@@ -80,6 +80,8 @@ func HealthCheckToStructs(s HealthCheck) structs.HealthCheck {
 	t.ServiceName = s.ServiceName
 	t.ServiceTags = s.ServiceTags
 	t.Type = s.Type
+	t.ExposeHTTPPort = int(s.ExposeHTTPPort)
+	t.ExposeGRPCPort = int(s.ExposeGRPCPort)
 	t.Definition = HealthCheckDefinitionToStructs(s.Definition)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
@@ -97,6 +99,8 @@ func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 	s.ServiceName = t.ServiceName
 	s.ServiceTags = t.ServiceTags
 	s.Type = t.Type
+	s.ExposeHTTPPort = int32(t.ExposeHTTPPort)
+	s.ExposeGRPCPort = int32(t.ExposeGRPCPort)
 	s.Definition = NewHealthCheckDefinitionFromStructs(t.Definition)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)

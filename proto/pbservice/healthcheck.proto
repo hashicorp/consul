@@ -41,6 +41,11 @@ message HealthCheck {
 
     // mog: func-to=EnterpriseMetaToStructs func-from=NewEnterpriseMetaFromStructs
     common.EnterpriseMeta EnterpriseMeta = 13  [(gogoproto.nullable) = false];
+
+    // mog: func-to=int func-from=int32
+    int32 ExposeHTTPPort = 14;
+    // mog: func-to=int func-from=int32
+    int32 ExposeGRPCPort = 15;
 }
 
 message HeaderValue {
