@@ -5,11 +5,12 @@ import (
 	"sort"
 
 	"github.com/armon/go-metrics"
+	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-memdb"
 )
 
 // Health endpoint is used to query the health information
@@ -20,7 +21,7 @@ type Health struct {
 // ChecksInState is used to get all the checks in a given state
 func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if done, err := h.srv.ForwardRPC("Health.ChecksInState", args, args, reply); done {
+	if done, err := h.srv.ForwardRPC("Health.ChecksInState", args, reply); done {
 		return err
 	}
 
@@ -71,7 +72,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 // NodeChecks is used to get all the checks for a node
 func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if done, err := h.srv.ForwardRPC("Health.NodeChecks", args, args, reply); done {
+	if done, err := h.srv.ForwardRPC("Health.NodeChecks", args, reply); done {
 		return err
 	}
 
@@ -121,7 +122,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	}
 
 	// Potentially forward
-	if done, err := h.srv.ForwardRPC("Health.ServiceChecks", args, args, reply); done {
+	if done, err := h.srv.ForwardRPC("Health.ServiceChecks", args, reply); done {
 		return err
 	}
 
@@ -171,7 +172,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 // ServiceNodes returns all the nodes registered as part of a service including health info
 func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
-	if done, err := h.srv.ForwardRPC("Health.ServiceNodes", args, args, reply); done {
+	if done, err := h.srv.ForwardRPC("Health.ServiceNodes", args, reply); done {
 		return err
 	}
 

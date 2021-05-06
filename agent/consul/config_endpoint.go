@@ -58,7 +58,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 	// be replicated to all the other datacenters.
 	args.Datacenter = c.srv.config.PrimaryDatacenter
 
-	if done, err := c.srv.ForwardRPC("ConfigEntry.Apply", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("ConfigEntry.Apply", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"config_entry", "apply"}, time.Now())
@@ -105,7 +105,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 		return err
 	}
 
-	if done, err := c.srv.ForwardRPC("ConfigEntry.Get", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("ConfigEntry.Get", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"config_entry", "get"}, time.Now())
@@ -152,7 +152,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 		return err
 	}
 
-	if done, err := c.srv.ForwardRPC("ConfigEntry.List", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("ConfigEntry.List", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"config_entry", "list"}, time.Now())
@@ -209,7 +209,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 		return err
 	}
 
-	if done, err := c.srv.ForwardRPC("ConfigEntry.ListAll", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("ConfigEntry.ListAll", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"config_entry", "listAll"}, time.Now())
@@ -271,7 +271,7 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 	// be replicated to all the other datacenters.
 	args.Datacenter = c.srv.config.PrimaryDatacenter
 
-	if done, err := c.srv.ForwardRPC("ConfigEntry.Delete", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("ConfigEntry.Delete", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"config_entry", "delete"}, time.Now())
@@ -305,7 +305,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		return err
 	}
 
-	if done, err := c.srv.ForwardRPC("ConfigEntry.ResolveServiceConfig", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("ConfigEntry.ResolveServiceConfig", args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"config_entry", "resolve_service_config"}, time.Now())
