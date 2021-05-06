@@ -47,7 +47,7 @@ advertise_addr = "17.99.29.16"
 advertise_addr_wan = "78.63.37.19"
 advertise_reconnect_timeout = "0s"
 audit = {
-    enabled = false
+    enabled = true
 }
 auto_config = {
     enabled = false
