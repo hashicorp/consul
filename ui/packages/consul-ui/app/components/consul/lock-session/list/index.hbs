@@ -4,7 +4,13 @@
   {{#if item.Name}}
     <span>{{item.Name}}</span>
   {{else}}
-    <span>{{item.ID}}</span>
+    <span>
+      {{item.ID}}
+      <CopyButton
+        @value={{item.ID}}
+        @name="ID"
+      />
+    </span>
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
