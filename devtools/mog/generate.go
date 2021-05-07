@@ -91,8 +91,14 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 	var g generated
 
 	imports.Add("", cfg.Target.Package)
-	to := generateToFunc(cfg, imports)
-	from := generateFromFunc(cfg, imports)
+
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	to := generateToFunc(cfg, targetType)
+	from := generateFromFunc(cfg, targetType)
 
 	var errs []error
 
@@ -175,19 +181,7 @@ type generated struct {
 	// TODO: RoundTripTest *ast.FuncDecl
 }
 
-func astTargetType(cfg structConfig, imports *imports) ast.Expr {
-	return &ast.SelectorExpr{
-		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
-		Sel: &ast.Ident{Name: cfg.Target.Struct},
-	}
-}
-
-func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
-	targetType := &ast.SelectorExpr{
-		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
-		Sel: &ast.Ident{Name: cfg.Target.Struct},
-	}
-
+func generateToFunc(cfg structConfig, targetType *ast.SelectorExpr) *ast.FuncDecl {
 	funcName := cfg.ConvertFuncName(DirTo)
 
 	return &ast.FuncDecl{
@@ -215,12 +209,7 @@ func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 }
 
-func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
-	targetType := &ast.SelectorExpr{
-		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
-		Sel: &ast.Ident{Name: cfg.Target.Struct},
-	}
-
+func generateFromFunc(cfg structConfig, targetType *ast.SelectorExpr) *ast.FuncDecl {
 	funcName := cfg.ConvertFuncName(DirFrom)
 
 	return &ast.FuncDecl{
