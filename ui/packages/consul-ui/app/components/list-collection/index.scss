@@ -1,0 +1,11 @@
+@import './skin';
+@import './layout';
+.list-collection {
+  @extend %list-collection;
+}
+.list-collection-scroll-virtual {
+  @extend %list-collection-scroll-virtual;
+}
+%list-collection > button {
+  @extend %list-collection-partial-button;
+}

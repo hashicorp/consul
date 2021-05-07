@@ -27,7 +27,6 @@
 @import './components/empty-state';
 @import './components/tabular-details';
 @import './components/tabular-collection';
-@import './components/list-collection';
 @import './components/popover-select';
 @import './components/tooltip-panel';
 @import './components/menu-panel';
@@ -52,6 +51,7 @@
 @import 'consul-ui/components/tooltip';
 @import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
+@import 'consul-ui/components/list-collection';
 @import 'consul-ui/components/filter-bar';
 @import 'consul-ui/components/freetext-filter';
 @import 'consul-ui/components/informed-action';
