@@ -72,20 +72,7 @@ export default function HomePage() {
         title="Consul with HashiCorp Stack"
         callouts={[
           {
-            icon: require('./img/stack/consul-and-nomad.svg?include'),
-            title: 'Consul-Nomad Integration',
-            description:
-              'Secure Nomad jobs with Consul Service Mesh and use Traffic Splitting for zero-downtime, blue-green, canary deployments.',
-            eyebrow: 'Tutorials',
-            link: {
-              text: 'Nomad’s integration with Consul',
-              url:
-                'https://learn.hashicorp.com/collections/nomad/integrate-consul',
-            },
-          },
-          {
             icon: require('./img/stack/consul-and-terraform.svg?include'),
-            title: 'Infrastructure Automation with Consul',
             description:
               'Use the Terraform provider ecosystem to drive relevant changes to your infrastructure based on Consul services.',
             eyebrow: 'Tutorials',
@@ -97,7 +84,6 @@ export default function HomePage() {
           },
           {
             icon: require('./img/stack/consul-and-vault.svg?include'),
-            title: 'Secure Consul with Vault',
             description:
               'Integrate Consul with Vault and consul-template to securely store and rotate your encryption key and certificates.',
             eyebrow: 'Tutorials',
@@ -105,6 +91,17 @@ export default function HomePage() {
               text: 'Enforce security with Consul and Vault',
               url:
                 'https://learn.hashicorp.com/collections/consul/vault-secure',
+            },
+          },
+          {
+            icon: require('./img/stack/consul-and-nomad.svg?include'),
+            description:
+              'Secure Nomad jobs with Consul Service Mesh and use Traffic Splitting for zero-downtime, blue-green, canary deployments.',
+            eyebrow: 'Tutorials',
+            link: {
+              text: 'Nomad’s integration with Consul',
+              url:
+                'https://learn.hashicorp.com/collections/nomad/integrate-consul',
             },
           },
         ]}
