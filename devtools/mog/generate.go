@@ -91,7 +91,6 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 	var g generated
 
 	imports.Add("", cfg.Target.Package)
-
 	to := generateToFunc(cfg, imports)
 	from := generateFromFunc(cfg, imports)
 
