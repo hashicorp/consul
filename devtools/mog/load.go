@@ -30,7 +30,12 @@ type sourcePkg struct {
 
 type structDecl struct {
 	Doc    []*ast.Comment
-	Fields []*ast.Field
+	Fields []typedField
+}
+
+type typedField struct {
+	Field *ast.Field
+	Var   *types.Var
 }
 
 // StructNames returns a sorted slice of all the structs in the package.
@@ -46,7 +51,7 @@ func (p sourcePkg) StructNames() []string {
 type handlePkgLoadErr func(pkg *packages.Package) error
 
 // loadSourceStructs scans the provided package for struct definitions that
-// have mog annotations. It doesn't process the definitions beyond that.
+// have mog annotations.
 func loadSourceStructs(path string, handleErr handlePkgLoadErr) (sourcePkg, error) {
 	p := sourcePkg{Structs: map[string]structDecl{}}
 	cfg := &packages.Config{Mode: modeLoadAll}
@@ -68,6 +73,34 @@ func loadSourceStructs(path string, handleErr handlePkgLoadErr) (sourcePkg, erro
 	p.Path = filepath.Dir(pkg.GoFiles[0])
 	p.Name = pkg.Name
 	p.pkg = pkg
+
+	fieldVars := make(map[string]map[string]*types.Var)
+	for ident, obj := range pkg.TypesInfo.Defs {
+		// skip unexported structs, and exported fields by looking for a nil
+		// parent scope.
+		if obj == nil || !obj.Exported() || obj.Parent() == nil {
+			continue
+		}
+
+		named, ok := obj.Type().(*types.Named)
+		if !ok {
+			continue
+		}
+
+		strct, ok := named.Underlying().(*types.Struct)
+		if !ok {
+			continue
+		}
+
+		fields := make(map[string]*types.Var)
+		for i := 0; i < strct.NumFields(); i++ {
+			f := strct.Field(i)
+			if f.Exported() {
+				fields[f.Name()] = f
+			}
+		}
+		fieldVars[ident.Name] = fields
+	}
 
 	for _, file := range pkg.Syntax {
 		for _, decl := range file.Decls {
@@ -97,9 +130,23 @@ func loadSourceStructs(path string, handleErr handlePkgLoadErr) (sourcePkg, erro
 					continue
 				}
 
+				typedFields := make([]typedField, len(structType.Fields.List))
+				for i, f := range structType.Fields.List {
+					name, err := fieldName(f)
+					if err != nil {
+						return p, err
+					}
+
+					typedFields[i] = typedField{
+						Field: f,
+						Var:   fieldVars[spec.Name.Name][name],
+					}
+
+				}
+
 				p.Structs[spec.Name.Name] = structDecl{
 					Doc:    doc.List,
-					Fields: structType.Fields.List,
+					Fields: typedFields,
 				}
 			}
 		}

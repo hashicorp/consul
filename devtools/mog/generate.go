@@ -82,9 +82,10 @@ func configsByOutput(cfgs []structConfig) [][]structConfig {
 }
 
 var (
-	varNameSource      = "s"
-	varNameTarget      = "t"
-	varNamePlaceholder = "x"
+	varNameSource          = "s"
+	varNameTarget          = "t"
+	varNamePlaceholder     = "x"
+	varNameElemPlaceholder = "y"
 )
 
 func generateConversion(cfg structConfig, t targetStruct, imports *imports) (generated, error) {
@@ -119,13 +120,9 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			continue
 		}
 
-		// Extract metadata about the source type and how we'll have to do the
-		// assignment code-gen.
-		sourceInfo := newAstType(sourceField)
-
-		targetType, targetPtr := astTypeFromTypesType(imports, field.Type(), true)
-		if targetType == nil {
-			msg := "struct %v field %v is not a basic/named type nor a pointer to a basic/named type: %T"
+		targetTypeExpr := typeToExpr(field.Type(), imports, false)
+		if targetTypeExpr == nil {
+			msg := "struct %v field %v is not a supported target type yet: %T"
 			errs = append(errs, fmt.Errorf(msg, cfg.Source, name, field.Type()))
 			continue
 		}
@@ -139,46 +136,197 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			Sel: &ast.Ident{Name: name},
 		}
 
+		if sourceField.FuncTo != "" || sourceField.FuncFrom != "" {
+			to.Body.List = append(to.Body.List, newAssignStmtUserFunc(
+				targetExpr,
+				targetTypeExpr,
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceField.FuncTo,
+			))
+			from.Body.List = append(from.Body.List, newAssignStmtUserFunc(
+				srcExpr,
+				sourceField.SourceExpr,
+				targetExpr,
+				targetTypeExpr,
+				sourceField.FuncFrom,
+			))
+			continue
+		}
+
+		srcToTargetOp, sourceOk := computeMappingOperation(field.Type(), sourceField.SourceType)
+		srcFromTargetOp, targetOk := computeMappingOperation(sourceField.SourceType, field.Type())
+		if !sourceOk || !targetOk {
+			msg := "struct %v field %v is not mappable to target"
+			errs = append(errs, fmt.Errorf(msg, cfg.Source, name))
+			continue
+		}
+
+		mapErrFn := func(err error) {
+			errs = append(errs, fmt.Errorf(
+				"struct %v field %v is not mappable to target: %w",
+				cfg.Source,
+				name, err,
+			))
+		}
+
+		fmt.Printf("MAPOP: SRC-TO-TARGET:   %s\n", srcToTargetOp)
+		fmt.Printf("MAPOP: SRC-FROM-TARGET: %s\n", srcFromTargetOp)
+
 		var (
 			assignTo   ast.Stmt
 			assignFrom ast.Stmt
 		)
-		switch sourceInfo.Type {
-		case astTypeMap:
-			panic("maps not handled")
-		case astTypeArray:
-			panic("arrays not handled")
-		case astTypeConvertible:
-			assignTo = newAssignStmtConvertible(
-				targetExpr,
-				targetPtr,
-				targetType,
-				srcExpr,
-				sourceInfo.WasPointer,
-				sourceInfo.ConvertFuncNameTo,
-			)
 
-			assignFrom = newAssignStmtConvertible(
-				srcExpr,
-				sourceInfo.WasPointer,
-				sourceInfo.StructType,
+		switch op := srcToTargetOp.(type) {
+		case *assignMappingOp:
+			assignTo = newAssignStmt(
 				targetExpr,
-				targetPtr,
-				sourceInfo.ConvertFuncNameFrom,
+				targetTypeExpr,
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceField.ConvertFuncName(DirTo),
+				op.Direct,
 			)
-		default:
-			assignTo = newAssignStmtUnknown(
+		case *sliceMappingOp:
+			targetElemTypeElem := typeToExpr(op.LeftElem, imports, true)
+			if targetElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported slice element type %T", op.LeftElem))
+				continue
+			}
+
+			sourceElemTypeElem := typeToExpr(op.RightElem, imports, true)
+			if sourceElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported slice element type %T", op.RightElem))
+				continue
+			}
+
+			assignTo = newAssignStmtArray(
 				targetExpr,
+				targetTypeExpr,
+				targetElemTypeElem,
 				srcExpr,
-				sourceInfo.UserFuncNameTo,
+				sourceField.SourceExpr,
+				sourceElemTypeElem,
+				sourceField.ConvertFuncName(DirTo), // TODO: is this right?
+				op.ElemOp.Direct,
 			)
-			assignFrom = newAssignStmtUnknown(
-				srcExpr,
+		case *mapMappingOp:
+			targetKeyTypeElem := typeToExpr(op.LeftKeyElem, imports, true)
+			if targetKeyTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map key type %T", op.LeftKeyElem))
+				continue
+			}
+
+			targetElemTypeElem := typeToExpr(op.LeftElem, imports, true)
+			if targetElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map value type %T", op.LeftElem))
+				continue
+			}
+
+			sourceKeyTypeElem := typeToExpr(op.RightKeyElem, imports, true)
+			if sourceKeyTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map key type %T", op.RightKeyElem))
+				continue
+			}
+
+			sourceElemTypeElem := typeToExpr(op.RightElem, imports, true)
+			if sourceElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map value type %T", op.RightElem))
+				continue
+			}
+
+			assignTo = newAssignStmtMap(
 				targetExpr,
-				sourceInfo.UserFuncNameFrom,
+				targetTypeExpr,
+				targetKeyTypeElem,
+				targetElemTypeElem,
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceKeyTypeElem,
+				sourceElemTypeElem,
+				sourceField.ConvertFuncName(DirTo), // TODO: is this right?
+				op.ElemOp.Direct,
 			)
 		}
 
+		switch op := srcFromTargetOp.(type) {
+		case *assignMappingOp:
+			assignFrom = newAssignStmt(
+				srcExpr,
+				sourceField.SourceExpr,
+				targetExpr,
+				targetTypeExpr,
+				sourceField.ConvertFuncName(DirFrom),
+				op.Direct,
+			)
+		case *sliceMappingOp:
+			sourceElemTypeElem := typeToExpr(op.LeftElem, imports, true)
+			if sourceElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported slice element type %T", op.LeftElem))
+				continue
+			}
+
+			targetElemTypeElem := typeToExpr(op.RightElem, imports, true)
+			if targetElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported slice element type %T", op.RightElem))
+				continue
+			}
+
+			assignFrom = newAssignStmtArray(
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceElemTypeElem,
+				targetExpr,
+				targetTypeExpr,
+				targetElemTypeElem,
+				sourceField.ConvertFuncName(DirFrom), // TODO: is this right?
+				op.ElemOp.Direct,
+			)
+		case *mapMappingOp:
+			sourceKeyTypeElem := typeToExpr(op.LeftKeyElem, imports, true)
+			if sourceKeyTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map key type %T", op.LeftKeyElem))
+				continue
+			}
+
+			sourceElemTypeElem := typeToExpr(op.LeftElem, imports, true)
+			if sourceElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map value type %T", op.LeftElem))
+				continue
+			}
+
+			targetKeyTypeElem := typeToExpr(op.RightKeyElem, imports, true)
+			if targetKeyTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map key type %T", op.RightKeyElem))
+				continue
+			}
+
+			targetElemTypeElem := typeToExpr(op.RightElem, imports, true)
+			if targetElemTypeElem == nil {
+				mapErrFn(fmt.Errorf("unsupported map value type %T", op.RightElem))
+				continue
+			}
+
+			assignFrom = newAssignStmtMap(
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceKeyTypeElem,
+				sourceElemTypeElem,
+				targetExpr,
+				targetTypeExpr,
+				targetKeyTypeElem,
+				targetElemTypeElem,
+				sourceField.ConvertFuncName(DirFrom), // TODO: is this right?
+				op.ElemOp.Direct,
+			)
+		}
+
+		if assignTo == nil || assignFrom == nil {
+			msg := "struct %v field %v is not mappable to target."
+			errs = append(errs, fmt.Errorf(msg, cfg.Source, name))
+			continue
+		}
 		to.Body.List = append(to.Body.List, assignTo)
 		from.Body.List = append(from.Body.List, assignFrom)
 	}
@@ -287,7 +435,6 @@ func astToBytes(fset *token.FileSet, file *ast.File) ([]byte, error) {
 	// Now take a trip through "gofmt"
 	formatted, err := format.Source(out)
 	if err != nil {
-		// fmt.Printf("INVALID SOURCE>>>>\n%s\n>>>>\n", string(out))
 		return nil, err
 	}
 	return formatted, nil

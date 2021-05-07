@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
@@ -67,6 +68,7 @@ type fieldConfig struct {
 	SourceName string
 	SourceExpr ast.Expr // This is the type of the field in the source.
 	TargetName string
+	SourceType types.Type
 	FuncFrom   string
 	FuncTo     string
 
@@ -90,13 +92,6 @@ func (c fieldConfig) UserFuncName(direction Direction) string {
 	return c.FuncTo
 }
 
-func (c fieldConfig) ConvertFuncs() (to string, from string) {
-	if c.FuncFrom != "" || c.FuncTo != "" {
-		return "", ""
-	}
-	return c.ConvertFuncTo, c.ConvertFuncFrom
-}
-
 // ConvertFuncName returns the name of a function that takes 2 pointers and
 // returns nothing.
 func (c fieldConfig) ConvertFuncName(direction Direction) string {
@@ -110,7 +105,7 @@ func (c fieldConfig) ConvertFuncName(direction Direction) string {
 }
 
 // configsFromAnnotations will examine the loaded structs from the given
-// package and interpret both the mog annotations and the types of the fields.
+// package and interprets the mog annotations.
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
 	names := pkg.StructNames()
 	c := config{Structs: make([]structConfig, 0, len(names))}
@@ -123,11 +118,12 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 			return c, fmt.Errorf("from source struct %v: %w", name, err)
 		}
 
-		for _, field := range strct.Fields {
-			f, err := parseFieldAnnotation(field)
+		for _, typedField := range strct.Fields {
+			f, err := parseFieldAnnotation(typedField.Field)
 			if err != nil {
 				return c, fmt.Errorf("from source struct %v: %w", name, err)
 			}
+			f.SourceType = typedField.Var.Type()
 			cfg.Fields = append(cfg.Fields, f)
 		}
 
@@ -295,6 +291,9 @@ func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
 	}
 
 	for structIdx, s := range cfgs {
+		imports := newImports()
+		imports.Add("", s.Target.Package)
+
 		for fieldIdx, f := range s.Fields {
 			if _, ignored := s.IgnoreFields[f.SourceName]; ignored {
 				continue
@@ -305,19 +304,59 @@ func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
 				continue
 			}
 
+			sourceTypeDecode, ok := decodeType(f.SourceType)
+			if !ok {
+				continue
+			}
+
 			var (
 				ident *ast.Ident
 			)
-			switch x := f.SourceExpr.(type) {
-			case *ast.Ident:
-				ident = x
-			case *ast.StarExpr:
-				var ok bool
-				ident, ok = x.X.(*ast.Ident)
+			switch x := sourceTypeDecode.(type) {
+			case *types.Basic:
+				ident = &ast.Ident{Name: x.Name()}
+			case *types.Named:
+				// This only works for types in the source package.
+				decodedTypeExpr := typeToExpr(sourceTypeDecode, imports, false)
+				ident, ok = decodedTypeExpr.(*ast.Ident)
 				if !ok {
 					continue
 				}
-			default:
+			case *types.Slice:
+				elemDecode, ok := decodeType(x.Elem())
+				if !ok {
+					continue
+				}
+				switch xe := elemDecode.(type) {
+				case *types.Basic:
+					ident = &ast.Ident{Name: xe.Name()}
+				case *types.Named:
+					// This only works for types in the source package.
+					elemDecodeTypeExpr := typeToExpr(elemDecode, imports, true)
+					ident, ok = elemDecodeTypeExpr.(*ast.Ident)
+					if !ok {
+						continue
+					}
+				}
+			case *types.Map:
+				elemDecode, ok := decodeType(x.Elem())
+				if !ok {
+					continue
+				}
+				switch xe := elemDecode.(type) {
+				case *types.Basic:
+					ident = &ast.Ident{Name: xe.Name()}
+				case *types.Named:
+					// This only works for types in the source package.
+					elemDecodeTypeExpr := typeToExpr(elemDecode, imports, true)
+					ident, ok = elemDecodeTypeExpr.(*ast.Ident)
+					if !ok {
+						continue
+					}
+				}
+			}
+
+			if ident == nil {
 				continue
 			}
 

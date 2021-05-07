@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"gotest.tools/icmd"
@@ -34,6 +37,26 @@ func TestE2E(t *testing.T) {
 	actual, err := ioutil.ReadFile(output)
 	assert.NilError(t, err)
 
-	t.Logf("OUTPUT\n%s\n", string(actual))
+	t.Logf("OUTPUT\n%s\n", PrependLineNumbers(string(actual)))
 	golden.Assert(t, string(actual), t.Name()+"-expected-node_gen.go")
+}
+
+// PrependLineNumbers prepends line numbers onto the text passed in. In the
+// event of some parsing error it just returns the original input, unprefixed.
+func PrependLineNumbers(s string) string {
+	scan := bufio.NewScanner(strings.NewReader(s))
+
+	var (
+		next  = 1
+		lines []string
+	)
+	for scan.Scan() {
+		lines = append(lines, fmt.Sprintf("%4d: %s", next, scan.Text()))
+		next++
+	}
+	if scan.Err() != nil {
+		return s
+	}
+
+	return strings.Join(lines, "\n")
 }
