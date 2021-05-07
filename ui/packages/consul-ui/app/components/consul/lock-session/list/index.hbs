@@ -33,16 +33,18 @@
       </dt>
       <dd data-test-session-delay>{{duration-from item.LockDelay}}</dd>
     </dl>
-    {{#if item.TTL}}
     <dl class="ttl">
       <dt>
         <Tooltip>
           TTL
         </Tooltip>
       </dt>
+    {{#if (eq item.TTL "")}}
+      <dd data-test-session-ttl={{item.TTL}}>-</dd>
+    {{else}}
       <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
-    </dl>
     {{/if}}
+    </dl>
     <dl class="behavior">
       <dt>
         <Tooltip>
