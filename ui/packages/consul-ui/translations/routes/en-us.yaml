@@ -13,7 +13,7 @@ dc:
           header: Failing serf check
           body: |
             <p>
-              This node has a failing serf node check. The health statuses shown on this page are the statuses as they were before the failing serf check.
+              This node has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
             </p>
   services:
     show:
@@ -35,7 +35,7 @@ dc:
           header: Failing serf check
           body: |
             <p>
-              This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were before the failing serf check.
+              This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
             </p>
       upstreams:
         tproxy-mode:
