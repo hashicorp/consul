@@ -1,2 +1,5 @@
 @import './skin';
 @import './layout';
+.consul-loader {
+  @extend %loader;
+}

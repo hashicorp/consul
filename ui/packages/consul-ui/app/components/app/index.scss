@@ -1,7 +1,3 @@
-.app {
-  --chrome-width: 300px;
-  --chrome-height: 64px;
-}
 .app .skip-links {
   @extend %skip-links;
 }
@@ -44,7 +40,7 @@ main {
   z-index: 10;
 }
 main {
-  margin-top: var(--chrome-height);
+  margin-top: var(--chrome-height, 64px);
   transition-property: margin-left;
 }
 
@@ -54,11 +50,11 @@ main {
     left: 0;
   }
   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width) * -1);
+    left: calc(var(--chrome-width, 300px) * -1);
   }
   %main-nav-horizontal-toggle ~ main,
   %main-nav-horizontal-toggle ~ footer {
-    margin-left: var(--chrome-width);
+    margin-left: var(--chrome-width, 300px);
   }
   %main-nav-horizontal-toggle:checked ~ main,
   %main-nav-horizontal-toggle:checked ~ footer {
@@ -70,7 +66,7 @@ main {
     left: 0;
   }
   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width) * -1);
+    left: calc(var(--chrome-width, 300px) * -1);
   }
   %main-nav-horizontal-toggle ~ main,
   %main-nav-horizontal-toggle ~ footer {
