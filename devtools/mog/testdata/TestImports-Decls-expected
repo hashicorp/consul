@@ -1,5 +1,7 @@
+package src
+
 import (
-	foo "example.com/foo"
+	"example.com/foo"
 	somefoo "example.com/some/foo"
-	stars "example.com/stars"
+	"example.com/stars"
 )

@@ -45,6 +45,8 @@ func (p sourcePkg) StructNames() []string {
 
 type handlePkgLoadErr func(pkg *packages.Package) error
 
+// loadSourceStructs scans the provided package for struct definitions that
+// have mog annotations. It doesn't process the definitions beyond that.
 func loadSourceStructs(path string, handleErr handlePkgLoadErr) (sourcePkg, error) {
 	p := sourcePkg{Structs: map[string]structDecl{}}
 	cfg := &packages.Config{Mode: modeLoadAll}

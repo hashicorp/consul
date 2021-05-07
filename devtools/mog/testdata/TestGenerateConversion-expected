@@ -1,14 +1,16 @@
 package src
 
-import core "example.com/org/project/core"
+import "example.com/org/project/core"
 
-func NodeToCore(s Node) core.Node {
-	var t core.Node
+func NodeToCore(s *Node, t *core.Node) {
+	if s == nil {
+		return
+	}
 	t.ID = s.Iden
-	return t
 }
-func NewNodeFromCore(t core.Node) Node {
-	var s Node
+func NodeFromCore(t *core.Node, s *Node) {
+	if s == nil {
+		return
+	}
 	s.Iden = t.ID
-	return s
 }
