@@ -92,8 +92,8 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 
 	imports.Add("", cfg.Target.Package)
 
-	to := generatePtrToPtrFunc(cfg, imports)
-	from := generatePtrFromPtrFunc(cfg, imports)
+	to := generateToFunc(cfg, imports)
+	from := generateFromFunc(cfg, imports)
 
 	var errs []error
 
@@ -183,7 +183,7 @@ func astTargetType(cfg structConfig, imports *imports) ast.Expr {
 	}
 }
 
-func generatePtrToPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	targetType := &ast.SelectorExpr{
 		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
@@ -216,7 +216,7 @@ func generatePtrToPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	}
 }
 
-func generatePtrFromPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
+func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 	targetType := &ast.SelectorExpr{
 		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
