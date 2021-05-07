@@ -26,6 +26,16 @@ type structConfig struct {
 	Fields           []fieldConfig
 }
 
+func (c *structConfig) ConvertFuncName(direction Direction) string {
+	if c.FuncNameFragment == "" {
+		panic("FuncNameFragment is required")
+	}
+	if direction == DirTo {
+		return c.Source + "To" + c.FuncNameFragment
+	}
+	return c.Source + "From" + c.FuncNameFragment
+}
+
 type stringSet map[string]struct{}
 
 func newStringSetFromSlice(s []string) stringSet {
@@ -62,8 +72,8 @@ type fieldConfig struct {
 	FuncFrom   string
 	FuncTo     string
 
-	cfg    structConfig // for dynamic
-	cfgSet bool
+	ConvertFuncFrom string
+	ConvertFuncTo   string
 }
 
 type Direction string
@@ -85,13 +95,13 @@ func (c fieldConfig) UserFuncName(direction Direction) string {
 // ConvertFuncName returns the name of a function that takes 2 pointers and
 // returns nothing.
 func (c fieldConfig) ConvertFuncName(direction Direction) string {
-	if !c.cfgSet {
-		return ""
-	}
 	if c.UserFuncName(direction) != "" {
 		return ""
 	}
-	return funcName(c.cfg, direction)
+	if direction == DirTo {
+		return c.ConvertFuncTo
+	}
+	return c.ConvertFuncFrom
 }
 
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
@@ -332,10 +342,10 @@ func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
 				continue
 			}
 
-			// Capture this information and use it dynamically to generate
-			// FuncFrom/FuncTo based on the LHS/RHS pointerness.
-			f.cfg = structCfg
-			f.cfgSet = true
+			// Capture this information so we can use it to know how to call
+			// the conversion functions later.
+			f.ConvertFuncFrom = structCfg.ConvertFuncName(DirFrom)
+			f.ConvertFuncTo = structCfg.ConvertFuncName(DirTo)
 
 			s.Fields[fieldIdx] = f
 		}

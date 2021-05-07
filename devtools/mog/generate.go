@@ -189,7 +189,7 @@ func generatePtrToPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
 	}
 
-	funcName := funcName(cfg, DirTo)
+	funcName := cfg.ConvertFuncName(DirTo)
 
 	return &ast.FuncDecl{
 		Name: &ast.Ident{Name: funcName},
@@ -222,7 +222,7 @@ func generatePtrFromPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 		Sel: &ast.Ident{Name: cfg.Target.Struct},
 	}
 
-	funcName := funcName(cfg, DirFrom)
+	funcName := cfg.ConvertFuncName(DirFrom)
 
 	return &ast.FuncDecl{
 		Name: &ast.Ident{Name: funcName},
@@ -249,16 +249,6 @@ func generatePtrFromPtrFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
 			},
 		},
 	}
-}
-
-func funcName(cfg structConfig, direction Direction) string {
-	if cfg.FuncNameFragment == "" {
-		panic("FuncNameFragment is required")
-	}
-	if direction == DirTo {
-		return cfg.Source + "To" + cfg.FuncNameFragment
-	}
-	return cfg.Source + "From" + cfg.FuncNameFragment
 }
 
 func astWriteToFile(path string, fset *token.FileSet, file *ast.File) error {
