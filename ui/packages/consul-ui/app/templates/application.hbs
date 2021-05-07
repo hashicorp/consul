@@ -30,15 +30,17 @@ as |source|>
     @nspace={{or nspace nspaces.firstObject}}
     @onchange={{action "reauthorize"}}
   as |consul|>
-  <Outlet
-  @name="application"
-  @model={{hash
-    app=consul
-  }}
-  as |o|>
-    {{outlet}}
-  </Outlet>
-    <Consul::Loader class="view-loader" />
+    <Outlet
+    @name="application"
+    @model={{hash
+      app=consul
+    }}
+    as |o|>
+      {{outlet}}
+    </Outlet>
+    <Consul::Loader
+      class="view-loader"
+    />
   </HashicorpConsul>
 {{/if}}
 </Route>

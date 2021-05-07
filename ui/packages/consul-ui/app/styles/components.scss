@@ -1,4 +1,5 @@
 @import './base/components/index';
+@import 'ember-power-select';
 
 /**/
 
@@ -35,14 +36,8 @@
 @import './components/radio-card';
 @import './components/tabular-dl';
 
-/**/
-
-@import './components/brand-loader';
-@import './components/loader';
-
-/**/
-
 @import './components/app-view';
+@import 'consul-ui/components/brand-loader';
 @import 'consul-ui/components/skip-links';
 @import 'consul-ui/components/app';
 /* app chrome */
@@ -51,10 +46,7 @@
 @import 'consul-ui/components/main-nav-vertical';
 @import 'consul-ui/components/hashicorp-consul';
 /**/
-@import 'ember-power-select';
-/**/
 @import 'consul-ui/components/menu-panel';
-
 @import 'consul-ui/components/inline-code';
 @import 'consul-ui/components/overlay';
 @import 'consul-ui/components/tooltip';
@@ -67,6 +59,7 @@
 @import 'consul-ui/components/search-bar';
 @import 'consul-ui/components/certificate';
 
+@import 'consul-ui/components/consul/loader';
 @import 'consul-ui/components/consul/tomography/graph';
 @import 'consul-ui/components/consul/discovery-chain';
 @import 'consul-ui/components/consul/upstream-instance/list';
