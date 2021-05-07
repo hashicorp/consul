@@ -100,6 +100,7 @@ func (op *Operator) LicensePut(license string, opts *WriteOptions) (*LicenseRepl
 	r := op.c.newRequest("PUT", "/v1/operator/license")
 	r.setWriteOptions(opts)
 	r.body = strings.NewReader(license)
+	r.header.Set("Content-Type", "application/octet-stream")
 	_, resp, err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
