@@ -119,6 +119,10 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			continue
 		}
 
+		// Extract metadata about the source type and how we'll have to do the
+		// assignment code-gen.
+		sourceInfo := newAstType(sourceField)
+
 		targetType, targetPtr := astTypeFromTypesType(imports, field.Type(), true)
 		if targetType == nil {
 			msg := "struct %v field %v is not a basic/named type nor a pointer to a basic/named type: %T"
@@ -135,25 +139,48 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			Sel: &ast.Ident{Name: name},
 		}
 
-		to.Body.List = append(to.Body.List, newAssignStmt(
-			sourceField,
-			targetExpr,
-			targetPtr,
-			targetType,
-			srcExpr,
-			sourceField.SourcePtr,
-			DirTo,
-		))
+		var (
+			assignTo   ast.Stmt
+			assignFrom ast.Stmt
+		)
+		switch sourceInfo.Type {
+		case astTypeMap:
+			panic("maps not handled")
+		case astTypeArray:
+			panic("arrays not handled")
+		case astTypeConvertible:
+			assignTo = newAssignStmtConvertible(
+				targetExpr,
+				targetPtr,
+				targetType,
+				srcExpr,
+				sourceInfo.WasPointer,
+				sourceInfo.ConvertFuncNameTo,
+			)
 
-		from.Body.List = append(from.Body.List, newAssignStmt(
-			sourceField,
-			srcExpr,
-			sourceField.SourcePtr,
-			sourceField.SourceType,
-			targetExpr,
-			targetPtr,
-			DirFrom,
-		))
+			assignFrom = newAssignStmtConvertible(
+				srcExpr,
+				sourceInfo.WasPointer,
+				sourceInfo.StructType,
+				targetExpr,
+				targetPtr,
+				sourceInfo.ConvertFuncNameFrom,
+			)
+		default:
+			assignTo = newAssignStmtUnknown(
+				targetExpr,
+				srcExpr,
+				sourceInfo.UserFuncNameTo,
+			)
+			assignFrom = newAssignStmtUnknown(
+				srcExpr,
+				targetExpr,
+				sourceInfo.UserFuncNameFrom,
+			)
+		}
+
+		to.Body.List = append(to.Body.List, assignTo)
+		from.Body.List = append(from.Body.List, assignFrom)
 	}
 
 	g.To = to

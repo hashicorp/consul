@@ -25,11 +25,13 @@ func stripCurrentPackagePrefix(expr ast.Expr, currentPkg string) ast.Expr {
 	return se.Sel
 }
 
-// Returns go/ast type for something concrete. This should be suitable for
-// stack-allocating. If the input is a pointer, this is the type that the
-// pointer points to.
+// astTypeFromTypesType converts a go/types representation of a type into a
+// go/ast representation of a type.
 //
-// The boolean return value is true if the input was a pointer.
+// Works on 3 kinds: basic types, named types, and pointers to either of those.
+//
+// Returns an ast.Expr for the basic/named type, and a boolean indicating if it
+// was originally a pointer.
 //
 // Returns a nil expression if the type is not supported.
 func astTypeFromTypesType(imports *imports, typ types.Type, pointerAllowed bool) (ast.Expr, bool) {
@@ -158,39 +160,76 @@ func newIfNilReturnIdent(cmpID, retID string) ast.Stmt {
 	}
 }
 
-func newAssignStmt(
-	sourceField fieldConfig,
+type astType int
+
+const (
+	astTypeUnknown     astType = iota
+	astTypeConvertible         // aka struct or pointer-to-struct
+	astTypeMap
+	astTypeArray
+)
+
+type astTypeInfo struct {
+	Type astType
+
+	// fields for: astTypeUnknown
+	UserFuncNameTo   string
+	UserFuncNameFrom string
+
+	// fields for: astTypeConvertible
+	StructType          ast.Expr
+	WasPointer          bool
+	ConvertFuncNameTo   string
+	ConvertFuncNameFrom string
+}
+
+func newAstType(sourceField fieldConfig) astTypeInfo {
+	var info astTypeInfo
+
+	if sourceField.FuncTo != "" || sourceField.FuncFrom != "" {
+		info.Type = astTypeUnknown
+		info.UserFuncNameTo = sourceField.FuncTo
+		info.UserFuncNameFrom = sourceField.FuncFrom
+		return info
+	}
+
+	switch x := sourceField.SourceExpr.(type) {
+	case *ast.Ident:
+		info.Type = astTypeConvertible
+		info.StructType = sourceField.SourceExpr
+	case *ast.StarExpr:
+		if y, ok := x.X.(*ast.Ident); ok {
+			info.Type = astTypeConvertible
+			info.StructType = y
+			info.WasPointer = true
+		}
+	case *ast.MapType:
+		info.Type = astTypeMap
+	case *ast.ArrayType:
+		info.Type = astTypeArray
+	}
+
+	if info.Type == astTypeConvertible {
+		funcTo, funcFrom := sourceField.ConvertFuncs()
+		if funcTo != "" && funcFrom != "" {
+			info.ConvertFuncNameTo = funcTo
+			info.ConvertFuncNameFrom = funcFrom
+		} else {
+			info.Type = astTypeUnknown
+		}
+	}
+
+	return info
+}
+
+func newAssignStmtConvertible(
 	left ast.Expr,
 	leftPtr bool,
 	leftType ast.Expr,
 	right ast.Expr,
 	rightPtr bool,
-	direction Direction,
+	convertFuncName string,
 ) ast.Stmt {
-	if userFuncName := sourceField.UserFuncName(direction); userFuncName != "" {
-		// No special handling for pointers here if someone used the mog
-		// annotations themselves. The assumption is the user knows what
-		// they're doing.
-
-		// <left> = <funcName>(<right>)
-		return &ast.AssignStmt{
-			Lhs: []ast.Expr{left},
-			Tok: token.ASSIGN,
-			Rhs: []ast.Expr{
-				&ast.CallExpr{
-					Fun:  &ast.Ident{Name: userFuncName},
-					Args: []ast.Expr{right},
-				},
-			},
-		}
-	}
-
-	convertFuncName := sourceField.ConvertFuncName(direction)
-	if convertFuncName == "" {
-		// <left> = <right>
-		return astAssign(left, right)
-	}
-
 	switch {
 	case !leftPtr && !rightPtr:
 		// Value to Value
@@ -248,4 +287,24 @@ func newAssignStmt(
 	default:
 		panic("impossible")
 	}
+}
+
+func newAssignStmtUnknown(
+	left ast.Expr,
+	right ast.Expr,
+	userFuncName string,
+) ast.Stmt {
+	if userFuncName != "" {
+		// No special handling for pointers here if someone used the mog
+		// annotations themselves. The assumption is the user knows what
+		// they're doing.
+
+		// <left> = <funcName>(<right>)
+		return astAssign(left, &ast.CallExpr{
+			Fun:  &ast.Ident{Name: userFuncName},
+			Args: []ast.Expr{right},
+		})
+	}
+	// <left> = <right>
+	return astAssign(left, right)
 }

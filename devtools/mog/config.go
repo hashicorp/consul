@@ -65,9 +65,7 @@ func newTarget(v string) target {
 
 type fieldConfig struct {
 	SourceName string
-	SourceExpr ast.Expr
-	SourcePtr  bool // SourcePtr indicates if the source is a pointer type
-	SourceType ast.Expr
+	SourceExpr ast.Expr // This is the type of the field in the source.
 	TargetName string
 	FuncFrom   string
 	FuncTo     string
@@ -90,6 +88,13 @@ func (c fieldConfig) UserFuncName(direction Direction) string {
 		return c.FuncFrom
 	}
 	return c.FuncTo
+}
+
+func (c fieldConfig) ConvertFuncs() (to string, from string) {
+	if c.FuncFrom != "" || c.FuncTo != "" {
+		return "", ""
+	}
+	return c.ConvertFuncTo, c.ConvertFuncFrom
 }
 
 // ConvertFuncName returns the name of a function that takes 2 pointers and
@@ -129,23 +134,6 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 		// TODO: test case
 		if err := cfg.Validate(); err != nil {
 			return c, fmt.Errorf("invalid config for %v: %w", name, err)
-		}
-
-		// Extract some pointer-ness info about the source.
-		typesInfo := pkg.pkg.TypesInfo
-		for i, sourceField := range cfg.Fields {
-			o := typesInfo.Types[sourceField.SourceExpr].Type
-			sourceField.SourceType, sourceField.SourcePtr = astTypeFromTypesType(nil, o, true)
-			// TODO (fails on stuff like maps)
-			// if sourceField.SourceType == nil {
-			// 	return c, fmt.Errorf("source struct %v field %v is not a basic/named type nor a pointer to a basic/named type: %T",
-			// 		name, sourceField.SourceName, o)
-			// }
-
-			// TODO: this could use some improvement
-			sourceField.SourceType = stripCurrentPackagePrefix(sourceField.SourceType, c.SourcePkg.Name)
-
-			cfg.Fields[i] = sourceField
 		}
 
 		c.Structs = append(c.Structs, cfg)
@@ -236,7 +224,6 @@ func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 		case "target":
 			c.TargetName = value
 		case "pointer":
-			// TODO(rb): remove as unnecessary?
 		case "func-from":
 			c.FuncFrom = value
 		case "func-to":
