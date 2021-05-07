@@ -76,6 +76,7 @@ func runMog(opts options) error {
 	if len(cfg.Structs) == 0 {
 		return fmt.Errorf("no source structs found in %v", opts.source)
 	}
+
 	targets, err := loadTargetStructs(targetPackages(cfg.Structs))
 	if err != nil {
 		return fmt.Errorf("failed to load targets: %w", err)

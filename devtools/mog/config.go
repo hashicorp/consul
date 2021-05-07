@@ -104,6 +104,8 @@ func (c fieldConfig) ConvertFuncName(direction Direction) string {
 	return c.ConvertFuncFrom
 }
 
+// configsFromAnnotations will examine the loaded structs from the given
+// package and interpret both the mog annotations and the types of the fields.
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
 	names := pkg.StructNames()
 	c := config{Structs: make([]structConfig, 0, len(names))}
