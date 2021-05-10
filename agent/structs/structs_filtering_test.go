@@ -545,15 +545,10 @@ var expectedFieldConfigHealthCheck bexpr.FieldConfigurations = bexpr.FieldConfig
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 		StructFieldName:     "Type",
 	},
-	"ExposedHTTPPort": &bexpr.FieldConfiguration{
+	"ExposedPort": &bexpr.FieldConfiguration{
 		CoerceFn:            bexpr.CoerceInt,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-		StructFieldName:     "ExposedHTTPPort",
-	},
-	"ExposedGRPCPort": &bexpr.FieldConfiguration{
-		CoerceFn:            bexpr.CoerceInt,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-		StructFieldName:     "ExposedGRPCPort",
+		StructFieldName:     "ExposedPort",
 	},
 }
 

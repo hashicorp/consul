@@ -1413,13 +1413,9 @@ type HealthCheck struct {
 	ServiceTags []string      // optional service tags
 	Type        string        // Check type: http/ttl/tcp/etc
 
-	// ExposedHTTPPort is the port of the exposed Envoy listener representing the
-	// HTTP health check of the service.
-	ExposedHTTPPort int
-
-	// ExposedGRPCPort is the port of the exposed Envoy listener representing the
-	// GRPC health check of the service.
-	ExposedGRPCPort int
+	// ExposedPort is the port of the exposed Envoy listener representing the
+	// HTTP or GRPC health check of the service.
+	ExposedPort int
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 

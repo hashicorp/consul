@@ -54,19 +54,18 @@ const (
 
 // AgentCheck represents a check known to the agent
 type AgentCheck struct {
-	Node            string
-	CheckID         string
-	Name            string
-	Status          string
-	Notes           string
-	Output          string
-	ServiceID       string
-	ServiceName     string
-	Type            string
-	ExposedHTTPPort int
-	ExposedGRPCPort int
-	Definition      HealthCheckDefinition
-	Namespace       string `json:",omitempty"`
+	Node        string
+	CheckID     string
+	Name        string
+	Status      string
+	Notes       string
+	Output      string
+	ServiceID   string
+	ServiceName string
+	Type        string
+	ExposedPort int
+	Definition  HealthCheckDefinition
+	Namespace   string `json:",omitempty"`
 }
 
 // AgentWeights represent optional weights for a service

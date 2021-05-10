@@ -596,7 +596,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 			if c.expError == "" {
 				require.NoError(t, err)
-				require.Equal(t, c.expCfg, cfg)
+				require.EqualValues(t, c.expCfg, cfg)
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), c.expError)
