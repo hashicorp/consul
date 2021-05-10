@@ -14,7 +14,7 @@ const _uuid = function() {
   });
 };
 
-let popstateFired = false;
+// let popstateFired = false;
 /**
  * Register a callback to be invoked whenever the browser history changes,
  * including using forward and back buttons.

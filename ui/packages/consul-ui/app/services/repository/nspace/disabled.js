@@ -3,7 +3,7 @@ import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
 const DEFAULT_NSPACE = 'default';
-export default class DisabledService extends RepositoryService {
+export default class NspaceDisabledService extends RepositoryService {
   getPrimaryKey() {
     return PRIMARY_KEY;
   }

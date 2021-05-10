@@ -1,6 +1,3 @@
-import Route from '@ember/routing/route';
-import { env } from 'consul-ui/env';
-
 export function initialize(container) {
   const env = container.lookup('service:env');
   if (env.var('CONSUL_NSPACES_ENABLED')) {
