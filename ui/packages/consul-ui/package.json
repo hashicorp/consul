@@ -61,7 +61,6 @@
     "@docfy/ember": "^0.4.1",
     "@ember/optional-features": "^1.3.0",
     "@ember/render-modifiers": "^1.0.2",
-    "@ember/test-helpers": "^2.2.5",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
