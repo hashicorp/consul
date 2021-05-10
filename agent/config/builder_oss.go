@@ -49,6 +49,10 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 	if boolVal(config.Audit.Enabled) || len(config.Audit.Sinks) > 0 {
 		add("audit")
 	}
+	if config.LicensePath != nil {
+		add("license_path")
+		config.LicensePath = nil
+	}
 
 	return result
 }
