@@ -1,8 +1,4 @@
 const filter = function(routeName, atts, params) {
-  // if (typeof params.nspace !== 'undefined' && routeName.startsWith('dc.')) {
-  //   routeName = `nspace.${routeName}`;
-  //   atts = [params.nspace].concat(atts);
-  // }
   return [routeName, ...atts];
 };
 const replaceRouteParams = function(route, params = {}) {
