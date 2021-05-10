@@ -1,0 +1,3 @@
+```release-note:breaking-change
+licensing: **(Enterprise Only)** Consul Enterprise 1.10 has removed API driven licensing of servers in favor of license loading via configuration. The `PUT` and `DELETE` methods on the `/v1/operator/license` endpoint will now return 405s, the `consul license put` and `consul license reset` CLI commands have been removed and the `LicensePut` and `LicenseReset` methods in the API client have been altered to always return an error.
+```
