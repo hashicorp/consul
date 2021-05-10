@@ -187,6 +187,7 @@ type Config struct {
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config"`
 	KeyFile                          *string             `mapstructure:"key_file"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate"`
+	LicensePath                      *string             `mapstructure:"license_path"`
 	Limits                           Limits              `mapstructure:"limits"`
 	LogLevel                         *string             `mapstructure:"log_level"`
 	LogJSON                          *bool               `mapstructure:"log_json"`
