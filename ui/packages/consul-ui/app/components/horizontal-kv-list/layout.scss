@@ -18,6 +18,9 @@
 %horizontal-kv-list > dd {
   flex-wrap: wrap;
 }
+%horizontal-kv-list-visible-title {
+  min-width: 18px;
+}
 %horizontal-kv-list-reversed:not(:first-of-type),
 %horizontal-kv-list dd + dt,
 %horizontal-kv-list dd + %horizontal-kv-list-hidden-title + dd {
