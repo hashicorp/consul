@@ -2,7 +2,7 @@
 agent: Save exposed Envoy ports to the agent's state when `Expose.Checks` is true in proxy's configuration.
 ```
 ```release-note:improvement
-api: Add `ExposeHTTPPort` and `ExposeGRPCPort` to the health check API resource.
+api: Add `ExposedHTTPPort` and `ExposedGRPCPort` to the health check API resource.
 ```
 ```release-note:improvement
 command: Exclude exposed Envoy ports from traffic redirection when providing `-proxy-id` and `Expose.Checks` is set.

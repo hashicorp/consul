@@ -207,11 +207,11 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			}
 
 			for _, check := range checks {
-				if check.ExposeHTTPPort != 0 {
-					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposeHTTPPort))
+				if check.ExposedHTTPPort != 0 {
+					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposedHTTPPort))
 				}
-				if check.ExposeGRPCPort != 0 {
-					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposeGRPCPort))
+				if check.ExposedGRPCPort != 0 {
+					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposedGRPCPort))
 				}
 			}
 		}

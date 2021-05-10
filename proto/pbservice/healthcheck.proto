@@ -43,9 +43,9 @@ message HealthCheck {
     common.EnterpriseMeta EnterpriseMeta = 13  [(gogoproto.nullable) = false];
 
     // mog: func-to=int func-from=int32
-    int32 ExposeHTTPPort = 14;
+    int32 ExposedHTTPPort = 14;
     // mog: func-to=int func-from=int32
-    int32 ExposeGRPCPort = 15;
+    int32 ExposedGRPCPort = 15;
 }
 
 message HeaderValue {

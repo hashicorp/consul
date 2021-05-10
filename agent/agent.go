@@ -2555,7 +2555,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					return err
 				}
 				http.ProxyHTTP = httpInjectAddr(http.HTTP, proxy.Address, port)
-				check.ExposeHTTPPort = port
+				check.ExposedHTTPPort = port
 			}
 
 			http.Start()
@@ -2625,7 +2625,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					return err
 				}
 				grpc.ProxyGRPC = grpcInjectAddr(grpc.GRPC, proxy.Address, port)
-				check.ExposeGRPCPort = port
+				check.ExposedGRPCPort = port
 			}
 
 			grpc.Start()
@@ -3812,7 +3812,7 @@ func (a *Agent) rerouteExposedChecks(serviceID structs.ServiceID, proxyAddr stri
 		}
 		c.ProxyHTTP = httpInjectAddr(c.HTTP, proxyAddr, port)
 		hc := a.State.Check(cid)
-		hc.ExposeHTTPPort = port
+		hc.ExposedHTTPPort = port
 	}
 	for cid, c := range a.checkGRPCs {
 		if c.ServiceID != serviceID {
@@ -3824,7 +3824,7 @@ func (a *Agent) rerouteExposedChecks(serviceID structs.ServiceID, proxyAddr stri
 		}
 		c.ProxyGRPC = grpcInjectAddr(c.GRPC, proxyAddr, port)
 		hc := a.State.Check(cid)
-		hc.ExposeGRPCPort = port
+		hc.ExposedGRPCPort = port
 	}
 	return nil
 }
@@ -3838,7 +3838,7 @@ func (a *Agent) resetExposedChecks(serviceID structs.ServiceID) {
 		if c.ServiceID == serviceID {
 			c.ProxyHTTP = ""
 			hc := a.State.Check(cid)
-			hc.ExposeHTTPPort = 0
+			hc.ExposedHTTPPort = 0
 			ids = append(ids, cid)
 		}
 	}
@@ -3846,7 +3846,7 @@ func (a *Agent) resetExposedChecks(serviceID structs.ServiceID) {
 		if c.ServiceID == serviceID {
 			c.ProxyGRPC = ""
 			hc := a.State.Check(cid)
-			hc.ExposeGRPCPort = 0
+			hc.ExposedGRPCPort = 0
 			ids = append(ids, cid)
 		}
 	}

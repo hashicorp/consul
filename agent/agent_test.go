@@ -4330,7 +4330,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("http", nil))
-		require.Equal(r, hc.ExposeHTTPPort, 21500)
+		require.Equal(r, hc.ExposedHTTPPort, 21500)
 	})
 
 	retry.Run(t, func(r *retry.R) {
@@ -4343,7 +4343,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("grpc", nil))
-		require.Equal(r, hc.ExposeGRPCPort, 21501)
+		require.Equal(r, hc.ExposedGRPCPort, 21501)
 	})
 
 	// Re-register a proxy and disable exposing HTTP checks.
@@ -4377,7 +4377,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("http", nil))
-		require.Equal(r, hc.ExposeHTTPPort, 0)
+		require.Equal(r, hc.ExposedHTTPPort, 0)
 	})
 
 	retry.Run(t, func(r *retry.R) {
@@ -4389,7 +4389,7 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("grpc", nil))
-		require.Equal(r, hc.ExposeGRPCPort, 0)
+		require.Equal(r, hc.ExposedGRPCPort, 0)
 	})
 }
 
@@ -4483,7 +4483,7 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("http", nil))
-		require.Equal(r, hc.ExposeHTTPPort, 21500)
+		require.Equal(r, hc.ExposedHTTPPort, 21500)
 	})
 
 	retry.Run(t, func(r *retry.R) {
@@ -4495,7 +4495,7 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		hc := a.State.Check(structs.NewCheckID("grpc", nil))
-		require.Equal(r, hc.ExposeGRPCPort, 21501)
+		require.Equal(r, hc.ExposedGRPCPort, 21501)
 	})
 }
 
