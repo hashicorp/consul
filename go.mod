@@ -30,7 +30,6 @@ require (
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/hashicorp/consul/api v1.8.0
 	github.com/hashicorp/consul/sdk v0.7.0
-	github.com/hashicorp/errwrap v1.0.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
