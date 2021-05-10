@@ -1,4 +1,3 @@
-import EnvService from 'consul-ui/services/env';
 export default function(type) {
   return function(cb, withNspaces, withoutNspaces, container, assert) {
     let CONSUL_NSPACES_ENABLED = true;
