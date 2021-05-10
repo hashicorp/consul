@@ -19,9 +19,12 @@ upgrade flow.
 ### Changes to Raft Protocol Support
 
 Consul 1.8 supported Raft protocols 2 and 3. Consul 1.9.0 now only supports
-Raft protocol 3 so before upgrading to Consul 1.9.0 users may have to first
-upgrade to a previous release supporting both protocol versions and upgrade
-the protocol in use to version 3.
+Raft protocol 3. Consul has defaulted to using Raft protocol 3 since version 1.0.0,
+so this should only impact users who have been using Consul prior to 1.0.0 and
+may have the `raft_protocol` config setting set to 2. Users in that position
+should upgrade to a previous release supporting both protocol versions and
+update their configuration to use Raft protocol 3 before continuing their upgrade
+to Consul 1.9.0.
 
 ### Changes to Configuration Defaults
 
