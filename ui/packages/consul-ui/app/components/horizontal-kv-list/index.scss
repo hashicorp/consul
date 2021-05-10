@@ -3,6 +3,9 @@
 
 :root {
   --horizontal-kv-list-separator-width: 18px;
+  --horizontal-kv-list-key-separator: ':';
+  --horizontal-kv-list-key-wrapper-start: '(';
+  --horizontal-kv-list-key-wrapper-end: ')';
 }
 %horizontal-kv-list:not([class]) dt:not([class]) {
   @extend %horizontal-kv-list-hidden-title;
@@ -16,4 +19,5 @@
 }
 %horizontal-kv-list-visible-title {
   @extend %unvisually-hidden;
+  overflow: hidden;
 }

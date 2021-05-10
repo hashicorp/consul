@@ -7,7 +7,7 @@
     @extend %badge;
   }
   dt.kind-terminating-gateway {
-    @extend %badge-with-icon;
+    @extend %badge, %badge-with-icon;
   }
   dt.kind-terminating-gateway::before {
     @extend %with-gateway-mask, %as-pseudo;
@@ -18,10 +18,10 @@
     @extend %horizontal-kv-list;
   }
   dl.service-identity dt {
-    @extend %badge-with-icon;
+    @extend %badge;
   }
   dl.kind-terminating-gateway dt {
-    @extend %badge-with-icon;
+    @extend %badge, %badge-with-icon;
   }
   dl.kind-terminating-gateway dt::before {
     @extend %with-gateway-mask, %as-pseudo;

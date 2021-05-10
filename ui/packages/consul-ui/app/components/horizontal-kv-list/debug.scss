@@ -14,9 +14,18 @@
     @extend %badge;
   }
   .kind-terminating-gateway {
-    @extend %badge-with-icon;
+    @extend %badge, %badge-with-icon;
   }
   .kind-terminating-gateway::before {
     @extend %with-gateway-mask, %as-pseudo;
+  }
+  .reversed > dl {
+    @extend %horizontal-kv-list-reversed;
+  }
+  .reversed .service-identity {
+    @extend %badge-reversed;
+  }
+  .reversed .kind-terminating-gateway {
+    @extend %badge-with-icon-reversed;
   }
 }

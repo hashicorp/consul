@@ -25,7 +25,7 @@ to the left or right of the value.
 ```hbs preview-template
 <figure>
   <figcaption>
-    All KVs can be specified in a single list (preferred when components aren't involved)
+    All KVs can be specified in a single list
   </figcaption>
 
   <dl>
@@ -59,10 +59,6 @@ to the left or right of the value.
       Invisible title
     </dt>
     <dd>
-      <CopyButton
-        @value={{"local"}}
-        @name="Invisible title"
-      />
       local
     </dd>
     <dt class>Visible title</dt>
@@ -83,6 +79,7 @@ to the left or right of the value.
       Service Identity
     </dt>
     <dd>service-0</dd>
+  </dl><dl>
     <dt
       {{tooltip}}
       class="lock-delay"
@@ -115,6 +112,56 @@ to the left or right of the value.
   </dl><!--
       Collapse the whitespace but keep our indentation
 --><TagList @tags={{array 'one' 'two'}} />
+
+</figure>
+<hr />
+<figure class="reversed">
+  <figcaption>When reversing, you'll probably want to use indiviudual dl's so as to not reverse the order of the KV pairs</figcaption>
+  <dl>
+      <dt class="kind-terminating-gateway">Kind</dt>
+      <dd>
+        Terminating Gateway
+      </dd>
+  </dl>
+  <dl>
+    <dt
+      class="service-identity"
+    >
+      Service Identity
+    </dt>
+    <dd>service-0</dd>
+  </dl>
+  <dl>
+    <dt
+      {{tooltip}}
+      class="lock-delay"
+    >
+      Lock Delay
+    </dt>
+    <dd>10ms</dd>
+  </dl><dl>
+    <dt
+      {{tooltip}}
+      class="ttl"
+    >
+      TTL
+    </dt>
+    <dd>
+      <CopyButton
+        @value={{"1m30s10ms"}}
+        @name="TTL"
+      />
+      1m30s10ms
+    </dd>
+  </dl><dl>
+    <dt>
+      No visible title
+    </dt>
+    <dd>local</dd>
+  </dl><dl>
+    <dt class>Visible title</dt>
+    <dd>global</dd>
+  </dl>
 
 </figure>
 ```
@@ -165,10 +212,19 @@ dl {
   @extend %badge;
 }
 .kind-terminating-gateway {
-  @extend %badge-with-icon;
+  @extend %badge, %badge-with-icon;
 }
 .kind-terminating-gateway::before {
   @extend %with-gateway-mask, %as-pseudo;
+}
+.reversed > dl {
+  @extend %horizontal-kv-list-reversed;
+}
+.reversed .service-identity {
+  @extend %badge-reversed;
+}
+.reversed .kind-terminating-gateway {
+  @extend %badge-with-icon-reversed;
 }
 ```
 
@@ -177,3 +233,6 @@ dl {
 | Property | Type | Default | Description |
 | --- | --- | --- | --- |
 | `--horizontal-kv-list-separator-width` | `length-percentage` | `18px` | The width of the whitespace between two sets of key/value pairs |
+| `--horizontal-kv-list-key-separator` | `string` | `:` | Separator used for between `Key: Value` for textual key/values |
+| `--horizontal-kv-list-key-wrapper-start` | `string` | `(` | Starting wrapper used for wrapping `Value (Key)` for reversed textual key/values |
+| `--horizontal-kv-list-key-wrapper-end` | `string` | `)` | Ending wrapper used for wrapping `Value (Key)` for reversed textual key/values |
