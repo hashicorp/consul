@@ -10,10 +10,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
-
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -21,6 +17,9 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
 )
 
 var ClientCounters = []prometheus.CounterDefinition{
@@ -116,7 +115,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
-	if err := c.initEnterprise(); err != nil {
+	if err := c.initEnterprise(deps); err != nil {
 		c.Shutdown()
 		return nil, err
 	}
@@ -379,16 +378,6 @@ func (c *Client) Stats() map[string]map[string]string {
 		}
 	} else {
 		stats["consul"]["acl"] = "disabled"
-	}
-
-	for outerKey, outerValue := range c.enterpriseStats() {
-		if _, ok := stats[outerKey]; ok {
-			for innerKey, innerValue := range outerValue {
-				stats[outerKey][innerKey] = innerValue
-			}
-		} else {
-			stats[outerKey] = outerValue
-		}
 	}
 
 	return stats
