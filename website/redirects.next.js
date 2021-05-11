@@ -6,6 +6,11 @@
 
 module.exports = [
   {
+    source: '/trial',
+    destination: 'https://www.hashicorp.com/products/consul/trial',
+    permanent: true,
+  },
+  {
     source: '/discovery',
     destination: '/use-cases/service-discovery-and-health-checking',
     permanent: true,
