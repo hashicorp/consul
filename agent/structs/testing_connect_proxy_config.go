@@ -32,6 +32,11 @@ func TestUpstreams(t testing.T) Upstreams {
 			LocalBindPort:    8181,
 			LocalBindAddress: "127.10.10.10",
 		},
+		{
+			DestinationName:     "upstream_socket",
+			LocalBindSocketPath: "/tmp/upstream.sock",
+			LocalBindSocketMode: "0700",
+		},
 	}
 }
 

@@ -98,11 +98,20 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 	if sidecar.Proxy.DestinationServiceID == "" {
 		sidecar.Proxy.DestinationServiceID = ns.ID
 	}
-	if sidecar.Proxy.LocalServiceAddress == "" {
-		sidecar.Proxy.LocalServiceAddress = "127.0.0.1"
-	}
-	if sidecar.Proxy.LocalServicePort < 1 {
-		sidecar.Proxy.LocalServicePort = ns.Port
+
+	// Fill defaults from NodeService if none of the address components are present.
+	// This really argues for a refactoring to a more generalized 'address' concept.
+	if sidecar.Proxy.LocalServiceSocketPath == "" && (sidecar.Proxy.LocalServiceAddress == "" || sidecar.Proxy.LocalServicePort < 1) {
+		if ns.SocketPath != "" {
+			sidecar.Proxy.LocalServiceSocketPath = ns.SocketPath
+		} else {
+			if sidecar.Proxy.LocalServiceAddress == "" {
+				sidecar.Proxy.LocalServiceAddress = "127.0.0.1"
+			}
+			if sidecar.Proxy.LocalServicePort < 1 {
+				sidecar.Proxy.LocalServicePort = ns.Port
+			}
+		}
 	}
 
 	// Allocate port if needed (min and max inclusive).

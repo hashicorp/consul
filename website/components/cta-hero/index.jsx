@@ -1,47 +1,38 @@
-import Button from '@hashicorp/react-button'
 import TextSplit from '@hashicorp/react-text-split'
+import Button from '@hashicorp/react-button'
 import s from './style.module.css'
+import InlineSvg from '@hashicorp/react-inline-svg'
+import ConsulStack from './img/consul-stack.svg?include'
 
-export default function CtaHero() {
+export default function CtaHero({ title, description, links, cta }) {
   return (
     <div className={s.ctaHero}>
       <TextSplit
-        heading="Service Mesh for any runtime or cloud"
-        content="Consul automates networking for simple and secure application delivery."
-        brand="consul"
-        links={[
-          { type: 'none', text: 'Download Consul', url: '/downloads' },
-          { type: 'none', text: 'Explore Tutorials', url: 'https://learn.hashicorp.com/consul' },
-        ]}
+        product="consul"
+        heading={title}
+        content={description}
+        links={links}
         linkStyle="buttons"
       >
-        <Cta />
+        <CTA title={cta.title} description={cta.description} link={cta.link} />
       </TextSplit>
     </div>
   )
 }
 
-function Cta() {
+function CTA({ title, description, link }) {
   return (
     <div className={s.cta}>
-      <img src={require('./img/cta-image.jpg?url')} alt="Consul stack" />
-      <div className={s.ctaContent}>
-        <div className={s.ctaHeading}>
-          <h4 className="g-type-display-4">Try HCP Consul</h4>
-        </div>
-        <div className={s.ctaDescription}>
-          <p className="g-type-body-small">
-            Hosted on HashiCorp Cloud Platform, HCP Consul is a fully managed
-            service mesh that discovers and securely connects any service.
-          </p>
-          <Button
-            title="Sign Up"
-            linkType="inbound"
-            theme={{ variant: 'tertiary-neutral' }}
-            url="https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hero"
-          />
-        </div>
-      </div>
+      <InlineSvg className={s.stackIcon} src={ConsulStack} />
+      <h3>{title}</h3>
+      <p className={s.description}>{description}</p>
+      <Button
+        title={link.text}
+        url={link.url}
+        theme={{
+          brand: 'neutral',
+        }}
+      />
     </div>
   )
 }

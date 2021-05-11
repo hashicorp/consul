@@ -2,7 +2,7 @@
   padding: 25px 0 17px 0;
   flex-shrink: 0;
   display: flex;
-  border-top: 1px solid var(--gray-6);
+  border-top: 1px solid var(--gray-5);
 
   & .g-container {
     display: flex;

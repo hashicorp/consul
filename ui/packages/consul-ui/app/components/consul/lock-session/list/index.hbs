@@ -1,9 +1,20 @@
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-lock-session-list" as |item index|>
   <BlockSlot @name="header">
+  {{#if item.Name}}
     <span>{{item.Name}}</span>
+  {{else}}
+    <span>
+      {{item.ID}}
+      <CopyButton
+        @value={{item.ID}}
+        @name="ID"
+      />
+    </span>
+  {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
+    {{#if item.Name}}
     <dl>
       <dt>
         <CopyButton
@@ -13,13 +24,14 @@
       </dt>
       <dd>{{item.ID}}</dd>
     </dl>
+    {{/if}}
     <dl class="lock-delay">
       <dt>
         <Tooltip>
           Delay
         </Tooltip>
       </dt>
-      <dd data-test-session-delay>{{item.LockDelay}}</dd>
+      <dd data-test-session-delay>{{duration-from item.LockDelay}}</dd>
     </dl>
     <dl class="ttl">
       <dt>
@@ -27,7 +39,11 @@
           TTL
         </Tooltip>
       </dt>
+    {{#if (eq item.TTL "")}}
+      <dd data-test-session-ttl={{item.TTL}}>-</dd>
+    {{else}}
       <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
+    {{/if}}
     </dl>
     <dl class="behavior">
       <dt>

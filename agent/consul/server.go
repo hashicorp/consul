@@ -21,7 +21,6 @@ import (
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
@@ -35,6 +34,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/consul/wanfed"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -251,7 +251,7 @@ type Server struct {
 	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
 	serfWAN                *serf.Serf
-	memberlistTransportWAN memberlist.IngestionAwareTransport
+	memberlistTransportWAN wanfed.IngestionAwareTransport
 	gatewayLocator         *GatewayLocator
 
 	// serverLookup tracks server consuls in the local datacenter.
@@ -500,7 +500,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 
 		// This is always a *memberlist.NetTransport or something which wraps
 		// it which satisfies this interface.
-		s.memberlistTransportWAN = config.SerfWANConfig.MemberlistConfig.Transport.(memberlist.IngestionAwareTransport)
+		s.memberlistTransportWAN = config.SerfWANConfig.MemberlistConfig.Transport.(wanfed.IngestionAwareTransport)
 
 		// See big comment above why we are doing this.
 		if serfBindPortWAN == 0 {
@@ -1387,6 +1387,13 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
 func (s *Server) ReloadConfig(config ReloadableConfig) error {
+	// Reload raft config first before updating any other state since it could
+	// error if the new config is invalid.
+	raftCfg := computeRaftReloadableConfig(config)
+	if err := s.raft.ReloadConfig(raftCfg); err != nil {
+		return err
+	}
+
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
@@ -1399,6 +1406,33 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	}
 
 	return nil
+}
+
+// computeRaftReloadableConfig works out the correct reloadable config for raft.
+// We reload raft even if nothing has changed since it's cheap and simpler than
+// trying to work out if it's different from the current raft config. This
+// function is separate to make it cheap to table test thoroughly without a full
+// raft instance.
+func computeRaftReloadableConfig(config ReloadableConfig) raft.ReloadableConfig {
+	// We use the raw defaults _not_ the current values so that you can reload
+	// back to a zero value having previously started Consul with a custom value
+	// for one of these fields.
+	defaultConf := DefaultConfig()
+	raftCfg := raft.ReloadableConfig{
+		TrailingLogs:      defaultConf.RaftConfig.TrailingLogs,
+		SnapshotInterval:  defaultConf.RaftConfig.SnapshotInterval,
+		SnapshotThreshold: defaultConf.RaftConfig.SnapshotThreshold,
+	}
+	if config.RaftSnapshotThreshold != 0 {
+		raftCfg.SnapshotThreshold = uint64(config.RaftSnapshotThreshold)
+	}
+	if config.RaftSnapshotInterval != 0 {
+		raftCfg.SnapshotInterval = config.RaftSnapshotInterval
+	}
+	if config.RaftTrailingLogs != 0 {
+		raftCfg.TrailingLogs = uint64(config.RaftTrailingLogs)
+	}
+	return raftCfg
 }
 
 // Atomically sets a readiness state flag when leadership is obtained, to indicate that server is past its barrier write

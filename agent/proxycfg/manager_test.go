@@ -235,6 +235,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						UpstreamConfig: map[string]*structs.Upstream{
 							upstreams[0].Identifier(): &upstreams[0],
 							upstreams[1].Identifier(): &upstreams[1],
+							upstreams[2].Identifier(): &upstreams[2],
 						},
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
@@ -290,6 +291,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						UpstreamConfig: map[string]*structs.Upstream{
 							upstreams[0].Identifier(): &upstreams[0],
 							upstreams[1].Identifier(): &upstreams[1],
+							upstreams[2].Identifier(): &upstreams[2],
 						},
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
@@ -352,10 +354,7 @@ func testManager_BasicLifecycle(
 	require := require.New(t)
 	logger := testutil.Logger(t)
 	state := local.NewState(local.Config{}, logger, &token.Store{})
-	source := &structs.QuerySource{
-		Node:       "node1",
-		Datacenter: "dc1",
-	}
+	source := &structs.QuerySource{Datacenter: "dc1"}
 
 	// Stub state syncing
 	state.TriggerSyncChanges = func() {}

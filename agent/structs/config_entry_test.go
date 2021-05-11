@@ -1307,10 +1307,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "cluster",
+			name: "mesh",
 			snake: `
-				kind = "cluster"
-				name = "cluster"
+				kind = "mesh"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1320,8 +1319,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 			`,
 			camel: `
-				Kind = "cluster"
-				Name = "cluster"
+				Kind = "mesh"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1330,14 +1328,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 					CatalogDestinationsOnly = true
 				}
 			`,
-			expect: &ClusterConfigEntry{
-				Kind: "cluster",
-				Name: "cluster",
+			expect: &MeshConfigEntry{
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
 				},
-				TransparentProxy: TransparentProxyClusterConfig{
+				TransparentProxy: TransparentProxyMeshConfig{
 					CatalogDestinationsOnly: true,
 				},
 			},

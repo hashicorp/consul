@@ -14,8 +14,6 @@ import (
 )
 
 func TestUpstreamResolverFuncFromClient(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name string
 		cfg  UpstreamConfig

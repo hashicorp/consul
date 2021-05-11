@@ -4,7 +4,14 @@
 // temporary component debugging setup
 @import 'consul-ui/components/main-nav-vertical/debug';
 
+html.is-debug body > .brand-loader {
+  display: none !important;
+}
+
 .docs {
+  [role='banner'] nav:first-of-type {
+    height: calc(100vh - var(--chrome-height, 47px));
+  }
   .tabular-collection,
   .list-collection {
     height: 300px !important;
@@ -58,6 +65,19 @@
       ol,
       ul {
         margin-bottom: 0;
+      }
+      figure {
+        margin-bottom: 0.5rem;
+      }
+      figcaption {
+        margin-bottom: 0.5rem;
+        color: var(--gray-400);
+        font-style: italic;
+      }
+      figure > [type='text'] {
+        border: 1px solid var(--gray-999);
+        width: 100%;
+        padding: 0.5rem;
       }
     }
     // &__snippets__tabs__button {

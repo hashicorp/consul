@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Add conditionals to lock sessions tab
+```

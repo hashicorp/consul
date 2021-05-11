@@ -12,12 +12,13 @@
 
   /* base brand colors */
   --brand-050: #{$magenta-050};
-  // --brand-100: #{$magenta-100};
+  --brand-100: #{$rose-100};
   // --brand-200: #{$magenta-200};
   // --brand-300: #{$magenta-300};
   // --brand-400: #{$magenta-400};
   // --brand-500: #{$magenta-500};
-  --brand-600: #{$magenta-600};
+  /* temporary rose-like color until its replaced by a numbered one */
+  --brand-600: #e03875;
   // --brand-700: #{$magenta-700};
   --brand-800: #{$magenta-800};
   // --brand-900: #{$magenta-900};

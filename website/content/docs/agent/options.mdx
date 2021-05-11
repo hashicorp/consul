@@ -1762,29 +1762,50 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `raft_protocol` ((#raft_protocol)) Equivalent to the [`-raft-protocol`
   command-line flag](#_raft_protocol).
 
-- `raft_snapshot_threshold` ((#\_raft_snapshot_threshold)) This controls
-  the minimum number of raft commit entries between snapshots that are saved to disk.
-  This is a low-level parameter that should rarely need to be changed. Very busy
-  clusters experiencing excessive disk IO may increase this value to reduce disk
-  IO, and minimize the chances of all servers taking snapshots at the same time.
+- `raft_snapshot_threshold` ((#\_raft_snapshot_threshold)) This controls the
+  minimum number of raft commit entries between snapshots that are saved to
+  disk. This is a low-level parameter that should rarely need to be changed.
+  Very busy clusters experiencing excessive disk IO may increase this value to
+  reduce disk IO, and minimize the chances of all servers taking snapshots at
+  the same time. Increasing this trades off disk IO for disk space since the log
+  will grow much larger and the space in the raft.db file can't be reclaimed
+  till the next snapshot. Servers may take longer to recover from crashes or
+  failover if this is increased significantly as more logs will need to be
+  replayed. In Consul 1.1.0 and later this defaults to 16384, and in prior
+  versions it was set to 8192.
+  
+  Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
+  server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
+  in emergencies.
+
+- `raft_snapshot_interval` ((#\_raft_snapshot_interval)) This controls how often
+  servers check if they need to save a snapshot to disk. This is a low-level
+  parameter that should rarely need to be changed. Very busy clusters
+  experiencing excessive disk IO may increase this value to reduce disk IO, and
+  minimize the chances of all servers taking snapshots at the same time.
   Increasing this trades off disk IO for disk space since the log will grow much
-  larger and the space in the raft.db file can't be reclaimed till the next snapshot.
-  Servers may take longer to recover from crashes or failover if this is increased
-  significantly as more logs will need to be replayed. In Consul 1.1.0 and later
-  this defaults to 16384, and in prior versions it was set to 8192.
+  larger and the space in the raft.db file can't be reclaimed till the next
+  snapshot. Servers may take longer to recover from crashes or failover if this
+  is increased significantly as more logs will need to be replayed. In Consul
+  1.1.0 and later this defaults to `30s`, and in prior versions it was set to
+  `5s`.
+  
+  Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
+  server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
+  in emergencies.
 
-- `raft_snapshot_interval` ((#\_raft_snapshot_interval)) This controls how often servers check if they
-  need to save a snapshot to disk. This is a low-level parameter that should rarely need to be changed. Very busy clusters experiencing excessive disk IO may increase this value to reduce disk IO, and minimize the chances of all servers taking snapshots at the same time. Increasing this trades
-  off disk IO for disk space since the log will grow much larger and the space in the raft.db file can't be reclaimed till the next snapshot. Servers may take longer to recover from crashes or failover if this is increased significantly as more logs will need to be replayed. In Consul 1.1.0 and later this defaults to `30s`, and in prior versions it was set to `5s`.
-
-- `raft_trailing_logs` - This controls how many
-  log entries are left in the log store on disk after a snapshot is made. This should
-  only be adjusted when followers cannot catch up to the leader due to a very large
-  snapshot size that and high write throughput causing log truncation before an snapshot
-  can be fully installed. If you need to use this to recover a cluster, consider
-  reducing write throughput or the amount of data stored on Consul as it is likely
-  under a load it is not designed to handle. The default value is 10000 which is
-  suitable for all normal workloads. Added in Consul 1.5.3.
+- `raft_trailing_logs` - This controls how many log entries are left in the log
+  store on disk after a snapshot is made. This should only be adjusted when
+  followers cannot catch up to the leader due to a very large snapshot size
+  and high write throughput causing log truncation before an snapshot can be
+  fully installed on a follower. If you need to use this to recover a cluster,
+  consider reducing write throughput or the amount of data stored on Consul as
+  it is likely under a load it is not designed to handle. The default value is
+  10000 which is suitable for all normal workloads. Added in Consul 1.5.3.
+  
+  Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
+  server a `SIGHUP` to allow recovery without downtime when followers can't keep
+  up. 
 
 - `reap` This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't
@@ -2208,14 +2229,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     currently only supports numeric IDs.
   - `mode` - The permission bits to set on the file.
 
-- `use_streaming_backend` (experimental) when enabled Consul client agents will use
+- `use_streaming_backend` defaults to true. When enabled Consul client agents will use
   streaming rpc, instead of the traditional blocking queries, for endpoints which support
   streaming. All servers must have [`rpc.enable_streaming`](#rpc_enable_streaming)
   enabled before any client can enable `use_streaming_backend`.
-  At least one of [`dns_config.use_cache`](#dns_use_cache) or
-  [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
-  this setting has no effect.
-  `use_streaming_backend` will default to true in a future version of Consul.
 
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client
@@ -2296,6 +2313,13 @@ items which are reloaded include:
 - Log level
 - [Metric Prefix Filter](#telemetry-prefix_filter)
 - [Node Metadata](#node_meta)
+- Some Raft options (since Consul 1.10.0)
+  - [`raft_snapshot_threshold`](#_raft_snapshot_threshold)
+  - [`raft_snapshot_interval`](#_raft_snapshot_interval)
+  - [`raft_trailing_logs`](#_raft_trailing_logs)
+  - These can be important in certain outage situations so being able to control
+    them without a restart provides a recovery path that doesn't involve
+    downtime. They generally shouldn't be changed otherwise.
 - [RPC rate limiting](#limits)
 - [HTTP Maximum Connections per Client](#http_max_conns_per_client)
 - Services

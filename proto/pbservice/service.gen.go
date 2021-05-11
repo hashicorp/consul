@@ -10,6 +10,7 @@ func ConnectProxyConfigToStructs(s ConnectProxyConfig) structs.ConnectProxyConfi
 	t.DestinationServiceID = s.DestinationServiceID
 	t.LocalServiceAddress = s.LocalServiceAddress
 	t.LocalServicePort = int(s.LocalServicePort)
+	t.LocalServiceSocketPath = s.LocalServiceSocketPath
 	t.Mode = s.Mode
 	t.Config = ProtobufTypesStructToMapStringInterface(s.Config)
 	t.Upstreams = UpstreamsToStructs(s.Upstreams)
@@ -24,6 +25,7 @@ func NewConnectProxyConfigFromStructs(t structs.ConnectProxyConfig) ConnectProxy
 	s.DestinationServiceID = t.DestinationServiceID
 	s.LocalServiceAddress = t.LocalServiceAddress
 	s.LocalServicePort = int32(t.LocalServicePort)
+	s.LocalServiceSocketPath = t.LocalServiceSocketPath
 	s.Mode = t.Mode
 	s.Config = MapStringInterfaceToProtobufTypesStruct(t.Config)
 	s.Upstreams = NewUpstreamsFromStructs(t.Upstreams)
@@ -94,6 +96,7 @@ func ServiceDefinitionToStructs(s ServiceDefinition) structs.ServiceDefinition {
 	t.TaggedAddresses = MapStringServiceAddressToStructs(s.TaggedAddresses)
 	t.Meta = s.Meta
 	t.Port = int(s.Port)
+	t.SocketPath = s.SocketPath
 	t.Check = CheckTypeToStructs(s.Check)
 	t.Checks = CheckTypesToStructs(s.Checks)
 	t.Weights = WeightsPtrToStructs(s.Weights)
@@ -114,6 +117,7 @@ func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinit
 	s.TaggedAddresses = NewMapStringServiceAddressFromStructs(t.TaggedAddresses)
 	s.Meta = t.Meta
 	s.Port = int32(t.Port)
+	s.SocketPath = t.SocketPath
 	s.Check = NewCheckTypeFromStructs(t.Check)
 	s.Checks = NewCheckTypesFromStructs(t.Checks)
 	s.Weights = NewWeightsPtrFromStructs(t.Weights)
@@ -142,6 +146,8 @@ func UpstreamToStructs(s Upstream) structs.Upstream {
 	t.Datacenter = s.Datacenter
 	t.LocalBindAddress = s.LocalBindAddress
 	t.LocalBindPort = int(s.LocalBindPort)
+	t.LocalBindSocketPath = s.LocalBindSocketPath
+	t.LocalBindSocketMode = s.LocalBindSocketMode
 	t.Config = ProtobufTypesStructToMapStringInterface(s.Config)
 	t.MeshGateway = MeshGatewayConfigToStructs(s.MeshGateway)
 	t.CentrallyConfigured = s.CentrallyConfigured
@@ -155,6 +161,8 @@ func NewUpstreamFromStructs(t structs.Upstream) Upstream {
 	s.Datacenter = t.Datacenter
 	s.LocalBindAddress = t.LocalBindAddress
 	s.LocalBindPort = int32(t.LocalBindPort)
+	s.LocalBindSocketPath = t.LocalBindSocketPath
+	s.LocalBindSocketMode = t.LocalBindSocketMode
 	s.Config = MapStringInterfaceToProtobufTypesStruct(t.Config)
 	s.MeshGateway = NewMeshGatewayConfigFromStructs(t.MeshGateway)
 	s.CentrallyConfigured = t.CentrallyConfigured

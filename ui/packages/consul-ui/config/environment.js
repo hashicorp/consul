@@ -1,3 +1,7 @@
+// All of the configuration here is shared between buildtime and runtime and
+// is therefore added to ember's <meta> tag in the actual app, if the
+// configuration is for buildtime only you should probably just use
+// ember-cli-build to prevent values being outputted in the meta tag
 'use strict';
 const path = require('path');
 const utils = require('./utils');

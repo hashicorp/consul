@@ -1,0 +1,34 @@
+%loader circle {
+  fill: var(--brand-100);
+}
+%loader circle {
+  animation: loader-animation 1.5s infinite ease-in-out;
+  transform-origin: 50% 50%;
+}
+
+%loader g:nth-last-child(2) circle {
+  animation-delay: 0.2s;
+}
+
+%loader g:nth-last-child(3) circle {
+  animation-delay: 0.3s;
+}
+
+%loader g:nth-last-child(4) circle {
+  animation-delay: 0.4s;
+}
+
+%loader g:nth-last-child(5) circle {
+  animation-delay: 0.5s;
+}
+
+@keyframes loader-animation {
+  0%,
+  100% {
+    transform: scale3D(1, 1, 1);
+  }
+
+  33% {
+    transform: scale3D(0, 0, 1);
+  }
+}

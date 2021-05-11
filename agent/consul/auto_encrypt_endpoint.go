@@ -24,7 +24,7 @@ func (a *AutoEncrypt) Sign(
 	if !a.srv.config.AutoEncryptAllowTLS {
 		return ErrAutoEncryptAllowTLSNotEnabled
 	}
-	if done, err := a.srv.ForwardRPC("AutoEncrypt.Sign", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("AutoEncrypt.Sign", args, reply); done {
 		return err
 	}
 

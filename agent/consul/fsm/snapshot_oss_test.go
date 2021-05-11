@@ -426,15 +426,13 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn))
 
-	// cluster config entry
-	clusterConfig := &structs.ClusterConfigEntry{
-		Kind: structs.ClusterConfig,
-		Name: structs.ClusterConfigCluster,
-		TransparentProxy: structs.TransparentProxyClusterConfig{
+	// mesh config entry
+	meshConfig := &structs.MeshConfigEntry{
+		TransparentProxy: structs.TransparentProxyMeshConfig{
 			CatalogDestinationsOnly: true,
 		},
 	}
-	require.NoError(t, fsm.state.EnsureConfigEntry(27, clusterConfig))
+	require.NoError(t, fsm.state.EnsureConfigEntry(27, meshConfig))
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -710,10 +708,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, serviceIxn, serviceIxnEntry)
 
-	// Verify cluster config entry is restored
-	_, clusterConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.ClusterConfig, structs.ClusterConfigCluster, structs.DefaultEnterpriseMeta())
+	// Verify mesh config entry is restored
+	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
-	require.Equal(t, clusterConfig, clusterConfigEntry)
+	require.Equal(t, meshConfig, meshConfigEntry)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

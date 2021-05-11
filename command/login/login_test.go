@@ -143,7 +143,7 @@ func TestLoginCommand(t *testing.T) {
 
 		code := cmd.Run(args)
 		require.Equal(t, code, 1, "err: %s", ui.ErrorWriter.String())
-		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found)")
+		require.Contains(t, ui.ErrorWriter.String(), "403 (ACL not found: auth method \"test\" not found")
 	})
 
 	testSessionID := testauth.StartSession()

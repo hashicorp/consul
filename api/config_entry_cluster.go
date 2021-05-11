@@ -1,39 +1,53 @@
 package api
 
-type ClusterConfigEntry struct {
-	Kind             string
-	Name             string
-	Namespace        string                        `json:",omitempty"`
-	TransparentProxy TransparentProxyClusterConfig `alias:"transparent_proxy"`
-	Meta             map[string]string             `json:",omitempty"`
+import "encoding/json"
+
+type MeshConfigEntry struct {
+	Namespace        string                     `json:",omitempty"`
+	TransparentProxy TransparentProxyMeshConfig `alias:"transparent_proxy"`
+	Meta             map[string]string          `json:",omitempty"`
 	CreateIndex      uint64
 	ModifyIndex      uint64
 }
 
-type TransparentProxyClusterConfig struct {
+type TransparentProxyMeshConfig struct {
 	CatalogDestinationsOnly bool `alias:"catalog_destinations_only"`
 }
 
-func (e *ClusterConfigEntry) GetKind() string {
-	return e.Kind
+func (e *MeshConfigEntry) GetKind() string {
+	return MeshConfig
 }
 
-func (e *ClusterConfigEntry) GetName() string {
-	return e.Name
+func (e *MeshConfigEntry) GetName() string {
+	return MeshConfigMesh
 }
 
-func (e *ClusterConfigEntry) GetNamespace() string {
+func (e *MeshConfigEntry) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ClusterConfigEntry) GetMeta() map[string]string {
+func (e *MeshConfigEntry) GetMeta() map[string]string {
 	return e.Meta
 }
 
-func (e *ClusterConfigEntry) GetCreateIndex() uint64 {
+func (e *MeshConfigEntry) GetCreateIndex() uint64 {
 	return e.CreateIndex
 }
 
-func (e *ClusterConfigEntry) GetModifyIndex() uint64 {
+func (e *MeshConfigEntry) GetModifyIndex() uint64 {
 	return e.ModifyIndex
+}
+
+// MarshalJSON adds the Kind field so that the JSON can be decoded back into the
+// correct type.
+func (e *MeshConfigEntry) MarshalJSON() ([]byte, error) {
+	type Alias MeshConfigEntry
+	source := &struct {
+		Kind string
+		*Alias
+	}{
+		Kind:  MeshConfig,
+		Alias: (*Alias)(e),
+	}
+	return json.Marshal(source)
 }

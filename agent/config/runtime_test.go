@@ -2590,6 +2590,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										{
 											"destination_name": "db",
 											"local_bind_port": 7000
+										},
+										{
+											"destination_name": "db2",
+											"local_bind_socket_path": "/tmp/socketpath",
+											"local_bind_socket_mode": "0644"
 										}
 									]
 								}
@@ -2631,6 +2636,11 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										destination_name = "db"
 										local_bind_port = 7000
 									},
+									{
+									    destination_name = "db2",
+									    local_bind_socket_path = "/tmp/socketpath",
+									    local_bind_socket_mode = "0644"
+									}
 								]
 							}
 						}
@@ -2674,6 +2684,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										DestinationType: "service",
 										DestinationName: "db",
 										LocalBindPort:   7000,
+									},
+									structs.Upstream{
+										DestinationType:     "service",
+										DestinationName:     "db2",
+										LocalBindSocketPath: "/tmp/socketpath",
+										LocalBindSocketMode: "0644",
 									},
 								},
 							},
@@ -4156,8 +4172,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"config_entries": {
 					"bootstrap": [
 						{
-							"kind": "cluster",
-							"name": "cluster",
+							"kind": "mesh",
 							"meta" : {
 								"foo": "bar",
 								"gir": "zim"
@@ -4173,8 +4188,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl: []string{`
 				config_entries {
 				  bootstrap {
-					kind = "cluster"
-					name = "cluster"
+					kind = "mesh"
 					meta {
 						"foo" = "bar"
 						"gir" = "zim"
@@ -4189,15 +4203,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
-				&structs.ClusterConfigEntry{
-					Kind: "cluster",
-					Name: "cluster",
+				&structs.MeshConfigEntry{
 					Meta: map[string]string{
 						"foo": "bar",
 						"gir": "zim",
 					},
 					EnterpriseMeta: *defaultEntMeta,
-					TransparentProxy: structs.TransparentProxyClusterConfig{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
 						CatalogDestinationsOnly: true,
 					},
 				},
@@ -4211,8 +4223,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"config_entries": {
 					"bootstrap": [
 						{
-							"Kind": "cluster",
-							"Name": "cluster",
+							"Kind": "mesh",
 							"Meta" : {
 								"foo": "bar",
 								"gir": "zim"
@@ -4228,8 +4239,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl: []string{`
 				config_entries {
 				  bootstrap {
-					Kind = "cluster"
-					Name = "cluster"
+					Kind = "mesh"
 					Meta {
 						"foo" = "bar"
 						"gir" = "zim"
@@ -4244,15 +4254,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.ConfigEntryBootstrap = []structs.ConfigEntry{
-				&structs.ClusterConfigEntry{
-					Kind: "cluster",
-					Name: "cluster",
+				&structs.MeshConfigEntry{
 					Meta: map[string]string{
 						"foo": "bar",
 						"gir": "zim",
 					},
 					EnterpriseMeta: *defaultEntMeta,
-					TransparentProxy: structs.TransparentProxyClusterConfig{
+					TransparentProxy: structs.TransparentProxyMeshConfig{
 						CatalogDestinationsOnly: true,
 					},
 				},
@@ -5639,6 +5647,13 @@ func TestLoad_FullConfig(t *testing.T) {
 							DestinationName:      "KSd8HsRl",
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
+						},
+						{
+							DestinationType:      "prepared_query",
+							DestinationNamespace: "9nakw0td",
+							DestinationName:      "placeholder",
+							LocalBindSocketPath:  "/foo/bar/upstream",
+							LocalBindSocketMode:  "0600",
 						},
 					},
 					Expose: structs.ExposeConfig{

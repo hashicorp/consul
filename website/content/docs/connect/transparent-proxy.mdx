@@ -28,32 +28,18 @@ the traffic redirection command is automatically set up via an init container.
 
 ## Prerequisites
 
-Transparent proxy requires Consul >= `1.10.0`.
-
 ### Kubernetes
 
 * To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to
-the Consul version requirements.
+the Consul >= `1.10.0`.
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
 Otherwise, all Connect services can talk to all other services.
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.
 
-### VMs
-
-* For a service on a VM to be a part of the service mesh, it needs to run a Connect sidecar proxy.
-* The [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) command needs to be run on the VM to
-set it up to redirect all inbound and outbound traffic to that VM through the sidecar proxy. Note that this will modify
-iptables rules on the host which can affect reachability of the VM unless the command is run within a network namespace.
-* Services need to be registered with Consul.
-* If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
-Otherwise, all Connect services can talk to all other services.
-
 
 ## Configuration
-
-### Kubernetes
 
 Transparent proxy can be enabled in Kubernetes on the whole cluster via the Helm value:
 
@@ -114,74 +100,12 @@ spec:
       serviceAccountName: static-server
 ```
 
-### VMs
+## Known Beta Limitations
 
-In other environments, transparent proxy can be enabled via Proxy Defaults and Service Defaults config entries, or via
-the proxy service registration:
-```json
-# Proxy defaults apply to all proxies.
-kind = "proxy-defaults"
-name = "global"
-
-mode = "transparent"
-transparent_proxy {
-  outbound_listener_port = 15001
-}
-```
-```json
-# Service defaults apply to all instances of the web service.
-kind = "service-defaults"
-name = "web"
-
-mode = "transparent"
-transparent_proxy {
-  outbound_listener_port = 15001
-}
-```
-```json
-# Proxy service registrations apply to a single proxy instance.
-name = "web-sidecar-proxy"
-kind = "connect-proxy"
-proxy {
-  mode = "transparent"
-  transparent_proxy {
-    outbound_listener_port = 15001
-  }
-  destination_service_name = "web"
-  local_service_port = 8080
-}
-port = 20000
-```
-
-Similar to `mesh_gateway.mode`, the new proxy mode will have the following string values:
-* "" - The empty string represents the default value for the feature, and allows for the mode to be overridden by
-central configuration, like “service-defaults”.
-* "direct" - Explicitly disables configuring transparent proxy, falling back to only configuring explicit upstreams.
-* "transparent" - Explicitly enables configuring transparent proxy.
-
-Additionally, the new Cluster config entry is scoped to the set of federated Consul datacenters and can be used to allow or block
-traffic to external destinations. This example shows blocking traffic to external destinations (outside of Consul's catalog):
-
-```json
-kind = "cluster"
-name = "cluster"
-
-transparent_proxy {
-  catalog_destinations_only = true
-}
-```
-
-## Known Limitations
-
-* For services on VMs, transparent proxy only supports one service per VM, or per network namespace. This is
-because the traffic redirection rules are applicable to the entire namespace (including the default namespace) and will
-direct all outbound traffic from the service to it’s sidecar proxy.
-* Currently transparent proxy is only supported for services within a single Consul datacenter.
-
+* There is no first class support for transparent proxying on VMs. 
+* Traffic can only be transparently proxied within a Consul datacenter.
 
 ## Using Transparent Proxy
-
-### Kubernetes
 
 In Kubernetes, services can reach other services via their
 [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) address or via Pod IPs, and that
@@ -225,14 +149,3 @@ it can dial `sample-app.default.svc.cluster.local`, using
 If ACLs with default "deny" policy are enabled, it also needs a
 [ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
 `sample-app`.
-
-### VMs
-To use transparent proxy on VMs, the service needs to be registered with Consul and a connect proxy needs to be added to
-the mesh on the VM. Then, traffic redirection rules need to be set up to direct inbound and outbound traffic through the
-sidecar connect proxy. Then, to enable transparent proxy mode to reach this service, you can set apply a service defaults
-config entry to configure the mode to be transparent as shown above in the [Configuration section](#configuration).
-
-Now, once Service Intentions are set up, other services can reach this service's address via an address known to Consul,
-and the traffic will go through the proxy.
-
-~> **Note** Only one service is supported per VM, or per network namespace. See [Known Limitations](#known-limitations)

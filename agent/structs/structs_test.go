@@ -663,7 +663,7 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		{
 			"connect-proxy: no port set",
 			func(x *NodeService) { x.Port = 0 },
-			"Port must",
+			"port or socketpath must",
 		},
 
 		{
@@ -734,7 +734,19 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 					LocalBindPort:   0,
 				}}
 			},
-			"upstream local bind port cannot be zero",
+			"upstream local bind port or local socket path must be defined and nonzero",
+		},
+		{
+			"connect-proxy: upstream bind port and path defined",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{{
+					DestinationType:     UpstreamDestTypeService,
+					DestinationName:     "foo",
+					LocalBindPort:       1,
+					LocalBindSocketPath: "/tmp/socket",
+				}}
+			},
+			"only one of upstream local bind port or local socket path can be defined and nonzero",
 		},
 		{
 			"connect-proxy: Upstreams almost-but-not-quite-duplicated in various ways",

@@ -181,17 +181,17 @@ func checkConfiguration(configuration Configuration) error {
 	var voters int
 	for _, server := range configuration.Servers {
 		if server.ID == "" {
-			return fmt.Errorf("Empty ID in configuration: %v", configuration)
+			return fmt.Errorf("empty ID in configuration: %v", configuration)
 		}
 		if server.Address == "" {
-			return fmt.Errorf("Empty address in configuration: %v", server)
+			return fmt.Errorf("empty address in configuration: %v", server)
 		}
 		if idSet[server.ID] {
-			return fmt.Errorf("Found duplicate ID in configuration: %v", server.ID)
+			return fmt.Errorf("found duplicate ID in configuration: %v", server.ID)
 		}
 		idSet[server.ID] = true
 		if addressSet[server.Address] {
-			return fmt.Errorf("Found duplicate address in configuration: %v", server.Address)
+			return fmt.Errorf("found duplicate address in configuration: %v", server.Address)
 		}
 		addressSet[server.Address] = true
 		if server.Suffrage == Voter {
@@ -199,7 +199,7 @@ func checkConfiguration(configuration Configuration) error {
 		}
 	}
 	if voters == 0 {
-		return fmt.Errorf("Need at least one voter in configuration: %v", configuration)
+		return fmt.Errorf("need at least one voter in configuration: %v", configuration)
 	}
 	return nil
 }
@@ -209,7 +209,7 @@ func checkConfiguration(configuration Configuration) error {
 // that it can be unit tested easily.
 func nextConfiguration(current Configuration, currentIndex uint64, change configurationChangeRequest) (Configuration, error) {
 	if change.prevIndex > 0 && change.prevIndex != currentIndex {
-		return Configuration{}, fmt.Errorf("Configuration changed since %v (latest is %v)", change.prevIndex, currentIndex)
+		return Configuration{}, fmt.Errorf("configuration changed since %v (latest is %v)", change.prevIndex, currentIndex)
 	}
 
 	configuration := current.Clone()
@@ -319,11 +319,11 @@ func encodePeers(configuration Configuration, trans Transport) []byte {
 // decodePeers is used to deserialize an old list of peers into a Configuration.
 // This is here for backwards compatibility with old log entries and snapshots;
 // it should be removed eventually.
-func decodePeers(buf []byte, trans Transport) Configuration {
+func decodePeers(buf []byte, trans Transport) (Configuration, error) {
 	// Decode the buffer first.
 	var encPeers [][]byte
 	if err := decodeMsgPack(buf, &encPeers); err != nil {
-		panic(fmt.Errorf("failed to decode peers: %v", err))
+		return Configuration{}, fmt.Errorf("failed to decode peers: %v", err)
 	}
 
 	// Deserialize each peer.
@@ -333,13 +333,11 @@ func decodePeers(buf []byte, trans Transport) Configuration {
 		servers = append(servers, Server{
 			Suffrage: Voter,
 			ID:       ServerID(p),
-			Address:  ServerAddress(p),
+			Address:  p,
 		})
 	}
 
-	return Configuration{
-		Servers: servers,
-	}
+	return Configuration{Servers: servers}, nil
 }
 
 // EncodeConfiguration serializes a Configuration using MsgPack, or panics on

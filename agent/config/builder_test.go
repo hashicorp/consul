@@ -175,6 +175,30 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 }
 
+func TestBuilder_unixPermissionsVal(t *testing.T) {
+
+	b, _ := newBuilder(LoadOpts{
+		FlagValues: Config{
+			NodeName: pString("foo"),
+			DataDir:  pString("dir"),
+		},
+	})
+
+	goodmode := "666"
+	badmode := "9666"
+
+	patchLoadOptsShims(&b.opts)
+	require.NoError(t, b.err)
+	_ = b.unixPermissionsVal("local_bind_socket_mode", &goodmode)
+	require.NoError(t, b.err)
+	require.Len(t, b.Warnings, 0)
+
+	_ = b.unixPermissionsVal("local_bind_socket_mode", &badmode)
+	require.NotNil(t, b.err)
+	require.Contains(t, b.err.Error(), "local_bind_socket_mode: invalid mode")
+	require.Len(t, b.Warnings, 0)
+}
+
 func patchLoadOptsShims(opts *LoadOpts) {
 	if opts.hostname == nil {
 		opts.hostname = func() (string, error) {

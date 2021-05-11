@@ -8,31 +8,27 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/fsm"
-
 	"github.com/armon/go-metrics/prometheus"
-
-	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/local"
-
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 	grpcresolver "google.golang.org/grpc/resolver"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -46,6 +42,7 @@ type BaseDeps struct {
 	MetricsHandler MetricsHandler
 	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
 	Cache          *cache.Cache
+	ViewStore      *submatview.Store
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -69,7 +66,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	if err != nil {
 		return d, err
 	}
-	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
+
+	grpcLogInitOnce.Do(func() {
+		grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
+	})
 
 	for _, w := range result.Warnings {
 		d.Logger.Warn(w)
@@ -100,6 +100,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg.Cache.Logger = d.Logger.Named("cache")
 	// cache-types are not registered yet, but they won't be used until the components are started.
 	d.Cache = cache.New(cfg.Cache)
+	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
 	builder := resolver.NewServerResolverBuilder(resolver.Config{})
@@ -122,32 +123,12 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
-	if err := registerCacheTypes(d); err != nil {
-		return d, err
-	}
-
 	return d, nil
 }
 
-// registerCacheTypes on bd.Cache.
-//
-// Note: most cache types are still registered in Agent.registerCache. This
-// function is for registering newer cache-types which no longer have a dependency
-// on Agent.
-func registerCacheTypes(bd BaseDeps) error {
-	if bd.RuntimeConfig.UseStreamingBackend {
-		conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
-		if err != nil {
-			return err
-		}
-		matDeps := cachetype.MaterializerDeps{
-			Client: pbsubscribe.NewStateChangeSubscriptionClient(conn),
-			Logger: bd.Logger,
-		}
-		bd.Cache.RegisterType(cachetype.StreamingHealthServicesName, cachetype.NewStreamingHealthServices(matDeps))
-	}
-	return nil
-}
+// grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and
+// causes data races when it is re-initialized.
+var grpcLogInitOnce sync.Once
 
 func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil.Configurator) *pool.ConnPool {
 	var rpcSrcAddr *net.TCPAddr
@@ -194,6 +175,19 @@ func registerWithGRPC(b grpcresolver.Builder) {
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 //  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
 func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
+	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
+	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
+	raftGauges := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"raft", "fsm", "lastRestoreDuration"},
+			Help: "This measures how long the last FSM restore (from disk or leader) took.",
+		},
+		{
+			Name: []string{"raft", "leader", "oldestLogAge"},
+			Help: "This measures how old the oldest log in the leader's log store is.",
+		},
+	}
+
 	// Build slice of slices for all gauge definitions
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
@@ -204,7 +198,9 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
 		Gauges,
+		raftGauges,
 	}
+
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
 	var gaugeDefs []prometheus.GaugeDefinition
@@ -270,6 +266,14 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		{
 			Name: []string{"raft", "leader", "lastContact"},
 			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
+		},
+		{
+			Name: []string{"raft", "snapshot", "persist"},
+			Help: "Measures the time it takes raft to write a new snapshot to disk.",
+		},
+		{
+			Name: []string{"raft", "rpc", "installSnapshot"},
+			Help: "Measures the time it takes the raft leader to install a snapshot on a follower that is catching up after being down or has just joined the cluster.",
 		},
 	}
 

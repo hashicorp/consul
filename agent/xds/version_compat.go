@@ -11,6 +11,7 @@ import (
 	envoy_route_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_grpc_stats_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/grpc_stats/v2alpha"
 	envoy_http_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	envoy_tls_inspector_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/listener/tls_inspector/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
@@ -23,6 +24,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_trace_v2 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v2"
 	envoy_trace_v3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
+	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -32,6 +34,8 @@ import (
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_type_v2 "github.com/envoyproxy/go-control-plane/envoy/type"
+	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -68,7 +72,7 @@ func (s *adsServerV2Shim) StreamAggregatedResources(stream ADSStream_v2) error {
 		stream:       stream,
 		ServerStream: stream,
 	}
-	return s.srv.StreamAggregatedResources(shim)
+	return s.srv.streamAggregatedResources(shim)
 }
 
 // DeltaAggregatedResources implements envoy_discovery_v2.AggregatedDiscoveryServiceServer
@@ -125,6 +129,82 @@ func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_dis
 	return &reqV3, nil
 }
 
+// convertClusterToV2 is only used in tests.
+func convertClusterToV2(resp *envoy_cluster_v3.Cluster) (*envoy_api_v2.Cluster, error) {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(resp); err != nil {
+		return nil, err
+	}
+
+	var v2 envoy_api_v2.Cluster
+	if err := pbuf.Unmarshal(&v2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&v2); err != nil {
+		return nil, err
+	}
+
+	return &v2, nil
+}
+
+// convertClusterLoadAssignmentToV2 is only used in tests.
+func convertClusterLoadAssignmentToV2(resp *envoy_endpoint_v3.ClusterLoadAssignment) (*envoy_api_v2.ClusterLoadAssignment, error) {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(resp); err != nil {
+		return nil, err
+	}
+
+	var v2 envoy_api_v2.ClusterLoadAssignment
+	if err := pbuf.Unmarshal(&v2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&v2); err != nil {
+		return nil, err
+	}
+
+	return &v2, nil
+}
+
+// convertRouteConfigurationToV2 is only used in tests.
+func convertRouteConfigurationToV2(resp *envoy_route_v3.RouteConfiguration) (*envoy_api_v2.RouteConfiguration, error) {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(resp); err != nil {
+		return nil, err
+	}
+
+	var v2 envoy_api_v2.RouteConfiguration
+	if err := pbuf.Unmarshal(&v2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&v2); err != nil {
+		return nil, err
+	}
+
+	return &v2, nil
+}
+
+// convertListenerToV2 is only used in tests.
+func convertListenerToV2(resp *envoy_listener_v3.Listener) (*envoy_api_v2.Listener, error) {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(resp); err != nil {
+		return nil, err
+	}
+
+	var v2 envoy_api_v2.Listener
+	if err := pbuf.Unmarshal(&v2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&v2); err != nil {
+		return nil, err
+	}
+
+	return &v2, nil
+}
+
 func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*envoy_api_v2.DiscoveryResponse, error) {
 	var pbuf proto.Buffer
 	if err := pbuf.Marshal(resp); err != nil {
@@ -179,6 +259,20 @@ func convertHttpFilterToV2(filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.Htt
 	}
 
 	return &filterV2, nil
+}
+
+func convertSemanticVersionToV2(version *envoy_type_v3.SemanticVersion) (*envoy_type_v2.SemanticVersion, error) {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(version); err != nil {
+		return nil, err
+	}
+
+	var versionV2 envoy_type_v2.SemanticVersion
+	if err := pbuf.Unmarshal(&versionV2); err != nil {
+		return nil, err
+	}
+
+	return &versionV2, nil
 }
 
 // Responses
@@ -400,6 +494,8 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		return nil
 	case *envoy_tls_v2.DownstreamTlsContext:
 		return nil
+	case *envoy_grpc_stats_v2.FilterConfig:
+		return nil
 	default:
 		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
 	}
@@ -485,4 +581,5 @@ func init() {
 	reg2(&envoy_metrics_v2.DogStatsdSink{}, &envoy_metrics_v3.DogStatsdSink{})
 	reg2(&envoy_metrics_v2.StatsdSink{}, &envoy_metrics_v3.StatsdSink{})
 	reg2(&envoy_trace_v2.ZipkinConfig{}, &envoy_trace_v3.ZipkinConfig{})
+	reg2(&envoy_grpc_stats_v2.FilterConfig{}, &envoy_grpc_stats_v3.FilterConfig{})
 }

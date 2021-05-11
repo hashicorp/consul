@@ -11,6 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/memberlist"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
@@ -18,10 +23,6 @@ import (
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/memberlist"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 
 	"gopkg.in/square/go-jose.v2/jwt"
 )
@@ -44,8 +45,8 @@ func (m *mockAutoConfigBackend) DatacenterJoinAddresses(segment string) ([]strin
 	return addrs, ret.Error(1)
 }
 
-func (m *mockAutoConfigBackend) ForwardRPC(method string, info structs.RPCInfo, args, reply interface{}) (bool, error) {
-	ret := m.Called(method, info, args, reply)
+func (m *mockAutoConfigBackend) ForwardRPC(method string, req structs.RPCInfo, reply interface{}) (bool, error) {
+	ret := m.Called(method, req, reply)
 	return ret.Bool(0), ret.Error(1)
 }
 

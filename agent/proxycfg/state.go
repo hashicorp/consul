@@ -46,7 +46,7 @@ const (
 	serviceResolverIDPrefix            = "service-resolver:"
 	serviceIntentionsIDPrefix          = "service-intentions:"
 	intentionUpstreamsID               = "intention-upstreams"
-	clusterConfigEntryID               = "cluster-config"
+	meshConfigEntryID                  = "mesh"
 	svcChecksWatchIDPrefix             = cachetype.ServiceHTTPChecksName + ":"
 	serviceIDPrefix                    = string(structs.UpstreamDestTypeService) + ":"
 	preparedQueryIDPrefix              = string(structs.UpstreamDestTypePreparedQuery) + ":"
@@ -231,26 +231,6 @@ func (s *state) watchMeshGateway(ctx context.Context, dc string, upstreamID stri
 	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
-func (s *state) watchConnectProxyService(ctx context.Context, correlationId string, service string, dc string, filter string, entMeta *structs.EnterpriseMeta) error {
-	var finalMeta structs.EnterpriseMeta
-	finalMeta.Merge(entMeta)
-
-	return s.health.Notify(ctx, structs.ServiceSpecificRequest{
-		Datacenter: dc,
-		QueryOptions: structs.QueryOptions{
-			Token:  s.token,
-			Filter: filter,
-		},
-		ServiceName: service,
-		Connect:     true,
-		// Note that Identifier doesn't type-prefix for service any more as it's
-		// the default and makes metrics and other things much cleaner. It's
-		// simpler for us if we have the type to make things unambiguous.
-		Source:         *s.source,
-		EnterpriseMeta: finalMeta,
-	}, correlationId, s.ch)
-}
-
 // initWatchesConnectProxy sets up the watches needed based on current proxy registration
 // state.
 func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
@@ -318,12 +298,12 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 		}
 
 		err = s.cache.Notify(s.ctx, cachetype.ConfigEntryName, &structs.ConfigEntryQuery{
-			Kind:           structs.ClusterConfig,
-			Name:           structs.ClusterConfigCluster,
+			Kind:           structs.MeshConfig,
+			Name:           structs.MeshConfigMesh,
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-		}, clusterConfigEntryID, s.ch)
+		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return err
 		}
@@ -887,22 +867,22 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		svcID := structs.ServiceIDFromString(strings.TrimPrefix(u.CorrelationID, svcChecksWatchIDPrefix))
 		snap.ConnectProxy.WatchedServiceChecks[svcID] = resp
 
-	case u.CorrelationID == clusterConfigEntryID:
+	case u.CorrelationID == meshConfigEntryID:
 		resp, ok := u.Result.(*structs.ConfigEntryResponse)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
 		if resp.Entry != nil {
-			clusterConf, ok := resp.Entry.(*structs.ClusterConfigEntry)
+			meshConf, ok := resp.Entry.(*structs.MeshConfigEntry)
 			if !ok {
 				return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 			}
-			snap.ConnectProxy.ClusterConfig = clusterConf
+			snap.ConnectProxy.MeshConfig = meshConf
 		} else {
-			snap.ConnectProxy.ClusterConfig = nil
+			snap.ConnectProxy.MeshConfig = nil
 		}
-		snap.ConnectProxy.ClusterConfigSet = true
+		snap.ConnectProxy.MeshConfigSet = true
 
 	default:
 		return s.handleUpdateUpstreams(u, &snap.ConnectProxy.ConfigSnapshotUpstreams)
@@ -1019,14 +999,29 @@ func (s *state) resetWatchesFromChain(
 		cancelFn()
 	}
 
-	needGateways := make(map[string]struct{})
+	var (
+		watchedChainEndpoints bool
+		needGateways          = make(map[string]struct{})
+	)
+
+	chainID := chain.ID()
 	for _, target := range chain.Targets {
-		s.logger.Trace("initializing watch of target",
-			"upstream", id,
-			"chain", chain.ServiceName,
-			"target", target.ID,
-			"mesh-gateway-mode", target.MeshGateway.Mode,
-		)
+		if target.ID == chainID {
+			watchedChainEndpoints = true
+		}
+
+		opts := targetWatchOpts{
+			upstreamID: id,
+			chainID:    target.ID,
+			service:    target.Service,
+			filter:     target.Subset.Filter,
+			datacenter: target.Datacenter,
+			entMeta:    target.GetEnterpriseMetadata(),
+		}
+		err := s.watchUpstreamTarget(snap, opts)
+		if err != nil {
+			return fmt.Errorf("failed to watch target %q for upstream %q", target.ID, id)
+		}
 
 		// We'll get endpoints from the gateway query, but the health still has
 		// to come from the backing service query.
@@ -1036,22 +1031,31 @@ func (s *state) resetWatchesFromChain(
 		case structs.MeshGatewayModeLocal:
 			needGateways[s.source.Datacenter] = struct{}{}
 		}
+	}
 
-		ctx, cancel := context.WithCancel(s.ctx)
-		err := s.watchConnectProxyService(
-			ctx,
-			"upstream-target:"+target.ID+":"+id,
-			target.Service,
-			target.Datacenter,
-			target.Subset.Filter,
-			target.GetEnterpriseMetadata(),
-		)
-		if err != nil {
-			cancel()
-			return err
+	// If the discovery chain's targets do not lead to watching all endpoints
+	// for the upstream, then create a separate watch for those too.
+	// This is needed in transparent mode because if there is some service A that
+	// redirects to service B, the dialing proxy needs to associate A's virtual IP
+	// with A's discovery chain.
+	//
+	// Outside of transparent mode we only watch the chain target, B,
+	// since A is a virtual service and traffic will not be sent to it.
+	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
+		chainEntMeta := structs.NewEnterpriseMeta(chain.Namespace)
+
+		opts := targetWatchOpts{
+			upstreamID: id,
+			chainID:    chainID,
+			service:    chain.ServiceName,
+			filter:     "",
+			datacenter: chain.Datacenter,
+			entMeta:    &chainEntMeta,
 		}
-
-		snap.WatchedUpstreams[id][target.ID] = cancel
+		err := s.watchUpstreamTarget(snap, opts)
+		if err != nil {
+			return fmt.Errorf("failed to watch target %q for upstream %q", chainID, id)
+		}
 	}
 
 	for dc := range needGateways {
@@ -1088,6 +1092,52 @@ func (s *state) resetWatchesFromChain(
 		delete(snap.WatchedGatewayEndpoints[id], dc)
 		cancelFn()
 	}
+
+	return nil
+}
+
+type targetWatchOpts struct {
+	upstreamID string
+	chainID    string
+	service    string
+	filter     string
+	datacenter string
+	entMeta    *structs.EnterpriseMeta
+}
+
+func (s *state) watchUpstreamTarget(snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
+	s.logger.Trace("initializing watch of target",
+		"upstream", opts.upstreamID,
+		"chain", opts.service,
+		"target", opts.chainID,
+	)
+
+	var finalMeta structs.EnterpriseMeta
+	finalMeta.Merge(opts.entMeta)
+
+	correlationID := "upstream-target:" + opts.chainID + ":" + opts.upstreamID
+
+	ctx, cancel := context.WithCancel(s.ctx)
+	err := s.health.Notify(ctx, structs.ServiceSpecificRequest{
+		Datacenter: opts.datacenter,
+		QueryOptions: structs.QueryOptions{
+			Token:  s.token,
+			Filter: opts.filter,
+		},
+		ServiceName: opts.service,
+		Connect:     true,
+		// Note that Identifier doesn't type-prefix for service any more as it's
+		// the default and makes metrics and other things much cleaner. It's
+		// simpler for us if we have the type to make things unambiguous.
+		Source:         *s.source,
+		EnterpriseMeta: finalMeta,
+	}, correlationID, s.ch)
+
+	if err != nil {
+		cancel()
+		return err
+	}
+	snap.WatchedUpstreams[opts.upstreamID][opts.chainID] = cancel
 
 	return nil
 }
@@ -1659,6 +1709,8 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 	return nil
 }
 
+// Note: Ingress gateways are always bound to ports and never unix sockets.
+// This means LocalBindPort is the only possibility
 func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.Name,

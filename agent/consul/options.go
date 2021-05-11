@@ -1,12 +1,13 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
 )
 
 type Deps struct {
@@ -15,5 +16,9 @@ type Deps struct {
 	Tokens          *token.Store
 	Router          *router.Router
 	ConnPool        *pool.ConnPool
-	GRPCConnPool    *grpc.ClientConnPool
+	GRPCConnPool    GRPCClientConner
+}
+
+type GRPCClientConner interface {
+	ClientConn(datacenter string) (*grpc.ClientConn, error)
 }

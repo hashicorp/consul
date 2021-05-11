@@ -92,9 +92,7 @@ const (
 	enqueueLimit = 30 * time.Second
 )
 
-var (
-	ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
-)
+var ErrChunkingResubmit = errors.New("please resubmit call for rechunking")
 
 func (s *Server) rpcLogger() hclog.Logger {
 	return s.loggers.Named(logging.RPC)
@@ -527,8 +525,8 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 	return c.lr.Read(b)
 }
 
-// canRetry returns true if the given situation is safe for a retry.
-func canRetry(args interface{}, err error) bool {
+// canRetry returns true if the request and error indicate that a retry is safe.
+func canRetry(info structs.RPCInfo, err error) bool {
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
@@ -542,26 +540,21 @@ func canRetry(args interface{}, err error) bool {
 
 	// Reads are safe to retry for stream errors, such as if a server was
 	// being shut down.
-	info, ok := args.(structs.RPCInfo)
-	if ok && info.IsRead() && lib.IsErrEOF(err) {
-		return true
-	}
-
-	return false
+	return info != nil && info.IsRead() && lib.IsErrEOF(err)
 }
 
 // ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, req structs.RPCInfo, reply interface{}) (bool, error) {
 	var firstCheck time.Time
 
 	// Handle DC forwarding
-	dc := info.RequestDatacenter()
+	dc := req.RequestDatacenter()
 	if dc != s.config.Datacenter {
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
 		// it, falling back on the anonymous token on the other end.
-		if token := info.TokenSecret(); token != "" {
+		if token := req.TokenSecret(); token != "" {
 			done, ident, err := s.ResolveIdentityFromToken(token)
 			if done {
 				if err != nil && !acl.IsErrNotFound(err) {
@@ -569,18 +562,18 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{
 				}
 				if ident != nil && ident.IsLocal() {
 					// Strip it from the request.
-					info.SetTokenSecret("")
-					defer info.SetTokenSecret(token)
+					req.SetTokenSecret("")
+					defer req.SetTokenSecret(token)
 				}
 			}
 		}
 
-		err := s.forwardDC(method, dc, args, reply)
+		err := s.forwardDC(method, dc, req, reply)
 		return true, err
 	}
 
 	// Check if we can allow a stale read, ensure our local DB is initialized
-	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
+	if req.IsRead() && req.AllowStaleRead() && !s.raft.LastContact().IsZero() {
 		return false, nil
 	}
 
@@ -603,8 +596,8 @@ CHECK_LEADER:
 	// Handle the case of a known leader
 	if leader != nil {
 		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, args, reply)
-		if rpcErr != nil && canRetry(info, rpcErr) {
+			method, req, reply)
+		if rpcErr != nil && canRetry(req, rpcErr) {
 			goto RETRY
 		}
 		return true, rpcErr
@@ -790,11 +783,6 @@ func (s *Server) raftApplyWithEncoder(
 		// In this case we didn't apply all chunks successfully, possibly due
 		// to a term change; resubmit
 		if resp == nil {
-			// This returns the error in the interface because the raft library
-			// returns errors from the FSM via the future, not via err from the
-			// apply function. Downstream client code expects to see any error
-			// from the FSM (as opposed to the apply itself) and decide whether
-			// it can retry in the future's response.
 			return nil, ErrChunkingResubmit
 		}
 		// We expect that this conversion should always work

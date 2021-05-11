@@ -7,7 +7,7 @@ export default function ConsulEnterpriseComparison() {
       itemOne={{
         title: 'Technical Complexity',
         label: 'Open Source',
-        imageUrl: require('./img/consul-oss.svg?url'),
+        imageUrl: require('./img/enterprise_complexity_1.svg?url'),
         description:
           'Consul Open Source enables individuals to discover services and securely manage connections between them across cloud, on-prem, and hybrid environments.',
         links: [
@@ -21,7 +21,7 @@ export default function ConsulEnterpriseComparison() {
       itemTwo={{
         title: 'Organizational Complexity',
         label: 'Enterprise',
-        imageUrl: require('./img/consul-enterprise.svg?url'),
+        imageUrl: require('./img/enterprise_complexity_2.svg?url'),
         description:
           'Consul Enterprise provides the foundation for organizations to build an enterprise-ready service networking environment for multiple teams by enabling governance capabilities.',
         links: [

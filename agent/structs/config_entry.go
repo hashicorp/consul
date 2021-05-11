@@ -26,10 +26,10 @@ const (
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
-	ClusterConfig      string = "cluster"
+	MeshConfig         string = "mesh"
 
-	ProxyConfigGlobal    string = "global"
-	ClusterConfigCluster string = "cluster"
+	ProxyConfigGlobal string = "global"
+	MeshConfigMesh    string = "mesh"
 
 	DefaultServiceProtocol = "tcp"
 )
@@ -43,7 +43,7 @@ var AllConfigEntryKinds = []string{
 	IngressGateway,
 	TerminatingGateway,
 	ServiceIntentions,
-	ClusterConfig,
+	MeshConfig,
 }
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
@@ -528,25 +528,10 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &TerminatingGatewayConfigEntry{Name: name}, nil
 	case ServiceIntentions:
 		return &ServiceIntentionsConfigEntry{Name: name}, nil
-	case ClusterConfig:
-		return &ClusterConfigEntry{Name: name}, nil
+	case MeshConfig:
+		return &MeshConfigEntry{}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
-	}
-}
-
-func ValidateConfigEntryKind(kind string) bool {
-	switch kind {
-	case ServiceDefaults, ProxyDefaults:
-		return true
-	case ServiceRouter, ServiceSplitter, ServiceResolver:
-		return true
-	case IngressGateway, TerminatingGateway:
-		return true
-	case ServiceIntentions:
-		return true
-	default:
-		return false
 	}
 }
 

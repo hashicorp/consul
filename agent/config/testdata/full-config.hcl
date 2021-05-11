@@ -579,6 +579,13 @@ services = [
                     local_bind_port = 11884
                     local_bind_address = "127.24.88.0"
                 },
+                {
+                    destination_type = "prepared_query"
+                    destination_namespace = "9nakw0td"
+                    destination_name = "placeholder"
+                    local_bind_socket_path = "/foo/bar/upstream"
+                    local_bind_socket_mode = "0600"
+                },
             ]
             expose {
                 checks = true

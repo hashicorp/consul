@@ -7,13 +7,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/logging"
-
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -38,16 +36,20 @@ const (
 	apiTypePrefix = "type.googleapis.com/"
 
 	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
+	EndpointType    = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
+	EndpointType_v2 = apiTypePrefix + "envoy.api.v2.ClusterLoadAssignment"
 
 	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
+	ClusterType    = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
+	ClusterType_v2 = apiTypePrefix + "envoy.api.v2.Cluster"
 
 	// RouteType is the TypeURL for Route discovery responses.
-	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
+	RouteType    = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
+	RouteType_v2 = apiTypePrefix + "envoy.api.v2.RouteConfiguration"
 
 	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
+	ListenerType    = apiTypePrefix + "envoy.config.listener.v3.Listener"
+	ListenerType_v2 = apiTypePrefix + "envoy.api.v2.Listener"
 
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
@@ -129,21 +131,50 @@ type Server struct {
 	Logger       hclog.Logger
 	CfgMgr       ConfigManager
 	ResolveToken ACLResolverFunc
+	CheckFetcher HTTPCheckFetcher
+	CfgFetcher   ConfigFetcher
+
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
 	// This is only used during idle periods of stream interactions (i.e. when
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
-	CheckFetcher       HTTPCheckFetcher
-	CfgFetcher         ConfigFetcher
 
 	DisableV2Protocol bool
+}
+
+func NewServer(
+	logger hclog.Logger,
+	cfgMgr ConfigManager,
+	resolveToken ACLResolverFunc,
+	checkFetcher HTTPCheckFetcher,
+	cfgFetcher ConfigFetcher,
+) *Server {
+	return &Server{
+		Logger:             logger,
+		CfgMgr:             cfgMgr,
+		ResolveToken:       resolveToken,
+		CheckFetcher:       checkFetcher,
+		CfgFetcher:         cfgFetcher,
+		AuthCheckFrequency: DefaultAuthCheckFrequency,
+	}
 }
 
 // StreamAggregatedResources implements
 // envoy_discovery_v3.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
 // the only xDS API we directly support for now.
+//
+// Deprecated: use DeltaAggregatedResources instead
 func (s *Server) StreamAggregatedResources(stream ADSStream) error {
+	return errors.New("not implemented")
+}
+
+// Deprecated: remove when xDS v2 is no longer supported
+func (s *Server) streamAggregatedResources(stream ADSStream) error {
+	// Note: despite dealing entirely in v3 protobufs, this function is
+	// exclusively used from the xDS v2 shim RPC handler, so the logging below
+	// will refer to it as "v2".
+
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DiscoveryRequest)
 	reqStop := int32(0)
@@ -163,7 +194,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Error("Error handling ADS stream", "xdsVersion", "v3", "error", err)
+		s.Logger.Error("Error handling ADS stream", "xdsVersion", "v2", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -178,9 +209,8 @@ const (
 	stateRunning
 )
 
+// Deprecated: remove when xDS v2 is no longer supported
 func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.DiscoveryRequest) error {
-	logger := s.Logger.Named(logging.XDS)
-
 	// xDS requires a unique nonce to correlate response/request pairs
 	var nonce uint64
 
@@ -193,14 +223,20 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 
 	// Loop state
 	var (
-		cfgSnap       *proxycfg.ConfigSnapshot
-		req           *envoy_discovery_v3.DiscoveryRequest
-		node          *envoy_config_core_v3.Node
-		proxyFeatures supportedProxyFeatures
-		ok            bool
-		stateCh       <-chan *proxycfg.ConfigSnapshot
-		watchCancel   func()
-		proxyID       structs.ServiceID
+		cfgSnap     *proxycfg.ConfigSnapshot
+		req         *envoy_discovery_v3.DiscoveryRequest
+		node        *envoy_config_core_v3.Node
+		ok          bool
+		stateCh     <-chan *proxycfg.ConfigSnapshot
+		watchCancel func()
+		proxyID     structs.ServiceID
+	)
+
+	generator := newResourceGenerator(
+		s.Logger.Named(logging.XDS).With("xdsVersion", "v2"),
+		s.CheckFetcher,
+		s.CfgFetcher,
+		false,
 	)
 
 	// need to run a small state machine to get through initial authentication.
@@ -209,13 +245,13 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	// Configure handlers for each type of request
 	handlers := map[string]*xDSType{
 		EndpointType: {
+			generator: generator,
 			typeURL:   EndpointType,
-			resources: s.endpointsFromSnapshot,
 			stream:    stream,
 		},
 		ClusterType: {
+			generator: generator,
 			typeURL:   ClusterType,
-			resources: s.clustersFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
@@ -226,16 +262,16 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			},
 		},
 		RouteType: {
+			generator: generator,
 			typeURL:   RouteType,
-			resources: s.routesFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				return cfgSnap.Kind == structs.ServiceKindIngressGateway
 			},
 		},
 		ListenerType: {
+			generator: generator,
 			typeURL:   ListenerType,
-			resources: s.listenersFromSnapshot,
 			stream:    stream,
 			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
 				return cfgSnap.Kind == structs.ServiceKindIngressGateway
@@ -249,38 +285,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
-		if cfgSnap == nil {
-			return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
-		}
-
-		rule, err := s.ResolveToken(tokenFromContext(stream.Context()))
-
-		if acl.IsErrNotFound(err) {
-			return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
-		} else if acl.IsErrPermissionDenied(err) {
-			return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
-		} else if err != nil {
-			return err
-		}
-
-		var authzContext acl.AuthorizerContext
-		switch cfgSnap.Kind {
-		case structs.ServiceKindConnectProxy:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		default:
-			return status.Errorf(codes.Internal, "Invalid service kind")
-		}
-
-		// Authed OK!
-		return nil
+		return s.checkStreamACLs(stream.Context(), cfgSnap)
 	}
 
 	for {
@@ -300,6 +305,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 				// there's no point in blocking on that.
 				return nil
 			}
+
+			generator.logTraceRequest("SOTW xDS v2", req)
+
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
@@ -307,14 +315,14 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			if node == nil && req.Node != nil {
 				node = req.Node
 				var err error
-				proxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				generator.ProxyFeatures, err = determineSupportedProxyFeatures(req.Node)
 				if err != nil {
 					return status.Errorf(codes.InvalidArgument, err.Error())
 				}
 			}
 
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				handler.Recv(req, node, proxyFeatures)
+				handler.Recv(req, node)
 			}
 		case cfgSnap = <-stateCh:
 			// We got a new config, update the version counter
@@ -341,7 +349,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// state machine.
 			defer watchCancel()
 
-			logger.Trace("watching proxy, pending initial proxycfg snapshot",
+			generator.Logger.Trace("watching proxy, pending initial proxycfg snapshot",
 				"service_id", proxyID.String())
 
 			// Now wait for the config so we can check ACL
@@ -355,7 +363,18 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// Got config, try to authenticate next.
 			state = stateRunning
 
-			logger.Trace("Got initial config snapshot",
+			// Upgrade the logger based on Kind.
+			switch cfgSnap.Kind {
+			case structs.ServiceKindConnectProxy:
+			case structs.ServiceKindTerminatingGateway:
+				generator.Logger = generator.Logger.Named(logging.TerminatingGateway)
+			case structs.ServiceKindMeshGateway:
+				generator.Logger = generator.Logger.Named(logging.MeshGateway)
+			case structs.ServiceKindIngressGateway:
+				generator.Logger = generator.Logger.Named(logging.IngressGateway)
+			}
+
+			generator.Logger.Trace("Got initial config snapshot",
 				"service_id", cfgSnap.ProxyID.String())
 
 			// Lets actually process the config we just got or we'll mis responding
@@ -369,7 +388,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			// timer is first started.
 			extendAuthTimer()
 
-			logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
+			generator.Logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
 				"service_id", cfgSnap.ProxyID.String())
 
 			// See if any handlers need to have the current (possibly new) config
@@ -385,20 +404,23 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 			for _, typeURL := range []string{ClusterType, EndpointType, RouteType, ListenerType} {
 				handler := handlers[typeURL]
 				if err := handler.SendIfNew(cfgSnap, configVersion, &nonce); err != nil {
-					return err
+					return status.Errorf(codes.Unavailable,
+						"failed to send reply for type %q: %v",
+						typeURL, err)
 				}
 			}
 		}
 	}
 }
 
+// Deprecated: remove when xDS v2 is no longer supported
 type xDSType struct {
-	typeURL       string
-	stream        ADSStream
-	req           *envoy_discovery_v3.DiscoveryRequest
-	node          *envoy_config_core_v3.Node
-	proxyFeatures supportedProxyFeatures
-	lastNonce     string
+	generator *ResourceGenerator
+	typeURL   string
+	stream    ADSStream
+	req       *envoy_discovery_v3.DiscoveryRequest
+	node      *envoy_config_core_v3.Node
+	lastNonce string
 	// lastVersion is the version that was last sent to the proxy. It is needed
 	// because we don't want to send the same version more than once.
 	// req.VersionInfo may be an older version than the most recent once sent in
@@ -407,21 +429,13 @@ type xDSType struct {
 	// last version we sent with a Nack then req.VersionInfo will be the older
 	// version it's hanging on to.
 	lastVersion  uint64
-	resources    func(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error)
 	allowEmptyFn func(cfgSnap *proxycfg.ConfigSnapshot) bool
 }
 
-// connectionInfo represents details specific to this connection
-type connectionInfo struct {
-	Token         string
-	ProxyFeatures supportedProxyFeatures
-}
-
-func (t *xDSType) Recv(req *envoy_discovery_v3.DiscoveryRequest, node *envoy_config_core_v3.Node, proxyFeatures supportedProxyFeatures) {
+func (t *xDSType) Recv(req *envoy_discovery_v3.DiscoveryRequest, node *envoy_config_core_v3.Node) {
 	if t.lastNonce == "" || t.lastNonce == req.GetResponseNonce() {
 		t.req = req
 		t.node = node
-		t.proxyFeatures = proxyFeatures
 	}
 }
 
@@ -434,11 +448,7 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		return nil
 	}
 
-	cInfo := connectionInfo{
-		Token:         tokenFromContext(t.stream.Context()),
-		ProxyFeatures: t.proxyFeatures,
-	}
-	resources, err := t.resources(cInfo, cfgSnap)
+	resources, err := t.generator.resourcesFromSnapshot(t.typeURL, cfgSnap)
 	if err != nil {
 		return err
 	}
@@ -468,6 +478,8 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		return err
 	}
 
+	t.generator.logTraceResponse("SOTW xDS v2", resp)
+
 	err = t.stream.Send(resp)
 	if err != nil {
 		return err
@@ -489,11 +501,6 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(_ envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
-	return errors.New("not implemented")
-}
-
 // GRPCServer returns a server instance that can handle xDS requests.
 func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
 	opts := []grpc.ServerOption{
@@ -513,4 +520,39 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	}
 
 	return srv, nil
+}
+
+func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
+	if cfgSnap == nil {
+		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
+	}
+
+	rule, err := s.ResolveToken(tokenFromContext(streamCtx))
+
+	if acl.IsErrNotFound(err) {
+		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
+	} else if acl.IsErrPermissionDenied(err) {
+		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
+	} else if err != nil {
+		return status.Errorf(codes.Internal, "error resolving acl token: %v", err)
+	}
+
+	var authzContext acl.AuthorizerContext
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+			return status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
+		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+			return status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	default:
+		return status.Errorf(codes.Internal, "Invalid service kind")
+	}
+
+	// Authed OK!
+	return nil
 }

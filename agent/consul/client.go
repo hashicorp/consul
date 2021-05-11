@@ -10,6 +10,10 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,9 +21,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
 )
 
 var ClientCounters = []prometheus.CounterDefinition{
@@ -287,7 +288,10 @@ TRY:
 	)
 	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	manager.NotifyFailedServer(server)
-	if retry := canRetry(args, rpcErr); !retry {
+
+	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
+	info, _ := args.(structs.RPCInfo)
+	if retry := canRetry(info, rpcErr); !retry {
 		return rpcErr
 	}
 

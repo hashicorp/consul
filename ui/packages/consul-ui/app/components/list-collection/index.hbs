@@ -42,9 +42,10 @@
     {{~/each~}}
   </EmberNativeScrollable>
 {{else}}
+{{#let (if (and partial (not this.expand)) (slice 0 partial items) items) as |slice|}}
   <ul>
     <li style="display: none;"></li>
-    {{~#each items as |item index|~}}
+    {{~#each slice as |item index|~}}
       <li
         data-test-list-row
         onclick={{action 'click'}}
@@ -67,5 +68,22 @@
       </li>
     {{~/each~}}
   </ul>
+{{#if (and partial (gt items.length partial))}}
+  {{#let (not-eq slice.length items.length) as |more|}}
+  <button
+    class={{if more 'closed'}}
+    type="button"
+    onclick={{action (mut this.expand) more}}
+  >
+    {{#if more}}
+      View {{sub items.length slice.length}} more
+    {{else}}
+      View less
+    {{/if}}
+  </button>
+  {{/let}}
+{{/if}}
+{{/let}}
+
 {{/if}}
 </div>

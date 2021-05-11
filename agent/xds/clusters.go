@@ -20,11 +20,10 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
-func (s *Server) clustersFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
@@ -33,19 +32,60 @@ func (s *Server) clustersFromSnapshot(_ connectionInfo, cfgSnap *proxycfg.Config
 	case structs.ServiceKindConnectProxy:
 		return s.clustersFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		return s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
+		res, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
+		if err != nil {
+			return nil, err
+		}
+		return s.maybeInjectStubClusterForGateways(res)
 	case structs.ServiceKindMeshGateway:
-		return s.clustersFromSnapshotMeshGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotMeshGateway(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		return s.maybeInjectStubClusterForGateways(res)
 	case structs.ServiceKindIngressGateway:
-		return s.clustersFromSnapshotIngressGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		return s.maybeInjectStubClusterForGateways(res)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
 }
 
+func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.Message) ([]proto.Message, error) {
+	switch {
+	case !s.IncrementalXDS:
+		return resources, nil
+	case !s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS:
+		return resources, nil
+	case len(resources) > 0:
+		return resources, nil
+	}
+
+	// For more justification for this hacky fix, check the comments associated
+	// with s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
+
+	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
+	return []proto.Message{
+		&envoy_cluster_v3.Cluster{
+			Name:                 stubName,
+			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
+			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
+				ClusterName: stubName,
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+					{LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{}},
+				},
+			},
+		},
+	}, nil
+}
+
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
 // (upstreams) in the snapshot.
-func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	// This sizing is a lower bound.
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.DiscoveryChain)+1)
 
@@ -59,8 +99,8 @@ func (s *Server) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 	// In transparent proxy mode there needs to be a passthrough cluster for traffic going to destinations
 	// that aren't in Consul's catalog.
 	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
-		cfgSnap.ConnectProxy.ClusterConfig != nil &&
-		!cfgSnap.ConnectProxy.ClusterConfig.TransparentProxy.CatalogDestinationsOnly {
+		cfgSnap.ConnectProxy.MeshConfig != nil &&
+		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
 
 		clusters = append(clusters, &envoy_cluster_v3.Cluster{
 			Name: OriginalDestinationClusterName,
@@ -139,7 +179,7 @@ func makeExposeClusterName(destinationPort int) string {
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
-func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	datacenters := cfgSnap.MeshGateway.Datacenters()
 
 	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
@@ -199,12 +239,11 @@ func (s *Server) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsho
 	return clusters, nil
 }
 
-func (s *Server) makeGatewayServiceClusters(
+func (s *ResourceGenerator) makeGatewayServiceClusters(
 	cfgSnap *proxycfg.ConfigSnapshot,
 	services map[structs.ServiceName]structs.CheckServiceNodes,
 	resolvers map[structs.ServiceName]*structs.ServiceResolverConfigEntry,
 ) ([]proto.Message, error) {
-
 	var hostnameEndpoints structs.CheckServiceNodes
 
 	switch cfgSnap.Kind {
@@ -272,7 +311,7 @@ func (s *Server) makeGatewayServiceClusters(
 	return clusters, nil
 }
 
-func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c *envoy_cluster_v3.Cluster, svc structs.ServiceName, lb *structs.LoadBalancer) error {
+func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c *envoy_cluster_v3.Cluster, svc structs.ServiceName, lb *structs.LoadBalancer) error {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindMeshGateway:
 		// We can't apply hash based LB config to mesh gateways because they rely on inspecting HTTP attributes
@@ -306,7 +345,7 @@ func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c 
 	return nil
 }
 
-func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
 	createdClusters := make(map[string]bool)
 	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
@@ -345,7 +384,7 @@ func (s *Server) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return clusters, nil
 }
 
-func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
+func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProtocol string, port int) (*envoy_cluster_v3.Cluster, error) {
 	var c *envoy_cluster_v3.Cluster
 	var err error
 
@@ -361,10 +400,17 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 		return makeClusterFromUserConfig(cfg.LocalClusterJSON)
 	}
 
-	addr := cfgSnap.Proxy.LocalServiceAddress
-	if addr == "" {
-		addr = "127.0.0.1"
+	var endpoint *envoy_endpoint_v3.LbEndpoint
+	if cfgSnap.Proxy.LocalServiceSocketPath != "" {
+		endpoint = makePipeEndpoint(cfgSnap.Proxy.LocalServiceSocketPath)
+	} else {
+		addr := cfgSnap.Proxy.LocalServiceAddress
+		if addr == "" {
+			addr = "127.0.0.1"
+		}
+		endpoint = makeEndpoint(addr, port)
 	}
+
 	c = &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ConnectTimeout:       ptypes.DurationProto(time.Duration(cfg.LocalConnectTimeoutMs) * time.Millisecond),
@@ -374,7 +420,7 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
-						makeEndpoint(addr, port),
+						endpoint,
 					},
 				},
 			},
@@ -391,7 +437,7 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 	return c, err
 }
 
-func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_cluster_v3.Cluster, error) {
+func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, cfgSnap *proxycfg.ConfigSnapshot) (*envoy_cluster_v3.Cluster, error) {
 	var c *envoy_cluster_v3.Cluster
 	var err error
 
@@ -453,7 +499,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	return c, nil
 }
 
-func (s *Server) makeUpstreamClustersForDiscoveryChain(
+func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 	id string,
 	upstream *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
@@ -645,7 +691,7 @@ type gatewayClusterOpts struct {
 }
 
 // makeGatewayCluster creates an Envoy cluster for a mesh or terminating gateway
-func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayClusterOpts) *envoy_cluster_v3.Cluster {
+func (s *ResourceGenerator) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayClusterOpts) *envoy_cluster_v3.Cluster {
 	cfg, err := ParseGatewayConfig(snap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -725,22 +771,16 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	dc := opts.hostnameEndpoints[idx].Node.Datacenter
 	service := opts.hostnameEndpoints[idx].Service.CompoundServiceName()
 
-	loggerName := logging.TerminatingGateway
-	if snap.Kind == structs.ServiceKindMeshGateway {
-		loggerName = logging.MeshGateway
-	}
-
 	// Fall back to last unhealthy endpoint if none were healthy
 	if len(endpoints) == 0 {
-		s.Logger.Named(loggerName).Warn("upstream service does not contain any healthy instances",
+		s.Logger.Warn("upstream service does not contain any healthy instances",
 			"dc", dc, "service", service.String())
 
 		endpoints = append(endpoints, fallback)
 	}
 	if len(uniqueHostnames) > 1 {
-		s.Logger.Named(loggerName).
-			Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy", hostname),
-				"dc", dc, "service", service.String())
+		s.Logger.Warn(fmt.Sprintf("service contains instances with more than one unique hostname; only %q be resolved by Envoy", hostname),
+			"dc", dc, "service", service.String())
 	}
 
 	cluster.LoadAssignment = &envoy_endpoint_v3.ClusterLoadAssignment{

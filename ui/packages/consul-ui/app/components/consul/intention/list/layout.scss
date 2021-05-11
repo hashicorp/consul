@@ -20,6 +20,9 @@
   tr > *:last-child {
     width: 60px;
   }
+  .menu-panel.confirmation {
+    width: 200px;
+  }
 }
 
 @media #{$--lt-horizontal-nav} {

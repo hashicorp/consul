@@ -27,14 +27,4 @@
       }
     }
   }
-
-  & .with-border {
-    & .g-text-split {
-      & .children {
-        border-width: 1px;
-        border-color: rgba(174, 176, 183, 0.45);
-        border-style: solid;
-      }
-    }
-  }
 }

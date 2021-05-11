@@ -31,6 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -307,6 +308,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Logger:          hclog.NewInterceptLogger(nil),
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
+					GRPCConnPool:    &fakeGRPCConnPool{},
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -353,6 +355,12 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeGRPCConnPool struct{}
+
+func (f fakeGRPCConnPool) ClientConn(_ string) (*grpc.ClientConn, error) {
+	return nil, nil
 }
 
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
@@ -5173,6 +5181,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Logger:          hclog.NewInterceptLogger(nil),
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
+			GRPCConnPool:    &fakeGRPCConnPool{},
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{

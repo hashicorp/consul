@@ -20,7 +20,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v3-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v4-{{ checksum "ui/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -233,12 +233,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: &codecov_upload
-          name: codecov upload
-          when: always
-          # The -C flag shouldn't be necessary, but it fails to find the commit
-          # without it.
-          command: bash <(curl -s https://codecov.io/bash) -C "$CIRCLE_SHA1"
       - run: *notify-slack-failure
 
   go-test-race:
@@ -312,7 +306,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # split off a job for the SDK package since it is separate
@@ -345,7 +338,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # build all distros
@@ -773,20 +765,16 @@ jobs:
       - run:
           working_directory: ui/packages/consul-ui
           command: make test-coverage-ci
-      - run:
-          name: codecov ui upload
-          working_directory: ui/packages/consul-ui
-          command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_14_6: &ENVOY_TESTS
+  envoy-integration-test-1_15_4: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.14.6"
+      ENVOY_VERSION: "1.15.4"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -819,38 +807,32 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_14_6-v2compat:
+  envoy-integration-test-1_15_4-v2compat:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.14.6"
+      ENVOY_VERSION: "1.15.4"
       TEST_V2_XDS: "1"
 
-  envoy-integration-test-1_15_3:
+  envoy-integration-test-1_16_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.15.3"
+      ENVOY_VERSION: "1.16.3"
 
-  envoy-integration-test-1_15_3-v2compat:
+  envoy-integration-test-1_16_3-v2compat:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.15.3"
+      ENVOY_VERSION: "1.16.3"
       TEST_V2_XDS: "1"
 
-  envoy-integration-test-1_16_2:
+  envoy-integration-test-1_17_2:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.2"
+      ENVOY_VERSION: "1.17.2"
 
-  envoy-integration-test-1_16_2-v2compat:
+  envoy-integration-test-1_18_2:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.2"
-      TEST_V2_XDS: "1"
-
-  envoy-integration-test-1_17_0:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.17.0"
+      ENVOY_VERSION: "1.18.2"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -874,7 +856,6 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
-      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
@@ -977,8 +958,21 @@ jobs:
             terraform destroy -auto-approve
       - run: *notify-slack-failure
 
+  # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
+  # requires at least one job. It does nothing.
+  noop:
+    docker:
+      - image: docker.mirror.hashicorp.services/alpine:latest
+    steps:
+      - run: 'echo ok'
+
 workflows:
   version: 2
+  # verify-ci is a no-op workflow that must run on every PR. It is used in a
+  # branch protection rule to detect when CI workflows are not running.
+  verify-ci:
+    jobs: [noop]
+
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1060,25 +1054,22 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_14_6:
+      - envoy-integration-test-1_15_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_14_6-v2compat:
+      - envoy-integration-test-1_15_4-v2compat:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_3:
+      - envoy-integration-test-1_16_3:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_3-v2compat:
+      - envoy-integration-test-1_16_3-v2compat:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_2:
+      - envoy-integration-test-1_17_2:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_2-v2compat:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_17_0:
+      - envoy-integration-test-1_18_2:
           requires:
             - dev-build
 
@@ -1145,6 +1136,7 @@ workflows:
             branches:
               only:
                 - master
+                - /release\/\d+\.\d+\.x$/
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
     jobs:

@@ -6,13 +6,14 @@ import (
 	"io"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -155,6 +156,12 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 	}
 
 	for _, k := range md.Unused {
+		switch k {
+		case "kind", "Kind":
+			// The kind field is used to determine the target, but doesn't need
+			// to exist on the target.
+			continue
+		}
 		err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 	}
 	if err != nil {
