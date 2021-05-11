@@ -32,7 +32,7 @@ export default function NetworkInfrastructureAutomationPage() {
         textSplit={{
           heading: 'Automated Firewalling',
           content:
-            'Use Consul-Terraform-Sync to dynamically configure and apply firewall rules for newly added services.',
+            'Using Consul-Terraform-Sync to automate security updates, organizations can elevating their security posture and adopt fine-grained access policies.',
           textSide: 'left',
           links: [
             {
@@ -71,7 +71,7 @@ export default function NetworkInfrastructureAutomationPage() {
         textSplit={{
           heading: 'Extend through Ecosystem',
           content:
-            'Consul’s open API enables integrations with many popular networking tools.',
+            'Consul’s open API enables integrations with many popular networking technologies.',
           textSide: 'left',
           links: [
             {
