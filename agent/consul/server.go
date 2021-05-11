@@ -391,7 +391,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	}
 
 	// Initialize enterprise specific server functionality
-	if err := s.initEnterprise(); err != nil {
+	if err := s.initEnterprise(flat); err != nil {
 		s.Shutdown()
 		return nil, err
 	}
@@ -1351,16 +1351,6 @@ func (s *Server) Stats() map[string]map[string]string {
 
 	if s.serfWAN != nil {
 		stats["serf_wan"] = s.serfWAN.Stats()
-	}
-
-	for outerKey, outerValue := range s.enterpriseStats() {
-		if _, ok := stats[outerKey]; ok {
-			for innerKey, innerValue := range outerValue {
-				stats[outerKey][innerKey] = innerValue
-			}
-		} else {
-			stats[outerKey] = outerValue
-		}
 	}
 
 	return stats

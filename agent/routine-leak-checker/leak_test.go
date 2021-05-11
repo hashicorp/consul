@@ -80,7 +80,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	return a
 }
 
-func TestTestAgentLeaks_Server(t *testing.T) {
+func TestAgentLeaks_Server(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

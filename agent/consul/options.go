@@ -17,6 +17,7 @@ type Deps struct {
 	Router          *router.Router
 	ConnPool        *pool.ConnPool
 	GRPCConnPool    GRPCClientConner
+	EnterpriseDeps
 }
 
 type GRPCClientConner interface {
