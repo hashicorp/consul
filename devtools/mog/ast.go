@@ -101,6 +101,7 @@ func newIfNilReturnIdent(cmpID, retID string) ast.Stmt {
 	}
 }
 
+// TODO: do the pointer stuff with go/types instead like everything else now?
 func newAssignStmtConvertible(
 	left ast.Expr,
 	leftType ast.Expr,
@@ -167,12 +168,12 @@ func newAssignStmtConvertible(
 	}
 }
 
-func newAssignStmtArray(
+func newAssignStmtSlice(
 	left ast.Expr,
 	leftType ast.Expr,
 	leftElemType ast.Expr,
 	right ast.Expr,
-	rightType ast.Expr,
+	rightType ast.Expr, // UNUSED
 	rightElemType ast.Expr,
 	convertFuncName string,
 	direct bool,
@@ -234,10 +235,6 @@ func newAssignStmtMap(
 	convertFuncName string,
 	direct bool,
 ) ast.Stmt {
-	if direct {
-		convertFuncName = ""
-	}
-	// astDeclare(varNamePlaceholder, leftRealType),
 	return &ast.BlockStmt{List: []ast.Stmt{
 		// <left> = make(<leftType>)
 		&ast.AssignStmt{
@@ -254,10 +251,6 @@ func newAssignStmtMap(
 		// 	var x <left-value>
 		// 	x ??assign?? v
 		// 	<left>[k] = x
-		// }
-
-		// for k, v := range <right> {
-		// 	<left>[k] ??assign?? v
 		// }
 		&ast.RangeStmt{
 			Key:   &ast.Ident{Name: "k"},
@@ -296,7 +289,7 @@ func newAssignStmt(
 	convertFuncName string,
 	direct bool,
 ) ast.Stmt {
-	if convertFuncName != "" {
+	if convertFuncName != "" && !direct {
 		return newAssignStmtConvertible(
 			left,
 			leftType,
@@ -315,9 +308,7 @@ func newAssignStmt(
 
 func newAssignStmtUserFunc(
 	left ast.Expr,
-	leftType ast.Expr,
 	right ast.Expr,
-	rightType ast.Expr,
 	userFuncName string,
 ) ast.Stmt {
 	// No special handling for pointers here if someone used the mog
