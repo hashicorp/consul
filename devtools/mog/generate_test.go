@@ -69,6 +69,7 @@ func TestGenerateConversion(t *testing.T) {
 			SourceName: "Iden",
 			SourceExpr: &ast.Ident{Name: "string"},
 			TargetName: "ID",
+			SourceType: types.Typ[types.String],
 		}},
 	}
 	target := targetStruct{
@@ -99,9 +100,12 @@ func TestGenerateConversion_WithMissingSourceField(t *testing.T) {
 			Package: "example.com/org/project/core",
 			Struct:  "Node",
 		},
-		Fields: []fieldConfig{
-			{SourceName: "Iden", TargetName: "ID"},
-		},
+		Fields: []fieldConfig{{
+			SourceName: "Iden",
+			SourceExpr: &ast.Ident{Name: "string"},
+			TargetName: "ID",
+			SourceType: types.Typ[types.String],
+		}},
 	}
 	target := targetStruct{
 		Fields: []*types.Var{
