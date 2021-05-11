@@ -322,18 +322,13 @@ func newAssignStmtUserFunc(
 	})
 }
 
+// TODO: do the pointer stuff with go/types instead like everything else now?
 func newAssignStmtStructsAndPointers(
 	left ast.Expr,
 	leftType ast.Expr,
 	right ast.Expr,
 	rightType ast.Expr,
 ) ast.Stmt {
-	fmt.Printf("NEW ASSIGN\n\tLE:%T::%+v\n \tLT:%T::%s\n \tRE:%T::%+v\n \tRT:%T::%s\n",
-		left, left,
-		leftType, printTypeExpr(leftType),
-		right, right,
-		rightType, printTypeExpr(rightType),
-	)
 	_, leftPtr := leftType.(*ast.StarExpr)
 	_, rightPtr := rightType.(*ast.StarExpr)
 

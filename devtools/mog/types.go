@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"os"
 	"path"
 )
 
@@ -16,16 +17,18 @@ import (
 //
 // Returns a nil expression if the type is not supported.
 func typeToExpr(t types.Type, imports *imports, element bool) (x ast.Expr) {
-	defer func() {
-		prefix := ""
-		if element {
-			prefix = "ELEM-"
-		}
-		fmt.Printf("%sTYPE-TO-EXPR: [%T :: %+v] => [%T :: %+v]\n",
-			prefix,
-			t, t, x, x,
-		)
-	}()
+	if os.Getenv("DEBUG_MOG") == "1" {
+		defer func() {
+			prefix := ""
+			if element {
+				prefix = "ELEM-"
+			}
+			fmt.Printf("%sTYPE-TO-EXPR: [%T :: %+v] => [%T :: %+v]\n",
+				prefix,
+				t, t, x, x,
+			)
+		}()
+	}
 
 	switch x := t.(type) {
 	case *types.Basic:
