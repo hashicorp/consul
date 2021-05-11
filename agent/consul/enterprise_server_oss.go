@@ -22,7 +22,7 @@ var (
 
 type EnterpriseServer struct{}
 
-func (s *Server) initEnterprise() error {
+func (s *Server) initEnterprise(_ Deps) error {
 	return nil
 }
 
@@ -44,10 +44,6 @@ func (s *Server) handleEnterpriseNativeTLSConn(alpnProto string, conn net.Conn) 
 
 func (s *Server) handleEnterpriseLeave() {
 	return
-}
-
-func (s *Server) enterpriseStats() map[string]map[string]string {
-	return nil
 }
 
 func (s *Server) establishEnterpriseLeadership() error {

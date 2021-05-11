@@ -3,6 +3,8 @@
 package agent
 
 import (
+	"context"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -34,4 +36,17 @@ func enterpriseConsulConfig(_ *consul.Config, _ *config.RuntimeConfig) {
 
 // WriteEvent is a noop stub for the func defined agent_ent.go
 func (a *Agent) WriteEvent(eventType string, payload interface{}) {
+}
+
+// startLicenseManager is used to start the license management process
+func (a *Agent) startLicenseManager(_ context.Context) error {
+	return nil
+}
+
+// stopLicenseManager is used to stop the license management go routines
+func (a *Agent) stopLicenseManager() {}
+
+// enterpriseStats outputs all the Agent stats specific to Consul Enterprise
+func (a *Agent) enterpriseStats() map[string]map[string]string {
+	return nil
 }

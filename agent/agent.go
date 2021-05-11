@@ -457,6 +457,12 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
+	// we cannot use the context passed into this method as that context will be cancelled after the
+	// agent finishes starting up which would cause the license manager to stop
+	if err := a.startLicenseManager(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+		return err
+	}
+
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
 
@@ -1338,6 +1344,8 @@ func (a *Agent) ShutdownAgent() error {
 	a.logger.Info("Requesting shutdown")
 	// Stop the watches to avoid any notification/state change during shutdown
 	a.stopAllWatches()
+
+	a.stopLicenseManager()
 
 	// this would be cancelled anyways (by the closing of the shutdown ch) but
 	// this should help them to be stopped more quickly
@@ -3071,6 +3079,17 @@ func (a *Agent) Stats() map[string]map[string]string {
 		"version":    a.config.Version,
 		"prerelease": a.config.VersionPrerelease,
 	}
+
+	for outerKey, outerValue := range a.enterpriseStats() {
+		if _, ok := stats[outerKey]; ok {
+			for innerKey, innerValue := range outerValue {
+				stats[outerKey][innerKey] = innerValue
+			}
+		} else {
+			stats[outerKey] = outerValue
+		}
+	}
+
 	return stats
 }
 

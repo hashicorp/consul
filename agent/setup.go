@@ -124,7 +124,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
-	return d, nil
+	return initEnterpriseBaseDeps(d, cfg)
 }
 
 // grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and

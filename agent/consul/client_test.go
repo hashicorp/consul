@@ -515,6 +515,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Tokens:          new(token.Store),
 		Router:          r,
 		ConnPool:        connPool,
+		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
 	}
 }
 
