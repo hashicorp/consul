@@ -1400,7 +1400,7 @@ type NodeServiceList struct {
 	Services []*NodeService
 }
 
-// HealthCheck represents a single check on a given node
+// HealthCheck represents a single check on a given node.
 type HealthCheck struct {
 	Node        string
 	CheckID     types.CheckID // Unique per-node ID
@@ -1412,6 +1412,10 @@ type HealthCheck struct {
 	ServiceName string        // optional service name
 	ServiceTags []string      // optional service tags
 	Type        string        // Check type: http/ttl/tcp/etc
+
+	// ExposedPort is the port of the exposed Envoy listener representing the
+	// HTTP or GRPC health check of the service.
+	ExposedPort int
 
 	Definition HealthCheckDefinition `bexpr:"-"`
 

@@ -1389,6 +1389,7 @@ func TestAgent_IndexChurn(t *testing.T) {
 // verifyIndexChurn registers some things and runs anti-entropy a bunch of times
 // in a row to make sure there are no index bumps.
 func verifyIndexChurn(t *testing.T, tags []string) {
+	t.Helper()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -4299,8 +4300,8 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 		t.Fatalf("failed to add svc: %v", err)
 	}
 
-	// Register a proxy and expose HTTP checks
-	// This should trigger setting ProxyHTTP and ProxyGRPC in the checks
+	// Register a proxy and expose HTTP checks.
+	// This should trigger setting ProxyHTTP and ProxyGRPC in the checks.
 	proxy := &structs.NodeService{
 		Kind:    "connect-proxy",
 		ID:      "web-proxy",
@@ -4324,36 +4325,30 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
+		require.Equal(r, chks[0].ProxyHTTP, "http://localhost:21500/mypath?query")
+	})
 
-		got := chks[0].ProxyHTTP
-		if got == "" {
-			r.Fatal("proxyHTTP addr not set in check")
-		}
-
-		want := "http://localhost:21500/mypath?query"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("http", nil))
+		require.Equal(r, hc.ExposedPort, 21500)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
-		got := chks[1].ProxyGRPC
-		if got == "" {
-			r.Fatal("ProxyGRPC addr not set in check")
-		}
-
-		// Node that this relies on listener ports auto-incrementing in a.listenerPortLocked
-		want := "localhost:21501/myservice"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in check, want: %s, got: %s", want, got)
-		}
+		// GRPC check will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
+		// Note that this relies on listener ports auto-incrementing in a.listenerPortLocked.
+		require.Equal(r, chks[1].ProxyGRPC, "localhost:21501/myservice")
 	})
 
-	// Re-register a proxy and disable exposing HTTP checks
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("grpc", nil))
+		require.Equal(r, hc.ExposedPort, 21501)
+	})
+
+	// Re-register a proxy and disable exposing HTTP checks.
 	// This should trigger resetting ProxyHTTP and ProxyGRPC to empty strings
+	// and reset saved exposed ports in the agent's state.
 	proxy = &structs.NodeService{
 		Kind:    "connect-proxy",
 		ID:      "web-proxy",
@@ -4377,21 +4372,24 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
+		require.Empty(r, chks[0].ProxyHTTP, "ProxyHTTP addr was not reset")
+	})
 
-		got := chks[0].ProxyHTTP
-		if got != "" {
-			r.Fatal("ProxyHTTP addr was not reset")
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("http", nil))
+		require.Equal(r, hc.ExposedPort, 0)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
-		got := chks[1].ProxyGRPC
-		if got != "" {
-			r.Fatal("ProxyGRPC addr was not reset")
-		}
+		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
+		require.Empty(r, chks[1].ProxyGRPC, "ProxyGRPC addr was not reset")
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("grpc", nil))
+		require.Equal(r, hc.ExposedPort, 0)
 	})
 }
 
@@ -4480,31 +4478,24 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
+		require.Equal(r, chks[0].ProxyHTTP, "http://localhost:21500/mypath?query")
+	})
 
-		got := chks[0].ProxyHTTP
-		if got == "" {
-			r.Fatal("ProxyHTTP addr not set in check")
-		}
-
-		want := "http://localhost:21500/mypath?query"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in http check, want: %s, got: %s", want, got)
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("http", nil))
+		require.Equal(r, hc.ExposedPort, 21500)
 	})
 
 	retry.Run(t, func(r *retry.R) {
 		chks := a.ServiceHTTPBasedChecks(structs.NewServiceID("web", nil))
 
-		// Will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks
-		got := chks[1].ProxyGRPC
-		if got == "" {
-			r.Fatal("ProxyGRPC addr not set in check")
-		}
+		// GRPC check will be at a later index than HTTP check because of the fetching order in ServiceHTTPBasedChecks.
+		require.Equal(r, chks[1].ProxyGRPC, "localhost:21501/myservice")
+	})
 
-		want := "localhost:21501/myservice"
-		if got != want {
-			r.Fatalf("unexpected proxy addr in grpc check, want: %s, got: %s", want, got)
-		}
+	retry.Run(t, func(r *retry.R) {
+		hc := a.State.Check(structs.NewCheckID("grpc", nil))
+		require.Equal(r, hc.ExposedPort, 21501)
 	})
 }
 
