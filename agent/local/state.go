@@ -227,25 +227,25 @@ func (l *State) SetDiscardCheckOutput(b bool) {
 	l.discardCheckOutput.Store(b)
 }
 
-// ServiceToken returns the configured ACL token for the given
-// service ID. If none is present, the agent's token is returned.
+// ServiceToken returns the ACL token associated with the service. If the service is
+// not found, or does not have a token, the empty string is returned.
 func (l *State) ServiceToken(id structs.ServiceID) string {
 	l.RLock()
 	defer l.RUnlock()
-	return l.serviceToken(id)
+	if s := l.services[id]; s != nil {
+		return s.Token
+	}
+	return ""
 }
 
-// serviceToken returns an ACL token associated with a service.
+// aclTokenForServiceSync returns an ACL token associated with a service. If there is
+// no ACL token associated with the service, fallback is used to return a value.
 // This method is not synchronized and the lock must already be held.
-func (l *State) serviceToken(id structs.ServiceID) string {
-	var token string
-	if s := l.services[id]; s != nil {
-		token = s.Token
+func (l *State) aclTokenForServiceSync(id structs.ServiceID, fallback func() string) string {
+	if s := l.services[id]; s != nil && s.Token != "" {
+		return s.Token
 	}
-	if token == "" {
-		token = l.tokens.AgentToken()
-	}
-	return token
+	return fallback()
 }
 
 // AddService is used to add a service entry to the local state.
@@ -440,26 +440,25 @@ func (l *State) ServiceStates(entMeta *structs.EnterpriseMeta) map[structs.Servi
 	return m
 }
 
-// CheckToken is used to return the configured health check token for a
-// Check, or if none is configured, the default agent ACL token.
-func (l *State) CheckToken(checkID structs.CheckID) string {
+// CheckToken returns the ACL token associated with the check. If the check is
+// not found, or does not have a token, the empty string is returned.
+func (l *State) CheckToken(id structs.CheckID) string {
 	l.RLock()
 	defer l.RUnlock()
-	return l.checkToken(checkID)
+	if c := l.checks[id]; c != nil {
+		return c.Token
+	}
+	return ""
 }
 
-// checkToken returns an ACL token associated with a check.
+// aclTokenForCheckSync returns an ACL token associated with a check. If there is
+// no ACL token associated with the check, the callback is used to return a value.
 // This method is not synchronized and the lock must already be held.
-func (l *State) checkToken(id structs.CheckID) string {
-	var token string
-	c := l.checks[id]
-	if c != nil {
-		token = c.Token
+func (l *State) aclTokenForCheckSync(id structs.CheckID, fallback func() string) string {
+	if c := l.checks[id]; c != nil && c.Token != "" {
+		return c.Token
 	}
-	if token == "" {
-		token = l.tokens.AgentToken()
-	}
-	return token
+	return fallback()
 }
 
 // AddCheck is used to add a health check to the local state.
@@ -1132,8 +1131,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	st := l.serviceToken(key)
-
+	st := l.aclTokenForServiceSync(key, l.tokens.AgentToken)
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1182,7 +1180,7 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	ct := l.checkToken(key)
+	ct := l.aclTokenForCheckSync(key, l.tokens.AgentToken)
 	req := structs.DeregisterRequest{
 		Datacenter:     l.config.Datacenter,
 		Node:           l.config.NodeName,
@@ -1226,7 +1224,7 @@ func (l *State) pruneCheck(id structs.CheckID) {
 
 // syncService is used to sync a service to the server
 func (l *State) syncService(key structs.ServiceID) error {
-	st := l.serviceToken(key)
+	st := l.aclTokenForServiceSync(key, l.tokens.UserToken)
 
 	// If the service has associated checks that are out of sync,
 	// piggyback them on the service sync so they are part of the
@@ -1242,7 +1240,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		if !key.Matches(c.Check.CompoundServiceID()) {
 			continue
 		}
-		if st != l.checkToken(checkKey) {
+		if st != l.aclTokenForCheckSync(checkKey, l.tokens.UserToken) {
 			continue
 		}
 		checks = append(checks, c.Check)
@@ -1308,7 +1306,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 // syncCheck is used to sync a check to the server
 func (l *State) syncCheck(key structs.CheckID) error {
 	c := l.checks[key]
-	ct := l.checkToken(key)
+	ct := l.aclTokenForCheckSync(key, l.tokens.UserToken)
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
 		ID:              l.config.NodeID,
