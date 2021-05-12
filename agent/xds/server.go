@@ -11,6 +11,8 @@ import (
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,6 +26,13 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
+
+var StatsGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"xds", "server", "streams"},
+		Help: "Measures the number of active xDS streams handled by the server split by protocol version.",
+	},
+}
 
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
@@ -141,6 +150,36 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 
 	DisableV2Protocol bool
+
+	activeStreams activeStreamCounters
+}
+
+// activeStreamCounters simply encapsulates two counters accessed atomically to
+// ensure alignment is correct.
+type activeStreamCounters struct {
+	xDSv3 uint64
+	xDSv2 uint64
+}
+
+func (c *activeStreamCounters) Increment(xdsVersion string) func() {
+	var counter *uint64
+	switch xdsVersion {
+	case "v3":
+		counter = &c.xDSv3
+	case "v2":
+		counter = &c.xDSv2
+	default:
+		return func() {}
+	}
+
+	count := atomic.AddUint64(counter, 1)
+	metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count),
+		[]metrics.Label{{Name: "version", Value: xdsVersion}})
+	return func() {
+		count := atomic.AddUint64(counter, ^uint64(0))
+		metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count),
+			[]metrics.Label{{Name: "version", Value: xdsVersion}})
+	}
 }
 
 func NewServer(
@@ -171,6 +210,8 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 // Deprecated: remove when xDS v2 is no longer supported
 func (s *Server) streamAggregatedResources(stream ADSStream) error {
+	defer s.activeStreams.Increment("v2")()
+
 	// Note: despite dealing entirely in v3 protobufs, this function is
 	// exclusively used from the xDS v2 shim RPC handler, so the logging below
 	// will refer to it as "v2".
