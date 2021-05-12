@@ -10,6 +10,11 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/hashicorp/go-uuid"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
@@ -18,10 +23,6 @@ import (
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func TestACLEndpoint_Bootstrap(t *testing.T) {
@@ -4981,7 +4982,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	go t.Parallel()
+	t.Parallel()
 
 	_, s1, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond

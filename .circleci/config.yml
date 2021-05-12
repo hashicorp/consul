@@ -36,7 +36,7 @@ steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 0.6.0
+      GOTESTSUM_RELEASE: 1.6.4
     command: |
       url=https://github.com/gotestyourself/gotestsum/releases/download
       curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
