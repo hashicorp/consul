@@ -99,6 +99,7 @@ func decorate(s string) string {
 }
 
 func Run(t Failer, f func(r *R)) {
+	t.Helper()
 	run(DefaultFailer(), t, f)
 }
 
