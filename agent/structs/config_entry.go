@@ -966,12 +966,6 @@ type ServiceConfigResponse struct {
 	QueryMeta
 }
 
-func (r *ServiceConfigResponse) Reset() {
-	r.ProxyConfig = nil
-	r.UpstreamConfigs = nil
-	r.MeshGateway = MeshGatewayConfig{}
-}
-
 // MarshalBinary writes ServiceConfigResponse as msgpack encoded. It's only here
 // because we need custom decoding of the raw interface{} values.
 func (r *ServiceConfigResponse) MarshalBinary() (data []byte, err error) {
