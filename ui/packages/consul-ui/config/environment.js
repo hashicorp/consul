@@ -13,29 +13,8 @@ const repositorySHA = utils.repositorySHA;
 const binaryVersion = utils.binaryVersion(repositoryRoot);
 
 module.exports = function(environment, $ = process.env) {
+  const env = utils.env($);
   // basic 'get env var with fallback' accessor
-  const env = function(flag, fallback) {
-    // a fallback value MUST be set
-    if (typeof fallback === 'undefined') {
-      throw new Error(`Please provide a fallback value for $${flag}`);
-    }
-    // return the env var if set
-    if (typeof $[flag] !== 'undefined') {
-      if (typeof fallback === 'boolean') {
-        // if we are expecting a boolean JSON parse strings to numbers/booleans
-        return !!JSON.parse($[flag]);
-      }
-      return $[flag];
-    }
-    // If the fallback is a function call it and return the result.
-    // Lazily calling the function means binaries used for fallback don't need
-    // to be available if we are sure the environment variables will be set
-    if (typeof fallback === 'function') {
-      return fallback();
-    }
-    // just return the fallback value
-    return fallback;
-  };
 
   let ENV = {
     modulePrefix: 'consul-ui',
