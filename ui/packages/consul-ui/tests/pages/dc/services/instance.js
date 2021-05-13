@@ -2,13 +2,14 @@ export default function(
   visitable,
   alias,
   attribute,
+  present,
   collection,
   text,
   tabs,
   upstreams,
   healthChecks
 ) {
-  return {
+  const page = {
     visit: visitable('/:dc/services/:service/instances/:node/:id'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
       scope: '.title',
@@ -26,4 +27,9 @@ export default function(
     }),
     metadata: collection('.metadata [data-test-tabular-row]', {}),
   };
+  page.tabs.healthChecksTab = {
+    criticalSerfNotice: present('[data-test-critical-serf-notice]'),
+    healthChecks: healthChecks(),
+  };
+  return page;
 }

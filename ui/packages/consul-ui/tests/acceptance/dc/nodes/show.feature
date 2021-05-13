@@ -2,8 +2,9 @@
 Feature: dc / nodes / show: Show node
   Background:
     Given 1 datacenter model with the value "dc1"
+  # 2 nodes are required for the RTT tab to be visible
   Scenario: Given 2 nodes all the tabs are visible and clickable
-    Given 2 node models from yaml
+    Given 2 node models
     When I visit the node page for yaml
     ---
       dc: dc1
