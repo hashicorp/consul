@@ -7,6 +7,10 @@ const OPTIONAL = {};
 if (env('CONSUL_NSPACES_ENABLED')) {
   OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
+
+const trailingSlashRe = /\/$/;
+const moreThan1SlashRe = /\/{2,}/g;
+
 const _uuid = function() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
@@ -121,14 +125,13 @@ export default class FSMWithOptionalLocation {
   getURLFrom(url) {
     // remove trailing slashes if they exists
     url = url || this.location.pathname;
-    this.rootURL = this.rootURL.replace(/\/$/, '');
-    this.baseURL = this.baseURL.replace(/\/$/, '');
-
+    this.rootURL = this.rootURL.replace(trailingSlashRe, '');
+    this.baseURL = this.baseURL.replace(trailingSlashRe, '');
     // remove baseURL and rootURL from start of path
     return url
       .replace(new RegExp(`^${this.baseURL}(?=/|$)`), '')
       .replace(new RegExp(`^${this.rootURL}(?=/|$)`), '')
-      .replace(/\/\//g, '/'); // remove extra slashes
+      .replace(moreThan1SlashRe, '/'); // remove extra slashes
   }
 
   getURLForTransition(url) {
@@ -187,9 +190,9 @@ export default class FSMWithOptionalLocation {
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }
-    if (typeof hash.partition !== 'undefined') {
-      hash.partition = `-${hash.partition}`;
-    }
+    // if (typeof hash.partition !== 'undefined') {
+    //   hash.partition = `-${hash.partition}`;
+    // }
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
     }
@@ -243,12 +246,12 @@ export default class FSMWithOptionalLocation {
   formatURL(url, optional, withOptional = true) {
     if (url !== '') {
       // remove trailing slashes if they exists
-      this.rootURL = this.rootURL.replace(/\/$/, '');
-      this.baseURL = this.baseURL.replace(/\/$/, '');
+      this.rootURL = this.rootURL.replace(trailingSlashRe, '');
+      this.baseURL = this.baseURL.replace(trailingSlashRe, '');
     } else if (this.baseURL[0] === '/' && this.rootURL[0] === '/') {
       // if baseURL and rootURL both start with a slash
       // ... remove trailing slash from baseURL if it exists
-      this.baseURL = this.baseURL.replace(/\/$/, '');
+      this.baseURL = this.baseURL.replace(trailingSlashRe, '');
     }
 
     if (withOptional) {
@@ -279,12 +282,10 @@ export default class FSMWithOptionalLocation {
 
   setURL(path) {
     // this.optional = {};
-    console.log(path, 'setURL');
     this.changeURL('push', path);
   }
 
   replaceURL(path) {
-    console.log(path, 'replaceURL');
     this.changeURL('replace', path);
   }
 
