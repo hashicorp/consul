@@ -32,7 +32,7 @@ export default function NetworkInfrastructureAutomationPage() {
         textSplit={{
           heading: 'Automated Firewalling',
           content:
-            'Using Consul-Terraform-Sync to automate security updates, organizations can elevating their security posture and adopt fine-grained access policies.',
+            'Using Consul-Terraform-Sync to automate security updates, organizations can elevate their security posture and adopt fine-grained access policies.',
           textSide: 'left',
           links: [
             {
