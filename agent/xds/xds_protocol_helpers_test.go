@@ -160,6 +160,7 @@ func newTestServerScenarioInner(
 	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
 	cfg := metrics.DefaultConfig("consul.xds.test")
 	cfg.EnableHostname = false
+	cfg.EnableRuntimeMetrics = false
 	metrics.NewGlobal(cfg, sink)
 
 	t.Cleanup(func() {
