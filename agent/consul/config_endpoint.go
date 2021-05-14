@@ -323,8 +323,9 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			reply.Reset()
-			reply.MeshGateway.Mode = structs.MeshGatewayModeDefault
+			var thisReply structs.ServiceConfigResponse
+
+			thisReply.MeshGateway.Mode = structs.MeshGatewayModeDefault
 			// TODO(freddy) Refactor this into smaller set of state store functions
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
 			// blocking query, this function will be rerun and these state store lookups will both be current.
@@ -349,11 +350,11 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				if err != nil {
 					return fmt.Errorf("failed to copy global proxy-defaults: %v", err)
 				}
-				reply.ProxyConfig = mapCopy.(map[string]interface{})
-				reply.Mode = proxyConf.Mode
-				reply.TransparentProxy = proxyConf.TransparentProxy
-				reply.MeshGateway = proxyConf.MeshGateway
-				reply.Expose = proxyConf.Expose
+				thisReply.ProxyConfig = mapCopy.(map[string]interface{})
+				thisReply.Mode = proxyConf.Mode
+				thisReply.TransparentProxy = proxyConf.TransparentProxy
+				thisReply.MeshGateway = proxyConf.MeshGateway
+				thisReply.Expose = proxyConf.Expose
 
 				// Extract the global protocol from proxyConf for upstream configs.
 				rawProtocol := proxyConf.Config["protocol"]
@@ -369,7 +370,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			if err != nil {
 				return err
 			}
-			reply.Index = index
+			thisReply.Index = index
 
 			var serviceConf *structs.ServiceConfigEntry
 			if serviceEntry != nil {
@@ -378,25 +379,25 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					return fmt.Errorf("invalid service config type %T", serviceEntry)
 				}
 				if serviceConf.Expose.Checks {
-					reply.Expose.Checks = true
+					thisReply.Expose.Checks = true
 				}
 				if len(serviceConf.Expose.Paths) >= 1 {
-					reply.Expose.Paths = serviceConf.Expose.Paths
+					thisReply.Expose.Paths = serviceConf.Expose.Paths
 				}
 				if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
-					reply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
+					thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
 				}
 				if serviceConf.Protocol != "" {
-					if reply.ProxyConfig == nil {
-						reply.ProxyConfig = make(map[string]interface{})
+					if thisReply.ProxyConfig == nil {
+						thisReply.ProxyConfig = make(map[string]interface{})
 					}
-					reply.ProxyConfig["protocol"] = serviceConf.Protocol
+					thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
 				}
 				if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
-					reply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
+					thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
 				}
 				if serviceConf.Mode != structs.ProxyModeDefault {
-					reply.Mode = serviceConf.Mode
+					thisReply.Mode = serviceConf.Mode
 				}
 			}
 
@@ -414,13 +415,14 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 				// Check the args and the resolved value. If it was exclusively set via a config entry, then args.Mode
 				// will never be transparent because the service config request does not use the resolved value.
-				tproxy = args.Mode == structs.ProxyModeTransparent || reply.Mode == structs.ProxyModeTransparent
+				tproxy = args.Mode == structs.ProxyModeTransparent || thisReply.Mode == structs.ProxyModeTransparent
 			)
 
 			// The upstreams passed as arguments to this endpoint are the upstreams explicitly defined in a proxy registration.
 			// If no upstreams were passed, then we should only returned the resolved config if the proxy in transparent mode.
 			// Otherwise we would return a resolved upstream config to a proxy with no configured upstreams.
 			if noUpstreamArgs && !tproxy {
+				*reply = thisReply
 				return nil
 			}
 
@@ -534,25 +536,28 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 			// don't allocate the slices just to not fill them
 			if len(usConfigs) == 0 {
+				*reply = thisReply
 				return nil
 			}
 
 			if legacyUpstreams {
 				// For legacy upstreams we return a map that is only keyed on the string ID, since they precede namespaces
-				reply.UpstreamConfigs = make(map[string]map[string]interface{})
+				thisReply.UpstreamConfigs = make(map[string]map[string]interface{})
 
 				for us, conf := range usConfigs {
-					reply.UpstreamConfigs[us.ID] = conf
+					thisReply.UpstreamConfigs[us.ID] = conf
 				}
 
 			} else {
-				reply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(usConfigs))
+				thisReply.UpstreamIDConfigs = make(structs.OpaqueUpstreamConfigs, 0, len(usConfigs))
 
 				for us, conf := range usConfigs {
-					reply.UpstreamIDConfigs = append(reply.UpstreamIDConfigs,
+					thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs,
 						structs.OpaqueUpstreamConfig{Upstream: us, Config: conf})
 				}
 			}
+
+			*reply = thisReply
 			return nil
 		})
 }
