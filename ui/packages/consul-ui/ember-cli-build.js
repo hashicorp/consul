@@ -44,9 +44,6 @@ module.exports = function(defaults) {
       // exclude docfy
       '@docfy/ember'
     ];
-    babel.plugins.push(
-      ['strip-function-call', {'strip': ['Ember.runInDebug']}]
-    )
   } else {
     // add debug css is we are not in test or production environments
     outputPaths.app = {
@@ -54,6 +51,13 @@ module.exports = function(defaults) {
         'debug': '/assets/debug.css'
       }
     }
+  }
+  if(['production'].includes(env)) {
+    // everything apart from production is 'debug', including test
+    // which means this and everything it affects is never tested
+    babel.plugins.push(
+      ['strip-function-call', {'strip': ['Ember.runInDebug']}]
+    )
   }
   //
 
