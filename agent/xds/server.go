@@ -172,13 +172,13 @@ func (c *activeStreamCounters) Increment(xdsVersion string) func() {
 		return func() {}
 	}
 
+	labels := []metrics.Label{{Name: "version", Value: xdsVersion}}
+
 	count := atomic.AddUint64(counter, 1)
-	metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count),
-		[]metrics.Label{{Name: "version", Value: xdsVersion}})
+	metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count), labels)
 	return func() {
 		count := atomic.AddUint64(counter, ^uint64(0))
-		metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count),
-			[]metrics.Label{{Name: "version", Value: xdsVersion}})
+		metrics.SetGaugeWithLabels([]string{"xds", "server", "streams"}, float32(count), labels)
 	}
 }
 
