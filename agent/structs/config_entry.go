@@ -523,11 +523,13 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash(struct {
 		Name           string
 		EnterpriseMeta EnterpriseMeta
-		Upstreams      []string `hash:"set"`
+		Upstreams      []string    `hash:"set"`
+		UpstreamIDs    []ServiceID `hash:"set"`
 	}{
 		Name:           r.Name,
 		EnterpriseMeta: r.EnterpriseMeta,
 		Upstreams:      r.Upstreams,
+		UpstreamIDs:    r.UpstreamIDs,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
