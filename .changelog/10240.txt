@@ -1,0 +1,3 @@
+```release-note:bug
+agent: ensure we hash the non-deprecated upstream fields on ServiceConfigRequest
+```
