@@ -7,11 +7,12 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 
 	metrics "github.com/armon/go-metrics"
+	memdb "github.com/hashicorp/go-memdb"
+	"github.com/mitchellh/copystructure"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/copystructure"
 )
 
 var ConfigSummaries = []prometheus.SummaryDefinition{
@@ -328,9 +329,9 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			reply.Reset()
+			var thisReply structs.ServiceConfigResponse
 
-			reply.MeshGateway.Mode = structs.MeshGatewayModeDefault
+			thisReply.MeshGateway.Mode = structs.MeshGatewayModeDefault
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated
 			// during the blocking query, this function will be rerun and these state store lookups
 			// will both be current.
@@ -364,28 +365,28 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				if err != nil {
 					return fmt.Errorf("failed to copy global proxy-defaults: %v", err)
 				}
-				reply.ProxyConfig = mapCopy.(map[string]interface{})
-				reply.MeshGateway = proxyConf.MeshGateway
-				reply.Expose = proxyConf.Expose
+				thisReply.ProxyConfig = mapCopy.(map[string]interface{})
+				thisReply.MeshGateway = proxyConf.MeshGateway
+				thisReply.Expose = proxyConf.Expose
 			}
 
-			reply.Index = index
+			thisReply.Index = index
 
 			if serviceConf != nil {
 				if serviceConf.Expose.Checks {
-					reply.Expose.Checks = true
+					thisReply.Expose.Checks = true
 				}
 				if len(serviceConf.Expose.Paths) >= 1 {
-					reply.Expose.Paths = serviceConf.Expose.Paths
+					thisReply.Expose.Paths = serviceConf.Expose.Paths
 				}
 				if serviceConf.MeshGateway.Mode != structs.MeshGatewayModeDefault {
-					reply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
+					thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
 				}
 				if serviceConf.Protocol != "" {
-					if reply.ProxyConfig == nil {
-						reply.ProxyConfig = make(map[string]interface{})
+					if thisReply.ProxyConfig == nil {
+						thisReply.ProxyConfig = make(map[string]interface{})
 					}
-					reply.ProxyConfig["protocol"] = serviceConf.Protocol
+					thisReply.ProxyConfig["protocol"] = serviceConf.Protocol
 				}
 			}
 
@@ -443,26 +444,28 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 			// don't allocate the slices just to not fill them
 			if len(usConfigs) == 0 {
+				*reply = thisReply
 				return nil
 			}
 
 			if legacyUpstreams {
-				if reply.UpstreamConfigs == nil {
-					reply.UpstreamConfigs = make(map[string]map[string]interface{})
+				if thisReply.UpstreamConfigs == nil {
+					thisReply.UpstreamConfigs = make(map[string]map[string]interface{})
 				}
 				for us, conf := range usConfigs {
-					reply.UpstreamConfigs[us.ID] = conf
+					thisReply.UpstreamConfigs[us.ID] = conf
 				}
 			} else {
-				if reply.UpstreamIDConfigs == nil {
-					reply.UpstreamIDConfigs = make(structs.UpstreamConfigs, 0, len(usConfigs))
+				if thisReply.UpstreamIDConfigs == nil {
+					thisReply.UpstreamIDConfigs = make(structs.UpstreamConfigs, 0, len(usConfigs))
 				}
 
 				for us, conf := range usConfigs {
-					reply.UpstreamIDConfigs = append(reply.UpstreamIDConfigs, structs.UpstreamConfig{Upstream: us, Config: conf})
+					thisReply.UpstreamIDConfigs = append(thisReply.UpstreamIDConfigs, structs.UpstreamConfig{Upstream: us, Config: conf})
 				}
 			}
 
+			*reply = thisReply
 			return nil
 		})
 }
