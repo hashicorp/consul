@@ -62,11 +62,11 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name         string
-		command      func() cmd
-		proxyService *api.AgentServiceRegistration
-		expCfg       iptables.Config
-		expError     string
+		name           string
+		command        func() cmd
+		consulServices []api.AgentServiceRegistration
+		expCfg         iptables.Config
+		expError       string
 	}{
 		{
 			"proxyID with service port provided",
@@ -77,14 +77,16 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+					},
 				},
 			},
 			iptables.Config{
@@ -103,16 +105,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"bind_port": 21000,
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"bind_port": 21000,
+						},
 					},
 				},
 			},
@@ -132,16 +136,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"bind_port": "21000",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"bind_port": "21000",
+						},
 					},
 				},
 			},
@@ -161,16 +167,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"bind_port": "invalid",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"bind_port": "invalid",
+						},
 					},
 				},
 			},
@@ -186,16 +194,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					TransparentProxy: &api.TransparentProxyConfig{
-						OutboundListenerPort: 21000,
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						TransparentProxy: &api.TransparentProxyConfig{
+							OutboundListenerPort: 21000,
+						},
 					},
 				},
 			},
@@ -228,11 +238,13 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
+			[]api.AgentServiceRegistration{
+				{
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+				},
 			},
 			iptables.Config{},
 			"service test-proxy-id is not a proxy service",
@@ -357,16 +369,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"envoy_prometheus_bind_addr": "0.0.0.0:9000",
+						},
 					},
 				},
 			},
@@ -387,16 +401,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"envoy_prometheus_bind_addr": "9000",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"envoy_prometheus_bind_addr": "9000",
+						},
 					},
 				},
 			},
@@ -412,16 +428,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"envoy_stats_bind_addr": "0.0.0.0:8000",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"envoy_stats_bind_addr": "0.0.0.0:8000",
+						},
 					},
 				},
 			},
@@ -442,16 +460,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Config: map[string]interface{}{
-						"envoy_stats_bind_addr": "8000",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Config: map[string]interface{}{
+							"envoy_stats_bind_addr": "8000",
+						},
 					},
 				},
 			},
@@ -467,20 +487,22 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			&api.AgentServiceRegistration{
-				Kind:    api.ServiceKindConnectProxy,
-				ID:      "test-proxy-id",
-				Name:    "test-proxy",
-				Port:    20000,
-				Address: "1.1.1.1",
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					DestinationServiceName: "foo",
-					Expose: api.ExposeConfig{
-						Paths: []api.ExposePath{
-							{
-								ListenerPort:  23000,
-								LocalPathPort: 8080,
-								Path:          "/health",
+			[]api.AgentServiceRegistration{
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						Expose: api.ExposeConfig{
+							Paths: []api.ExposePath{
+								{
+									ListenerPort:  23000,
+									LocalPathPort: 8080,
+									Path:          "/health",
+								},
 							},
 						},
 					},
@@ -494,12 +516,63 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 			},
 			"",
 		},
+		{
+			"proxy config has expose paths with checks set to true",
+			func() cmd {
+				var c cmd
+				c.init()
+				c.proxyUID = "1234"
+				c.proxyID = "test-proxy-id"
+				return c
+			},
+			[]api.AgentServiceRegistration{
+				{
+					ID:      "foo-id",
+					Name:    "foo",
+					Port:    8080,
+					Address: "1.1.1.1",
+					Checks: []*api.AgentServiceCheck{
+						{
+							Name:     "http",
+							HTTP:     "1.1.1.1:8080/health",
+							Interval: "10s",
+						},
+						{
+							Name:     "grpc",
+							GRPC:     "1.1.1.1:8081",
+							Interval: "10s",
+						},
+					},
+				},
+				{
+					Kind:    api.ServiceKindConnectProxy,
+					ID:      "test-proxy-id",
+					Name:    "test-proxy",
+					Port:    20000,
+					Address: "1.1.1.1",
+					Proxy: &api.AgentServiceConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo-id",
+						Expose: api.ExposeConfig{
+							Checks: true,
+						},
+					},
+				},
+			},
+			iptables.Config{
+				ProxyUserID:         "1234",
+				ProxyInboundPort:    20000,
+				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
+				ExcludeInboundPorts: []string{"21500", "21501"},
+			},
+			"",
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			cmd := c.command()
-			if c.proxyService != nil {
+			if c.consulServices != nil {
 				testServer, err := testutil.NewTestServerConfigT(t, nil)
 				require.NoError(t, err)
 				testServer.WaitForLeader(t)
@@ -507,11 +580,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 				client, err := api.NewClient(&api.Config{Address: testServer.HTTPAddr})
 				require.NoError(t, err)
-
-				err = client.Agent().ServiceRegister(c.proxyService)
-				require.NoError(t, err)
-
 				cmd.client = client
+
+				for _, service := range c.consulServices {
+					err = client.Agent().ServiceRegister(&service)
+					require.NoError(t, err)
+				}
 			} else {
 				client, err := api.NewClient(&api.Config{Address: "not-reachable"})
 				require.NoError(t, err)
@@ -522,7 +596,7 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 			if c.expError == "" {
 				require.NoError(t, err)
-				require.Equal(t, c.expCfg, cfg)
+				require.EqualValues(t, c.expCfg, cfg)
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), c.expError)

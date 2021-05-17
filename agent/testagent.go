@@ -16,10 +16,8 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -99,6 +97,7 @@ func NewTestAgent(t *testing.T, hcl string) *TestAgent {
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		t.Helper()
 		if err := a.Start(t); err != nil {
 			r.Fatal(err)
 		}
@@ -130,7 +129,7 @@ func TestConfigHCL(nodeID string) string {
 
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
-func (a *TestAgent) Start(t *testing.T) (err error) {
+func (a *TestAgent) Start(t *testing.T) error {
 	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
@@ -187,7 +186,9 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		return result, err
 	}
 	bd, err := NewBaseDeps(loader, logOutput)
-	require.NoError(t, err)
+	if err != nil {
+		return fmt.Errorf("failed to create base deps: %w", err)
+	}
 
 	bd.Logger = logger
 	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
@@ -215,8 +216,8 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()
-		t.Logf("Error while waiting for test agent to start: %v", err)
-		return errwrap.Wrapf(name+": {{err}}", err)
+		a.Agent = nil
+		return fmt.Errorf("error waiting for test agent to start: %w", err)
 	}
 
 	a.dns = a.dnsServers[0]
@@ -280,17 +281,6 @@ func (a *TestAgent) waitForUp() error {
 // Shutdown stops the agent and removes the data directory if it is
 // managed by the test agent.
 func (a *TestAgent) Shutdown() error {
-	/* Removed this because it was breaking persistence tests where we would
-	persist a service and load it through a new agent with the same data-dir.
-	Not sure if we still need this for other things, everywhere we manually make
-	a data dir we already do 'defer os.RemoveAll()'
-	defer func() {
-		if a.DataDir != "" {
-			os.RemoveAll(a.DataDir)
-		}
-	}()*/
-
-	// already shut down
 	if a.Agent == nil {
 		return nil
 	}

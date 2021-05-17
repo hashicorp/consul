@@ -641,11 +641,13 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash(struct {
 		Name           string
 		EnterpriseMeta EnterpriseMeta
-		Upstreams      []string `hash:"set"`
+		Upstreams      []string    `hash:"set"`
+		UpstreamIDs    []ServiceID `hash:"set"`
 	}{
 		Name:           r.Name,
 		EnterpriseMeta: r.EnterpriseMeta,
 		Upstreams:      r.Upstreams,
+		UpstreamIDs:    r.UpstreamIDs,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -964,12 +966,6 @@ type ServiceConfigResponse struct {
 	TransparentProxy  TransparentProxyConfig `json:",omitempty"`
 	Mode              ProxyMode              `json:",omitempty"`
 	QueryMeta
-}
-
-func (r *ServiceConfigResponse) Reset() {
-	r.ProxyConfig = nil
-	r.UpstreamConfigs = nil
-	r.MeshGateway = MeshGatewayConfig{}
 }
 
 // MarshalBinary writes ServiceConfigResponse as msgpack encoded. It's only here

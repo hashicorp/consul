@@ -63,6 +63,7 @@ type AgentCheck struct {
 	ServiceID   string
 	ServiceName string
 	Type        string
+	ExposedPort int
 	Definition  HealthCheckDefinition
 	Namespace   string `json:",omitempty"`
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -195,6 +196,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		consul.RPCGauges,
 		consul.SessionGauges,
 		grpc.StatsGauges,
+		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
 		Gauges,
