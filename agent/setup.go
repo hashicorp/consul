@@ -110,21 +110,30 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 
 	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
 
-	acConf := autoconf.Config{
-		DirectRPC:       d.ConnPool,
-		Logger:          d.Logger,
-		Loader:          configLoader,
-		ServerProvider:  d.Router,
-		TLSConfigurator: d.TLSConfigurator,
-		Cache:           d.Cache,
-		Tokens:          d.Tokens,
+	// this needs to happen prior to creating auto-config as some of the dependencies
+	// must also be passed to auto-config
+	d, err = initEnterpriseBaseDeps(d, cfg)
+	if err != nil {
+		return d, err
 	}
+
+	acConf := autoconf.Config{
+		DirectRPC:        d.ConnPool,
+		Logger:           d.Logger,
+		Loader:           configLoader,
+		ServerProvider:   d.Router,
+		TLSConfigurator:  d.TLSConfigurator,
+		Cache:            d.Cache,
+		Tokens:           d.Tokens,
+		EnterpriseConfig: initEnterpriseAutoConfig(d.EnterpriseDeps),
+	}
+
 	d.AutoConfig, err = autoconf.New(acConf)
 	if err != nil {
 		return d, err
 	}
 
-	return initEnterpriseBaseDeps(d, cfg)
+	return d, nil
 }
 
 // grpcLogInitOnce because the test suite will call NewBaseDeps in many tests and

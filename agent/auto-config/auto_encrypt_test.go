@@ -182,7 +182,7 @@ func TestAutoEncrypt_hosts(t *testing.T) {
 				},
 			}
 
-			hosts, err := ac.autoEncryptHosts()
+			hosts, err := ac.joinHosts()
 			if tcase.err != "" {
 				testutil.RequireErrorContains(t, err, tcase.err)
 			} else {

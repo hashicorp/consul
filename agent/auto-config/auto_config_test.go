@@ -136,11 +136,12 @@ func TestNew(t *testing.T) {
 				Loader: func(source config.Source) (result config.LoadResult, err error) {
 					return config.LoadResult{}, nil
 				},
-				DirectRPC:       newMockDirectRPC(t),
-				Tokens:          newMockTokenStore(t),
-				Cache:           newMockCache(t),
-				TLSConfigurator: newMockTLSConfigurator(t),
-				ServerProvider:  newMockServerProvider(t),
+				DirectRPC:        newMockDirectRPC(t),
+				Tokens:           newMockTokenStore(t),
+				Cache:            newMockCache(t),
+				TLSConfigurator:  newMockTLSConfigurator(t),
+				ServerProvider:   newMockServerProvider(t),
+				EnterpriseConfig: newEnterpriseConfig(t),
 			}
 
 			if tcase.modify != nil {
@@ -211,18 +212,15 @@ func setupRuntimeConfig(t *testing.T) *configLoader {
 }
 
 func TestInitialConfiguration_disabled(t *testing.T) {
-	loader := setupRuntimeConfig(t)
-	loader.addConfigHCL(`
+	mcfg := newMockedConfig(t)
+	mcfg.loader.addConfigHCL(`
 		primary_datacenter = "primary"
 		auto_config = {
 			enabled = false
 		}
 	`)
 
-	conf := newMockedConfig(t).Config
-	conf.Loader = loader.Load
-
-	ac, err := New(conf)
+	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
 	require.NotNil(t, ac)
 
@@ -230,7 +228,7 @@ func TestInitialConfiguration_disabled(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
-	require.NoFileExists(t, filepath.Join(*loader.opts.FlagValues.DataDir, autoConfigFileName))
+	require.NoFileExists(t, filepath.Join(*mcfg.loader.opts.FlagValues.DataDir, autoConfigFileName))
 }
 
 func TestInitialConfiguration_cancelled(t *testing.T) {

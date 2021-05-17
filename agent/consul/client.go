@@ -159,11 +159,6 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		go c.monitorACLMode()
 	}
 
-	if err := c.startEnterprise(); err != nil {
-		c.Shutdown()
-		return nil, err
-	}
-
 	return c, nil
 }
 

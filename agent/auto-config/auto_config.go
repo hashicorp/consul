@@ -92,6 +92,10 @@ func New(config Config) (*AutoConfig, error) {
 		}
 	}
 
+	if err := config.EnterpriseConfig.validateAndFinalize(); err != nil {
+		return nil, err
+	}
+
 	return &AutoConfig{
 		acConfig: config,
 		logger:   logger,
@@ -126,13 +130,8 @@ func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
 // The context passed in can be used to cancel the retrieval of the initial configuration
 // like when receiving a signal during startup.
 func (ac *AutoConfig) InitialConfiguration(ctx context.Context) (*config.RuntimeConfig, error) {
-	if ac.config == nil {
-		config, err := ac.ReadConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		ac.config = config
+	if err := ac.maybeLoadConfig(); err != nil {
+		return nil, err
 	}
 
 	switch {
@@ -178,6 +177,23 @@ func (ac *AutoConfig) InitialConfiguration(ctx context.Context) (*config.Runtime
 	default:
 		return ac.config, nil
 	}
+}
+
+// maybeLoadConfig will read the Consul configuration using the
+// provided config loader if and only if the config field of
+// the struct is nil. When it does this it will fill in that
+// field. If the config field already is non-nil then this
+// is a noop.
+func (ac *AutoConfig) maybeLoadConfig() error {
+	if ac.config == nil {
+		config, err := ac.ReadConfig()
+		if err != nil {
+			return err
+		}
+
+		ac.config = config
+	}
+	return nil
 }
 
 // introToken is responsible for determining the correct intro token to use

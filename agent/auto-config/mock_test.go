@@ -218,19 +218,24 @@ func (m *mockTokenStore) StopNotify(notifier token.Notifier) {
 type mockedConfig struct {
 	Config
 
-	directRPC      *mockDirectRPC
-	serverProvider *mockServerProvider
-	cache          *mockCache
-	tokens         *mockTokenStore
-	tlsCfg         *mockTLSConfigurator
+	loader           *configLoader
+	directRPC        *mockDirectRPC
+	serverProvider   *mockServerProvider
+	cache            *mockCache
+	tokens           *mockTokenStore
+	tlsCfg           *mockTLSConfigurator
+	enterpriseConfig *mockedEnterpriseConfig
 }
 
 func newMockedConfig(t *testing.T) *mockedConfig {
+	loader := setupRuntimeConfig(t)
 	directRPC := newMockDirectRPC(t)
 	serverProvider := newMockServerProvider(t)
 	mcache := newMockCache(t)
 	tokens := newMockTokenStore(t)
 	tlsCfg := newMockTLSConfigurator(t)
+
+	entConfig := newMockedEnterpriseConfig(t)
 
 	// I am not sure it is well defined behavior but in testing it
 	// out it does appear like Cleanup functions can fail tests
@@ -248,18 +253,23 @@ func newMockedConfig(t *testing.T) *mockedConfig {
 
 	return &mockedConfig{
 		Config: Config{
-			DirectRPC:       directRPC,
-			ServerProvider:  serverProvider,
-			Cache:           mcache,
-			Tokens:          tokens,
-			TLSConfigurator: tlsCfg,
-			Logger:          testutil.Logger(t),
+			Loader:           loader.Load,
+			DirectRPC:        directRPC,
+			ServerProvider:   serverProvider,
+			Cache:            mcache,
+			Tokens:           tokens,
+			TLSConfigurator:  tlsCfg,
+			Logger:           testutil.Logger(t),
+			EnterpriseConfig: entConfig.EnterpriseConfig,
 		},
+		loader:         loader,
 		directRPC:      directRPC,
 		serverProvider: serverProvider,
 		cache:          mcache,
 		tokens:         tokens,
 		tlsCfg:         tlsCfg,
+
+		enterpriseConfig: entConfig,
 	}
 }
 
