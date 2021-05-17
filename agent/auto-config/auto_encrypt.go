@@ -43,7 +43,7 @@ func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key 
 	}
 	var resp structs.SignedResponse
 
-	servers, err := ac.autoEncryptHosts()
+	servers, err := ac.joinHosts()
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key 
 	return nil, fmt.Errorf("No servers successfully responded to the auto-encrypt request")
 }
 
-func (ac *AutoConfig) autoEncryptHosts() ([]string, error) {
+func (ac *AutoConfig) joinHosts() ([]string, error) {
 	// use servers known to gossip if there are any
 	if ac.acConfig.ServerProvider != nil {
 		if srv := ac.acConfig.ServerProvider.FindLANServer(); srv != nil {

@@ -350,9 +350,6 @@ type Config struct {
 	// a Consul server is now up and known about.
 	ServerUp func()
 
-	// Shutdown callback is used to trigger a full Consul shutdown
-	Shutdown func()
-
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)

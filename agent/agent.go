@@ -457,9 +457,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	// we cannot use the context passed into this method as that context will be cancelled after the
-	// agent finishes starting up which would cause the license manager to stop
-	if err := a.startLicenseManager(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+	if err := a.startLicenseManager(ctx); err != nil {
 		return err
 	}
 
