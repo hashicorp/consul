@@ -104,4 +104,7 @@ type Config struct {
 	// agent token as well as getting notifications when that token is updated.
 	// This field is required.
 	Tokens TokenStore
+
+	// EnterpriseConfig is the embedded specific enterprise configurations
+	EnterpriseConfig
 }

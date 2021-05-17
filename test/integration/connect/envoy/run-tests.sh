@@ -142,6 +142,15 @@ function start_consul {
         '-p=9502:8502'
       )
   fi
+  
+  license="${CONSUL_LICENSE:-}"
+  # load the consul license so we can pass it into the consul
+  # containers as an env var in the case that this is a consul
+  # enterprise test
+  if test -z "$license" -a -n "${CONSUL_LICENSE_PATH:-}"
+  then
+    license=$(cat $CONSUL_LICENSE_PATH)
+  fi
 
   # Run consul and expose some ports to the host to make debugging locally a
   # bit easier.
@@ -151,6 +160,7 @@ function start_consul {
     $WORKDIR_SNIPPET \
     --hostname "consul-${DC}" \
     --network-alias "consul-${DC}" \
+    -e "CONSUL_LICENSE=$license" \
     ${ports[@]} \
     consul-dev \
     agent -dev -datacenter "${DC}" \
