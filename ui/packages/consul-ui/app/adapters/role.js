@@ -12,20 +12,20 @@ if (env('CONSUL_NSPACES_ENABLED')) {
   Namespace = () => ({});
 }
 
-// TODO: Update to use this.formatDatacenter()
 export default class RoleAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id }) {
+  requestForQuery(request, { dc, ns, partition, index, id }) {
     return request`
       GET /v1/acl/roles?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -33,7 +33,8 @@ export default class RoleAdapter extends Adapter {
       GET /v1/acl/role/${id}?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;

@@ -3,23 +3,29 @@ import { SLUG_KEY } from 'consul-ui/models/nspace';
 
 // namespaces aren't categorized by datacenter, therefore no dc
 export default class NspaceAdapter extends Adapter {
-  requestForQuery(request, { index, uri }) {
+  requestForQuery(request, { partition, index, uri }) {
     return request`
       GET /v1/namespaces
       X-Request-ID: ${uri}
 
-      ${{ index }}
+      ${{
+        partition,
+        index,
+      }}
     `;
   }
 
-  requestForQueryRecord(request, { index, id }) {
+  requestForQueryRecord(request, { partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an name');
     }
     return request`
       GET /v1/namespace/${id}
 
-      ${{ index }}
+      ${{
+        partition,
+        index,
+      }}
     `;
   }
 

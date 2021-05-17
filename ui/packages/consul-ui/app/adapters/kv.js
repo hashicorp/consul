@@ -9,7 +9,7 @@ import { NSPACE_KEY } from 'consul-ui/models/nspace';
 const API_KEYS_KEY = 'keys';
 
 export default class KvAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id, separator }) {
+  requestForQuery(request, { dc, ns, partition, index, id, separator }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -17,13 +17,14 @@ export default class KvAdapter extends Adapter {
       GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, separator }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -31,7 +32,8 @@ export default class KvAdapter extends Adapter {
       GET /v1/kv/${keyToArray(id)}?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
@@ -41,8 +43,9 @@ export default class KvAdapter extends Adapter {
   // https://github.com/hashicorp/consul/issues/3804
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      dc: data.dc,
+      ns: data.ns,
+      partition: data.partition,
     };
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${params}
@@ -54,9 +57,10 @@ export default class KvAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      dc: data.dc,
+      ns: data.ns,
+      partition: data.partition,
       flags: data.Flags,
-      ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${params}
@@ -72,8 +76,9 @@ export default class KvAdapter extends Adapter {
       recurse = null;
     }
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      dc: data.dc,
+      ns: data.ns,
+      partition: data.partition,
       recurse,
     };
     return request`

@@ -2,7 +2,7 @@ import Adapter from './application';
 
 // TODO: Update to use this.formatDatacenter()
 export default class ServiceInstanceAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -12,13 +12,14 @@ export default class ServiceInstanceAdapter extends Adapter {
       X-Range: ${id}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id, uri }) {
+  requestForQueryRecord() {
     // query and queryRecord both use the same endpoint
     // they are just serialized differently
     return this.requestForQuery(...arguments);

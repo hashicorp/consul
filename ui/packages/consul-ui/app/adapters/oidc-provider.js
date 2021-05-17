@@ -13,19 +13,20 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 export default class OidcProviderAdapter extends Adapter {
   @service('env') env;
 
-  requestForQuery(request, { dc, ns, index, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, uri }) {
     return request`
       GET /v1/internal/ui/oidc-auth-methods?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{
+        ns,
+        partition,
         index,
-        ...this.formatNspace(ns),
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, id }) {
+  requestForQueryRecord(request, { dc, ns, partition, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -41,7 +42,7 @@ export default class OidcProviderAdapter extends Adapter {
     `;
   }
 
-  requestForAuthorize(request, { dc, ns, id, code, state }) {
+  requestForAuthorize(request, { dc, ns, partition, id, code, state }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }

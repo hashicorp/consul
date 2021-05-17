@@ -22,7 +22,7 @@ export default class IntentionAdapter extends Adapter {
     }
 
       ${{
-        ...this.formatNspace('*'),
+        ns: '*',
         index,
         filter,
       }}
