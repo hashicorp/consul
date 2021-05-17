@@ -2746,6 +2746,11 @@ babel-plugin-polyfill-regenerator@^0.1.2:
   dependencies:
     "@babel/helper-define-polyfill-provider" "^0.1.5"
 
+babel-plugin-strip-function-call@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/babel-plugin-strip-function-call/-/babel-plugin-strip-function-call-1.0.2.tgz#374a68b5648e16e2b6d1effd280c3abc88648e3a"
+  integrity sha1-N0potWSOFuK20e/9KAw6vIhkjjo=
+
 babel-plugin-syntax-async-functions@^6.8.0:
   version "6.13.0"
   resolved "https://registry.yarnpkg.com/babel-plugin-syntax-async-functions/-/babel-plugin-syntax-async-functions-6.13.0.tgz#cad9cad1191b5ad634bf30ae0872391e0647be95"

@@ -8,13 +8,19 @@ module.exports = function(defaults) {
 
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
+  const sourcemaps = !['production'].includes(env);
 
   const trees = {};
   const addons = {};
   const outputPaths = {};
   let excludeFiles = [];
 
-  const sourcemaps = !['production'].includes(env);
+  const babel = {
+    plugins: [
+      '@babel/plugin-proposal-object-rest-spread',
+    ],
+    sourceMaps: sourcemaps ? 'inline' : false,
+  }
 
   // setup up different build configuration depending on environment
   if(!['test'].includes(env)) {
@@ -46,6 +52,13 @@ module.exports = function(defaults) {
       }
     }
   }
+  if(['production'].includes(env)) {
+    // everything apart from production is 'debug', including test
+    // which means this and everything it affects is never tested
+    babel.plugins.push(
+      ['strip-function-call', {'strip': ['Ember.runInDebug']}]
+    )
+  }
   //
 
   trees.app = new Funnel('app', {
@@ -69,10 +82,7 @@ module.exports = function(defaults) {
       'ember-cli-math-helpers': {
         only: ['div'],
       },
-      babel: {
-        plugins: ['@babel/plugin-proposal-object-rest-spread'],
-        sourceMaps: sourcemaps ? 'inline' : false,
-      },
+      babel: babel,
       autoImport: {
         // allows use of a CSP without 'unsafe-eval' directive
         forbidEval: true,
