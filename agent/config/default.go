@@ -125,6 +125,9 @@ func DefaultSource() Source {
 			filter_default = true
 			prefix_filter = []
 		}
+		raft_snapshot_threshold = ` + strconv.Itoa(int(cfg.RaftConfig.SnapshotThreshold)) + `
+		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
+		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 
 	`,
 	}
