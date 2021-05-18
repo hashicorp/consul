@@ -1,5 +1,22 @@
 ## UNRELEASED
 
+## 1.8.11-beta1 (May 18, 2021)
+
+IMPROVEMENTS:
+
+* areas: **(Enterprise only)** Use server agent's gossip_wan config when setting memberlist configuration for network areas. Previously they used memberlists WAN defaults.
+* cli: added a `-force-without-cross-signing` flag to the `ca set-config` command.
+connect/ca: The ForceWithoutCrossSigning field will now work as expected for CA providers that support cross signing. [[GH-9672](https://github.com/hashicorp/consul/issues/9672)]
+* connect: update supported envoy versions to 1.14.7, 1.13.7, 1.12.7, 1.11.2 [[GH-10106](https://github.com/hashicorp/consul/issues/10106)]
+* telemetry: Add new metrics for status of secondary datacenter replication. [[GH-10073](https://github.com/hashicorp/consul/issues/10073)]
+
+BUG FIXES:
+
+* agent: ensure we hash the non-deprecated upstream fields on ServiceConfigRequest [[GH-10240](https://github.com/hashicorp/consul/issues/10240)]
+* areas: **(Enterprise only)** Revert to the 10s dial timeout used before connection pooling was introduced in 1.7.3.
+* local: agents will no longer persist the default user token along with a service or check. [[GH-10188](https://github.com/hashicorp/consul/issues/10188)]
+* server: ensure that central service config flattening properly resets the state each time [[GH-10239](https://github.com/hashicorp/consul/issues/10239)]
+
 ## 1.8.10 (April 15, 2021)
 
 SECURITY:
