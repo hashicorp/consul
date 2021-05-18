@@ -12,6 +12,10 @@ export default class RouteComponent extends Component {
     return this.args.title;
   }
 
+  get params() {
+    return this.routlet.paramsFor(this.args.name);
+  }
+
   @action
   connect() {
     this.routlet.addRoute(this.args.name, this);
