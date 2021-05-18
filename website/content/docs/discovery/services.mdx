@@ -54,6 +54,7 @@ example shows all possible fields, but note that only a few are required.
       }
     },
     "port": 8000,
+    "socket_path: "/tmp/redis.sock",
     "enable_tag_override": false,
     "checks": [
       {
@@ -68,6 +69,7 @@ example shows all possible fields, but note that only a few are required.
       "destination_service_id": "redis1",
       "local_service_address": "127.0.0.1",
       "local_service_port": 9090,
+      "local_service_socket_path": "/tmp/redis.sock",
       "mode": "transparent",
       "transparent_proxy": {
         "outbound_listener_port": 22500
