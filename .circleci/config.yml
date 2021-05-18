@@ -14,7 +14,7 @@ parameters:
 references:
   images:
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.3
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
