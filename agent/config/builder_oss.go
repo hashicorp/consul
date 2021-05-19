@@ -46,9 +46,8 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 		add("acl.tokens.managed_service_provider")
 		config.ACL.Tokens.ManagedServiceProvider = nil
 	}
-	if config.Audit != nil {
+	if boolVal(config.Audit.Enabled) || len(config.Audit.Sinks) > 0 {
 		add("audit")
-		config.Audit = nil
 	}
 
 	return result

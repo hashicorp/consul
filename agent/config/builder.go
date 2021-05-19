@@ -332,9 +332,11 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 
 		var unusedErr error
 		for _, k := range md.Unused {
-			switch k {
-			case "acl_enforce_version_8":
+			switch {
+			case k == "acl_enforce_version_8":
 				b.warn("config key %q is deprecated and should be removed", k)
+			case strings.HasPrefix(k, "audit.sink[") && strings.HasSuffix(k, "].name"):
+				b.warn("config key audit.sink[].name is deprecated and should be removed")
 			default:
 				unusedErr = multierror.Append(unusedErr, fmt.Errorf("invalid config key %s", k))
 			}
