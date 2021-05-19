@@ -44,7 +44,7 @@ func TestConfigUtil_Values(t *testing.T) {
 		{
 			`{ "duration": "nope" }`,
 			"",
-			`invalid duration nope`,
+			`invalid duration "nope"`,
 		},
 		{
 			`{ "string": 123 }`,
