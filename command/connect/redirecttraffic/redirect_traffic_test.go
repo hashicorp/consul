@@ -1,18 +1,18 @@
 package redirecttraffic
 
 import (
+	"sort"
 	"testing"
+
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRun_FlagValidation(t *testing.T) {
-	t.Parallel()
-
 	cases := []struct {
 		name     string
 		args     []string
@@ -59,8 +59,6 @@ func TestRun_FlagValidation(t *testing.T) {
 }
 
 func TestGenerateConfigFromFlags(t *testing.T) {
-	t.Parallel()
-
 	cases := []struct {
 		name           string
 		command        func() cmd
@@ -69,15 +67,15 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 		expError       string
 	}{
 		{
-			"proxyID with service port provided",
-			func() cmd {
+			name: "proxyID with service port provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -89,23 +87,22 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
 				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
-			"",
 		},
 		{
-			"proxyID with bind_port(int) provided",
-			func() cmd {
+			name: "proxyID with bind_port(int) provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -120,23 +117,22 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  21000,
 				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
-			"",
 		},
 		{
-			"proxyID with bind_port(string) provided",
-			func() cmd {
+			name: "proxyID with bind_port(string) provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -151,23 +147,22 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  21000,
 				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
-			"",
 		},
 		{
-			"proxyID with bind_port(invalid type) provided",
-			func() cmd {
+			name: "proxyID with bind_port(invalid type) provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -182,19 +177,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{},
-			"failed parsing Proxy.Config: 1 error(s) decoding:\n\n* cannot parse 'bind_port' as int:",
+			expError: "failed parsing Proxy.Config: 1 error(s) decoding:\n\n* cannot parse 'bind_port' as int:",
 		},
 		{
-			"proxyID with proxy outbound port",
-			func() cmd {
+			name: "proxyID with proxy outbound port",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -209,36 +203,33 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  20000,
 				ProxyOutboundPort: 21000,
 			},
-			"",
 		},
 		{
-			"proxyID provided, but Consul is not reachable",
-			func() cmd {
+			name: "proxyID provided, but Consul is not reachable",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			nil,
-			iptables.Config{},
-			"failed to fetch proxy service from Consul Agent: ",
+			expError: "failed to fetch proxy service from Consul Agent: ",
 		},
 		{
-			"proxyID of a non-proxy service",
-			func() cmd {
+			name: "proxyID of a non-proxy service",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					ID:      "test-proxy-id",
 					Name:    "test-proxy",
@@ -246,29 +237,26 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					Address: "1.1.1.1",
 				},
 			},
-			iptables.Config{},
-			"service test-proxy-id is not a proxy service",
+			expError: "service test-proxy-id is not a proxy service",
 		},
 		{
-			"only proxy inbound port is provided",
-			func() cmd {
+			name: "only proxy inbound port is provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyInboundPort = 15000
 				return c
 			},
-			nil,
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  15000,
 				ProxyOutboundPort: iptables.DefaultTProxyOutboundPort,
 			},
-			"",
 		},
 		{
-			"proxy inbound and outbound ports are provided",
-			func() cmd {
+			name: "proxy inbound and outbound ports are provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
@@ -276,17 +264,15 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.proxyOutboundPort = 16000
 				return c
 			},
-			nil,
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  15000,
 				ProxyOutboundPort: 16000,
 			},
-			"",
 		},
 		{
-			"exclude inbound ports are provided",
-			func() cmd {
+			name: "exclude inbound ports are provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
@@ -294,18 +280,16 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeInboundPorts = []string{"8080", "21000"}
 				return c
 			},
-			nil,
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    15000,
 				ProxyOutboundPort:   15001,
 				ExcludeInboundPorts: []string{"8080", "21000"},
 			},
-			"",
 		},
 		{
-			"exclude outbound ports are provided",
-			func() cmd {
+			name: "exclude outbound ports are provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
@@ -313,18 +297,16 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeOutboundPorts = []string{"8080", "21000"}
 				return c
 			},
-			nil,
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:          "1234",
 				ProxyInboundPort:     15000,
 				ProxyOutboundPort:    15001,
 				ExcludeOutboundPorts: []string{"8080", "21000"},
 			},
-			"",
 		},
 		{
-			"exclude outbound CIDRs are provided",
-			func() cmd {
+			name: "exclude outbound CIDRs are provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
@@ -332,18 +314,16 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeOutboundCIDRs = []string{"1.1.1.1", "2.2.2.2/24"}
 				return c
 			},
-			nil,
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:          "1234",
 				ProxyInboundPort:     15000,
 				ProxyOutboundPort:    15001,
 				ExcludeOutboundCIDRs: []string{"1.1.1.1", "2.2.2.2/24"},
 			},
-			"",
 		},
 		{
-			"exclude UIDs are provided",
-			func() cmd {
+			name: "exclude UIDs are provided",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
@@ -351,25 +331,23 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 				c.excludeUIDs = []string{"2345", "3456"}
 				return c
 			},
-			nil,
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:       "1234",
 				ProxyInboundPort:  15000,
 				ProxyOutboundPort: 15001,
 				ExcludeUIDs:       []string{"2345", "3456"},
 			},
-			"",
 		},
 		{
-			"proxy config has envoy_prometheus_bind_addr set",
-			func() cmd {
+			name: "proxy config has envoy_prometheus_bind_addr set",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -384,24 +362,23 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
 				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"9000"},
 			},
-			"",
 		},
 		{
-			"proxy config has an invalid envoy_prometheus_bind_addr set",
-			func() cmd {
+			name: "proxy config has an invalid envoy_prometheus_bind_addr set",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -416,19 +393,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{},
-			"failed parsing host and port from envoy_prometheus_bind_addr: address 9000: missing port in address",
+			expError: "failed parsing host and port from envoy_prometheus_bind_addr: address 9000: missing port in address",
 		},
 		{
-			"proxy config has envoy_stats_bind_addr set",
-			func() cmd {
+			name: "proxy config has envoy_stats_bind_addr set",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -443,24 +419,23 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
 				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"8000"},
 			},
-			"",
 		},
 		{
-			"proxy config has an invalid envoy_stats_bind_addr set",
-			func() cmd {
+			name: "proxy config has an invalid envoy_stats_bind_addr set",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -475,19 +450,18 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{},
-			"failed parsing host and port from envoy_stats_bind_addr: address 8000: missing port in address",
+			expError: "failed parsing host and port from envoy_stats_bind_addr: address 8000: missing port in address",
 		},
 		{
-			"proxy config has expose paths with listener port set",
-			func() cmd {
+			name: "proxy config has expose paths with listener port set",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					Kind:    api.ServiceKindConnectProxy,
 					ID:      "test-proxy-id",
@@ -508,24 +482,23 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
 				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"23000"},
 			},
-			"",
 		},
 		{
-			"proxy config has expose paths with checks set to true",
-			func() cmd {
+			name: "proxy config has expose paths with checks set to true",
+			command: func() cmd {
 				var c cmd
 				c.init()
 				c.proxyUID = "1234"
 				c.proxyID = "test-proxy-id"
 				return c
 			},
-			[]api.AgentServiceRegistration{
+			consulServices: []api.AgentServiceRegistration{
 				{
 					ID:      "foo-id",
 					Name:    "foo",
@@ -559,13 +532,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 					},
 				},
 			},
-			iptables.Config{
+			expCfg: iptables.Config{
 				ProxyUserID:         "1234",
 				ProxyInboundPort:    20000,
 				ProxyOutboundPort:   iptables.DefaultTProxyOutboundPort,
 				ExcludeInboundPorts: []string{"21500", "21501"},
 			},
-			"",
 		},
 	}
 
@@ -596,7 +568,10 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 
 			if c.expError == "" {
 				require.NoError(t, err)
-				require.EqualValues(t, c.expCfg, cfg)
+
+				sort.Strings(c.expCfg.ExcludeInboundPorts)
+				sort.Strings(cfg.ExcludeInboundPorts)
+				require.Equal(t, c.expCfg, cfg)
 			} else {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), c.expError)
