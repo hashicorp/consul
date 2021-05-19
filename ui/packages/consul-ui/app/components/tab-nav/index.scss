@@ -13,7 +13,7 @@
 }
 %with-animated-tab-selection ul::after,
 %tab-button-selected {
-  @extend %frame-brand-300;
+  @extend %frame-blue-300;
 }
 %tab-nav li a {
   @extend %tab-button;
