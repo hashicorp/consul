@@ -16,30 +16,32 @@
           <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a>
         </h2>
         <dl>
+{{#if api.data.Name}}
           <dt>Name</dt>
           <dd>{{api.data.Name}}</dd>
-          <dt>Agent</dt>
+{{/if}}
+          <dt>ID</dt>
+          <dd>{{api.data.ID}}</dd>
+          <dt>Node</dt>
           <dd>
               <a href={{href-to 'dc.nodes.show' api.data.Node}}>{{api.data.Node}}</a>
           </dd>
-          <dt>ID</dt>
-          <dd>{{api.data.ID}}</dd>
-          <dt>Behavior</dt>
-          <dd>{{api.data.Behavior}}</dd>
-{{#if form.data.Delay }}
           <dt>Delay</dt>
           <dd>{{duration-from api.data.LockDelay}}</dd>
-{{/if}}
-{{#if form.data.TTL }}
           <dt>TTL</dt>
-          <dd>{{api.data.TTL}}</dd>
-{{/if}}
-{{#if (gt api.data.Checks.length 0)}}
+          <dd>{{or api.data.TTL '-'}}</dd>
+          <dt>Behavior</dt>
+          <dd>{{api.data.Behavior}}</dd>
+{{#let (union api.data.NodeChecks api.data.ServiceChecks) as |checks|}}
           <dt>Health Checks</dt>
           <dd>
-              {{ join ', ' api.data.Checks}}
+  {{#if (gt checks.length 0)}}
+              {{ join ', ' checks}}
+  {{else}}
+              -
+  {{/if}}
           </dd>
-{{/if}}
+{{/let}}
         </dl>
 {{#if (can 'delete session' item=api.data)}}
         <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
