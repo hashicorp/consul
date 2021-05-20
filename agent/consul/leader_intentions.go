@@ -15,7 +15,7 @@ const (
 	maxIntentionTxnSize = raftWarnSize / 4
 )
 
-func (s *Server) startIntentionConfigEntryMigration() error {
+func (s *Server) startIntentionConfigEntryMigration(ctx context.Context) error {
 	if !s.config.ConnectEnabled {
 		return nil
 	}
@@ -56,14 +56,14 @@ func (s *Server) startIntentionConfigEntryMigration() error {
 		}
 
 		// When running in the primary we do all of the real work.
-		s.leaderRoutineManager.Start(intentionMigrationRoutineName, s.legacyIntentionMigration)
+		s.leaderRoutineManager.Start(ctx, intentionMigrationRoutineName, s.legacyIntentionMigration)
 	} else {
 		// When running in the secondary we mostly just wait until the
 		// primary finishes, and then wait until we're pretty sure the main
 		// config entry replication thread has seen all of the
 		// migration-related config entry edits before zeroing OUR copy of
 		// the old intentions table.
-		s.leaderRoutineManager.Start(intentionMigrationRoutineName, s.legacyIntentionMigrationInSecondaryDC)
+		s.leaderRoutineManager.Start(ctx, intentionMigrationRoutineName, s.legacyIntentionMigrationInSecondaryDC)
 	}
 
 	return nil

@@ -290,6 +290,12 @@ type Config struct {
 	SegmentName *string `mapstructure:"segment"`
 	// Enterprise Only
 	Segments []Segment `mapstructure:"segments"`
+
+	// Enterprise Only - not user configurable
+	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time"`
+	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time"`
+	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time"`
+	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time"`
 }
 
 type GossipLANConfig struct {

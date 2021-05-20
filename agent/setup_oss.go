@@ -15,6 +15,6 @@ func initEnterpriseBaseDeps(d BaseDeps, _ *config.RuntimeConfig) (BaseDeps, erro
 }
 
 // initEnterpriseAutoConfig is responsible for setting up auto-config for enterprise
-func initEnterpriseAutoConfig(_ consul.EnterpriseDeps) autoconf.EnterpriseConfig {
+func initEnterpriseAutoConfig(_ consul.EnterpriseDeps, _ *config.RuntimeConfig) autoconf.EnterpriseConfig {
 	return autoconf.EnterpriseConfig{}
 }

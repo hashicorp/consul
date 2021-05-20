@@ -125,7 +125,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		TLSConfigurator:  d.TLSConfigurator,
 		Cache:            d.Cache,
 		Tokens:           d.Tokens,
-		EnterpriseConfig: initEnterpriseAutoConfig(d.EnterpriseDeps),
+		EnterpriseConfig: initEnterpriseAutoConfig(d.EnterpriseDeps, cfg),
 	}
 
 	d.AutoConfig, err = autoconf.New(acConf)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestReplicationRestart(t *testing.T) {
-	mgr := NewLeaderRoutineManager(testutil.Logger(t))
+	mgr := routine.NewManager(testutil.Logger(t))
 
 	config := ReplicatorConfig{
 		Name: "mock",
@@ -30,9 +31,9 @@ func TestReplicationRestart(t *testing.T) {
 	repl, err := NewReplicator(&config)
 	require.NoError(t, err)
 
-	mgr.Start("mock", repl.Run)
+	mgr.Start(context.Background(), "mock", repl.Run)
 	mgr.Stop("mock")
-	mgr.Start("mock", repl.Run)
+	mgr.Start(context.Background(), "mock", repl.Run)
 	// Previously this would have segfaulted
 	mgr.Stop("mock")
 }
