@@ -17,7 +17,7 @@ const (
 	federationStatePruneInterval = time.Hour
 )
 
-func (s *Server) startFederationStateAntiEntropy() {
+func (s *Server) startFederationStateAntiEntropy(ctx context.Context) {
 	// Check to see if we can skip waiting for serf feature detection below.
 	if !s.DatacenterSupportsFederationStates() {
 		_, fedStates, err := s.fsm.State().FederationStateList(nil)
@@ -31,12 +31,12 @@ func (s *Server) startFederationStateAntiEntropy() {
 	if s.config.DisableFederationStateAntiEntropy {
 		return
 	}
-	s.leaderRoutineManager.Start(federationStateAntiEntropyRoutineName, s.federationStateAntiEntropySync)
+	s.leaderRoutineManager.Start(ctx, federationStateAntiEntropyRoutineName, s.federationStateAntiEntropySync)
 
 	// If this is the primary, then also prune any stale datacenters from the
 	// list of federation states.
 	if s.config.PrimaryDatacenter == s.config.Datacenter {
-		s.leaderRoutineManager.Start(federationStatePruningRoutineName, s.federationStatePruning)
+		s.leaderRoutineManager.Start(ctx, federationStatePruningRoutineName, s.federationStatePruning)
 	}
 }
 

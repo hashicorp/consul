@@ -86,7 +86,9 @@ type TestAgent struct {
 // The caller is responsible for calling Shutdown() to stop the agent and remove
 // temporary directories.
 func NewTestAgent(t *testing.T, hcl string) *TestAgent {
-	return StartTestAgent(t, TestAgent{HCL: hcl})
+	a := StartTestAgent(t, TestAgent{HCL: hcl})
+	t.Cleanup(func() { a.Shutdown() })
+	return a
 }
 
 // StartTestAgent and wait for it to become available. If the agent fails to

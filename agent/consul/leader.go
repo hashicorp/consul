@@ -115,7 +115,7 @@ func (s *Server) monitorLeadership() {
 
 				if canUpgrade := s.canUpgradeToNewACLs(weAreLeaderCh != nil); canUpgrade {
 					if weAreLeaderCh != nil {
-						if err := s.initializeACLs(true); err != nil {
+						if err := s.initializeACLs(&lib.StopChannelContext{StopCh: weAreLeaderCh}, true); err != nil {
 							s.logger.Error("error transitioning to using new ACLs", "error", err)
 							continue
 						}
@@ -308,12 +308,12 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	// check for the upgrade here - this helps us transition to new ACLs much
 	// quicker if this is a new cluster or this is a test agent
 	if canUpgrade := s.canUpgradeToNewACLs(true); canUpgrade {
-		if err := s.initializeACLs(true); err != nil {
+		if err := s.initializeACLs(ctx, true); err != nil {
 			return err
 		}
 		atomic.StoreInt32(&s.useNewACLs, 1)
 		s.updateACLAdvertisement()
-	} else if err := s.initializeACLs(false); err != nil {
+	} else if err := s.initializeACLs(ctx, false); err != nil {
 		return err
 	}
 
@@ -337,20 +337,20 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 		return err
 	}
 
-	if err := s.establishEnterpriseLeadership(); err != nil {
+	if err := s.establishEnterpriseLeadership(ctx); err != nil {
 		return err
 	}
 
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start(ctx)
 
-	s.startConfigReplication()
+	s.startConfigReplication(ctx)
 
-	s.startFederationStateReplication()
+	s.startFederationStateReplication(ctx)
 
-	s.startFederationStateAntiEntropy()
+	s.startFederationStateAntiEntropy(ctx)
 
-	if err := s.startConnectLeader(); err != nil {
+	if err := s.startConnectLeader(ctx); err != nil {
 		return err
 	}
 
@@ -499,7 +499,7 @@ func (s *Server) initializeLegacyACL() error {
 
 // initializeACLs is used to setup the ACLs if we are the leader
 // and need to do this.
-func (s *Server) initializeACLs(upgrade bool) error {
+func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 	if !s.config.ACLsEnabled {
 		return nil
 	}
@@ -673,11 +673,11 @@ func (s *Server) initializeACLs(upgrade bool) error {
 			}
 		}
 		// launch the upgrade go routine to generate accessors for everything
-		s.startACLUpgrade()
+		s.startACLUpgrade(ctx)
 	} else {
 		if s.UseLegacyACLs() && !upgrade {
 			if s.IsACLReplicationEnabled() {
-				s.startLegacyACLReplication()
+				s.startLegacyACLReplication(ctx)
 			}
 			// return early as we don't want to start new ACL replication
 			// or ACL token reaping as these are new ACL features.
@@ -689,10 +689,10 @@ func (s *Server) initializeACLs(upgrade bool) error {
 		}
 
 		// ACL replication is now mandatory
-		s.startACLReplication()
+		s.startACLReplication(ctx)
 	}
 
-	s.startACLTokenReaping()
+	s.startACLTokenReaping(ctx)
 
 	return nil
 }
@@ -771,13 +771,13 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 	}
 }
 
-func (s *Server) startACLUpgrade() {
+func (s *Server) startACLUpgrade(ctx context.Context) {
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		// token upgrades should only run in the primary
 		return
 	}
 
-	s.leaderRoutineManager.Start(aclUpgradeRoutineName, s.legacyACLTokenUpgrade)
+	s.leaderRoutineManager.Start(ctx, aclUpgradeRoutineName, s.legacyACLTokenUpgrade)
 }
 
 func (s *Server) stopACLUpgrade() {
@@ -826,7 +826,7 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 	}
 }
 
-func (s *Server) startLegacyACLReplication() {
+func (s *Server) startLegacyACLReplication(ctx context.Context) {
 	if s.InACLDatacenter() {
 		return
 	}
@@ -840,12 +840,12 @@ func (s *Server) startLegacyACLReplication() {
 
 	s.initReplicationStatus()
 
-	s.leaderRoutineManager.Start(legacyACLReplicationRoutineName, s.runLegacyACLReplication)
+	s.leaderRoutineManager.Start(ctx, legacyACLReplicationRoutineName, s.runLegacyACLReplication)
 	s.logger.Info("started legacy ACL replication")
 	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
 }
 
-func (s *Server) startACLReplication() {
+func (s *Server) startACLReplication(ctx context.Context) {
 	if s.InACLDatacenter() {
 		return
 	}
@@ -858,11 +858,11 @@ func (s *Server) startACLReplication() {
 	}
 
 	s.initReplicationStatus()
-	s.leaderRoutineManager.Start(aclPolicyReplicationRoutineName, s.runACLPolicyReplicator)
-	s.leaderRoutineManager.Start(aclRoleReplicationRoutineName, s.runACLRoleReplicator)
+	s.leaderRoutineManager.Start(ctx, aclPolicyReplicationRoutineName, s.runACLPolicyReplicator)
+	s.leaderRoutineManager.Start(ctx, aclRoleReplicationRoutineName, s.runACLRoleReplicator)
 
 	if s.config.ACLTokenReplication {
-		s.leaderRoutineManager.Start(aclTokenReplicationRoutineName, s.runACLTokenReplicator)
+		s.leaderRoutineManager.Start(ctx, aclTokenReplicationRoutineName, s.runACLTokenReplicator)
 		s.updateACLReplicationStatusRunning(structs.ACLReplicateTokens)
 	} else {
 		s.updateACLReplicationStatusRunning(structs.ACLReplicatePolicies)
@@ -973,13 +973,13 @@ func (s *Server) stopACLReplication() {
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)
 }
 
-func (s *Server) startConfigReplication() {
+func (s *Server) startConfigReplication(ctx context.Context) {
 	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
 		// replication shouldn't run in the primary DC
 		return
 	}
 
-	s.leaderRoutineManager.Start(configReplicationRoutineName, s.configReplicator.Run)
+	s.leaderRoutineManager.Start(ctx, configReplicationRoutineName, s.configReplicator.Run)
 }
 
 func (s *Server) stopConfigReplication() {
@@ -987,7 +987,7 @@ func (s *Server) stopConfigReplication() {
 	s.leaderRoutineManager.Stop(configReplicationRoutineName)
 }
 
-func (s *Server) startFederationStateReplication() {
+func (s *Server) startFederationStateReplication(ctx context.Context) {
 	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
 		// replication shouldn't run in the primary DC
 		return
@@ -998,7 +998,7 @@ func (s *Server) startFederationStateReplication() {
 		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
 	}
 
-	s.leaderRoutineManager.Start(federationStateReplicationRoutineName, s.federationStateReplicator.Run)
+	s.leaderRoutineManager.Start(ctx, federationStateReplicationRoutineName, s.federationStateReplicator.Run)
 }
 
 func (s *Server) stopFederationStateReplication() {

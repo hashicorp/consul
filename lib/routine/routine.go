@@ -1,22 +1,21 @@
-package consul
+package routine
 
 import (
 	"context"
 	"os"
 	"sync"
 
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 )
 
-type LeaderRoutine func(ctx context.Context) error
+type Routine func(ctx context.Context) error
 
-type leaderRoutine struct {
+type routineTracker struct {
 	cancel    context.CancelFunc
 	stoppedCh chan struct{} // closed when no longer running
 }
 
-func (r *leaderRoutine) running() bool {
+func (r *routineTracker) running() bool {
 	select {
 	case <-r.stoppedCh:
 		return false
@@ -25,27 +24,27 @@ func (r *leaderRoutine) running() bool {
 	}
 }
 
-type LeaderRoutineManager struct {
+type Manager struct {
 	lock   sync.RWMutex
 	logger hclog.Logger
 
-	routines map[string]*leaderRoutine
+	routines map[string]*routineTracker
 }
 
-func NewLeaderRoutineManager(logger hclog.Logger) *LeaderRoutineManager {
+func NewManager(logger hclog.Logger) *Manager {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{
 			Output: os.Stderr,
 		})
 	}
 
-	return &LeaderRoutineManager{
-		logger:   logger.Named(logging.Leader),
-		routines: make(map[string]*leaderRoutine),
+	return &Manager{
+		logger:   logger,
+		routines: make(map[string]*routineTracker),
 	}
 }
 
-func (m *LeaderRoutineManager) IsRunning(name string) bool {
+func (m *Manager) IsRunning(name string) bool {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -56,11 +55,7 @@ func (m *LeaderRoutineManager) IsRunning(name string) bool {
 	return false
 }
 
-func (m *LeaderRoutineManager) Start(name string, routine LeaderRoutine) error {
-	return m.StartWithContext(context.TODO(), name, routine)
-}
-
-func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name string, routine LeaderRoutine) error {
+func (m *Manager) Start(ctx context.Context, name string, routine Routine) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -68,38 +63,41 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 		return nil
 	}
 
-	if parentCtx == nil {
-		parentCtx = context.Background()
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	ctx, cancel := context.WithCancel(parentCtx)
-	instance := &leaderRoutine{
+	rtCtx, cancel := context.WithCancel(ctx)
+	instance := &routineTracker{
 		cancel:    cancel,
 		stoppedCh: make(chan struct{}),
 	}
 
-	go func() {
-		defer func() {
-			close(instance.stoppedCh)
-		}()
-
-		err := routine(ctx)
-		if err != nil && err != context.DeadlineExceeded && err != context.Canceled {
-			m.logger.Error("routine exited with error",
-				"routine", name,
-				"error", err,
-			)
-		} else {
-			m.logger.Debug("stopped routine", "routine", name)
-		}
-	}()
+	go m.execute(rtCtx, name, routine, instance.stoppedCh)
 
 	m.routines[name] = instance
 	m.logger.Info("started routine", "routine", name)
 	return nil
 }
 
-func (m *LeaderRoutineManager) Stop(name string) <-chan struct{} {
+// execute will run the given routine in the foreground and close the given channel when its done executing
+func (m *Manager) execute(ctx context.Context, name string, routine Routine, done chan struct{}) {
+	defer func() {
+		close(done)
+	}()
+
+	err := routine(ctx)
+	if err != nil && err != context.DeadlineExceeded && err != context.Canceled {
+		m.logger.Error("routine exited with error",
+			"routine", name,
+			"error", err,
+		)
+	} else {
+		m.logger.Debug("stopped routine", "routine", name)
+	}
+}
+
+func (m *Manager) Stop(name string) <-chan struct{} {
 	instance := m.stopInstance(name)
 	if instance == nil {
 		// Fabricate a closed channel so it won't block forever.
@@ -111,7 +109,7 @@ func (m *LeaderRoutineManager) Stop(name string) <-chan struct{} {
 	return instance.stoppedCh
 }
 
-func (m *LeaderRoutineManager) stopInstance(name string) *leaderRoutine {
+func (m *Manager) stopInstance(name string) *routineTracker {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -133,7 +131,7 @@ func (m *LeaderRoutineManager) stopInstance(name string) *leaderRoutine {
 	return instance
 }
 
-func (m *LeaderRoutineManager) StopAll() {
+func (m *Manager) StopAll() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -146,5 +144,5 @@ func (m *LeaderRoutineManager) StopAll() {
 	}
 
 	// just wipe out the entire map
-	m.routines = make(map[string]*leaderRoutine)
+	m.routines = make(map[string]*routineTracker)
 }

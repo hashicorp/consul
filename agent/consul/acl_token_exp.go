@@ -30,7 +30,7 @@ func (s *Server) reapExpiredTokens(ctx context.Context) error {
 	}
 }
 
-func (s *Server) startACLTokenReaping() {
+func (s *Server) startACLTokenReaping(ctx context.Context) {
 	// Do a quick check for config settings that would imply the goroutine
 	// below will just spin forever.
 	//
@@ -41,7 +41,7 @@ func (s *Server) startACLTokenReaping() {
 		return
 	}
 
-	s.leaderRoutineManager.Start(aclTokenReapingRoutineName, s.reapExpiredTokens)
+	s.leaderRoutineManager.Start(ctx, aclTokenReapingRoutineName, s.reapExpiredTokens)
 }
 
 func (s *Server) stopACLTokenReaping() {

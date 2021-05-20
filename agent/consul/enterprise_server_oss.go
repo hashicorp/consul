@@ -3,6 +3,7 @@
 package consul
 
 import (
+	"context"
 	"errors"
 	"net"
 	"strings"
@@ -46,7 +47,7 @@ func (s *Server) handleEnterpriseLeave() {
 	return
 }
 
-func (s *Server) establishEnterpriseLeadership() error {
+func (s *Server) establishEnterpriseLeadership(_ context.Context) error {
 	return nil
 }
 
