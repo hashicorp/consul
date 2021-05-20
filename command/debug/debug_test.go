@@ -5,15 +5,18 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 )
 
 func TestDebugCommand_noTabs(t *testing.T) {
@@ -486,13 +489,16 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	// Glob ignores file system errors
 	for _, v := range profiles {
 		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		if len(fs) > 0 {
-			t.Errorf("output data should not exist for %s", v)
-		}
+		// TODO: make this always one
+		require.True(t, len(fs) >= 1)
+		content, err := ioutil.ReadFile(fs[0])
+		require.NoError(t, err)
+		require.Len(t, content, 0)
 	}
 
 	errOutput := ui.ErrorWriter.String()
-	if !strings.Contains(errOutput, "Unable to capture pprof") {
-		t.Errorf("expected warn output, got %s", errOutput)
+	for _, prof := range []string{"heap", "cpu", "goroutine", "trace"} {
+		expected := fmt.Sprintf("failed to collect %v", prof)
+		require.Contains(t, errOutput, expected)
 	}
 }
