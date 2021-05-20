@@ -32,8 +32,6 @@ func TestDebugCommand(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	testDir := testutil.TempDir(t, "debug")
 
 	a := agent.NewTestAgent(t, `
@@ -71,8 +69,6 @@ func TestDebugCommand_Archive(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
 
@@ -190,8 +186,6 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	testDir := testutil.TempDir(t, "debug")
 
 	a := agent.NewTestAgent(t, "")
@@ -230,8 +224,6 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	cases := map[string]struct {
 		// used in -target param
@@ -343,8 +335,6 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	testDir := testutil.TempDir(t, "debug")
 
 	a := agent.NewTestAgent(t, `
@@ -392,8 +382,6 @@ func TestDebugCommand_ValidateTiming(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	cases := map[string]struct {
 		duration string
