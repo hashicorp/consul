@@ -29,15 +29,15 @@ var (
 )
 
 // startConnectLeader starts multi-dc connect leader routines.
-func (s *Server) startConnectLeader() error {
+func (s *Server) startConnectLeader(ctx context.Context) error {
 	if !s.config.ConnectEnabled {
 		return nil
 	}
 
-	s.caManager.Start()
-	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
+	s.caManager.Start(ctx)
+	s.leaderRoutineManager.Start(ctx, caRootPruningRoutineName, s.runCARootPruning)
 
-	return s.startIntentionConfigEntryMigration()
+	return s.startIntentionConfigEntryMigration(ctx)
 }
 
 // stopConnectLeader stops connect specific leader functions.

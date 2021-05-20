@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -65,7 +66,7 @@ type CAManager struct {
 	primaryRoots      structs.IndexedCARoots // The most recently seen state of the root CAs from the primary datacenter.
 	actingSecondaryCA bool                   // True if this datacenter has been initialized as a secondary CA.
 
-	leaderRoutineManager *LeaderRoutineManager
+	leaderRoutineManager *routine.Manager
 }
 
 type caDelegateWithState struct {
@@ -76,7 +77,7 @@ func (c *caDelegateWithState) State() *state.Store {
 	return c.fsm.State()
 }
 
-func NewCAManager(delegate caServerDelegate, leaderRoutineManager *LeaderRoutineManager, logger hclog.Logger, config *Config) *CAManager {
+func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
 		delegate:             delegate,
 		logger:               logger,
@@ -247,7 +248,7 @@ func (c *CAManager) setCAProvider(newProvider ca.Provider, root *structs.CARoot)
 	c.providerLock.Unlock()
 }
 
-func (c *CAManager) Start() {
+func (c *CAManager) Start(ctx context.Context) {
 	// Attempt to initialize the Connect CA now. This will
 	// happen during leader establishment and it would be great
 	// if the CA was ready to go once that process was finished.
@@ -257,11 +258,11 @@ func (c *CAManager) Start() {
 		// we failed to fully initialize the CA so we need to spawn a
 		// go routine to retry this process until it succeeds or we lose
 		// leadership and the go routine gets stopped.
-		c.leaderRoutineManager.Start(backgroundCAInitializationRoutineName, c.backgroundCAInitialization)
+		c.leaderRoutineManager.Start(ctx, backgroundCAInitializationRoutineName, c.backgroundCAInitialization)
 	} else {
 		// We only start these if CA initialization was successful. If not the completion of the
 		// background CA initialization will start these routines.
-		c.startPostInitializeRoutines()
+		c.startPostInitializeRoutines(ctx)
 	}
 }
 
@@ -271,13 +272,13 @@ func (c *CAManager) Stop() {
 	c.leaderRoutineManager.Stop(backgroundCAInitializationRoutineName)
 }
 
-func (c *CAManager) startPostInitializeRoutines() {
+func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
 	// Start the Connect secondary DC actions if enabled.
 	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
-		c.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
+		c.leaderRoutineManager.Start(ctx, secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
 	}
 
-	c.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
+	c.leaderRoutineManager.Start(ctx, intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
@@ -294,7 +295,7 @@ func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
 
 	c.logger.Info("Successfully initialized the Connect CA")
 
-	c.startPostInitializeRoutines()
+	c.startPostInitializeRoutines(ctx)
 	return nil
 }
 
