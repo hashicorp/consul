@@ -497,9 +497,9 @@ definition](/docs/connect/registration/service-registration) or
     overridden by the Connect TLS certificates and validation context. This
     means there is no way to override Connect's mutual TLS for the public
     listener.
-  - Every `FilterChain` will have the `envoy.ext_authz` filter prepended to the
-    filters array to ensure that all inbound connections are authorized by
-    Connect.
+  - Every `FilterChain` will have the `envoy.filters.{network|http}.rbac` filter 
+    prepended to the filters array to ensure that all inbound connections are 
+    authorized by Connect. Before Consul 1.9.0 `envoy.ext_authz` was inserted instead.
 - `envoy_local_cluster_json` - Specifies a complete [Envoy
   cluster](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
   to be delivered in place of the local application cluster. This allows
