@@ -2218,23 +2218,22 @@ func intPointer(i int) *int {
 }
 
 func TestConfigEntryQuery_CacheInfoKey(t *testing.T) {
-	assertCacheInfoKeyIsComplete(t, &ConfigEntryQuery{}, nil)
+	assertCacheInfoKeyIsComplete(t, &ConfigEntryQuery{})
 }
 
 func TestServiceConfigRequest_CacheInfoKey(t *testing.T) {
-	ignoredFields := map[string]bool{
-		"QueryOptions": true,
+	ignoredFields := []string{
+		// TODO: should QueryOptions.Filter be included in the key?
+		"QueryOptions",
 		// TODO: should this be included in the key?
-		"MeshGateway": true,
+		"MeshGateway",
 		// TODO: should this be included in the key?
-		"Mode": true,
+		"Mode",
 	}
-	assertCacheInfoKeyIsComplete(t, &ServiceConfigRequest{}, ignoredFields)
+	assertCacheInfoKeyIsComplete(t, &ServiceConfigRequest{}, ignoredFields...)
 }
 
 func TestDiscoveryChainRequest_CacheInfoKey(t *testing.T) {
-	ignoredFields := map[string]bool{
-		"QueryOptions": true,
-	}
-	assertCacheInfoKeyIsComplete(t, &DiscoveryChainRequest{}, ignoredFields)
+	// TODO: should QueryOptions.Filter be included in the key?
+	assertCacheInfoKeyIsComplete(t, &DiscoveryChainRequest{}, "QueryOptions")
 }
