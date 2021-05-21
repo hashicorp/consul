@@ -16,6 +16,10 @@ export default class NspaceAbility extends BaseAbility {
   }
 
   get canChoose() {
-    return this.env.var('CONSUL_NSPACES_ENABLED') && this.nspaces.length > 0;
+    return this.canUse && this.nspaces.length > 0;
+  }
+
+  get canUse() {
+    return this.env.var('CONSUL_NSPACES_ENABLED');
   }
 }

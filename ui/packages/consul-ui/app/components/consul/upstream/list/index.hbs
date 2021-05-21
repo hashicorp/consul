@@ -24,7 +24,7 @@ as |item index|>
         </Tooltip>
       </dd>
     </dl>
-{{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
+{{#if (and (can 'use nspaces') (not-eq item.Namespace @nspace))}}
       <a
         data-test-service-name
         href={{href-to 'dc.services.show' @dc item.Name
