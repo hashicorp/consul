@@ -347,8 +347,7 @@ func (c *cmd) captureDynamic() error {
 	// captured before continuing
 	var wg sync.WaitGroup
 
-	capture := func() {
-		timestamp := time.Now().Local().Unix()
+	capture := func(timestamp int64) {
 
 		// Make the directory that will store all captured data
 		// for this interval
@@ -373,7 +372,7 @@ func (c *cmd) captureDynamic() error {
 					errCh <- err
 				}
 
-				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
+				err = appendToFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
 				if err != nil {
 					errCh <- err
 				}
@@ -402,7 +401,7 @@ func (c *cmd) captureDynamic() error {
 					errCh <- fmt.Errorf("failed to collect heap profile: %w", err)
 				}
 
-				err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
+				err = appendToFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
 				if err != nil {
 					errCh <- err
 				}
@@ -420,7 +419,7 @@ func (c *cmd) captureDynamic() error {
 						errCh <- fmt.Errorf("failed to collect cpu profile: %w", err)
 					}
 
-					err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
+					err = appendToFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
 					if err != nil {
 						errCh <- err
 					}
@@ -435,7 +434,7 @@ func (c *cmd) captureDynamic() error {
 						errCh <- fmt.Errorf("failed to collect trace: %w", err)
 					}
 
-					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
+					err = appendToFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
 					if err != nil {
 						errCh <- err
 					}
@@ -448,7 +447,7 @@ func (c *cmd) captureDynamic() error {
 					errCh <- fmt.Errorf("failed to collect goroutine profile: %w", err)
 				}
 
-				err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
+				err = appendToFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
 				if err != nil {
 					errCh <- err
 				}
@@ -507,15 +506,16 @@ func (c *cmd) captureDynamic() error {
 		// Send down the timestamp for UI output
 		successChan <- timestamp
 	}
+	timestamp := time.Now().Local().Unix()
+	go capture(timestamp)
 
-	go capture()
-
+	//TODO: simplify the capture loop using context to handle timeouts
 	for {
 		select {
 		case t := <-successChan:
 			intervalCount++
 			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Unix(t, 0).Local().String(), intervalCount))
-			go capture()
+			go capture(timestamp)
 		case e := <-errCh:
 			c.UI.Error(fmt.Sprintf("Capture failure: %s", e))
 		case <-durationChn:
@@ -524,6 +524,19 @@ func (c *cmd) captureDynamic() error {
 			return errors.New("stopping collection due to shutdown signal")
 		}
 	}
+}
+
+func appendToFile(filename string, content []byte, perm os.FileMode) error {
+	f, err := os.OpenFile(filename,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, perm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.Write(content); err != nil {
+		return err
+	}
+	return nil
 }
 
 // allowedTarget returns a boolean if the target is able to be captured
