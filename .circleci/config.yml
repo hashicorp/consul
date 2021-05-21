@@ -893,6 +893,8 @@ jobs:
     environment:
       AWS_DEFAULT_REGION: us-east-2
       BUCKET: consul-ci-load-tests
+      BASH_ENV: /etc/profile
+    shell: /bin/sh -leo pipefail
     steps:
       - checkout
       - run: apk add jq curl bash
@@ -924,7 +926,6 @@ jobs:
             echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" >> $BASH_ENV
       - run:
           name: wait for dev build from test-integrations workflow
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip"
             until [ $SECONDS -ge 300 ] && exit 1; do
@@ -935,7 +936,6 @@ jobs:
       - run:
           working_directory: .circleci/terraform/load-test
           name: terraform init
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             echo "commit is ${LOCAL_COMMIT_SHA}"
             terraform init \
@@ -946,14 +946,12 @@ jobs:
       - run:
           working_directory: .circleci/terraform/load-test
           name: run terraform apply
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             terraform apply -auto-approve
       - run:
           working_directory: .circleci/terraform/load-test
           when: always
           name: terraform destroy
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             terraform destroy -auto-approve
       - run: *notify-slack-failure
@@ -964,7 +962,7 @@ jobs:
     docker:
       - image: docker.mirror.hashicorp.services/alpine:latest
     steps:
-      - run: 'echo ok'
+      - run: "echo ok"
 
 workflows:
   version: 2
