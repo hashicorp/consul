@@ -1429,18 +1429,16 @@ func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.
 		}
 		handled[records[0].String()] = struct{}{}
 
-		if records != nil {
-			switch records[0].(type) {
-			case *dns.CNAME:
-				// keep track of the first CNAME + associated RRs but don't add to the resp.Answer yet
-				// this will only be added if no non-CNAME RRs are found
-				if len(answerCNAME) == 0 {
-					answerCNAME = records
-				}
-			default:
-				resp.Answer = append(resp.Answer, records...)
-				had_answer = true
+		switch records[0].(type) {
+		case *dns.CNAME:
+			// keep track of the first CNAME + associated RRs but don't add to the resp.Answer yet
+			// this will only be added if no non-CNAME RRs are found
+			if len(answerCNAME) == 0 {
+				answerCNAME = records
 			}
+		default:
+			resp.Answer = append(resp.Answer, records...)
+			had_answer = true
 		}
 
 		if had_answer {
