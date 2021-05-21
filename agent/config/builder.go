@@ -1988,17 +1988,7 @@ func (b *builder) nodeName(v *string) string {
 	if nodeName == "" {
 		fn := b.opts.hostname
 		if fn == nil {
-			fn = func() (string, error) {
-				host, err := os.Hostname()
-				if err != nil {
-					return "", err
-				}
-				fqdn := strings.Split(host, ".")
-				if len(fqdn) < 1 {
-					return "", errors.New("invalid hostname")
-				}
-				return fqdn[0], nil
-			}
+			fn = os.Hostname
 		}
 		name, err := fn()
 		if err != nil {
