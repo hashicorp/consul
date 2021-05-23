@@ -1,4 +1,20 @@
 dc:
+  nodes:
+    show:
+      healthchecks:
+        empty: |
+          <p>
+            This node has no health checks{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
+        critical-serf-notice:
+          header: Failing serf check
+          body: |
+            <p>
+              This node has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
+            </p>
   services:
     show:
       upstreams:
@@ -7,6 +23,20 @@ dc:
             Upstreams are services that may receive traffic from this gateway. If you are not using Consul DNS, please make sure your <code>Host:</code> header uses the correct domain name for the gateway to correctly proxy to its upstreams. Learn more about configuring gateways in our <a href="{CONSUL_DOCS_URL}/connect/ingress-gateways" target="_blank" rel="noopener noreferrer">documentation</a>.
           </p>
     instance:
+      healthchecks:
+        empty: |
+          <p>
+            This instance has no health checks{items, select,
+              0 {}
+              other { matching that search}
+            }.
+          </p>
+        critical-serf-notice:
+          header: Failing serf check
+          body: |
+            <p>
+              This instance has a failing serf node check. The health statuses shown on this page are the statuses as they were known before the node became unreachable.
+            </p>
       upstreams:
         tproxy-mode:
           header: Transparent proxy mode

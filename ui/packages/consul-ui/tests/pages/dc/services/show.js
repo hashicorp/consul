@@ -36,5 +36,10 @@ export default function(visitable, clickable, attribute, collection, text, inten
       name: text('[data-test-service-name]'),
     }),
   };
+  page.tabs.tagsTab = {
+    tags: collection('.tag-list dd > span', {
+      name: text(),
+    }),
+  };
   return page;
 }

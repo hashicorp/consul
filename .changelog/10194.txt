@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Show a message to explain that health checks may be out of date if the serf health check is in a critical state
+```

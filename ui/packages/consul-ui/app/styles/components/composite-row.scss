@@ -16,13 +16,20 @@
 .consul-lock-session-list ul > li:not(:first-child) {
   @extend %with-one-action-row;
 }
-// TODO: This hides the icons-less dt's in the below lists as they don't have
+// TODO: This hides the iconless dt's in the below lists as they don't have
 // tooltips the todo would be to wrap these texts in spans
+.consul-lock-session-list ul > li:not(:first-child) dl:not([class]) dt,
 .consul-nspace-list > ul > li:not(:first-child) dt,
 .consul-token-list > ul > li:not(:first-child) dt,
 .consul-policy-list > ul li:not(:first-child) dl:not(.datacenter) dt,
 .consul-role-list > ul > li:not(:first-child) dt {
+  @extend %iconless-dt;
+}
+%iconless-dt {
   display: none;
+}
+%iconless-dt + dd {
+  margin-left: 0 !important;
 }
 /* TODO: the service list has a 1px offset */
 .consul-policy-list dl.datacenter dt,
@@ -51,7 +58,6 @@
   margin-left: 4px;
 }
 %composite-row-detail .copy-button {
-  margin-right: 4px;
   margin-top: 2px;
 }
 %composite-row .copy-button button {

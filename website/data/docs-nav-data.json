@@ -65,6 +65,11 @@
         "path": "install"
       },
       {
+        "title": "Manual Bootstrap",
+        "path": "install/manual-bootstrap",
+        "hidden": true
+      },
+      {
         "title": "Consul Agent",
         "href": "/docs/agent"
       },
@@ -197,6 +202,11 @@
           {
             "title": "Proxy Integration",
             "path": "connect/proxies/integrate"
+          },
+          {
+            "title": "Managed (Deprecated)",
+            "path": "connect/proxies/managed-deprecated",
+            "hidden": true
           }
         ]
       },
@@ -334,6 +344,11 @@
       {
         "title": "Develop and Debug",
         "path": "connect/dev"
+      },
+      {
+        "title": "Security",
+        "path": "connect/security",
+        "hidden": true
       }
     ]
   },
@@ -569,7 +584,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "nia/api/api-overview"
+            "path": "nia/api"
           },
           {
             "title": "Status",
@@ -586,7 +601,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "nia/cli/cli-overview"
+            "path": "nia/cli"
           },
           {
             "title": "task",
@@ -655,6 +670,11 @@
       {
         "title": "Sentinel",
         "path": "agent/sentinel"
+      },
+      {
+        "title": "RPC",
+        "path": "agent/rpc",
+        "hidden": true
       }
     ]
   },
@@ -904,5 +924,24 @@
         "path": "release-notes/1-9-0"
       }
     ]
+  },
+  {
+    "title": "Internals",
+    "hidden": true,
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "internals"
+      },
+      {
+        "title": "ACL",
+        "path": "internals/acl"
+      }
+    ]
+  },
+  {
+    "title": "Guides",
+    "path": "guides",
+    "hidden": true
   }
 ]

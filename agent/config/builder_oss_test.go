@@ -97,6 +97,15 @@ func TestValidateEnterpriseConfigKeys(t *testing.T) {
 				require.Nil(t, c.ACL.Tokens.ManagedServiceProvider)
 			},
 		},
+		"license_path": {
+			config: Config{
+				LicensePath: &stringVal,
+			},
+			badKeys: []string{"license_path"},
+			check: func(t *testing.T, c *Config) {
+				require.Empty(t, c.LicensePath)
+			},
+		},
 		"multi": {
 			config: Config{
 				ReadReplica: &boolVal,

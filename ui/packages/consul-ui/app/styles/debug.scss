@@ -4,7 +4,7 @@
 // temporary component debugging setup
 @import 'consul-ui/components/main-nav-vertical/debug';
 
-.is-debug .brand-loader {
+html.is-debug body > .brand-loader {
   display: none !important;
 }
 
@@ -39,13 +39,13 @@
       background-color: white;
       margin-bottom: 2rem;
     }
-    ol,
-    ul {
+    > ol,
+    > ul {
       list-style-position: outside;
       margin-bottom: 1rem;
       margin-left: 2rem;
     }
-    ul {
+    > ul {
       list-style-type: disc;
     }
   }
@@ -67,17 +67,24 @@
         margin-bottom: 0;
       }
       figure {
-        margin-bottom: .5rem;
+        margin-bottom: 0.5rem;
       }
       figcaption {
-        margin-bottom: .5rem;
+        margin-bottom: 0.5rem;
         color: var(--gray-400);
         font-style: italic;
       }
-      figure > [type=text] {
+      figcaption code {
+        @extend %inline-code;
+      }
+      figure > [type='text'] {
         border: 1px solid var(--gray-999);
         width: 100%;
-        padding: .5rem;
+        padding: 0.5rem;
+      }
+      figure > select {
+        border: 1px solid var(--gray-999);
+        padding: 0.5rem;
       }
     }
     // &__snippets__tabs__button {

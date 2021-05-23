@@ -1,0 +1,3 @@
+```release-note:bug
+namespaces: **(Enterprise only)** fixes a problem where the logs would contain many warnings about namespaces not being licensed.
+``` 

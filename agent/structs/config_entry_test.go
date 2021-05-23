@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -1362,6 +1363,118 @@ func TestDecodeConfigEntry(t *testing.T) {
 		})
 		t.Run(tc.name+" (camel case)", func(t *testing.T) {
 			testbody(t, tc.camel)
+		})
+	}
+}
+
+func TestServiceConfigRequest(t *testing.T) {
+	tests := []struct {
+		name     string
+		req      ServiceConfigRequest
+		mutate   func(req *ServiceConfigRequest)
+		want     *cache.RequestInfo
+		wantSame bool
+	}{
+		{
+			name: "basic params",
+			req: ServiceConfigRequest{
+				QueryOptions: QueryOptions{Token: "foo"},
+				Datacenter:   "dc1",
+			},
+			want: &cache.RequestInfo{
+				Token:      "foo",
+				Datacenter: "dc1",
+			},
+			wantSame: true,
+		},
+		{
+			name: "name should be considered",
+			req: ServiceConfigRequest{
+				Name: "web",
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.Name = "db"
+			},
+			wantSame: false,
+		},
+		{
+			name: "legacy upstreams should be different",
+			req: ServiceConfigRequest{
+				Name:      "web",
+				Upstreams: []string{"foo"},
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.Upstreams = []string{"foo", "bar"}
+			},
+			wantSame: false,
+		},
+		{
+			name: "legacy upstreams should not depend on order",
+			req: ServiceConfigRequest{
+				Name:      "web",
+				Upstreams: []string{"bar", "foo"},
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.Upstreams = []string{"foo", "bar"}
+			},
+			wantSame: true,
+		},
+		{
+			name: "upstreams should be different",
+			req: ServiceConfigRequest{
+				Name: "web",
+				UpstreamIDs: []ServiceID{
+					NewServiceID("foo", nil),
+				},
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.UpstreamIDs = []ServiceID{
+					NewServiceID("foo", nil),
+					NewServiceID("bar", nil),
+				}
+			},
+			wantSame: false,
+		},
+		{
+			name: "upstreams should not depend on order",
+			req: ServiceConfigRequest{
+				Name: "web",
+				UpstreamIDs: []ServiceID{
+					NewServiceID("bar", nil),
+					NewServiceID("foo", nil),
+				},
+			},
+			mutate: func(req *ServiceConfigRequest) {
+				req.UpstreamIDs = []ServiceID{
+					NewServiceID("foo", nil),
+					NewServiceID("bar", nil),
+				}
+			},
+			wantSame: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			info := tc.req.CacheInfo()
+			if tc.mutate != nil {
+				tc.mutate(&tc.req)
+			}
+			afterInfo := tc.req.CacheInfo()
+
+			// Check key matches or not
+			if tc.wantSame {
+				require.Equal(t, info, afterInfo)
+			} else {
+				require.NotEqual(t, info, afterInfo)
+			}
+
+			if tc.want != nil {
+				// Reset key since we don't care about the actual hash value as long as
+				// it does/doesn't change appropriately (asserted with wantSame above).
+				info.Key = ""
+				require.Equal(t, *tc.want, info)
+			}
 		})
 	}
 }

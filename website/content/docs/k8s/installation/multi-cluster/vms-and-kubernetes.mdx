@@ -20,70 +20,81 @@ must be the [primary](/docs/k8s/installation/multi-cluster/kubernetes#primary-da
 If your primary datacenter is running on Kubernetes, use the Helm config from the
 [Primary Datacenter](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
 
-Once installed, and with the `ProxyDefaults` [resource created](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults),
+Once installed on Kubernetes, and with the `ProxyDefaults` [resource created](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults),
 you'll need to export the following information from the primary Kubernetes cluster:
 
-* The certificate authority cert:
+- Certificate authority cert and key (in order to create SSL certs for VMs)
+- External addresses of Kubernetes mesh gateways
+- Replication ACL token
+- Gossip encryption key
 
-  ```sh
-  kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
-    base64 -D > consul-agent-ca.pem
-  ```
+The following sections detail how to export this data.
 
-* The certificate authority signing key:
+### Certificates
 
-  ```sh
-  kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
-     base64 -D > consul-agent-ca-key.pem
-  ```
+1. Retrieve the certificate authority cert:
 
-With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
-create certificates for your servers and clients running on VMs that share the
-same certificate authority as your Kubernetes servers.
+   ```sh
+   kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
+     base64 -D > consul-agent-ca.pem
+   ```
 
-You can use the `consul tls` commands to generate those certificates:
+1. And the certificate authority signing key:
 
-  ```sh
-  # NOTE: consul-agent-ca.pem and consul-agent-ca-key.pem must be in the current
-  # directory.
-  $ consul tls cert create -server -dc=vm-dc -node <node_name>
-  ==> WARNING: Server Certificates grants authority to become a
-      server and access all state in the cluster including root keys
-      and all ACL tokens. Do not distribute them to production hosts
-      that are not server nodes. Store them as securely as CA keys.
-  ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved vm-dc-server-consul-0.pem
-  ==> Saved vm-dc-server-consul-0-key.pem
-  ```
+   ```sh
+   kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
+      base64 -D > consul-agent-ca-key.pem
+   ```
 
--> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](https://www.consul.io/docs/agent#running-an-agent).  This is a [requirement](https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
-Not satisfying this requirement would result in the following error in the Consul Server logs:
-`[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
+1. With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
+   create certificates for your servers and clients running on VMs that share the
+   same certificate authority as your Kubernetes servers.
 
-See the help for output of `consul tls cert create -h` to see more options
-for generating server certificates.
+   You can use the `consul tls` commands to generate those certificates:
 
-These certificates can be used in your server config file:
+   ```sh
+   # NOTE: consul-agent-ca.pem and consul-agent-ca-key.pem must be in the current
+   # directory.
+   $ consul tls cert create -server -dc=vm-dc -node <node_name>
+   ==> WARNING: Server Certificates grants authority to become a
+       server and access all state in the cluster including root keys
+       and all ACL tokens. Do not distribute them to production hosts
+       that are not server nodes. Store them as securely as CA keys.
+   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+   ==> Saved vm-dc-server-consul-0.pem
+   ==> Saved vm-dc-server-consul-0-key.pem
+   ```
 
-```hcl
-# server.hcl
-cert_file = "vm-dc-server-consul-0.pem"
-key_file = "vm-dc-server-consul-0-key.pem"
-ca_file = "consul-agent-ca.pem"
-```
+   -> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](https://www.consul.io/docs/agent#running-an-agent). This is a [requirement](https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
+   Not satisfying this requirement would result in the following error in the Consul Server logs:
+   `[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
 
-For clients, you can generate TLS certs with:
+   See the help for output of `consul tls cert create -h` to see more options
+   for generating server certificates.
 
-```shell-session
-$ consul tls cert create -client
-==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-==> Saved dc1-client-consul-0.pem
-==> Saved dc1-client-consul-0-key.pem
-```
+1. These certificates can be used in your server config file:
 
-Or use the [auto_encrypt](/docs/agent/options#auto_encrypt) feature.
+   ```hcl
+   # server.hcl
+   cert_file = "vm-dc-server-consul-0.pem"
+   key_file = "vm-dc-server-consul-0-key.pem"
+   ca_file = "consul-agent-ca.pem"
+   ```
 
-1. The WAN addresses of the mesh gateways:
+1. For clients, you can generate TLS certs with:
+
+   ```shell-session
+   $ consul tls cert create -client
+   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+   ==> Saved dc1-client-consul-0.pem
+   ==> Saved dc1-client-consul-0-key.pem
+   ```
+
+   Or use the [auto_encrypt](/docs/agent/options#auto_encrypt) feature.
+
+### Mesh Gateway Addresses
+
+Retrieve the WAN addresses of the mesh gateways:
 
 ```shell-session
 $ kubectl exec statefulset/consul-server -- sh -c \
@@ -108,7 +119,9 @@ setting:
 primary_gateways = ["1.2.3.4:443"]
 ```
 
-1. If ACLs are enabled, you'll also need the replication ACL token:
+### Replication ACL Token
+
+If ACLs are enabled, you'll also need the replication ACL token:
 
 ```shell-session
 $ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token}}'
@@ -116,25 +129,31 @@ e7924dd1-dc3f-f644-da54-81a73ba0a178
 ```
 
 This token will be used in the server config for the replication token.
-You must also create your own agent policy and token.
 
 ```hcl
 acls {
   tokens {
-    agent = "<your agent token>"
     replication = "e7924dd1-dc3f-f644-da54-81a73ba0a178"
   }
 }
 ```
 
-1. If gossip encryption is enabled, you'll need the key as well. The command
-   to retrieve the key will depend on which Kubernetes secret you've stored it in.
+-> **NOTE:** You'll also need to set up additional ACL tokens as needed by the
+ACL system. See tutorial [Secure Consul with Access Control Lists (ACLs)](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#apply-individual-tokens-to-agents)
+for more information.
 
-   This key will be used in server and client configs for the `encrypt` setting:
+### Gossip Encryption Key
 
-   ```hcl
-   encrypt = "uF+GsbI66cuWU21kiXLze5JLEX5j4iDFlDTb0ZWNpDI="
-   ```
+If gossip encryption is enabled, you'll need the key as well. The command
+to retrieve the key will depend on which Kubernetes secret you've stored it in.
+
+This key will be used in server and client configs for the `encrypt` setting:
+
+```hcl
+encrypt = "uF+GsbI66cuWU21kiXLze5JLEX5j4iDFlDTb0ZWNpDI="
+```
+
+### Final Configuration
 
 A final example server config file might look like:
 
@@ -192,41 +211,41 @@ You'll need:
    be routable from the Kubernetes cluster.
 1. If ACLs are enabled you must create an ACL replication token with the following rules:
 
-```hcl
-acl = "write"
-operator = "write"
-agent_prefix "" {
-  policy = "read"
-}
-node_prefix "" {
-  policy = "write"
-}
-service_prefix "" {
-  policy = "read"
-  intentions = "read"
-}
-```
+   ```hcl
+   acl = "write"
+   operator = "write"
+   agent_prefix "" {
+     policy = "read"
+   }
+   node_prefix "" {
+     policy = "write"
+   }
+   service_prefix "" {
+     policy = "read"
+     intentions = "read"
+   }
+   ```
 
-This token is used for ACL replication and for automatic ACL management in Kubernetes.
+   This token is used for ACL replication and for automatic ACL management in Kubernetes.
 
-If you're running Consul Enterprise you'll need the rules:
+   If you're running Consul Enterprise you'll need the rules:
 
-```hcl
-acl = "write"
-operator = "write"
-agent_prefix "" {
-  policy = "read"
-}
-node_prefix "" {
-  policy = "write"
-}
-namespace_prefix "" {
-  service_prefix "" {
-    policy = "read"
-    intentions = "read"
-  }
-}
-```
+   ```hcl
+   acl = "write"
+   operator = "write"
+   agent_prefix "" {
+     policy = "read"
+   }
+   node_prefix "" {
+     policy = "write"
+   }
+   namespace_prefix "" {
+     service_prefix "" {
+       policy = "read"
+       intentions = "read"
+     }
+   }
+   ```
 
 1. If gossip encryption is enabled, you'll need the key.
 
@@ -293,11 +312,11 @@ gateways running on VMs.
 With your config file ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
 to install Consul on your secondary cluster(s).
 
-## Next Steps
-
 After installation, if you're using consul-helm 0.30.0+, [create the
 `ProxyDefaults` resource](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults)
 to allow traffic between datacenters.
 
-Follow the [Verifying Federation](/docs/k8s/installation/multi-cluster/kubernetes#verifying-federation)
+## Next Steps
+
+In both cases (Kubernetes as primary or secondary), after installation, follow the [Verifying Federation](/docs/k8s/installation/multi-cluster/kubernetes#verifying-federation)
 section to verify that federation is working as expected.

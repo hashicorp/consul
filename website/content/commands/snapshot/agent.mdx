@@ -51,6 +51,8 @@ Snapshots can be restored using the
 [`consul snapshot restore`](/commands/snapshot/restore) command, or
 the [HTTP API](/api/snapshot).
 
+## ACL permissions
+
 If ACLs are enabled the following privileges are required:
 
 | Resource  | Segment          | Permission | Explanation                                                                                                                                                   |
@@ -59,6 +61,63 @@ If ACLs are enabled the following privileges are required:
 | `key`     | `<lock key>`     | `write`    | The lock key (which defaults to `consul-snapshot/lock`) is used during snapshot agent leader election.                                                        |
 | `session` | `<agent name>`   | `write`    | The session used for locking during leader election is created against the agent name of the Consul agent that the Snapshot agent is registering itself with. |
 | `service` | `<service name>` | `write`    | The Snapshot agent registers itself with the local Consul agent and must have write privileges on its service name which is configured with `-service`.       |
+
+### Example ACL policy
+
+The following is a example least privilege policy which allows the snapshot agent
+to run on a node named `server-1234`.
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+# Required to read and snapshot ACL data
+acl = "write"
+# Allow the snapshot agent to create the key consul-snapshot/lock which will
+# serve as a leader election lock when multiple snapshot agents are running in
+# an environment
+key "consul-snapshot/lock" {
+  policy = "write"
+}
+# Allow the snapshot agent to create sessions on the specified node
+session "server-1234" {
+  policy = "write"
+}
+# Allow the snapshot agent to register itself into the catalog
+service "consul-snapshot" {
+  policy = "write"
+}
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "acl": "write",
+  "key": {
+    "consul-snapshot/lock": {
+      "policy": "write"
+    }
+  },
+  "session": {
+    "server-1234": {
+      "policy": "write"
+    }
+  },
+  "service": {
+    "consul-snapshot": {
+      "policy": "write"
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+Additional `session` rules should be created, or `session_prefix` used, if the
+snapshot agent is deployed across more than one hosts.
 
 ## Usage
 

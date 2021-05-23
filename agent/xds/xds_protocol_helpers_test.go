@@ -19,6 +19,7 @@ import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
+	"github.com/armon/go-metrics"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -118,6 +119,7 @@ type testServerScenario struct {
 	server *Server
 	mgr    *testManager
 	envoy  *TestEnvoy
+	sink   *metrics.InmemSink
 	errCh  <-chan error
 }
 
@@ -155,6 +157,17 @@ func newTestServerScenarioInner(
 		envoy.Close()
 	})
 
+	sink := metrics.NewInmemSink(1*time.Minute, 1*time.Minute)
+	cfg := metrics.DefaultConfig("consul.xds.test")
+	cfg.EnableHostname = false
+	cfg.EnableRuntimeMetrics = false
+	metrics.NewGlobal(cfg, sink)
+
+	t.Cleanup(func() {
+		sink := &metrics.BlackholeSink{}
+		metrics.NewGlobal(cfg, sink)
+	})
+
 	s := NewServer(
 		testutil.Logger(t),
 		mgr,
@@ -178,6 +191,7 @@ func newTestServerScenarioInner(
 		server: s,
 		mgr:    mgr,
 		envoy:  envoy,
+		sink:   sink,
 		errCh:  errCh,
 	}
 }
@@ -646,4 +660,24 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}
+}
+
+func requireProtocolVersionGauge(
+	t *testing.T,
+	scenario *testServerScenario,
+	xdsVersion string,
+	expected int,
+) {
+	data := scenario.sink.Data()
+	require.Len(t, data, 1)
+
+	item := data[0]
+	require.Len(t, item.Gauges, 1)
+
+	val, ok := item.Gauges["consul.xds.test.xds.server.streams;version="+xdsVersion]
+	require.True(t, ok)
+
+	require.Equal(t, "consul.xds.test.xds.server.streams", val.Name)
+	require.Equal(t, expected, int(val.Value))
+	require.Equal(t, []metrics.Label{{Name: "version", Value: xdsVersion}}, val.Labels)
 }

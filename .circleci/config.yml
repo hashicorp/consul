@@ -14,7 +14,7 @@ parameters:
 references:
   images:
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.3
-    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
+    ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
@@ -36,7 +36,7 @@ steps:
   install-gotestsum: &install-gotestsum
     name: install gotestsum
     environment:
-      GOTESTSUM_RELEASE: 0.6.0
+      GOTESTSUM_RELEASE: 1.6.4
     command: |
       url=https://github.com/gotestyourself/gotestsum/releases/download
       curl -sSL "${url}/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | \
@@ -767,14 +767,14 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_4: &ENVOY_TESTS
+  envoy-integration-test-1_15_5: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.15.4"
+      ENVOY_VERSION: "1.15.5"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -807,32 +807,32 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_4-v2compat:
+  envoy-integration-test-1_15_5-v2compat:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.15.4"
+      ENVOY_VERSION: "1.15.5"
       TEST_V2_XDS: "1"
 
-  envoy-integration-test-1_16_3:
+  envoy-integration-test-1_16_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.3"
+      ENVOY_VERSION: "1.16.4"
 
-  envoy-integration-test-1_16_3-v2compat:
+  envoy-integration-test-1_16_4-v2compat:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.3"
+      ENVOY_VERSION: "1.16.4"
       TEST_V2_XDS: "1"
 
-  envoy-integration-test-1_17_2:
+  envoy-integration-test-1_17_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.17.2"
+      ENVOY_VERSION: "1.17.3"
 
-  envoy-integration-test-1_18_2:
+  envoy-integration-test-1_18_3:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.18.2"
+      ENVOY_VERSION: "1.18.3"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -893,6 +893,8 @@ jobs:
     environment:
       AWS_DEFAULT_REGION: us-east-2
       BUCKET: consul-ci-load-tests
+      BASH_ENV: /etc/profile
+    shell: /bin/sh -leo pipefail
     steps:
       - checkout
       - run: apk add jq curl bash
@@ -924,7 +926,6 @@ jobs:
             echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" >> $BASH_ENV
       - run:
           name: wait for dev build from test-integrations workflow
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip"
             until [ $SECONDS -ge 300 ] && exit 1; do
@@ -935,7 +936,6 @@ jobs:
       - run:
           working_directory: .circleci/terraform/load-test
           name: terraform init
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             echo "commit is ${LOCAL_COMMIT_SHA}"
             terraform init \
@@ -946,20 +946,31 @@ jobs:
       - run:
           working_directory: .circleci/terraform/load-test
           name: run terraform apply
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             terraform apply -auto-approve
       - run:
           working_directory: .circleci/terraform/load-test
           when: always
           name: terraform destroy
-          shell: /usr/bin/env bash -euo pipefail -c
           command: |
             terraform destroy -auto-approve
       - run: *notify-slack-failure
 
+  # The noop job is a used as a very fast job in the verify-ci workflow because every workflow
+  # requires at least one job. It does nothing.
+  noop:
+    docker:
+      - image: docker.mirror.hashicorp.services/alpine:latest
+    steps:
+      - run: "echo ok"
+
 workflows:
   version: 2
+  # verify-ci is a no-op workflow that must run on every PR. It is used in a
+  # branch protection rule to detect when CI workflows are not running.
+  verify-ci:
+    jobs: [noop]
+
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
@@ -1041,22 +1052,22 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_4:
+      - envoy-integration-test-1_15_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_4-v2compat:
+      - envoy-integration-test-1_15_5-v2compat:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_3:
+      - envoy-integration-test-1_16_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_3-v2compat:
+      - envoy-integration-test-1_16_4-v2compat:
           requires:
             - dev-build
-      - envoy-integration-test-1_17_2:
+      - envoy-integration-test-1_17_3:
           requires:
             - dev-build
-      - envoy-integration-test-1_18_2:
+      - envoy-integration-test-1_18_3:
           requires:
             - dev-build
 

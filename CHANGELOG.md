@@ -1,5 +1,53 @@
 ## UNRELEASED
 
+## 1.10.0-beta2 (May 05, 2021)
+
+BREAKING CHANGES:
+
+* connect: Disallow wildcard as name for service-defaults. [[GH-10069](https://github.com/hashicorp/consul/issues/10069)]
+
+FEATURES:
+
+* cli: Add additional flags to the `consul connect redirect-traffic` command to allow excluding inbound and outbound ports,
+outbound CIDRs, and additional user IDs from traffic redirection. [[GH-10134](https://github.com/hashicorp/consul/issues/10134)]
+* cli: Automatically exclude ports from `envoy_prometheus_bind_addr`, `envoy_stats_bind_addr`, and `ListenerPort` from `Expose` config
+from inbound traffic redirection rules if `proxy-id` flag is provided to the `consul connect redirect-traffic` command. [[GH-10134](https://github.com/hashicorp/consul/issues/10134)]
+* connect: add support for unix domain sockets addresses for service upstreams and downstreams [[GH-9981](https://github.com/hashicorp/consul/issues/9981)]
+* sdk: Allow excluding inbound and outbound ports, outbound CIDRs, and additional user IDs from traffic redirection in the `iptables` package. [[GH-10134](https://github.com/hashicorp/consul/issues/10134)]
+* xds: exclusively support the Incremental xDS protocol when using xDS v3 [[GH-9855](https://github.com/hashicorp/consul/issues/9855)]
+
+IMPROVEMENTS:
+
+* acl: Give more descriptive error if auth method not found. [[GH-10163](https://github.com/hashicorp/consul/issues/10163)]
+* cli: snapshot inspect command can now inspect raw snapshots from a server's data
+dir. [[GH-10089](https://github.com/hashicorp/consul/issues/10089)]
+* connect: rename cluster config entry to mesh. [[GH-10127](https://github.com/hashicorp/consul/issues/10127)]
+* connect: restrict transparent proxy mode to only match on the tagged virtual IP address. [[GH-10162](https://github.com/hashicorp/consul/issues/10162)]
+* connect: update supported envoy versions to 1.18.2, 1.17.2, 1.16.3, 1.15.4 [[GH-10101](https://github.com/hashicorp/consul/issues/10101)]
+* raft: allow reloading of raft trailing logs and snapshot timing to allow recovery from some [replication failure modes](https://github.com/hashicorp/consul/issues/9609).
+telemetry: add metrics and documentation for [monitoring for replication issues](https://consul.io/docs/agent/telemetry#raft-replication-capacity-issues). [[GH-10129](https://github.com/hashicorp/consul/issues/10129)]
+* streaming: change `use_streaming_backend` to default to true so that streaming is used by default when it is supported. [[GH-10149](https://github.com/hashicorp/consul/issues/10149)]
+* telemetry: Add new metrics for status of secondary datacenter replication. [[GH-10073](https://github.com/hashicorp/consul/issues/10073)]
+* ui: Added CRD popover 'informed action' for intentions managed by CRDs [[GH-10100](https://github.com/hashicorp/consul/issues/10100)]
+* ui: Added humanized formatting to lock session durations [[GH-10062](https://github.com/hashicorp/consul/issues/10062)]
+* ui: Adding a notice about how TransparentProxy mode affects the Upstreams list at the top of tab view [[GH-10136](https://github.com/hashicorp/consul/issues/10136)]
+* ui: Updating the wording for the banner and the popover for a service with an upstream that is not explicitly defined. [[GH-10133](https://github.com/hashicorp/consul/issues/10133)]
+* ui: updates the ui with the new consul brand assets [[GH-10081](https://github.com/hashicorp/consul/issues/10081)]
+* xds: ensure that all envoyproxy/go-control-plane protobuf symbols are linked into the final binary [[GH-10131](https://github.com/hashicorp/consul/issues/10131)]
+
+BUG FIXES:
+
+* cli: snapshot inspect command would panic on invalid input. [[GH-10091](https://github.com/hashicorp/consul/issues/10091)]
+* memberlist: fixes a couple bugs which allowed malformed input to cause a crash in a Consul
+client or server. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
+* streaming: fixes a bug that would cause context cancellation errors when a cache entry expired while requests were active. [[GH-10112](https://github.com/hashicorp/consul/issues/10112)]
+* telemetry: fixes a bug with Prometheus metrics where Gauges and Summaries were incorrectly
+being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
+* ui: Adding conditional to prevent Service Mesh from breaking when there are no Upstreams [[GH-10122](https://github.com/hashicorp/consul/issues/10122)]
+* ui: Fix text searching through upstream instances. [[GH-10151](https://github.com/hashicorp/consul/issues/10151)]
+* ui: Removes the extra rendering of namespace in service upstream list [[GH-10152](https://github.com/hashicorp/consul/issues/10152)]
+* ui: Update conditional for topology empty state [[GH-10124](https://github.com/hashicorp/consul/issues/10124)]
+
 ## 1.10.0-beta1 (April 16, 2021)
 
 SECURITY:
@@ -9,6 +57,7 @@ SECURITY:
 
 FEATURES:
 
+* checks: add H2 ping health checks. [[GH-8431](https://github.com/hashicorp/consul/issues/8431)]
 * cli: Add new `consul connect redirect-traffic` command for applying traffic redirection rules when Transparent Proxy is enabled. [[GH-9910](https://github.com/hashicorp/consul/issues/9910)]
 * cli: Add prefix option to kv import command [[GH-9792](https://github.com/hashicorp/consul/issues/9792)]
 * cli: snapshot inspect command provides KV usage breakdown [[GH-9098](https://github.com/hashicorp/consul/issues/9098)]
@@ -16,6 +65,7 @@ FEATURES:
 * connect: Add local_request_timeout_ms to allow configuring the Envoy request timeout on local_app [[GH-9554](https://github.com/hashicorp/consul/issues/9554)]
 * connect: add toggle to globally disable wildcard outbound network access when transparent proxy is enabled [[GH-9973](https://github.com/hashicorp/consul/issues/9973)]
 * sdk: Add new `iptables` package for applying traffic redirection rules with iptables. [[GH-9910](https://github.com/hashicorp/consul/issues/9910)]
+* ui: Transparent Proxy - Service mesh visualization updates [[GH-10002](https://github.com/hashicorp/consul/issues/10002)]
 * ui: Read-only ACL Auth Methods view [[GH-9617](https://github.com/hashicorp/consul/issues/9617)]
 
 IMPROVEMENTS:
@@ -623,6 +673,8 @@ BUGFIXES:
 BUG FIXES:
 
 * xds: revert setting set_node_on_first_message_only to true when generating envoy bootstrap config [[GH-8441](https://github.com/hashicorp/consul/issues/8441)]
+* telemetry: fix for a lock contention issue with the go-metrics Prometheus sink that could cause performance issues [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
+* telemetry: fix for a lock contention issue with the go-metrics Dogstatsd sink that could cause performance issues [[GH-8372](https://github.com/hashicorp/consul/pull/8372)]
 
 ## 1.7.5 (July 30, 2020)
 

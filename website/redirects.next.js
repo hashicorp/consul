@@ -6,6 +6,11 @@
 
 module.exports = [
   {
+    source: '/trial',
+    destination: 'https://www.hashicorp.com/products/consul/trial',
+    permanent: true,
+  },
+  {
     source: '/discovery',
     destination: '/use-cases/service-discovery-and-health-checking',
     permanent: true,
@@ -1175,6 +1180,16 @@ module.exports = [
   {
     source: '/docs/nia/installation/configuration',
     destination: '/docs/nia/configuration',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/api/api-overview',
+    destination: '/docs/nia/api',
+    permanent: true,
+  },
+  {
+    source: '/docs/nia/cli/cli-overview',
+    destination: '/docs/nia/cli',
     permanent: true,
   },
   {

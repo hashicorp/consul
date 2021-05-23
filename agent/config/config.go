@@ -187,6 +187,7 @@ type Config struct {
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config"`
 	KeyFile                          *string             `mapstructure:"key_file"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate"`
+	LicensePath                      *string             `mapstructure:"license_path"`
 	Limits                           Limits              `mapstructure:"limits"`
 	LogLevel                         *string             `mapstructure:"log_level"`
 	LogJSON                          *bool               `mapstructure:"log_json"`
@@ -282,7 +283,7 @@ type Config struct {
 	VersionPrerelease          *string  `mapstructure:"version_prerelease"`
 
 	// Enterprise Only
-	Audit *Audit `mapstructure:"audit"`
+	Audit Audit `mapstructure:"audit"`
 	// Enterprise Only
 	ReadReplica *bool `mapstructure:"read_replica" alias:"non_voting_server"`
 	// Enterprise Only
@@ -761,7 +762,6 @@ type Audit struct {
 
 // AuditSink can be provided multiple times to define pipelines for auditing
 type AuditSink struct {
-	Name              *string `mapstructure:"name"`
 	Type              *string `mapstructure:"type"`
 	Format            *string `mapstructure:"format"`
 	Path              *string `mapstructure:"path"`

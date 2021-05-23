@@ -1,7 +1,0 @@
-@import './brand-loader/index';
-html body > .brand-loader {
-  display: none;
-}
-html.ember-loading body > .brand-loader {
-  @extend %brand-loader;
-}

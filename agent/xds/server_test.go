@@ -43,6 +43,8 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	// Check no response sent yet
 	assertChanBlocked(t, envoy.stream.sendCh)
 
+	requireProtocolVersionGauge(t, scenario, "v2", 1)
+
 	// Deliver a new snapshot
 	snap := newTestSnapshot(t, nil, "")
 	mgr.DeliverConfig(t, sid, snap)

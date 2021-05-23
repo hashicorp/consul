@@ -1,0 +1,11 @@
+.consul-lock-session-list .checks dd {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding-left: 0px;
+}
+.consul-lock-session-list .checks dd > *:not(:last-child)::after {
+  content: ',';
+  margin-right: 0.3em;
+  display: inline;
+}
+

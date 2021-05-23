@@ -1,0 +1,15 @@
+%list-collection > ul > li,
+%list-collection-scroll-virtual {
+  position: relative;
+}
+%list-collection-scroll-virtual {
+  height: 500px;
+}
+%list-collection-scroll-virtual > ul {
+  overflow-x: hidden !important;
+}
+
+%list-collection-partial-button {
+  width: 100%;
+  padding: 15px;
+}

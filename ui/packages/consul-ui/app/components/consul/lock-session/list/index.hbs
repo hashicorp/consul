@@ -1,54 +1,71 @@
 {{#if (gt items.length 0)}}
 <ListCollection @items={{items}} class="consul-lock-session-list" as |item index|>
   <BlockSlot @name="header">
+  {{#if item.Name}}
     <span>{{item.Name}}</span>
+  {{else}}
+    <span>
+      {{item.ID}}
+      <CopyButton
+        @value={{item.ID}}
+        @name="ID"
+      />
+    </span>
+  {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
+    {{#if item.Name}}
     <dl>
       <dt>
+        ID
+      </dt>
+      <dd>
         <CopyButton
           @value={{item.ID}}
           @name="ID"
         />
-      </dt>
-      <dd>{{item.ID}}</dd>
+        {{item.ID}}
+      </dd>
     </dl>
+    {{/if}}
     <dl class="lock-delay">
-      <dt>
-        <Tooltip>
-          Delay
-        </Tooltip>
+      <dt {{tooltip}}>
+        Delay
       </dt>
       <dd data-test-session-delay>{{duration-from item.LockDelay}}</dd>
     </dl>
     <dl class="ttl">
-      <dt>
-        <Tooltip>
-          TTL
-        </Tooltip>
+      <dt {{tooltip}}>
+        TTL
       </dt>
+    {{#if (eq item.TTL "")}}
+      <dd data-test-session-ttl={{item.TTL}}>-</dd>
+    {{else}}
       <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
+    {{/if}}
     </dl>
     <dl class="behavior">
-      <dt>
-        <Tooltip>
-          Behavior
-        </Tooltip>
+      <dt {{tooltip}}>
+        Behavior
       </dt>
       <dd>{{item.Behavior}}</dd>
     </dl>
+{{#let (union item.NodeChecks item.ServiceChecks) as |checks|}}
     <dl class="checks">
-      <dt>
-        <Tooltip>
-          Checks
-        </Tooltip>
+      <dt {{tooltip}}>
+        Checks
       </dt>
       <dd>
-      {{#each item.Checks as |item|}}
+{{#if (gt checks.length 0)}}
+      {{#each checks as |item|}}
         <span>{{item}}</span>
       {{/each}}
+{{else}}
+        -
+{{/if}}
       </dd>
     </dl>
+{{/let}}
   </BlockSlot>
 {{#if (can "delete sessions")}}
   <BlockSlot @name="actions">

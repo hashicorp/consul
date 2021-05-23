@@ -71,6 +71,7 @@
     "babel-loader": "^8.1.0",
     "babel-plugin-ember-modules-api-polyfill": "^3.2.0",
     "babel-plugin-htmlbars-inline-precompile": "^5.0.0",
+    "babel-plugin-strip-function-call": "^1.0.2",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^3.0.0",
     "broccoli-funnel": "^3.0.3",
@@ -172,7 +173,7 @@
     "validated-changeset": "0.10.0"
   },
   "engines": {
-    "node": "10.* || >= 12"
+    "node": ">=10 <=14"
   },
   "ember": {
     "edition": "octane"

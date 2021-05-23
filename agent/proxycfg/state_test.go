@@ -1814,7 +1814,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						{
-							CorrelationID: "discovery-chain:db",
+							CorrelationID: "discovery-chain:" + db.String(),
 							Result: &structs.DiscoveryChainResponse{
 								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", "trustdomain.consul", "dc1", nil,
 									&structs.ServiceResolverConfigEntry{

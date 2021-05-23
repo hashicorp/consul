@@ -59,6 +59,8 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	// Check no response sent yet
 	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
+	requireProtocolVersionGauge(t, scenario, "v3", 1)
+
 	// Deliver a new snapshot (tcp with one tcp upstream)
 	mgr.DeliverConfig(t, sid, snap)
 

@@ -1,4 +1,7 @@
 %loader circle {
+  fill: var(--brand-100);
+}
+%loader circle {
   animation: loader-animation 1.5s infinite ease-in-out;
   transform-origin: 50% 50%;
 }

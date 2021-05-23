@@ -6,10 +6,13 @@ description: Consul Connect comes with a built-in proxy for testing and developm
 
 # Built-In Proxy Options
 
-Consul comes with a built-in L4 proxy for testing and development with Consul
-Connect.
+~> **Note:** The built-in proxy is not supported for production deployments. It does not
+support many of the Connect service mesh features, and is not under active development.
+The [Envoy proxy](/docs/connect/proxies/envoy) should be used for production deployments.
 
-~> **Note:** [Envoy](/docs/connect/proxies/envoy) should be used for production deployments, or when [layer 7 traffic management](/docs/connect/l7-traffic-management) features are needed.
+Consul comes with a built-in L4 proxy for testing and development with Consul
+Connect service mesh.
+
 
 ## Getting Started
 
