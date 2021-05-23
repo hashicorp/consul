@@ -1,0 +1,430 @@
+---
+layout: docs
+page_title: AWS ECS
+description: >-
+  Consul Service Mesh can be deployed on AWS ECS (Elastic Container Service).
+  This section documents the official installation of Consul on ECS.
+---
+
+# AWS ECS
+
+-> **Tech Preview:** This functionality is currently in Tech Preview and is
+not yet ready for production use.
+
+Consul can be deployed on AWS ECS (Elastic Container Service) using our official
+Terraform modules.
+
+## Use Cases
+
+Currently the only supported use case is Service Mesh. ECS Tasks can join the Consul Service Mesh and take advantage
+of service mesh features such as zero trust networking and routing policy.
+
+As we iterate and get feedback from users and customers
+we will look at supporting additional use cases such as Service Discovery.
+
+## Supported Configurations
+
+- **Infrastructure As Code:** The tasks that you want to add to the service mesh must first be modeled in Terraform.
+- **Launch Type:** ECS Tasks can run on either Fargate or EC2.
+- **Subnets:** ECS Tasks can run in private or public subnets.
+- **Consul Production Readiness:** Currently, Consul production features such as TLS, ACLs, and Gossip Encryption are not supported. This will be added in the future.
+- **Consul Servers:** Currently, Consul servers must run inside ECS. In the future, we will support Consul servers running in HashiCorp Cloud Platform and on EC2 VMs.
+
+## Getting Started
+
+The easiest way to get started is to use the [`dev-server` example module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/examples/dev-server)
+to install a Consul server and two example service mesh tasks onto an ECS cluster.
+
+## Adding Tasks To The Mesh
+
+Adding existing tasks to the mesh is a multi-part process:
+
+1. [**Terraform:**](#terraform) Your tasks must be specified in Terraform using [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
+   and [`ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) resources.
+1. [**Consul Server:**](#consul-server) You must deploy the Consul server onto the cluster using the [`dev-server` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/dev-server).
+1. [**Task IAM Role:**](#task-iam-role) Modify task IAM role to add `ecs:ListTasks` and `ecs:DescribeTasks` permissions.
+1. [**Task Module:**](#task-module) You can then take your `ecs_task_definition` resources and copy their configuration into a new [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-task)
+   resource that will add the necessary containers to the task definition.
+1. [**Routing:**](#routing) With your tasks as part of the mesh, you must specify their upstream
+   services and change the URLs the tasks are using so that they're making requests
+   through the service mesh.
+1. [**Bind Address:**](#bind-address) Now that all communication is flowing through the service mesh,
+   you should change the address your application is listening on to `127.0.0.1`
+   so that it only receives requests through the sidecar proxy.
+
+### Terraform
+
+Your tasks must first be specified in Terraform using [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
+and [`ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) resources so that
+they can later be converted to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-task).
+
+For example, your tasks should be defined with Terraform similar to the following:
+
+```hcl
+resource "aws_ecs_task_definition" "my_task" {
+  family                   = "my_task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = "arn:aws:iam::111111111111:role/execution-role"
+  task_role_arn            = "arn:aws:iam::111111111111:role/task-role"
+  container_definitions = jsonencode(
+    [{
+      name             = "example-client-app"
+      image            = "docker.io/org/my_task:v0.0.1"
+      essential        = true
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+      cpu         = 0
+      mountPoints = []
+      volumesFrom = []
+    }]
+  )
+}
+
+resource "aws_ecs_service" "my_task" {
+  name            = "my_task"
+  cluster         = "arn:aws:ecs:us-east-1:111111111111:cluster/my-cluster"
+  task_definition = aws_ecs_task_definition.my_task.arn
+  desired_count   = 1
+  network_configuration {
+    subnets = ["subnet-abc123"]
+  }
+  launch_type            = "FARGATE"
+}
+```
+
+### Consul Server
+
+With your tasks defined in Terraform, you're ready to run the Consul server
+on ECS.
+
+-> **NOTE:** This is a development-only Consul server. It has no persistent
+storage and so will lose any data when it restarts. This should only be
+used for test workloads. In the future, we will support Consul servers
+running in HashiCorp Cloud Platform and on EC2 VMs for production workloads.
+
+In order to deploy the Consul server, use the `dev-server` module:
+
+```hcl
+module "dev_consul_server" {
+  source  = "hashicorp/consul/aws-ecs//modules/dev-server"
+  version = "<latest version>"
+
+  ecs_cluster_arn             = var.ecs_cluster_arn
+  subnet_ids                  = var.subnet_ids
+  lb_vpc_id                   = var.vpc_id
+  load_balancer_enabled       = true
+  lb_subnets                  = var.lb_subnet_ids
+  lb_ingress_rule_cidr_blocks = var.lb_ingress_rule_cidr_blocks
+  log_configuration = {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = aws_cloudwatch_log_group.log_group.name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = "consul-server"
+    }
+  }
+}
+
+data "aws_security_group" "vpc_default" {
+  name   = "default"
+  vpc_id = var.vpc_id
+}
+
+resource "aws_security_group_rule" "ingress_from_server_alb_to_ecs" {
+  type                     = "ingress"
+  from_port                = 8500
+  to_port                  = 8500
+  protocol                 = "tcp"
+  source_security_group_id = module.dev_consul_server.lb_security_group_id
+  security_group_id        = data.aws_security_group.vpc_default.id
+}
+
+output "consul_server_url" {
+  value = "http://${module.dev_consul_server.lb_dns_name}:8500"
+}
+```
+
+-> **NOTE:** The documentation for all possible inputs can be found in the [module reference
+docs](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/dev-server?tab=inputs).
+
+The example code above will create a Consul server ECS task and Application Load
+Balancer for the Consul UI. You can then use the output `consul_server_url` as
+the URL to the Consul server.
+
+### Task IAM Role
+
+Your tasks must have an IAM role that allows them to list and describe
+other tasks. This is required in order for the tasks to find the IP
+address of the Consul server.
+
+The specific permissions needed are:
+
+1. `ecs:ListTasks` on resource `*`.
+1. `ecs:DescribeTasks` on all tasks in this account and region. You can either
+   use `*` for simplicity or scope it to the region and account, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/*`
+
+The IAM role's ARN will be passed into the `mesh-task` module in the next step
+via the `task_role_arn` input.
+
+-> **NOTE:** There are two IAM roles needed by ECS Tasks: Execution roles and
+Task roles. Here we are referring to the Task role, not the Execution role.
+The Execution role is used by ECS itself whereas the Task role defines the
+permissions for the containers running in the task.
+
+Terraform for creating the IAM role might look like:
+
+```hcl
+data "aws_caller_identity" "this" {}
+
+resource "aws_iam_role" "this_task" {
+  name = "this_task"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      },
+    ]
+  })
+
+  inline_policy {
+    name = "this_task"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Effect = "Allow"
+          Action = [
+            "ecs:ListTasks",
+          ]
+          Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "ecs:DescribeTasks"
+          ]
+          Resource = [
+            "arn:aws:ecs:${var.region}:${data.aws_caller_identity.this.account_id}:task/*",
+          ]
+        }
+      ]
+    })
+  }
+}
+
+```
+
+### Task Module
+
+In order to add the necessary sidecar containers for your task to join the mesh,
+you must use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-task).
+
+The module will reference the same inputs as your old ECS task definition but it will
+create a new version of the task definition with additional containers.
+
+The `mesh-task` module is used as follows:
+
+```hcl
+module "my_task" {
+  source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  version = "<latest version>"
+
+  family              = "my_task"
+  execution_role_arn  = "arn:aws:iam::111111111111:role/execution-role"
+  task_role_arn       = "arn:aws:iam::111111111111:role/task-role"
+  container_definitions = [
+    {
+      name             = "example-client-app"
+      image            = "docker.io/org/my_task:v0.0.1"
+      essential        = true
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+      cpu         = 0
+      mountPoints = []
+      volumesFrom = []
+    }
+  ]
+
+  port                       = "9090"
+  consul_server_service_name = module.dev_consul_server.ecs_service_name
+}
+```
+
+All possible inputs are documented on the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-tas?tab=inputs)
+however there are some important inputs worth highlighting:
+
+- `family` is used as the [task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family)
+  but it's also used as the name of the service that gets registered in Consul.
+- `container_definitions` accepts an array of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions).
+  These are your application containers and this should be set to the same value as what you
+  were passing into the `container_definitions` key in the `aws_ecs_task_definition` resource
+  without the `jsonencode() function`.
+
+  For example, if your original task definition looked like:
+
+  ```hcl
+  resource "aws_ecs_task_definition" "my_task" {
+    ...
+    container_definitions = jsonencode(
+      [
+        {
+          name             = "example-client-app"
+          image            = "docker.io/org/my_task:v0.0.1"
+          essential        = true
+          ...
+        }
+      ]
+    )
+  }
+  ```
+
+  Then you would remove the `jsonencode()` function and use the rest of the value
+  as the input for the `mesh-task` module:
+
+  ```hcl
+  module "my_task" {
+    source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
+    version = "<latest version>"
+
+    ...
+    container_definitions = [
+      {
+        name             = "example-client-app"
+        image            = "docker.io/org/my_task:v0.0.1"
+        essential        = true
+        ...
+      }
+    ]
+  }
+  ```
+
+- `port` is the port that your application listens on. This should be set to a
+  string, not an integer, i.e. `port = "9090"`, not `port = 9090`.
+- `consul_server_service_name` should be set to the name of the ECS service for
+  the Consul dev server. This is an output of the `dev-server` module so it
+  can be referenced, e.g. `consul_server_service_name = module.dev_consul_server.ecs_service_name`.
+
+The `mesh-task` module will create a new version of your task definition with the
+necessary sidecar containers added so you can delete your existing `aws_ecs_task_definition`
+resource.
+
+Your `aws_ecs_service` resource can remain unchanged except for the `task_definition`
+input which should reference the new module's output of the task definition's ARN:
+
+```hcl
+resource "aws_ecs_service" "my_task" {
+  ...
+  task_definition = module.my_task.task_definition_arn
+}
+```
+
+After running `terraform apply`, you should see your tasks registered in
+the Consul UI.
+
+### Routing
+
+Now that your tasks are registered in the mesh, you're able to use the service
+mesh to route between them.
+
+In order to make calls through the service mesh, you must configure the sidecar
+proxy to listen on a different port for each upstream service your application
+needs to call. You then must modify your application to make requests to the sidecar
+proxy on that port.
+
+For example, say my application `web` wants to make calls to my other application
+`backend`.
+
+First, I must configure the `mesh-task` module's upstreams:
+
+```hcl
+module "web" {
+  family = "web"
+  upstreams = [
+    {
+      destination_name = "backend"
+      local_bind_port  = 8080
+    }
+  ]
+}
+```
+
+I set the `destination_name` to the name of the upstream service (in this case `backend`),
+and I set `local_bind_port` to an unused port. This is the port that the sidecar proxy
+will listen on and any requests to this port will be forwarded over to the `destination_name`.
+This does not have to be the port that `backend` is listening on because the service mesh
+will handle routing the request to the right port.
+
+If you have multiple upstream services they'll each need to be listed here.
+
+Next, I must configure my application to make requests to `localhost:8080` when
+it wants to call the `backend` service.
+
+For example, if my service allows configuring the URL for `backend` via the
+`BACKEND_URL` environment variable, I would set:
+
+```hcl
+module "web" {
+  family = "web"
+  upstreams = [
+    {
+      destination_name = "backend"
+      local_bind_port  = 8080
+    }
+  ]
+  environment = [
+    {
+      name  = "BACKEND_URL"
+      value = "http://localhost:8080"
+    }
+  ]
+}
+```
+
+### Bind Address
+
+To ensure that your application only receives traffic through the service mesh,
+you must change the address that your application is listening on to only the loopback address
+(also known as `localhost`, `lo` and `127.0.0.1`)
+so that only the sidecar proxy running in the same task can make requests to it.
+
+If your application is listening on all interfaces, e.g. `0.0.0.0`, then other
+applications can call it directly, bypassing its sidecar proxy.
+
+Changing the listening address is specific to the language and framework you're
+using in your application. Regardless of which language/framework you're using,
+it's a good practice to make the address configurable via environment variable.
+
+For example in Go, you would use:
+
+```go
+s := &http.Server{
+	Addr:           "127.0.0.1:8080",
+  ...
+}
+log.Fatal(s.ListenAndServe())
+```
+
+In Django you'd use:
+
+```bash
+python manage.py runserver "127.0.0.1:8080"
+```

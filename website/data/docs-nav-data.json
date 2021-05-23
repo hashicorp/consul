@@ -548,6 +548,15 @@
     ]
   },
   {
+    "title": "AWS ECS",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "ecs"
+      }
+    ]
+  },
+  {
     "title": "Network Infrastructure Automation",
     "routes": [
       {
