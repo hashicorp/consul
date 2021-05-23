@@ -602,6 +602,7 @@ services = [
             mode = "transparent"
             transparent_proxy = {
                 outbound_listener_port = 10101
+                dialed_directly = true
             }
         }
     },
