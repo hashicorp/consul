@@ -1,0 +1,46 @@
+---
+class: ember
+status: needs-love
+---
+# TabNav
+
+`<TabNav />` renders a list of items as linked tabs (there is also an option
+to use labels vs anchors for links for radio button based tabs).
+
+Each item in the list should be a hash of `label`, `href` and `selected`.
+
+- `label`: The text to show
+- `href`: a href, probably generated via `href-to`
+- `selected`: whether the item is in the selected state or not, probably
+  generated via `is-href`
+
+**Please note:** This component should probably be rebuilt using contextual
+components and our `Action` component, alternatively this could be hand built
+with native HTML using the same `nav/ul/li/a` pattern and you could just use
+the CSS component to style it. Unless there is a reason to do this, this
+component should be used pending a refactor (please remove this note once
+refactored into contextual components using our `Action` component)
+
+```hbs preview-template
+<figure>
+  <figcaption>A TabNav with a conditional button using `compact` which removes empty values from arrays</figcaption>
+<TabNav @items={{
+  compact
+      (array
+          (hash label="Health Checks" href="#" selected=true)
+          (hash label="Service Instances" href="#" selected=(is-href "docs.something"))
+(if false (hash label="Don't show me" href="#" selected=false) '')
+          (hash label="Lock Sessions" href="#" selected=false)
+          (hash label="Metadata" href="#" selected=false)
+      )
+}}/>
+</figure>
+```
+
+```css
+.tab-nav {
+  @extend %tab-nav;
+}
+```
+
+
