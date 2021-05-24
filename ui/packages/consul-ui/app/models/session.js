@@ -18,5 +18,8 @@ export default class Session extends Model {
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
 
-  @attr({ defaultValue: () => [] }) Checks;
+  @attr({ defaultValue: () => [] }) NodeChecks;
+  @attr({ defaultValue: () => [] }) ServiceChecks;
+
+  @attr({ defaultValue: () => [] }) Resources; // []
 }
