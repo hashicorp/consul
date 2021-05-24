@@ -1,0 +1,64 @@
+@import './skin';
+@import './layout';
+.app-view {
+  @extend %app-view;
+}
+
+%app-view > header {
+  @extend %app-view-header;
+}
+%app-view-header .title {
+  @extend %app-view-title;
+}
+%app-view-header .actions {
+  @extend %app-view-actions;
+}
+%app-view > div {
+  @extend %app-view-content;
+}
+
+%app-view-actions a,
+%app-view-actions button {
+  @extend %button-compact;
+}
+
+/* toggleable toolbar for short screens */
+[for='toolbar-toggle'] {
+  @extend %with-search-color-icon;
+  background-position: 0 4px;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: $blue-500;
+}
+#toolbar-toggle {
+  display: none;
+}
+@media #{$--lt-spacious-page-header} {
+  %app-view-actions {
+    margin-top: 9px;
+  }
+}
+// reduced search magnifying icon layout
+@media #{$--horizontal-selects} {
+  [for='toolbar-toggle'] {
+    display: none;
+  }
+}
+@media #{$--lt-horizontal-selects} {
+  %app-view-header h1 {
+    display: inline-block;
+  }
+  // on the instance detail page we don't have the magnifier
+  html[data-route$='dc.services.instance.show'] h1 {
+    display: block;
+  }
+  #toolbar-toggle + * {
+    display: none;
+  }
+  #toolbar-toggle:checked + * {
+    display: flex;
+  }
+}
+

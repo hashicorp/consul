@@ -1,0 +1,112 @@
+---
+class: ember
+state: needs-love
+---
+# AppView
+
+`<AppView />` is our current top level wrapping component (one level in from
+the app chrome), every 'top level main section/template' should have one of
+these.
+
+It contains legacy authorization code (that can probably be removed now), and
+our flash messages (that should be moved to the `<App />` or `<HashicorpConsul
+/>` component and potentially be renamed to `Page` or `View` or similar now
+that we don't need two words.
+
+Other than that it provides the basic layout/slots for our main title, search
+bar, top right hand actions and main content.
+
+The large top margin that is visible when no breadcrumbs are visible is there
+to ensure that the page doesn't 'jump around' when you navigate to a page with
+breadcrumbs and back again.
+
+```hbs preview-template
+<figure>
+
+  <AppView>
+
+    <BlockSlot @name="header">
+      <h1>
+        Main title <em>{{format-number "100000"}} total {{pluralize 100000 "thing" without-count=true}} in this page</em>
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="content">
+
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            Nothing to see here
+          </p>
+        </BlockSlot>
+      </EmptyState>
+
+    </BlockSlot>
+  </AppView>
+
+  <figcaption>Basic list-like view</figcaption>
+</figure>
+```
+```hbs preview-template
+<figure>
+
+  <AppView>
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+        <li><a href="">Hansel</a></li>
+        <li><a href="">Gretel</a></li>
+      </ol>
+    </BlockSlot>
+
+    <BlockSlot @name="header">
+      <h1>
+        Scary witch's gingerbread house <em>(run away quick!)</em>
+      </h1>
+    </BlockSlot>
+
+    <BlockSlot @name="actions">
+      <Action
+        {{on "click" (noop)}}
+      >
+        Run away!
+      </Action>
+    </BlockSlot>
+
+    <BlockSlot @name="content">
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            Double, double toil and trouble
+          </p>
+        </BlockSlot>
+      </EmptyState>
+    </BlockSlot>
+  </AppView>
+
+  <figcaption>Basic detail-like view</figcaption>
+</figure>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `authorized` | `Boolean` | `true` | Whether the View is authorized or not |
+| `enabled` | `Boolean` | `true` | Whether ACLs are enabled or not |
+
+## Slots
+
+| Name  | Description |
+| --- | --- |
+| `header` | The main title of the page, you probably want to put a `<h1>` in here |
+| `content` | The main content of the page, and potentially an `<Outlet />` somewhere |
+| `notification` | Old style notifications, also see `<Notification />` |
+| `breadcrumbs` | Any breadcrumbs, you probably want an `ol/li/a` in here |
+| `actions` | Any actions relevant for the entire page, probably using `<Action />` |
+| `nav` | Secondary navigation goes in here, also see `<TabNav />` |
+| `toolbar` | Rendered underneath the header and actions for various 'toolbar' type things, such as our SearchBars |
+
+## Portals
+
+| Name  | Description |
+| --- | --- |
+| `app-view-actions` | Provides a portal to render additional page actions from any views. This is rendered **before** the contents of the `actions` slot |
