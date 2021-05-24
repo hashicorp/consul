@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Key is used in maps and for equality tests.  A key is based on endpoints.
@@ -120,8 +121,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 			segmentName := strings.TrimPrefix(name, "sl_")
 			segmentAddrs[segmentName] = addr
 			segmentPorts[segmentName] = segmentPort
-		} else if strings.HasPrefix(name, "ft_") {
-			featureName := strings.TrimPrefix(name, "ft_")
+		} else if strings.HasPrefix(name, featureFlagPrefix) {
+			featureName := strings.TrimPrefix(name, featureFlagPrefix)
 			featureState, err := strconv.Atoi(value)
 			if err != nil {
 				return false, nil
@@ -191,4 +192,15 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		FeatureFlags: featureFlags,
 	}
 	return true, parts
+}
+
+const featureFlagPrefix = "ft_"
+
+// AddFeatureFlags to the tags. The tags map is expected to be a serf.Config.Tags.
+// The feature flags are encoded in the tags so that IsConsulServer can decode them
+// and populate the Server.FeatureFlags map.
+func AddFeatureFlags(tags map[string]string, flags ...string) {
+	for _, flag := range flags {
+		tags[featureFlagPrefix+flag] = "1"
+	}
 }
