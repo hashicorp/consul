@@ -1,5 +1,4 @@
 import Model, { attr } from '@ember-data/model';
-import { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
@@ -19,8 +18,8 @@ export default class Session extends Model {
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
 
-  @nullValue([]) @attr({ defaultValue: () => [] }) NodeChecks;
-  @nullValue([]) @attr({ defaultValue: () => [] }) ServiceChecks;
+  @attr({ defaultValue: () => [] }) NodeChecks;
+  @attr({ defaultValue: () => [] }) ServiceChecks;
 
   @attr({ defaultValue: () => [] }) Resources; // []
 }
