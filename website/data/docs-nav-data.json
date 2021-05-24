@@ -553,6 +553,10 @@
       {
         "title": "Overview",
         "path": "ecs"
+      },
+      {
+        "title": "Architecture",
+        "path": "ecs/architecture"
       }
     ]
   },
