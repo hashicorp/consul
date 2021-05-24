@@ -1,3 +1,7 @@
+%tab-nav {
+  border-top: $decor-border-200;
+  border-color: $gray-200;
+}
 %tab-nav ul {
   list-style-type: none;
 }
@@ -12,28 +16,25 @@
   /* %frame-transparent-something */
   border-bottom: $decor-border-100;
 }
+%tab-nav {
+  /* %frame-transparent-something */
+  border-color: $gray-200;
+}
 %with-animated-tab-selection ul::after,
 %tab-button {
   border-bottom: $decor-border-300;
 }
-%tab-nav {
-  /* %frame-transparent-something */
-  border-color: var(--gray-200);
-}
 %tab-button {
   @extend %with-transition-500;
-  transition-property: background-color, border-color;
-  border-color: var(--transparent);
-  color: var(--gray-500);
+  transition-property: background-color;
+  border-color: $transparent;
+  color: $gray-500;
 }
 %tab-button-intent,
 %tab-button-active {
   /* %frame-gray-something */
-  background-color: var(--gray-100);
-}
-%tab-button-intent {
-  border-color: var(--gray-300);
+  background-color: $gray-100;
 }
 %tab-nav.animatable .selected a {
-  border-color: var(--transparent) !important;
+  border-color: $transparent !important;
 }
