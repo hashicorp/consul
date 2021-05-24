@@ -7,9 +7,9 @@
   z-index: 4;
 }
 %app-view-actions {
-  margin-left: auto;
   display: flex;
   align-items: flex-start;
+  margin-left: auto;
 }
 /* units */
 %app-view-title {
@@ -26,11 +26,6 @@
 }
 
 /* content */
-%app-view-content-empty {
-  margin-top: 0 !important;
-  padding: 50px;
-  text-align: center;
-}
 /* TODO: Think about an %app-form or similar */
 %app-view-content form:not(.filter-bar) fieldset {
   padding-bottom: 0.3em;
