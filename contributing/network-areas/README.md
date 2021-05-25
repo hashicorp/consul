@@ -5,7 +5,7 @@
 ### Description and Background
 Network areas define pairwise gossip pools over the WAN between Consul datacenters. Gossip traffic between Consul servers in an area is done over the server RPC port, and uses TCP connections. This is unlike Consul's primary WAN and LAN pools, which primarily rely on UDP-based probes. 
 
-TCP was used because it allows configuration with TLS certificates on top of the symmetric keys used by Consul's WAN and LAN pools. The overhead of the TCP protocol is limited since there is a small number of servers in an area.
+TCP was used because it allows configuration with TLS certificates. The TLS encryption will be used if configured for the datacenter, it does not need to be configured for the network areas in particular. The overhead of the TCP protocol is limited since there is a small number of servers in an area. Note that the symmetric keys used by Consul's WAN and LAN pools are not used to encrypt traffic from network areas.
 
 In versions of Consul prior to v1.8, network areas would establish a new TCP connection for every network area message. This was then substituted by connection pooling, where each server will maintain a TCP connection to every server in the network area. However, note that when a server in a version > `v1.8.0` dials a server on an older version, it will fall-back to the old connection-per-message behavior.
 
@@ -19,6 +19,11 @@ In versions of Consul prior to v1.8, network areas would establish a new TCP con
 * Serf
   * Serf is the interface that drives node health updates in Consul.
   * When memberlist updates the status of a member then Serf will send corresponding events to Consul. Based on these events Consul then updates the catalog. 
+
+
+### Telemetry
+
+`consul.area.connections.outgoing` - Tracks outbound network area connections. When both the dialing and dialed servers support pooling then this metric tracks open connections in the pool. When connection pooling is not supported this metric tracks connections opened over time.
 
 
 ## Implementation Overview
