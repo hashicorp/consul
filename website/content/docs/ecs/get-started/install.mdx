@@ -22,6 +22,8 @@ Installing Consul on ECS is a multi-part process:
    you should change the address your application is listening on to `127.0.0.1`
    so that it only receives requests through the sidecar proxy.
 
+-> **NOTE:** This page assumes you're familiar with ECS. See [What is Amazon Elastic Container Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) for more details.
+
 ## Terraform
 
 Your tasks must first be specified in Terraform using [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)

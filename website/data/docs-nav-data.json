@@ -558,10 +558,6 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Overview",
-            "path": "ecs/get-started"
-          },
-          {
             "title": "Example Installation",
             "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
           },
