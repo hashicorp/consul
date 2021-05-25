@@ -1,4 +1,0 @@
-```release-note:bug
-config: Fixed a bug where `node_name` is using an invalid hostname that include
-host subdomain.
-```
