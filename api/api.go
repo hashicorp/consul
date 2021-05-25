@@ -871,6 +871,12 @@ func (r *request) toHTTP() (*http.Request, error) {
 	req.Host = r.url.Host
 	req.Header = r.header
 
+	// Content-Type must always be set when a body is present
+	// See https://github.com/hashicorp/consul/issues/10011
+	if req.Body != nil && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	// Setup auth
 	if r.config.HttpAuth != nil {
 		req.SetBasicAuth(r.config.HttpAuth.Username, r.config.HttpAuth.Password)
