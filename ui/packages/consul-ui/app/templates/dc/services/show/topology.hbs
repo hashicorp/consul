@@ -22,43 +22,91 @@ as |route|>
         </BlockSlot>
       </EmptyState>
     {{else}}
+    {{#if topology.collapsible}}
+      <CollapsibleNotices>
+        {{#if topology.FilteredByACLs}}
+          <TopologyMetrics::Notice
+            data-test-notice='filtered-by-acls'
+            @type="info"
+            @for="limited-access"
+            @action={{false}}
+          />
+        {{/if}}
+        {{#if topology.DefaultAllow}}
+          <TopologyMetrics::Notice
+            data-test-notice='default-allow'
+            @type="warning"
+            @for="default-allow"
+            @internal={{true}}
+            @action={{true}}
+          />
+        {{/if}}
+        {{#if topology.WildcardIntention}}
+          <TopologyMetrics::Notice
+            data-test-notice='wildcard-intention'
+            @type="warning"
+            @for="wildcard-intention"
+            @internal={{true}}
+            @action={{true}}
+          />
+        {{/if}}
+        {{#if topology.notDefinedIntention}}
+          <TopologyMetrics::Notice
+            data-test-notice='not-defined-intention'
+            @type="warning"
+            @for="not-defined-intention"
+            @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
+            @internal={{false}}
+            @action={{true}}
+          />
+        {{/if}}
+      </CollapsibleNotices>
+    {{else}}
       {{#if topology.FilteredByACLs}}
-        <TopologyMetrics::Notice
-          @type="info"
-          @for="limited-access"
-          @action={{false}}
-        />
-      {{/if}}
-      {{#if topology.DefaultAllow}}
-        <TopologyMetrics::Notice
-          @type="warning"
-          @for="default-allow"
-          @internal={{true}}
-          @action={{true}}
-        />
-      {{/if}}
-      {{#if topology.WildcardIntention}}
-        <TopologyMetrics::Notice
-          @type="warning"
-          @for="wildcard-intention"
-          @internal={{true}}
-          @action={{true}}
-        />
-      {{/if}}
-      {{#if topology.undefinedIntention}}
-        <TopologyMetrics::Notice
-          @type="warning"
-          @for="not-defined-intention"
-          @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
-          @internal={{false}}
-          @action={{true}}
-        />
-      {{/if}}
+          <TopologyMetrics::Notice
+            data-test-notice='filtered-by-acls'
+            @type="info"
+            @for="limited-access"
+            @action={{false}}
+          />
+        {{/if}}
+        {{#if topology.DefaultAllow}}
+          <TopologyMetrics::Notice
+            data-test-notice='default-allow'
+            @type="warning"
+            @for="default-allow"
+            @internal={{true}}
+            @action={{true}}
+          />
+        {{/if}}
+        {{#if topology.WildcardIntention}}
+          <TopologyMetrics::Notice
+            data-test-notice='wildcard-intention'
+            @type="warning"
+            @for="wildcard-intention"
+            @internal={{true}}
+            @action={{true}}
+          />
+        {{/if}}
+        {{#if topology.notDefinedIntention}}
+          <TopologyMetrics::Notice
+            data-test-notice='not-defined-intention'
+            @type="warning"
+            @for="not-defined-intention"
+            @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
+            @internal={{false}}
+            @action={{true}}
+          />
+        {{/if}}
+    {{/if}}
+
+
       <TopologyMetrics
         @nspace={{nspace}}
         @dc={{dc.Name}}
         @service={{items.firstObject}}
         @topology={{topology}}
+
         @metricsHref={{render-template urls.service (hash
           Datacenter=dc.Name
           Service=items.firstObject
