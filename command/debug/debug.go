@@ -360,145 +360,19 @@ func (c *cmd) captureDynamic() error {
 
 		// Capture metrics
 		if c.configuredTarget("metrics") {
-			wg.Add(1)
-
-			go func() {
-				metrics, err := c.client.Agent().Metrics()
-				if err != nil {
-					errCh <- err
-				}
-
-				marshaled, err := json.MarshalIndent(metrics, "", "\t")
-				if err != nil {
-					errCh <- err
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				// We need to sleep for the configured interval in the case
-				// of metrics being the only target captured. When it is,
-				// the waitgroup would return on Wait() and repeat without
-				// waiting for the interval.
-				time.Sleep(c.interval)
-
-				wg.Done()
-			}()
+			go c.captureMetrics(&errCh, timestampDir, &wg)
 		}
 
 		// Capture pprof
 		if c.configuredTarget("pprof") {
 			wg.Add(1)
 
-			go func() {
-				// We need to capture profiles and traces at the same time
-				// and block for both of them
-				var wgProf sync.WaitGroup
-
-				heap, err := c.client.Debug().Heap()
-				if err != nil {
-					errCh <- fmt.Errorf("failed to collect heap profile: %w", err)
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				// Capture a profile/trace with a minimum of 1s
-				s := c.interval.Seconds()
-				if s < 1 {
-					s = 1
-				}
-
-				wgProf.Add(1)
-				go func() {
-					prof, err := c.client.Debug().Profile(int(s))
-					if err != nil {
-						errCh <- fmt.Errorf("failed to collect cpu profile: %w", err)
-					}
-
-					err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
-					if err != nil {
-						errCh <- err
-					}
-
-					wgProf.Done()
-				}()
-
-				wgProf.Add(1)
-				go func() {
-					trace, err := c.client.Debug().Trace(int(s))
-					if err != nil {
-						errCh <- fmt.Errorf("failed to collect trace: %w", err)
-					}
-
-					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
-					if err != nil {
-						errCh <- err
-					}
-
-					wgProf.Done()
-				}()
-
-				gr, err := c.client.Debug().Goroutine()
-				if err != nil {
-					errCh <- fmt.Errorf("failed to collect goroutine profile: %w", err)
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				wgProf.Wait()
-
-				wg.Done()
-			}()
+			c.capturePprof(&errCh, timestampDir, &wg)
 		}
 
 		// Capture logs
 		if c.configuredTarget("logs") {
-			wg.Add(1)
-
-			go func() {
-				endLogChn := make(chan struct{})
-				logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
-				if err != nil {
-					errCh <- err
-				}
-				// Close the log stream
-				defer close(endLogChn)
-
-				// Create the log file for writing
-				f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
-				if err != nil {
-					errCh <- err
-				}
-				defer f.Close()
-
-				intervalChn := time.After(c.interval)
-
-			OUTER:
-
-				for {
-					select {
-					case log := <-logCh:
-						// Append the line to the file
-						if _, err = f.WriteString(log + "\n"); err != nil {
-							errCh <- err
-							break OUTER
-						}
-					// Stop collecting the logs after the interval specified
-					case <-intervalChn:
-						break OUTER
-					}
-				}
-
-				wg.Done()
-			}()
+			go c.captureLogs(&errCh, timestampDir, &wg)
 		}
 
 		// Wait for all captures to complete
@@ -510,6 +384,7 @@ func (c *cmd) captureDynamic() error {
 
 	go capture()
 
+	//TODO: simplify the capture loop using context to handle timeouts
 	for {
 		select {
 		case t := <-successChan:
@@ -524,6 +399,136 @@ func (c *cmd) captureDynamic() error {
 			return errors.New("stopping collection due to shutdown signal")
 		}
 	}
+}
+
+func (c *cmd) capturePprof(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
+	// We need to capture profiles and traces at the same time
+	// and block for both of them
+	var wgProf sync.WaitGroup
+
+	heap, err := c.client.Debug().Heap()
+	if err != nil {
+		*errCh <- fmt.Errorf("failed to collect heap profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
+	if err != nil {
+		*errCh <- err
+	}
+
+	// Capture a profile/trace with a minimum of 1s
+	s := c.interval.Seconds()
+	if s < 1 {
+		s = 1
+	}
+
+	wgProf.Add(1)
+	go func() {
+		prof, err := c.client.Debug().Profile(int(s))
+		if err != nil {
+			*errCh <- fmt.Errorf("failed to collect cpu profile: %w", err)
+		}
+
+		err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
+		if err != nil {
+			*errCh <- err
+		}
+
+		wgProf.Done()
+	}()
+
+	wgProf.Add(1)
+	go func() {
+		trace, err := c.client.Debug().Trace(int(s))
+		if err != nil {
+			*errCh <- fmt.Errorf("failed to collect trace: %w", err)
+		}
+
+		err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
+		if err != nil {
+			*errCh <- err
+		}
+
+		wgProf.Done()
+	}()
+
+	gr, err := c.client.Debug().Goroutine()
+	if err != nil {
+		*errCh <- fmt.Errorf("failed to collect goroutine profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
+	if err != nil {
+		*errCh <- err
+	}
+
+	wgProf.Wait()
+
+	wg.Done()
+}
+
+func (c *cmd) captureLogs(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
+	wg.Add(1)
+	endLogChn := make(chan struct{})
+	logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
+	if err != nil {
+		*errCh <- err
+	}
+	// Close the log stream
+	defer close(endLogChn)
+
+	// Create the log file for writing
+	f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
+	if err != nil {
+		*errCh <- err
+	}
+	defer f.Close()
+
+	intervalChn := time.After(c.interval)
+
+OUTER:
+
+	for {
+		select {
+		case log := <-logCh:
+			// Append the line to the file
+			if _, err = f.WriteString(log + "\n"); err != nil {
+				*errCh <- err
+				break OUTER
+			}
+		// Stop collecting the logs after the interval specified
+		case <-intervalChn:
+			break OUTER
+		}
+	}
+
+	wg.Done()
+}
+
+func (c *cmd) captureMetrics(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
+	wg.Add(1)
+	metrics, err := c.client.Agent().Metrics()
+	if err != nil {
+		*errCh <- err
+	}
+
+	marshaled, err := json.MarshalIndent(metrics, "", "\t")
+	if err != nil {
+		*errCh <- err
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
+	if err != nil {
+		*errCh <- err
+	}
+
+	// We need to sleep for the configured interval in the case
+	// of metrics being the only target captured. When it is,
+	// the waitgroup would return on Wait() and repeat without
+	// waiting for the interval.
+	time.Sleep(c.interval)
+
+	wg.Done()
 }
 
 // allowedTarget returns a boolean if the target is able to be captured
