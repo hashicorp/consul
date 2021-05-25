@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -810,7 +811,17 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 
 func TestAPI_Headers(t *testing.T) {
 	t.Parallel()
-	c, s := makeClient(t)
+
+	var request *http.Request
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.Proxy = func(r *http.Request) (*url.URL, error) {
+			// Keep track of the last request sent
+			request = r
+			return nil, nil
+		}
+		c.Transport = transport
+	}, nil)
 	defer s.Stop()
 
 	if len(c.Headers()) != 0 {
@@ -836,6 +847,39 @@ func TestAPI_Headers(t *testing.T) {
 	if r.header.Get("Auth") != "Token" {
 		t.Fatalf("Auth header not set: %v", r.header)
 	}
+
+	kv := c.KV()
+	_, err := kv.Put(&KVPair{Key: "test-headers", Value: []byte("foo")}, nil)
+	require.NoError(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+
+	_, _, err = kv.Get("test-headers", nil)
+	require.NoError(t, err)
+	require.Equal(t, "", request.Header.Get("Content-Type"))
+
+	_, err = kv.Delete("test-headers", nil)
+	require.NoError(t, err)
+	require.Equal(t, "", request.Header.Get("Content-Type"))
+
+	err = c.Snapshot().Restore(nil, strings.NewReader("foo"))
+	require.Error(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
+
+	_, err = c.ACL().RulesTranslate(strings.NewReader(`
+	agent "" {
+	  policy = "read"
+	}
+	`))
+	// ACL support is disabled
+	require.Error(t, err)
+	require.Equal(t, "text/plain", request.Header.Get("Content-Type"))
+
+	_, _, err = c.Event().Fire(&UserEvent{
+		Name:    "test",
+		Payload: []byte("foo"),
+	}, nil)
+	require.NoError(t, err)
+	require.Equal(t, "application/octet-stream", request.Header.Get("Content-Type"))
 }
 
 func TestAPI_RequestToHTTP(t *testing.T) {

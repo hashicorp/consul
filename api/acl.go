@@ -900,6 +900,7 @@ func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, er
 func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
 	r.body = rules
+	r.header.Set("Content-Type", "text/plain")
 	rtt, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return "", err

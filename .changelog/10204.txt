@@ -1,0 +1,3 @@
+```release-note:improvement
+api: The `Content-Type` header is now always set when a body is present in a request.
+```
