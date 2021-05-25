@@ -1,0 +1,3 @@
+```release-note:bug
+areas: **(Enterprise only)** Selectively merge gossip_wan config for network areas to avoid attempting to enable gossip encryption where it was not intended or necessary.
+```
