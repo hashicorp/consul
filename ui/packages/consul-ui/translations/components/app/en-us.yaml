@@ -5,3 +5,6 @@ toggle_menu: Toggle Menu
 # therefore potentially do not need the word 'navigation' adding to them
 main: Main
 complementary: Complementary
+collapsible-notices:
+  expand: Expand Banners
+  collapse: Collapse Banners

@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / services / show / topology: Intention Create
+Feature: dc / services / show / topology / metrics
   Background:
     Given 1 datacenter model with the value "datacenter"
     And the local datacenter is "datacenter"
@@ -48,23 +48,3 @@ Feature: dc / services / show / topology: Intention Create
       service: web
     ---
     And I see the "[data-test-sparkline]" element
-  Scenario: Allow a connection between service and upstream by saving an intention
-    When I visit the service page for yaml
-    ---
-      dc: datacenter
-      service: web
-    ---
-    When I click ".consul-topology-metrics [data-test-action]"
-    And I click ".consul-topology-metrics [data-test-confirm]"
-    And "[data-notification]" has the "success" class
-  Scenario: There was an error saving the intention
-    Given the url "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" responds with a 500 status
-    When I visit the service page for yaml
-    ---
-      dc: datacenter
-      service: web
-    ---
-    When I click ".consul-topology-metrics [data-test-action]"
-    And I click ".consul-topology-metrics [data-test-confirm]"
-    And "[data-notification]" has the "error" class
-
