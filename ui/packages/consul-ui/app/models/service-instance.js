@@ -45,6 +45,7 @@ export default class ServiceInstance extends Model {
   // If the ID is blank fallback to the Service.Service (the Name)
   @or('Service.{ID,Service}') ID;
   @or('Service.Address', 'Node.Service') Address;
+  @attr('string') SocketPath;
 
   @alias('Service.Tags') Tags;
   @alias('Service.Meta') Meta;

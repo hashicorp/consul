@@ -36,6 +36,9 @@ ${typeof location.search.ns !== 'undefined' ? `
         "ServicePort": ${fake.random.number({min: 21000, max: 21255})},
         "ServiceEnableTagOverride": false,
         "ServiceProxy": {
+          "Config": {
+            "protocol": "http"
+          },
           "Expose": {
             "Checks": true,
             "Paths": [
@@ -50,15 +53,22 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
             ]
           },
           "Mode": "${fake.helpers.randomize(['', 'direct', 'transparent'])}",
+          "TransparentProxy": {},
           "DestinationServiceName": "${location.pathname.slice(4)}"
           ${ location.pathname.slice(4) === "service-0" ? `
           ,
           "DestinationServiceID": "${location.pathname.slice(4)}-with-id",
+${ fake.random.number({min: 1, max: 10}) > 2 ? `
           "LocalServiceAddress": "${fake.internet.ip()}",
           "LocalServicePort": ${fake.random.number({min: 0, max: 65535})}
+` : `
+          "LocalServiceSocketMode": "0600",
+          "LocalServiceSocketPath": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}"
+` }
           `
           : ``}
         },
+        "ServiceSocketPath": "",
         "ServiceProxyDestination": "${location.pathname.slice(4)}",
         "ServiceWeights": {
           "Passing": 1,
