@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: AWS ECS
+description: >-
+  Consul Service Mesh can be deployed on AWS ECS (Elastic Container Service).
+  This section documents the official installation of Consul on ECS.
+---
+
+# AWS ECS
+
+-> **Tech Preview:** This functionality is currently in Tech Preview and is
+not yet ready for production use.
+
+Consul can be deployed on [AWS ECS](https://aws.amazon.com/ecs/) (Elastic Container Service) using our official
+Terraform modules.
+
+![Consul on ECS Architecture](/img/consul-ecs-arch.png)
+
+## Service Mesh
+
+Using Consul on AWS ECS enables you to add your ECS tasks to the service mesh and
+take advantage of features such as zero-trust-security, intentions, observability,
+traffic policy, and more.
+
+## Example Installation
+
+See our [Example Installation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate)
+to learn how to install Consul on an example ECS cluster along with example service mesh applications.
+
+## Install
+
+See our full [Install Guide](/docs/ecs/get-started/install) when you're ready to install Consul
+on an existing ECS cluster and add existing tasks to the service mesh.
