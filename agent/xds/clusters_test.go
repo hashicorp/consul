@@ -642,6 +642,14 @@ func TestClustersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
+				snap.ConnectProxy.MeshConfigSet = true
+			},
+		},
+		{
+			name:   "transparent-proxy catalog destinations only",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
 
 				snap.ConnectProxy.MeshConfigSet = true
 				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
