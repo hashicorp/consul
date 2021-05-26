@@ -205,7 +205,9 @@ func (r *IndexReplicator) Replicate(ctx context.Context, lastRemoteIndex uint64,
 		return 0, false, fmt.Errorf("failed to retrieve %s: %w", r.Delegate.PluralNoun(), err)
 	}
 
-	r.Logger.Debug("finished fetching remote objects", "amount", lenRemote)
+	r.Logger.Debug("finished fetching remote objects",
+		"amount", lenRemote,
+	)
 
 	// Need to check if we should be stopping. This will be common as the fetching process is a blocking
 	// RPC which could have been hanging around for a long time and during that time leadership could

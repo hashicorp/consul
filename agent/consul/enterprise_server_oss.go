@@ -5,11 +5,10 @@ package consul
 import (
 	"net"
 
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
 )
 
 var (
@@ -60,7 +59,7 @@ func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, writ
 	return nil
 }
 
-func addEnterpriseSerfTags(_ map[string]string) {
+func (_ *Server) addEnterpriseSerfTags(_ map[string]string) {
 	// do nothing
 }
 

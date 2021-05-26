@@ -4,10 +4,9 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/agent/metadata"
 )
 
 func TestServer_Key_params(t *testing.T) {
@@ -182,10 +181,8 @@ func TestIsConsulServer_Optional(t *testing.T) {
 	if parts.RaftVersion != 0 {
 		t.Fatalf("bad: %v", parts.RaftVersion)
 	}
-
 	m.Tags["bootstrap"] = "1"
 	m.Tags["disabled"] = "1"
-	m.Tags["ft_ns"] = "1"
 	ok, parts = metadata.IsConsulServer(m)
 	if !ok {
 		t.Fatalf("expected a valid consul server")
@@ -199,9 +196,6 @@ func TestIsConsulServer_Optional(t *testing.T) {
 	if parts.Version != 1 {
 		t.Fatalf("bad: %v", parts)
 	}
-	expectedFlags := map[string]int{"ns": 1}
-	require.Equal(t, expectedFlags, parts.FeatureFlags)
-
 	m.Tags["expect"] = "3"
 	delete(m.Tags, "bootstrap")
 	delete(m.Tags, "disabled")
