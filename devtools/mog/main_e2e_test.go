@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/icmd"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
+	"gotest.tools/v3/icmd"
 )
 
 func TestE2E(t *testing.T) {
