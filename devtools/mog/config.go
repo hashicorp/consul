@@ -82,7 +82,7 @@ func (d Direction) String() string { return string(d) }
 
 const (
 	DirFrom Direction = "From"
-	DirTo             = "To"
+	DirTo   Direction = "To"
 )
 
 func (c fieldConfig) UserFuncName(direction Direction) string {
