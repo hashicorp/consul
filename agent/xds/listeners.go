@@ -78,12 +78,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		outboundListener = makePortListener(OutboundListenerName, "127.0.0.1", port, envoy_core_v3.TrafficDirection_OUTBOUND)
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
-		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
-			{
-				// TODO (freddy): Hard-coded until we upgrade the go-control-plane library
-				Name: "envoy.filters.listener.original_dst",
-			},
-		}
 	}
 
 	var hasFilterChains bool
@@ -206,6 +200,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
 		if cfgSnap.ConnectProxy.MeshConfig == nil ||
 			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
+
+			outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
+				{
+					// TODO (freddy): Hard-coded until we upgrade the go-control-plane library
+					Name: "envoy.filters.listener.original_dst",
+				},
+			}
 
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 				"passthrough",
