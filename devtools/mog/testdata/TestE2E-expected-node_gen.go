@@ -108,7 +108,7 @@ func NodeToCore(s *Node, t *core.ClusterNode) {
 	t.M1 = s.M1
 	t.M2 = s.M2
 	{
-		t.M3 = make(map[string]string)
+		t.M3 = make(map[string]string, len(s.M3))
 		for k, v := range s.M3 {
 			var y string
 			y = *v
@@ -116,7 +116,7 @@ func NodeToCore(s *Node, t *core.ClusterNode) {
 		}
 	}
 	{
-		t.M4 = make(map[string]*string)
+		t.M4 = make(map[string]*string, len(s.M4))
 		for k, v := range s.M4 {
 			var y *string
 			y = &v
@@ -124,7 +124,7 @@ func NodeToCore(s *Node, t *core.ClusterNode) {
 		}
 	}
 	{
-		t.M5 = make(map[string]core.Workload)
+		t.M5 = make(map[string]core.Workload, len(s.M5))
 		for k, v := range s.M5 {
 			var y core.Workload
 			WorkloadToCore(&v, &y)
@@ -132,7 +132,7 @@ func NodeToCore(s *Node, t *core.ClusterNode) {
 		}
 	}
 	{
-		t.M6 = make(map[string]*core.Workload)
+		t.M6 = make(map[string]*core.Workload, len(s.M6))
 		for k, v := range s.M6 {
 			var y *core.Workload
 			if v != nil {
@@ -144,7 +144,7 @@ func NodeToCore(s *Node, t *core.ClusterNode) {
 		}
 	}
 	{
-		t.M7 = make(map[string]core.Workload)
+		t.M7 = make(map[string]core.Workload, len(s.M7))
 		for k, v := range s.M7 {
 			var y core.Workload
 			if v != nil {
@@ -154,7 +154,7 @@ func NodeToCore(s *Node, t *core.ClusterNode) {
 		}
 	}
 	{
-		t.M8 = make(map[string]*core.Workload)
+		t.M8 = make(map[string]*core.Workload, len(s.M8))
 		for k, v := range s.M8 {
 			var y *core.Workload
 			{
@@ -264,7 +264,7 @@ func NodeFromCore(t *core.ClusterNode, s *Node) {
 	s.M1 = t.M1
 	s.M2 = t.M2
 	{
-		s.M3 = make(map[string]*string)
+		s.M3 = make(map[string]*string, len(t.M3))
 		for k, v := range t.M3 {
 			var y *string
 			y = &v
@@ -272,7 +272,7 @@ func NodeFromCore(t *core.ClusterNode, s *Node) {
 		}
 	}
 	{
-		s.M4 = make(map[string]string)
+		s.M4 = make(map[string]string, len(t.M4))
 		for k, v := range t.M4 {
 			var y string
 			y = *v
@@ -280,7 +280,7 @@ func NodeFromCore(t *core.ClusterNode, s *Node) {
 		}
 	}
 	{
-		s.M5 = make(map[string]Workload)
+		s.M5 = make(map[string]Workload, len(t.M5))
 		for k, v := range t.M5 {
 			var y Workload
 			WorkloadFromCore(&v, &y)
@@ -288,7 +288,7 @@ func NodeFromCore(t *core.ClusterNode, s *Node) {
 		}
 	}
 	{
-		s.M6 = make(map[string]*Workload)
+		s.M6 = make(map[string]*Workload, len(t.M6))
 		for k, v := range t.M6 {
 			var y *Workload
 			if v != nil {
@@ -300,7 +300,7 @@ func NodeFromCore(t *core.ClusterNode, s *Node) {
 		}
 	}
 	{
-		s.M7 = make(map[string]*Workload)
+		s.M7 = make(map[string]*Workload, len(t.M7))
 		for k, v := range t.M7 {
 			var y *Workload
 			{
@@ -312,7 +312,7 @@ func NodeFromCore(t *core.ClusterNode, s *Node) {
 		}
 	}
 	{
-		s.M8 = make(map[string]Workload)
+		s.M8 = make(map[string]Workload, len(t.M8))
 		for k, v := range t.M8 {
 			var y Workload
 			if v != nil {

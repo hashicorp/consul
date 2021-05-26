@@ -212,14 +212,22 @@ func newAssignStmtMap(
 	direct bool,
 ) ast.Stmt {
 	return &ast.BlockStmt{List: []ast.Stmt{
-		// <left> = make(<leftType>)
+		// <left> = make(<leftType>, len(<right>))
 		&ast.AssignStmt{
 			Tok: token.ASSIGN,
 			Lhs: []ast.Expr{left},
 			Rhs: []ast.Expr{
 				&ast.CallExpr{
-					Fun:  &ast.Ident{Name: "make"},
-					Args: []ast.Expr{leftType},
+					Fun: &ast.Ident{Name: "make"},
+					Args: []ast.Expr{
+						leftType,
+						&ast.CallExpr{
+							Fun: &ast.Ident{Name: "len"},
+							Args: []ast.Expr{
+								right,
+							},
+						},
+					},
 				},
 			},
 		},
