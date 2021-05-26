@@ -1,16 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/format"
+	"go/printer"
 	"go/token"
-	"go/types"
-	"os"
 	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
+
+	"github.com/rboyer/safeio"
 )
 
 func generateFiles(cfg config, targets map[string]targetPkg) error {
@@ -35,14 +37,15 @@ func generateFiles(cfg config, targets map[string]targetPkg) error {
 			// TODO: generate round trip testcase
 		}
 
-		output := filepath.Join(cfg.SourcePkg.Path, group[0].Output)
+		fset := &token.FileSet{}
 		file := &ast.File{Name: &ast.Ident{Name: cfg.SourcePkg.Name}}
+		output := filepath.Join(cfg.SourcePkg.Path, group[0].Output)
 
 		// Add all imports as the first declaration
 		// TODO: dedupe imports, handle conflicts
 		file.Decls = append([]ast.Decl{imports.Decl()}, decls...)
 
-		if err := writeFile(output, file); err != nil {
+		if err := astWriteToFile(output, fset, file); err != nil {
 			return fmt.Errorf("failed to write generated code to %v: %w", output, err)
 		}
 	}
@@ -79,16 +82,24 @@ func configsByOutput(cfgs []structConfig) [][]structConfig {
 }
 
 var (
-	varNameSource = "s"
-	varNameTarget = "t"
+	varNameSource          = "s"
+	varNameTarget          = "t"
+	varNamePlaceholder     = "x"
+	varNameElemPlaceholder = "y"
 )
 
 func generateConversion(cfg structConfig, t targetStruct, imports *imports) (generated, error) {
 	var g generated
 
 	imports.Add("", cfg.Target.Package)
-	to := generateToFunc(cfg, imports)
-	from := generateFromFunc(cfg, imports)
+
+	targetType := &ast.SelectorExpr{
+		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
+		Sel: &ast.Ident{Name: cfg.Target.Struct},
+	}
+
+	to := generateToFunc(cfg, targetType)
+	from := generateFromFunc(cfg, targetType)
 
 	var errs []error
 
@@ -109,12 +120,6 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			continue
 		}
 
-		o := cfg.typeInfo.Types[sourceField.SourceExpr].Type
-		fmt.Printf("%v, %v %T\n", name, o, o)
-		fmt.Printf("%v, %v %v\n", name, field.Type(), types.AssignableTo(o, field.Type()))
-
-		// TODO: handle pointer
-
 		srcExpr := &ast.SelectorExpr{
 			X:   &ast.Ident{Name: varNameSource},
 			Sel: &ast.Ident{Name: sourceField.SourceName},
@@ -124,39 +129,147 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			Sel: &ast.Ident{Name: name},
 		}
 
-		to.Body.List = append(to.Body.List,
-			newAssignStmt(targetExpr, srcExpr, sourceField.FuncTo))
+		if sourceField.FuncTo != "" || sourceField.FuncFrom != "" {
+			to.Body.List = append(to.Body.List, newAssignStmtUserFunc(
+				targetExpr,
+				srcExpr,
+				sourceField.FuncTo,
+			))
+			from.Body.List = append(from.Body.List, newAssignStmtUserFunc(
+				srcExpr,
+				targetExpr,
+				sourceField.FuncFrom,
+			))
+			continue
+		}
 
-		from.Body.List = append(from.Body.List,
-			newAssignStmt(srcExpr, targetExpr, sourceField.FuncFrom))
+		targetTypeExpr := typeToExpr(field.Type(), imports, false)
+		if targetTypeExpr == nil {
+			msg := "struct %v field %v is not a supported target type yet: %T"
+			errs = append(errs, fmt.Errorf(msg, cfg.Source, name, field.Type()))
+			continue
+		}
+
+		assignErrFn := func(err error) {
+			if err == nil {
+				errs = append(errs, fmt.Errorf(
+					"struct %v field %v is not convertible to target",
+					cfg.Source, name,
+				))
+			} else {
+				errs = append(errs, fmt.Errorf(
+					"struct %v field %v is not convertible to target: %w",
+					cfg.Source, name, err,
+				))
+			}
+		}
+
+		// the assignmentKind is <target> := <source> so target==LHS source==RHS
+		rawKind, ok := computeAssignment(field.Type(), sourceField.SourceType)
+		if !ok {
+			assignErrFn(nil)
+			continue
+		}
+
+		switch kind := rawKind.(type) {
+		case *singleAssignmentKind:
+			to.Body.List = append(to.Body.List, newAssignStmt(
+				targetExpr,
+				targetTypeExpr,
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceField.ConvertFuncName(DirTo),
+				kind.Direct,
+			))
+			from.Body.List = append(from.Body.List, newAssignStmt(
+				srcExpr,
+				sourceField.SourceExpr,
+				targetExpr,
+				targetTypeExpr,
+				sourceField.ConvertFuncName(DirFrom),
+				kind.Direct,
+			))
+		case *sliceAssignmentKind:
+			targetElemTypeElem := typeToExpr(kind.LeftElem, imports, true)
+			if targetElemTypeElem == nil {
+				assignErrFn(fmt.Errorf("unsupported slice element type %T", kind.LeftElem))
+				continue
+			}
+
+			sourceElemTypeElem := typeToExpr(kind.RightElem, imports, true)
+			if sourceElemTypeElem == nil {
+				assignErrFn(fmt.Errorf("unsupported slice element type %T", kind.RightElem))
+				continue
+			}
+
+			to.Body.List = append(to.Body.List, newAssignStmtSlice(
+				targetExpr,
+				targetTypeExpr,
+				targetElemTypeElem,
+				srcExpr,
+				sourceElemTypeElem,
+				sourceField.ConvertFuncName(DirTo),
+				kind.ElemDirect,
+			))
+			from.Body.List = append(from.Body.List, newAssignStmtSlice(
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceElemTypeElem,
+				targetExpr,
+				targetElemTypeElem,
+				sourceField.ConvertFuncName(DirFrom),
+				kind.ElemDirect,
+			))
+		case *mapAssignmentKind:
+			targetKeyTypeElem := typeToExpr(kind.LeftKey, imports, true)
+			if targetKeyTypeElem == nil {
+				assignErrFn(fmt.Errorf("unsupported map key type %T", kind.LeftKey))
+				continue
+			}
+
+			targetElemTypeElem := typeToExpr(kind.LeftElem, imports, true)
+			if targetElemTypeElem == nil {
+				assignErrFn(fmt.Errorf("unsupported map value type %T", kind.LeftElem))
+				continue
+			}
+
+			sourceKeyTypeElem := typeToExpr(kind.RightKey, imports, true)
+			if sourceKeyTypeElem == nil {
+				assignErrFn(fmt.Errorf("unsupported map key type %T", kind.RightKey))
+				continue
+			}
+
+			sourceElemTypeElem := typeToExpr(kind.RightElem, imports, true)
+			if sourceElemTypeElem == nil {
+				assignErrFn(fmt.Errorf("unsupported map value type %T", kind.RightElem))
+				continue
+			}
+
+			to.Body.List = append(to.Body.List, newAssignStmtMap(
+				targetExpr,
+				targetTypeExpr,
+				targetElemTypeElem,
+				srcExpr,
+				sourceElemTypeElem,
+				sourceField.ConvertFuncName(DirTo),
+				kind.ElemDirect,
+			))
+			from.Body.List = append(from.Body.List, newAssignStmtMap(
+				srcExpr,
+				sourceField.SourceExpr,
+				sourceElemTypeElem,
+				targetExpr,
+				targetElemTypeElem,
+				sourceField.ConvertFuncName(DirFrom),
+				kind.ElemDirect,
+			))
+		}
 	}
-
-	returnStmt := &ast.ReturnStmt{Results: []ast.Expr{&ast.Ident{Name: varNameTarget}}}
-	to.Body.List = append(to.Body.List, returnStmt)
-
-	returnStmt = &ast.ReturnStmt{Results: []ast.Expr{&ast.Ident{Name: varNameSource}}}
-	from.Body.List = append(from.Body.List, returnStmt)
 
 	g.To = to
 	g.From = from
 
 	return g, fmtErrors("failed to generate", errs)
-}
-
-// TODO: test case with funcFrom/FuncTo
-func newAssignStmt(left ast.Expr, right ast.Expr, funcName string) *ast.AssignStmt {
-	if funcName != "" {
-		right = &ast.CallExpr{
-			Fun:  &ast.Ident{Name: funcName},
-			Args: []ast.Expr{right},
-		}
-	}
-
-	return &ast.AssignStmt{
-		Lhs: []ast.Expr{left},
-		Tok: token.ASSIGN,
-		Rhs: []ast.Expr{right},
-	}
 }
 
 func sourceFieldMap(fields []fieldConfig) map[string]fieldConfig {
@@ -178,105 +291,119 @@ type generated struct {
 	// TODO: RoundTripTest *ast.FuncDecl
 }
 
-func generateToFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
-	targetType := &ast.SelectorExpr{
-		X:   &ast.Ident{Name: path.Base(imports.AliasFor(cfg.Target.Package))},
-		Sel: &ast.Ident{Name: cfg.Target.Struct},
-	}
+func generateToFunc(cfg structConfig, targetType *ast.SelectorExpr) *ast.FuncDecl {
+	funcName := cfg.ConvertFuncName(DirTo)
 
 	return &ast.FuncDecl{
-		Name: &ast.Ident{Name: funcNameTo(cfg)},
+		Name: &ast.Ident{Name: funcName},
 		Type: &ast.FuncType{
 			Params: &ast.FieldList{
-				List: []*ast.Field{{
-					Names: []*ast.Ident{{Name: varNameSource}},
-					Type:  &ast.Ident{Name: cfg.Source},
-				}},
+				List: []*ast.Field{
+					{
+						Names: []*ast.Ident{{Name: varNameSource}},
+						Type:  newPointerTo(cfg.Source),
+					},
+					{
+						Names: []*ast.Ident{{Name: varNameTarget}},
+						Type: &ast.StarExpr{
+							X: targetType,
+						},
+					},
+				},
 			},
-			Results: &ast.FieldList{
-				List: []*ast.Field{{Type: targetType}},
+		},
+		Body: &ast.BlockStmt{List: []ast.Stmt{
+			newIfNilReturn(varNameSource),
+			// TODO: fill in contents here
+		}},
+	}
+}
+
+func generateFromFunc(cfg structConfig, targetType *ast.SelectorExpr) *ast.FuncDecl {
+	funcName := cfg.ConvertFuncName(DirFrom)
+
+	return &ast.FuncDecl{
+		Name: &ast.Ident{Name: funcName},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{
+					{
+						Names: []*ast.Ident{{Name: varNameTarget}},
+						Type: &ast.StarExpr{
+							X: targetType,
+						},
+					},
+					{
+						Names: []*ast.Ident{{Name: varNameSource}},
+						Type:  newPointerTo(cfg.Source),
+					},
+				},
 			},
 		},
 		Body: &ast.BlockStmt{
 			List: []ast.Stmt{
-				&ast.DeclStmt{Decl: &ast.GenDecl{
-					Tok: token.VAR,
-					Specs: []ast.Spec{
-						&ast.ValueSpec{
-							Names: []*ast.Ident{{Name: varNameTarget}},
-							Type:  targetType,
-						},
-					},
-				}},
+				newIfNilReturn(varNameSource),
+				// TODO: fill in contents here
 			},
 		},
 	}
 }
 
-func funcNameTo(cfg structConfig) string {
-	return cfg.Source + "To" + cfg.FuncNameFragment
-}
-
-func funcNameFrom(cfg structConfig) string {
-	return "New" + cfg.Source + "From" + cfg.FuncNameFragment
-}
-
-func generateFromFunc(cfg structConfig, imports *imports) *ast.FuncDecl {
-	targetType := &ast.SelectorExpr{
-		X:   &ast.Ident{Name: imports.AliasFor(cfg.Target.Package)},
-		Sel: &ast.Ident{Name: cfg.Target.Struct},
-	}
-
-	return &ast.FuncDecl{
-		Name: &ast.Ident{Name: funcNameFrom(cfg)},
-		Type: &ast.FuncType{
-			Params: &ast.FieldList{
-				List: []*ast.Field{{
-					Names: []*ast.Ident{{Name: varNameTarget}},
-					Type:  targetType,
-				}},
-			},
-			Results: &ast.FieldList{
-				List: []*ast.Field{{Type: &ast.Ident{Name: cfg.Source}}},
-			},
-		},
-		Body: &ast.BlockStmt{
-			List: []ast.Stmt{
-				&ast.DeclStmt{Decl: &ast.GenDecl{
-					Tok: token.VAR,
-					Specs: []ast.Spec{
-						&ast.ValueSpec{
-							Names: []*ast.Ident{{Name: varNameSource}},
-							Type:  &ast.Ident{Name: cfg.Source},
-						},
-					},
-				}},
-			},
-		},
-	}
-}
-
-// TODO: write build tags
-func writeFile(output string, file *ast.File) error {
-	fh, err := os.Create(output)
+func astWriteToFile(path string, fset *token.FileSet, file *ast.File) error {
+	out, err := astToBytes(fset, file)
 	if err != nil {
 		return err
 	}
+
+	return writeFile(path, out)
+}
+
+func astToBytes(fset *token.FileSet, file *ast.File) ([]byte, error) {
+	// Pretty print the AST node first.
+	printConfig := &printer.Config{Mode: printer.TabIndent}
+	var buf bytes.Buffer
+	if err := printConfig.Fprint(&buf, fset, file); err != nil {
+		return nil, err
+	}
+	out := buf.Bytes()
+
+	// Now take a trip through "gofmt"
+	formatted, err := format.Source(out)
+	if err != nil {
+		return nil, err
+	}
+	return formatted, nil
+}
+
+// TODO: write build tags
+func writeFile(output string, contents []byte) error {
+	fh, err := safeio.OpenFile(output, 0666)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
 	if _, err := fmt.Fprint(fh, "// Code generated by mog. DO NOT EDIT.\n\n"); err != nil {
 		return err
 	}
-	return format.Node(fh, new(token.FileSet), file)
+	if _, err := fh.Write(contents); err != nil {
+		return err
+	}
+
+	return fh.Commit()
 }
 
 type imports struct {
-	byPkgPath map[string]string
-	byAlias   map[string]string
+	byPkgPath map[string]string   // package => alias(or default)
+	byAlias   map[string]string   // alias(or default) => package
+	hasAlias  map[string]struct{} // package is using a non-default name
 }
 
 func newImports() *imports {
 	return &imports{
 		byPkgPath: make(map[string]string),
 		byAlias:   make(map[string]string),
+		hasAlias:  make(map[string]struct{}),
 	}
 }
 
@@ -290,8 +417,11 @@ func (i *imports) Add(alias string, pkgPath string) {
 		return
 	}
 
+	hasAlias := false
 	if alias == "" {
 		alias = path.Base(pkgPath)
+	} else {
+		hasAlias = true
 	}
 
 	_, exists := i.byAlias[alias]
@@ -302,6 +432,11 @@ func (i *imports) Add(alias string, pkgPath string) {
 
 	i.byPkgPath[pkgPath] = alias
 	i.byAlias[alias] = pkgPath
+	if hasAlias {
+		i.hasAlias[pkgPath] = struct{}{}
+	} else {
+		delete(i.hasAlias, pkgPath)
+	}
 }
 
 func (i *imports) AliasFor(pkgPath string) string {
@@ -319,14 +454,14 @@ func (i *imports) Decl() *ast.GenDecl {
 
 	for _, pkgPath := range paths {
 		imprt := &ast.ImportSpec{
-			Name: &ast.Ident{Name: i.byPkgPath[pkgPath]},
-			Path: &ast.BasicLit{Value: quote(pkgPath), Kind: token.STRING},
+			Path: &ast.BasicLit{Value: strconv.Quote(pkgPath), Kind: token.STRING},
 		}
+
+		if _, ok := i.hasAlias[pkgPath]; ok {
+			imprt.Name = &ast.Ident{Name: i.byPkgPath[pkgPath]}
+		}
+
 		decl.Specs = append(decl.Specs, imprt)
 	}
 	return decl
-}
-
-func quote(v string) string {
-	return `"` + v + `"`
 }

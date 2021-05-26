@@ -1,0 +1,16 @@
+linters:
+  disable-all: true
+  enable:
+    - gofmt
+    - govet
+    - unconvert
+    - staticcheck
+    - ineffassign
+    - unparam
+
+linters-settings:
+  gofmt:
+    simplify: true
+
+run:
+  timeout: 10m

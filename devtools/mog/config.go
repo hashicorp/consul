@@ -20,12 +20,21 @@ type structConfig struct {
 	Source           string
 	Target           target
 	Output           string
-	FuncNameFragment string
+	FuncNameFragment string // general namespace for conversion functions
 	IgnoreFields     stringSet
 	FuncFrom         string
 	FuncTo           string
 	Fields           []fieldConfig
-	typeInfo         *types.Info
+}
+
+func (c *structConfig) ConvertFuncName(direction Direction) string {
+	if c.FuncNameFragment == "" {
+		panic("FuncNameFragment is required")
+	}
+	if direction == DirTo {
+		return c.Source + "To" + c.FuncNameFragment
+	}
+	return c.Source + "From" + c.FuncNameFragment
 }
 
 type stringSet map[string]struct{}
@@ -57,13 +66,46 @@ func newTarget(v string) target {
 
 type fieldConfig struct {
 	SourceName string
-	SourceExpr ast.Expr
+	SourceExpr ast.Expr // This is the type of the field in the source.
 	TargetName string
+	SourceType types.Type
 	FuncFrom   string
 	FuncTo     string
-	// TODO: Pointer pointerSettings
+
+	ConvertFuncFrom string
+	ConvertFuncTo   string
 }
 
+type Direction string
+
+func (d Direction) String() string { return string(d) }
+
+const (
+	DirFrom Direction = "From"
+	DirTo   Direction = "To"
+)
+
+func (c fieldConfig) UserFuncName(direction Direction) string {
+	if direction == DirFrom {
+		return c.FuncFrom
+	}
+	return c.FuncTo
+}
+
+// ConvertFuncName returns the name of a function that takes 2 pointers and
+// returns nothing.
+func (c fieldConfig) ConvertFuncName(direction Direction) string {
+	if c.UserFuncName(direction) != "" {
+		return ""
+	}
+	if direction == DirTo {
+		return c.ConvertFuncTo
+	}
+	return c.ConvertFuncFrom
+}
+
+// configsFromAnnotations will examine the loaded structs from the given
+// package and interprets the mog annotations.
 func configsFromAnnotations(pkg sourcePkg) (config, error) {
 	names := pkg.StructNames()
 	c := config{Structs: make([]structConfig, 0, len(names))}
@@ -76,11 +118,12 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 			return c, fmt.Errorf("from source struct %v: %w", name, err)
 		}
 
-		for _, field := range strct.Fields {
-			f, err := parseFieldAnnotation(field)
+		for _, typedField := range strct.Fields {
+			f, err := parseFieldAnnotation(typedField.Field)
 			if err != nil {
 				return c, fmt.Errorf("from source struct %v: %w", name, err)
 			}
+			f.SourceType = typedField.Var.Type()
 			cfg.Fields = append(cfg.Fields, f)
 		}
 
@@ -88,7 +131,6 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 		if err := cfg.Validate(); err != nil {
 			return c, fmt.Errorf("invalid config for %v: %w", name, err)
 		}
-		cfg.typeInfo = pkg.pkg.TypesInfo
 
 		c.Structs = append(c.Structs, cfg)
 	}
@@ -96,6 +138,7 @@ func configsFromAnnotations(pkg sourcePkg) (config, error) {
 	return c, nil
 }
 
+// TODO: syntax of mog annotations should be in readme
 func parseStructAnnotation(name string, doc []*ast.Comment) (structConfig, error) {
 	c := structConfig{Source: name}
 
@@ -150,6 +193,7 @@ func (c structConfig) Validate() error {
 	return fmtErrors("invalid annotations", errs)
 }
 
+// TODO: syntax of mog annotations should be in readme
 func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 	var c fieldConfig
 
@@ -176,7 +220,6 @@ func parseFieldAnnotation(field *ast.Field) (fieldConfig, error) {
 		case "target":
 			c.TargetName = value
 		case "pointer":
-			// TODO:
 		case "func-from":
 			c.FuncFrom = value
 		case "func-to":
@@ -240,34 +283,98 @@ func fmtErrors(msg string, errs []error) error {
 
 // TODO: test cases
 func applyAutoConvertFunctions(cfgs []structConfig) []structConfig {
+	// Index the structs by name so any struct can refer to conversion
+	// functions for any other struct.
 	byName := make(map[string]structConfig, len(cfgs))
 	for _, s := range cfgs {
 		byName[s.Source] = s
 	}
 
 	for structIdx, s := range cfgs {
+		imports := newImports()
+		imports.Add("", s.Target.Package)
+
 		for fieldIdx, f := range s.Fields {
 			if _, ignored := s.IgnoreFields[f.SourceName]; ignored {
 				continue
 			}
 
+			// User supplied override function.
 			if f.FuncTo != "" || f.FuncFrom != "" {
 				continue
 			}
 
-			ident, ok := f.SourceExpr.(*ast.Ident)
+			sourceTypeDecode, ok := decodeType(f.SourceType)
 			if !ok {
 				continue
 			}
 
+			var (
+				ident *ast.Ident
+			)
+			switch x := sourceTypeDecode.(type) {
+			case *types.Basic:
+				ident = &ast.Ident{Name: x.Name()}
+			case *types.Named:
+				// This only works for types in the source package.
+				decodedTypeExpr := typeToExpr(sourceTypeDecode, imports, false)
+				ident, ok = decodedTypeExpr.(*ast.Ident)
+				if !ok {
+					continue
+				}
+			case *types.Slice:
+				elemDecode, ok := decodeType(x.Elem())
+				if !ok {
+					continue
+				}
+				switch xe := elemDecode.(type) {
+				case *types.Basic:
+					ident = &ast.Ident{Name: xe.Name()}
+				case *types.Named:
+					// This only works for types in the source package.
+					elemDecodeTypeExpr := typeToExpr(elemDecode, imports, true)
+					ident, ok = elemDecodeTypeExpr.(*ast.Ident)
+					if !ok {
+						continue
+					}
+				}
+			case *types.Map:
+				elemDecode, ok := decodeType(x.Elem())
+				if !ok {
+					continue
+				}
+				switch xe := elemDecode.(type) {
+				case *types.Basic:
+					ident = &ast.Ident{Name: xe.Name()}
+				case *types.Named:
+					// This only works for types in the source package.
+					elemDecodeTypeExpr := typeToExpr(elemDecode, imports, true)
+					ident, ok = elemDecodeTypeExpr.(*ast.Ident)
+					if !ok {
+						continue
+					}
+				}
+			}
+
+			if ident == nil {
+				continue
+			}
+
+			// Pull up type information for type of this field and attempt
+			// auto-convert.
+			//
+			// Maybe explicitly skip primitives or stuff like strings?
 			structCfg, ok := byName[ident.Name]
 			if !ok {
 				// TODO: log warning that auto convert did not work
 				continue
 			}
 
-			f.FuncFrom = funcNameFrom(structCfg)
-			f.FuncTo = funcNameTo(structCfg)
+			// Capture this information so we can use it to know how to call
+			// the conversion functions later.
+			f.ConvertFuncFrom = structCfg.ConvertFuncName(DirFrom)
+			f.ConvertFuncTo = structCfg.ConvertFuncName(DirTo)
+
 			s.Fields[fieldIdx] = f
 		}
 		cfgs[structIdx] = s
