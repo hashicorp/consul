@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.11-beta2 (May 26, 2021)
 
 BUG FIXES:
 
