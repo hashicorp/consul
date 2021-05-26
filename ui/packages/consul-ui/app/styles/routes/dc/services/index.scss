@@ -8,9 +8,18 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
 html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: $typo-weight-bold;
 }
+html[data-route^='dc.services.instance'] .tab-nav {
+  border-top: $decor-border-100;
+}
+html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
+  border-bottom: $decor-border-100;
+}
+html[data-route^='dc.services.instance'] .tab-nav,
+html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
+  border-color: var(--gray-200);
+}
 html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   padding-bottom: 24px;
-  border-bottom: 1px solid $gray-200;
 }
 html[data-route^='dc.services.instance.metadata'] .tab-section section h2 {
   @extend %h300;
