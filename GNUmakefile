@@ -315,10 +315,12 @@ ui: ui-docker static-assets-docker
 
 tools:
 	@mkdir -p .gotools
-	@cd .gotools && if [[ ! -f go.mod ]]; then \
+	@cd .gotools && for TOOL in $(GOTOOLS); do \
+		echo "=== TOOL: $$TOOL" ; \
+		rm -f go.mod go.sum ; \
 		go mod init consul-tools ; \
-	fi
-	cd .gotools && go get -v $(GOTOOLS)
+		go get -v $$TOOL ; \
+	done
 
 version:
 	@echo -n "Version:                    "
