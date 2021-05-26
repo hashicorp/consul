@@ -548,6 +548,36 @@
     ]
   },
   {
+    "title": "AWS ECS",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "ecs"
+      },
+      {
+        "title": "Get Started",
+        "routes": [
+          {
+            "title": "Example Installation",
+            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
+          },
+          {
+            "title": "Requirements",
+            "path": "ecs/get-started/requirements"
+          },
+          {
+            "title": "Install",
+            "path": "ecs/get-started/install"
+          }
+        ]
+      },
+      {
+        "title": "Architecture",
+        "path": "ecs/architecture"
+      }
+    ]
+  },
+  {
     "title": "Network Infrastructure Automation",
     "routes": [
       {
