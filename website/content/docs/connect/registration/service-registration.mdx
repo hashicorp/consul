@@ -206,8 +206,8 @@ followed by documentation for each attribute.
   domain socket listener for the application to make outbound connections to
   this upstream. Defaults to "". This conflicts with specifying the local_bind_port 
   or local_bind_address. This is only supported when using Envoy as a proxy.
-- `local_bind_socket_mode` `(string: "")` - Specifies an (optional) Unix mode
-  to use for the socket permissions.
+- `local_bind_socket_mode` `(string: "")` - Specifies the (optional) Unix octal
+  file permissions to use for the socket.
 - `destination_type` `(string: "")` - Specifies the type of discovery
   query to use to find an instance to connect to. Valid values are `service` or
   `prepared_query`. Defaults to `service`.
@@ -374,29 +374,31 @@ The following examples show additional configuration for Unix domain sockets.
 Added in v1.10.0.
 
 To connect to a service via local Unix Domain Socket instead of a
-port, add local_bind_socket_path and optionally local_bind_socket_mode
+port, add `local_bind_socket_path` and optionally `local_bind_socket_mode`
 to the upstream config for a service:
 ```json
   {
-    destination_name":  "service-1"
-    local_bind_socket_path = "/tmp/socket_service_1"
-    local_bind_socket_mode = "0700" 
+    "destination_name":  "service-1",
+    "local_bind_socket_path": "/tmp/socket_service_1",
+    "local_bind_socket_mode": "0700" 
   }
 ```
 This will cause Envoy to create a socket with the path and mode
-provided, and connect that to service-1
+provided, and connect that to service-1.
+
 The mode field is optional, and if omitted will use the default mode
 for Envoy. This is not applicable for abstract sockets. See
 https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-pipe
-for details
-NOTE: These options conflict the local_bind_socket_port and
-local_bind_socket_address options. We can bind to an port or we can
-bind to a socket, but not both.
+for details.
+
+-> These options conflict with the `local_bind_socket_port` and
+`local_bind_socket_address` options. For a given upstream the proxy can bind either to an IP port or
+a Unix socket, but not both.
 
 Similarly to expose a service listening on a Unix Domain socket to the service
-mesh use either the 'socket_path' field in the service definition or the
-'local_service_socket_path' field in the proxy definition. These
-fields are analogous to the 'port' and 'service_port' fields in their
+mesh, use either the `socket_path` field in the service definition or the
+`local_service_socket_path` field in the proxy definition. These
+fields are analogous to the `port` and `service_port` fields in their
 respective locations.  
 ```json
   services {
