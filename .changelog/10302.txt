@@ -1,0 +1,4 @@
+```release-note:improvement
+connect: Avoid adding original_dst listener filter when it won't be used.
+```
+
