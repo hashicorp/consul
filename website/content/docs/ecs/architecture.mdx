@@ -1,0 +1,45 @@
+---
+layout: docs
+page_title: Architecture - AWS ECS
+description: >-
+  Architecture of Consul Service Mesh on AWS ECS (Elastic Container Service).
+---
+
+# Architecture
+
+![Consul on ECS Architecture](/img/consul-ecs-arch.png)
+
+As shown above there are two main components to the architecture.
+
+1. **Consul Server task:** Runs the Consul server.
+1. **Application tasks:** Runs user application containers along with two helper containers:
+   1. **Consul Client:** The Consul client container runs Consul. The Consul client communicates
+      with the Consul server and configures the Envoy proxy sidecar. This communication
+      is called _control plane_ communication.
+   1. **Sidecar Proxy:** The sidecar proxy container runs [Envoy](https://envoyproxy.io/). All requests
+      to and from the application container(s) run through the sidecar proxy. This communication
+      is called _data plane_ communication.
+
+For more information about how Consul works in general, see Consul's [Architecture Overview](/docs/architecture).
+
+In addition to the long-running Consul Client and Sidecar Proxy containers, there
+are also two initialization containers that run:
+
+1. `discover-servers`: This container runs at startup and uses the AWS API to determine the IP address of the Consul server task.
+1. `mesh-init`: This container runs at startup and sets up initial configuration for Consul and Envoy.
+
+### Task Startup
+
+This diagram shows the timeline of a task starting up and all its containers:
+
+![Task Startup Timeline](/img/ecs-task-startup.png)
+
+- **T0:** ECS starts the task. The `discover-servers` container starts looking for the Consul server task’s IP.
+  It waits for the Consul server task to be running on ECS, looks up its IP and then writes the address to a file.
+  Then the container exits.
+- **T1:** Both the `consul-client` and `mesh-init` containers start:
+  - `consul-client` starts up and uses the server IP to join the cluster.
+  - `mesh-init` registers the service for this task and its sidecar proxy into Consul. It runs `consul connect envoy -bootstrap` to generate Envoy’s bootstrap JSON file and write it to a shared volume. After registration and bootstrapping, `mesh-init` exits.
+- **T2:** The `sidecar-proxy` container starts. It runs Envoy by executing `envoy -c <path-to-bootstrap-json>`.
+- **T3:** The `sidecar-proxy` container is marked as healthy by ECS. It uses a health check that detects if its public listener port is open. At this time, the user’s application containers are started since all the Consul machinery is ready to service requests.
+- **T4:** Consul marks the service as healthy by running the health checks specified in the task Terraform. The service will now receive traffic. At this time the only running containers are `consul-client`, `sidecar-proxy` and the user’s application container(s).
