@@ -1,5 +1,10 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* api: include the default value of raft settings in the output of /v1/agent/self [[GH-8812](https://github.com/hashicorp/consul/issues/8812)]
+* areas: **(Enterprise only)** Selectively merge gossip_wan config for network areas to avoid attempting to enable gossip encryption where it was not intended or necessary.
+
 ## 1.8.11-beta1 (May 18, 2021)
 
 IMPROVEMENTS:
