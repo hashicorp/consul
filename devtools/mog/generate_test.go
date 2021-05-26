@@ -88,6 +88,9 @@ func TestGenerateConversion(t *testing.T) {
 	out, err := astToBytes(&token.FileSet{}, file)
 	assert.NilError(t, err)
 
+	if *shouldPrint {
+		t.Logf("OUTPUT\n%s\n", PrependLineNumbers(string(out)))
+	}
 	golden.Assert(t, string(out), t.Name()+"-expected")
 	// TODO: check gen.RoundTripTest
 }
@@ -150,6 +153,9 @@ func TestImports(t *testing.T) {
 		file.Decls = append(file.Decls, imp.Decl())
 		out, err := astToBytes(&token.FileSet{}, file)
 		assert.NilError(t, err)
+		if *shouldPrint {
+			t.Logf("OUTPUT\n%s\n", PrependLineNumbers(string(out)))
+		}
 		golden.Assert(t, string(out), "TestImports-Decls-expected")
 	})
 }
