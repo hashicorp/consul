@@ -1,5 +1,17 @@
-@import './base/components/index';
 @import 'ember-power-select';
+@import 'consul-ui/components/anchors/index';
+@import 'consul-ui/components/breadcrumbs/index';
+@import 'consul-ui/components/buttons/index';
+@import 'consul-ui/components/checkbox-group/index';
+@import 'consul-ui/components/display-toggle/index';
+@import 'consul-ui/components/form-elements/index';
+@import 'consul-ui/components/inline-alert/index';
+@import 'consul-ui/components/pill/index';
+@import 'consul-ui/components/popover-menu/index';
+@import 'consul-ui/components/radio-group/index';
+@import 'consul-ui/components/sliding-toggle/index';
+@import 'consul-ui/components/table/index';
+@import 'consul-ui/components/toggle-button/index';
 
 /**/
 
