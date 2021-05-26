@@ -150,15 +150,15 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			continue
 		}
 
-		mapErrFn := func(err error) {
+		assignErrFn := func(err error) {
 			if err == nil {
 				errs = append(errs, fmt.Errorf(
-					"struct %v field %v is not mappable to target",
+					"struct %v field %v is not convertible to target",
 					cfg.Source, name,
 				))
 			} else {
 				errs = append(errs, fmt.Errorf(
-					"struct %v field %v is not mappable to target: %w",
+					"struct %v field %v is not convertible to target: %w",
 					cfg.Source, name, err,
 				))
 			}
@@ -167,7 +167,7 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 		// the assignmentKind is <target> := <source> so target==LHS source==RHS
 		rawKind, ok := computeAssignment(field.Type(), sourceField.SourceType)
 		if !ok {
-			mapErrFn(nil)
+			assignErrFn(nil)
 			continue
 		}
 
@@ -192,13 +192,13 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 		case *sliceAssignmentKind:
 			targetElemTypeElem := typeToExpr(kind.LeftElem, imports, true)
 			if targetElemTypeElem == nil {
-				mapErrFn(fmt.Errorf("unsupported slice element type %T", kind.LeftElem))
+				assignErrFn(fmt.Errorf("unsupported slice element type %T", kind.LeftElem))
 				continue
 			}
 
 			sourceElemTypeElem := typeToExpr(kind.RightElem, imports, true)
 			if sourceElemTypeElem == nil {
-				mapErrFn(fmt.Errorf("unsupported slice element type %T", kind.RightElem))
+				assignErrFn(fmt.Errorf("unsupported slice element type %T", kind.RightElem))
 				continue
 			}
 
@@ -223,25 +223,25 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 		case *mapAssignmentKind:
 			targetKeyTypeElem := typeToExpr(kind.LeftKey, imports, true)
 			if targetKeyTypeElem == nil {
-				mapErrFn(fmt.Errorf("unsupported map key type %T", kind.LeftKey))
+				assignErrFn(fmt.Errorf("unsupported map key type %T", kind.LeftKey))
 				continue
 			}
 
 			targetElemTypeElem := typeToExpr(kind.LeftElem, imports, true)
 			if targetElemTypeElem == nil {
-				mapErrFn(fmt.Errorf("unsupported map value type %T", kind.LeftElem))
+				assignErrFn(fmt.Errorf("unsupported map value type %T", kind.LeftElem))
 				continue
 			}
 
 			sourceKeyTypeElem := typeToExpr(kind.RightKey, imports, true)
 			if sourceKeyTypeElem == nil {
-				mapErrFn(fmt.Errorf("unsupported map key type %T", kind.RightKey))
+				assignErrFn(fmt.Errorf("unsupported map key type %T", kind.RightKey))
 				continue
 			}
 
 			sourceElemTypeElem := typeToExpr(kind.RightElem, imports, true)
 			if sourceElemTypeElem == nil {
-				mapErrFn(fmt.Errorf("unsupported map value type %T", kind.RightElem))
+				assignErrFn(fmt.Errorf("unsupported map value type %T", kind.RightElem))
 				continue
 			}
 
