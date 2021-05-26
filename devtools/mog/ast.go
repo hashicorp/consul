@@ -81,26 +81,6 @@ func newIfNilReturn(cmpID string) ast.Stmt {
 	}
 }
 
-func newIfNilReturnIdent(cmpID, retID string) ast.Stmt {
-	// if <cmpID> == nil {
-	// 	return <retID>
-	// }
-	return &ast.IfStmt{
-		Cond: &ast.BinaryExpr{
-			X:  &ast.Ident{Name: cmpID},
-			Op: token.EQL,
-			Y:  &ast.Ident{Name: "nil"},
-		},
-		Body: &ast.BlockStmt{List: []ast.Stmt{
-			&ast.ReturnStmt{
-				Results: []ast.Expr{
-					&ast.Ident{Name: retID},
-				},
-			},
-		}},
-	}
-}
-
 // TODO: do the pointer stuff with go/types instead like everything else now?
 func newAssignStmtConvertible(
 	left ast.Expr,
