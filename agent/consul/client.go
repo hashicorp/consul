@@ -285,7 +285,7 @@ TRY:
 
 	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
 	info, _ := args.(structs.RPCInfo)
-	if retry := canRetry(info, rpcErr,firstCheck, c.config); !retry {
+	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
 		return rpcErr
 	}
 

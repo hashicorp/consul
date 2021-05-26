@@ -962,10 +962,17 @@ func TestCanRetry(t *testing.T) {
 		req      structs.RPCInfo
 		err      error
 		expected bool
+		timeout  time.Time
 	}
-
+	config := DefaultConfig()
+	now := time.Now()
+	config.RPCHoldTimeout = 7 * time.Second
 	run := func(t *testing.T, tc testCase) {
-		require.Equal(t, tc.expected, canRetry(tc.req, tc.err))
+		timeOutValue := tc.timeout
+		if timeOutValue.IsZero() {
+			timeOutValue = now
+		}
+		require.Equal(t, tc.expected, canRetry(tc.req, tc.err, timeOutValue, config))
 	}
 
 	var testCases = []testCase{
@@ -991,6 +998,46 @@ func TestCanRetry(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "EOF error",
+			req:      &structs.DCSpecificRequest{},
+			err:      io.EOF,
+			expected: true,
+		},
+		{
+			name:     "HasTimedOut implementation with no error",
+			req:      &structs.DCSpecificRequest{},
+			err:      nil,
+			expected: false,
+		},
+		{
+			name:     "HasTimedOut implementation timedOut with no error",
+			req:      &structs.DCSpecificRequest{},
+			err:      nil,
+			expected: false,
+			timeout:  now.Add(-(config.RPCHoldTimeout + time.Second)),
+		},
+		{
+			name:     "HasTimedOut implementation timedOut (with EOF error)",
+			req:      &structs.DCSpecificRequest{},
+			err:      io.EOF,
+			expected: false,
+			timeout:  now.Add(-(config.RPCHoldTimeout + time.Second)),
+		},
+		{
+			name:     "HasTimedOut implementation timedOut blocking call",
+			req:      &structs.DCSpecificRequest{QueryOptions: structs.QueryOptions{MaxQueryTime: 300, MinQueryIndex: 1}},
+			err:      nil,
+			expected: false,
+			timeout:  now.Add(-(config.RPCHoldTimeout + config.MaxQueryTime + time.Second)),
+		},
+		{
+			name:     "HasTimedOut implementation timedOut blocking call (MaxQueryTime not set)",
+			req:      &structs.DCSpecificRequest{QueryOptions: structs.QueryOptions{MinQueryIndex: 1}},
+			err:      nil,
+			expected: false,
+			timeout:  now.Add(-(config.RPCHoldTimeout + config.MaxQueryTime + time.Second)),
+		},
+		{
 			name:     "EOF on write request",
 			err:      io.EOF,
 			expected: false,
@@ -1010,4 +1057,8 @@ type isReadRequest struct {
 
 func (r isReadRequest) IsRead() bool {
 	return true
+}
+
+func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	return false
 }

@@ -521,10 +521,10 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 
 // canRetry returns true if the request and error indicate that a retry is safe.
 func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) bool {
-	if info!=nil && info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
+	if info != nil && info.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
 		// RPCInfo timeout may include extra time for MaxQueryTime
 		return false
-	} else if info==nil  && time.Since(start) > config.RPCHoldTimeout {
+	} else if info == nil && time.Since(start) > config.RPCHoldTimeout {
 		// When not RPCInfo, timeout is only RPCHoldTimeout
 		return false
 	}
