@@ -27,7 +27,7 @@ export default class IndexRoute extends Route.extend(WithPolicyActions) {
     return hash({
       ...this.repo.status({
         items: this.repo.findAllByDatacenter({
-          ns: this.modelFor('nspace').nspace.substr(1),
+          ns: this.optionalParams().nspace,
           dc: this.modelFor('dc').dc.Name,
         }),
       }),

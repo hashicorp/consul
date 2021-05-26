@@ -7,7 +7,7 @@ export default class InstanceRoute extends Route {
 
   async model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
 
     const item = await this.data.source(
       uri => uri`/${nspace}/${dc}/service-instance/${params.id}/${params.node}/${params.name}`

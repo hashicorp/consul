@@ -20,7 +20,7 @@ export default class IndexRoute extends Route {
   };
 
   async model(params, transition) {
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     const dc = this.modelFor('dc').dc.Name;
     const items = this.data.source(uri => uri`/${nspace}/${dc}/services`);
     return {

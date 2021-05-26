@@ -3,12 +3,11 @@ import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 export default class ShowRoute extends Route {
-  @service('data-source/service')
-  data;
+  @service('data-source/service') data;
 
   model(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     const name = params.name;
     return hash({
       dc: dc,

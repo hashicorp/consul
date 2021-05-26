@@ -9,8 +9,8 @@ export default Mixin.create(WithBlockingActions, {
     use: function(item) {
       return this.repo
         .findBySlug({
-          ns: this.modelFor('nspace').nspace.substr(1),
           dc: this.modelFor('dc').dc.Name,
+          ns: get(item, 'Namespace'),
           id: get(item, 'AccessorID'),
         })
         .then(item => {

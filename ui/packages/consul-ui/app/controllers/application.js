@@ -40,7 +40,7 @@ export default class ApplicationController extends Controller {
             // you potentially have a new namespace
             // if you do redirect to it
             if (nspace !== this.nspace.Name) {
-              params.nspace = `~${nspace}`;
+              params.nspace = `${nspace}`;
             }
           }
         }

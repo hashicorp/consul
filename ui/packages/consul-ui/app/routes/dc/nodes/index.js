@@ -19,7 +19,7 @@ export default class IndexRoute extends Route {
 
   async model(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     const items = this.data.source(uri => uri`/${nspace}/${dc}/nodes`);
     const leader = this.data.source(uri => uri`/${nspace}/${dc}/leader`);
     return {

@@ -8,7 +8,7 @@
 <a class="topology-metrics-card"
   href={{if
    (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
-    (href-to "nspace.dc.services.show.index" (concat '~' @item.Namespace) @item.Datacenter @item.Name)
+    (href-to "dc.services.show.index" @item.Datacenter @item.Name params=(hash nspace=@item.Namespace))
     (href-to "dc.services.show.index" @item.Name)
   }}
   data-permission={{service/intention-permissions @item}}

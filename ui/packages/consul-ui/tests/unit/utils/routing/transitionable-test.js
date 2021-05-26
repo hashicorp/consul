@@ -22,25 +22,6 @@ module('Unit | Utility | routing/transitionable', function() {
     const actual = transitionable(instance, {});
     assert.deepEqual(actual, expected);
   });
-  test('it walks up the route tree to resolve all the required parameters whilst nspaced', function(assert) {
-    const expected = [
-      'nspace.dc.service.instance',
-      'team-1',
-      'dc-1',
-      'service-0',
-      'node-0',
-      'service-instance-0',
-    ];
-    const dc = makeRoute('dc', { dc: 'dc-1' });
-    const service = makeRoute('dc.service', { service: 'service-0' }, dc);
-    const instance = makeRoute(
-      'dc.service.instance',
-      { node: 'node-0', id: 'service-instance-0' },
-      service
-    );
-    const actual = transitionable(instance, { nspace: 'team-1' });
-    assert.deepEqual(actual, expected);
-  });
   test('it walks up the route tree to resolve all the required parameters whilst replacing specified params', function(assert) {
     const expected = [
       'dc.service.instance',

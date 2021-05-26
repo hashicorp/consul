@@ -33,7 +33,7 @@ export default class DcRoute extends Route {
 
     let [token, nspace, dc] = await Promise.all([
       this.settingsRepo.findBySlug('token'),
-      this.nspacesRepo.getActive(),
+      this.nspacesRepo.getActive(this.optionalParams().nspace),
       this.repo.findBySlug(params.dc, app.dcs),
     ]);
     // if there is only 1 namespace then use that

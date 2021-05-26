@@ -235,10 +235,6 @@ if (env('CONSUL_NSPACES_ENABLED')) {
       },
     },
   };
-  routes.nspace = {
-    _options: { path: '/:nspace' },
-    dc: routes.dc,
-  };
 }
 runInDebug(() => {
   // check to see if we are running docfy and if so add its routes to our

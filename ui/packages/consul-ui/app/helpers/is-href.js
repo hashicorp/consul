@@ -27,5 +27,6 @@ export default class IsHrefHelper extends Helper {
 
   willDestroy() {
     this.router.off('routeWillChange', this.routeWillChange);
+    super.willDestroy();
   }
 }

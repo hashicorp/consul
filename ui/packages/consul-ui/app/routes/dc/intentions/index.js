@@ -17,7 +17,7 @@ export default class IndexRoute extends Route {
   async model(params) {
     return {
       dc: this.modelFor('dc').dc.Name,
-      nspace: this.modelFor('nspace').nspace.substr(1),
+      nspace: this.optionalParams().nspace,
       searchProperties: this.queryParams.searchproperty.empty[0],
     };
   }

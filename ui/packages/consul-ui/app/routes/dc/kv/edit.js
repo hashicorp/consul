@@ -18,7 +18,7 @@ export default class EditRoute extends Route {
         .indexOf('create') !== -1;
     const key = params.key;
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     return hash({
       dc: dc,
       nspace: nspace || 'default',

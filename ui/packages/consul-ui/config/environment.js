@@ -41,7 +41,8 @@ module.exports = function(environment, $ = process.env) {
     modulePrefix: 'consul-ui',
     environment,
     rootURL: '/ui/',
-    locationType: 'auto',
+    locationType: 'fsm-with-optional',
+    historySupportMiddleware: true,
 
     // We use a complete dynamically (from Consul) configured torii provider.
     // We provide this object here to prevent ember from giving a log message
@@ -116,7 +117,7 @@ module.exports = function(environment, $ = process.env) {
   switch (true) {
     case environment === 'test':
       ENV = Object.assign({}, ENV, {
-        locationType: 'none',
+        locationType: 'fsm-with-optional-test',
 
         // During testing ACLs default to being turned on
         operatorConfig: {

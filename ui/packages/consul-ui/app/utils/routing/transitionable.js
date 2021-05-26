@@ -1,8 +1,4 @@
 const filter = function(routeName, atts, params) {
-  if (typeof params.nspace !== 'undefined' && routeName.startsWith('dc.')) {
-    routeName = `nspace.${routeName}`;
-    atts = [params.nspace].concat(atts);
-  }
   return [routeName, ...atts];
 };
 const replaceRouteParams = function(route, params = {}) {
@@ -28,7 +24,7 @@ export default function(route, params = {}, container) {
     atts = atts.concat(replaceRouteParams(parent, params));
     current = parent;
   }
-  // Reverse atts here so it doen't get confusing whilst debugging
+  // Reverse atts here so it doesn't get confusing whilst debugging
   // (.reverse is destructive)
   atts.reverse();
   return filter(route.name || 'application', atts, params);

@@ -29,7 +29,7 @@ export default class IndexRoute extends Route {
   model(params) {
     let key = params.key || '/';
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     return hash({
       parent: this.repo.findBySlug({
         ns: nspace,

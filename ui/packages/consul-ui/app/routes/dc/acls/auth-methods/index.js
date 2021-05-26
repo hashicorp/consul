@@ -24,7 +24,7 @@ export default class IndexRoute extends Route {
       ...this.repo.status({
         items: this.repo.findAllByDatacenter({
           dc: this.modelFor('dc').dc.Name,
-          ns: this.modelFor('nspace').nspace.substr(1),
+          ns: this.optionalParams().nspace,
         }),
       }),
       searchProperties: this.queryParams.searchproperty.empty[0],
