@@ -50,9 +50,9 @@
     }
   }
 
-  div.tooltip:before{
-    content:'';
-    display:block;
+  div.tooltip:before {
+    content: '';
+    display: block;
     position: absolute;
     width: 12px;
     height: 12px;
@@ -69,9 +69,9 @@
 // Key modal
 .sparkline-key {
   h3::before {
-      @extend %with-info-circle-fill-mask, %as-pseudo;
-      margin: 2px 3px 0 0;
-      font-size: 14px;
+    @extend %with-info-circle-fill-mask, %as-pseudo;
+    margin: 2px 3px 0 0;
+    font-size: 14px;
   }
 
   h3 {

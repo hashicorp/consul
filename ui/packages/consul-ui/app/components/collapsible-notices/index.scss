@@ -1,10 +1,10 @@
 .collapsible-notices {
   display: grid;
-  grid-template-columns: auto 168px;;
+  grid-template-columns: auto 168px;
   grid-template-rows: auto 55px;
   grid-template-areas:
-    "notices notices"
-    ". toggle-button";
+    'notices notices'
+    '. toggle-button';
   &.collapsed p {
     display: none;
   }

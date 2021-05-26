@@ -1,4 +1,4 @@
-.tippy-box[data-theme~=tooltip] {
+.tippy-box[data-theme~='tooltip'] {
   & {
     @extend %tooltip-bubble;
   }
@@ -8,16 +8,16 @@
   .tippy-arrow {
     @extend %tooltip-tail;
   }
-  &[data-placement^=bottom] > .tippy-arrow {
+  &[data-placement^='bottom'] > .tippy-arrow {
     @extend %tooltip-tail-bottom;
   }
-  &[data-placement^=top] > .tippy-arrow {
+  &[data-placement^='top'] > .tippy-arrow {
     @extend %tooltip-tail-top;
   }
-  &[data-placement^=left] > .tippy-arrow {
+  &[data-placement^='left'] > .tippy-arrow {
     @extend %tooltip-tail-left;
   }
-  &[data-placement^=right] > .tippy-arrow {
+  &[data-placement^='right'] > .tippy-arrow {
     @extend %tooltip-tail-right;
   }
 }

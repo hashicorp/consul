@@ -11,7 +11,7 @@
 %modal-dialog table {
   min-height: 149px;
 }
-%modal-dialog > div:first-child  {
+%modal-dialog > div:first-child {
   @extend %modal-dialog-overlay;
 }
 %modal-dialog,

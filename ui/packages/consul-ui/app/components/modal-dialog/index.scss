@@ -6,6 +6,6 @@
 .modal-dialog {
   @extend %modal-dialog;
 }
-%modal-dialog [role="document"] {
+%modal-dialog [role='document'] {
   @extend %modal-window;
 }
