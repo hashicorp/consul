@@ -153,7 +153,7 @@ func newAssignStmtSlice(
 	leftType ast.Expr,
 	leftElemType ast.Expr,
 	right ast.Expr,
-	rightType ast.Expr, // UNUSED
+	_ ast.Expr, // TODO
 	rightElemType ast.Expr,
 	convertFuncName string,
 	direct bool,
@@ -206,11 +206,11 @@ func newAssignStmtSlice(
 func newAssignStmtMap(
 	left ast.Expr,
 	leftType ast.Expr,
-	leftKeyType ast.Expr,
+	_ ast.Expr, // TODO
 	leftElemType ast.Expr,
 	right ast.Expr,
-	rightType ast.Expr,
-	rightKeyType ast.Expr,
+	_ ast.Expr, // TODO
+	_ ast.Expr, // TODO
 	rightElemType ast.Expr,
 	convertFuncName string,
 	direct bool,
