@@ -1,0 +1,3 @@
+```release-note:improvement
+connect: Ensures passthrough tproxy cluster is created even when mesh config doesn't exist.
+```
