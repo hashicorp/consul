@@ -1,0 +1,4 @@
+```release-note:bug
+use the MaxQueryTime instead of RPCHoldTimeout for blocking RPC queries 
+ [[GH-8978](https://github.com/hashicorp/consul/pull/8978)].
+```
