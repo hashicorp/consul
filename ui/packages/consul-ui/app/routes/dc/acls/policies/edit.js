@@ -14,7 +14,7 @@ export default class EditRoute extends SingleRoute.extend(WithPolicyActions) {
 
   model(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     const tokenRepo = this.tokenRepo;
     return super.model(...arguments).then(model => {
       return hash({

@@ -1,4 +1,4 @@
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 import { schedule } from '@ember/runloop';
 
 class Outlets {
@@ -48,6 +48,10 @@ class Outlets {
 }
 const outlets = new Outlets();
 export default class RoutletService extends Service {
+  @service('container') container;
+  @service('env') env;
+  @service('router') router;
+
   ready() {
     return this._transition;
   }
@@ -81,6 +85,42 @@ export default class RoutletService extends Service {
       return outlet.model || {};
     }
     return {};
+  }
+
+  paramsFor(name) {
+    let outletParams = {};
+    const outlet = outlets.get(name);
+    if (typeof outlet !== 'undefined' && typeof outlet.args.params !== 'undefined') {
+      outletParams = outlet.args.params;
+    }
+    const route = this.router.currentRoute;
+    // TODO: Opportunity to dry out this with transitionable
+    // walk up the entire route/s replacing any instances
+    // of the specified params with the values specified
+    let current = route;
+    let parent;
+    let routeParams = {};
+    // TODO: Not entirely sure whether we are ok exposing queryParams here
+    // seeing as accessing them from here means you can get them but not set
+    // them as yet
+    // let queryParams = {};
+    while ((parent = current.parent)) {
+      routeParams = {
+        ...parent.params,
+        ...routeParams,
+      };
+      // queryParams = {
+      //   ...parent.queryParams,
+      //   ...queryParams
+      // };
+      current = parent;
+    }
+    return {
+      ...this.container.get(`location:${this.env.var('locationType')}`).optionalParams(),
+      ...routeParams,
+      // ...queryParams
+      ...outletParams,
+    };
   }
 
   addRoute(name, route) {

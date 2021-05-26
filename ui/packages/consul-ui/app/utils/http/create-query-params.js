@@ -1,4 +1,4 @@
-export default function(encode) {
+export default function(encode = encodeURIComponent) {
   return function stringify(obj, parent) {
     return Object.entries(obj)
       .reduce(function(prev, [key, value], i) {

@@ -1,16 +1,14 @@
 import { inject as service } from '@ember/service';
-import { get } from '@ember/object';
-import { env } from 'consul-ui/env';
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
-export default class EnabledService extends RepositoryService {
-  @service('router')
-  router;
+export default class NspaceEnabledService extends RepositoryService {
+  @service('router') router;
+  @service('container') container;
+  @service('env') env;
 
-  @service('settings')
-  settings;
+  @service('settings') settings;
 
   getPrimaryKey() {
     return PRIMARY_KEY;
@@ -34,7 +32,7 @@ export default class EnabledService extends RepositoryService {
   }
 
   authorize(dc, nspace) {
-    if (!env('CONSUL_ACLS_ENABLED')) {
+    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
       return Promise.resolve([
         {
           Resource: 'operator',
@@ -48,42 +46,19 @@ export default class EnabledService extends RepositoryService {
     });
   }
 
-  getActive() {
-    let routeParams = {};
-    // this is only populated before the model hook as fired,
-    // it is then deleted after the model hook has finished
-    const infos = get(this, 'router._router.currentState.router.activeTransition.routeInfos');
-    if (typeof infos !== 'undefined') {
-      infos.forEach(function(item) {
-        Object.keys(item.params).forEach(function(prop) {
-          routeParams[prop] = item.params[prop];
-        });
-      });
-    } else {
-      // this is only populated after the model hook has finished
-      //
-      const current = get(this, 'router.currentRoute');
-      if (current) {
-        const nspacedRoute = current.find(function(item, i, arr) {
-          return item.paramNames.includes('nspace');
-        });
-        if (typeof nspacedRoute !== 'undefined') {
-          routeParams.nspace = nspacedRoute.params.nspace;
-        }
-      }
-    }
+  getActive(paramsNspace) {
     return this.settings
       .findBySlug('nspace')
       .then(function(nspace) {
         // If we can't figure out the nspace from the URL use
         // the previously saved nspace and if thats not there
         // then just use default
-        return routeParams.nspace || nspace || '~default';
+        return paramsNspace || nspace || 'default';
       })
       .then(nspace => this.settings.persist({ nspace: nspace }))
       .then(function(item) {
         return {
-          Name: item.nspace.substr(1),
+          Name: item.nspace,
         };
       });
   }

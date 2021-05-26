@@ -34,7 +34,7 @@ Feature: dc / acls / tokens / own-no-delete: The your current token has no delet
     And I visit the token page for yaml
     ---
     dc: dc-1
-    token: ee52203d-989f-4f7a-ab5a-2bef004164ca
+    token: token
     ---
-    Then the url should be /dc-1/acls/tokens/ee52203d-989f-4f7a-ab5a-2bef004164ca
+    Then the url should be /dc-1/acls/tokens/token
     Then I don't see confirmDelete

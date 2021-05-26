@@ -14,13 +14,13 @@ export default class SessionsRoute extends Route.extend(WithBlockingActions) {
   @service('feedback')
   feedback;
 
-  model() {
+  model(params) {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
       .join('.');
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.optionalParams().nspace;
     const node = this.paramsFor(parent).name;
     return hash({
       dc: dc,

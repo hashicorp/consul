@@ -36,7 +36,7 @@
                 <MenuItem
                   data-test-datacenter-picker
                   class={{concat (if (eq @dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
-                  @href={{href-mut (hash dc=item.Name)}}
+                  @href={{href-to '.' params=(hash dc=item.Name)}}
                 >
                   <BlockSlot @name="label">
                     {{item.Name}}
@@ -81,7 +81,7 @@
                   {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
                     <MenuItem
                       class={{if (eq @nspace.Name item.Name) 'is-active'}}
-                      @href={{href-mut (hash nspace=(concat '~' item.Name))}}
+                      @href={{href-to '.' params=(hash nspace=item.Name)}}
                     >
                       <BlockSlot @name="label">
                         {{item.Name}}

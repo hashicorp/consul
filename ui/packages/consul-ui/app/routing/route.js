@@ -10,7 +10,10 @@ import wildcard from 'consul-ui/utils/routing/wildcard';
 const isWildcard = wildcard(routes);
 
 export default class BaseRoute extends Route {
+  @service('container') container;
+  @service('env') env;
   @service('repository/permission') permissions;
+  @service('router') router;
 
   /**
    * Inspects a custom `abilities` array on the router for this route. Every
@@ -75,6 +78,10 @@ export default class BaseRoute extends Route {
       routeName: this.routeName,
     });
     super.setupController(...arguments);
+  }
+
+  optionalParams() {
+    return this.container.get(`location:${this.env.var('locationType')}`).optionalParams();
   }
 
   /**

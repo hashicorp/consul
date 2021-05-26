@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Add 'optional route segments' and move namespaces to use them
+```

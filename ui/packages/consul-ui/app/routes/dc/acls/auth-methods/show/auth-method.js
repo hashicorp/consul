@@ -1,7 +1,7 @@
 import Route from 'consul-ui/routing/route';
 
 export default class AuthMethodRoute extends Route {
-  model() {
+  model(params) {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)

@@ -33,14 +33,15 @@ export default class IndexRoute extends Route.extend(WithTokenActions) {
   }
 
   model(params) {
+    const nspace = this.optionalParams().nspace;
     return hash({
       ...this.repo.status({
         items: this.repo.findAllByDatacenter({
-          ns: this.modelFor('nspace').nspace.substr(1),
+          ns: nspace,
           dc: this.modelFor('dc').dc.Name,
         }),
       }),
-      nspace: this.modelFor('nspace').nspace.substr(1),
+      nspace: nspace,
       token: this.settings.findBySlug('token'),
       searchProperties: this.queryParams.searchproperty.empty[0],
     });
