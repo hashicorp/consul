@@ -6,5 +6,6 @@
 {{/if}}
 
 {{yield (hash
-  model=model
+  model=this.model
+  params=this.params
 )}}

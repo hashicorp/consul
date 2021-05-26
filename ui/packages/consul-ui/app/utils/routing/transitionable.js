@@ -24,7 +24,7 @@ export default function(route, params = {}, container) {
     atts = atts.concat(replaceRouteParams(parent, params));
     current = parent;
   }
-  // Reverse atts here so it doen't get confusing whilst debugging
+  // Reverse atts here so it doesn't get confusing whilst debugging
   // (.reverse is destructive)
   atts.reverse();
   return filter(route.name || 'application', atts, params);
