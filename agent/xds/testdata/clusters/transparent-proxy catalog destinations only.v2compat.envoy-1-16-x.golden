@@ -125,13 +125,6 @@
           }
         ]
       }
-    },
-    {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
-      "name": "original-destination",
-      "type": "ORIGINAL_DST",
-      "connectTimeout": "5s",
-      "lbPolicy": "CLUSTER_PROVIDED"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
