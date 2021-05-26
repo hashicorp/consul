@@ -18,7 +18,7 @@
         const proxy = service.indexOf('-proxy')
         const sidecar = service.indexOf('-sidecar-proxy')
         const id = (proxy !== -1 ? service.slice(0, -6) + '-with-id-proxy' : service + '-with-id');
-        let kind = ''; 
+        let kind = '';
         switch(true) {
           case service.endsWith('-mesh-gateway'):
             kind = 'mesh-gateway';
@@ -71,21 +71,38 @@ ${typeof location.search.ns !== 'undefined' ? `
                     )
                 }
             ],
+            "Weights": {
+              "Passing": 1,
+              "Warning": 1
+            },
 ${ fake.random.number({min: 1, max: 10}) > 2 ? `
             "Meta": {
               "consul-dashboard-url": "${fake.internet.protocol()}://${fake.internet.domainName()}/?id={{Service}}",
               "external-source": "${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"
             },
-` : `` }
+` : `
+            "Meta": null,
+` }
+${ false ? `
             "Address":"${fake.internet.ip()}",
             "Port":${fake.random.number({min: 0, max: 65535})},
+` : `
+            "Address":"",
+            "SocketPath": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}",
+` }
+            "Connect": {},
 ${kind !== '' ? `
             "Kind": "${kind}",
 ` : `` }
             "Proxy": {
 ${proxy !== -1 && sidecar === -1 ? `
               "DestinationServiceName": "${service.substr(0, proxy)}",
-` : ``}
+` : `
+              "Expose": {},
+              "MeshGateway": {},
+              "Mode": "",
+              "TransparentProxy": ""
+`}
 ${sidecar !== -1 ? `
               "DestinationServiceName": "${service.substr(0, sidecar)}",
               "DestinationServiceID": "${service.substr(0, sidecar)}-ID",
@@ -113,8 +130,13 @@ ${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
                     "DestinationName": "${fake.hacker.noun()}",
                     "DestinationNamespace": "${fake.hacker.noun()}",
                     "DestinationType": "${fake.helpers.randomize(['service', 'prepared_query'])}",
+${ false ? `
                     "LocalBindAddress": "${fake.internet.ip()}",
                     "LocalBindPort": ${fake.random.number({min: 0, max: 65535})}
+` : `
+                    "LocalBindSocketMode": "0600",
+                    "LocalBindSocketPath": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}"
+` }
                   }
   `)}
               ]
