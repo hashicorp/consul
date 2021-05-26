@@ -342,6 +342,7 @@ func newAssignStmtStructsAndPointers(
 	}
 }
 
+// printTypeExpr is useful when debugging changes to mog itself
 func printTypeExpr(expr ast.Expr) string {
 	switch x := expr.(type) {
 	case *ast.Ident:
