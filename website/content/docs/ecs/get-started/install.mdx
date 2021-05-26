@@ -309,6 +309,9 @@ resource "aws_ecs_service" "my_task" {
 }
 ```
 
+-> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
+in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.
+
 After running `terraform apply`, you should see your tasks registered in
 the Consul UI.
 
