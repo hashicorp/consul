@@ -162,7 +162,27 @@ export default function HomePage() {
           },
         ]}
       />
-
+      <div
+        className="g-grid-container"
+        style={{
+          width: '100%',
+          height: 600,
+          border: '1px solid var(--consul)',
+          display: 'flex',
+        }}
+      >
+        <h4>CONSUL ECOSYSTEM</h4>
+      </div>
+      <div
+        className="g-grid-container"
+        style={{
+          width: '100%',
+          height: 600,
+          border: '1px solid var(--consul)',
+        }}
+      >
+        <h4>FEATURES</h4>
+      </div>
       <CalloutBlade
         title="Consul with HashiCorp Stack"
         callouts={[
@@ -266,6 +286,17 @@ export default function HomePage() {
           ],
         }}
       />
+
+      <div
+        className="g-grid-container"
+        style={{
+          width: '100%',
+          height: 600,
+          border: '1px solid var(--consul)',
+        }}
+      >
+        <h4>LEARN</h4>
+      </div>
     </div>
   )
 }
