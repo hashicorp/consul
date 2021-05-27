@@ -1,0 +1,12 @@
+.staticDynamic {
+  composes: g-grid-container from global;
+  display: grid;
+  grid-gap: 64px;
+  justify-items: center;
+}
+
+.heading {
+  margin: 0;
+  max-width: 784px;
+  text-align: center;
+}

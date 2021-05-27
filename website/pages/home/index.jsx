@@ -1,39 +1,86 @@
-import UseCases from '@hashicorp/react-use-cases'
-import ProductFeaturesList from '@hashicorp/react-product-features-list'
-import MiniCTA from 'components/mini-cta'
-import HcpCalloutSection from 'components/hcp-callout-section'
-import CtaHero from 'components/cta-hero'
 import CalloutBlade from 'components/callout-blade'
-import ConsulEnterpriseComparison from 'components/enterprise-comparison/consul'
-import PrefooterCTA from 'components/prefooter-cta'
 import CaseStudyCarousel from 'components/case-study-carousel'
+import HomepageHero from 'components/homepage-hero'
+import StaticDynamicDiagram from 'components/static-dynamic-diagram'
 
 export default function HomePage() {
   return (
     <div className="p-home">
-      <CtaHero
+      <HomepageHero
         title="Service Mesh for any runtime or cloud"
         description="Consul automates networking for simple and secure application delivery."
         links={[
           {
             type: 'none',
-            text: 'Download Consul',
-            url: '/downloads',
+            text: 'Try HCP Consul',
+            url:
+              'https://portal.cloud.hashicorp.com/sign-up?utm_source=docs&utm_content=consul_hero',
           },
           {
             type: 'none',
-            text: 'Explore Tutorials',
-            url: 'https://learn.hashicorp.com/consul',
+            text: 'Download',
+            url: '/downloads',
           },
         ]}
-        cta={{
-          title: 'Try HCP Consul',
-          description:
-            'A fully managed service mesh to discover and securely connect any service.',
-          link: {
-            text: 'Sign Up',
+        videos={[
+          {
+            name: 'UI',
+            playbackRate: 2,
+            src: [
+              {
+                srcType: 'mp4',
+                url:
+                  'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
+              },
+            ],
+          },
+          {
+            name: 'CLI',
+            playbackRate: 2,
+            src: [
+              {
+                srcType: 'mp4',
+                url:
+                  'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
+              },
+            ],
+          },
+        ]}
+      />
+      <StaticDynamicDiagram
+        heading="Service-based networking for dynamic infrastructure"
+        diagrams={{
+          beforeHeadline: 'Static Infrastructure',
+          // @TODO - Convert to a slot w/ JSX markup
+          beforeContent:
+            '<p class="g-type-body-small">Private datacenters with static IPs, primarily north-south traffic, protected by perimeter security and coarse-grained network segments.</p>\n' +
+            '<h4 class="g-type-label"><a class="__permalink-h" href="#traditional-approach" aria-label="traditional approach permalink">»</a><a class="__target-h" id="traditional-approach" aria-hidden></a>Traditional Approach</h4>\n' +
+            '<ul>\n' +
+            '<li class="g-type-body-small">Static connectivity between services</li>\n' +
+            '<li class="g-type-body-small">A fleet of load balancers to route traffic</li>\n' +
+            '<li class="g-type-body-small">Ticket driven processes to update network middleware</li>\n' +
+            '<li class="g-type-body-small">Firewall rule sprawl to constrict access and insecure flat network zones</li>\n' +
+            '</ul>',
+          beforeImage: {
             url:
-              'https://portal.cloud.hashicorp.com/sign-up?utm_source=consul_io&utm_content=hero',
+              'https://www.datocms-assets.com/2885/1559693517-static-infrastructure.png',
+            alt: 'Static Infrastructure',
+          },
+          afterHeadline: 'Dynamic Infrastructure',
+          // @TODO - Convert to a slot w/ JSX markup
+          afterContent:
+            '<p class="g-type-body-small">Multiple clouds and private datacenters with dynamic IPs, ephemeral containers, dominated by east-west traffic, no clear network perimeters.</p>\n' +
+            '<h4 class="g-type-label"><a class="__permalink-h" href="#consul-approach" aria-label="consul approach permalink">»</a><a class="__target-h" id="consul-approach" aria-hidden></a>Consul Approach</h4>\n' +
+            '<ul>\n' +
+            '<li class="g-type-body-small">Centralized registry to locate any service</li>\n' +
+            '<li class="g-type-body-small">Services discovered and connected with centralized policies</li>\n' +
+            '<li class="g-type-body-small">Network automated in service of applications</li>\n' +
+            '<li class="g-type-body-small">Zero trust network enforced by identity-based security policies</li>\n' +
+            '</ul>',
+          afterImage: {
+            url:
+              'https://www.datocms-assets.com/2885/1559693545-dynamic-infrastructure-4x.png',
+            alt: 'Dynamic Infrastructure',
           },
         }}
       />
@@ -107,59 +154,6 @@ export default function HomePage() {
         ]}
       />
 
-      <ProductFeaturesList
-        heading="Why Consul?"
-        features={[
-          {
-            title: 'Secure, Multi-Cloud Service Networking',
-            content:
-              'Secure services running in any environment leveraging intention based policies and automatic mTLS encryption between service mesh resources',
-            icon: require('./img/why-consul/consul_features_cloud.svg'),
-            link: {
-              type: 'inbound',
-              text: 'Learn more',
-              url:
-                'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents',
-            },
-          },
-          {
-            title: 'Dynamic Load Balancing',
-            content:
-              'Resolve discovered services through integrated DNS. Automate 3rd party load balancers (F5, NGINX, HAProxy). Eliminate manual configuration of network devices.',
-            icon: require('./img/why-consul/consul_features_gear.svg'),
-            link: {
-              type: 'inbound',
-              text: 'Learn more',
-              url:
-                'https://learn.hashicorp.com/collections/consul/load-balancing',
-            },
-          },
-          {
-            title: 'Service Discovery with Health Checking',
-            content:
-              'Consul enables detecting the deployment of new services, changes to existing ones, and provides real time agent health to reduce downtime.',
-            icon: require('./img/why-consul/consul_features_health.svg'),
-            link: {
-              type: 'inbound',
-              text: 'Learn more',
-              url:
-                'https://learn.hashicorp.com/tutorials/consul/service-registration-health-checks',
-            },
-          },
-          {
-            title: 'Robust Ecosystem',
-            content:
-              'Consul offers support for and integrations with many popular DevOps and Networking tools.',
-            icon: require('./img/why-consul/consul_features_world.svg'),
-            link: {
-              type: 'inbound',
-              text: 'Learn more',
-              url: '/docs/integrate/partnerships',
-            },
-          },
-        ]}
-      />
-
       <CaseStudyCarousel
         title="Trusted by startups and the world’s largest organizations"
         caseStudies={[
@@ -224,85 +218,6 @@ export default function HomePage() {
           ],
         }}
       />
-      <MiniCTA
-        title="Are you using Consul in production?"
-        link={{
-          text: 'Share your success story and receive special Consul swag.',
-          url:
-            'https://docs.google.com/forms/d/1B-4XlRndv2hX9G4Gt2dMnJBqilctrrof7dfpyQ1EVIg/edit',
-          type: 'outbound',
-        }}
-      />
-
-      <div className="use-cases g-grid-container">
-        <h2 className="g-type-display-2">Use Cases</h2>
-        <UseCases
-          items={[
-            {
-              title: 'Service Discovery and Health Checking',
-              description:
-                'Enable services to locate other services running in any environment and provide real-time health status.',
-              image: {
-                url: require('./img/use-cases/discovery_health_checking.svg?url'),
-                format: 'svg',
-              },
-              link: {
-                title: 'Learn more',
-                url: '/use-cases/service-discovery-and-health-checking',
-              },
-            },
-            {
-              title: 'Network Infrastructure Automation',
-              description:
-                'Reduce burden of manual, ticket-based networking tasks.',
-              image: {
-                url: require('./img/use-cases/network_automation.svg?url'),
-                format: 'svg',
-              },
-              link: {
-                title: 'Learn more',
-                url: '/use-cases/network-infrastructure-automation',
-              },
-            },
-            {
-              title: 'Multi-Platform Service Mesh',
-              description:
-                'Secure, modern application networking across any cloud or runtime.',
-              image: {
-                url: require('./img/use-cases/service_mesh.svg?url'),
-                format: 'svg',
-              },
-              link: {
-                title: 'Learn more',
-                url: '/use-cases/multi-platform-service-mesh',
-              },
-            },
-          ]}
-        />
-      </div>
-
-      <HcpCalloutSection
-        id="cloud-offerings"
-        title="HCP Consul"
-        chin="Available on AWS"
-        description="A fully managed service mesh to discover and securely connect any service."
-        image={require('./img/hcp_consul.svg?url')}
-        links={[
-          {
-            text: 'Learn More',
-            url:
-              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hcp_consul_detail',
-          },
-          {
-            text: 'Looking for Consul Service on Azure?',
-            url: 'https://www.hashicorp.com/products/consul/service-on-azure',
-            type: 'inbound',
-          },
-        ]}
-      />
-
-      <ConsulEnterpriseComparison />
-      <PrefooterCTA />
     </div>
   )
 }

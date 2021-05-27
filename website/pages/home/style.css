@@ -3,6 +3,9 @@
     padding-top: 100px;
     padding-bottom: 100px;
   }
+  & .social-proof {
+    padding-bottom: 64px;
+  }
 
   & .use-cases {
     padding-top: 128px;
