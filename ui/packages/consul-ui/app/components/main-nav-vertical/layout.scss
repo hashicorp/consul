@@ -20,20 +20,20 @@
 // items, left and right aligned. We should remove this and look to use
 // align-self for anything that needs right aligning instead.
 
-%main-nav-vertical [role="menuitem"] {
+%main-nav-vertical [role='menuitem'] {
   justify-content: flex-start !important;
 }
-%main-nav-vertical [role="menuitem"] span {
-  margin-left: .5rem;
+%main-nav-vertical [role='menuitem'] span {
+  margin-left: 0.5rem;
 }
 %main-nav-vertical-action,
-%main-nav-vertical li:not([role="separator"]) > span,
-%main-nav-vertical [role="separator"] {
+%main-nav-vertical li:not([role='separator']) > span,
+%main-nav-vertical [role='separator'] {
   display: block;
   padding: 7px 25px;
 }
-%main-nav-vertical [role="separator"] {
-  margin-top: .7rem;
+%main-nav-vertical [role='separator'] {
+  margin-top: 0.7rem;
   padding-bottom: 0;
 }
 

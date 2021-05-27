@@ -5,9 +5,9 @@
   grid-template-columns: 2fr 1fr 2fr 1fr 2fr;
   grid-template-rows: 50px 1fr 50px;
   grid-template-areas:
-    "down-cards down-lines . up-lines up-cards"
-    "down-cards down-lines metrics up-lines up-cards"
-    "down-cards down-lines . up-lines up-cards";
+    'down-cards down-lines . up-lines up-cards'
+    'down-cards down-lines metrics up-lines up-cards'
+    'down-cards down-lines . up-lines up-cards';
 }
 
 // Grid Layout
@@ -67,4 +67,3 @@
     }
   }
 }
-

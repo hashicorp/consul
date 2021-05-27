@@ -13,17 +13,17 @@
     outline: 0;
     transition-property: transform, visibility, opacity;
   }
-  &[data-animation=fade][data-state=hidden] {
+  &[data-animation='fade'][data-state='hidden'] {
     opacity: 0;
   }
-  &[data-inertia][data-state=visible] {
-    transition-timing-function: cubic-bezier(.54, 1.5, .38, 1.11);
+  &[data-inertia][data-state='visible'] {
+    transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
   }
-  &[data-animation=fade][data-state=hidden] {
+  &[data-animation='fade'][data-state='hidden'] {
     opacity: 0;
   }
-  &[data-inertia][data-state=visible] {
-    transition-timing-function: cubic-bezier(.54, 1.5, .38, 1.11);
+  &[data-inertia][data-state='visible'] {
+    transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
   }
   & {
     background-color: $white;
@@ -33,23 +33,23 @@
   .tippy-arrow {
     @extend %overlay-tail;
   }
-  &[data-placement^=bottom] > .tippy-arrow {
+  &[data-placement^='bottom'] > .tippy-arrow {
     @extend %overlay-tail-bottom;
   }
-  &[data-placement^=top] > .tippy-arrow {
+  &[data-placement^='top'] > .tippy-arrow {
     @extend %overlay-tail-top;
   }
-  &[data-placement^=left] > .tippy-arrow {
+  &[data-placement^='left'] > .tippy-arrow {
     @extend %overlay-tail-left;
   }
-  &[data-placement^=right] > .tippy-arrow {
+  &[data-placement^='right'] > .tippy-arrow {
     @extend %overlay-tail-right;
   }
 }
 %overlay-tail {
   --size: 5px;
   &::before {
-    content: "";
+    content: '';
     position: absolute;
   }
 }
@@ -65,7 +65,7 @@
 }
 %overlay-tail-bottom {
   & {
-    top: 0
+    top: 0;
   }
   &::before {
     left: 0;
@@ -84,11 +84,10 @@
 }
 %overlay-tail-right {
   & {
-    left: 0
+    left: 0;
   }
   &::before {
     left: calc(0px - var(--size));
     transform-origin: center right;
   }
 }
-

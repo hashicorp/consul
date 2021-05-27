@@ -4,7 +4,7 @@
 [role='banner'] {
   @extend %main-header-horizontal;
 }
-[role="banner"] > label {
+[role='banner'] > label {
   @extend %main-nav-horizontal-toggle-button;
 }
 .app > input[id] {
@@ -44,7 +44,6 @@ main {
   transition-property: margin-left;
 }
 
-
 @media #{$--sidebar-open} {
   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
     left: 0;
@@ -73,4 +72,3 @@ main {
     margin-left: 0;
   }
 }
-
