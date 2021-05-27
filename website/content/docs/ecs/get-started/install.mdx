@@ -141,10 +141,10 @@ The specific permissions needed are:
 
 1. `ecs:ListTasks` on resource `*`.
 1. `ecs:DescribeTasks` on all tasks in this account and region. You can either
-   use `*` for simplicity or scope it to the region and account, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/*`
-
--> **NOTE:** If your account is configured to use the new, [longer ECS task ARN format](https://docs.aws.amazon.com/AmazonECS/latest/userguide/ecs-account-settings.html#ecs-resource-ids)
-then you can further scope `ecs:DescribeTasks` down to tasks in a specific cluster, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/MY_CLUSTER_NAME/*`
+   use `*` for simplicity or scope it to the region and account, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/*`. If 
+   your account is configured to use the new, [longer ECS task ARN format] 
+  (https://docs.aws.amazon.com/AmazonECS/latest/userguide/ecs-account-settings.html#ecs-resource-ids)
+   then you can further scope `ecs:DescribeTasks` down to tasks in a specific cluster, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/MY_CLUSTER_NAME/*`.
 
 The IAM role's ARN will be passed into the `mesh-task` module in the next step
 via the `task_role_arn` input.
