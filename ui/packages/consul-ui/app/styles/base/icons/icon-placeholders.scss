@@ -88,16 +88,6 @@
   mask-image: var(--arrow-up-svg);
 }
 
-%with-aws-logo-color-icon {
-  @extend %with-icon, %aws-logo-color-svg-prop;
-  background-image: var(--aws-logo-color-svg);
-}
-%with-aws-logo-color-mask {
-  @extend %with-mask, %aws-logo-color-svg-prop;
-  -webkit-mask-image: var(--aws-logo-color-svg);
-  mask-image: var(--aws-logo-color-svg);
-}
-
 %with-bolt-icon {
   @extend %with-icon, %bolt-svg-prop;
   background-image: var(--bolt-svg);
@@ -368,16 +358,6 @@
   mask-image: var(--code-svg);
 }
 
-%with-consul-logo-color-icon {
-  @extend %with-icon, %consul-logo-color-svg-prop;
-  background-image: var(--consul-logo-color-svg);
-}
-%with-consul-logo-color-mask {
-  @extend %with-mask, %consul-logo-color-svg-prop;
-  -webkit-mask-image: var(--consul-logo-color-svg);
-  mask-image: var(--consul-logo-color-svg);
-}
-
 %with-copy-action-icon {
   @extend %with-icon, %copy-action-svg-prop;
   background-image: var(--copy-action-svg);
@@ -496,16 +476,6 @@
   @extend %with-mask, %edit-svg-prop;
   -webkit-mask-image: var(--edit-svg);
   mask-image: var(--edit-svg);
-}
-
-%with-ember-circle-logo-color-icon {
-  @extend %with-icon, %ember-circle-logo-color-svg-prop;
-  background-image: var(--ember-circle-logo-color-svg);
-}
-%with-ember-circle-logo-color-mask {
-  @extend %with-mask, %ember-circle-logo-color-svg-prop;
-  -webkit-mask-image: var(--ember-circle-logo-color-svg);
-  mask-image: var(--ember-circle-logo-color-svg);
 }
 
 %with-envelope-sealed-fill-icon {
@@ -718,26 +688,6 @@
   mask-image: var(--git-repository-svg);
 }
 
-%with-glimmer-logo-color-icon {
-  @extend %with-icon, %glimmer-logo-color-svg-prop;
-  background-image: var(--glimmer-logo-color-svg);
-}
-%with-glimmer-logo-color-mask {
-  @extend %with-mask, %glimmer-logo-color-svg-prop;
-  -webkit-mask-image: var(--glimmer-logo-color-svg);
-  mask-image: var(--glimmer-logo-color-svg);
-}
-
-%with-hashicorp-logo-icon {
-  @extend %with-icon, %hashicorp-logo-svg-prop;
-  background-image: var(--hashicorp-logo-svg);
-}
-%with-hashicorp-logo-mask {
-  @extend %with-mask, %hashicorp-logo-svg-prop;
-  -webkit-mask-image: var(--hashicorp-logo-svg);
-  mask-image: var(--hashicorp-logo-svg);
-}
-
 %with-health-icon {
   @extend %with-icon, %health-svg-prop;
   background-image: var(--health-svg);
@@ -808,16 +758,6 @@
   mask-image: var(--info-circle-outline-svg);
 }
 
-%with-jwt-logo-icon {
-  @extend %with-icon, %jwt-logo-svg-prop;
-  background-image: var(--jwt-logo-svg);
-}
-%with-jwt-logo-mask {
-  @extend %with-mask, %jwt-logo-svg-prop;
-  -webkit-mask-image: var(--jwt-logo-svg);
-  mask-image: var(--jwt-logo-svg);
-}
-
 %with-key-icon {
   @extend %with-icon, %key-svg-prop;
   background-image: var(--key-svg);
@@ -826,16 +766,6 @@
   @extend %with-mask, %key-svg-prop;
   -webkit-mask-image: var(--key-svg);
   mask-image: var(--key-svg);
-}
-
-%with-kubernetes-logo-color-icon {
-  @extend %with-icon, %kubernetes-logo-color-svg-prop;
-  background-image: var(--kubernetes-logo-color-svg);
-}
-%with-kubernetes-logo-color-mask {
-  @extend %with-mask, %kubernetes-logo-color-svg-prop;
-  -webkit-mask-image: var(--kubernetes-logo-color-svg);
-  mask-image: var(--kubernetes-logo-color-svg);
 }
 
 %with-layers-icon {
@@ -1008,6 +938,16 @@
   mask-image: var(--logo-consul-color-svg);
 }
 
+%with-logo-ember-circle-color-icon {
+  @extend %with-icon, %logo-ember-circle-color-svg-prop;
+  background-image: var(--logo-ember-circle-color-svg);
+}
+%with-logo-ember-circle-color-mask {
+  @extend %with-mask, %logo-ember-circle-color-svg-prop;
+  -webkit-mask-image: var(--logo-ember-circle-color-svg);
+  mask-image: var(--logo-ember-circle-color-svg);
+}
+
 %with-logo-gcp-color-icon {
   @extend %with-icon, %logo-gcp-color-svg-prop;
   background-image: var(--logo-gcp-color-svg);
@@ -1068,6 +1008,16 @@
   mask-image: var(--logo-gitlab-monochrome-svg);
 }
 
+%with-logo-glimmer-color-icon {
+  @extend %with-icon, %logo-glimmer-color-svg-prop;
+  background-image: var(--logo-glimmer-color-svg);
+}
+%with-logo-glimmer-color-mask {
+  @extend %with-mask, %logo-glimmer-color-svg-prop;
+  -webkit-mask-image: var(--logo-glimmer-color-svg);
+  mask-image: var(--logo-glimmer-color-svg);
+}
+
 %with-logo-google-color-icon {
   @extend %with-icon, %logo-google-color-svg-prop;
   background-image: var(--logo-google-color-svg);
@@ -1076,6 +1026,26 @@
   @extend %with-mask, %logo-google-color-svg-prop;
   -webkit-mask-image: var(--logo-google-color-svg);
   mask-image: var(--logo-google-color-svg);
+}
+
+%with-logo-hashicorp-icon {
+  @extend %with-icon, %logo-hashicorp-svg-prop;
+  background-image: var(--logo-hashicorp-svg);
+}
+%with-logo-hashicorp-mask {
+  @extend %with-mask, %logo-hashicorp-svg-prop;
+  -webkit-mask-image: var(--logo-hashicorp-svg);
+  mask-image: var(--logo-hashicorp-svg);
+}
+
+%with-logo-jwt-icon {
+  @extend %with-icon, %logo-jwt-svg-prop;
+  background-image: var(--logo-jwt-svg);
+}
+%with-logo-jwt-mask {
+  @extend %with-mask, %logo-jwt-svg-prop;
+  -webkit-mask-image: var(--logo-jwt-svg);
+  mask-image: var(--logo-jwt-svg);
 }
 
 %with-logo-kubernetes-color-icon {
@@ -1116,6 +1086,16 @@
   @extend %with-mask, %logo-nomad-color-svg-prop;
   -webkit-mask-image: var(--logo-nomad-color-svg);
   mask-image: var(--logo-nomad-color-svg);
+}
+
+%with-logo-oidc-icon {
+  @extend %with-icon, %logo-oidc-svg-prop;
+  background-image: var(--logo-oidc-svg);
+}
+%with-logo-oidc-mask {
+  @extend %with-mask, %logo-oidc-svg-prop;
+  -webkit-mask-image: var(--logo-oidc-svg);
+  mask-image: var(--logo-oidc-svg);
 }
 
 %with-logo-okta-color-icon {
@@ -1318,16 +1298,6 @@
   mask-image: var(--more-vertical-svg);
 }
 
-%with-nomad-logo-color-icon {
-  @extend %with-icon, %nomad-logo-color-svg-prop;
-  background-image: var(--nomad-logo-color-svg);
-}
-%with-nomad-logo-color-mask {
-  @extend %with-mask, %nomad-logo-color-svg-prop;
-  -webkit-mask-image: var(--nomad-logo-color-svg);
-  mask-image: var(--nomad-logo-color-svg);
-}
-
 %with-notification-disabled-icon {
   @extend %with-icon, %notification-disabled-svg-prop;
   background-image: var(--notification-disabled-svg);
@@ -1356,16 +1326,6 @@
   @extend %with-mask, %notification-outline-svg-prop;
   -webkit-mask-image: var(--notification-outline-svg);
   mask-image: var(--notification-outline-svg);
-}
-
-%with-oidc-logo-icon {
-  @extend %with-icon, %oidc-logo-svg-prop;
-  background-image: var(--oidc-logo-svg);
-}
-%with-oidc-logo-mask {
-  @extend %with-mask, %oidc-logo-svg-prop;
-  -webkit-mask-image: var(--oidc-logo-svg);
-  mask-image: var(--oidc-logo-svg);
 }
 
 %with-outline-icon {
@@ -1748,16 +1708,6 @@
   mask-image: var(--tag-svg);
 }
 
-%with-terraform-logo-color-icon {
-  @extend %with-icon, %terraform-logo-color-svg-prop;
-  background-image: var(--terraform-logo-color-svg);
-}
-%with-terraform-logo-color-mask {
-  @extend %with-mask, %terraform-logo-color-svg-prop;
-  -webkit-mask-image: var(--terraform-logo-color-svg);
-  mask-image: var(--terraform-logo-color-svg);
-}
-
 %with-trash-icon {
   @extend %with-icon, %trash-svg-prop;
   background-image: var(--trash-svg);
@@ -1896,10 +1846,4 @@
   @extend %with-mask, %webhook-svg-prop;
   -webkit-mask-image: var(--webhook-svg);
   mask-image: var(--webhook-svg);
-}
-
-%without-mask {
-  -webkit-mask-image: none;
-  mask-image: none;
-  background-color: var(--transparent) !important;
 }
