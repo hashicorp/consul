@@ -1,12 +1,12 @@
 .hashicorp-consul {
-  [role="banner"] nav .dcs {
+  [role='banner'] nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
   }
-  [role="banner"] nav .dcs .popover-menu[aria-label]::before {
+  [role='banner'] nav .dcs .popover-menu[aria-label]::before {
     display: none;
   }
-  [role="banner"] a svg {
+  [role='banner'] a svg {
     fill: var(--brand-600);
   }
   .docs-link a::after {

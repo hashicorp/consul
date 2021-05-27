@@ -22,7 +22,7 @@
   @extend %main-nav-vertical-action;
 }
 %main-nav-vertical .popover-menu {
-  margin-top: .5rem;
+  margin-top: 0.5rem;
 }
 %main-nav-vertical .popover-menu .menu-panel {
   top: 37px !important;
@@ -50,4 +50,3 @@
 %main-nav-vertical label + div {
   @extend %main-nav-vertical-menu-panel;
 }
-

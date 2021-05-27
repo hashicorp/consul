@@ -1,4 +1,4 @@
-[data-theme~="square-tail"] {
+[data-theme~='square-tail'] {
   .tippy-arrow {
     --size: 18px;
     left: calc(0px - (var(--size) / 2)) !important;
@@ -15,7 +15,7 @@
     position: absolute;
     left: 1px;
   }
-  &[data-placement^=top] {
+  &[data-placement^='top'] {
     & {
       bottom: -10px;
     }
@@ -31,7 +31,7 @@
       bottom: calc(0px - var(--size));
     }
   }
-  &[data-placement^=bottom] {
+  &[data-placement^='bottom'] {
     & {
       top: -10px;
     }
@@ -48,4 +48,3 @@
     }
   }
 }
-

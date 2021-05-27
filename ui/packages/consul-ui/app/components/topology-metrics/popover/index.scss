@@ -1,13 +1,14 @@
 .topology-metrics-popover {
   > button {
     position: absolute;
-    transform: translate(-50%,-50%);
+    transform: translate(-50%, -50%);
     background-color: $white;
     padding: 1px 1px;
     &:hover {
       cursor: pointer;
     }
-    &:active, &:focus {
+    &:active,
+    &:focus {
       outline: none;
     }
     &:disabled {
