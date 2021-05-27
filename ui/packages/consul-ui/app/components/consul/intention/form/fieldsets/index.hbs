@@ -102,6 +102,12 @@
 {{/if}}
       </fieldset>
     </div>
+  <fieldset>
+    <label class="type-text{{if item.error.Description ' has-error'}}">
+      <span>Description (Optional)</span>
+      <input type="text" name="Description" value={{item.Description}} placeholder="Description (Optional)" onchange={{action onchange}} />
+    </label>
+  </fieldset>
     <div>
       <span class="label">Should this source connect to the destination?</span>
       <div role="radiogroup" class={{if item.error.Action ' has-error'}}>
@@ -183,12 +189,6 @@
 {{/if}}
   </fieldset>
 {{/if}}
-  <fieldset>
-    <label class="type-text{{if item.error.Description ' has-error'}}">
-      <span>Description (Optional)</span>
-      <input type="text" name="Description" value={{item.Description}} placeholder="Description (Optional)" onchange={{action onchange}} />
-    </label>
-  </fieldset>
 
 {{#if shouldShowPermissionForm}}
   <ModalDialog
