@@ -27,15 +27,15 @@ func aliveServers(servers map[raft.ServerID]*Server) map[raft.ServerID]*Server {
 // nextStateInputs is the collection of values that can influence
 // creation of the next State.
 type nextStateInputs struct {
-	Now          time.Time
-	StartTime    time.Time
-	Config       *Config
-	RaftConfig   *raft.Configuration
-	KnownServers map[raft.ServerID]*Server
-	LatestIndex  uint64
-	LastTerm     uint64
-	FetchedStats map[raft.ServerID]*ServerStats
-	LeaderID     raft.ServerID
+	Now            time.Time
+	FirstStateTime time.Time
+	Config         *Config
+	RaftConfig     *raft.Configuration
+	KnownServers   map[raft.ServerID]*Server
+	LatestIndex    uint64
+	LastTerm       uint64
+	FetchedStats   map[raft.ServerID]*ServerStats
+	LeaderID       raft.ServerID
 }
 
 // gatherNextStateInputs gathers all the information that would be used to
@@ -52,9 +52,34 @@ type nextStateInputs struct {
 func (a *Autopilot) gatherNextStateInputs(ctx context.Context) (*nextStateInputs, error) {
 	// there are a lot of inputs to computing the next state so they get put into a
 	// struct so that we don't have to return 8 values.
+
+	now := a.time.Now()
+
+	// We need to pull the previous states knowledge of the first time a state was generated.
+	// This is really only important for when autopilot is first started. We will use the
+	// first state's time when determining if a server is stable. Under normal circumstances
+	// we need to just check that the current time - the servers StableSince time is greater
+	// than the configured stabilization time. However while autopilot has been running for
+	// less time than the stabilization time we need to consider all servers as stable
+	// to prevent unnecessary leader elections. Therefore its important to track the first
+	// time a state was generated so we know if we have a state old enough where there is
+	// any chance of seeing servers as stable based off that configured threshold.
+	var firstStateTime time.Time
+	a.stateLock.Lock()
+	if a.state != nil {
+		firstStateTime = a.state.firstStateTime
+	}
+	a.stateLock.Unlock()
+
+	// firstStateTime will be the zero value if we are in the process of generating
+	// the first state. In that case we set it to the now time.
+	if firstStateTime.IsZero() {
+		firstStateTime = now
+	}
+
 	inputs := &nextStateInputs{
-		Now:       a.time.Now(),
-		StartTime: a.startTime,
+		Now:            now,
+		FirstStateTime: firstStateTime,
 	}
 
 	// grab the latest autopilot configuration
@@ -71,16 +96,30 @@ func (a *Autopilot) gatherNextStateInputs(ctx context.Context) (*nextStateInputs
 	}
 	inputs.RaftConfig = raftConfig
 
-	leader := a.raft.Leader()
-	for _, s := range inputs.RaftConfig.Servers {
-		if s.Address == leader {
-			inputs.LeaderID = s.ID
+	// get the known servers which may include left/failed ones
+	inputs.KnownServers = a.delegate.KnownServers()
+
+	// Try to retrieve leader id from the delegate.
+	for id, srv := range inputs.KnownServers {
+		if srv.IsLeader {
+			inputs.LeaderID = id
 			break
 		}
 	}
 
+	// Delegate setting the leader information is optional. If leader detection is
+	// not successful, fallback on raft config to do the same.
 	if inputs.LeaderID == "" {
-		return nil, fmt.Errorf("cannot detect the current leader server id from its address: %s", leader)
+		leader := a.raft.Leader()
+		for _, s := range inputs.RaftConfig.Servers {
+			if s.Address == leader {
+				inputs.LeaderID = s.ID
+				break
+			}
+		}
+		if inputs.LeaderID == "" {
+			return nil, fmt.Errorf("cannot detect the current leader server id from its address: %s", leader)
+		}
 	}
 
 	// get the latest Raft index - this should be kept close to the call to
@@ -100,9 +139,6 @@ func (a *Autopilot) gatherNextStateInputs(ctx context.Context) (*nextStateInputs
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-
-	// get the known servers which may include left/failed ones
-	inputs.KnownServers = a.delegate.KnownServers()
 
 	// in most cases getting the known servers should be quick but as we cannot
 	// account for every potential delegate and prevent them from making
@@ -146,10 +182,13 @@ func (a *Autopilot) nextState(ctx context.Context) (*State, error) {
 func (a *Autopilot) nextStateWithInputs(inputs *nextStateInputs) *State {
 	nextServers := a.nextServers(inputs)
 
+	// we record the firstStateTime so that we can ignore the server stabilization
+	// time up until the time we generated the first state becomes far enough
+	// in the past. Until that point in time all servers are considered stable.
 	newState := &State{
-		startTime: inputs.StartTime,
-		Healthy:   true,
-		Servers:   nextServers,
+		firstStateTime: inputs.FirstStateTime,
+		Healthy:        true,
+		Servers:        nextServers,
 	}
 
 	voterCount := 0
