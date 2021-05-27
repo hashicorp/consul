@@ -1770,7 +1770,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 
 func TestState_ServiceTokens(t *testing.T) {
 	tokens := new(token.Store)
-	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
 	l.TriggerSyncChanges = func() {}
 
@@ -1812,7 +1812,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 
 func TestState_CheckTokens(t *testing.T) {
 	tokens := new(token.Store)
-	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, tokens)
 	l.TriggerSyncChanges = func() {}
 
@@ -1846,7 +1846,7 @@ func TestState_CheckTokens(t *testing.T) {
 
 func TestAgent_CheckCriticalTime(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 
@@ -1910,7 +1910,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 
 func TestAgent_AddCheckFailure(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 
@@ -1933,7 +1933,7 @@ func TestAgent_AliasCheck(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 
@@ -1984,7 +1984,7 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
 

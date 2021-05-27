@@ -1,6 +1,8 @@
 package services
 
 import (
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,10 +17,18 @@ import (
 // We depend on this behavior for ServiesFromFiles so we want to fail
 // tests if that ever changes.
 func TestDevModeHasNoServices(t *testing.T) {
-	devMode := true
-	result, err := config.Load(config.LoadOpts{DevMode: &devMode})
+	hostname, err := os.Hostname()
 	require.NoError(t, err)
-	require.Len(t, result.Warnings, 0)
+	devMode := true
+	opts := config.LoadOpts{DevMode: &devMode}
+	result, err := config.Load(opts)
+	require.NoError(t, err)
+	if !strings.Contains(hostname, ".") {
+		require.Len(t, result.Warnings, 0)
+	} else {
+		require.Len(t, result.Warnings, 1)
+		require.Contains(t, result.Warnings[0], "will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.")
+	}
 	require.Len(t, result.RuntimeConfig.Services, 0)
 }
 
