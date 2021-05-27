@@ -37,8 +37,8 @@ span.policy-service-identity::before {
   @extend %with-star-outline-mask, %as-pseudo;
 }
 %pill.jwt::before {
-  @extend %with-logo-jwt-icon, %as-pseudo;
+  @extend %with-logo-jwt-color-icon, %as-pseudo;
 }
 %pill.oidc::before {
-  @extend %with-logo-oidc-icon, %as-pseudo;
+  @extend %with-logo-oidc-color-icon, %as-pseudo;
 }
