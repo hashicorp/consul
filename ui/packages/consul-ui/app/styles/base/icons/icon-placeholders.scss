@@ -118,6 +118,16 @@
   mask-image: var(--box-outline-svg);
 }
 
+%with-broadcast-icon {
+  @extend %with-icon, %broadcast-svg-prop;
+  background-image: var(--broadcast-svg);
+}
+%with-broadcast-mask {
+  @extend %with-mask, %broadcast-svg-prop;
+  -webkit-mask-image: var(--broadcast-svg);
+  mask-image: var(--broadcast-svg);
+}
+
 %with-bug-icon {
   @extend %with-icon, %bug-svg-prop;
   background-image: var(--bug-svg);
@@ -356,6 +366,16 @@
   @extend %with-mask, %code-svg-prop;
   -webkit-mask-image: var(--code-svg);
   mask-image: var(--code-svg);
+}
+
+%with-console-icon {
+  @extend %with-icon, %console-svg-prop;
+  background-image: var(--console-svg);
+}
+%with-console-mask {
+  @extend %with-mask, %console-svg-prop;
+  -webkit-mask-image: var(--console-svg);
+  mask-image: var(--console-svg);
 }
 
 %with-copy-action-icon {
@@ -688,6 +708,16 @@
   mask-image: var(--git-repository-svg);
 }
 
+%with-guide-icon {
+  @extend %with-icon, %guide-svg-prop;
+  background-image: var(--guide-svg);
+}
+%with-guide-mask {
+  @extend %with-mask, %guide-svg-prop;
+  -webkit-mask-image: var(--guide-svg);
+  mask-image: var(--guide-svg);
+}
+
 %with-health-icon {
   @extend %with-icon, %health-svg-prop;
   background-image: var(--health-svg);
@@ -808,6 +838,26 @@
   mask-image: var(--loading-svg);
 }
 
+%with-lock-closed-fill-icon {
+  @extend %with-icon, %lock-closed-fill-svg-prop;
+  background-image: var(--lock-closed-fill-svg);
+}
+%with-lock-closed-fill-mask {
+  @extend %with-mask, %lock-closed-fill-svg-prop;
+  -webkit-mask-image: var(--lock-closed-fill-svg);
+  mask-image: var(--lock-closed-fill-svg);
+}
+
+%with-lock-closed-outline-icon {
+  @extend %with-icon, %lock-closed-outline-svg-prop;
+  background-image: var(--lock-closed-outline-svg);
+}
+%with-lock-closed-outline-mask {
+  @extend %with-mask, %lock-closed-outline-svg-prop;
+  -webkit-mask-image: var(--lock-closed-outline-svg);
+  mask-image: var(--lock-closed-outline-svg);
+}
+
 %with-lock-closed-icon {
   @extend %with-icon, %lock-closed-svg-prop;
   background-image: var(--lock-closed-svg);
@@ -896,6 +946,26 @@
   @extend %with-mask, %logo-azure-color-svg-prop;
   -webkit-mask-image: var(--logo-azure-color-svg);
   mask-image: var(--logo-azure-color-svg);
+}
+
+%with-logo-azure-dev-ops-color-icon {
+  @extend %with-icon, %logo-azure-dev-ops-color-svg-prop;
+  background-image: var(--logo-azure-dev-ops-color-svg);
+}
+%with-logo-azure-dev-ops-color-mask {
+  @extend %with-mask, %logo-azure-dev-ops-color-svg-prop;
+  -webkit-mask-image: var(--logo-azure-dev-ops-color-svg);
+  mask-image: var(--logo-azure-dev-ops-color-svg);
+}
+
+%with-logo-azure-dev-ops-monochrome-icon {
+  @extend %with-icon, %logo-azure-dev-ops-monochrome-svg-prop;
+  background-image: var(--logo-azure-dev-ops-monochrome-svg);
+}
+%with-logo-azure-dev-ops-monochrome-mask {
+  @extend %with-mask, %logo-azure-dev-ops-monochrome-svg-prop;
+  -webkit-mask-image: var(--logo-azure-dev-ops-monochrome-svg);
+  mask-image: var(--logo-azure-dev-ops-monochrome-svg);
 }
 
 %with-logo-azure-monochrome-icon {
@@ -1028,24 +1098,34 @@
   mask-image: var(--logo-google-color-svg);
 }
 
-%with-logo-hashicorp-icon {
-  @extend %with-icon, %logo-hashicorp-svg-prop;
-  background-image: var(--logo-hashicorp-svg);
+%with-logo-google-monochrome-icon {
+  @extend %with-icon, %logo-google-monochrome-svg-prop;
+  background-image: var(--logo-google-monochrome-svg);
 }
-%with-logo-hashicorp-mask {
-  @extend %with-mask, %logo-hashicorp-svg-prop;
-  -webkit-mask-image: var(--logo-hashicorp-svg);
-  mask-image: var(--logo-hashicorp-svg);
+%with-logo-google-monochrome-mask {
+  @extend %with-mask, %logo-google-monochrome-svg-prop;
+  -webkit-mask-image: var(--logo-google-monochrome-svg);
+  mask-image: var(--logo-google-monochrome-svg);
 }
 
-%with-logo-jwt-icon {
-  @extend %with-icon, %logo-jwt-svg-prop;
-  background-image: var(--logo-jwt-svg);
+%with-logo-hashicorp-color-icon {
+  @extend %with-icon, %logo-hashicorp-color-svg-prop;
+  background-image: var(--logo-hashicorp-color-svg);
 }
-%with-logo-jwt-mask {
-  @extend %with-mask, %logo-jwt-svg-prop;
-  -webkit-mask-image: var(--logo-jwt-svg);
-  mask-image: var(--logo-jwt-svg);
+%with-logo-hashicorp-color-mask {
+  @extend %with-mask, %logo-hashicorp-color-svg-prop;
+  -webkit-mask-image: var(--logo-hashicorp-color-svg);
+  mask-image: var(--logo-hashicorp-color-svg);
+}
+
+%with-logo-jwt-color-icon {
+  @extend %with-icon, %logo-jwt-color-svg-prop;
+  background-image: var(--logo-jwt-color-svg);
+}
+%with-logo-jwt-color-mask {
+  @extend %with-mask, %logo-jwt-color-svg-prop;
+  -webkit-mask-image: var(--logo-jwt-color-svg);
+  mask-image: var(--logo-jwt-color-svg);
 }
 
 %with-logo-kubernetes-color-icon {
@@ -1068,16 +1148,6 @@
   mask-image: var(--logo-kubernetes-monochrome-svg);
 }
 
-%with-logo-microsoft-color-icon {
-  @extend %with-icon, %logo-microsoft-color-svg-prop;
-  background-image: var(--logo-microsoft-color-svg);
-}
-%with-logo-microsoft-color-mask {
-  @extend %with-mask, %logo-microsoft-color-svg-prop;
-  -webkit-mask-image: var(--logo-microsoft-color-svg);
-  mask-image: var(--logo-microsoft-color-svg);
-}
-
 %with-logo-nomad-color-icon {
   @extend %with-icon, %logo-nomad-color-svg-prop;
   background-image: var(--logo-nomad-color-svg);
@@ -1088,14 +1158,14 @@
   mask-image: var(--logo-nomad-color-svg);
 }
 
-%with-logo-oidc-icon {
-  @extend %with-icon, %logo-oidc-svg-prop;
-  background-image: var(--logo-oidc-svg);
+%with-logo-oidc-color-icon {
+  @extend %with-icon, %logo-oidc-color-svg-prop;
+  background-image: var(--logo-oidc-color-svg);
 }
-%with-logo-oidc-mask {
-  @extend %with-mask, %logo-oidc-svg-prop;
-  -webkit-mask-image: var(--logo-oidc-svg);
-  mask-image: var(--logo-oidc-svg);
+%with-logo-oidc-color-mask {
+  @extend %with-mask, %logo-oidc-color-svg-prop;
+  -webkit-mask-image: var(--logo-oidc-color-svg);
+  mask-image: var(--logo-oidc-color-svg);
 }
 
 %with-logo-okta-color-icon {
@@ -1366,6 +1436,36 @@
   @extend %with-mask, %path-svg-prop;
   -webkit-mask-image: var(--path-svg);
   mask-image: var(--path-svg);
+}
+
+%with-play-fill-icon {
+  @extend %with-icon, %play-fill-svg-prop;
+  background-image: var(--play-fill-svg);
+}
+%with-play-fill-mask {
+  @extend %with-mask, %play-fill-svg-prop;
+  -webkit-mask-image: var(--play-fill-svg);
+  mask-image: var(--play-fill-svg);
+}
+
+%with-play-outline-icon {
+  @extend %with-icon, %play-outline-svg-prop;
+  background-image: var(--play-outline-svg);
+}
+%with-play-outline-mask {
+  @extend %with-mask, %play-outline-svg-prop;
+  -webkit-mask-image: var(--play-outline-svg);
+  mask-image: var(--play-outline-svg);
+}
+
+%with-play-plain-icon {
+  @extend %with-icon, %play-plain-svg-prop;
+  background-image: var(--play-plain-svg);
+}
+%with-play-plain-mask {
+  @extend %with-mask, %play-plain-svg-prop;
+  -webkit-mask-image: var(--play-plain-svg);
+  mask-image: var(--play-plain-svg);
 }
 
 %with-plus-circle-fill-icon {
