@@ -483,7 +483,7 @@ github.com/hashicorp/memberlist
 github.com/hashicorp/net-rpc-msgpackrpc
 # github.com/hashicorp/raft v1.3.1
 github.com/hashicorp/raft
-# github.com/hashicorp/raft-autopilot v0.1.2
+# github.com/hashicorp/raft-autopilot v0.1.5
 github.com/hashicorp/raft-autopilot
 # github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 github.com/hashicorp/raft-boltdb
