@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Adding a notice about task ARN format to Amazon ECS docs
-```
