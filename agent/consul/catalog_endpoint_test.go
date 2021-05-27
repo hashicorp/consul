@@ -1710,7 +1710,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		out = structs.IndexedServices{}
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if out.KnownLeader || len(out.Services) != 1 {
 			r.Fatalf("got %t nodes want %d", out.KnownLeader, len(out.Services))
