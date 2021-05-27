@@ -12,6 +12,7 @@
 @import 'consul-ui/components/sliding-toggle/index';
 @import 'consul-ui/components/table/index';
 @import 'consul-ui/components/toggle-button/index';
+@import 'consul-ui/components/flash-message';
 
 /**/
 
@@ -28,7 +29,6 @@
 @import './components/secret-button';
 @import './components/pill';
 @import './components/table';
-@import './components/flash-message';
 @import './components/code-editor';
 @import './components/confirmation-dialog';
 @import './components/auth-form';

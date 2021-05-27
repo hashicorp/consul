@@ -18,16 +18,6 @@
   mask-image: var(--alert-circle-outline-svg);
 }
 
-%with-alert-triangle-color-icon {
-  @extend %with-icon, %alert-triangle-color-svg-prop;
-  background-image: var(--alert-triangle-color-svg);
-}
-%with-alert-triangle-color-mask {
-  @extend %with-mask, %alert-triangle-color-svg-prop;
-  -webkit-mask-image: var(--alert-triangle-color-svg);
-  mask-image: var(--alert-triangle-color-svg);
-}
-
 %with-alert-triangle-icon {
   @extend %with-icon, %alert-triangle-svg-prop;
   background-image: var(--alert-triangle-svg);
@@ -56,16 +46,6 @@
   @extend %with-mask, %arrow-left-svg-prop;
   -webkit-mask-image: var(--arrow-left-svg);
   mask-image: var(--arrow-left-svg);
-}
-
-%with-arrow-right-color-icon {
-  @extend %with-icon, %arrow-right-color-svg-prop;
-  background-image: var(--arrow-right-color-svg);
-}
-%with-arrow-right-color-mask {
-  @extend %with-mask, %arrow-right-color-svg-prop;
-  -webkit-mask-image: var(--arrow-right-color-svg);
-  mask-image: var(--arrow-right-color-svg);
 }
 
 %with-arrow-right-icon {
@@ -178,16 +158,6 @@
   mask-image: var(--cancel-plain-svg);
 }
 
-%with-cancel-square-fill-color-icon {
-  @extend %with-icon, %cancel-square-fill-color-svg-prop;
-  background-image: var(--cancel-square-fill-color-svg);
-}
-%with-cancel-square-fill-color-mask {
-  @extend %with-mask, %cancel-square-fill-color-svg-prop;
-  -webkit-mask-image: var(--cancel-square-fill-color-svg);
-  mask-image: var(--cancel-square-fill-color-svg);
-}
-
 %with-cancel-square-fill-icon {
   @extend %with-icon, %cancel-square-fill-svg-prop;
   background-image: var(--cancel-square-fill-svg);
@@ -228,16 +198,6 @@
   mask-image: var(--caret-up-svg);
 }
 
-%with-check-circle-fill-color-icon {
-  @extend %with-icon, %check-circle-fill-color-svg-prop;
-  background-image: var(--check-circle-fill-color-svg);
-}
-%with-check-circle-fill-color-mask {
-  @extend %with-mask, %check-circle-fill-color-svg-prop;
-  -webkit-mask-image: var(--check-circle-fill-color-svg);
-  mask-image: var(--check-circle-fill-color-svg);
-}
-
 %with-check-circle-fill-icon {
   @extend %with-icon, %check-circle-fill-svg-prop;
   background-image: var(--check-circle-fill-svg);
@@ -266,16 +226,6 @@
   @extend %with-mask, %check-plain-svg-prop;
   -webkit-mask-image: var(--check-plain-svg);
   mask-image: var(--check-plain-svg);
-}
-
-%with-chevron-down-2-icon {
-  @extend %with-icon, %chevron-down-2-svg-prop;
-  background-image: var(--chevron-down-2-svg);
-}
-%with-chevron-down-2-mask {
-  @extend %with-mask, %chevron-down-2-svg-prop;
-  -webkit-mask-image: var(--chevron-down-2-svg);
-  mask-image: var(--chevron-down-2-svg);
 }
 
 %with-chevron-down-icon {
@@ -316,16 +266,6 @@
   @extend %with-mask, %chevron-up-svg-prop;
   -webkit-mask-image: var(--chevron-up-svg);
   mask-image: var(--chevron-up-svg);
-}
-
-%with-chevron-icon {
-  @extend %with-icon, %chevron-svg-prop;
-  background-image: var(--chevron-svg);
-}
-%with-chevron-mask {
-  @extend %with-mask, %chevron-svg-prop;
-  -webkit-mask-image: var(--chevron-svg);
-  mask-image: var(--chevron-svg);
 }
 
 %with-clock-fill-icon {
@@ -446,16 +386,6 @@
   @extend %with-mask, %deny-default-svg-prop;
   -webkit-mask-image: var(--deny-default-svg);
   mask-image: var(--deny-default-svg);
-}
-
-%with-deny-icon {
-  @extend %with-icon, %deny-svg-prop;
-  background-image: var(--deny-svg);
-}
-%with-deny-mask {
-  @extend %with-mask, %deny-svg-prop;
-  -webkit-mask-image: var(--deny-svg);
-  mask-image: var(--deny-svg);
 }
 
 %with-disabled-icon {
@@ -618,16 +548,6 @@
   mask-image: var(--folder-fill-svg);
 }
 
-%with-folder-outline-color-icon {
-  @extend %with-icon, %folder-outline-color-svg-prop;
-  background-image: var(--folder-outline-color-svg);
-}
-%with-folder-outline-color-mask {
-  @extend %with-mask, %folder-outline-color-svg-prop;
-  -webkit-mask-image: var(--folder-outline-color-svg);
-  mask-image: var(--folder-outline-color-svg);
-}
-
 %with-folder-outline-icon {
   @extend %with-icon, %folder-outline-svg-prop;
   background-image: var(--folder-outline-svg);
@@ -756,16 +676,6 @@
   @extend %with-mask, %history-svg-prop;
   -webkit-mask-image: var(--history-svg);
   mask-image: var(--history-svg);
-}
-
-%with-info-circle-fill-color-icon {
-  @extend %with-icon, %info-circle-fill-color-svg-prop;
-  background-image: var(--info-circle-fill-color-svg);
-}
-%with-info-circle-fill-color-mask {
-  @extend %with-mask, %info-circle-fill-color-svg-prop;
-  -webkit-mask-image: var(--info-circle-fill-color-svg);
-  mask-image: var(--info-circle-fill-color-svg);
 }
 
 %with-info-circle-fill-icon {
@@ -1318,16 +1228,6 @@
   mask-image: var(--minus-plain-svg);
 }
 
-%with-minus-square-fill-color-icon {
-  @extend %with-icon, %minus-square-fill-color-svg-prop;
-  background-image: var(--minus-square-fill-color-svg);
-}
-%with-minus-square-fill-color-mask {
-  @extend %with-mask, %minus-square-fill-color-svg-prop;
-  -webkit-mask-image: var(--minus-square-fill-color-svg);
-  mask-image: var(--minus-square-fill-color-svg);
-}
-
 %with-minus-square-fill-icon {
   @extend %with-icon, %minus-square-fill-svg-prop;
   background-image: var(--minus-square-fill-svg);
@@ -1336,16 +1236,6 @@
   @extend %with-mask, %minus-square-fill-svg-prop;
   -webkit-mask-image: var(--minus-square-fill-svg);
   mask-image: var(--minus-square-fill-svg);
-}
-
-%with-minus-icon {
-  @extend %with-icon, %minus-svg-prop;
-  background-image: var(--minus-svg);
-}
-%with-minus-mask {
-  @extend %with-mask, %minus-svg-prop;
-  -webkit-mask-image: var(--minus-svg);
-  mask-image: var(--minus-svg);
 }
 
 %with-module-icon {
@@ -1688,16 +1578,6 @@
   mask-image: var(--search-svg);
 }
 
-%with-service-identity-icon {
-  @extend %with-icon, %service-identity-svg-prop;
-  background-image: var(--service-identity-svg);
-}
-%with-service-identity-mask {
-  @extend %with-mask, %service-identity-svg-prop;
-  -webkit-mask-image: var(--service-identity-svg);
-  mask-image: var(--service-identity-svg);
-}
-
 %with-settings-icon {
   @extend %with-icon, %settings-svg-prop;
   background-image: var(--settings-svg);
@@ -1746,16 +1626,6 @@
   @extend %with-mask, %star-outline-svg-prop;
   -webkit-mask-image: var(--star-outline-svg);
   mask-image: var(--star-outline-svg);
-}
-
-%with-star-icon {
-  @extend %with-icon, %star-svg-prop;
-  background-image: var(--star-svg);
-}
-%with-star-mask {
-  @extend %with-mask, %star-svg-prop;
-  -webkit-mask-image: var(--star-svg);
-  mask-image: var(--star-svg);
 }
 
 %with-sub-left-icon {
