@@ -60,6 +60,11 @@ type ConsulProviderStateDelegate interface {
 	ApplyCARequest(*structs.CARequest) (interface{}, error)
 }
 
+func hexStringHash(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return connect.HexString(hash[:])
+}
+
 // Configure sets up the provider using the given configuration.
 func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 	// Parse the raw config and update our ID.
@@ -68,8 +73,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 	c.config = config
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)))
-	c.id = connect.HexString(hash[:])
+	c.id = hexStringHash(fmt.Sprintf("%s,%s,%s,%d,%v", config.PrivateKey, config.RootCert, config.PrivateKeyType, config.PrivateKeyBits, cfg.IsPrimary))
 	c.clusterID = cfg.ClusterID
 	c.isPrimary = cfg.IsPrimary
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
@@ -87,35 +91,41 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return nil
 	}
 
-	// Check if there's an entry with the old ID scheme.
-	oldID := fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
-	_, providerState, err = c.Delegate.State().CAProviderState(oldID)
-	if err != nil {
-		return err
+	oldIDs := []string{
+		hexStringHash(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)),
+		fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert),
 	}
 
-	// Found an entry with the old ID, so update it to the new ID and
-	// delete the old entry.
-	if providerState != nil {
-		newState := *providerState
-		newState.ID = c.id
-		createReq := &structs.CARequest{
-			Op:            structs.CAOpSetProviderState,
-			ProviderState: &newState,
-		}
-		if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
+	// Check if there any entries with old ID schemes.
+	for _, oldID := range oldIDs {
+		_, providerState, err = c.Delegate.State().CAProviderState(oldID)
+		if err != nil {
 			return err
 		}
 
-		deleteReq := &structs.CARequest{
-			Op:            structs.CAOpDeleteProviderState,
-			ProviderState: providerState,
-		}
-		if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
-			return err
-		}
+		// Found an entry with the old ID, so update it to the new ID and
+		// delete the old entry.
+		if providerState != nil {
+			newState := *providerState
+			newState.ID = c.id
+			createReq := &structs.CARequest{
+				Op:            structs.CAOpSetProviderState,
+				ProviderState: &newState,
+			}
+			if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
+				return err
+			}
 
-		return nil
+			deleteReq := &structs.CARequest{
+				Op:            structs.CAOpDeleteProviderState,
+				ProviderState: providerState,
+			}
+			if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
+				return err
+			}
+
+			return nil
+		}
 	}
 
 	args := &structs.CARequest{
