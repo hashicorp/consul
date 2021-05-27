@@ -1,5 +1,51 @@
 ## UNRELEASED
 
+## 1.10.0-beta3 (May 27, 2021)
+
+BREAKING CHANGES:
+
+* licensing: **(Enterprise Only)** Consul Enterprise 1.10 has removed API driven licensing of servers in favor of license loading via configuration. The `PUT` and `DELETE` methods on the `/v1/operator/license` endpoint will now return 405s, the `consul license put` and `consul license reset` CLI commands have been removed and the `LicensePut` and `LicenseReset` methods in the API client have been altered to always return an error. [[GH-10211](https://github.com/hashicorp/consul/issues/10211)]
+* licensing: **(Enterprise Only)** Consul Enterprise client agents now require a valid non-anonymous ACL token for retrieving their license from the servers. Additionally client agents rely on the value of the `start_join` and `retry_join` configurations for determining the servers to query for the license. Therefore one must be set to use license auto-retrieval. [[GH-10248](https://github.com/hashicorp/consul/issues/10248)]
+* licensing: **(Enterprise Only)** Consul Enterprise has removed support for temporary licensing. All server agents must have a valid license at startup and client agents must have a license at startup or be able to retrieve one from the servers. [[GH-10248](https://github.com/hashicorp/consul/issues/10248)]
+
+FEATURES:
+
+* ui: Add Unix Domain Socket support [[GH-10287](https://github.com/hashicorp/consul/issues/10287)]
+* xds: emit a labeled gauge of connected xDS streams by version [[GH-10243](https://github.com/hashicorp/consul/issues/10243)]
+
+IMPROVEMENTS:
+
+* agent: Save exposed Envoy ports to the agent's state when `Expose.Checks` is true in proxy's configuration. [[GH-10173](https://github.com/hashicorp/consul/issues/10173)]
+* api: Add `ExposedPort` to the health check API resource. [[GH-10173](https://github.com/hashicorp/consul/issues/10173)]
+* api: The `Content-Type` header is now always set when a body is present in a request. [[GH-10204](https://github.com/hashicorp/consul/issues/10204)]
+* areas: **(Enterprise only)** Use server agent's gossip_wan config when setting memberlist configuration for network areas. Previously they used memberlists WAN defaults.
+* command: Exclude exposed Envoy ports from traffic redirection when providing `-proxy-id` and `Expose.Checks` is set. [[GH-10173](https://github.com/hashicorp/consul/issues/10173)]
+* connect: Avoid adding original_dst listener filter when it won't be used. [[GH-10302](https://github.com/hashicorp/consul/issues/10302)]
+* connect: Ensures passthrough tproxy cluster is created even when mesh config doesn't exist. [[GH-10301](https://github.com/hashicorp/consul/issues/10301)]
+* connect: update supported envoy versions to 1.18.3, 1.17.3, 1.16.4, and 1.15.5 [[GH-10231](https://github.com/hashicorp/consul/issues/10231)]
+* licensing: **(Enterprise Only)** Consul Enterprise has gained the ability to autoload a license via configuration. This can be specified with the `license_path` configuration, the `CONSUL_LICENSE` environment variable or the `CONSUL_LICENSE_PATH` environment variable [[GH-10210](https://github.com/hashicorp/consul/issues/10210)]
+* licensing: **(Enterprise Only)** Consul Enterprise has gained the ability update its license via a configuration reload. The same environment variables and configurations will be used to determine the new license. [[GH-10267](https://github.com/hashicorp/consul/issues/10267)]
+* ui: Add 'optional route segments' and move namespaces to use them [[GH-10212](https://github.com/hashicorp/consul/issues/10212)]
+* ui: Improve loader centering with new side navigation [[GH-10181](https://github.com/hashicorp/consul/issues/10181)]
+* ui: Only show a partial list of intention permissions, with the option to show all [[GH-10174](https://github.com/hashicorp/consul/issues/10174)]
+* ui: Show a message to explain that health checks may be out of date if the serf health check is in a critical state [[GH-10194](https://github.com/hashicorp/consul/issues/10194)]
+
+BUG FIXES:
+
+* agent: ensure we hash the non-deprecated upstream fields on ServiceConfigRequest [[GH-10240](https://github.com/hashicorp/consul/issues/10240)]
+* api: include the default value of raft settings in the output of /v1/agent/self [[GH-8812](https://github.com/hashicorp/consul/issues/8812)]
+* areas: **(Enterprise only)** Revert to the 10s dial timeout used before connection pooling was introduced in 1.7.3.
+* areas: **(Enterprise only)** Selectively merge gossip_wan config for network areas to avoid attempting to enable gossip encryption where it was not intended or necessary.
+* http: fix a bug that caused the `X-Consul-Effective-Consistency` header to be missing on
+request for service health [[GH-10189](https://github.com/hashicorp/consul/issues/10189)]
+* local: agents will no longer persist the default user token along with a service or check. [[GH-10188](https://github.com/hashicorp/consul/issues/10188)]
+* namespaces: **(Enterprise only)** fixes a problem where the logs would contain many warnings about namespaces not being licensed.
+* server: ensure that central service config flattening properly resets the state each time [[GH-10239](https://github.com/hashicorp/consul/issues/10239)]
+* ui: Add conditionals to lock sessions tab [[GH-10121](https://github.com/hashicorp/consul/issues/10121)]
+* ui: De-duplicate tags in rendered tag listings [[GH-10186](https://github.com/hashicorp/consul/issues/10186)]
+* ui: Don't render a DOM element for empty namespace descriptions [[GH-10157](https://github.com/hashicorp/consul/issues/10157)]
+* ui: Reflect the change of Session API response shape for Checks in post 1.7 Consul [[GH-10225](https://github.com/hashicorp/consul/issues/10225)]
+
 ## 1.10.0-beta2 (May 05, 2021)
 
 BREAKING CHANGES:
