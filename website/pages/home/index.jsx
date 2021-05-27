@@ -1,3 +1,4 @@
+import UseCases from '@hashicorp/react-use-cases'
 import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
 import HomepageHero from 'components/homepage-hero'
@@ -84,6 +85,53 @@ export default function HomePage() {
           },
         }}
       />
+
+      <div className="use-cases g-grid-container">
+        <h2 className="g-type-display-2">Use Cases</h2>
+        <UseCases
+          items={[
+            {
+              title: 'Service Discovery and Health Checking',
+              description:
+                'Enable services to locate other services running in any environment and provide real-time health status.',
+              image: {
+                url: require('./img/use-cases/discovery_health_checking.svg?url'),
+                format: 'svg',
+              },
+              link: {
+                title: 'Learn more',
+                url: '/use-cases/service-discovery-and-health-checking',
+              },
+            },
+            {
+              title: 'Network Infrastructure Automation',
+              description:
+                'Reduce burden of manual, ticket-based networking tasks.',
+              image: {
+                url: require('./img/use-cases/network_automation.svg?url'),
+                format: 'svg',
+              },
+              link: {
+                title: 'Learn more',
+                url: '/use-cases/network-infrastructure-automation',
+              },
+            },
+            {
+              title: 'Multi-Platform Service Mesh',
+              description:
+                'Secure, modern application networking across any cloud or runtime.',
+              image: {
+                url: require('./img/use-cases/service_mesh.svg?url'),
+                format: 'svg',
+              },
+              link: {
+                title: 'Learn more',
+                url: '/use-cases/multi-platform-service-mesh',
+              },
+            },
+          ]}
+        />
+      </div>
 
       <CalloutBlade
         title="Consul Service Mesh"
