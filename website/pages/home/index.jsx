@@ -1,4 +1,5 @@
 import UseCases from '@hashicorp/react-use-cases'
+import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
 import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
 import HomepageHero from 'components/homepage-hero'
@@ -162,16 +163,37 @@ export default function HomePage() {
           },
         ]}
       />
-      <div
-        className="g-grid-container"
-        style={{
-          width: '100%',
-          height: 600,
-          border: '1px solid var(--consul)',
-          display: 'flex',
-        }}
-      >
-        <h4>CONSUL ECOSYSTEM</h4>
+      <div className="ecosystem g-grid-container">
+        <h2 className="g-type-display-2">Consul Ecosystem</h2>
+        <TextSplitWithImage
+          textSplit={{
+            product: 'consul',
+            heading: 'The Single Control Plane for Cloud Networks',
+            content:
+              'Consul provides the control plane for multi-cloud networking.',
+            checkboxes: [
+              'Centrally control the distributed data plane to provide a scalable and reliable service mesh',
+              'Automate centralized network middleware configuration to avoid human intervention',
+              'Provide a real-time directory of all running services to improve application inventory management',
+              'Enable visibility into services and their health status to enhance health and performance monitoring',
+              'Automate lifecycle management of certificates which can be issued by 3rd party Certificate Authority',
+              'Provide unified support across a heterogeneous environment with different workload types and runtime platforms',
+            ],
+            linkStyle: 'links',
+            links: [
+              {
+                type: 'outbound',
+                text: 'Explore Consul Integrations',
+                url: 'https://www.hashicorp.com/integrations/?filters=consul',
+              },
+            ],
+          }}
+          image={{
+            url:
+              'https://www.datocms-assets.com/2885/1622152328-control-plane.png',
+            alt: 'Consul control plane',
+          }}
+        />
       </div>
       <div
         className="g-grid-container"
