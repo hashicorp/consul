@@ -1707,27 +1707,20 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	// With stale, request should still work
 	args.AllowStale = true
-	count := 0
+
 	out = structs.IndexedServices{}
 	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	for (out.KnownLeader || len(out.Services) != 1) && count < 100 {
-		time.Sleep(10 * time.Millisecond)
+	retry.Run(t, func(r *retry.R) {
 		out = structs.IndexedServices{}
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		count++
-	}
-	// Should find old service
-	if len(out.Services) != 1 {
-		t.Fatalf("bad: %#v", out)
-	}
-
-	if out.KnownLeader {
-		t.Fatalf("should not have a leader anymore: %#v", out)
-	}
+		if out.KnownLeader || len(out.Services) != 1 {
+			r.Fatalf("got %t nodes want %d", out.KnownLeader, len(out.Services))
+		}
+	})
 }
 
 func TestCatalog_ListServiceNodes(t *testing.T) {
