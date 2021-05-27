@@ -1707,11 +1707,6 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	// With stale, request should still work
 	args.AllowStale = true
-
-	out = structs.IndexedServices{}
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 	retry.Run(t, func(r *retry.R) {
 		out = structs.IndexedServices{}
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
