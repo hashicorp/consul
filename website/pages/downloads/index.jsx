@@ -73,7 +73,7 @@ export default function DownloadsPage(staticProps) {
           <div className={s.releaseCandidate}>
             <p>
               A beta for Consul v1.10.0 is available! The release can be{' '}
-              <a href="https://releases.hashicorp.com/consul/1.10.0-beta2/">
+              <a href="https://releases.hashicorp.com/consul/1.10.0-beta3/">
                 downloaded here
               </a>
             </p>
