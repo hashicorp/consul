@@ -20,6 +20,10 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
@@ -27,9 +31,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/mitchellh/mapstructure"
-	"github.com/pkg/errors"
 )
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
@@ -269,18 +270,16 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
-			rule, err := s.agent.resolveToken(token)
-			if err != nil {
-				resp.WriteHeader(http.StatusForbidden)
+			// If enableDebug is not set, and ACLs are disabled, write
+			// an unauthorized response
+			if !enableDebug && s.checkACLDisabled(resp, req) {
 				return
 			}
 
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug {
-				if s.checkACLDisabled(resp, req) {
-					return
-				}
+			rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+			if err != nil {
+				resp.WriteHeader(http.StatusForbidden)
+				return
 			}
 
 			// If the token provided does not have the necessary permissions,
