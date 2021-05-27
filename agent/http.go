@@ -237,18 +237,16 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			var token string
 			s.parseToken(req, &token)
 
+			// If enableDebug is not set, and ACLs are disabled, write
+			// an unauthorized response
+			if !enableDebug && s.checkACLDisabled(resp, req) {
+				return
+			}
+
 			rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
 				return
-			}
-
-			// If enableDebug is not set, and ACLs are disabled, write
-			// an unauthorized response
-			if !enableDebug {
-				if s.checkACLDisabled(resp, req) {
-					return
-				}
 			}
 
 			// If the token provided does not have the necessary permissions,

@@ -1,0 +1,5 @@
+```release-note:bug
+cli: removes the need to set debug_enabled=true to collect debug data from the CLI. Now
+the CLI behaves the same way as the API and accepts either an ACL token with operator:read, or
+debug_enabled=true.
+```
