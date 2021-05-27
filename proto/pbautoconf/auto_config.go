@@ -1,5 +1,7 @@
 package pbautoconf
 
+import "time"
+
 func (req *AutoConfigRequest) RequestDatacenter() string {
 	return req.Datacenter
 }
@@ -18,4 +20,8 @@ func (req *AutoConfigRequest) TokenSecret() string {
 
 func (req *AutoConfigRequest) SetTokenSecret(token string) {
 	req.ConsulToken = token
+}
+
+func (req *AutoConfigRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	return time.Since(start) > rpcHoldTimeout
 }

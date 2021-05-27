@@ -1665,7 +1665,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	defer codec.Close()
 
 	// Run the query, do not wait for leader, never any contact with leader, should fail
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err.Error() != structs.ErrNoLeader.Error() {
 		t.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
 	}
 
@@ -1677,6 +1677,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
+		out = structs.IndexedServices{}
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -1696,24 +1697,25 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	args.AllowStale = false
 	// Since the leader is now down, non-stale query should fail now
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err == nil || err.Error() != structs.ErrNoLeader.Error() {
+	out = structs.IndexedServices{}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err.Error() != structs.ErrLeaderNotTracked.Error() {
 		t.Fatalf("expected %v but got err: %v and %v", structs.ErrNoLeader, err, out)
+	}
+	if out.KnownLeader {
+		t.Fatalf("should not have a leader anymore: %#v", out)
 	}
 
 	// With stale, request should still work
 	args.AllowStale = true
-	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Should find old service
-	if len(out.Services) != 1 {
-		t.Fatalf("bad: %#v", out)
-	}
-
-	if out.KnownLeader {
-		t.Fatalf("should not have a leader anymore: %#v", out)
-	}
+	retry.Run(t, func(r *retry.R) {
+		out = structs.IndexedServices{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		if out.KnownLeader || len(out.Services) != 1 {
+			r.Fatalf("got %t nodes want %d", out.KnownLeader, len(out.Services))
+		}
+	})
 }
 
 func TestCatalog_ListServiceNodes(t *testing.T) {
