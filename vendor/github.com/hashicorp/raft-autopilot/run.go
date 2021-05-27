@@ -18,7 +18,6 @@ func (a *Autopilot) Start(ctx context.Context) {
 	}
 
 	ctx, shutdown := context.WithCancel(ctx)
-	a.startTime = a.time.Now()
 
 	exec := &execInfo{
 		status:   Running,
@@ -127,6 +126,21 @@ func (a *Autopilot) beginExecution(ctx context.Context, exec *execInfo) {
 		<-stateUpdaterDone
 
 		a.logger.Debug("autopilot is now stopped")
+
+		// We need to gain this lock so that we can zero out the previous state.
+		// This prevents us from accidentally tracking stale state in the event
+		// that we used to be the leader at some point in time, then weren't
+		// and now are again. In particular this will ensure that that we forget
+		// about our tracking of the firstStateTime so that once restarted, we
+		// will ignore server stabilization time just like we do the very
+		// first time this process ever was the leader.
+		//
+		// This isn't included in finishExecution so that we don't perform it
+		// if we fail to gain the leaderLock before the context gets cancelled
+		// back at the beginning of this function.
+		a.stateLock.Lock()
+		defer a.stateLock.Unlock()
+		a.state = &State{}
 
 		a.finishExecution(exec)
 		a.leaderLock.Unlock()

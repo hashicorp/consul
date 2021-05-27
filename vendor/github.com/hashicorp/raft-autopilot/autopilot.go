@@ -147,16 +147,6 @@ type Autopilot struct {
 	// racing.
 	stateLock sync.RWMutex
 
-	// startTime is recorded so that we can make better determinations about server
-	// stability during the initial period of time after autopilot first starts.
-	// If autopilot has just started the default behavior to check if a server is
-	// stable will not work as it will ensure the server has been healthy for
-	// the configured server stabilization time. If that configure time is longer
-	// than the amount of time autopilot has been running you can run into issues
-	// with leadership flapping during some scenarios where a cluster is being
-	// brought up.
-	startTime time.Time
-
 	// removeDeadCh is used to trigger the running autopilot go routines to
 	// find and remove any dead/failed servers
 	removeDeadCh chan struct{}
