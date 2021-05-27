@@ -1,4 +1,5 @@
 import UseCases from '@hashicorp/react-use-cases'
+import SteppedFeatureList from '@hashicorp/react-stepped-feature-list'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
 import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
@@ -195,16 +196,33 @@ export default function HomePage() {
           }}
         />
       </div>
-      <div
-        className="g-grid-container"
-        style={{
-          width: '100%',
-          height: 600,
-          border: '1px solid var(--consul)',
-        }}
-      >
-        <h4>FEATURES</h4>
-      </div>
+      <SteppedFeatureList
+        features={[
+          {
+            title: 'Feature 1',
+            description:
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ',
+            learnMoreLink: '/',
+            content: (
+              <img
+                src="https://via.placeholder.com/600/000000/FFFFFF?text=Feature 1"
+                alt="Feature 1"
+              />
+            ),
+          },
+          {
+            title: 'Feature 2',
+            description:
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc a vestibulum mi.',
+            content: (
+              <img
+                src="https://via.placeholder.com/600/000000/FFFFFF?text=Feature 2"
+                alt="Feature 2"
+              />
+            ),
+          },
+        ]}
+      />
       <CalloutBlade
         title="Consul with HashiCorp Stack"
         callouts={[

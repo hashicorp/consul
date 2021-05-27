@@ -23,6 +23,7 @@
     "@hashicorp/react-product-downloads-page": "2.0.2",
     "@hashicorp/react-product-features-list": "4.0.1",
     "@hashicorp/react-section-header": "5.0.2",
+    "@hashicorp/react-stepped-feature-list": "4.0.1",
     "@hashicorp/react-subnav": "8.1.0",
     "@hashicorp/react-tabs": "6.0.1",
     "@hashicorp/react-text-split": "3.1.1",
