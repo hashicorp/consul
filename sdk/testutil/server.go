@@ -250,7 +250,9 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		return nil, errors.Wrap(err, "failed marshaling json")
 	}
 
-	t.Logf("CONFIG JSON: %s", string(b))
+	if t != nil {
+		t.Logf("CONFIG JSON: %s", string(b))
+	}
 	configFile := filepath.Join(tmpdir, "config.json")
 	if err := ioutil.WriteFile(configFile, b, 0644); err != nil {
 		cfg.ReturnPorts()
@@ -297,7 +299,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 
 	// Wait for the server to be ready
 	if err := server.waitForAPI(); err != nil {
-		if err := server.Stop(); err != nil {
+		if err := server.Stop(); err != nil && t != nil {
 			t.Logf("server stop failed with: %v", err)
 		}
 		return nil, err

@@ -37,7 +37,7 @@ var testLogOnlyFailed = os.Getenv("TEST_LOGGING_ONLY_FAILED") == "1"
 // will prevent logs being output when the verbose flag is set if the test
 // case is successful.
 func NewLogBuffer(t TestingTB) io.Writer {
-	if sendTestLogsToStdout {
+	if sendTestLogsToStdout || t == nil {
 		return os.Stdout
 	}
 	buf := &logBuffer{buf: new(bytes.Buffer)}

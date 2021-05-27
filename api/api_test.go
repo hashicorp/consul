@@ -1078,3 +1078,21 @@ func TestAPI_GenerateEnvHTTPS(t *testing.T) {
 
 	require.Equal(t, expected, c.GenerateEnv())
 }
+
+func TestAPI_NewTestServerConfigT(t *testing.T) {
+	configCallback := func(c *testutil.TestServerConfig) {
+		c.Bootstrap = true
+	}
+
+	// with *testing.T
+	server, err := testutil.NewTestServerConfigT(t, configCallback)
+	require.NoError(t, err)
+	server.WaitForLeader(t)
+	server.Stop()
+
+	// without *testing.T
+	server, err = testutil.NewTestServerConfigT(nil, configCallback)
+	require.NoError(t, err)
+	server.WaitForLeader(t)
+	server.Stop()
+}
