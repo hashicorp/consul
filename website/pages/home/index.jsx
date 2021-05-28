@@ -274,37 +274,37 @@ export default function HomePage() {
         </div>
       </section>
       <CalloutBlade
-        title="Consul with HashiCorp Stack"
+        title="Better Together: Consul and the HashiCorp Stack"
         callouts={[
           {
+            title: 'Automated Infrastructure with Terraform',
             icon: require('./img/stack/consul-and-terraform.svg?include'),
             description:
-              'Use the Terraform provider ecosystem to drive relevant changes to your infrastructure based on Consul services.',
-            eyebrow: 'Tutorials',
+              'Speed up time to delivery for services with network infrastructure automation. Use Consul as a single source of truth for all services and apply configuration changes with Terraform.',
             link: {
-              text: 'Consul Terraform Sync',
+              text: 'Consul with Terraform',
               url:
                 'https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?in=consul/network-infrastructure-automation',
             },
           },
           {
+            title: 'Defense in Depth with Vault',
             icon: require('./img/stack/consul-and-vault.svg?include'),
             description:
-              'Integrate Consul with Vault and consul-template to securely store and rotate your encryption key and certificates.',
-            eyebrow: 'Tutorials',
+              'Ensure complete security for service-to-service access, authorization and communication by using Consul and Vault. Deliver end-to-end authentication, authorization, and encryption using identity-based access controls and traffic policies for microservice architectures.              ',
             link: {
-              text: 'Enforce security with Consul and Vault',
+              text: 'Consul with Vault',
               url:
                 'https://learn.hashicorp.com/collections/consul/vault-secure',
             },
           },
           {
+            title: 'Application Delivery with Nomad',
             icon: require('./img/stack/consul-and-nomad.svg?include'),
             description:
-              'Secure Nomad jobs with Consul Service Mesh and use Traffic Splitting for zero-downtime, blue-green, canary deployments.',
-            eyebrow: 'Tutorials',
+              'Accelerate the application delivery lifecycle with orchestration and scheduling from Nomad and Consul service mesh. Enable developers to deploy and connect workloads in any environment with fewer code changes.',
             link: {
-              text: 'Nomad’s integration with Consul',
+              text: 'Consul with Nomad',
               url:
                 'https://learn.hashicorp.com/collections/nomad/integrate-consul',
             },
