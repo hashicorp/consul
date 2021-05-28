@@ -97,39 +97,39 @@ export default function HomePage() {
             {
               title: 'Microservice Based Networking',
               description:
-                'Simplify developer interaction with applications using Consul service mesh and a API driven approach: from ingress, to blue-green and canary deployments, while including fine-grained observability and health checks for microservice architectures.',
+                'Simplify developer interactions, improve observability, and enable robust traffic management with Consul service mesh.',
               image: {
                 url: require('./img/use-cases/service_mesh.svg?url'),
                 format: 'svg',
               },
               link: {
-                title: 'Learn more about service mesh with Consul',
+                title: 'Service Mesh',
                 url: '/use-cases/multi-platform-service-mesh',
               },
             },
             {
               title: 'Secure Service-to-Service Access',
               description:
-                'Enable secure services access and communication across any network with identity-driven, time-based controls.. Enforce patterns and policies in VM and container-based environments and across public and private clouds. Move towards a Zero Trust posture for network security.',
+                'Secure service access and communication across any network with identity-driven, time-based controls.',
               image: {
                 url: '',
                 format: 'svg',
               },
               link: {
-                title: 'Learn more about Zero Trust approaches to networking',
+                title: 'Zero Trust Networks',
                 url: '#',
               },
             },
             {
               title: 'Automated Network Tasks',
               description:
-                'Automate existing network infrastructure management tasks with a variety of Consul integrations. Cutdown on tickets for operators and speed up time to deployment for developers maintaining dynamic applications.',
+                'Cut down on tickets for operators and speed up time to deployment of dynamic applications.',
               image: {
                 url: require('./img/use-cases/network_automation.svg?url'),
                 format: 'svg',
               },
               link: {
-                title: 'Learn more about network infrastructure automation',
+                title: 'Network Infrastructure Automation',
                 url: '/use-cases/network-infrastructure-automation',
               },
             },
@@ -138,16 +138,16 @@ export default function HomePage() {
       </div>
 
       <CalloutBlade
-        title="Get Started and Deploy Consul Service mesh for Kubernetes, VMs, or any environment"
+        title="Deploy Consul Service mesh for Kubernetes, VMs, or any environment"
         callouts={[
           {
             icon: require('./img/kubernetes/logo.svg?include'),
             title: 'Consul for Kubernetes',
             description:
-              'Implement Consul service mesh on any Kubernetes distribution, connect between multiple Kubernetes clusters, and support traditional VM based applications with a single tool. Consul CRDs enable a self-service, Kubernetes native workflow for managing traffic patterns, permissions, and deployments of mesh applications.',
+              "Consul service mesh secures service to service communication in any environment. Not using service mesh? Consul's service discovery  and network infrastructure automation capabilities can help solve any service networking challenge.",
             eyebrow: 'Tutorial',
             link: {
-              text: 'Install Consul on your Kubernetes cluster with Helm',
+              text: 'Get Started with Consul on Kubernetes',
               url:
                 'https://learn.hashicorp.com/tutorials/consul/kubernetes-custom-resource-definitions?in=consul/kubernetes',
             },
@@ -156,11 +156,10 @@ export default function HomePage() {
             icon: require('./img/kubernetes/communication-arrows.svg?include'),
             title: 'Consul for Everything Else',
             description:
-              'Implement Consul service mesh and secure service-to-service communication across any runtime and across both public and private clouds. Use Consul service discovery and network infrastructure automation to avoid hard coding IPs, automate updates to network devices, and eliminate ticket based systems.',
+              'Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.',
             eyebrow: 'Tutorial',
             link: {
-              text:
-                'Get started with Consul as a service mesh for any VM-based environment',
+              text: 'Get Started with Service Mesh on VMs',
               url:
                 'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy-vms?in=consul/developer-mesh',
             },
@@ -212,7 +211,7 @@ export default function HomePage() {
                   'https://learn.hashicorp.com/collections/consul/service-mesh-security',
                 content: (
                   <img
-                    src={require('../use-cases/img/multi-platform-service-mesh/service-to-service.png')}
+                    src={require('./img/service-splitter.png')}
                     alt="Service to Service Connectivity"
                   />
                 ),
@@ -266,6 +265,91 @@ export default function HomePage() {
                   <img
                     src={require('../use-cases/img/multi-platform-service-mesh/kubernetes-extend.png')}
                     alt="Multi-platform Support"
+                  />
+                ),
+              },
+              // {
+              //   title: 'Dynamic Load Balancing & Firewalling',
+              //   description: '',
+              //   learnMoreLink: '',
+              //   content: <img src={require('../')} alt="" />,
+              // },
+              {
+                title: 'Dynamic Load Balancing & Firewalling',
+                description:
+                  'Automate manual networking tasks and reduce the reliance on ticket-based systems.',
+                learnMoreLink:
+                  'https://learn.hashicorp.com/collections/consul/network-infrastructure-automation',
+                content: (
+                  <img
+                    src={require('../use-cases/img/network-automation/load-balancing.png')}
+                    alt="Load Balancing & Firewalling"
+                  />
+                ),
+              },
+              {
+                title:
+                  'Simple Cross Datacenter Networking (Multi-DC Supportand Mesh gateways)',
+                description:
+                  'Use mesh gateways to connect services across datacenters with Consul service mesh.',
+                learnMoreLink:
+                  'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways?in=consul/developer-mesh',
+                content: (
+                  <img
+                    src={require('../use-cases/img/multi-platform-service-mesh/muilti-datacenter.png')}
+                    alt="Cross Datacenter Networking"
+                  />
+                ),
+              },
+              {
+                title: 'Service Discovery & Real-time Health Checks',
+                description:
+                  'Keep track of the location information and health status of all applications.',
+                learnMoreLink:
+                  'https://learn.hashicorp.com/collections/consul/developer-discovery',
+                content: (
+                  <img
+                    src={require('../use-cases/img/network-automation/health-checks-visibility.png')}
+                    alt="Service Discovery & Real-time Health Checks"
+                  />
+                ),
+              },
+              {
+                title: 'Bridging Service Mesh with Traditional Networks',
+                description:
+                  'Interact with applications that reside outside of the mesh with Consul’s terminating gateways.',
+                learnMoreLink:
+                  'https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services',
+                content: (
+                  <img
+                    src={require('../use-cases/img/multi-platform-service-mesh/extend-mesh.svg')}
+                    alt=""
+                  />
+                ),
+              },
+              {
+                title: 'Connect new services into Service Mesh',
+                description:
+                  'Enable external applications to securely connect with service inside of the mesh using Consul’s Ingress Gateway.',
+                learnMoreLink:
+                  'https://learn.hashicorp.com/tutorials/consul/service-mesh-ingress-gateways',
+                content: (
+                  <CodeBlock
+                    language="hcl"
+                    code={`
+                 apiVersion: consul.hashicorp.com/v1alpha1
+                 kind: IngressGateway
+                 metadata:
+                   name: ingress-gateway
+                 spec:
+                   listeners:
+                     - port: 8080
+                       protocol: http
+                       services:
+                         - name: static-server
+                 
+                 
+                 `}
                   />
                 ),
               },
