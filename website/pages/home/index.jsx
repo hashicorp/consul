@@ -112,7 +112,7 @@ export default function HomePage() {
               description:
                 'Secure service access and communication across any network with identity-driven, time-based controls.',
               image: {
-                url: '',
+                url: require('./img/use-cases/discovery_health_checking.svg?url'), // @TODO - Consider a more specific icon
                 format: 'svg',
               },
               link: {
@@ -268,12 +268,6 @@ export default function HomePage() {
                   />
                 ),
               },
-              // {
-              //   title: 'Dynamic Load Balancing & Firewalling',
-              //   description: '',
-              //   learnMoreLink: '',
-              //   content: <img src={require('../')} alt="" />,
-              // },
               {
                 title: 'Dynamic Load Balancing & Firewalling',
                 description:
@@ -323,7 +317,7 @@ export default function HomePage() {
                 content: (
                   <img
                     src={require('../use-cases/img/multi-platform-service-mesh/extend-mesh.svg')}
-                    alt=""
+                    alt="Service Mesh with Traditional Networks"
                   />
                 ),
               },
