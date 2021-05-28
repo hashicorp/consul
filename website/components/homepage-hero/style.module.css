@@ -56,6 +56,8 @@
 
     & p {
       max-width: 440px;
+      font-size: 1.25rem;
+      line-height: 1.55em;
     }
   }
 

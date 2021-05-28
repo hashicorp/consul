@@ -5,8 +5,14 @@
   justify-items: center;
 }
 
-.heading {
-  margin: 0;
+.content {
   max-width: 784px;
   text-align: center;
+}
+.description {
+  composes: g-type-body-large from global;
+  color: var(--gray-2);
+}
+.heading {
+  margin: 0;
 }
