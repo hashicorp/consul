@@ -7,8 +7,9 @@ import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
 import HomepageHero from 'components/homepage-hero'
 import StaticDynamicDiagram from 'components/static-dynamic-diagram'
+import highlightString from '@hashicorp/nextjs-scripts/prism/highlight-string'
 
-export default function HomePage() {
+export default function HomePage({ serviceMeshIngressGatewayCode }) {
   return (
     <div className="p-home">
       <HomepageHero
@@ -315,21 +316,8 @@ export default function HomePage() {
                   'https://learn.hashicorp.com/tutorials/consul/service-mesh-ingress-gateways',
                 content: (
                   <CodeBlock
-                    language="hcl"
-                    code={`
-                 apiVersion: consul.hashicorp.com/v1alpha1
-                 kind: IngressGateway
-                 metadata:
-                   name: ingress-gateway
-                 spec:
-                   listeners:
-                     - port: 8080
-                       protocol: http
-                       services:
-                         - name: static-server
-                 
-                 
-                 `}
+                    language="yaml"
+                    code={serviceMeshIngressGatewayCode}
                   />
                 ),
               },
@@ -467,4 +455,25 @@ export default function HomePage() {
       />
     </div>
   )
+}
+
+export async function getStaticProps() {
+  const rawYaml = `
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: IngressGateway
+  metadata:
+    name: ingress-gateway
+  spec:
+    listeners:
+      - port: 8080
+        protocol: http
+        services:
+          - name: static-server
+  `
+  const serviceMeshIngressGatewayCode = await highlightString(rawYaml, 'yaml')
+  return {
+    props: {
+      serviceMeshIngressGatewayCode,
+    },
+  }
 }
