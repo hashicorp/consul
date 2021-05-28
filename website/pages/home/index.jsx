@@ -269,8 +269,7 @@ export default function HomePage() {
                 ),
               },
               {
-                title:
-                  'Simple Cross Datacenter Networking (Multi-DC Supportand Mesh gateways)',
+                title: 'Simple Cross Datacenter Networking',
                 description:
                   'Use mesh gateways to connect services across datacenters with Consul service mesh.',
                 learnMoreLink:
