@@ -367,12 +367,19 @@ module "web" {
       local_bind_port  = 8080
     }
   ]
-  environment = [
+  container_definitions = [
     {
-      name  = "BACKEND_URL"
-      value = "http://localhost:8080"
+      name        = "web"
+      environment = [
+        {
+          name  = "BACKEND_URL"
+          value = "http://localhost:8080"
+        }
+      ]
+      ...
     }
   ]
+  ...
 }
 ```
 
