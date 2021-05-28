@@ -121,7 +121,7 @@ export default function HomePage() {
               },
             },
             {
-              title: 'Automated Network Tasks',
+              title: 'Automated Networking Tasks',
               description:
                 'Cut down on tickets for operators and speed up time to deployment of dynamic applications.',
               image: {
@@ -211,7 +211,7 @@ export default function HomePage() {
                   'https://learn.hashicorp.com/collections/consul/service-mesh-security',
                 content: (
                   <img
-                    src={require('./img/service-splitter.png')}
+                    src={require('../use-cases/img/multi-platform-service-mesh/service-to-service.png')}
                     alt="Service to Service Connectivity"
                   />
                 ),
@@ -236,22 +236,9 @@ export default function HomePage() {
                 learnMoreLink:
                   'https://learn.hashicorp.com/collections/consul/service-mesh-traffic-management',
                 content: (
-                  <CodeBlock
-                    language="hcl"
-                    code={`
-                      Kind = "service-splitter"
-                      Name = "web"
-                      Splits = [
-                        {
-                          Weight        = 90
-                          ServiceSubset = "v1"
-                        },
-                        {
-                          Weight        = 10
-                          ServiceSubset = "v2"
-                        },
-                      ]
-                      `}
+                  <img
+                    src={require('./img/service-splitter@2x.png')}
+                    alt="Layer 7 Traffic Management"
                   />
                 ),
               },
