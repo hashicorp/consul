@@ -1,6 +1,7 @@
-import UseCases from '@hashicorp/react-use-cases'
+import LearnCallout from '@hashicorp/react-learn-callout'
 import SteppedFeatureList from '@hashicorp/react-stepped-feature-list'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
+import UseCases from '@hashicorp/react-use-cases'
 import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
 import HomepageHero from 'components/homepage-hero'
@@ -332,16 +333,30 @@ export default function HomePage() {
         }}
       />
 
-      <div
-        className="g-grid-container"
-        style={{
-          width: '100%',
-          height: 600,
-          border: '1px solid var(--consul)',
-        }}
-      >
-        <h4>LEARN</h4>
-      </div>
+      <LearnCallout
+        headline="Learn the latest Consul skills"
+        product="consul"
+        background=""
+        items={[
+          {
+            title: 'Service Mesh on Kubernetes',
+            category: 'For Kubernetes',
+            time: '3 hr 20 min',
+            link: 'https://learn.hashicorp.com/collections/consul/kubernetes',
+            image:
+              'https://www.datocms-assets.com/2885/1600191254-hashicorp-icon.svg',
+          },
+          {
+            title: 'HashiCorp Cloud Platform (HCP) Consul',
+            category: 'Get Started',
+            time: '59 mins',
+            link:
+              'https://learn.hashicorp.com/collections/consul/cloud-get-started',
+            image:
+              'https://www.datocms-assets.com/2885/1600191254-hashicorp-icon.svg',
+          },
+        ]}
+      />
     </div>
   )
 }
