@@ -70,4 +70,15 @@
       }
     }
   }
+  & section.features {
+    background-color: var(--gray-6);
+    & h3 {
+      margin: 0;
+      text-align: center;
+      margin-bottom: 32px;
+      @media (--large) {
+        text-align: left;
+      }
+    }
+  }
 }
