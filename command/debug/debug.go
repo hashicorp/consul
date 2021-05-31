@@ -15,10 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/flags"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
 )
 
 const (
@@ -254,26 +255,10 @@ func (c *cmd) prepare() (version string, err error) {
 		return "", fmt.Errorf("agent response did not contain version key")
 	}
 
-	debugEnabled, ok := self["DebugConfig"]["EnableDebug"].(bool)
-	if !ok {
-		return version, fmt.Errorf("agent response did not contain debug key")
-	}
-
 	// If none are specified we will collect information from
 	// all by default
 	if len(c.capture) == 0 {
 		c.capture = c.defaultTargets()
-	}
-
-	if !debugEnabled && c.configuredTarget("pprof") {
-		cs := c.capture
-		for i := 0; i < len(cs); i++ {
-			if cs[i] == "pprof" {
-				c.capture = append(cs[:i], cs[i+1:]...)
-				i--
-			}
-		}
-		c.UI.Warn("[WARN] Unable to capture pprof. Set enable_debug to true on target agent to enable profiling.")
 	}
 
 	for _, t := range c.capture {
@@ -414,7 +399,7 @@ func (c *cmd) captureDynamic() error {
 
 				heap, err := c.client.Debug().Heap()
 				if err != nil {
-					errCh <- err
+					errCh <- fmt.Errorf("failed to collect heap profile: %w", err)
 				}
 
 				err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
@@ -432,7 +417,7 @@ func (c *cmd) captureDynamic() error {
 				go func() {
 					prof, err := c.client.Debug().Profile(int(s))
 					if err != nil {
-						errCh <- err
+						errCh <- fmt.Errorf("failed to collect cpu profile: %w", err)
 					}
 
 					err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
@@ -447,7 +432,7 @@ func (c *cmd) captureDynamic() error {
 				go func() {
 					trace, err := c.client.Debug().Trace(int(s))
 					if err != nil {
-						errCh <- err
+						errCh <- fmt.Errorf("failed to collect trace: %w", err)
 					}
 
 					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
@@ -460,7 +445,7 @@ func (c *cmd) captureDynamic() error {
 
 				gr, err := c.client.Debug().Goroutine()
 				if err != nil {
-					errCh <- err
+					errCh <- fmt.Errorf("failed to collect goroutine profile: %w", err)
 				}
 
 				err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
@@ -532,7 +517,7 @@ func (c *cmd) captureDynamic() error {
 			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Unix(t, 0).Local().String(), intervalCount))
 			go capture()
 		case e := <-errCh:
-			c.UI.Error(fmt.Sprintf("Capture failure %s", e))
+			c.UI.Error(fmt.Sprintf("Capture failure: %s", e))
 		case <-durationChn:
 			return nil
 		case <-c.shutdownCh:
