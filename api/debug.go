@@ -29,6 +29,10 @@ func (d *Debug) Heap() ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		return nil, generateUnexpectedResponseCodeError(resp)
+	}
+
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
 	body, err := ioutil.ReadAll(resp.Body)
@@ -51,6 +55,10 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, generateUnexpectedResponseCodeError(resp)
+	}
 
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
@@ -75,6 +83,10 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		return nil, generateUnexpectedResponseCodeError(resp)
+	}
+
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
 	body, err := ioutil.ReadAll(resp.Body)
@@ -94,6 +106,10 @@ func (d *Debug) Goroutine() ([]byte, error) {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, generateUnexpectedResponseCodeError(resp)
+	}
 
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
