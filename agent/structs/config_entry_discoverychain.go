@@ -11,10 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/hashstructure"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
-	"github.com/mitchellh/hashstructure"
 )
 
 const (
@@ -1378,6 +1379,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		OverrideMeshGateway    MeshGatewayConfig
 		OverrideProtocol       string
 		OverrideConnectTimeout time.Duration
+		Filter                 string
 	}{
 		Name:                   r.Name,
 		EvaluateInDatacenter:   r.EvaluateInDatacenter,
@@ -1385,6 +1387,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		OverrideMeshGateway:    r.OverrideMeshGateway,
 		OverrideProtocol:       r.OverrideProtocol,
 		OverrideConnectTimeout: r.OverrideConnectTimeout,
+		Filter:                 r.QueryOptions.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

@@ -1597,8 +1597,7 @@ func TestNodeSpecificRequest_CacheInfoKey(t *testing.T) {
 }
 
 func TestServiceSpecificRequest_CacheInfoKey(t *testing.T) {
-	// TODO: should ServiceKind filed be included in the key?
-	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{}, "ServiceKind")
+	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{})
 }
 
 func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
@@ -1613,7 +1612,7 @@ func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
 var cacheInfoIgnoredFields = map[string]bool{
 	// Datacenter is part of the cache key added by the cache itself.
 	"Datacenter": true,
-	// QuerySource is always the same for every request from  a single agent, so it
+	// QuerySource is always the same for every request from a single agent, so it
 	// is excluded from the key.
 	"Source": true,
 	// EnterpriseMeta is an empty struct, so can not be included.
@@ -1654,10 +1653,11 @@ func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFi
 
 		key := request.CacheInfo().Key
 		if originalKey == key {
-			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v",
+			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v (key: %v)",
 				fieldName,
 				originalValue,
-				field.Interface())
+				field.Interface(),
+				key)
 		}
 	}
 }

@@ -2222,18 +2222,9 @@ func TestConfigEntryQuery_CacheInfoKey(t *testing.T) {
 }
 
 func TestServiceConfigRequest_CacheInfoKey(t *testing.T) {
-	ignoredFields := []string{
-		// TODO: should QueryOptions.Filter be included in the key?
-		"QueryOptions",
-		// TODO: should this be included in the key?
-		"MeshGateway",
-		// TODO: should this be included in the key?
-		"Mode",
-	}
-	assertCacheInfoKeyIsComplete(t, &ServiceConfigRequest{}, ignoredFields...)
+	assertCacheInfoKeyIsComplete(t, &ServiceConfigRequest{})
 }
 
 func TestDiscoveryChainRequest_CacheInfoKey(t *testing.T) {
-	// TODO: should QueryOptions.Filter be included in the key?
-	assertCacheInfoKeyIsComplete(t, &DiscoveryChainRequest{}, "QueryOptions")
+	assertCacheInfoKeyIsComplete(t, &DiscoveryChainRequest{})
 }

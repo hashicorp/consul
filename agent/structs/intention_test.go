@@ -456,7 +456,5 @@ func TestIntention_String(t *testing.T) {
 }
 
 func TestIntentionQueryRequest_CacheInfoKey(t *testing.T) {
-	// TODO: should these fields be included in the key?
-	ignored := []string{"IntentionID", "Check", "Exact", "QueryOptions"}
-	assertCacheInfoKeyIsComplete(t, &IntentionQueryRequest{}, ignored...)
+	assertCacheInfoKeyIsComplete(t, &IntentionQueryRequest{})
 }
