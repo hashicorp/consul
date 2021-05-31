@@ -1,8 +1,8 @@
 package pipebootstrap
 
 import (
+	"bytes"
 	"flag"
-	"io"
 	"os"
 	"time"
 
@@ -43,6 +43,12 @@ func (c *cmd) Run(args []string) int {
 		os.Exit(99)
 	})
 
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(os.Stdin); err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
 	// WRONLY is very important here - the open() call will block until there is a
 	// reader (Envoy) if we open it with RDWR though that counts as an opener and
 	// we will just send the data to ourselves as the first opener and so only
@@ -53,8 +59,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	_, err = io.Copy(f, os.Stdin)
-	if err != nil {
+	if _, err := buf.WriteTo(f); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
@@ -67,7 +72,7 @@ func (c *cmd) Run(args []string) int {
 	// Removed named pipe now we sent it. Even if Envoy has not yet read it, we
 	// know it has opened it and has the file descriptor since our write above
 	// will block until there is a reader.
-	c.UI.Output("Bootstrap sent, unlinking named pipe")
+	c.UI.Warn("Bootstrap sent, unlinking named pipe")
 
 	os.RemoveAll(args[0])
 
