@@ -360,18 +360,19 @@ func (c *cmd) captureDynamic() error {
 
 		// Capture metrics
 		if c.configuredTarget("metrics") {
+			wg.Add(1)
 			go c.captureMetrics(&errCh, timestampDir, &wg)
 		}
 
 		// Capture pprof
 		if c.configuredTarget("pprof") {
 			wg.Add(1)
-
 			c.capturePprof(&errCh, timestampDir, &wg)
 		}
 
 		// Capture logs
 		if c.configuredTarget("logs") {
+			wg.Add(1)
 			go c.captureLogs(&errCh, timestampDir, &wg)
 		}
 
@@ -468,7 +469,6 @@ func (c *cmd) capturePprof(errCh *chan error, timestampDir string, wg *sync.Wait
 }
 
 func (c *cmd) captureLogs(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
-	wg.Add(1)
 	endLogChn := make(chan struct{})
 	logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
 	if err != nil {
@@ -506,7 +506,7 @@ OUTER:
 }
 
 func (c *cmd) captureMetrics(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
-	wg.Add(1)
+
 	metrics, err := c.client.Agent().Metrics()
 	if err != nil {
 		*errCh <- err
