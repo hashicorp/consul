@@ -1,0 +1,4 @@
+```release-note:improvement
+debug: Capture a single file when creating pprof debug capture, the capture will be for the duration parameter
+```
+
