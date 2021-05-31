@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
 	"os"
@@ -193,7 +194,10 @@ func (c *cmd) Run(args []string) int {
 
 	// Capture dynamic information from the target agent, blocking for duration
 	if c.configuredTarget("metrics") || c.configuredTarget("logs") || c.configuredTarget("pprof") {
-		err = c.captureDynamic()
+		g := new(errgroup.Group)
+		g.Go(c.captureDynamic)
+		g.Go(c.captureLongRunning)
+		err = g.Wait()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error encountered during collection: %v", err))
 		}
@@ -364,12 +368,6 @@ func (c *cmd) captureDynamic() error {
 			go c.captureMetrics(&errCh, timestampDir, &wg)
 		}
 
-		// Capture pprof
-		if c.configuredTarget("pprof") {
-			wg.Add(1)
-			go c.capturePprof(&errCh, timestampDir, &wg)
-		}
-
 		// Capture logs
 		if c.configuredTarget("logs") {
 			wg.Add(1)
@@ -402,70 +400,83 @@ func (c *cmd) captureDynamic() error {
 	}
 }
 
-func (c *cmd) capturePprof(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
-	// We need to capture profiles and traces at the same time
-	// and block for both of them
-	var wgProf sync.WaitGroup
-
-	heap, err := c.client.Debug().Heap()
+func (c *cmd) captureLongRunning() error {
+	timestamp := time.Now().Local().Unix()
+	// Make the directory that will store all captured data
+	// for this interval
+	timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
+	err := os.MkdirAll(timestampDir, 0755)
 	if err != nil {
-		*errCh <- fmt.Errorf("failed to collect heap profile: %w", err)
+		return err
 	}
+	// Capture pprof
+	if c.configuredTarget("pprof") {
+		return c.capturePprof(timestampDir)
+	}
+	return nil
+}
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
-	if err != nil {
-		*errCh <- err
-	}
+func (c *cmd) capturePprof(timestampDir string) error {
+	g := new(errgroup.Group)
 
 	// Capture a profile/trace with a minimum of 1s
-	s := c.interval.Seconds()
+	s := c.duration.Seconds()
 	if s < 1 {
 		s = 1
 	}
 
-	wgProf.Add(1)
-	go func() {
+	g.Go(func() error {
+		heap, err := c.client.Debug().Heap()
+		if err != nil {
+			return fmt.Errorf("failed to collect heap profile: %w", err)
+		}
+
+		err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	g.Go(func() error {
 		prof, err := c.client.Debug().Profile(int(s))
 		if err != nil {
-			*errCh <- fmt.Errorf("failed to collect cpu profile: %w", err)
+			return fmt.Errorf("failed to collect cpu profile: %w", err)
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
 		if err != nil {
-			*errCh <- err
+			return err
 		}
+		return nil
+	})
 
-		wgProf.Done()
-	}()
-
-	wgProf.Add(1)
-	go func() {
+	g.Go(func() error {
 		trace, err := c.client.Debug().Trace(int(s))
 		if err != nil {
-			*errCh <- fmt.Errorf("failed to collect trace: %w", err)
+			return fmt.Errorf("failed to collect trace: %w", err)
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
 		if err != nil {
-			*errCh <- err
+			return err
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		gr, err := c.client.Debug().Goroutine()
+		if err != nil {
+			return fmt.Errorf("failed to collect goroutine profile: %w", err)
 		}
 
-		wgProf.Done()
-	}()
-
-	gr, err := c.client.Debug().Goroutine()
-	if err != nil {
-		*errCh <- fmt.Errorf("failed to collect goroutine profile: %w", err)
-	}
-
-	err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-	if err != nil {
-		*errCh <- err
-	}
-
-	wgProf.Wait()
-
-	wg.Done()
+		err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return g.Wait()
 }
 
 func (c *cmd) captureLogs(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {

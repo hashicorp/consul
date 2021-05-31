@@ -14,6 +14,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
+	"github.com/google/pprof/profile"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -367,8 +368,14 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	// Glob ignores file system errors
 	for _, v := range profiles {
 		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		if len(fs) == 0 {
+		if len(fs) != 1 {
 			t.Errorf("output data should exist for %s", v)
+		}
+		if !strings.Contains(fs[0], "trace.out") {
+			content, err := ioutil.ReadFile(fs[0])
+			require.NoError(t, err)
+			_, err = profile.ParseData(content)
+			require.NoError(t, err)
 		}
 	}
 
@@ -476,17 +483,11 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	profiles := []string{"heap.prof", "profile.prof", "goroutine.prof", "trace.out"}
 	// Glob ignores file system errors
 	for _, v := range profiles {
-		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		// TODO: make this always one
-		require.True(t, len(fs) >= 1)
-		content, err := ioutil.ReadFile(fs[0])
-		require.NoError(t, err)
-		require.Len(t, content, 0)
+		fs, _ := filepath.Glob(fmt.Sprintf("%s/*r/%s", outputPath, v))
+		require.True(t, len(fs) == 0)
 	}
 
 	errOutput := ui.ErrorWriter.String()
-	for _, prof := range []string{"heap", "cpu", "goroutine", "trace"} {
-		expected := fmt.Sprintf("failed to collect %v", prof)
-		require.Contains(t, errOutput, expected)
-	}
+	require.Contains(t, errOutput, "failed to collect")
+
 }
