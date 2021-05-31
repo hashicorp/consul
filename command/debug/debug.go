@@ -367,7 +367,7 @@ func (c *cmd) captureDynamic() error {
 		// Capture pprof
 		if c.configuredTarget("pprof") {
 			wg.Add(1)
-			c.capturePprof(&errCh, timestampDir, &wg)
+			go c.capturePprof(&errCh, timestampDir, &wg)
 		}
 
 		// Capture logs
