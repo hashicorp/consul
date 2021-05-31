@@ -6,8 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/command/flags"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -27,22 +28,20 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
-	// This should never be alive for very long. In case bad things happen and
-	// Envoy never starts limit how long we live before just exiting so we can't
-	// accumulate tons of these zombie children.
-	time.AfterFunc(10*time.Second, func() {
-		// Force cleanup
-		if len(args) > 0 {
-			os.RemoveAll(args[0])
-		}
-		os.Exit(99)
-	})
-
 	// Read from STDIN, write to the named pipe provided in the only positional arg
 	if len(args) != 1 {
 		c.UI.Error("Expecting named pipe path as argument")
 		return 1
 	}
+
+	// This should never be alive for very long. In case bad things happen and
+	// Envoy never starts limit how long we live before just exiting so we can't
+	// accumulate tons of these zombie children.
+	time.AfterFunc(10*time.Second, func() {
+		// Force cleanup
+		os.RemoveAll(args[0])
+		os.Exit(99)
+	})
 
 	// WRONLY is very important here - the open() call will block until there is a
 	// reader (Envoy) if we open it with RDWR though that counts as an opener and
@@ -60,8 +59,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	err = f.Close()
-	if err != nil {
+	if err = f.Close(); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
