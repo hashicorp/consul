@@ -250,10 +250,13 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
                 learnMoreLink:
                   'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
                 content: (
-                  <img
-                    src={require('../use-cases/img/multi-platform-service-mesh/kubernetes-extend.png')}
-                    alt="Multi-platform Support"
-                  />
+                  <center>
+                    <img
+                      style={{ maxWidth: '75%' }}
+                      src={require('../use-cases/img/multi-platform-service-mesh/kubernetes-extend-transparent.png')}
+                      alt="Multi-platform Support"
+                    />
+                  </center>
                 ),
               },
               {
