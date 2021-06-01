@@ -2,6 +2,8 @@
   padding-top: 56px;
   padding-bottom: 56px;
 
+  --shadow-level-3: 0 16px 28px rgba(37, 38, 45, 0.12);
+
   & .contentWrapper {
     & > h3 {
       margin-top: 0;
@@ -25,10 +27,17 @@
 
   &.twoUp {
     grid-template-columns: 1fr 1fr;
+    grid-gap: 32px;
+
     & .linkWrap {
-      padding: 64px 64px;
+      padding: 64px 32px;
       display: flex;
       flex-direction: row;
+      background: var(--gray-6);
+      &:hover {
+        background: var(--gray-5);
+        box-shadow: var(--shadow-level-3);
+      }
 
       & .icon {
         margin-right: 48px;
@@ -48,8 +57,17 @@
 
   &.threeUp {
     grid-template-columns: 1fr 1fr 1fr;
+    grid-gap: 32px;
+
     & .linkWrap {
       padding: 64px 32px;
+      border: 1px solid var(--gray-5);
+      border-radius: 2px;
+      &:hover {
+        background: var(--gray-6);
+        box-shadow: var(--shadow-level-3);
+        border-color: var(--gray-6);
+      }
     }
 
     @media (max-width: 1220px) {
@@ -63,11 +81,7 @@
   & .linkWrap {
     color: inherit;
     height: 100%;
-    background: var(--gray-6);
-    &:hover {
-      background: var(--gray-5);
-    }
-
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
 
