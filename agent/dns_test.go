@@ -6688,7 +6688,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 		},
 	}
 
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
@@ -6722,7 +6722,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
@@ -6770,7 +6770,7 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 100; i++ {
@@ -6823,7 +6823,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 
@@ -7126,7 +7126,7 @@ func TestDNS_syncExtra(t *testing.T) {
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, m := dns.Msg{}, dns.Msg{}
 	trimUDPResponse(&req, &m, cfg.DNSUDPAnswerLimit)

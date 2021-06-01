@@ -16,10 +16,26 @@ import (
 // tests if that ever changes.
 func TestDevModeHasNoServices(t *testing.T) {
 	devMode := true
-	result, err := config.Load(config.LoadOpts{DevMode: &devMode})
+	opts := config.LoadOpts{
+		DevMode: &devMode,
+		HCL:     []string{`node_name = "dummy"`},
+	}
+	result, err := config.Load(opts)
 	require.NoError(t, err)
 	require.Len(t, result.Warnings, 0)
 	require.Len(t, result.RuntimeConfig.Services, 0)
+}
+
+func TestInvalidNodeNameWarning(t *testing.T) {
+	devMode := true
+	opts := config.LoadOpts{
+		DevMode: &devMode,
+		HCL:     []string{`node_name = "dummy.local"`},
+	}
+	result, err := config.Load(opts)
+	require.NoError(t, err)
+	require.Len(t, result.Warnings, 1)
+	require.Contains(t, result.Warnings[0], "will not be discoverable via DNS due to invalid characters. Valid characters include all alpha-numerics and dashes.")
 }
 
 func TestStructsToAgentService(t *testing.T) {
@@ -160,10 +176,10 @@ func TestStructsToAgentService(t *testing.T) {
 		tc := tt
 		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
-			require := require.New(t)
+			r := require.New(t)
 			actual, err := serviceToAgentService(tc.Input)
-			require.NoError(err)
-			require.Equal(tc.Output, actual)
+			r.NoError(err)
+			r.Equal(tc.Output, actual)
 		})
 	}
 }
