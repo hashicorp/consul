@@ -212,7 +212,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
                   'https://learn.hashicorp.com/collections/consul/service-mesh-security',
                 content: (
                   <img
-                    src={require('../use-cases/img/multi-platform-service-mesh/service-to-service.png')}
+                    src={require('../use-cases/img/multi-platform-service-mesh/service-to-service.svg')}
                     alt="Service to Service Connectivity"
                   />
                 ),
@@ -293,7 +293,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
                   'https://learn.hashicorp.com/collections/consul/developer-discovery',
                 content: (
                   <img
-                    src={require('../use-cases/img/network-automation/health-checks-visibility.png')}
+                    src={require('../use-cases/img/discovery-health-checking/service-discovery-and-health-checking.svg')}
                     alt="Service Discovery & Real-time Health Checks"
                   />
                 ),
