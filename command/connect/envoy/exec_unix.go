@@ -49,6 +49,22 @@ func hasHotRestartOption(argSets ...[]string) bool {
 	return false
 }
 
+// execArgs returns the command and args used to execute a binary. By default it
+// will return a command of os.Executable with the args unmodified. This is a shim
+// for testing, and can be overridden to execute using 'go run' instead.
+var execArgs = func(args ...string) (string, []string, error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", nil, err
+	}
+
+	if strings.HasSuffix(execPath, "/envoy.test") {
+		return "", nil, fmt.Errorf("set execArgs to use 'go run' instead of doing a self-exec")
+	}
+
+	return execPath, args, nil
+}
+
 func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	pipeFile := filepath.Join(os.TempDir(),
 		fmt.Sprintf("envoy-%x-bootstrap.json", time.Now().UnixNano()+int64(os.Getpid())))
@@ -58,25 +74,22 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 		return pipeFile, err
 	}
 
-	// Get our own executable path.
-	execPath, err := os.Executable()
+	binary, args, err := execArgs("connect", "envoy", "pipe-bootstrap", pipeFile)
 	if err != nil {
 		return pipeFile, err
-	}
-
-	if testSelfExecOverride != "" {
-		execPath = testSelfExecOverride
-	} else if strings.HasSuffix(execPath, "/envoy.test") {
-		return pipeFile, fmt.Errorf("I seem to be running in a test binary without " +
-			"overriding the self-executable. Not doing that - it will make you sad. " +
-			"See testSelfExecOverride.")
 	}
 
 	// Exec the pipe-bootstrap internal sub-command which will write the bootstrap
 	// from STDIN to the named pipe (once Envoy opens it) and then clean up the
 	// file for us.
-	cmd := exec.Command(execPath, "connect", "envoy", "pipe-bootstrap", pipeFile)
+	cmd := exec.Command(binary, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return pipeFile, err
+	}
+	err = cmd.Start()
 	if err != nil {
 		return pipeFile, err
 	}
@@ -84,17 +97,12 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	// Write the config
 	n, err := stdin.Write(bootstrapJSON)
 	// Close STDIN whether it was successful or not
-	stdin.Close()
+	_ = stdin.Close()
 	if err != nil {
 		return pipeFile, err
 	}
 	if n < len(bootstrapJSON) {
 		return pipeFile, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
-	}
-
-	err = cmd.Start()
-	if err != nil {
-		return pipeFile, err
 	}
 
 	// We can't wait for the process since we need to exec into Envoy before it
