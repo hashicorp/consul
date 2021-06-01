@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/hashstructure"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-multierror"
-	"github.com/mitchellh/hashstructure"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -596,13 +597,6 @@ func (q *IntentionQueryRequest) RequestDatacenter() string {
 
 // CacheInfo implements cache.Request
 func (q *IntentionQueryRequest) CacheInfo() cache.RequestInfo {
-	// We only support caching Match queries, so if Match isn't set,
-	// then return an empty info object which will cause a pass-through
-	// (and likely fail).
-	if q.Match == nil {
-		return cache.RequestInfo{}
-	}
-
 	info := cache.RequestInfo{
 		Token:      q.Token,
 		Datacenter: q.Datacenter,
@@ -610,10 +604,19 @@ func (q *IntentionQueryRequest) CacheInfo() cache.RequestInfo {
 		Timeout:    q.MaxQueryTime,
 	}
 
-	// Calculate the cache key via just hashing the Match struct. This
-	// has been configured so things like ordering of entries has no
-	// effect (via struct tags).
-	v, err := hashstructure.Hash(q.Match, nil)
+	v, err := hashstructure.Hash(struct {
+		IntentionID string
+		Match       *IntentionQueryMatch
+		Check       *IntentionQueryCheck
+		Exact       *IntentionQueryExact
+		Filter      string
+	}{
+		IntentionID: q.IntentionID,
+		Check:       q.Check,
+		Match:       q.Match,
+		Exact:       q.Exact,
+		Filter:      q.QueryOptions.Filter,
+	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
 		// no cache for this request so the request is forwarded directly
