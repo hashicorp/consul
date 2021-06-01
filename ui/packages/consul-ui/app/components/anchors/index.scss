@@ -1,32 +1,28 @@
-%anchor-decoration,
-%anchor-decoration-active {
-  text-decoration: none;
+@import './skin';
+a[rel*='external']::after {
+  @extend %with-exit-icon, %as-pseudo;
+  margin-left: 8px;
 }
-%anchor-decoration-intent {
-  text-decoration: underline;
+%main-content label a[rel*='help'] {
+  color: $gray-400;
 }
-%anchor,
-%anchor-intent,
-%anchor-active {
-  color: $color-action;
+%main-content a[rel*='help']::after {
+  @extend %with-info-circle-outline-icon, %as-pseudo;
+  opacity: 0.4;
 }
-%anchor-decoration:hover,
-%anchor-decoration:focus {
-  @extend %anchor-decoration-intent;
+%main-content h2 a {
+  color: $gray-900;
 }
-%anchor-decoration:active {
-  @extend %anchor-decoration-active;
+%main-content h2 a[rel*='help']::after {
+  font-size: 0.65em;
+  margin-top: 0.2em;
+  margin-left: 0.2em;
 }
-%anchor {
-  @extend %anchor-decoration;
-  cursor: pointer;
-  background-color: $transparent;
+
+.tab-section > p:only-child [rel*='help']::after {
+  content: none;
 }
-%anchor:hover,
-%anchor:focus {
-  @extend %anchor-intent;
-}
-%anchor:active {
-  @extend %anchor-active;
-  outline: 0;
+%main-content p a,
+%main-content dd a {
+  @extend %anchor;
 }

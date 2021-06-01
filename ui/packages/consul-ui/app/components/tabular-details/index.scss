@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+table.with-details {
+  @extend %tabular-details;
+}

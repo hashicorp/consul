@@ -1,6 +1,9 @@
 @import './skin';
 @import './layout';
 
+.menu-panel {
+  @extend %menu-panel;
+}
 %menu-panel [role='separator'] {
   @extend %menu-panel-separator;
 }
