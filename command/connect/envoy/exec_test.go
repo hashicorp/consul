@@ -267,6 +267,9 @@ func limitProcessLifetime(dur time.Duration) {
 // Also sets up a cleanup function to revert the patch when the test exits.
 func patchExecArgs(t *testing.T) {
 	orig := execArgs
+	// go run will run the consul source from the root of the repo. The relative
+	// path is necessary because `go test` always sets the working directory to
+	// the directory of the package being tested.
 	execArgs = func(args ...string) (string, []string, error) {
 		args = append([]string{"run", "../../.."}, args...)
 		return "go", args, nil

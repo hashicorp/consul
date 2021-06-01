@@ -69,11 +69,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// Use Warn to send to stderr, because all logs should go to stderr.
+	c.UI.Warn("Bootstrap sent, unlinking named pipe")
+
 	// Removed named pipe now we sent it. Even if Envoy has not yet read it, we
 	// know it has opened it and has the file descriptor since our write above
 	// will block until there is a reader.
-	c.UI.Warn("Bootstrap sent, unlinking named pipe")
-
 	os.RemoveAll(args[0])
 
 	return 0
