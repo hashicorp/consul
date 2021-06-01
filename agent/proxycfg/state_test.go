@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
 	"sync"
 	"testing"
 	"time"
@@ -1767,11 +1768,21 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 									{
 										Node: &structs.Node{
 											Node:    "node1",
-											Address: "127.0.0.1",
+											Address: "10.0.0.1",
 										},
 										Service: &structs.NodeService{
 											ID:      "db1",
 											Service: "db",
+											Address: "10.10.10.10",
+											TaggedAddresses: map[string]structs.ServiceAddress{
+												structs.TaggedAddressWAN:     {Address: "17.5.7.8"},
+												structs.TaggedAddressWANIPv6: {Address: "2607:f0d0:1002:51::4"},
+											},
+											Proxy: structs.ConnectProxyConfig{
+												TransparentProxy: structs.TransparentProxyConfig{
+													DialedDirectly: true,
+												},
+											},
 										},
 									},
 								},
@@ -1789,15 +1800,36 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								{
 									Node: &structs.Node{
 										Node:    "node1",
-										Address: "127.0.0.1",
+										Address: "10.0.0.1",
 									},
 									Service: &structs.NodeService{
 										ID:      "db1",
 										Service: "db",
+										Address: "10.10.10.10",
+										TaggedAddresses: map[string]structs.ServiceAddress{
+											structs.TaggedAddressWAN:     {Address: "17.5.7.8"},
+											structs.TaggedAddressWANIPv6: {Address: "2607:f0d0:1002:51::4"},
+										},
+										Proxy: structs.ConnectProxyConfig{
+											TransparentProxy: structs.TransparentProxyConfig{
+												DialedDirectly: true,
+											},
+										},
 									},
 								},
 							},
 						)
+						// The LAN service address is used below because transparent proxying
+						// does not support querying service nodes in other DCs, and the WAN address
+						// should not be used in DC-local calls.
+						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[string]ServicePassthroughAddrs{
+							db.String(): {
+								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, snap.Datacenter, snap.Roots.TrustDomain),
+								Addrs: map[string]struct{}{
+									"10.10.10.10": {},
+								},
+							},
+						})
 					},
 				},
 				// Discovery chain updates should be stored

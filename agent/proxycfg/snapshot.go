@@ -47,6 +47,18 @@ type ConfigSnapshotUpstreams struct {
 
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[string]*structs.Upstream
+
+	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
+	PassthroughUpstreams map[string]ServicePassthroughAddrs
+}
+
+// ServicePassthroughAddrs contains the LAN addrs
+type ServicePassthroughAddrs struct {
+	// SNI is the Service SNI of the upstream.
+	SNI string
+
+	// Addrs is a set of the best LAN addresses for the instances of the upstream.
+	Addrs map[string]struct{}
 }
 
 type configSnapshotConnectProxy struct {
@@ -80,6 +92,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.WatchedServiceChecks) == 0 &&
 		len(c.PreparedQueryEndpoints) == 0 &&
 		len(c.UpstreamConfig) == 0 &&
+		len(c.PassthroughUpstreams) == 0 &&
 		!c.MeshConfigSet
 }
 

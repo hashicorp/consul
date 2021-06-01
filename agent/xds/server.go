@@ -96,8 +96,9 @@ const (
 
 	// OriginalDestinationClusterName is the name we give to the passthrough
 	// cluster which redirects transparently-proxied requests to their original
-	// destination. This cluster prevents Consul from blocking connections to
-	// destinations outside of the catalog when in transparent proxy mode.
+	// destination outside the mesh. This cluster prevents Consul from blocking
+	// connections to destinations outside of the catalog when in transparent
+	// proxy mode.
 	OriginalDestinationClusterName = "original-destination"
 
 	// DefaultAuthCheckFrequency is the default value for
