@@ -280,7 +280,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
                   'https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways?in=consul/developer-mesh',
                 content: (
                   <img
-                    src={require('../use-cases/img/multi-platform-service-mesh/muilti-datacenter.png')}
+                    src={require('../use-cases/img/multi-platform-service-mesh/multi-datacenter-transparent.png')}
                     alt="Cross Datacenter Networking"
                   />
                 ),
@@ -306,7 +306,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
                   'https://learn.hashicorp.com/tutorials/consul/terminating-gateways-connect-external-services',
                 content: (
                   <img
-                    src={require('../use-cases/img/multi-platform-service-mesh/extend-mesh.svg')}
+                    src={require('../use-cases/img/multi-platform-service-mesh/extend-mesh-transparent.png')}
                     alt="Service Mesh with Traditional Networks"
                   />
                 ),
