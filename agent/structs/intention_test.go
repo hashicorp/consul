@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestIntention_ACLs(t *testing.T) {
@@ -452,4 +453,8 @@ func TestIntention_String(t *testing.T) {
 			require.Equal(t, tc.expect, got)
 		})
 	}
+}
+
+func TestIntentionQueryRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &IntentionQueryRequest{})
 }

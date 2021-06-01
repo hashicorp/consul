@@ -1588,30 +1588,21 @@ func TestStructs_validateMetaPair(t *testing.T) {
 	}
 }
 
-func TestDCSpecificRequestCacheInfoKey(t *testing.T) {
-	assertCacheInfoKeyIsComplete(t, &DCSpecificRequest{}, nil)
+func TestDCSpecificRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &DCSpecificRequest{})
 }
 
-func TestNodeSpecificRequestCacheInfoKey(t *testing.T) {
-	assertCacheInfoKeyIsComplete(t, &NodeSpecificRequest{}, nil)
+func TestNodeSpecificRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &NodeSpecificRequest{})
 }
 
-func TestServiceSpecificRequestCacheInfoKey(t *testing.T) {
-	ignoredFields := map[string]bool{
-		// TODO: should this filed be included?
-		"ServiceKind": true,
-	}
-
-	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{}, ignoredFields)
+func TestServiceSpecificRequest_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{})
 }
 
-func TestServiceDumpRequestCacheInfoKey(t *testing.T) {
-	ignoredFields := map[string]bool{
-		// ServiceKind is only included when UseServiceKind=true
-		"ServiceKind": true,
-	}
-
-	assertCacheInfoKeyIsComplete(t, &ServiceDumpRequest{}, ignoredFields)
+func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
+	// ServiceKind is only included when UseServiceKind=true
+	assertCacheInfoKeyIsComplete(t, &ServiceDumpRequest{}, "ServiceKind")
 }
 
 // cacheInfoIgnoredFields are fields that can be ignored in all cache.Request types
@@ -1621,14 +1612,26 @@ func TestServiceDumpRequestCacheInfoKey(t *testing.T) {
 var cacheInfoIgnoredFields = map[string]bool{
 	// Datacenter is part of the cache key added by the cache itself.
 	"Datacenter": true,
-	// QuerySource is always the same for every request a single agent, so it
+	// QuerySource is always the same for every request from a single agent, so it
 	// is excluded from the key.
 	"Source": true,
 	// EnterpriseMeta is an empty struct, so can not be included.
 	enterpriseMetaField: true,
 }
 
-func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFields map[string]bool) {
+// assertCacheInfoKeyIsComplete is an assertion to verify that all fields on a request
+// struct are considered as part of the cache key. It is used to prevent regressions
+// when new fields are added to the struct. If a field is not included in the cache
+// key it can lead to API requests or DNS requests returning the wrong value
+// because a request matches the wrong entry in the agent/cache.Cache.
+func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFields ...string) {
+	t.Helper()
+
+	ignored := make(map[string]bool, len(ignoredFields))
+	for _, f := range ignoredFields {
+		ignored[f] = true
+	}
+
 	fuzzer := fuzz.NewWithSeed(time.Now().UnixNano())
 	fuzzer.Funcs(randQueryOptions)
 	fuzzer.Fuzz(request)
@@ -1640,7 +1643,7 @@ func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFi
 		fieldName := requestValue.Type().Field(i).Name
 		originalValue := field.Interface()
 
-		if cacheInfoIgnoredFields[fieldName] || ignoredFields[fieldName] {
+		if cacheInfoIgnoredFields[fieldName] || ignored[fieldName] {
 			continue
 		}
 
@@ -1650,10 +1653,11 @@ func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFi
 
 		key := request.CacheInfo().Key
 		if originalKey == key {
-			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v",
+			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v (key: %v)",
 				fieldName,
 				originalValue,
-				field.Interface())
+				field.Interface(),
+				key)
 		}
 	}
 }

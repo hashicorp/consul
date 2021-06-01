@@ -639,15 +639,21 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	// the slice would affect cache keys if we ever persist between agent restarts
 	// and change it.
 	v, err := hashstructure.Hash(struct {
-		Name           string
-		EnterpriseMeta EnterpriseMeta
-		Upstreams      []string    `hash:"set"`
-		UpstreamIDs    []ServiceID `hash:"set"`
+		Name              string
+		EnterpriseMeta    EnterpriseMeta
+		Upstreams         []string    `hash:"set"`
+		UpstreamIDs       []ServiceID `hash:"set"`
+		MeshGatewayConfig MeshGatewayConfig
+		ProxyMode         ProxyMode
+		Filter            string
 	}{
-		Name:           r.Name,
-		EnterpriseMeta: r.EnterpriseMeta,
-		Upstreams:      r.Upstreams,
-		UpstreamIDs:    r.UpstreamIDs,
+		Name:              r.Name,
+		EnterpriseMeta:    r.EnterpriseMeta,
+		Upstreams:         r.Upstreams,
+		UpstreamIDs:       r.UpstreamIDs,
+		ProxyMode:         r.Mode,
+		MeshGatewayConfig: r.MeshGateway,
+		Filter:            r.QueryOptions.Filter,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
