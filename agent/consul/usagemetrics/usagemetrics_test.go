@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/serf/serf"
 )
 
 type mockStateProvider struct {
@@ -74,6 +75,7 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 					WithStateProvider(mockStateProvider).
 					WithLogger(testutil.Logger(t)).
 					WithDatacenter("dc1"),
+				&serf.Serf{},
 			)
 			require.NoError(t, err)
 

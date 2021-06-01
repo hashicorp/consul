@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/serf/serf"
 )
 
 func newStateStore() (*state.Store, error) {
@@ -21,6 +22,7 @@ func newStateStore() (*state.Store, error) {
 func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 	type testCase struct {
 		modfiyStateStore func(t *testing.T, s *state.Store)
+		modifySerf       func(t *testing.T, s *serf.Serf)
 		expectedGauges   map[string]metrics.GaugeValue
 	}
 	cases := map[string]testCase{
@@ -45,6 +47,20 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
+				"consul.usage.test.consul.state.client_agents;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.state.client_agents",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
+				"consul.usage.test.consul.state.server_agents;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.state.server_agents",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
 			},
 		},
 		"nodes-and-services": {
@@ -58,6 +74,9 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				require.Nil(t, s.EnsureService(5, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
 				require.Nil(t, s.EnsureService(6, "foo", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
 				require.Nil(t, s.EnsureService(7, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+			},
+			modifySerf: func(t *testing.T, s *serf.Serf) {
+				// TODO: How can we add members to serf here?
 			},
 			expectedGauges: map[string]metrics.GaugeValue{
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
@@ -75,6 +94,20 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				"consul.usage.test.consul.state.service_instances;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.state.service_instances",
 					Value: 4,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
+				"consul.usage.test.consul.state.client_agents;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.state.client_agents",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
+				"consul.usage.test.consul.state.server_agents;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.state.server_agents",
+					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
@@ -98,11 +131,26 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 			}
 			mockStateProvider.On("State").Return(s)
 
+			// Passes but we can't test the code changes if we do this
+			// srf := &serf.Serf{}
+
+			// Failed to create memberlist: Could not set up network transport:
+			// failed to obtain an address: Failed to start TCP listener on
+			// "0.0.0.0" port 7946: listen tcp 0.0.0.0:7946: bind: address
+			// already in use
+			serfConf := serf.DefaultConfig()
+			srf, err := serf.Create(serfConf)
+			require.NoError(t, err)
+			if tcase.modifySerf != nil {
+				tcase.modifySerf(t, srf)
+			}
+
 			reporter, err := NewUsageMetricsReporter(
 				new(Config).
 					WithStateProvider(mockStateProvider).
 					WithLogger(testutil.Logger(t)).
 					WithDatacenter("dc1"),
+				srf,
 			)
 			require.NoError(t, err)
 

@@ -570,6 +570,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithLogger(s.logger).
 			WithDatacenter(s.config.Datacenter).
 			WithReportingInterval(s.config.MetricsReportingInterval),
+		s.serfLAN,
 	)
 	if err != nil {
 		s.Shutdown()
@@ -1138,7 +1139,7 @@ func (s *Server) LANMembers() []serf.Member {
 	return s.serfLAN.Members()
 }
 
-// WANMembers is used to return the members of the LAN cluster
+// WANMembers is used to return the members of the WAN cluster
 func (s *Server) WANMembers() []serf.Member {
 	if s.serfWAN == nil {
 		return nil

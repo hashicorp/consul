@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
@@ -25,6 +26,16 @@ var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"consul", "state", "service_instances"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
+	},
+	{
+		Name: []string{"consul", "state", "client_agents"},
+		// TODO: Insert proper version
+		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in vX.X.X.",
+	},
+	{
+		Name: []string{"consul", "state", "server_agents"},
+		// TODO: Insert proper version
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in vX.X.X.",
 	},
 }
 
@@ -77,9 +88,10 @@ type UsageMetricsReporter struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
+	serfLAN        *serf.Serf
 }
 
-func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
+func NewUsageMetricsReporter(cfg *Config, serfLAN *serf.Serf) (*UsageMetricsReporter, error) {
 	if cfg.stateProvider == nil {
 		return nil, errors.New("must provide a StateProvider to usage reporter")
 	}
@@ -93,11 +105,16 @@ func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 		cfg.tickerInterval = 10 * time.Second
 	}
 
+	if serfLAN == nil {
+		return nil, errors.New("must provide Serf to usage reporter")
+	}
+
 	u := &UsageMetricsReporter{
 		logger:         cfg.logger,
 		stateProvider:  cfg.stateProvider,
 		metricLabels:   cfg.metricLabels,
 		tickerInterval: cfg.tickerInterval,
+		serfLAN:        serfLAN,
 	}
 
 	return u, nil
@@ -137,4 +154,43 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitServiceUsage(serviceUsage)
+
+	servers, clients := u.memberUsage()
+	u.emitMemberUsage(servers, clients)
+}
+
+func (u *UsageMetricsReporter) memberUsage() (servers, clients int) {
+	members := u.serfLAN.Members()
+
+	numClients := 0
+	numServers := 0
+
+	for _, m := range members {
+		if m.Status != serf.StatusAlive {
+			continue
+		}
+
+		switch m.Tags["role"] {
+		case "node":
+			numClients++
+		case "consul":
+			numServers++
+		}
+	}
+
+	return numServers, numClients
+}
+
+func (u *UsageMetricsReporter) emitMemberUsage(servers, clients int) {
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "state", "client_agents"},
+		float32(clients),
+		u.metricLabels,
+	)
+
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "state", "server_agents"},
+		float32(servers),
+		u.metricLabels,
+	)
 }
