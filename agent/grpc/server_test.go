@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/resolver"
 
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -166,11 +165,4 @@ func (f *fakeRPCListener) handleConn(conn net.Conn) {
 		fmt.Println("ERROR: unexpected byte", typ)
 		conn.Close()
 	}
-}
-
-func registerWithGRPC(t *testing.T, b resolver.Builder) {
-	resolver.Register(b)
-	t.Cleanup(func() {
-		resolver.UnregisterForTesting(b.Scheme())
-	})
 }
