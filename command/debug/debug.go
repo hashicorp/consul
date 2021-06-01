@@ -195,7 +195,7 @@ func (c *cmd) Run(args []string) int {
 	// Capture dynamic information from the target agent, blocking for duration
 	if c.configuredTarget("metrics") || c.configuredTarget("logs") || c.configuredTarget("pprof") {
 		g := new(errgroup.Group)
-		g.Go(c.captureDynamic)
+		g.Go(c.captureInterval)
 		g.Go(c.captureLongRunning)
 		err = g.Wait()
 		if err != nil {
@@ -336,10 +336,10 @@ func (c *cmd) captureStatic() error {
 	return errors
 }
 
-// captureDynamic blocks for the duration of the command
+// captureInterval blocks for the duration of the command
 // specified by the duration flag, capturing the dynamic
 // targets at the interval specified
-func (c *cmd) captureDynamic() error {
+func (c *cmd) captureInterval() error {
 	successChan := make(chan int64)
 	errCh := make(chan error)
 	durationChn := time.After(c.duration)
@@ -354,12 +354,10 @@ func (c *cmd) captureDynamic() error {
 	capture := func() {
 		timestamp := time.Now().Local().Unix()
 
-		// Make the directory that will store all captured data
-		// for this interval
-		timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
-		err := os.MkdirAll(timestampDir, 0755)
+		timestampDir, err := c.createTimestampDir(timestamp)
 		if err != nil {
 			errCh <- err
+			return
 		}
 
 		// Capture metrics
@@ -400,12 +398,22 @@ func (c *cmd) captureDynamic() error {
 	}
 }
 
-func (c *cmd) captureLongRunning() error {
-	timestamp := time.Now().Local().Unix()
+func (c *cmd) createTimestampDir(timestamp int64) (string, error) {
 	// Make the directory that will store all captured data
 	// for this interval
 	timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
 	err := os.MkdirAll(timestampDir, 0755)
+	if err != nil {
+		return "", err
+	}
+	return timestampDir, nil
+}
+
+func (c *cmd) captureLongRunning() error {
+	timestamp := time.Now().Local().Unix()
+
+	timestampDir, err := c.createTimestampDir(timestamp)
+
 	if err != nil {
 		return err
 	}
@@ -432,10 +440,7 @@ func (c *cmd) capturePprof(timestampDir string) error {
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 
 	g.Go(func() error {
@@ -445,10 +450,7 @@ func (c *cmd) capturePprof(timestampDir string) error {
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 
 	g.Go(func() error {
@@ -458,10 +460,7 @@ func (c *cmd) capturePprof(timestampDir string) error {
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 
 	g.Go(func() error {
@@ -471,10 +470,7 @@ func (c *cmd) capturePprof(timestampDir string) error {
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	return g.Wait()
 }
