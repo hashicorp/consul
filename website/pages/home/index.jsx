@@ -118,7 +118,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
               },
               link: {
                 title: 'Zero Trust Networks',
-                url: '#',
+                url: '/use-cases/service-discovery-and-health-checking',
               },
             },
             {
