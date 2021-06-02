@@ -270,7 +270,7 @@ func (c *cmd) run(args []string) int {
 	// Let the agent know we've finished registration
 	agent.StartSync()
 
-	cli.output("Consul agent running!")
+	c.logger.Info("Consul agent running!")
 
 	// wait for signal
 	signalCh = make(chan os.Signal, 10)
