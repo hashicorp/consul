@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
@@ -428,8 +429,17 @@ func TestDebugCommand_CaptureLogs(t *testing.T) {
 }
 
 func validateLogLine(content []byte) bool {
-	re := regexp.MustCompile(`([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}.[0-9]{1,3}-[0-9]{1,4}) (\[(ERROR|WARN|INFO|DEBUG|TRACE)]) (.*?): (.*)`)
-	valid := re.Match(content)
+	fields := strings.SplitN(string(content), " ", 2)
+	if len(fields) != 2 {
+		return false
+	}
+	t := content[:23]
+	_, err := time.Parse("2006-01-02T15:04:05.000", string(t))
+	if err != nil {
+		return false
+	}
+	re := regexp.MustCompile(`(\[(ERROR|WARN|INFO|DEBUG|TRACE)]) (.*?): (.*)`)
+	valid := re.Match([]byte(fields[1]))
 	return valid
 }
 
