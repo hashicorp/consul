@@ -22,7 +22,7 @@ func newStateStore() (*state.Store, error) {
 func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 	type testCase struct {
 		modfiyStateStore func(t *testing.T, s *state.Store)
-		modifySerf       func(t *testing.T, s *serf.Serf)
+		getMembersFunc   getMembersFunc
 		expectedGauges   map[string]metrics.GaugeValue
 	}
 	cases := map[string]testCase{
@@ -75,8 +75,24 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				require.Nil(t, s.EnsureService(6, "foo", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
 				require.Nil(t, s.EnsureService(7, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
 			},
-			modifySerf: func(t *testing.T, s *serf.Serf) {
-				// TODO: How can we add members to serf here?
+			getMembersFunc: func() []serf.Member {
+				return []serf.Member{
+					{
+						Name:   "foo",
+						Tags:   map[string]string{"role": "consul"},
+						Status: serf.StatusAlive,
+					},
+					{
+						Name:   "bar",
+						Tags:   map[string]string{"role": "consul"},
+						Status: serf.StatusAlive,
+					},
+					{
+						Name:   "baz",
+						Tags:   map[string]string{"role": "node"},
+						Status: serf.StatusAlive,
+					},
+				}
 			},
 			expectedGauges: map[string]metrics.GaugeValue{
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
@@ -100,14 +116,14 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				},
 				"consul.usage.test.consul.state.client_agents;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.state.client_agents",
-					Value: 0,
+					Value: 1,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
 				"consul.usage.test.consul.state.server_agents;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.state.server_agents",
-					Value: 0,
+					Value: 2,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
@@ -131,26 +147,12 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 			}
 			mockStateProvider.On("State").Return(s)
 
-			// Passes but we can't test the code changes if we do this
-			// srf := &serf.Serf{}
-
-			// Failed to create memberlist: Could not set up network transport:
-			// failed to obtain an address: Failed to start TCP listener on
-			// "0.0.0.0" port 7946: listen tcp 0.0.0.0:7946: bind: address
-			// already in use
-			serfConf := serf.DefaultConfig()
-			srf, err := serf.Create(serfConf)
-			require.NoError(t, err)
-			if tcase.modifySerf != nil {
-				tcase.modifySerf(t, srf)
-			}
-
 			reporter, err := NewUsageMetricsReporter(
 				new(Config).
 					WithStateProvider(mockStateProvider).
 					WithLogger(testutil.Logger(t)).
 					WithDatacenter("dc1"),
-				srf,
+				tcase.getMembersFunc,
 			)
 			require.NoError(t, err)
 

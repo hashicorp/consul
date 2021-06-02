@@ -570,7 +570,9 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithLogger(s.logger).
 			WithDatacenter(s.config.Datacenter).
 			WithReportingInterval(s.config.MetricsReportingInterval),
-		s.serfLAN,
+		func() []serf.Member {
+			return s.LANMembers()
+		},
 	)
 	if err != nil {
 		s.Shutdown()

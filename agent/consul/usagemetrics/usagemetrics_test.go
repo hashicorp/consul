@@ -26,6 +26,7 @@ func (m *mockStateProvider) State() *state.Store {
 func TestUsageReporter_Run_Nodes(t *testing.T) {
 	type testCase struct {
 		modfiyStateStore func(t *testing.T, s *state.Store)
+		getMembersFunc   getMembersFunc
 		expectedGauges   map[string]metrics.GaugeValue
 	}
 	cases := map[string]testCase{
@@ -44,10 +45,39 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 				require.Nil(t, s.EnsureNode(2, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 				require.Nil(t, s.EnsureNode(3, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
 			},
+			getMembersFunc: func() []serf.Member {
+				return []serf.Member{
+					{
+						Name:   "foo",
+						Tags:   map[string]string{"role": "consul"},
+						Status: serf.StatusAlive,
+					},
+					{
+						Name:   "bar",
+						Tags:   map[string]string{"role": "consul"},
+						Status: serf.StatusAlive,
+					},
+					{
+						Name:   "baz",
+						Tags:   map[string]string{"role": "node"},
+						Status: serf.StatusAlive,
+					},
+				}
+			},
 			expectedGauges: map[string]metrics.GaugeValue{
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.nodes",
 					Value:  3,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				"consul.usage.test.consul.state.client_agents;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.client_agents",
+					Value:  1,
+					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				"consul.usage.test.consul.state.server_agents;datacenter=dc1": {
+					Name:   "consul.usage.test.consul.state.server_agents",
+					Value:  2,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
 			},
@@ -75,7 +105,7 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 					WithStateProvider(mockStateProvider).
 					WithLogger(testutil.Logger(t)).
 					WithDatacenter("dc1"),
-				&serf.Serf{},
+				tcase.getMembersFunc,
 			)
 			require.NoError(t, err)
 

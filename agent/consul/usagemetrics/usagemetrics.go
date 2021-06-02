@@ -80,6 +80,8 @@ type StateProvider interface {
 	State() *state.Store
 }
 
+type getMembersFunc func() []serf.Member
+
 // UsageMetricsReporter provides functionality for emitting usage metrics into
 // the metrics stream. This makes it essentially a translation layer
 // between the state store and metrics stream.
@@ -88,10 +90,10 @@ type UsageMetricsReporter struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
-	serfLAN        *serf.Serf
+	getMembersFunc getMembersFunc
 }
 
-func NewUsageMetricsReporter(cfg *Config, serfLAN *serf.Serf) (*UsageMetricsReporter, error) {
+func NewUsageMetricsReporter(cfg *Config, getMembersFunc getMembersFunc) (*UsageMetricsReporter, error) {
 	if cfg.stateProvider == nil {
 		return nil, errors.New("must provide a StateProvider to usage reporter")
 	}
@@ -105,16 +107,12 @@ func NewUsageMetricsReporter(cfg *Config, serfLAN *serf.Serf) (*UsageMetricsRepo
 		cfg.tickerInterval = 10 * time.Second
 	}
 
-	if serfLAN == nil {
-		return nil, errors.New("must provide Serf to usage reporter")
-	}
-
 	u := &UsageMetricsReporter{
 		logger:         cfg.logger,
 		stateProvider:  cfg.stateProvider,
 		metricLabels:   cfg.metricLabels,
 		tickerInterval: cfg.tickerInterval,
-		serfLAN:        serfLAN,
+		getMembersFunc: getMembersFunc,
 	}
 
 	return u, nil
@@ -160,7 +158,11 @@ func (u *UsageMetricsReporter) runOnce() {
 }
 
 func (u *UsageMetricsReporter) memberUsage() (servers, clients int) {
-	members := u.serfLAN.Members()
+	if u.getMembersFunc == nil {
+		return 0, 0
+	}
+
+	members := u.getMembersFunc()
 
 	numClients := 0
 	numServers := 0
