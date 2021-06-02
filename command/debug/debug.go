@@ -484,6 +484,7 @@ func (c *cmd) captureHeap(timestampDir string) error {
 
 func (c *cmd) captureLogs(timestampDir string) error {
 	endLogChn := make(chan struct{})
+	timeIsUp := time.After(c.duration)
 	logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
 	if err != nil {
 		return err
@@ -498,23 +499,20 @@ func (c *cmd) captureLogs(timestampDir string) error {
 	}
 	defer f.Close()
 
-	intervalChn := time.After(c.interval)
-
-OUTER:
-
 	for {
 		select {
 		case log := <-logCh:
-			// Append the line to the file
-			if _, err = f.WriteString(log + "\n"); err != nil {
-				break OUTER
+			if log != "" {
+				if _, err = f.WriteString(log + "\n"); err != nil {
+					return err
+				}
+			} else {
+				return nil
 			}
-		// Stop collecting the logs after the interval specified
-		case <-intervalChn:
-			break OUTER
+		case <-timeIsUp:
+			return nil
 		}
 	}
-	return nil
 }
 
 func (c *cmd) captureMetrics(timestampDir string) error {

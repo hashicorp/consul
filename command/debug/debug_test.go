@@ -2,12 +2,14 @@ package debug
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -329,6 +331,103 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestDebugCommand_CaptureLogs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cases := map[string]struct {
+		// used in -target param
+		targets []string
+		// existence verified after execution
+		files []string
+		// non-existence verified after execution
+		excludedFiles []string
+	}{
+		"logs-only": {
+			[]string{"logs"},
+			[]string{"*/consul.log"},
+			[]string{"agent.json", "host.json", "cluster.json", "*/metrics.json"},
+		},
+	}
+
+	for name, tc := range cases {
+		testDir := testutil.TempDir(t, "debug")
+
+		a := agent.NewTestAgent(t, `
+		enable_debug = true
+		`)
+
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		ui := cli.NewMockUi()
+		cmd := New(ui, nil)
+		cmd.validateTiming = false
+
+		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-output=" + outputPath,
+			"-archive=false",
+			"-duration=10000ms",
+			"-interval=50ms",
+		}
+		for _, t := range tc.targets {
+			args = append(args, "-capture="+t)
+		}
+
+		if code := cmd.Run(args); code != 0 {
+			t.Fatalf("should exit 0, got code: %d", code)
+		}
+
+		errOutput := ui.ErrorWriter.String()
+		if errOutput != "" {
+			t.Errorf("expected no error output, got %q", errOutput)
+		}
+
+		// Ensure the debug data was written
+		_, err := os.Stat(outputPath)
+		if err != nil {
+			t.Fatalf("output path should exist: %s", err)
+		}
+
+		// Ensure the captured static files exist
+		for _, f := range tc.files {
+			path := fmt.Sprintf("%s/%s", outputPath, f)
+			// Glob ignores file system errors
+			fs, _ := filepath.Glob(path)
+			if len(fs) <= 0 {
+				t.Fatalf("%s: output data should exist for %s", name, f)
+			}
+			for _, logFile := range fs {
+				content, err := ioutil.ReadFile(logFile)
+				require.NoError(t, err)
+				scanner := bufio.NewScanner(strings.NewReader(string(content)))
+				for scanner.Scan() {
+					require.True(t, validateLogLine([]byte(scanner.Text())))
+				}
+			}
+		}
+
+		// Ensure any excluded files do not exist
+		for _, f := range tc.excludedFiles {
+			path := fmt.Sprintf("%s/%s", outputPath, f)
+			// Glob ignores file system errors
+			fs, _ := filepath.Glob(path)
+			if len(fs) > 0 {
+				t.Fatalf("%s: output data should not exist for %s", name, f)
+			}
+		}
+	}
+}
+
+func validateLogLine(content []byte) bool {
+	re := regexp.MustCompile(`([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}.[0-9]{1,3}-[0-9]{1,4}) (\[(ERROR|WARN|INFO|DEBUG|TRACE)\]) (.*?): (.*)`)
+	valid := re.Match(content)
+	return valid
 }
 
 func TestDebugCommand_ProfilesExist(t *testing.T) {
