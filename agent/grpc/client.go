@@ -25,10 +25,10 @@ type ClientConnPool struct {
 type ServerLocator interface {
 	// ServerForAddr is used to look up server metadata from an address.
 	ServerForAddr(addr string) (*metadata.Server, error)
-	// Scheme returns the url scheme to use to dial the server. This is primarily
+	// Authority returns the target authority to use to dial the server. This is primarily
 	// needed for testing multiple agents in parallel, because gRPC requires the
 	// resolver to be registered globally.
-	Scheme() string
+	Authority() string
 }
 
 // TLSWrapper wraps a non-TLS connection and returns a connection with TLS
@@ -58,7 +58,7 @@ func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error)
 	}
 
 	conn, err := grpc.Dial(
-		fmt.Sprintf("%s:///server.%s", c.servers.Scheme(), datacenter),
+		fmt.Sprintf("consul://%s/server.%s", c.servers.Authority(), datacenter),
 		// use WithInsecure mode here because we handle the TLS wrapping in the
 		// custom dialer based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),

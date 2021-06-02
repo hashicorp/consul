@@ -117,7 +117,7 @@ func newConfig(t *testing.T) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
-	return resolver.Config{Scheme: strings.ToLower(s)}
+	return resolver.Config{Authority: strings.ToLower(s)}
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
@@ -194,4 +194,11 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, resp.Datacenter, dc)
 	}
+}
+
+func registerWithGRPC(t *testing.T, b *resolver.ServerResolverBuilder) {
+	resolver.Register(b)
+	t.Cleanup(func() {
+		resolver.Deregister(b.Authority())
+	})
 }

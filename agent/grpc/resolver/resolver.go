@@ -15,9 +15,7 @@ import (
 // ServerResolverBuilder tracks the current server list and keeps any
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {
-	// scheme used to query the server. Defaults to consul. Used to support
-	// parallel testing because gRPC registers resolvers globally.
-	scheme string
+	cfg Config
 	// servers is an index of Servers by Server.ID. The map contains server IDs
 	// for all datacenters.
 	servers map[string]*metadata.Server
@@ -28,25 +26,22 @@ type ServerResolverBuilder struct {
 	lock sync.RWMutex
 }
 
-var _ resolver.Builder = (*ServerResolverBuilder)(nil)
-
 type Config struct {
-	// Scheme used to connect to the server. Defaults to consul.
-	Scheme string
+	// Authority used to query the server. Defaults to "". Used to support
+	// parallel testing because gRPC registers resolvers globally.
+	Authority string
 }
 
 func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
-	if cfg.Scheme == "" {
-		cfg.Scheme = "consul"
-	}
 	return &ServerResolverBuilder{
-		scheme:    cfg.Scheme,
+		cfg:       cfg,
 		servers:   make(map[string]*metadata.Server),
 		resolvers: make(map[resolver.ClientConn]*serverResolver),
 	}
 }
 
-// Rebalance shuffles the server list for resolvers in all datacenters.
+// NewRebalancer returns a function which shuffles the server list for resolvers
+// in all datacenters.
 func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
 	shuffler := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return func() {
@@ -112,7 +107,9 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 	return resolver, nil
 }
 
-func (s *ServerResolverBuilder) Scheme() string { return s.scheme }
+func (s *ServerResolverBuilder) Authority() string {
+	return s.cfg.Authority
+}
 
 // AddServer updates the resolvers' states to include the new server's address.
 func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
