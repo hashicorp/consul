@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 // TestConfigFail should test command line flags that lead to an immediate error.
@@ -121,7 +121,7 @@ func TestRetryJoinFail(t *testing.T) {
 	tmpDir := testutil.TempDir(t, "consul")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	cmd := New(ui)
 
 	args := []string{
 		"-bind", "127.0.0.1",
@@ -145,7 +145,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 	tmpDir := testutil.TempDir(t, "consul")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	cmd := New(ui)
 
 	args := []string{
 		"-server",
@@ -184,7 +184,7 @@ func TestProtectDataDir(t *testing.T) {
 	}
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	cmd := New(ui)
 	args := []string{"-config-file=" + cfgFile.Name()}
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("should fail")
@@ -203,7 +203,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 	}
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	cmd := New(ui)
 	args := []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"}
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("Should fail with bad data directory permissions")

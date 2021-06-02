@@ -21,9 +21,10 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
+	consulversion "github.com/hashicorp/consul/version"
 )
 
-func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdownCh <-chan struct{}) *cmd {
+func New(ui cli.Ui) *cmd {
 	ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
 		InfoPrefix:   "    ",
@@ -33,11 +34,10 @@ func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdown
 
 	c := &cmd{
 		UI:                ui,
-		revision:          revision,
-		version:           version,
-		versionPrerelease: versionPre,
-		versionHuman:      versionHuman,
-		shutdownCh:        shutdownCh,
+		revision:          consulversion.GitCommit,
+		version:           consulversion.Version,
+		versionPrerelease: consulversion.VersionPrerelease,
+		versionHuman:      consulversion.GetHumanVersion(),
 		flags:             flag.NewFlagSet("", flag.ContinueOnError),
 	}
 	config.AddFlags(c.flags, &c.configLoadOpts)
@@ -58,7 +58,6 @@ type cmd struct {
 	version           string
 	versionPrerelease string
 	versionHuman      string
-	shutdownCh        <-chan struct{}
 	configLoadOpts    config.LoadOpts
 	logger            hclog.InterceptLogger
 }
@@ -280,8 +279,6 @@ func (c *cmd) run(args []string) int {
 		case s := <-signalCh:
 			sig = s
 		case <-service_os.Shutdown_Channel():
-			sig = os.Interrupt
-		case <-c.shutdownCh:
 			sig = os.Interrupt
 		case err := <-agent.RetryJoinCh():
 			c.logger.Error("Retry join failed", "error", err)
