@@ -372,7 +372,7 @@ func TestDebugCommand_CaptureLogs(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-output=" + outputPath,
 			"-archive=false",
-			"-duration=10000ms",
+			"-duration=1000ms",
 			"-interval=50ms",
 		}
 		for _, t := range tc.targets {
