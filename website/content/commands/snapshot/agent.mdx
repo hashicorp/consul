@@ -150,6 +150,7 @@ Usage: `consul snapshot agent [options]`
     "ca_path": "",
     "cert_file": "",
     "key_file": "",
+    "license_path": "",
     "tls_server_name": "",
     "log": {
       "level": "INFO",
@@ -378,3 +379,20 @@ $ consul snapshot agent -interval=0
 
 Please see the [HTTP API](/api/snapshot) documentation for
 more details about snapshot internals.
+
+## Licensing
+
+The snapshot agent requires a license when it starts before it will perform any other
+actions. This can be provided using the `license_path` configuration item, the
+`CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` environment variable.
+The `license_path` configuration and `CONSUL_LICENSE_PATH` variable should point to
+files that contain the license whereas the `CONSUL_LICENSE` variable value should be
+the contents of the license itself. If a license is present in multiple ways the
+then the order of precedence is as follows:
+
+1. `CONSUL_LICENSE` variable
+2. `CONSUL_LICENSE_PATH` variable
+3. `license_path` configuration.
+
+See the [licensing documentation](/docs/enterprise#licensing) for more information about 
+Consul Enterprise license management.
