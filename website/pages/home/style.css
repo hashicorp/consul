@@ -21,7 +21,26 @@
       }
     }
   }
-
+  & .ecosystem {
+    padding-top: 88px;
+    padding-bottom: 88px;
+    @media (--large) {
+      padding-top: 128px;
+      padding-bottom: 128px;
+    }
+    & .g-text-split {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    & .g-type-display-2 {
+      margin: 0;
+      text-align: center;
+      margin-bottom: 64px;
+      @media (max-width: 800px) {
+        margin-bottom: 48px;
+      }
+    }
+  }
   & section.cloud-offerings {
     padding-top: 88px;
     padding-bottom: 88px;
@@ -52,6 +71,17 @@
         &:hover {
           filter: brightness(97%);
         }
+      }
+    }
+  }
+  & section.features {
+    background-color: var(--gray-6);
+    & h3 {
+      margin: 0;
+      text-align: center;
+      margin-bottom: 32px;
+      @media (--large) {
+        text-align: left;
       }
     }
   }
