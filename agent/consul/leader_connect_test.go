@@ -224,7 +224,10 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 		}
 	})
 	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	defer func() {
+		s1.Shutdown()
+		s1.leaderRoutineManager.Wait()
+	}()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -334,7 +337,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 		}
 	})
 	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	defer func() {
+		s1.Shutdown()
+		s1.leaderRoutineManager.Wait()
+	}()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -345,7 +351,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	defer func() {
+		s2.Shutdown()
+		s2.leaderRoutineManager.Wait()
+	}()
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
