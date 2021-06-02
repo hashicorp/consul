@@ -407,7 +407,10 @@ func TestDebugCommand_CaptureLogs(t *testing.T) {
 				require.NoError(t, err)
 				scanner := bufio.NewScanner(strings.NewReader(string(content)))
 				for scanner.Scan() {
-					require.True(t, validateLogLine([]byte(scanner.Text())))
+					logLine := scanner.Text()
+					if !validateLogLine([]byte(logLine)) {
+						t.Fatalf("%s: log line is not valid %s", name, logLine)
+					}
 				}
 			}
 		}
@@ -425,7 +428,7 @@ func TestDebugCommand_CaptureLogs(t *testing.T) {
 }
 
 func validateLogLine(content []byte) bool {
-	re := regexp.MustCompile(`([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}.[0-9]{1,3}-[0-9]{1,4}) (\[(ERROR|WARN|INFO|DEBUG|TRACE)\]) (.*?): (.*)`)
+	re := regexp.MustCompile(`([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}T[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}.[0-9]{1,3}-[0-9]{1,4}) (\[(ERROR|WARN|INFO|DEBUG|TRACE)]) (.*?): (.*)`)
 	valid := re.Match(content)
 	return valid
 }
