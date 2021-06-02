@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -178,34 +179,33 @@ func (c *cmd) run(args []string) int {
 	}
 
 	config := bd.RuntimeConfig
-
-	// Setup gate to check if we should output CLI information
-	cli := GatedUi{
-		JSONoutput: config.Logging.LogJSON,
-		ui:         ui,
+	if config.Logging.LogJSON {
+		// Hide all non-error output when JSON logging is enabled.
+		ui.Ui = &cli.BasicUI{
+			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: io.Discard},
+		}
 	}
 
-	// Create the agent
-	cli.output("Starting Consul agent...")
+	ui.Output("Starting Consul agent...")
 
 	segment := config.SegmentName
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	cli.info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
-	cli.info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	cli.info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	cli.info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	cli.info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	cli.info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+	ui.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
+	ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	ui.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
-	cli.info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	cli.info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
+	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
 		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	// Enable log streaming
-	cli.output("")
-	cli.output("Log data will now stream in as it occurs:\n")
+	ui.Output("")
+	ui.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
 	// wait for signal
@@ -338,23 +338,6 @@ func (c *cmd) run(args []string) int {
 				return 0
 			}
 		}
-	}
-}
-
-type GatedUi struct {
-	JSONoutput bool
-	ui         mcli.Ui
-}
-
-func (g *GatedUi) output(s string) {
-	if !g.JSONoutput {
-		g.ui.Output(s)
-	}
-}
-
-func (g *GatedUi) info(s string) {
-	if !g.JSONoutput {
-		g.ui.Info(s)
 	}
 }
 
