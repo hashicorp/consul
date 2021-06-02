@@ -346,34 +346,7 @@ func (c *cmd) captureInterval() error {
 
 	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
 
-	g := new(errgroup.Group)
-	capture := func() error {
-		timestamp := time.Now().Local().Unix()
-
-		timestampDir, err := c.createTimestampDir(timestamp)
-		if err != nil {
-			return err
-		}
-
-		// Capture metrics
-		if c.configuredTarget("metrics") {
-			g.Go(func() error {
-				return c.captureMetrics(timestampDir)
-			})
-		}
-
-		// Capture logs
-		if c.configuredTarget("logs") {
-			g.Go(func() error {
-				return c.captureLogs(timestampDir)
-			})
-		}
-
-		return g.Wait()
-
-	}
-
-	err := capture()
+	err := capture(c)
 	if err != nil {
 		return err
 	}
@@ -382,7 +355,7 @@ func (c *cmd) captureInterval() error {
 		case t := <-intervalChn.C:
 			intervalCount++
 			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
-			err := capture()
+			err := capture(c)
 			if err != nil {
 				return err
 			}
@@ -393,6 +366,34 @@ func (c *cmd) captureInterval() error {
 			return errors.New("stopping collection due to shutdown signal")
 		}
 	}
+}
+
+func capture(c *cmd) error {
+	g := new(errgroup.Group)
+	timestamp := time.Now().Local().Unix()
+
+	timestampDir, err := c.createTimestampDir(timestamp)
+	if err != nil {
+		return err
+	}
+	if c.configuredTarget("pprof") {
+		g.Go(func() error {
+			return c.captureHeap(timestampDir)
+		})
+
+		g.Go(func() error {
+			return c.captureGoRoutines(timestampDir)
+		})
+	}
+
+	// Capture metrics
+	if c.configuredTarget("metrics") {
+		g.Go(func() error {
+			return c.captureMetrics(timestampDir)
+		})
+	}
+
+	return g.Wait()
 }
 
 func (c *cmd) createTimestampDir(timestamp int64) (string, error) {
@@ -414,62 +415,71 @@ func (c *cmd) captureLongRunning() error {
 	if err != nil {
 		return err
 	}
-	// Capture pprof
-	if c.configuredTarget("pprof") {
-		return c.capturePprof(timestampDir)
-	}
-	return nil
-}
 
-func (c *cmd) capturePprof(timestampDir string) error {
 	g := new(errgroup.Group)
-
 	// Capture a profile/trace with a minimum of 1s
 	s := c.duration.Seconds()
 	if s < 1 {
 		s = 1
 	}
+	// Capture pprof
+	if c.configuredTarget("pprof") {
+		g.Go(func() error {
+			return c.captureProfile(s, timestampDir)
+		})
 
-	g.Go(func() error {
-		heap, err := c.client.Debug().Heap()
-		if err != nil {
-			return fmt.Errorf("failed to collect heap profile: %w", err)
-		}
+		g.Go(func() error {
+			return c.captureTrace(s, timestampDir)
+		})
+	}
+	// Capture logs
+	if c.configuredTarget("logs") {
+		g.Go(func() error {
+			return c.captureLogs(timestampDir)
+		})
+	}
 
-		err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
-		return err
-	})
-
-	g.Go(func() error {
-		prof, err := c.client.Debug().Profile(int(s))
-		if err != nil {
-			return fmt.Errorf("failed to collect cpu profile: %w", err)
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
-		return err
-	})
-
-	g.Go(func() error {
-		trace, err := c.client.Debug().Trace(int(s))
-		if err != nil {
-			return fmt.Errorf("failed to collect trace: %w", err)
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
-		return err
-	})
-
-	g.Go(func() error {
-		gr, err := c.client.Debug().Goroutine()
-		if err != nil {
-			return fmt.Errorf("failed to collect goroutine profile: %w", err)
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-		return err
-	})
 	return g.Wait()
+}
+
+func (c *cmd) captureGoRoutines(timestampDir string) error {
+	gr, err := c.client.Debug().Goroutine()
+	if err != nil {
+		return fmt.Errorf("failed to collect goroutine profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
+	return err
+}
+
+func (c *cmd) captureTrace(s float64, timestampDir string) error {
+	trace, err := c.client.Debug().Trace(int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect trace: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
+	return err
+}
+
+func (c *cmd) captureProfile(s float64, timestampDir string) error {
+	prof, err := c.client.Debug().Profile(int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect cpu profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
+	return err
+}
+
+func (c *cmd) captureHeap(timestampDir string) error {
+	heap, err := c.client.Debug().Heap()
+	if err != nil {
+		return fmt.Errorf("failed to collect heap profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
+	return err
 }
 
 func (c *cmd) captureLogs(timestampDir string) error {

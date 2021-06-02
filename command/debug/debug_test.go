@@ -355,7 +355,7 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 		"-output=" + outputPath,
 		// CPU profile has a minimum of 1s
 		"-archive=false",
-		"-duration=1s",
+		"-duration=2s",
 		"-interval=1s",
 		"-capture=pprof",
 	}
@@ -368,14 +368,16 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	// Glob ignores file system errors
 	for _, v := range profiles {
 		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		if len(fs) != 1 {
+		if len(fs) < 1 {
 			t.Errorf("output data should exist for %s", v)
 		}
-		if !strings.Contains(fs[0], "trace.out") {
-			content, err := ioutil.ReadFile(fs[0])
-			require.NoError(t, err)
-			_, err = profile.ParseData(content)
-			require.NoError(t, err)
+		for _, f := range fs {
+			if !strings.Contains(f, "trace.out") {
+				content, err := ioutil.ReadFile(f)
+				require.NoError(t, err)
+				_, err = profile.ParseData(content)
+				require.NoError(t, err)
+			}
 		}
 	}
 
