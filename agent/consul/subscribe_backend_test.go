@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
-	grpcresolver "google.golang.org/grpc/resolver"
 
 	grpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
@@ -338,8 +337,11 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 }
 
 func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
-	builder := resolver.NewServerResolverBuilder(resolver.Config{Scheme: t.Name()})
-	registerWithGRPC(builder)
+	builder := resolver.NewServerResolverBuilder(resolver.Config{Authority: t.Name()})
+	resolver.Register(builder)
+	t.Cleanup(func() {
+		resolver.Deregister(builder.Authority())
+	})
 
 	_, config := testClientConfig(t)
 	for _, op := range ops {
@@ -359,19 +361,6 @@ func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *re
 		client.Shutdown()
 	})
 	return client, builder
-}
-
-var grpcRegisterLock sync.Mutex
-
-// registerWithGRPC registers the grpc/resolver.Builder as a grpc/resolver.
-// This function exists to synchronize registrations with a lock.
-// grpc/resolver.Register expects all registration to happen at init and does
-// not allow for concurrent registration. This function exists to support
-// parallel testing.
-func registerWithGRPC(b grpcresolver.Builder) {
-	grpcRegisterLock.Lock()
-	defer grpcRegisterLock.Unlock()
-	grpcresolver.Register(b)
 }
 
 type testLogger interface {

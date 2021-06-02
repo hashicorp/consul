@@ -30,7 +30,7 @@ type Store struct {
 
 	// idleTTL is the duration of time an entry should remain in the Store after the
 	// last request for that entry has been terminated. It is a field on the struct
-	// so that it can be patched in tests without need a lock.
+	// so that it can be patched in tests without needing a global lock.
 	idleTTL time.Duration
 }
 
@@ -122,8 +122,8 @@ func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	defer cancel()
 
 	result, err := materializer.getFromView(ctx, info.MinIndex)
-	// context.DeadlineExceeded is translated to nil to match the behaviour of
-	// agent/cache.Cache.Get.
+	// context.DeadlineExceeded is translated to nil to match the timeout
+	// behaviour of agent/cache.Cache.Get.
 	if err == nil || errors.Is(err, context.DeadlineExceeded) {
 		return result, nil
 	}
