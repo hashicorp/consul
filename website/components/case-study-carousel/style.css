@@ -37,6 +37,7 @@
 
     & .background-section {
       background: var(--gray-6);
+      padding-bottom: 64px;
     }
   }
 
