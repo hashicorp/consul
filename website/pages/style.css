@@ -19,6 +19,7 @@
 @import '~@hashicorp/react-docs-page/style.css';
 @import '~@hashicorp/react-enterprise-alert/style.css';
 @import '~@hashicorp/react-featured-slider/style.css';
+@import '~@hashicorp/react-learn-callout/style.css';
 @import '~@hashicorp/react-product-features-list/style.css';
 @import '~@hashicorp/react-search/style.css';
 @import '~@hashicorp/react-subnav/style.css';
@@ -30,10 +31,11 @@
 
 /* Local Components */
 @import '../components/basic-hero/style.css';
-@import '../components/enterprise-comparison/style.css';
-@import '../components/footer/style.css';
 @import '../components/case-study-carousel/style.css';
 @import '../components/cloud-offerings-list/style.css';
+@import '../components/enterprise-comparison/style.css';
+@import '../components/footer/style.css';
+@import '../components/homepage-hero/carousel.css';
 @import '../components/mini-cta/style.css';
 @import '../components/use-cases-layout/style.css';
 
