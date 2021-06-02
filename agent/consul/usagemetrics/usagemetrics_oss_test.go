@@ -47,15 +47,15 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
-				"consul.usage.test.consul.state.client_agents;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.client_agents",
+				"consul.usage.test.consul.members.clients;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.clients",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
-				"consul.usage.test.consul.state.server_agents;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.server_agents",
+				"consul.usage.test.consul.members.servers;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.servers",
 					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
@@ -114,17 +114,33 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
-				"consul.usage.test.consul.state.client_agents;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.client_agents",
+				"consul.usage.test.consul.members.clients;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.clients",
 					Value: 1,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
-				"consul.usage.test.consul.state.server_agents;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.server_agents",
+				"consul.usage.test.consul.members.servers;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.servers",
 					Value: 2,
 					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
+				"consul.usage.test.consul.members.clients;segment=;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.clients",
+					Value: 1,
+					Labels: []metrics.Label{
+						{Name: "segment", Value: ""},
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
+				"consul.usage.test.consul.members.servers;segment=;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.servers",
+					Value: 2,
+					Labels: []metrics.Label{
+						{Name: "segment", Value: ""},
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},

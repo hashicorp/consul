@@ -28,14 +28,12 @@ var Gauges = []prometheus.GaugeDefinition{
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
-		Name: []string{"consul", "state", "client_agents"},
-		// TODO: Insert proper version
-		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in vX.X.X.",
+		Name: []string{"consul", "members", "clients"},
+		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 	{
-		Name: []string{"consul", "state", "server_agents"},
-		// TODO: Insert proper version
-		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in vX.X.X.",
+		Name: []string{"consul", "members", "servers"},
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
 }
 
@@ -153,46 +151,81 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitServiceUsage(serviceUsage)
 
-	servers, clients := u.memberUsage()
-	u.emitMemberUsage(servers, clients)
+	segmentMembers := u.memberUsage()
+	u.emitMemberUsage(segmentMembers)
 }
 
-func (u *UsageMetricsReporter) memberUsage() (servers, clients int) {
+type members struct {
+	clients int
+	servers int
+}
+
+func (u *UsageMetricsReporter) memberUsage() map[string]members {
 	if u.getMembersFunc == nil {
-		return 0, 0
+		return nil
 	}
 
-	members := u.getMembersFunc()
+	mems := u.getMembersFunc()
+	if len(mems) <= 0 {
+		u.logger.Warn("cluster reported zero members")
+		return nil
+	}
 
-	numClients := 0
-	numServers := 0
-
-	for _, m := range members {
+	segmentMembers := make(map[string]members)
+	for _, m := range mems {
 		if m.Status != serf.StatusAlive {
 			continue
 		}
 
+		segment := m.Tags["segment"]
+		sm := segmentMembers[segment]
+
 		switch m.Tags["role"] {
 		case "node":
-			numClients++
+			sm.clients++
 		case "consul":
-			numServers++
+			sm.servers++
 		}
+
+		segmentMembers[segment] = sm
 	}
 
-	return numServers, numClients
+	return segmentMembers
 }
 
-func (u *UsageMetricsReporter) emitMemberUsage(servers, clients int) {
+func (u *UsageMetricsReporter) emitMemberUsage(segmentMembers map[string]members) {
+	totalClients := 0
+	totalServers := 0
+
+	for seg, mem := range segmentMembers {
+		segmentLabel := metrics.Label{Name: "segment", Value: seg}
+		labels := append([]metrics.Label{segmentLabel}, u.metricLabels...)
+
+		metrics.SetGaugeWithLabels(
+			[]string{"consul", "members", "clients"},
+			float32(mem.clients),
+			labels,
+		)
+
+		metrics.SetGaugeWithLabels(
+			[]string{"consul", "members", "servers"},
+			float32(mem.servers),
+			labels,
+		)
+
+		totalClients += mem.clients
+		totalServers += mem.servers
+	}
+
 	metrics.SetGaugeWithLabels(
-		[]string{"consul", "state", "client_agents"},
-		float32(clients),
+		[]string{"consul", "members", "clients"},
+		float32(totalClients),
 		u.metricLabels,
 	)
 
 	metrics.SetGaugeWithLabels(
-		[]string{"consul", "state", "server_agents"},
-		float32(servers),
+		[]string{"consul", "members", "servers"},
+		float32(totalServers),
 		u.metricLabels,
 	)
 }
