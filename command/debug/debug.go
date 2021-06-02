@@ -13,10 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/api"
@@ -287,8 +286,8 @@ func (c *cmd) prepare() (version string, err error) {
 // to the output path
 func (c *cmd) captureStatic() error {
 	// Collect errors via multierror as we want to gracefully
-	// fail if an API is inacessible
-	var errors error
+	// fail if an API is inaccessible
+	var errs error
 
 	// Collect the named outputs here
 	outputs := make(map[string]interface{})
@@ -297,7 +296,7 @@ func (c *cmd) captureStatic() error {
 	if c.configuredTarget("host") {
 		host, err := c.client.Agent().Host()
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 		outputs["host"] = host
 	}
@@ -306,7 +305,7 @@ func (c *cmd) captureStatic() error {
 	if c.configuredTarget("agent") {
 		agent, err := c.client.Agent().Self()
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 		outputs["agent"] = agent
 	}
@@ -315,7 +314,7 @@ func (c *cmd) captureStatic() error {
 	if c.configuredTarget("cluster") {
 		members, err := c.client.Agent().Members(true)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 		outputs["cluster"] = members
 	}
@@ -324,73 +323,71 @@ func (c *cmd) captureStatic() error {
 	for output, v := range outputs {
 		marshaled, err := json.MarshalIndent(v, "", "\t")
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", c.output, output), marshaled, 0644)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 	}
 
-	return errors
+	return errs
 }
 
 // captureInterval blocks for the duration of the command
 // specified by the duration flag, capturing the dynamic
 // targets at the interval specified
 func (c *cmd) captureInterval() error {
-	successChan := make(chan int64)
-	errCh := make(chan error)
+	intervalChn := time.NewTicker(c.interval)
+	defer intervalChn.Stop()
 	durationChn := time.After(c.duration)
 	intervalCount := 0
 
 	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
 
-	// We'll wait for all of the targets configured to be
-	// captured before continuing
-	var wg sync.WaitGroup
-
-	capture := func() {
+	g := new(errgroup.Group)
+	capture := func() error {
 		timestamp := time.Now().Local().Unix()
 
 		timestampDir, err := c.createTimestampDir(timestamp)
 		if err != nil {
-			errCh <- err
-			return
+			return err
 		}
 
 		// Capture metrics
 		if c.configuredTarget("metrics") {
-			wg.Add(1)
-			go c.captureMetrics(&errCh, timestampDir, &wg)
+			g.Go(func() error {
+				return c.captureMetrics(timestampDir)
+			})
 		}
 
 		// Capture logs
 		if c.configuredTarget("logs") {
-			wg.Add(1)
-			go c.captureLogs(&errCh, timestampDir, &wg)
+			g.Go(func() error {
+				return c.captureLogs(timestampDir)
+			})
 		}
 
-		// Wait for all captures to complete
-		wg.Wait()
+		return g.Wait()
 
-		// Send down the timestamp for UI output
-		successChan <- timestamp
 	}
 
-	go capture()
-
-	//TODO: simplify the capture loop using context to handle timeouts
+	err := capture()
+	if err != nil {
+		return err
+	}
 	for {
 		select {
-		case t := <-successChan:
+		case t := <-intervalChn.C:
 			intervalCount++
-			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Unix(t, 0).Local().String(), intervalCount))
-			go capture()
-		case e := <-errCh:
-			c.UI.Error(fmt.Sprintf("Capture failure: %s", e))
+			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
+			err := capture()
+			if err != nil {
+				return err
+			}
 		case <-durationChn:
+			intervalChn.Stop()
 			return nil
 		case <-c.shutdownCh:
 			return errors.New("stopping collection due to shutdown signal")
@@ -475,11 +472,11 @@ func (c *cmd) capturePprof(timestampDir string) error {
 	return g.Wait()
 }
 
-func (c *cmd) captureLogs(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
+func (c *cmd) captureLogs(timestampDir string) error {
 	endLogChn := make(chan struct{})
 	logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
 	if err != nil {
-		*errCh <- err
+		return err
 	}
 	// Close the log stream
 	defer close(endLogChn)
@@ -487,7 +484,7 @@ func (c *cmd) captureLogs(errCh *chan error, timestampDir string, wg *sync.WaitG
 	// Create the log file for writing
 	f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
 	if err != nil {
-		*errCh <- err
+		return err
 	}
 	defer f.Close()
 
@@ -500,7 +497,6 @@ OUTER:
 		case log := <-logCh:
 			// Append the line to the file
 			if _, err = f.WriteString(log + "\n"); err != nil {
-				*errCh <- err
 				break OUTER
 			}
 		// Stop collecting the logs after the interval specified
@@ -508,34 +504,27 @@ OUTER:
 			break OUTER
 		}
 	}
-
-	wg.Done()
+	return nil
 }
 
-func (c *cmd) captureMetrics(errCh *chan error, timestampDir string, wg *sync.WaitGroup) {
+func (c *cmd) captureMetrics(timestampDir string) error {
 
 	metrics, err := c.client.Agent().Metrics()
 	if err != nil {
-		*errCh <- err
+		return err
 	}
 
 	marshaled, err := json.MarshalIndent(metrics, "", "\t")
 	if err != nil {
-		*errCh <- err
+		return err
 	}
 
 	err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
 	if err != nil {
-		*errCh <- err
+		return err
 	}
 
-	// We need to sleep for the configured interval in the case
-	// of metrics being the only target captured. When it is,
-	// the waitgroup would return on Wait() and repeat without
-	// waiting for the interval.
-	time.Sleep(c.interval)
-
-	wg.Done()
+	return nil
 }
 
 // allowedTarget returns a boolean if the target is able to be captured
@@ -647,9 +636,7 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 			return fmt.Errorf("failed to copy files for archive: %s", err)
 		}
 
-		f.Close()
-
-		return nil
+		return f.Close()
 	})
 
 	if err != nil {
