@@ -22,8 +22,12 @@
     }
   }
   & .ecosystem {
-    padding-top: 128px;
-    padding-bottom: 64px;
+    padding-top: 88px;
+    padding-bottom: 88px;
+    @media (--large) {
+      padding-top: 128px;
+      padding-bottom: 128px;
+    }
     & .g-text-split {
       padding-top: 0;
       padding-bottom: 0;
