@@ -32,22 +32,6 @@ func DefaultConfig() *serf.Config {
 	return base
 }
 
-func GetTags(serf *serf.Serf) map[string]string {
-	tags := make(map[string]string)
-	for tag, value := range serf.LocalMember().Tags {
-		tags[tag] = value
-	}
-
-	return tags
-}
-
-func UpdateTag(serf *serf.Serf, tag, value string) {
-	tags := GetTags(serf)
-	tags[tag] = value
-
-	serf.SetTags(tags)
-}
-
 type ReconnectOverride struct {
 	logger hclog.Logger
 }
