@@ -433,8 +433,9 @@ func validateLogLine(content []byte) bool {
 	if len(fields) != 2 {
 		return false
 	}
-	t := content[:23]
-	_, err := time.Parse("2006-01-02T15:04:05.000", string(t))
+	const logTimeFormat = "2006-01-02T15:04:05.000"
+	t := content[:len(logTimeFormat)]
+	_, err := time.Parse(logTimeFormat, string(t))
 	if err != nil {
 		return false
 	}
