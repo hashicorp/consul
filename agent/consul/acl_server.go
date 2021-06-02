@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -96,7 +97,11 @@ func (s *Server) updateSerfTags(key, value string) {
 	s.updateEnterpriseSerfTags(key, value)
 }
 
+var serfTagLock sync.Mutex
+
 func updateTag(serf *serf.Serf, tag, value string) {
+	serfTagLock.Lock()
+	defer serfTagLock.Unlock()
 	tags := make(map[string]string)
 	for tag, value := range serf.LocalMember().Tags {
 		tags[tag] = value
