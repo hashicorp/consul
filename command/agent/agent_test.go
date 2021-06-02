@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -120,7 +121,7 @@ func TestRetryJoinFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
 
-	ui := cli.NewMockUi()
+	ui := newCaptureUI()
 	cmd := New(ui)
 
 	args := []string{
@@ -144,7 +145,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
 
-	ui := cli.NewMockUi()
+	ui := newCaptureUI()
 	cmd := New(ui)
 
 	args := []string{
@@ -183,7 +184,7 @@ func TestProtectDataDir(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	ui := cli.NewMockUi()
+	ui := newCaptureUI()
 	cmd := New(ui)
 	args := []string{"-config-file=" + cfgFile.Name()}
 	if code := cmd.Run(args); code == 0 {
@@ -202,7 +203,7 @@ func TestBadDataDirPermissions(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	ui := cli.NewMockUi()
+	ui := newCaptureUI()
 	cmd := New(ui)
 	args := []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"}
 	if code := cmd.Run(args); code == 0 {
@@ -211,4 +212,20 @@ func TestBadDataDirPermissions(t *testing.T) {
 	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Permission denied") {
 		t.Fatalf("expected permission denied error, got: %s", out)
 	}
+}
+
+type captureUI struct {
+	*cli.MockUi
+}
+
+func (c *captureUI) Stdout() io.Writer {
+	return c.MockUi.OutputWriter
+}
+
+func (c *captureUI) Stderr() io.Writer {
+	return c.MockUi.ErrorWriter
+}
+
+func newCaptureUI() *captureUI {
+	return &captureUI{MockUi: cli.NewMockUi()}
 }
