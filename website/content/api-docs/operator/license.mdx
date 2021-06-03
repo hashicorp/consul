@@ -2,7 +2,7 @@
 layout: api
 page_title: License - Operator - HTTP API
 description: |-
-  The /operator/license endpoints allow for setting and retrieving the Consul
+  The /operator/license endpoint allows for retrieving the Consul
   Enterprise License.
 ---
 
@@ -76,6 +76,9 @@ $ curl \
 
 ## Updating the Consul License
 
+-> **Deprecated** This endpoint was removed in Consul v1.10.0 along with
+the ability to manage the cluster's license via the API.
+
 This endpoint updates the Consul license and returns some of the
 license contents as well as any warning messages regarding its validity.
 
@@ -143,6 +146,9 @@ $ curl \
 ```
 
 ## Resetting the Consul License
+
+-> **Deprecated** This endpoint was removed in Consul v1.10.0 along with
+the ability to manage the cluster's license via the API.
 
 This endpoint resets the Consul license to the license included in the Enterprise binary. If the included license is not valid, the replace will fail.
 
