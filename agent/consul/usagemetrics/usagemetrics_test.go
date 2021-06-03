@@ -38,6 +38,7 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
 			},
+			getMembersFunc: func() []serf.Member { return []serf.Member{} },
 		},
 		"nodes": {
 			modfiyStateStore: func(t *testing.T, s *state.Store) {
@@ -104,8 +105,8 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 				new(Config).
 					WithStateProvider(mockStateProvider).
 					WithLogger(testutil.Logger(t)).
-					WithDatacenter("dc1"),
-				tcase.getMembersFunc,
+					WithDatacenter("dc1").
+					WithGetMembersFunc(tcase.getMembersFunc),
 			)
 			require.NoError(t, err)
 

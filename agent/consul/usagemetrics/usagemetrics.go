@@ -37,6 +37,8 @@ var Gauges = []prometheus.GaugeDefinition{
 	},
 }
 
+type getMembersFunc func() []serf.Member
+
 // Config holds the settings for various parameters for the
 // UsageMetricsReporter
 type Config struct {
@@ -44,6 +46,7 @@ type Config struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
+	getMembersFunc getMembersFunc
 }
 
 // WithDatacenter adds the datacenter as a label to all metrics emitted by the
@@ -72,13 +75,17 @@ func (c *Config) WithStateProvider(sp StateProvider) *Config {
 	return c
 }
 
+// WithGetMembersFunc specifies the function used to identify cluster members
+func (c *Config) WithGetMembersFunc(fn getMembersFunc) *Config {
+	c.getMembersFunc = fn
+	return c
+}
+
 // StateProvider defines an inteface for retrieving a state.Store handle. In
 // non-test code, this is satisfied by the fsm.FSM struct.
 type StateProvider interface {
 	State() *state.Store
 }
-
-type getMembersFunc func() []serf.Member
 
 // UsageMetricsReporter provides functionality for emitting usage metrics into
 // the metrics stream. This makes it essentially a translation layer
@@ -91,9 +98,13 @@ type UsageMetricsReporter struct {
 	getMembersFunc getMembersFunc
 }
 
-func NewUsageMetricsReporter(cfg *Config, getMembersFunc getMembersFunc) (*UsageMetricsReporter, error) {
+func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 	if cfg.stateProvider == nil {
 		return nil, errors.New("must provide a StateProvider to usage reporter")
+	}
+
+	if cfg.getMembersFunc == nil {
+		return nil, errors.New("must provide a getMembersFunc to usage reporter")
 	}
 
 	if cfg.logger == nil {
@@ -110,7 +121,7 @@ func NewUsageMetricsReporter(cfg *Config, getMembersFunc getMembersFunc) (*Usage
 		stateProvider:  cfg.stateProvider,
 		metricLabels:   cfg.metricLabels,
 		tickerInterval: cfg.tickerInterval,
-		getMembersFunc: getMembersFunc,
+		getMembersFunc: cfg.getMembersFunc,
 	}
 
 	return u, nil

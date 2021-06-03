@@ -569,15 +569,15 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithStateProvider(s.fsm).
 			WithLogger(s.logger).
 			WithDatacenter(s.config.Datacenter).
-			WithReportingInterval(s.config.MetricsReportingInterval),
-		func() []serf.Member {
-			members, err := s.LANMembersAllSegments()
-			if err != nil {
-				return []serf.Member{}
-			}
+			WithReportingInterval(s.config.MetricsReportingInterval).
+			WithGetMembersFunc(func() []serf.Member {
+				members, err := s.LANMembersAllSegments()
+				if err != nil {
+					return []serf.Member{}
+				}
 
-			return members
-		},
+				return members
+			}),
 	)
 	if err != nil {
 		s.Shutdown()

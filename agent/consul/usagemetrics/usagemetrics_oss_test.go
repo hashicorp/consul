@@ -62,6 +62,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					},
 				},
 			},
+			getMembersFunc: func() []serf.Member { return []serf.Member{} },
 		},
 		"nodes-and-services": {
 			modfiyStateStore: func(t *testing.T, s *state.Store) {
@@ -159,8 +160,8 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				new(Config).
 					WithStateProvider(mockStateProvider).
 					WithLogger(testutil.Logger(t)).
-					WithDatacenter("dc1"),
-				tcase.getMembersFunc,
+					WithDatacenter("dc1").
+					WithGetMembersFunc(tcase.getMembersFunc),
 			)
 			require.NoError(t, err)
 
