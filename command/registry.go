@@ -6,7 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mitchellh/cli"
+	mcli "github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/command/cli"
 )
 
 // Factory is a function that returns a new instance of a CLI-sub command.
@@ -24,14 +26,14 @@ func Register(name string, fn Factory) {
 	registry[name] = fn
 }
 
-// Map returns a realized mapping of available CLI commands in a format that
+// CommandsFromRegistry returns a realized mapping of available CLI commands in a format that
 // the CLI class can consume. This should be called after all registration is
 // complete.
-func Map(ui cli.Ui) map[string]cli.CommandFactory {
-	m := make(map[string]cli.CommandFactory)
+func CommandsFromRegistry(ui cli.Ui) map[string]mcli.CommandFactory {
+	m := make(map[string]mcli.CommandFactory)
 	for name, fn := range registry {
 		thisFn := fn
-		m[name] = func() (cli.Command, error) {
+		m[name] = func() (mcli.Command, error) {
 			return thisFn(ui)
 		}
 	}
