@@ -7,15 +7,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -165,7 +166,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
-	s.addEnterpriseSerfTags(conf.Tags)
+	addEnterpriseSerfTags(conf.Tags)
 
 	return serf.Create(conf)
 }
