@@ -346,7 +346,7 @@ func (c *cmd) captureInterval() error {
 
 	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
 
-	err := capture(c)
+	err := captureShortLived(c)
 	if err != nil {
 		return err
 	}
@@ -355,7 +355,7 @@ func (c *cmd) captureInterval() error {
 		case t := <-intervalChn.C:
 			intervalCount++
 			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
-			err := capture(c)
+			err := captureShortLived(c)
 			if err != nil {
 				return err
 			}
@@ -368,7 +368,7 @@ func (c *cmd) captureInterval() error {
 	}
 }
 
-func capture(c *cmd) error {
+func captureShortLived(c *cmd) error {
 	g := new(errgroup.Group)
 	timestamp := time.Now().Local().Unix()
 
