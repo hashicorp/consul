@@ -569,7 +569,15 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithStateProvider(s.fsm).
 			WithLogger(s.logger).
 			WithDatacenter(s.config.Datacenter).
-			WithReportingInterval(s.config.MetricsReportingInterval),
+			WithReportingInterval(s.config.MetricsReportingInterval).
+			WithGetMembersFunc(func() []serf.Member {
+				members, err := s.LANMembersAllSegments()
+				if err != nil {
+					return []serf.Member{}
+				}
+
+				return members
+			}),
 	)
 	if err != nil {
 		s.Shutdown()
@@ -1138,7 +1146,7 @@ func (s *Server) LANMembers() []serf.Member {
 	return s.serfLAN.Members()
 }
 
-// WANMembers is used to return the members of the LAN cluster
+// WANMembers is used to return the members of the WAN cluster
 func (s *Server) WANMembers() []serf.Member {
 	if s.serfWAN == nil {
 		return nil
