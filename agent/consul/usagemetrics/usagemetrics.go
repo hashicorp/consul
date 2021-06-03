@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
@@ -26,7 +27,17 @@ var Gauges = []prometheus.GaugeDefinition{
 		Name: []string{"consul", "state", "service_instances"},
 		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
+	{
+		Name: []string{"consul", "members", "clients"},
+		Help: "Measures the current number of client agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
+	},
+	{
+		Name: []string{"consul", "members", "servers"},
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
+	},
 }
+
+type getMembersFunc func() []serf.Member
 
 // Config holds the settings for various parameters for the
 // UsageMetricsReporter
@@ -35,6 +46,7 @@ type Config struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
+	getMembersFunc getMembersFunc
 }
 
 // WithDatacenter adds the datacenter as a label to all metrics emitted by the
@@ -63,6 +75,12 @@ func (c *Config) WithStateProvider(sp StateProvider) *Config {
 	return c
 }
 
+// WithGetMembersFunc specifies the function used to identify cluster members
+func (c *Config) WithGetMembersFunc(fn getMembersFunc) *Config {
+	c.getMembersFunc = fn
+	return c
+}
+
 // StateProvider defines an inteface for retrieving a state.Store handle. In
 // non-test code, this is satisfied by the fsm.FSM struct.
 type StateProvider interface {
@@ -77,11 +95,16 @@ type UsageMetricsReporter struct {
 	metricLabels   []metrics.Label
 	stateProvider  StateProvider
 	tickerInterval time.Duration
+	getMembersFunc getMembersFunc
 }
 
 func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 	if cfg.stateProvider == nil {
 		return nil, errors.New("must provide a StateProvider to usage reporter")
+	}
+
+	if cfg.getMembersFunc == nil {
+		return nil, errors.New("must provide a getMembersFunc to usage reporter")
 	}
 
 	if cfg.logger == nil {
@@ -98,6 +121,7 @@ func NewUsageMetricsReporter(cfg *Config) (*UsageMetricsReporter, error) {
 		stateProvider:  cfg.stateProvider,
 		metricLabels:   cfg.metricLabels,
 		tickerInterval: cfg.tickerInterval,
+		getMembersFunc: cfg.getMembersFunc,
 	}
 
 	return u, nil
@@ -137,4 +161,66 @@ func (u *UsageMetricsReporter) runOnce() {
 	}
 
 	u.emitServiceUsage(serviceUsage)
+
+	servers, clients := u.memberUsage()
+	u.emitMemberUsage(servers, clients)
+}
+
+func (u *UsageMetricsReporter) memberUsage() (int, map[string]int) {
+	if u.getMembersFunc == nil {
+		return 0, nil
+	}
+
+	mems := u.getMembersFunc()
+	if len(mems) <= 0 {
+		u.logger.Warn("cluster reported zero members")
+		return 0, nil
+	}
+
+	servers := 0
+	clients := make(map[string]int)
+
+	for _, m := range mems {
+		if m.Status != serf.StatusAlive {
+			continue
+		}
+
+		switch m.Tags["role"] {
+		case "node":
+			clients[m.Tags["segment"]]++
+		case "consul":
+			servers++
+		}
+	}
+
+	return servers, clients
+}
+
+func (u *UsageMetricsReporter) emitMemberUsage(servers int, clients map[string]int) {
+	totalClients := 0
+
+	for seg, c := range clients {
+		segmentLabel := metrics.Label{Name: "segment", Value: seg}
+		labels := append([]metrics.Label{segmentLabel}, u.metricLabels...)
+
+		metrics.SetGaugeWithLabels(
+			[]string{"consul", "members", "clients"},
+			float32(c),
+			labels,
+		)
+
+		totalClients += c
+	}
+
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "members", "clients"},
+		float32(totalClients),
+		u.metricLabels,
+	)
+
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "members", "servers"},
+		float32(servers),
+		u.metricLabels,
+	)
 }
