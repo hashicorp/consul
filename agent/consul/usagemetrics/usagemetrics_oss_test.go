@@ -69,12 +69,13 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				require.Nil(t, s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
 				require.Nil(t, s.EnsureNode(2, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 				require.Nil(t, s.EnsureNode(3, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
+				require.Nil(t, s.EnsureNode(4, &structs.Node{Node: "qux", Address: "127.0.0.3"}))
 
 				// Typical services and some consul services spread across two nodes
-				require.Nil(t, s.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-				require.Nil(t, s.EnsureService(5, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-				require.Nil(t, s.EnsureService(6, "foo", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
-				require.Nil(t, s.EnsureService(7, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+				require.Nil(t, s.EnsureService(5, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+				require.Nil(t, s.EnsureService(6, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+				require.Nil(t, s.EnsureService(7, "foo", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+				require.Nil(t, s.EnsureService(8, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
 			},
 			getMembersFunc: func() []serf.Member {
 				return []serf.Member{
@@ -90,7 +91,12 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					},
 					{
 						Name:   "baz",
-						Tags:   map[string]string{"role": "node"},
+						Tags:   map[string]string{"role": "node", "segment": "a"},
+						Status: serf.StatusAlive,
+					},
+					{
+						Name:   "qux",
+						Tags:   map[string]string{"role": "node", "segment": "b"},
 						Status: serf.StatusAlive,
 					},
 				}
@@ -98,7 +104,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 			expectedGauges: map[string]metrics.GaugeValue{
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.nodes",
-					Value:  3,
+					Value:  4,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
 				"consul.usage.test.consul.state.services;datacenter=dc1": {
@@ -117,7 +123,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				},
 				"consul.usage.test.consul.members.clients;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.members.clients",
-					Value: 1,
+					Value: 2,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
@@ -129,11 +135,19 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
-				"consul.usage.test.consul.members.clients;segment=;datacenter=dc1": {
+				"consul.usage.test.consul.members.clients;segment=a;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.members.clients",
 					Value: 1,
 					Labels: []metrics.Label{
-						{Name: "segment", Value: ""},
+						{Name: "segment", Value: "a"},
+						{Name: "datacenter", Value: "dc1"},
+					},
+				},
+				"consul.usage.test.consul.members.clients;segment=b;datacenter=dc1": {
+					Name:  "consul.usage.test.consul.members.clients",
+					Value: 1,
+					Labels: []metrics.Label{
+						{Name: "segment", Value: "b"},
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
