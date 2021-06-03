@@ -152,6 +152,29 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 	}
 }
 
+func TestDebugCommand_InvalidFlags(t *testing.T) {
+	ui := cli.NewMockUi()
+	cmd := New(ui, nil)
+	cmd.validateTiming = false
+
+	outputPath := ""
+	args := []string{
+		"-invalid=value" +
+			"-output=" + outputPath,
+		"-duration=100ms",
+		"-interval=50ms",
+	}
+
+	if code := cmd.Run(args); code == 0 {
+		t.Fatalf("should exit non-zero, got code: %d", code)
+	}
+
+	errOutput := ui.ErrorWriter.String()
+	if !strings.Contains(errOutput, "==> Error parsing flags: flag provided but not defined:") {
+		t.Errorf("expected error output, got %q", errOutput)
+	}
+}
+
 func TestDebugCommand_OutputPathBad(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
