@@ -151,70 +151,54 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitServiceUsage(serviceUsage)
 
-	segmentMembers := u.memberUsage()
-	u.emitMemberUsage(segmentMembers)
+	servers, clients := u.memberUsage()
+	u.emitMemberUsage(servers, clients)
 }
 
-type members struct {
-	clients int
-	servers int
-}
-
-func (u *UsageMetricsReporter) memberUsage() map[string]members {
+func (u *UsageMetricsReporter) memberUsage() (int, map[string]int) {
 	if u.getMembersFunc == nil {
-		return nil
+		return 0, nil
 	}
 
 	mems := u.getMembersFunc()
 	if len(mems) <= 0 {
 		u.logger.Warn("cluster reported zero members")
-		return nil
+		return 0, nil
 	}
 
-	segmentMembers := make(map[string]members)
+	servers := 0
+	clients := make(map[string]int)
+
 	for _, m := range mems {
 		if m.Status != serf.StatusAlive {
 			continue
 		}
 
-		segment := m.Tags["segment"]
-		sm := segmentMembers[segment]
-
 		switch m.Tags["role"] {
 		case "node":
-			sm.clients++
+			clients[m.Tags["segment"]]++
 		case "consul":
-			sm.servers++
+			servers++
 		}
-
-		segmentMembers[segment] = sm
 	}
 
-	return segmentMembers
+	return servers, clients
 }
 
-func (u *UsageMetricsReporter) emitMemberUsage(segmentMembers map[string]members) {
+func (u *UsageMetricsReporter) emitMemberUsage(servers int, clients map[string]int) {
 	totalClients := 0
-	totalServers := 0
 
-	for seg, mem := range segmentMembers {
+	for seg, c := range clients {
 		segmentLabel := metrics.Label{Name: "segment", Value: seg}
 		labels := append([]metrics.Label{segmentLabel}, u.metricLabels...)
 
 		metrics.SetGaugeWithLabels(
 			[]string{"consul", "members", "clients"},
-			float32(mem.clients),
+			float32(c),
 			labels,
 		)
 
-		metrics.SetGaugeWithLabels(
-			[]string{"consul", "members", "servers"},
-			float32(mem.servers),
-			labels,
-		)
-
-		totalClients += mem.clients
-		totalServers += mem.servers
+		totalClients += c
 	}
 
 	metrics.SetGaugeWithLabels(
@@ -225,7 +209,7 @@ func (u *UsageMetricsReporter) emitMemberUsage(segmentMembers map[string]members
 
 	metrics.SetGaugeWithLabels(
 		[]string{"consul", "members", "servers"},
-		float32(totalServers),
+		float32(servers),
 		u.metricLabels,
 	)
 }

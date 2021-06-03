@@ -136,14 +136,6 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "datacenter", Value: "dc1"},
 					},
 				},
-				"consul.usage.test.consul.members.servers;segment=;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.members.servers",
-					Value: 2,
-					Labels: []metrics.Label{
-						{Name: "segment", Value: ""},
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
 			},
 		},
 	}
