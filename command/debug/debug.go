@@ -502,12 +502,11 @@ func (c *cmd) captureLogs(timestampDir string) error {
 	for {
 		select {
 		case log := <-logCh:
-			if log != "" {
-				if _, err = f.WriteString(log + "\n"); err != nil {
-					return err
-				}
-			} else {
+			if log == "" {
 				return nil
+			}
+			if _, err = f.WriteString(log + "\n"); err != nil {
+				return err
 			}
 		case <-timeIsUp:
 			return nil
