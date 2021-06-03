@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: License'
 description: >
-  The license command provides datacenter-level management of the Consul
+  The license command provides a datacenter-level view of the Consul
   Enterprise license.
 ---
 
@@ -12,7 +12,10 @@ Command: `consul license`
 
 <EnterpriseAlert />
 
-The `license` command provides datacenter-level management of the Consul Enterprise license. This was added in Consul 1.1.0.
+The `license` command provides datacenter-level view of the Consul Enterprise license. This was added
+in Consul 1.1.0 but Consul 1.10.0 removed the ability to set and reset the license using the CLI.
+See the [licensing documentation](/docs/enterprise#licensing) for more information about 
+Consul Enterprise license management.
 
 If ACLs are enabled then a token with operator privileges may be required in
 order to use this command. Requests are forwarded internally to the leader
@@ -55,6 +58,10 @@ Subcommands:
 ```
 
 ## put
+
+-> **Deprecated** The ability to manage the cluster's license via the CLI
+was removed in Consul 1.10. While the CLI command still exists it will
+always return an error. This command will be fully removed in a future release.
 
 This command sets the Consul Enterprise license.
 
@@ -115,6 +122,10 @@ Licensed Features:
 ```
 
 ## reset
+
+-> **Deprecated** The ability to manage the cluster's license via the CLI
+was removed in Consul 1.10. While the CLI command still exists it will
+always return an error. This command will be fully removed in a future release.
 
 Resets license for the datacenter to the one builtin in Consul binary, if it is still valid.
 If the builtin license is invalid, the current one stays active.
