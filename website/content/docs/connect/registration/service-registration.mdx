@@ -202,12 +202,12 @@ followed by documentation for each attribute.
 - `local_bind_address` `(string: "")` - Specifies the address to bind a
   local listener to for the application to make outbound connections to this
   upstream. Defaults to `127.0.0.1`.
-- `local_bind_socket_path` `(string: "")` - Specifies the path to bind a Unix
+- `local_bind_socket_path` `(string: "")` - Specifies the path at which to bind a Unix
   domain socket listener for the application to make outbound connections to
-  this upstream. Defaults to "". This conflicts with specifying the local_bind_port
+  this upstream. This conflicts with specifying the local_bind_port
   or local_bind_address. This is only supported when using Envoy as a proxy.
 - `local_bind_socket_mode` `(string: "")` - Specifies the (optional) Unix octal
-  file permissions to use for the socket. Note this is a string
+  file permissions to use for the socket.
 - `destination_type` `(string: "")` - Specifies the type of discovery
   query to use to find an instance to connect to. Valid values are `service` or
   `prepared_query`. Defaults to `service`.
@@ -396,14 +396,11 @@ upstreams = [
 ```json
 "upstreams": [
   {
-    {
       "destination_name":  "service-1",
       "local_bind_socket_path": "/tmp/socket_service_1",
       "local_bind_socket_mode": "0700"
-    }
   }
 ]
-```
 
 </Tab>
 </Tabs>
@@ -440,7 +437,7 @@ services {
 
 ```json
 "services": {
-  "name": "service-2"
+  "name": "service-2",
   "socket_path": "/tmp/socket_service_2"
 }
 ```
@@ -471,7 +468,7 @@ services {
 
 ```json
 "services": {
-  "name": "socket_service_2"
+  "name": "socket_service_2",
   "connect": {
     "sidecar_service": {
       "proxy": {
