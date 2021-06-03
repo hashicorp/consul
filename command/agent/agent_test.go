@@ -2,18 +2,19 @@ package agent
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 // TestConfigFail should test command line flags that lead to an immediate error.
@@ -110,8 +111,8 @@ func TestRetryJoinFail(t *testing.T) {
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	ui := newCaptureUI()
+	cmd := New(ui)
 
 	args := []string{
 		"-bind", "127.0.0.1",
@@ -131,8 +132,8 @@ func TestRetryJoinWanFail(t *testing.T) {
 	tmpDir := testutil.TempDir(t, "consul")
 	defer os.RemoveAll(tmpDir)
 
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	ui := newCaptureUI()
+	cmd := New(ui)
 
 	args := []string{
 		"-server",
@@ -172,8 +173,8 @@ func TestProtectDataDir(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	ui := newCaptureUI()
+	cmd := New(ui)
 	args := []string{"-config-file=" + cfgFile.Name()}
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("should fail")
@@ -194,8 +195,8 @@ func TestBadDataDirPermissions(t *testing.T) {
 	}
 	defer os.RemoveAll(dataDir)
 
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
+	ui := newCaptureUI()
+	cmd := New(ui)
 	args := []string{"-data-dir=" + dataDir, "-server=true", "-bind=10.0.0.1"}
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("Should fail with bad data directory permissions")
@@ -203,4 +204,20 @@ func TestBadDataDirPermissions(t *testing.T) {
 	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Permission denied") {
 		t.Fatalf("expected permission denied error, got: %s", out)
 	}
+}
+
+type captureUI struct {
+	*cli.MockUi
+}
+
+func (c *captureUI) Stdout() io.Writer {
+	return c.MockUi.OutputWriter
+}
+
+func (c *captureUI) Stderr() io.Writer {
+	return c.MockUi.ErrorWriter
+}
+
+func newCaptureUI() *captureUI {
+	return &captureUI{MockUi: cli.NewMockUi()}
 }

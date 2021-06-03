@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -11,32 +12,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
+	mcli "github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
-	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/cli"
+	consulversion "github.com/hashicorp/consul/version"
 )
 
-func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdownCh <-chan struct{}) *cmd {
-	ui = &cli.PrefixedUi{
-		OutputPrefix: "==> ",
-		InfoPrefix:   "    ",
-		ErrorPrefix:  "==> ",
-		Ui:           ui,
-	}
-
+func New(ui cli.Ui) *cmd {
 	c := &cmd{
-		UI:                ui,
-		revision:          revision,
-		version:           version,
-		versionPrerelease: versionPre,
-		versionHuman:      versionHuman,
-		shutdownCh:        shutdownCh,
+		ui:                ui,
+		revision:          consulversion.GitCommit,
+		version:           consulversion.Version,
+		versionPrerelease: consulversion.VersionPrerelease,
+		versionHuman:      consulversion.GetHumanVersion(),
+		flags:             flag.NewFlagSet("", flag.ContinueOnError),
 	}
 	c.init()
 	return c
@@ -47,7 +44,7 @@ func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdown
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
 type cmd struct {
-	UI                cli.Ui
+	ui                cli.Ui
 	flags             *flag.FlagSet
 	http              *flags.HTTPFlags
 	help              string
@@ -55,7 +52,6 @@ type cmd struct {
 	version           string
 	versionPrerelease string
 	versionHuman      string
-	shutdownCh        <-chan struct{}
 	flagArgs          config.BuilderOpts
 	logger            hclog.InterceptLogger
 }
@@ -122,7 +118,7 @@ func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
 		return nil
 	}
 
-	c.UI.Output("Joining cluster...")
+	c.logger.Info("Joining cluster")
 	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN)
 	if err != nil {
 		return err
@@ -138,74 +134,82 @@ func (c *cmd) startupJoinWan(agent *agent.Agent, cfg *config.RuntimeConfig) erro
 		return nil
 	}
 
-	c.UI.Output("Joining -wan cluster...")
+	c.logger.Info("Joining wan cluster")
 	n, err := agent.JoinWAN(cfg.StartJoinAddrsWAN)
 	if err != nil {
 		return err
 	}
 
-	c.logger.Info("Join -wan completed. Initial agents synced with", "agent_count", n)
+	c.logger.Info("Join wan completed. Initial agents synced with", "agent_count", n)
 	return nil
 }
 
 func (c *cmd) run(args []string) int {
+	ui := &mcli.PrefixedUi{
+		OutputPrefix: "==> ",
+		InfoPrefix:   "    ",
+		ErrorPrefix:  "==> ",
+		Ui:           c.ui,
+	}
+
 	if err := c.flags.Parse(args); err != nil {
 		if !strings.Contains(err.Error(), "help requested") {
-			c.UI.Error(fmt.Sprintf("error parsing flags: %v", err))
+			ui.Error(fmt.Sprintf("error parsing flags: %v", err))
 		}
 		return 1
 	}
 	if len(c.flags.Args()) > 0 {
-		c.UI.Error(fmt.Sprintf("Unexpected extra arguments: %v", c.flags.Args()))
+		ui.Error(fmt.Sprintf("Unexpected extra arguments: %v", c.flags.Args()))
 		return 1
 	}
 
-	logGate := &logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
+	// FIXME: logs should always go to stderr, but previously they were sent to
+	// stdout, so continue to use Stdout for now, and fix this in a future release.
+	logGate := &logging.GatedWriter{Writer: c.ui.Stdout()}
 	loader := func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
 		return config.Load(c.flagArgs, source)
 	}
 	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
-		c.UI.Error(err.Error())
+		ui.Error(err.Error())
 		return 1
 	}
 
 	c.logger = bd.Logger
 	agent, err := agent.New(bd)
 	if err != nil {
-		c.UI.Error(err.Error())
+		ui.Error(err.Error())
 		return 1
 	}
 
 	config := bd.RuntimeConfig
-
-	// Setup gate to check if we should output CLI information
-	cli := GatedUi{
-		JSONoutput: config.Logging.LogJSON,
-		ui:         c.UI,
+	if config.Logging.LogJSON {
+		// Hide all non-error output when JSON logging is enabled.
+		ui.Ui = &cli.BasicUI{
+			BasicUi: mcli.BasicUi{ErrorWriter: c.ui.Stderr(), Writer: ioutil.Discard},
+		}
 	}
 
-	// Create the agent
-	cli.output("Starting Consul agent...")
+	ui.Output("Starting Consul agent...")
 
 	segment := config.SegmentName
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	cli.info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
-	cli.info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
-	cli.info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
-	cli.info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	cli.info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	cli.info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
+	ui.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
+	ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	ui.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
-	cli.info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	cli.info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
+	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",
 		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming, config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	// Enable log streaming
-	cli.output("")
-	cli.output("Log data will now stream in as it occurs:\n")
+	ui.Output("")
+	ui.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
 	// wait for signal
@@ -258,19 +262,19 @@ func (c *cmd) run(args []string) int {
 	}
 
 	if err := c.startupJoin(agent, config); err != nil {
-		c.logger.Error((err.Error()))
+		c.logger.Error(err.Error())
 		return 1
 	}
 
 	if err := c.startupJoinWan(agent, config); err != nil {
-		c.logger.Error((err.Error()))
+		c.logger.Error(err.Error())
 		return 1
 	}
 
 	// Let the agent know we've finished registration
 	agent.StartSync()
 
-	cli.output("Consul agent running!")
+	c.logger.Info("Consul agent running!")
 
 	// wait for signal
 	signalCh = make(chan os.Signal, 10)
@@ -282,8 +286,6 @@ func (c *cmd) run(args []string) int {
 		case s := <-signalCh:
 			sig = s
 		case <-service_os.Shutdown_Channel():
-			sig = os.Interrupt
-		case <-c.shutdownCh:
 			sig = os.Interrupt
 		case err := <-agent.RetryJoinCh():
 			c.logger.Error("Retry join failed", "error", err)
@@ -337,23 +339,6 @@ func (c *cmd) run(args []string) int {
 				return 0
 			}
 		}
-	}
-}
-
-type GatedUi struct {
-	JSONoutput bool
-	ui         cli.Ui
-}
-
-func (g *GatedUi) output(s string) {
-	if !g.JSONoutput {
-		g.ui.Output(s)
-	}
-}
-
-func (g *GatedUi) info(s string) {
-	if !g.JSONoutput {
-		g.ui.Info(s)
 	}
 }
 

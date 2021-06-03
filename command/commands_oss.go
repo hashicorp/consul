@@ -41,6 +41,7 @@ import (
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
 	catlistsvc "github.com/hashicorp/consul/command/catalog/list/services"
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/config"
 	configdelete "github.com/hashicorp/consul/command/config/delete"
 	configlist "github.com/hashicorp/consul/command/config/list"
@@ -105,17 +106,9 @@ import (
 	"github.com/hashicorp/consul/command/validate"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/command/watch"
-	consulversion "github.com/hashicorp/consul/version"
-
-	"github.com/mitchellh/cli"
 )
 
 func init() {
-	rev := consulversion.GitCommit
-	ver := consulversion.Version
-	verPre := consulversion.VersionPrerelease
-	verHuman := consulversion.GetHumanVersion()
-
 	Register("acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil })
 	Register("acl bootstrap", func(ui cli.Ui) (cli.Command, error) { return aclbootstrap.New(ui), nil })
 	Register("acl policy", func(cli.Ui) (cli.Command, error) { return aclpolicy.New(), nil })
@@ -151,9 +144,7 @@ func init() {
 	Register("acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil })
 	Register("acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil })
 	Register("acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil })
-	Register("agent", func(ui cli.Ui) (cli.Command, error) {
-		return agent.New(ui, rev, ver, verPre, verHuman, make(chan struct{})), nil
-	})
+	Register("agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil })
 	Register("catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil })
 	Register("catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil })
 	Register("catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil })

@@ -6,11 +6,13 @@ import (
 	"log"
 	"os"
 
+	mcli "github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command"
+	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/version"
 	"github.com/hashicorp/consul/lib"
 	_ "github.com/hashicorp/consul/service_os"
-	"github.com/mitchellh/cli"
 )
 
 func init() {
@@ -24,19 +26,21 @@ func main() {
 func realMain() int {
 	log.SetOutput(ioutil.Discard)
 
-	ui := &cli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr}
-	cmds := command.Map(ui)
+	ui := &cli.BasicUI{
+		BasicUi: mcli.BasicUi{Writer: os.Stdout, ErrorWriter: os.Stderr},
+	}
+	cmds := command.CommandsFromRegistry(ui)
 	var names []string
 	for c := range cmds {
 		names = append(names, c)
 	}
 
-	cli := &cli.CLI{
+	cli := &mcli.CLI{
 		Args:         os.Args[1:],
 		Commands:     cmds,
 		Autocomplete: true,
 		Name:         "consul",
-		HelpFunc:     cli.FilteredHelpFunc(names, cli.BasicHelpFunc("consul")),
+		HelpFunc:     mcli.FilteredHelpFunc(names, mcli.BasicHelpFunc("consul")),
 		HelpWriter:   os.Stdout,
 		ErrorWriter:  os.Stderr,
 	}
