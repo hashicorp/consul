@@ -1,4 +1,3 @@
 ```release-note:improvement
-debug: Capture a single file when creating pprof debug capture, the capture will be for the duration parameter
+debug: capture a single stream of logs, and single pprof profile and trace for the whole duration 
 ```
-
