@@ -13,7 +13,7 @@ parameters:
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.3
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.5
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
