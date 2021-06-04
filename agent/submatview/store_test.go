@@ -160,7 +160,6 @@ func (r *fakeRequest) CacheInfo() cache.RequestInfo {
 		Key:        key,
 		Token:      "abcd",
 		Datacenter: "dc1",
-		Timeout:    4 * time.Second,
 		MinIndex:   r.index,
 	}
 }

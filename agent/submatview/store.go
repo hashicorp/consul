@@ -118,8 +118,11 @@ func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	}
 	defer s.releaseEntry(key)
 
-	ctx, cancel := context.WithTimeout(ctx, info.Timeout)
-	defer cancel()
+	if info.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, info.Timeout)
+		defer cancel()
+	}
 
 	result, err := materializer.getFromView(ctx, info.MinIndex)
 	// context.DeadlineExceeded is translated to nil to match the timeout
