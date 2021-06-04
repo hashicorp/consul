@@ -171,7 +171,8 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 		subscriptionHead := buf.Head()
 		// splice the rest of the topic buffer onto the subscription buffer so
 		// the subscription will receive new events.
-		buf.AppendItem(topicHead.NextLink())
+		next, _ := topicHead.NextNoBlock()
+		buf.AppendItem(next)
 		return e.subscriptions.add(req, subscriptionHead), nil
 	}
 

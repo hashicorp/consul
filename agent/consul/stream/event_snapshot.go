@@ -67,12 +67,12 @@ func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx u
 			return
 		}
 
-		next := item.NextNoBlock()
-		if next == nil {
+		next, ok := item.NextNoBlock()
+		if !ok {
 			// We reached the head of the topic buffer. We don't want any of the
 			// events in the topic buffer as they came before the snapshot.
 			// Append a link to any future items.
-			s.buffer.AppendItem(item.NextLink())
+			s.buffer.AppendItem(next)
 			return
 		}
 		// Proceed to the next item in the topic buffer

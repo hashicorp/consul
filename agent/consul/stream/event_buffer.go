@@ -81,7 +81,7 @@ func (b *eventBuffer) Append(events []Event) {
 	b.AppendItem(newBufferItem(events))
 }
 
-// AppendBuffer joins another buffer which may be the tail of a separate buffer
+// AppendItem joins another buffer which may be the tail of a separate buffer
 // for example a buffer that's had the events from a snapshot appended may
 // finally by linked to the topic buffer for the subsequent events so
 // subscribers can seamlessly consume the updates. Note that Events in item must
@@ -194,27 +194,19 @@ func (i *bufferItem) Next(ctx context.Context, closed <-chan struct{}) (*bufferI
 	return next, nil
 }
 
-// NextNoBlock returns the next item in the buffer without blocking. If it
-// reaches the most recent item it will return nil.
-func (i *bufferItem) NextNoBlock() *bufferItem {
+// NextNoBlock returns true and the next item in the buffer without blocking.
+// If there are no subsequent items it returns false and an empty item.
+// The empty item will be ignored by subscribers, but has the same link as this
+// bufferItem without the Events.
+// When the link.ch of the empty item is closed, subscriptions are notified of
+// the next item.
+func (i *bufferItem) NextNoBlock() (*bufferItem, bool) {
 	nextRaw := i.link.next.Load()
 	if nextRaw == nil {
-		return nil
-	}
-	return nextRaw.(*bufferItem)
-}
-
-// NextLink returns either the next item in the buffer if there is one, or
-// an empty item (that will be ignored by subscribers) that has a pointer to
-// the same link as this bufferItem (but none of the bufferItem content).
-// When the link.ch is closed, subscriptions will be notified of the next item.
-func (i *bufferItem) NextLink() *bufferItem {
-	next := i.NextNoBlock()
-	if next == nil {
 		// Return an empty item that can be followed to the next item published.
-		return &bufferItem{link: i.link}
+		return &bufferItem{link: i.link}, false
 	}
-	return next
+	return nextRaw.(*bufferItem), true
 }
 
 // HasEventIndex returns true if index matches the Event.Index of this item. Returns
