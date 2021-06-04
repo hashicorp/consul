@@ -1,5 +1,14 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* agent: fix logging output by removing leading whitespace from every log line [[GH-10338](https://github.com/hashicorp/consul/issues/10338)]
+* cli: removes the need to set debug_enabled=true to collect debug data from the CLI. Now
+the CLI behaves the same way as the API and accepts either an ACL token with operator:read, or
+debug_enabled=true. [[GH-10273](https://github.com/hashicorp/consul/issues/10273)]
+* envoy: fixes a bug where a large envoy config could cause the `consul connect envoy` command to deadlock when attempting to start envoy. [[GH-10324](https://github.com/hashicorp/consul/issues/10324)]
+* namespaces: **(Enterprise only)** fixes a problem where the logs would contain many warnings about namespaces not being licensed.
+
 ## 1.8.11 (June 03, 2021)
 
 IMPROVEMENTS:
