@@ -159,8 +159,8 @@ func TestDebugCommand_InvalidFlags(t *testing.T) {
 
 	outputPath := ""
 	args := []string{
-		"-invalid=value" +
-			"-output=" + outputPath,
+		"-invalid=value",
+		"-output=" + outputPath,
 		"-duration=100ms",
 		"-interval=50ms",
 	}
