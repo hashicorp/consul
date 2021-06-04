@@ -1,5 +1,44 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* acl: Give more descriptive error if auth method not found. [[GH-10163](https://github.com/hashicorp/consul/issues/10163)]
+* areas: **(Enterprise only)** Use server agent's gossip_wan config when setting memberlist configuration for network areas. Previously they used memberlists WAN defaults.
+* cli: added a `-force-without-cross-signing` flag to the `ca set-config` command.
+connect/ca: The ForceWithoutCrossSigning field will now work as expected for CA providers that support cross signing. [[GH-9672](https://github.com/hashicorp/consul/issues/9672)]
+* connect: update supported envoy versions to 1.16.3, 1.15.4, 1.14.7, 1.13.7 [[GH-10105](https://github.com/hashicorp/consul/issues/10105)]
+* connect: update supported envoy versions to 1.16.4, 1.15.5, 1.14.6, and 1.13.7 [[GH-10232](https://github.com/hashicorp/consul/issues/10232)]
+* telemetry: Add new metrics for status of secondary datacenter replication. [[GH-10073](https://github.com/hashicorp/consul/issues/10073)]
+* telemetry: The usage data in the `metrics` API now includes cluster member counts, reporting clients on a per segment basis. [[GH-10340](https://github.com/hashicorp/consul/issues/10340)]
+* ui: Added CRD popover 'informed action' for intentions managed by CRDs [[GH-10100](https://github.com/hashicorp/consul/issues/10100)]
+* ui: Added humanized formatting to lock session durations [[GH-10062](https://github.com/hashicorp/consul/issues/10062)]
+* ui: Only show a partial list of intention permissions, with the option to show all [[GH-10174](https://github.com/hashicorp/consul/issues/10174)]
+* ui: updates the ui with the new consul brand assets [[GH-10090](https://github.com/hashicorp/consul/issues/10090)]
+
+BUG FIXES:
+
+* agent: ensure we hash the non-deprecated upstream fields on ServiceConfigRequest [[GH-10240](https://github.com/hashicorp/consul/issues/10240)]
+* agent: fix logging output by removing leading whitespace from every log line [[GH-10338](https://github.com/hashicorp/consul/issues/10338)]
+* api: include the default value of raft settings in the output of /v1/agent/self [[GH-8812](https://github.com/hashicorp/consul/issues/8812)]
+* areas: **(Enterprise only)** Revert to the 10s dial timeout used before connection pooling was introduced in 1.7.3.
+* areas: **(Enterprise only)** Selectively merge gossip_wan config for network areas to avoid attempting to enable gossip encryption where it was not intended or necessary.
+* autopilot: **(Enterprise only)** Fixed an issue where autopilot could cause a new leader to demote the wrong voter when redundancy zones are in use and the previous leader failed. [[GH-10306](https://github.com/hashicorp/consul/issues/10306)]
+* cli: removes the need to set debug_enabled=true to collect debug data from the CLI. Now
+the CLI behaves the same way as the API and accepts either an ACL token with operator:read, or
+debug_enabled=true. [[GH-10273](https://github.com/hashicorp/consul/issues/10273)]
+* cli: snapshot inspect command would panic on invalid input. [[GH-10091](https://github.com/hashicorp/consul/issues/10091)]
+* envoy: fixes a bug where a large envoy config could cause the `consul connect envoy` command to deadlock when attempting to start envoy. [[GH-10324](https://github.com/hashicorp/consul/issues/10324)]
+* http: fix a bug that caused the `X-Consul-Effective-Consistency` header to be missing on
+request for service health [[GH-10189](https://github.com/hashicorp/consul/issues/10189)]
+* local: agents will no longer persist the default user token along with a service or check. [[GH-10188](https://github.com/hashicorp/consul/issues/10188)]
+* namespaces: **(Enterprise only)** fixes a problem where the logs would contain many warnings about namespaces not being licensed.
+* server: ensure that central service config flattening properly resets the state each time [[GH-10239](https://github.com/hashicorp/consul/issues/10239)]
+* ui: Add conditionals to lock sessions tab [[GH-10121](https://github.com/hashicorp/consul/issues/10121)]
+* ui: De-duplicate tags in rendered tag listings [[GH-10186](https://github.com/hashicorp/consul/issues/10186)]
+* ui: Don't render a DOM element for empty namespace descriptions [[GH-10157](https://github.com/hashicorp/consul/issues/10157)]
+* ui: Reflect the change of Session API response shape for Checks in post 1.7 Consul [[GH-10225](https://github.com/hashicorp/consul/issues/10225)]
+* ui: Removes the extra rendering of namespace in service upstream list [[GH-10152](https://github.com/hashicorp/consul/issues/10152)]
+
 ## 1.9.5 (April 15, 2021)
 
 SECURITY:
