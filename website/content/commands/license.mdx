@@ -44,6 +44,10 @@ Usage: consul license <subcommand> [options] [args]
   Retrieve the current license:
 
       $ consul license get
+      
+  Inspect a license:
+  
+      $ consul license inspect "<path to license file>"
 
   Reset the current license:
 
@@ -52,11 +56,67 @@ Usage: consul license <subcommand> [options] [args]
   For more examples, ask for subcommand help or view the documentation.
 
 Subcommands:
-    get      Get the current license
-    put      Puts a new license in the datacenter
-    reset    Resets the license in the datacenter
+    get        Get the active license
+    inspect    Inspect a signed license
+    put        Puts a new license in the datacenter
+    reset      Resets the license in the datacenter
+
 ```
 
+## inspect
+
+This command inspects and validates a license. Just like a Consul agent it
+can load the license from a file on disk or from the `CONSUL_LICENSE` and 
+`CONSUL_LICENSE_PATH` environment variables.
+
+Usage: `consul license inspect [<options>] [<license file>]`
+
+Inspect a license contained in a file:
+
+```
+$ consul license inspect consul.hclic
+```
+
+Inspect a license loaded from the environment:
+
+```
+$ consul license inspect
+```
+
+This will look at the CONSUL_LICENSE environment variable first
+and if not present then we will look for the file specified
+by the CONSUL_LICENSE_PATH environment variable.
+
+The output looks like this:
+
+```
+Source: /consul/config/consul.hclic (path from the CONSUL_LICENSE_PATH environment variable)
+Product: consul
+License ID: 6089174b-a713-74cf-4c8d-856b86f1ce50
+Customer ID: 7c020610-60a2-7ccb-c210-20d899e5f3b4
+Installation ID: *
+Issue Time: 2020-09-14 19:45:56.212195875 +0000 UTC
+Start Time: 2020-09-14 00:00:00 +0000 UTC
+Expiration Time: 2021-09-14 23:59:59.999 +0000 UTC
+Termination Time: 2021-09-14 23:59:59.999 +0000 UTC
+Modules:
+        Global Visibility, Routing and Scale
+        Governance and Policy
+Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+        Namespaces
+        SSO
+        Audit Logging
+        Admin Partitions
+
+License is valid
+
+```
 ## put
 
 -> **Deprecated** The ability to manage the cluster's license via the CLI

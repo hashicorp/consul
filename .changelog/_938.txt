@@ -1,0 +1,3 @@
+```release-note:improvement
+licensing: **(Enterprise Only)** Consul Enterprise has gained the `consul license inspect` CLI command for inspecting a license without applying it..
+```
