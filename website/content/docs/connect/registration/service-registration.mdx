@@ -401,6 +401,7 @@ upstreams = [
       "local_bind_socket_mode": "0700"
   }
 ]
+```
 
 </Tab>
 </Tabs>
@@ -409,8 +410,8 @@ This will cause Envoy to create a socket with the path and mode
 provided, and connect that to service-1.
 
 The mode field is optional, and if omitted will use the default mode
-for Envoy. This is not applicable for abstract sockets. See
-https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-pipe
+for Envoy. This is not applicable for abstract sockets. See the
+[Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-pipe)
 for details.
 
 -> These options conflict with the `local_bind_socket_port` and
