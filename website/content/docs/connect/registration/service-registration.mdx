@@ -81,6 +81,7 @@ registering a proxy instance.
     "destination_service_id": "redis1",
     "local_service_address": "127.0.0.1",
     "local_service_port": 9090,
+    "local_service_socket_path": "/tmp/redis.sock",
     "mode": "transparent",
     "transparent_proxy": {},
     "config": {},
@@ -117,11 +118,15 @@ registering a proxy instance.
   Defaults to the port advertised by the service instance identified by
   `destination_service_id` if it exists otherwise it may be empty in responses.
 
+- `local_service_socket_path` - The path of a Unix domain socket to connect to the local application
+  instance. This is created by the application. This conflicts with `local_service_address`
+  and `local_service_port`.  This is only supported when using Envoy for the proxy.
+
 - `mode` `(string: "")` <sup>Beta</sup> - One of \`direct\` or \`transparent\`. Added in v1.10.0.
   - `"transparent"` - represents that inbound and outbound application traffic is being
     captured and redirected through the proxy. This mode does not enable the traffic redirection
     itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
-  - `"direct"` - represents that the proxy's listeners must be dialed directly by the local 
+  - `"direct"` - represents that the proxy's listeners must be dialed directly by the local
      application and other proxies.
   - `""` - Default mode. The default mode will be `"direct"` if no other configuration
     applies. The order of precedence for setting the mode is
@@ -166,6 +171,8 @@ followed by documentation for each attribute.
   "datacenter": "dc1",
   "local_bind_address": "127.0.0.1",
   "local_bind_port": 1234,
+  "local_bind_socket_path": "/tmp/redis_5678.sock",
+  "local_bind_socket_mode": "0700",
   "config": {},
   "mesh_gateway": {
     "mode": "local"
@@ -195,6 +202,12 @@ followed by documentation for each attribute.
 - `local_bind_address` `(string: "")` - Specifies the address to bind a
   local listener to for the application to make outbound connections to this
   upstream. Defaults to `127.0.0.1`.
+- `local_bind_socket_path` `(string: "")` - Specifies the path at which to bind a Unix
+  domain socket listener for the application to make outbound connections to
+  this upstream. This conflicts with specifying the local_bind_port
+  or local_bind_address. This is only supported when using Envoy as a proxy.
+- `local_bind_socket_mode` `(string: "")` - Specifies the (optional) Unix octal
+  file permissions to use for the socket.
 - `destination_type` `(string: "")` - Specifies the type of discovery
   query to use to find an instance to connect to. Valid values are `service` or
   `prepared_query`. Defaults to `service`.
@@ -353,3 +366,127 @@ registrations](/docs/agent/services#service-definition-parameter-case).
     the listener to be set up. If the port is not free then Envoy will not expose a listener for the path,
     but the proxy registration will not fail.
   - `protocol` `(string: "http")` - Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.
+
+### Unix Domain Sockets <sup>Beta</sup>
+
+The following examples show additional configuration for Unix domain sockets.
+
+Added in v1.10.0.
+
+To connect to a service via local Unix Domain Socket instead of a
+port, add `local_bind_socket_path` and optionally `local_bind_socket_mode`
+to the upstream config for a service:
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+upstreams = [
+  {
+    destination_name = "service-1"
+    local_bind_socket_path = "/tmp/socket_service_1"
+    local_bind_socket_mode = "0700"
+  }
+]
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+"upstreams": [
+  {
+      "destination_name":  "service-1",
+      "local_bind_socket_path": "/tmp/socket_service_1",
+      "local_bind_socket_mode": "0700"
+  }
+]
+```
+
+</Tab>
+</Tabs>
+
+This will cause Envoy to create a socket with the path and mode
+provided, and connect that to service-1.
+
+The mode field is optional, and if omitted will use the default mode
+for Envoy. This is not applicable for abstract sockets. See the
+[Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/address.proto#envoy-v3-api-msg-config-core-v3-pipe)
+for details.
+
+-> These options conflict with the `local_bind_socket_port` and
+`local_bind_socket_address` options. For a given upstream the proxy can bind either to an IP port or
+a Unix socket, but not both.
+
+Similarly to expose a service listening on a Unix Domain socket to the service
+mesh, use either the `socket_path` field in the service definition or the
+`local_service_socket_path` field in the proxy definition. These
+fields are analogous to the `port` and `service_port` fields in their
+respective locations.
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+services {
+  name = "service-2"
+  socket_path = "/tmp/socket_service_2"
+}
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+"services": {
+  "name": "service-2",
+  "socket_path": "/tmp/socket_service_2"
+}
+```
+
+</Tab>
+</Tabs>
+Or in the proxy definition:
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+services {
+  name = "socket_service_2"
+  connect {
+    sidecar_service {
+      proxy {
+        name = "service-2"
+        local_service_socket_path = "/tmp/socket_service_2"
+    ...
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+"services": {
+  "name": "socket_service_2",
+  "connect": {
+    "sidecar_service": {
+      "proxy": {
+        "name": "service-2",
+        "local_service_socket_path": "/tmp/socket_service_2"
+    ...
+      }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+There is no mode field since the service is expected to create the
+socket it is listening on, not the Envoy proxy.
+Again, the `socket_path` and `local_service_socket_path` fields conflict
+with `address`/`port` and `local_service_address`/`local_service_port`
+configuration options.
