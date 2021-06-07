@@ -528,11 +528,7 @@ func (c *cmd) captureMetrics(timestampDir string) error {
 	}
 
 	err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // allowedTarget returns a boolean if the target is able to be captured
