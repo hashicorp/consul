@@ -2,18 +2,22 @@ package debug
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
+	"github.com/google/pprof/profile"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -144,6 +148,29 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 
 	errOutput := ui.ErrorWriter.String()
 	if !strings.Contains(errOutput, "Too many arguments") {
+		t.Errorf("expected error output, got %q", errOutput)
+	}
+}
+
+func TestDebugCommand_InvalidFlags(t *testing.T) {
+	ui := cli.NewMockUi()
+	cmd := New(ui, nil)
+	cmd.validateTiming = false
+
+	outputPath := ""
+	args := []string{
+		"-invalid=value",
+		"-output=" + outputPath,
+		"-duration=100ms",
+		"-interval=50ms",
+	}
+
+	if code := cmd.Run(args); code == 0 {
+		t.Fatalf("should exit non-zero, got code: %d", code)
+	}
+
+	errOutput := ui.ErrorWriter.String()
+	if !strings.Contains(errOutput, "==> Error parsing flags: flag provided but not defined:") {
 		t.Errorf("expected error output, got %q", errOutput)
 	}
 }
@@ -330,6 +357,116 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 	}
 }
 
+func TestDebugCommand_CaptureLogs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cases := map[string]struct {
+		// used in -target param
+		targets []string
+		// existence verified after execution
+		files []string
+		// non-existence verified after execution
+		excludedFiles []string
+	}{
+		"logs-only": {
+			[]string{"logs"},
+			[]string{"*/consul.log"},
+			[]string{"agent.json", "host.json", "cluster.json", "*/metrics.json"},
+		},
+	}
+
+	for name, tc := range cases {
+		testDir := testutil.TempDir(t, "debug")
+
+		a := agent.NewTestAgent(t, `
+		enable_debug = true
+		`)
+
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		ui := cli.NewMockUi()
+		cmd := New(ui, nil)
+		cmd.validateTiming = false
+
+		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-output=" + outputPath,
+			"-archive=false",
+			"-duration=1000ms",
+			"-interval=50ms",
+		}
+		for _, t := range tc.targets {
+			args = append(args, "-capture="+t)
+		}
+
+		if code := cmd.Run(args); code != 0 {
+			t.Fatalf("should exit 0, got code: %d", code)
+		}
+
+		errOutput := ui.ErrorWriter.String()
+		if errOutput != "" {
+			t.Errorf("expected no error output, got %q", errOutput)
+		}
+
+		// Ensure the debug data was written
+		_, err := os.Stat(outputPath)
+		if err != nil {
+			t.Fatalf("output path should exist: %s", err)
+		}
+
+		// Ensure the captured static files exist
+		for _, f := range tc.files {
+			path := fmt.Sprintf("%s/%s", outputPath, f)
+			// Glob ignores file system errors
+			fs, _ := filepath.Glob(path)
+			if len(fs) <= 0 {
+				t.Fatalf("%s: output data should exist for %s", name, f)
+			}
+			for _, logFile := range fs {
+				content, err := ioutil.ReadFile(logFile)
+				require.NoError(t, err)
+				scanner := bufio.NewScanner(strings.NewReader(string(content)))
+				for scanner.Scan() {
+					logLine := scanner.Text()
+					if !validateLogLine([]byte(logLine)) {
+						t.Fatalf("%s: log line is not valid %s", name, logLine)
+					}
+				}
+			}
+		}
+
+		// Ensure any excluded files do not exist
+		for _, f := range tc.excludedFiles {
+			path := fmt.Sprintf("%s/%s", outputPath, f)
+			// Glob ignores file system errors
+			fs, _ := filepath.Glob(path)
+			if len(fs) > 0 {
+				t.Fatalf("%s: output data should not exist for %s", name, f)
+			}
+		}
+	}
+}
+
+func validateLogLine(content []byte) bool {
+	fields := strings.SplitN(string(content), " ", 2)
+	if len(fields) != 2 {
+		return false
+	}
+	const logTimeFormat = "2006-01-02T15:04:05.000"
+	t := content[:len(logTimeFormat)]
+	_, err := time.Parse(logTimeFormat, string(t))
+	if err != nil {
+		return false
+	}
+	re := regexp.MustCompile(`(\[(ERROR|WARN|INFO|DEBUG|TRACE)]) (.*?): (.*)`)
+	valid := re.Match([]byte(fields[1]))
+	return valid
+}
+
 func TestDebugCommand_ProfilesExist(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -354,7 +491,7 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 		"-output=" + outputPath,
 		// CPU profile has a minimum of 1s
 		"-archive=false",
-		"-duration=1s",
+		"-duration=2s",
 		"-interval=1s",
 		"-capture=pprof",
 	}
@@ -367,8 +504,16 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	// Glob ignores file system errors
 	for _, v := range profiles {
 		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		if len(fs) == 0 {
+		if len(fs) < 1 {
 			t.Errorf("output data should exist for %s", v)
+		}
+		for _, f := range fs {
+			if !strings.Contains(f, "trace.out") {
+				content, err := ioutil.ReadFile(f)
+				require.NoError(t, err)
+				_, err = profile.ParseData(content)
+				require.NoError(t, err)
+			}
 		}
 	}
 
@@ -476,17 +621,11 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	profiles := []string{"heap.prof", "profile.prof", "goroutine.prof", "trace.out"}
 	// Glob ignores file system errors
 	for _, v := range profiles {
-		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		// TODO: make this always one
-		require.True(t, len(fs) >= 1)
-		content, err := ioutil.ReadFile(fs[0])
-		require.NoError(t, err)
-		require.Len(t, content, 0)
+		fs, _ := filepath.Glob(fmt.Sprintf("%s/*r/%s", outputPath, v))
+		require.True(t, len(fs) == 0)
 	}
 
 	errOutput := ui.ErrorWriter.String()
-	for _, prof := range []string{"heap", "cpu", "goroutine", "trace"} {
-		expected := fmt.Sprintf("failed to collect %v", prof)
-		require.Contains(t, errOutput, expected)
-	}
+	require.Contains(t, errOutput, "failed to collect")
+
 }

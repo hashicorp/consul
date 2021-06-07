@@ -384,6 +384,8 @@ github.com/google/go-querystring/query
 # github.com/google/gofuzz v1.2.0
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
+# github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22
+github.com/google/pprof/profile
 # github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 github.com/google/tcpproxy
 # github.com/googleapis/gax-go/v2 v2.0.5
