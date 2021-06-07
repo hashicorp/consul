@@ -1,0 +1,3 @@
+```release-note:improvement
+debug: capture a single stream of logs, and single pprof profile and trace for the whole duration 
+```
