@@ -1,6 +1,8 @@
 package monitor
 
 import (
+	"encoding/json"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -117,6 +119,69 @@ func TestMonitorCommand_LogJSONValidFlag(t *testing.T) {
 		}
 		// OK!
 	case <-time.After(1 * time.Second):
+		t.Fatal("timed out waiting for exit")
+	}
+}
+
+func TestMonitorCommand_LogJSONValidFormat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.StartTestAgent(t, agent.TestAgent{})
+	defer a.Shutdown()
+
+	shutdownCh := make(chan struct{})
+
+	ui := cli.NewMockUi()
+	c := New(ui, shutdownCh)
+	args := []string{"-http-addr=" + a.HTTPAddr(), "-log-json"}
+
+	// Buffer it so we don't deadlock when blocking send on shutdownCh triggers
+	// Run to return before we can select on it.
+	exitCode := make(chan int, 1)
+
+	// Run the monitor in another go routine. If this doesn't exit on our "signal"
+	// then the whole test will hang and we'll panic (to not blow up if people run
+	// the suite without -timeout)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		wg.Done() // Signal that this goroutine is at least running now
+		exitCode <- c.Run(args)
+	}()
+
+	// Wait for that routine to at least be running
+	wg.Wait()
+
+	// Read the logs and try to json marshall it
+	go func() {
+		time.Sleep(1 * time.Second)
+		outputs := ui.OutputWriter.String()
+		for count, output := range strings.Split(outputs, "\n") {
+			if output != "" && count > 0 {
+				jsonLog := new(map[string]interface{})
+				err := json.Unmarshal([]byte(output), jsonLog)
+				if err != nil {
+					exitCode <- -1
+				}
+				if len(*jsonLog) <= 0 {
+					exitCode <- 1
+				}
+			}
+		}
+		shutdownCh <- struct{}{}
+
+	}()
+
+	select {
+	case ret := <-exitCode:
+		if ret != 0 {
+			t.Fatal("command returned with non-zero code")
+		}
+		// OK!
+	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for exit")
 	}
 }
