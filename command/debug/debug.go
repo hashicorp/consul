@@ -7,15 +7,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/api"
@@ -193,7 +193,10 @@ func (c *cmd) Run(args []string) int {
 
 	// Capture dynamic information from the target agent, blocking for duration
 	if c.configuredTarget("metrics") || c.configuredTarget("logs") || c.configuredTarget("pprof") {
-		err = c.captureDynamic()
+		g := new(errgroup.Group)
+		g.Go(c.captureInterval)
+		g.Go(c.captureLongRunning)
+		err = g.Wait()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error encountered during collection: %v", err))
 		}
@@ -283,8 +286,8 @@ func (c *cmd) prepare() (version string, err error) {
 // to the output path
 func (c *cmd) captureStatic() error {
 	// Collect errors via multierror as we want to gracefully
-	// fail if an API is inacessible
-	var errors error
+	// fail if an API is inaccessible
+	var errs error
 
 	// Collect the named outputs here
 	outputs := make(map[string]interface{})
@@ -293,7 +296,7 @@ func (c *cmd) captureStatic() error {
 	if c.configuredTarget("host") {
 		host, err := c.client.Agent().Host()
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 		outputs["host"] = host
 	}
@@ -302,7 +305,7 @@ func (c *cmd) captureStatic() error {
 	if c.configuredTarget("agent") {
 		agent, err := c.client.Agent().Self()
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 		outputs["agent"] = agent
 	}
@@ -311,7 +314,7 @@ func (c *cmd) captureStatic() error {
 	if c.configuredTarget("cluster") {
 		members, err := c.client.Agent().Members(true)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 		outputs["cluster"] = members
 	}
@@ -320,210 +323,212 @@ func (c *cmd) captureStatic() error {
 	for output, v := range outputs {
 		marshaled, err := json.MarshalIndent(v, "", "\t")
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 
 		err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", c.output, output), marshaled, 0644)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 		}
 	}
 
-	return errors
+	return errs
 }
 
-// captureDynamic blocks for the duration of the command
+// captureInterval blocks for the duration of the command
 // specified by the duration flag, capturing the dynamic
 // targets at the interval specified
-func (c *cmd) captureDynamic() error {
-	successChan := make(chan int64)
-	errCh := make(chan error)
+func (c *cmd) captureInterval() error {
+	intervalChn := time.NewTicker(c.interval)
+	defer intervalChn.Stop()
 	durationChn := time.After(c.duration)
 	intervalCount := 0
 
 	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
 
-	// We'll wait for all of the targets configured to be
-	// captured before continuing
-	var wg sync.WaitGroup
-
-	capture := func() {
-		timestamp := time.Now().Local().Unix()
-
-		// Make the directory that will store all captured data
-		// for this interval
-		timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
-		err := os.MkdirAll(timestampDir, 0755)
-		if err != nil {
-			errCh <- err
-		}
-
-		// Capture metrics
-		if c.configuredTarget("metrics") {
-			wg.Add(1)
-
-			go func() {
-				metrics, err := c.client.Agent().Metrics()
-				if err != nil {
-					errCh <- err
-				}
-
-				marshaled, err := json.MarshalIndent(metrics, "", "\t")
-				if err != nil {
-					errCh <- err
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				// We need to sleep for the configured interval in the case
-				// of metrics being the only target captured. When it is,
-				// the waitgroup would return on Wait() and repeat without
-				// waiting for the interval.
-				time.Sleep(c.interval)
-
-				wg.Done()
-			}()
-		}
-
-		// Capture pprof
-		if c.configuredTarget("pprof") {
-			wg.Add(1)
-
-			go func() {
-				// We need to capture profiles and traces at the same time
-				// and block for both of them
-				var wgProf sync.WaitGroup
-
-				heap, err := c.client.Debug().Heap()
-				if err != nil {
-					errCh <- fmt.Errorf("failed to collect heap profile: %w", err)
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				// Capture a profile/trace with a minimum of 1s
-				s := c.interval.Seconds()
-				if s < 1 {
-					s = 1
-				}
-
-				wgProf.Add(1)
-				go func() {
-					prof, err := c.client.Debug().Profile(int(s))
-					if err != nil {
-						errCh <- fmt.Errorf("failed to collect cpu profile: %w", err)
-					}
-
-					err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
-					if err != nil {
-						errCh <- err
-					}
-
-					wgProf.Done()
-				}()
-
-				wgProf.Add(1)
-				go func() {
-					trace, err := c.client.Debug().Trace(int(s))
-					if err != nil {
-						errCh <- fmt.Errorf("failed to collect trace: %w", err)
-					}
-
-					err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
-					if err != nil {
-						errCh <- err
-					}
-
-					wgProf.Done()
-				}()
-
-				gr, err := c.client.Debug().Goroutine()
-				if err != nil {
-					errCh <- fmt.Errorf("failed to collect goroutine profile: %w", err)
-				}
-
-				err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
-				if err != nil {
-					errCh <- err
-				}
-
-				wgProf.Wait()
-
-				wg.Done()
-			}()
-		}
-
-		// Capture logs
-		if c.configuredTarget("logs") {
-			wg.Add(1)
-
-			go func() {
-				endLogChn := make(chan struct{})
-				logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
-				if err != nil {
-					errCh <- err
-				}
-				// Close the log stream
-				defer close(endLogChn)
-
-				// Create the log file for writing
-				f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
-				if err != nil {
-					errCh <- err
-				}
-				defer f.Close()
-
-				intervalChn := time.After(c.interval)
-
-			OUTER:
-
-				for {
-					select {
-					case log := <-logCh:
-						// Append the line to the file
-						if _, err = f.WriteString(log + "\n"); err != nil {
-							errCh <- err
-							break OUTER
-						}
-					// Stop collecting the logs after the interval specified
-					case <-intervalChn:
-						break OUTER
-					}
-				}
-
-				wg.Done()
-			}()
-		}
-
-		// Wait for all captures to complete
-		wg.Wait()
-
-		// Send down the timestamp for UI output
-		successChan <- timestamp
+	err := captureShortLived(c)
+	if err != nil {
+		return err
 	}
-
-	go capture()
-
+	c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Now().Local().String(), intervalCount))
 	for {
 		select {
-		case t := <-successChan:
+		case t := <-intervalChn.C:
 			intervalCount++
-			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Unix(t, 0).Local().String(), intervalCount))
-			go capture()
-		case e := <-errCh:
-			c.UI.Error(fmt.Sprintf("Capture failure: %s", e))
+			err := captureShortLived(c)
+			if err != nil {
+				return err
+			}
+			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
 		case <-durationChn:
+			intervalChn.Stop()
 			return nil
 		case <-c.shutdownCh:
 			return errors.New("stopping collection due to shutdown signal")
 		}
 	}
+}
+
+func captureShortLived(c *cmd) error {
+	g := new(errgroup.Group)
+	timestamp := time.Now().Local().Unix()
+
+	timestampDir, err := c.createTimestampDir(timestamp)
+	if err != nil {
+		return err
+	}
+	if c.configuredTarget("pprof") {
+		g.Go(func() error {
+			return c.captureHeap(timestampDir)
+		})
+
+		g.Go(func() error {
+			return c.captureGoRoutines(timestampDir)
+		})
+	}
+
+	// Capture metrics
+	if c.configuredTarget("metrics") {
+		g.Go(func() error {
+			return c.captureMetrics(timestampDir)
+		})
+	}
+
+	return g.Wait()
+}
+
+func (c *cmd) createTimestampDir(timestamp int64) (string, error) {
+	// Make the directory that will store all captured data
+	// for this interval
+	timestampDir := fmt.Sprintf("%s/%d", c.output, timestamp)
+	err := os.MkdirAll(timestampDir, 0755)
+	if err != nil {
+		return "", err
+	}
+	return timestampDir, nil
+}
+
+func (c *cmd) captureLongRunning() error {
+	timestamp := time.Now().Local().Unix()
+
+	timestampDir, err := c.createTimestampDir(timestamp)
+
+	if err != nil {
+		return err
+	}
+
+	g := new(errgroup.Group)
+	// Capture a profile/trace with a minimum of 1s
+	s := c.duration.Seconds()
+	if s < 1 {
+		s = 1
+	}
+	// Capture pprof
+	if c.configuredTarget("pprof") {
+		g.Go(func() error {
+			return c.captureProfile(s, timestampDir)
+		})
+
+		g.Go(func() error {
+			return c.captureTrace(s, timestampDir)
+		})
+	}
+	// Capture logs
+	if c.configuredTarget("logs") {
+		g.Go(func() error {
+			return c.captureLogs(timestampDir)
+		})
+	}
+
+	return g.Wait()
+}
+
+func (c *cmd) captureGoRoutines(timestampDir string) error {
+	gr, err := c.client.Debug().Goroutine()
+	if err != nil {
+		return fmt.Errorf("failed to collect goroutine profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
+	return err
+}
+
+func (c *cmd) captureTrace(s float64, timestampDir string) error {
+	trace, err := c.client.Debug().Trace(int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect trace: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
+	return err
+}
+
+func (c *cmd) captureProfile(s float64, timestampDir string) error {
+	prof, err := c.client.Debug().Profile(int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect cpu profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
+	return err
+}
+
+func (c *cmd) captureHeap(timestampDir string) error {
+	heap, err := c.client.Debug().Heap()
+	if err != nil {
+		return fmt.Errorf("failed to collect heap profile: %w", err)
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
+	return err
+}
+
+func (c *cmd) captureLogs(timestampDir string) error {
+	endLogChn := make(chan struct{})
+	timeIsUp := time.After(c.duration)
+	logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
+	if err != nil {
+		return err
+	}
+	// Close the log stream
+	defer close(endLogChn)
+
+	// Create the log file for writing
+	f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	for {
+		select {
+		case log := <-logCh:
+			if log == "" {
+				return nil
+			}
+			if _, err = f.WriteString(log + "\n"); err != nil {
+				return err
+			}
+		case <-timeIsUp:
+			return nil
+		}
+	}
+}
+
+func (c *cmd) captureMetrics(timestampDir string) error {
+
+	metrics, err := c.client.Agent().Metrics()
+	if err != nil {
+		return err
+	}
+
+	marshaled, err := json.MarshalIndent(metrics, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
+	return err
 }
 
 // allowedTarget returns a boolean if the target is able to be captured
@@ -635,9 +640,7 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 			return fmt.Errorf("failed to copy files for archive: %s", err)
 		}
 
-		f.Close()
-
-		return nil
+		return f.Close()
 	})
 
 	if err != nil {
