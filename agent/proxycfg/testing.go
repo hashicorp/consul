@@ -958,7 +958,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries,
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1011,7 +1010,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1035,7 +1033,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "grpc",
 				},
@@ -1066,7 +1063,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1268,7 +1264,6 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries,
 			&structs.ProxyConfigEntry{
 				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},

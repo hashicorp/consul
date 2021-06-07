@@ -42,7 +42,6 @@ func TestConfig_Get(t *testing.T) {
 		{
 			Datacenter: "dc1",
 			Entry: &structs.ProxyConfigEntry{
-				Name: structs.ProxyConfigGlobal,
 				Config: map[string]interface{}{
 					"foo": "bar",
 					"bar": 1,
@@ -98,7 +97,6 @@ func TestConfig_Get(t *testing.T) {
 		value := obj.(structs.ConfigEntry)
 		require.Equal(t, value.GetKind(), structs.ProxyDefaults)
 		entry := value.(*structs.ProxyConfigEntry)
-		require.Equal(t, structs.ProxyConfigGlobal, entry.Name)
 		require.Contains(t, entry.Config, "foo")
 		require.Equal(t, "bar", entry.Config["foo"])
 	})

@@ -12,15 +12,16 @@ import (
 	"sync/atomic"
 	"testing"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -1297,7 +1298,6 @@ func TestUIServiceTopology(t *testing.T) {
 				Datacenter: "dc1",
 				Entry: &structs.ProxyConfigEntry{
 					Kind: structs.ProxyDefaults,
-					Name: structs.ProxyConfigGlobal,
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},

@@ -9,16 +9,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -1374,7 +1375,6 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 	t.Parallel()
 	global_entry_init := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
 			"foo": "bar",
 			"bar": int64(1),
@@ -1398,7 +1398,6 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 		global, ok := entry.(*structs.ProxyConfigEntry)
 		require.True(t, ok)
 		require.Equal(t, global_entry_init.Kind, global.Kind)
-		require.Equal(t, global_entry_init.Name, global.Name)
 		require.Equal(t, global_entry_init.Config, global.Config)
 	})
 }

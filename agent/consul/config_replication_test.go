@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestReplication_ConfigSort(t *testing.T) {
@@ -145,7 +146,6 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		Op:         structs.ConfigEntryUpsert,
 		Entry: &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
-			Name: "global",
 			Config: map[string]interface{}{
 				"foo": "bar",
 				"bar": 1,
@@ -215,7 +215,6 @@ func TestReplication_ConfigEntries(t *testing.T) {
 		Op:         structs.ConfigEntryUpsert,
 		Entry: &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
-			Name: "global",
 			Config: map[string]interface{}{
 				"foo": "baz",
 				"baz": 2,

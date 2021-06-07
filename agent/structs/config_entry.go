@@ -243,8 +243,12 @@ func (c *UpstreamConfiguration) Clone() *UpstreamConfiguration {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
+	Kind string
+
+	// Name is deprecated, it exists to prevent decoding errors from old data.
+	// Deprecated: do not use, name is always "global"
+	Name interface{} `json:",omitempty"`
+
 	Config           map[string]interface{}
 	Mode             ProxyMode              `json:",omitempty"`
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
@@ -261,11 +265,7 @@ func (e *ProxyConfigEntry) GetKind() string {
 }
 
 func (e *ProxyConfigEntry) GetName() string {
-	if e == nil {
-		return ""
-	}
-
-	return e.Name
+	return ProxyConfigGlobal
 }
 
 func (e *ProxyConfigEntry) GetMeta() map[string]string {
@@ -281,10 +281,7 @@ func (e *ProxyConfigEntry) Normalize() error {
 	}
 
 	e.Kind = ProxyDefaults
-	e.Name = ProxyConfigGlobal
-
 	e.EnterpriseMeta.Normalize()
-
 	return nil
 }
 
@@ -293,8 +290,10 @@ func (e *ProxyConfigEntry) Validate() error {
 		return fmt.Errorf("config entry is nil")
 	}
 
-	if e.Name != ProxyConfigGlobal {
-		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	if e.Name != nil {
+		if name, ok := e.Name.(string); !ok || name != ProxyConfigGlobal {
+			return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+		}
 	}
 
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
@@ -515,7 +514,7 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 	case ServiceDefaults:
 		return &ServiceConfigEntry{Name: name}, nil
 	case ProxyDefaults:
-		return &ProxyConfigEntry{Name: name}, nil
+		return &ProxyConfigEntry{}, nil
 	case ServiceRouter:
 		return &ServiceRouterConfigEntry{Name: name}, nil
 	case ServiceSplitter:

@@ -232,7 +232,6 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	proxyConfig := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
-		Name: "global",
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(18, serviceConfig))
 	require.NoError(t, fsm.state.EnsureConfigEntry(19, proxyConfig))
