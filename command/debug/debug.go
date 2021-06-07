@@ -350,15 +350,16 @@ func (c *cmd) captureInterval() error {
 	if err != nil {
 		return err
 	}
+	c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Now().Local().String(), intervalCount))
 	for {
 		select {
 		case t := <-intervalChn.C:
 			intervalCount++
-			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
 			err := captureShortLived(c)
 			if err != nil {
 				return err
 			}
+			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
 		case <-durationChn:
 			intervalChn.Stop()
 			return nil
