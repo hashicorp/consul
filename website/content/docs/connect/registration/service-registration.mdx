@@ -238,12 +238,20 @@ registrations](/docs/agent/services#service-definition-parameter-case).
 
 ```json
 {
-  "outbound_listener_port": 22500
+  "outbound_listener_port": 22500,
+  "dialed_directly": true
 }
 ```
 
 - `outbound_listener_port` `(int: 15001)` - The port the proxy should listen on for outbound traffic.
    This must be the port where outbound application traffic is captured and redirected to.
+- `dialed_directly` `(bool: false)` - Determines whether this proxy instance's IP address can be dialed
+   directly by transparent proxies. Typically transparent proxies dial upstreams using the "virtual" 
+   tagged address, which load balances across instances. Dialing individual instances can be helpful 
+   in cases like stateful services such as a database cluster with a leader. 
+
+  ~> **Note:** Dynamic routing rules such as failovers and redirects do not apply to services dialed directly.
+     Additionally, the connection is proxied using a TCP proxy with a connection timeout of 5 seconds. 
 
 ### Mesh Gateway Configuration Reference
 

@@ -63,7 +63,8 @@ TransparentProxy {
 
   - `CatalogDestinationsOnly` `(bool: false)` - Determines whether sidecar proxies operating in transparent mode can
     proxy traffic to IP addresses not registered in Consul's catalog. If enabled, traffic will only be proxied
-    to upstreams with service registrations in the catalog.
+    to upstreams with service registrations in the catalog. If disabled, requests will be proxied as-is to the
+    original destination IP address. Consul will not encrypt the connection.
 
 ## ACLs
 
