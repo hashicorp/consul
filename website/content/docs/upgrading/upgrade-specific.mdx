@@ -82,7 +82,7 @@ xDS v3 syntax has been [supported since Envoy
 be done on most earlier versions of Consul+Envoy in advance of the Consul
 1.10.0 upgrade.
 
-As an example, here's a Zipkin integration 
+As an example, here's a Zipkin integration
 [before](https://github.com/hashicorp/consul/blob/v1.9.5/test/integration/connect/envoy/case-zipkin/service_s2.hcl)
 and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/test/integration/connect/envoy/case-zipkin/service_s2.hcl)
 
@@ -93,8 +93,9 @@ and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c
    running version of Consul as well as Consul 1.10.0.
 
 1. Determine if you are using the [escape hatch](/docs/connect/proxies/envoy#advanced-configuration)
-   feature. If so, rewrite the escape hatch to use the xDS v3 syntax and
-   reconfigure/restart to purge v2 elements from any configs.
+   feature. If so, rewrite the escape hatch to use the xDS v3 syntax and update
+   the service registration to reflect the updated escape hatch configuration
+   by re-registering. This should purge v2 elements from any configs.
 
 1. Upgrade Consul (both servers and clients) in the typical manner to 1.10.0.
    At this point the existing Envoy instances will continue to speak the v2
