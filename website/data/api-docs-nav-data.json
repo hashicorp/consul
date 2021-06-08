@@ -15,10 +15,6 @@
         "path": "features/blocking"
       },
       {
-        "title": "Streaming",
-        "path": "features/streaming"
-      },
-      {
         "title": "Filtering",
         "path": "features/filtering"
       },
