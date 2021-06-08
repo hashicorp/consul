@@ -1796,9 +1796,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 											Kind:    structs.ServiceKindConnectProxy,
 											ID:      "db-sidecar-proxy2",
 											Service: "db-sidecar-proxy",
-											Address: "10.10.10.12",
 											Proxy: structs.ConnectProxyConfig{
-												DestinationServiceID: "db",
+												DestinationServiceName: "db",
 												TransparentProxy: structs.TransparentProxyConfig{
 													DialedDirectly: true,
 												},
@@ -1848,9 +1847,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 										Kind:    structs.ServiceKindConnectProxy,
 										ID:      "db-sidecar-proxy2",
 										Service: "db-sidecar-proxy",
-										Address: "10.10.10.12",
 										Proxy: structs.ConnectProxyConfig{
-											DestinationServiceID: "db",
+											DestinationServiceName: "db",
 											TransparentProxy: structs.TransparentProxyConfig{
 												DialedDirectly: true,
 											},
@@ -1867,7 +1865,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, snap.Datacenter, snap.Roots.TrustDomain),
 								Addrs: map[string]struct{}{
 									"10.10.10.10": {},
-									"10.10.10.12": {},
+									"10.0.0.2":    {},
 								},
 							},
 						})

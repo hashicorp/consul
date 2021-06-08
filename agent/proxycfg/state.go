@@ -976,7 +976,7 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshot)
 						Addrs: make(map[string]struct{}),
 					}
 				}
-				addr, _ := node.Service.BestAddress(false)
+				addr, _ := node.BestAddress(false)
 				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
 			}
 		}
