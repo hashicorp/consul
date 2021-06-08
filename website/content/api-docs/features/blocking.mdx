@@ -82,6 +82,24 @@ cases that must be handled correctly.
   [token bucket](https://en.wikipedia.org/wiki/Token_bucket) with burst of 2 is a simple
   way to achieve this.
 
+## Streaming backend
+
+The streaming backend, first introduced in Consul 1.10, is a replacement for the long
+polling backend.  If streaming is supported by an endpoint, it will be used when either
+the `index` or `cached` query parameters are set.
+
+When streaming is used, the Consul servers publish change events to a topic. Clients
+subscribe to a topic to receive these change events. The clients use the change events to build
+a local "materialized view". Clients are then able to handle requests using that view.
+Streaming improves on the traditional long polling between clients and servers
+by significantly reducing the quantity of data sent between them, while still allowing
+clients to handle read requests.
+
+While streaming is a significant optimization over long polling, it will not populate the
+`X-Consul-LastContact` or `X-Consul-KnownLeader` response headers, because the required
+data is not available to the client.
+
+
 ## Hash-based Blocking Queries
 
 A limited number of agent endpoints also support blocking however because the

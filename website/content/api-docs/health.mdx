@@ -197,7 +197,7 @@ the following selectors and filter operations being supported:
 | `ServiceTags` | In, Not In, Is Empty, Is Not Empty                 |
 | `Status`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
-## List Service Instances for Service ((list-nodes-for-service))
+## List Service Instances for Service ((#list-nodes-for-service))
 
 This endpoint returns the service instances providing the service indicated on the path.
 Users can also build in support for dynamic load balancing and other features by
@@ -208,15 +208,19 @@ incorporating the use of health checks.
 | `GET`  | `/health/service/:service` | `application/json` |
 
 The table below shows this endpoint's support for
-[streaming](/api/features/streaming),
 [blocking queries](/api/features/blocking),
 [consistency modes](/api/features/consistency),
 [agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
-| Streaming | Blocking Queries | Consistency Modes | Agent Caching        | ACL Required             |
-| ----------| ---------------- | ----------------- | -------------------- | ------------------------ |
-| `partial` | `YES`            | `all`             | `background refresh` | `node:read,service:read` |
+| Blocking Queries     | Consistency Modes | Agent Caching        | ACL Required             |
+| -------------------- | ----------------- | -------------------- | ------------------------ |
+| `YES` <sup>1</sup>   | `all`             | `background refresh` | `node:read,service:read` |
+
+<p>
+ <sup>1</sup>some query parameters will use the
+ <a href="/api/features/blocking#streaming-backend">streaming backend</a>
+</p>
 
 ### Parameters
 
@@ -412,11 +416,11 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 Parameters and response format are the same as
 [`/health/service/:service`](/api/health#list-nodes-for-service).
 
-## List Service Instances for Ingress Gateways Associated with Service
+## List Service Instances for Ingress Gateways Associated with a Service
 
 -> **1.8.0+:** This API is available in Consul versions 1.8.0 and later.
 
-This endpoint returns the service instances providing a [ingress
+This endpoint returns the service instances providing an [ingress
 gateway](/docs/connect/ingress-gateway) for a service in a given datacenter.
 
 | Method | Path                       | Produces           |
@@ -427,8 +431,7 @@ Parameters and response format are the same as
 [`/health/service/:service`](/api/health#list-nodes-for-service).
 
 **Note** that unlike `/health/connect/:service` and `/health/service/:service` this
-endpoint does not support [streaming](/api/features/streaming), and will use
-[blocking queries](/api/features/blocking).
+endpoint does not support the [streaming backend](/api/features/blocking#streaming-backend).
 
 
 ## List Checks in State
