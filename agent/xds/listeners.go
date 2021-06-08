@@ -80,7 +80,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
 		outboundListener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{
 			{
-				// TODO (freddy): Hard-coded until we upgrade the go-control-plane library
+				// The original_dst filter is a listener filter that recovers the original destination
+				// address before the iptables redirection. This filter is needed for transparent
+				// proxies because they route to upstreams using filter chains that match on the
+				// destination IP address. If the filter is not present, no chain will match.
+				//
+				// TODO(tproxy): Hard-coded until we upgrade the go-control-plane library
 				Name: "envoy.filters.listener.original_dst",
 			},
 		}
