@@ -57,6 +57,11 @@
           ]
         }
       ],
+      "listenerFilters": [
+        {
+          "name": "envoy.filters.listener.original_dst"
+        }
+      ],
       "trafficDirection": "OUTBOUND"
     },
     {
