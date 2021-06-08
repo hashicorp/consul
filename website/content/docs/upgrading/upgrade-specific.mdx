@@ -102,9 +102,12 @@ and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c
    of the World protocol to the new Consul instances without issue.
 
 1. Once a Consul client is upgraded, use an updated CLI binary to re-bootstrap
-   Envoy using [`consul connect envoy`](/commands/connect/envoy) and restart
-   that Envoy on the new config so that it switches to the v3 Incremental
-   protocol.
+   and restart Envoy using [`consul connect envoy`](/commands/connect/envoy).
+   This will ensure it switches over to the v3 Incremental xDS protocol.
+
+   Depending upon how you have chosen to run Envoy this is either one step
+   (`consul connect envoy`) or two steps (`consul connect envoy -bootstrap`
+   followed by running Envoy directly).
 
 1. (Optionally) upgrade Envoy to the latest version supported in Consul 1.10.0.
 
