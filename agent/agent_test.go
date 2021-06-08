@@ -3835,10 +3835,27 @@ func TestAgent_SecurityChecks(t *testing.T) {
 	defer a.Shutdown()
 
 	data := make([]byte, 0, 8192)
-	bytesBuffer := bytes.NewBuffer(data)
-	a.LogOutput = bytesBuffer
+	buf := &syncBuffer{b: bytes.NewBuffer(data)}
+	a.LogOutput = buf
 	assert.NoError(t, a.Start(t))
-	assert.Contains(t, bytesBuffer.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+	assert.Contains(t, buf.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+}
+
+type syncBuffer struct {
+	lock sync.RWMutex
+	b    *bytes.Buffer
+}
+
+func (b *syncBuffer) Write(data []byte) (int, error) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.b.Write(data)
+}
+
+func (b *syncBuffer) String() string {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.b.String()
 }
 
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
