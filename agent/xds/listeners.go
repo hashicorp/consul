@@ -197,7 +197,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		// Filter chains are stable sorted to avoid draining if the list is provided out of order
 		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
-			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
+			return outboundListener.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix <
+				outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
 		})
 
 		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
