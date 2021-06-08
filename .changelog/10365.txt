@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix bug that prevented transparent proxies from working when mesh config restricted routing to catalog destinations.
+```
