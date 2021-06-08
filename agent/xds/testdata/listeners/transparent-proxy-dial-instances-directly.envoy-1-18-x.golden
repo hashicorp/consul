@@ -57,6 +57,50 @@
           ]
         },
         {
+          "filterChainMatch": {
+            "prefixRanges": [
+              {
+                "addressPrefix": "9.9.9.9",
+                "prefixLen": 32
+              }
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.kafka.default.dc1",
+                "cluster": "passthrough~kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul"
+              }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "prefixRanges": [
+              {
+                "addressPrefix": "10.10.10.10",
+                "prefixLen": 32
+              },
+              {
+                "addressPrefix": "10.10.10.12",
+                "prefixLen": 32
+              }
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.mongo.default.dc1",
+                "cluster": "passthrough~mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul"
+              }
+            }
+          ]
+        },
+        {
           "filters": [
             {
               "name": "envoy.filters.network.tcp_proxy",

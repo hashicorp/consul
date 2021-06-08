@@ -80,8 +80,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		outboundListener.FilterChains = make([]*envoy_listener_v3.FilterChain, 0)
 	}
 
-	var hasFilterChains bool
-
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
 		cfg := s.getAndModifyUpstreamConfigForListener(id, upstreamCfg, chain)
@@ -162,16 +160,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
-		hasFilterChains = true
 	}
 
-	// Only create the outbound listener when there are upstreams and filter chains are present
-	if outboundListener != nil && hasFilterChains {
-		// Filter chains are stable sorted to avoid draining if the list is provided out of order
-		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
-			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
-		})
-
+	if outboundListener != nil {
 		// Add a passthrough for every mesh endpoint that can be dialed directly,
 		// as opposed to via a virtual IP.
 		var passthroughChains []*envoy_listener_v3.FilterChain
@@ -199,12 +190,14 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(passthrough.Addrs)
 
-			passthroughChains = append(outboundListener.FilterChains, filterChain)
+			passthroughChains = append(passthroughChains, filterChain)
 		}
 
-		// The chains are sorted to avoid draining the listener if the list is provided out of order
-		sort.Slice(passthroughChains, func(i, j int) bool {
-			return passthroughChains[i].Name < passthroughChains[j].Name
+		outboundListener.FilterChains = append(outboundListener.FilterChains, passthroughChains...)
+
+		// Filter chains are stable sorted to avoid draining if the list is provided out of order
+		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
+			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
 		})
 
 		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
@@ -233,7 +226,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
 
-		resources = append(resources, outboundListener)
+		// Only add the outbound listener if configured.
+		if len(outboundListener.FilterChains) > 0 {
+			resources = append(resources, outboundListener)
+		}
 	}
 
 	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
