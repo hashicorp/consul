@@ -945,18 +945,30 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshot)
 				if passthroughAddrs == nil {
 					passthroughAddrs = make(map[string]ServicePassthroughAddrs)
 				}
-				addr, _ := node.Service.BestAddress(false)
+
+				svc := node.Service.CompoundServiceName()
+
+				// Overwrite the name if it's a connect proxy (as opposed to Connect native).
+				// We don't reference the proxy name directly for things like SNI, but rather the name
+				// of the destination. The enterprise meta of a proxy will always be the same as that of
+				// the destination service, so that remains intact.
+				if node.Service.Kind == structs.ServiceKindConnectProxy {
+					dst := node.Service.Proxy.DestinationServiceName
+					if dst == "" {
+						dst = node.Service.Proxy.DestinationServiceID
+					}
+					svc.Name = dst
+				}
 
 				sni := connect.ServiceSNI(
-					node.Service.Service,
+					svc.Name,
 					"",
-					node.Service.NamespaceOrDefault(),
+					svc.NamespaceOrDefault(),
 					snap.Datacenter,
 					snap.Roots.TrustDomain)
 
-				name := node.Service.CompoundServiceName().String()
-				if _, ok := upstreamsSnapshot.PassthroughUpstreams[name]; !ok {
-					upstreamsSnapshot.PassthroughUpstreams[name] = ServicePassthroughAddrs{
+				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svc.String()]; !ok {
+					upstreamsSnapshot.PassthroughUpstreams[svc.String()] = ServicePassthroughAddrs{
 						SNI: sni,
 
 						// Stored in a set because it's possible for these to be duplicated
@@ -964,7 +976,8 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshot)
 						Addrs: make(map[string]struct{}),
 					}
 				}
-				upstreamsSnapshot.PassthroughUpstreams[name].Addrs[addr] = struct{}{}
+				addr, _ := node.Service.BestAddress(false)
+				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
 			}
 		}
 
