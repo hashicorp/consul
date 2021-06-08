@@ -97,9 +97,9 @@ and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c
    the service registration to reflect the updated escape hatch configuration
    by re-registering. This should purge v2 elements from any configs.
 
-1. Upgrade Consul (both servers and clients) in the typical manner to 1.10.0.
-   At this point the existing Envoy instances will continue to speak the v2
-   State of the World protocol to the new Consul instances without issue.
+1. Perform a normal upgrade of both Consul servers and clients to 1.10.0. At
+   this point the existing Envoy instances will continue to speak the v2 State
+   of the World protocol to the new Consul instances without issue.
 
 1. Once a Consul client is upgraded, use an updated CLI binary to re-bootstrap
    Envoy using [`consul connect envoy`](/commands/connect/envoy) and restart
