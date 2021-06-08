@@ -89,8 +89,8 @@ and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c
 #### Stairstep Upgrade Path
 
 1. Upgrade Envoy sidecars to the latest version of Envoy that is
-   [supported](/docs/connect/proxies/envoy#supported-versions) by the current
-   running version of Consul and 1.10.0.
+   [supported](/docs/connect/proxies/envoy#supported-versions) by the currently
+   running version of Consul as well as Consul 1.10.0.
 
 1. Determine if you are using the [escape hatch](/docs/connect/proxies/envoy#advanced-configuration)
    feature. If so, rewrite the escape hatch to use the xDS v3 syntax and
