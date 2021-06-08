@@ -13,12 +13,6 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
   return (
     <div className="p-home">
       <HomepageHero
-        alert={{
-          url:
-            'https://www.consul.io/docs/ecs',
-          text: 'Consul service mesh on Amazon ECS',
-          tag: 'Tech Preview',
-        }}
         title="Service Mesh for any runtime or cloud"
         description="Consul automates networking for simple and secure application delivery."
         links={[
