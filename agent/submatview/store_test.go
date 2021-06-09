@@ -138,6 +138,60 @@ func TestStore_Get(t *testing.T) {
 
 		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
 	})
+
+	runStep(t, "with no index returns latest value", func(t *testing.T) {
+		req.index = 0
+		result, err := store.Get(ctx, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(41), result.Index)
+
+		r, ok := result.Value.(fakeResult)
+		require.True(t, ok)
+		require.Len(t, r.srvs, 2)
+		require.Equal(t, uint64(41), r.index)
+
+		store.lock.Lock()
+		defer store.lock.Unlock()
+		require.Len(t, store.byKey, 1)
+		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		require.Equal(t, 0, e.expiry.Index())
+		require.Equal(t, 0, e.requests)
+
+		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
+	})
+
+	runStep(t, "blocks until timeout", func(t *testing.T) {
+		req.index = 50
+		req.timeout = 25 * time.Millisecond
+
+		chResult := make(chan resultOrError, 1)
+		go func() {
+			result, err := store.Get(ctx, req)
+			chResult <- resultOrError{Result: result, Err: err}
+		}()
+
+		var getResult resultOrError
+		select {
+		case getResult = <-chResult:
+			t.Fatalf("expected Get to block until timeout")
+		case <-time.After(10 * time.Millisecond):
+		}
+
+		select {
+		case getResult = <-chResult:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("expected Get to unblock after timeout")
+		}
+
+		require.NoError(t, getResult.Err)
+		require.Equal(t, uint64(41), getResult.Result.Index)
+
+		r, ok := getResult.Result.Value.(fakeResult)
+		require.True(t, ok)
+		require.Len(t, r.srvs, 2)
+		require.Equal(t, uint64(41), r.index)
+	})
+
 }
 
 type resultOrError struct {
@@ -146,9 +200,10 @@ type resultOrError struct {
 }
 
 type fakeRequest struct {
-	index  uint64
-	key    string
-	client *TestStreamingClient
+	index   uint64
+	timeout time.Duration
+	key     string
+	client  *TestStreamingClient
 }
 
 func (r *fakeRequest) CacheInfo() cache.RequestInfo {
@@ -160,6 +215,7 @@ func (r *fakeRequest) CacheInfo() cache.RequestInfo {
 		Key:        key,
 		Token:      "abcd",
 		Datacenter: "dc1",
+		Timeout:    r.timeout,
 		MinIndex:   r.index,
 	}
 }
