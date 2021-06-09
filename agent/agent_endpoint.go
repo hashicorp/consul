@@ -1211,10 +1211,10 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 			if droppedCount > 0 {
 				s.agent.logger.Warn("Dropped logs during monitor request", "dropped_count", droppedCount)
 			}
+			flusher.Flush()
 			return nil, nil
 		case log := <-logsCh:
 			fmt.Fprint(resp, string(log))
-			flusher.Flush()
 		}
 	}
 }
