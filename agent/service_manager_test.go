@@ -448,7 +448,13 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	// Updates service definition on disk
 	svc = newNodeService()
 	svc.Proxy.LocalServicePort = 8001
-	require.NoError(a.addServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
+	err = a.AddService(AddServiceRequest{
+		Service: svc,
+		persist: true,
+		token:   "mytoken",
+		Source:  ConfigSourceRemote,
+	})
+	require.NoError(err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
