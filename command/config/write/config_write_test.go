@@ -216,6 +216,7 @@ func TestParseConfigEntry(t *testing.T) {
 				mode = "direct"
 				transparent_proxy = {
 					outbound_listener_port = 10101
+					dialed_directly = true
 				}
 			`,
 			camel: `
@@ -238,6 +239,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Mode = "direct"
 				TransparentProxy = {
 					outbound_listener_port = 10101
+					dialed_directly = true
 				}
 			`,
 			snakeJSON: `
@@ -260,7 +262,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"mode": "direct",
 				"transparent_proxy": {
-					"outbound_listener_port": 10101
+					"outbound_listener_port": 10101,
+					"dialed_directly": true
 				}
 			}
 			`,
@@ -284,7 +287,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"Mode": "direct",
 				"TransparentProxy": {
-					"OutboundListenerPort": 10101
+					"OutboundListenerPort": 10101,
+					"DialedDirectly": true
 				}
 			}
 			`,
@@ -308,6 +312,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Mode: api.ProxyModeDirect,
 				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
+					DialedDirectly:       true,
 				},
 			},
 			expectJSON: &api.ProxyConfigEntry{
@@ -330,6 +335,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Mode: api.ProxyModeDirect,
 				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
+					DialedDirectly:       true,
 				},
 			},
 		},
@@ -495,6 +501,7 @@ func TestParseConfigEntry(t *testing.T) {
 				mode = "direct"
 				transparent_proxy = {
 					outbound_listener_port = 10101
+					dialed_directly = true
 				}
 				upstream_config {
 					overrides = [
@@ -553,6 +560,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Mode = "direct"
 				TransparentProxy = {
 					outbound_listener_port = 10101
+					dialed_directly = true
 				}
 				UpstreamConfig {
 					Overrides = [
@@ -611,7 +619,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"mode": "direct",
 				"transparent_proxy": {
-					"outbound_listener_port": 10101
+					"outbound_listener_port": 10101,
+					"dialed_directly": true
 				},
 				"upstream_config": {
 					"overrides": [
@@ -671,7 +680,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"Mode": "direct",
 				"TransparentProxy": {
-					"OutboundListenerPort": 10101
+					"OutboundListenerPort": 10101,
+					"DialedDirectly": true
 				},
 				"UpstreamConfig": {
 					"Overrides": [
@@ -731,6 +741,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Mode: api.ProxyModeDirect,
 				TransparentProxy: &api.TransparentProxyConfig{
 					OutboundListenerPort: 10101,
+					DialedDirectly:       true,
 				},
 				UpstreamConfig: &api.UpstreamConfiguration{
 					Overrides: []*api.UpstreamConfig{

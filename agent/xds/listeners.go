@@ -91,8 +91,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 	}
 
-	var hasFilterChains bool
-
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
 		cfg := s.getAndModifyUpstreamConfigForListener(id, upstreamCfg, chain)
@@ -167,45 +165,51 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// For every potential address we collected, create the appropriate address prefix to match on.
 		// In this case we are matching on exact addresses, so the prefix is the address itself,
 		// and the prefix length is based on whether it's IPv4 or IPv6.
-		ranges := make([]*envoy_core_v3.CidrRange, 0)
-
-		for addr := range uniqueAddrs {
-			ip := net.ParseIP(addr)
-			if ip == nil {
-				continue
-			}
-
-			pfxLen := uint32(32)
-			if ip.To4() == nil {
-				pfxLen = 128
-			}
-			ranges = append(ranges, &envoy_core_v3.CidrRange{
-				AddressPrefix: addr,
-				PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
-			})
-		}
-
-		// The match rules are stable sorted to avoid draining if the list is provided out of order
-		sort.SliceStable(ranges, func(i, j int) bool {
-			return ranges[i].AddressPrefix < ranges[j].AddressPrefix
-		})
-
-		filterChain.FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
-			PrefixRanges: ranges,
-		}
+		filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(uniqueAddrs)
 
 		// Only attach the filter chain if there are addresses to match on
-		if len(ranges) > 0 {
+		if filterChain.FilterChainMatch != nil && len(filterChain.FilterChainMatch.PrefixRanges) > 0 {
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
-		hasFilterChains = true
 	}
 
-	// Only create the outbound listener when there are upstreams and filter chains are present
-	if outboundListener != nil && hasFilterChains {
+	if outboundListener != nil {
+		// Add a passthrough for every mesh endpoint that can be dialed directly,
+		// as opposed to via a virtual IP.
+		var passthroughChains []*envoy_listener_v3.FilterChain
+
+		for svc, passthrough := range cfgSnap.ConnectProxy.PassthroughUpstreams {
+			sn := structs.ServiceNameFromString(svc)
+			u := structs.Upstream{
+				DestinationName:      sn.Name,
+				DestinationNamespace: sn.NamespaceOrDefault(),
+			}
+
+			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+				"",
+				"passthrough~"+passthrough.SNI,
+
+				// TODO(tproxy) This should use the protocol configured on the upstream's config entry
+				"tcp",
+				&u,
+				nil,
+				cfgSnap,
+				nil,
+			)
+			if err != nil {
+				return nil, err
+			}
+			filterChain.FilterChainMatch = makeFilterChainMatchFromAddrs(passthrough.Addrs)
+
+			passthroughChains = append(passthroughChains, filterChain)
+		}
+
+		outboundListener.FilterChains = append(outboundListener.FilterChains, passthroughChains...)
+
 		// Filter chains are stable sorted to avoid draining if the list is provided out of order
 		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
-			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
+			return outboundListener.FilterChains[i].FilterChainMatch.PrefixRanges[0].AddressPrefix <
+				outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
 		})
 
 		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
@@ -213,7 +217,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
 
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
-				"passthrough",
+				"",
 				OriginalDestinationClusterName,
 				"tcp",
 				nil,
@@ -227,7 +231,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
 
-		resources = append(resources, outboundListener)
+		// Only add the outbound listener if configured.
+		if len(outboundListener.FilterChains) > 0 {
+			resources = append(resources, outboundListener)
+		}
 	}
 
 	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
@@ -293,6 +300,35 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 	}
 
 	return resources, nil
+}
+
+func makeFilterChainMatchFromAddrs(addrs map[string]struct{}) *envoy_listener_v3.FilterChainMatch {
+	ranges := make([]*envoy_core_v3.CidrRange, 0)
+
+	for addr := range addrs {
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			continue
+		}
+
+		pfxLen := uint32(32)
+		if ip.To4() == nil {
+			pfxLen = 128
+		}
+		ranges = append(ranges, &envoy_core_v3.CidrRange{
+			AddressPrefix: addr,
+			PrefixLen:     &wrappers.UInt32Value{Value: pfxLen},
+		})
+	}
+
+	// The match rules are stable sorted to avoid draining if the list is provided out of order
+	sort.SliceStable(ranges, func(i, j int) bool {
+		return ranges[i].AddressPrefix < ranges[j].AddressPrefix
+	})
+
+	return &envoy_listener_v3.FilterChainMatch{
+		PrefixRanges: ranges,
+	}
 }
 
 func parseCheckPath(check structs.CheckType) (structs.ExposePath, error) {
@@ -1258,7 +1294,10 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	if overrideCluster != "" {
 		useRDS = false
 		clusterName = overrideCluster
-		filterName = overrideCluster
+
+		if destination == "" {
+			filterName = overrideCluster
+		}
 	}
 
 	opts := listenerFilterOpts{

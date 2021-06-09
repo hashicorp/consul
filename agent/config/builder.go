@@ -1766,6 +1766,7 @@ func (b *builder) transparentProxyConfVal(tproxyConf *TransparentProxyConfig) st
 	}
 
 	out.OutboundListenerPort = intVal(tproxyConf.OutboundListenerPort)
+	out.DialedDirectly = boolVal(tproxyConf.DialedDirectly)
 	return out
 }
 

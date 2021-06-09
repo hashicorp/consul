@@ -453,6 +453,14 @@ UpstreamConfig = {
           description: `The port the proxy should listen on for outbound traffic. This must be the port where 
                         outbound application traffic is redirected to.`,
         },
+        {
+          name: 'DialedDirectly',
+          type: 'bool: false',
+          description: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies. 
+                        Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances 
+                        across instances. Dialing individual instances can be helpful in cases like stateful services such 
+                        as a database cluster with a leader. `,
+        },
       ],
       yaml: false,
     },

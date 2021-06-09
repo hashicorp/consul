@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
@@ -582,6 +583,7 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 		snap.ConnectProxy.WatchedServiceChecks = make(map[structs.ServiceID][]structs.CheckType)
 		snap.ConnectProxy.PreparedQueryEndpoints = make(map[string]structs.CheckServiceNodes)
 		snap.ConnectProxy.UpstreamConfig = make(map[string]*structs.Upstream)
+		snap.ConnectProxy.PassthroughUpstreams = make(map[string]ServicePassthroughAddrs)
 	case structs.ServiceKindTerminatingGateway:
 		snap.TerminatingGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
 		snap.TerminatingGateway.WatchedIntentions = make(map[structs.ServiceName]context.CancelFunc)
@@ -885,14 +887,19 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 		snap.ConnectProxy.MeshConfigSet = true
 
 	default:
-		return s.handleUpdateUpstreams(u, &snap.ConnectProxy.ConfigSnapshotUpstreams)
+		return s.handleUpdateUpstreams(u, snap)
 	}
 	return nil
 }
 
-func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotUpstreams) error {
+func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshot) error {
 	if u.Err != nil {
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
+	}
+
+	upstreamsSnapshot := &snap.ConnectProxy.ConfigSnapshotUpstreams
+	if snap.Kind == structs.ServiceKindIngressGateway {
+		upstreamsSnapshot = &snap.IngressGateway.ConfigSnapshotUpstreams
 	}
 
 	switch {
@@ -901,7 +908,7 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
-		snap.Leaf = leaf
+		upstreamsSnapshot.Leaf = leaf
 
 	case strings.HasPrefix(u.CorrelationID, "discovery-chain:"):
 		resp, ok := u.Result.(*structs.DiscoveryChainResponse)
@@ -909,9 +916,9 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 		svc := strings.TrimPrefix(u.CorrelationID, "discovery-chain:")
-		snap.DiscoveryChain[svc] = resp.Chain
+		upstreamsSnapshot.DiscoveryChain[svc] = resp.Chain
 
-		if err := s.resetWatchesFromChain(svc, resp.Chain, snap); err != nil {
+		if err := s.resetWatchesFromChain(svc, resp.Chain, upstreamsSnapshot); err != nil {
 			return err
 		}
 
@@ -926,10 +933,53 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
 
-		if _, ok := snap.WatchedUpstreamEndpoints[svc]; !ok {
-			snap.WatchedUpstreamEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
+		if _, ok := upstreamsSnapshot.WatchedUpstreamEndpoints[svc]; !ok {
+			upstreamsSnapshot.WatchedUpstreamEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
 		}
-		snap.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
+		upstreamsSnapshot.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
+
+		var passthroughAddrs map[string]ServicePassthroughAddrs
+
+		for _, node := range resp.Nodes {
+			if snap.Proxy.Mode == structs.ProxyModeTransparent && node.Service.Proxy.TransparentProxy.DialedDirectly {
+				if passthroughAddrs == nil {
+					passthroughAddrs = make(map[string]ServicePassthroughAddrs)
+				}
+
+				svc := node.Service.CompoundServiceName()
+
+				// Overwrite the name if it's a connect proxy (as opposed to Connect native).
+				// We don't reference the proxy name directly for things like SNI, but rather the name
+				// of the destination. The enterprise meta of a proxy will always be the same as that of
+				// the destination service, so that remains intact.
+				if node.Service.Kind == structs.ServiceKindConnectProxy {
+					dst := node.Service.Proxy.DestinationServiceName
+					if dst == "" {
+						dst = node.Service.Proxy.DestinationServiceID
+					}
+					svc.Name = dst
+				}
+
+				sni := connect.ServiceSNI(
+					svc.Name,
+					"",
+					svc.NamespaceOrDefault(),
+					snap.Datacenter,
+					snap.Roots.TrustDomain)
+
+				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svc.String()]; !ok {
+					upstreamsSnapshot.PassthroughUpstreams[svc.String()] = ServicePassthroughAddrs{
+						SNI: sni,
+
+						// Stored in a set because it's possible for these to be duplicated
+						// when the upstream-target is targeted by multiple discovery chains.
+						Addrs: make(map[string]struct{}),
+					}
+				}
+				addr, _ := node.BestAddress(false)
+				upstreamsSnapshot.PassthroughUpstreams[svc.String()].Addrs[addr] = struct{}{}
+			}
+		}
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
 		resp, ok := u.Result.(*structs.IndexedNodesWithGateways)
@@ -941,10 +991,10 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 		if !ok {
 			return fmt.Errorf("invalid correlation id %q", u.CorrelationID)
 		}
-		if _, ok = snap.WatchedGatewayEndpoints[svc]; !ok {
-			snap.WatchedGatewayEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
+		if _, ok = upstreamsSnapshot.WatchedGatewayEndpoints[svc]; !ok {
+			upstreamsSnapshot.WatchedGatewayEndpoints[svc] = make(map[string]structs.CheckServiceNodes)
 		}
-		snap.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
+		upstreamsSnapshot.WatchedGatewayEndpoints[svc][dc] = resp.Nodes
 	default:
 		return fmt.Errorf("unknown correlation ID: %s", u.CorrelationID)
 	}
@@ -1703,7 +1753,7 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 		}
 
 	default:
-		return s.handleUpdateUpstreams(u, &snap.IngressGateway.ConfigSnapshotUpstreams)
+		return s.handleUpdateUpstreams(u, snap)
 	}
 
 	return nil

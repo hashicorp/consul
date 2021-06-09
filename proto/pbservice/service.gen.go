@@ -131,11 +131,13 @@ func NewServiceDefinitionFromStructs(t structs.ServiceDefinition) ServiceDefinit
 func TransparentProxyConfigToStructs(s TransparentProxyConfig) structs.TransparentProxyConfig {
 	var t structs.TransparentProxyConfig
 	t.OutboundListenerPort = int(s.OutboundListenerPort)
+	t.DialedDirectly = s.DialedDirectly
 	return t
 }
 func NewTransparentProxyConfigFromStructs(t structs.TransparentProxyConfig) TransparentProxyConfig {
 	var s TransparentProxyConfig
 	s.OutboundListenerPort = int32(t.OutboundListenerPort)
+	s.DialedDirectly = t.DialedDirectly
 	return s
 }
 func UpstreamToStructs(s Upstream) structs.Upstream {

@@ -94,6 +94,11 @@ func (c *CompiledDiscoveryChain) ID() string {
 	return chainID("", c.ServiceName, c.Namespace, c.Datacenter)
 }
 
+func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
+	entMeta := NewEnterpriseMeta(c.Namespace)
+	return NewServiceName(c.ServiceName, &entMeta)
+}
+
 const (
 	DiscoveryGraphNodeTypeRouter   = "router"
 	DiscoveryGraphNodeTypeSplitter = "splitter"

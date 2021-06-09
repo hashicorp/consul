@@ -584,6 +584,61 @@ func TestListenersFromSnapshot(t *testing.T) {
 					connect.TestClusterID+".consul", "dc1", nil)
 			},
 		},
+		{
+			name:   "transparent-proxy-dial-instances-directly",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Mode = structs.ProxyModeTransparent
+
+				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(
+					t, "mongo", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+
+				snap.ConnectProxy.DiscoveryChain["kafka"] = discoverychain.TestCompileConfigEntries(
+					t, "kafka", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+
+				kafka := structs.NewServiceName("kafka", structs.DefaultEnterpriseMeta())
+				mongo := structs.NewServiceName("mongo", structs.DefaultEnterpriseMeta())
+
+				// We add a filter chains for each passthrough service name.
+				// The filter chain will route to a cluster with the same SNI name.
+				snap.ConnectProxy.PassthroughUpstreams = map[string]proxycfg.ServicePassthroughAddrs{
+					kafka.String(): {
+						SNI: "kafka.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
+						Addrs: map[string]struct{}{
+							"9.9.9.9": {},
+						},
+					},
+					mongo.String(): {
+						SNI: "mongo.default.dc1.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul",
+						Addrs: map[string]struct{}{
+							"10.10.10.10": {},
+							"10.10.10.12": {},
+						},
+					},
+				}
+
+				// There should still be a filter chain for mongo's virtual address
+				snap.ConnectProxy.WatchedUpstreamEndpoints["mongo"] = map[string]structs.CheckServiceNodes{
+					"mongo.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Datacenter: "dc1",
+							},
+							Service: &structs.NodeService{
+								Service: "mongo",
+								Address: "7.7.7.7",
+								Port:    27017,
+								TaggedAddresses: map[string]structs.ServiceAddress{
+									"virtual": {Address: "6.6.6.6"},
+								},
+							},
+						},
+					},
+				}
+			},
+		},
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]

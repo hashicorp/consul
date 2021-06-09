@@ -96,20 +96,12 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 	}
 	clusters = append(clusters, appCluster)
 
-	// In transparent proxy mode there needs to be a passthrough cluster for traffic going to destinations
-	// that aren't in Consul's catalog.
-	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent &&
-		(cfgSnap.ConnectProxy.MeshConfig == nil ||
-			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly) {
-
-		clusters = append(clusters, &envoy_cluster_v3.Cluster{
-			Name: OriginalDestinationClusterName,
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
-				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
-			},
-			LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
-			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
-		})
+	if cfgSnap.Proxy.Mode == structs.ProxyModeTransparent {
+		passthroughs, err := makePassthroughClusters(cfgSnap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to make passthrough clusters for transparent proxy: %v", err)
+		}
+		clusters = append(clusters, passthroughs...)
 	}
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
@@ -174,6 +166,58 @@ func (s *ResourceGenerator) clustersFromSnapshotConnectProxy(cfgSnap *proxycfg.C
 
 func makeExposeClusterName(destinationPort int) string {
 	return fmt.Sprintf("exposed_cluster_%d", destinationPort)
+}
+
+// In transparent proxy mode there are potentially multiple passthrough clusters added.
+// The first is for destinations outside of Consul's catalog. This is for a plain TCP proxy.
+// All of these use Envoy's ORIGINAL_DST listener filter, which forwards to the original
+// destination address (before the iptables redirection).
+// The rest are for destinations inside the mesh, which require certificates for mTLS.
+func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	// This size is an upper bound.
+	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.PassthroughUpstreams)+1)
+
+	if cfgSnap.ConnectProxy.MeshConfig == nil ||
+		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
+
+		clusters = append(clusters, &envoy_cluster_v3.Cluster{
+			Name: OriginalDestinationClusterName,
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
+			},
+			LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
+			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		})
+	}
+
+	for _, passthrough := range cfgSnap.ConnectProxy.PassthroughUpstreams {
+		// Prefixed with passthrough to distinguish from non-passthrough clusters for the same upstream.
+		name := "passthrough~" + passthrough.SNI
+
+		c := envoy_cluster_v3.Cluster{
+			Name: name,
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_ORIGINAL_DST,
+			},
+			LbPolicy: envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
+
+			// TODO(tproxy) This should use the connection timeout configured on the upstream's config entry
+			ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+		}
+
+		tlsContext := envoy_tls_v3.UpstreamTlsContext{
+			CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
+			Sni:              passthrough.SNI,
+		}
+		transportSocket, err := makeUpstreamTLSTransportSocket(&tlsContext)
+		if err != nil {
+			return nil, err
+		}
+		c.TransportSocket = transportSocket
+		clusters = append(clusters, &c)
+	}
+
+	return clusters, nil
 }
 
 // clustersFromSnapshotMeshGateway returns the xDS API representation of the "clusters"

@@ -545,8 +545,13 @@ type MeshGatewayConfig struct {
 }
 
 type TransparentProxyConfig struct {
-	// Mesh Gateway Mode
+	// The port of the listener where outbound application traffic is being redirected to.
 	OutboundListenerPort *int `mapstructure:"outbound_listener_port"`
+
+	// DialedDirectly indicates whether transparent proxies can dial this proxy instance directly.
+	// The discovery chain is not considered when dialing a service instance directly.
+	// This setting is useful when addressing stateful services, such as a database cluster with a leader node.
+	DialedDirectly *bool `mapstructure:"dialed_directly"`
 }
 
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.

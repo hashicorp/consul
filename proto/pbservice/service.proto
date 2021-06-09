@@ -218,6 +218,11 @@ message MeshGatewayConfig {
 message TransparentProxyConfig {
     // mog: func-to=int func-from=int32
     int32 OutboundListenerPort = 1;
+
+    // DialedDirectly indicates whether transparent proxies can dial this proxy instance directly.
+    // The discovery chain is not considered when dialing a service instance directly.
+    // This setting is useful when addressing stateful services, such as a database cluster with a leader node.
+    bool DialedDirectly = 2;
 }
 
 // ServiceDefinition is used to JSON decode the Service definitions. For
