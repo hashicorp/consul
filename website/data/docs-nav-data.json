@@ -830,6 +830,19 @@
       {
         "title": "Sentinel",
         "path": "enterprise/sentinel"
+      },
+      {
+        "title": "License",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "enterprise/license/overview"
+          },
+          {
+            "title": "FAQ",
+            "path": "enterprise/license/faq"
+          }
+        ]
       }
     ]
   },
