@@ -911,10 +911,13 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			name: "from proxy-defaults",
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
-					Kind:             structs.ProxyDefaults,
-					Name:             structs.ProxyConfigGlobal,
-					Mode:             structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -922,8 +925,11 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				Datacenter: "dc1",
 			},
 			expect: structs.ServiceConfigResponse{
-				Mode:             structs.ProxyModeTransparent,
-				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+				Mode: structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{
+					OutboundListenerPort: 10101,
+					DialedDirectly:       true,
+				},
 			},
 		},
 		{
@@ -949,16 +955,22 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 			name: "service-defaults overrides proxy-defaults",
 			entries: []structs.ConfigEntry{
 				&structs.ProxyConfigEntry{
-					Kind:             structs.ProxyDefaults,
-					Name:             structs.ProxyConfigGlobal,
-					Mode:             structs.ProxyModeDirect,
-					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Mode: structs.ProxyModeDirect,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       false,
+					},
 				},
 				&structs.ServiceConfigEntry{
-					Kind:             structs.ServiceDefaults,
-					Name:             "foo",
-					Mode:             structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 808,
+						DialedDirectly:       true,
+					},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -966,8 +978,11 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 				Datacenter: "dc1",
 			},
 			expect: structs.ServiceConfigResponse{
-				Mode:             structs.ProxyModeTransparent,
-				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 808},
+				Mode: structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{
+					OutboundListenerPort: 808,
+					DialedDirectly:       true,
+				},
 			},
 		},
 	}
@@ -1303,8 +1318,11 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					},
 
 					// TransparentProxy on the config entry but not the config request
-					Mode:             structs.ProxyModeTransparent,
-					TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+					Mode: structs.ProxyModeTransparent,
+					TransparentProxy: structs.TransparentProxyConfig{
+						OutboundListenerPort: 10101,
+						DialedDirectly:       true,
+					},
 				},
 			},
 			request: structs.ServiceConfigRequest{
@@ -1314,8 +1332,11 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				// Empty Upstreams/UpstreamIDs
 			},
 			expect: structs.ServiceConfigResponse{
-				Mode:             structs.ProxyModeTransparent,
-				TransparentProxy: structs.TransparentProxyConfig{OutboundListenerPort: 10101},
+				Mode: structs.ProxyModeTransparent,
+				TransparentProxy: structs.TransparentProxyConfig{
+					OutboundListenerPort: 10101,
+					DialedDirectly:       true,
+				},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
 						Upstream: wildcard,

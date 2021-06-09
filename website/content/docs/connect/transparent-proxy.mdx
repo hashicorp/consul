@@ -20,9 +20,9 @@ implicitly from Service Intentions. Explicit upstreams are still supported in th
 registration](/docs/connect/registration/service-registration) on VMs and via the
 [annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) in Kubernetes.
 
-To support transparent proxying, Consul now supports a command
+To support transparent proxying, Consul's CLI now has a command
 [`consul connect redirect-traffic`](/commands/connect/redirect-traffic) to redirect traffic through an inbound and
-outbound listener on the sidecar. It also watches Service Intentions and configures the Envoy proxy with the appropriate
+outbound listener on the sidecar. Consul also watches Service Intentions and configures the Envoy proxy with the appropriate
 upstream IPs. If the default ACL policy is "allow", then Service Intentions are not required. In Consul on Kubernetes,
 the traffic redirection command is automatically set up via an init container.
 
@@ -103,7 +103,11 @@ spec:
 ## Known Beta Limitations
 
 * There is no first class support for transparent proxying on VMs. 
-* Traffic can only be transparently proxied within a Consul datacenter.
+* Traffic can only be transparently proxied when the address dialed corresponds to the address of a service in the 
+transparent proxy's datacenter. Cross-datacenter transparent proxying is only possible using service-resolver
+configuration entries that resolve to remote datacenters.
+* When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
+Currently the upstream's protocol and connection timeout are not considered.
 
 ## Using Transparent Proxy
 
@@ -149,3 +153,16 @@ it can dial `sample-app.default.svc.cluster.local`, using
 If ACLs with default "deny" policy are enabled, it also needs a
 [ServiceIntention](/docs/connect/config-entries/service-intentions) allowing it to talk to
 `sample-app`.
+
+### Headless Services
+For services that are not addressed using a virtual cluster IP, the upstream service must be
+configured using the [DialedDirectly](/docs/connect/config-entries/service-defaults#dialeddirectly) 
+option. 
+
+Individual instance addresses can then be discovered using DNS, and dialed through the transparent proxy.
+When this mode is enabled on the upstream, connect certificates will be presented for mTLS and
+intentions will be enforced at the destination.
+
+Note that when dialing individual instances HTTP routing rules configured with config entries 
+will **not** be considered. The transparent proxy acts as a TCP proxy to the original
+destination IP address.

@@ -125,10 +125,18 @@ func ValidateProxyMode(mode string) (ProxyMode, error) {
 type TransparentProxyConfig struct {
 	// The port of the listener where outbound application traffic is being redirected to.
 	OutboundListenerPort int `json:",omitempty" alias:"outbound_listener_port"`
+
+	// DialedDirectly indicates whether transparent proxies can dial this proxy instance directly.
+	// The discovery chain is not considered when dialing a service instance directly.
+	// This setting is useful when addressing stateful services, such as a database cluster with a leader node.
+	DialedDirectly bool `json:",omitempty" alias:"dialed_directly"`
 }
 
 func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
-	return &api.TransparentProxyConfig{OutboundListenerPort: c.OutboundListenerPort}
+	return &api.TransparentProxyConfig{
+		OutboundListenerPort: c.OutboundListenerPort,
+		DialedDirectly:       c.DialedDirectly,
+	}
 }
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed
@@ -224,6 +232,9 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.TransparentProxy.OutboundListenerPort == 0 {
 		t.TransparentProxy.OutboundListenerPort = aux.TransparentProxySnake.OutboundListenerPort
+	}
+	if !t.TransparentProxy.DialedDirectly {
+		t.TransparentProxy.DialedDirectly = aux.TransparentProxySnake.DialedDirectly
 	}
 
 	return nil

@@ -383,6 +383,9 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if ns.Proxy.TransparentProxy.OutboundListenerPort == 0 {
 		ns.Proxy.TransparentProxy.OutboundListenerPort = defaults.TransparentProxy.OutboundListenerPort
 	}
+	if !ns.Proxy.TransparentProxy.DialedDirectly {
+		ns.Proxy.TransparentProxy.DialedDirectly = defaults.TransparentProxy.DialedDirectly
+	}
 
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.ServiceID]structs.Upstream)

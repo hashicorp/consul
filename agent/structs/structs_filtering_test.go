@@ -102,6 +102,11 @@ var expectedFieldConfigTransparentProxyConfig bexpr.FieldConfigurations = bexpr.
 		CoerceFn:            bexpr.CoerceInt,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
 	},
+	"DialedDirectly": &bexpr.FieldConfiguration{
+		StructFieldName:     "DialedDirectly",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
 }
 
 var expectedFieldConfigExposeConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{

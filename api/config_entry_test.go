@@ -358,7 +358,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"Mode": "transparent",
 				"TransparentProxy": {
-					"OutboundListenerPort": 808
+					"OutboundListenerPort": 808,
+					"DialedDirectly": true
 				}
 			}
 			`,
@@ -379,8 +380,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				Mode:             ProxyModeTransparent,
-				TransparentProxy: &TransparentProxyConfig{OutboundListenerPort: 808},
+				Mode: ProxyModeTransparent,
+				TransparentProxy: &TransparentProxyConfig{
+					OutboundListenerPort: 808,
+					DialedDirectly:       true,
+				},
 			},
 		},
 		{
@@ -400,7 +404,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"Mode": "transparent",
 				"TransparentProxy": {
-					"OutboundListenerPort": 808
+					"OutboundListenerPort": 808,
+					"DialedDirectly": true
 				},
 				"UpstreamConfig": {
 					"Overrides": [
@@ -448,8 +453,11 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
-				Mode:             ProxyModeTransparent,
-				TransparentProxy: &TransparentProxyConfig{OutboundListenerPort: 808},
+				Mode: ProxyModeTransparent,
+				TransparentProxy: &TransparentProxyConfig{
+					OutboundListenerPort: 808,
+					DialedDirectly:       true,
+				},
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
