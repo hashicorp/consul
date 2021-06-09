@@ -1,5 +1,23 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* connect: Support dialing individual service IP addresses through transparent proxies. [[GH-10329](https://github.com/hashicorp/consul/issues/10329)]
+* debug: capture a single stream of logs, and single pprof profile and trace for the whole duration [[GH-10279](https://github.com/hashicorp/consul/issues/10279)]
+* licensing: **(Enterprise Only)** Consul Enterprise has gained the `consul license inspect` CLI command for inspecting a license without applying it..
+* telemetry: The usage data in the `metrics` API now includes cluster member counts, reporting clients on a per segment basis. [[GH-10340](https://github.com/hashicorp/consul/issues/10340)]
+
+BUG FIXES:
+
+* agent: fix logging output by removing leading whitespace from every log line [[GH-10338](https://github.com/hashicorp/consul/issues/10338)]
+* autopilot: **(Enterprise only)** Fixed an issue where autopilot could cause a new leader to demote the wrong voter when redundancy zones are in use and the previous leader failed. [[GH-10306](https://github.com/hashicorp/consul/issues/10306)]
+* cli: removes the need to set debug_enabled=true to collect debug data from the CLI. Now
+the CLI behaves the same way as the API and accepts either an ACL token with operator:read, or
+debug_enabled=true. [[GH-10273](https://github.com/hashicorp/consul/issues/10273)]
+* connect: Fix bug that prevented transparent proxies from working when mesh config restricted routing to catalog destinations. [[GH-10365](https://github.com/hashicorp/consul/issues/10365)]
+* envoy: fixes a bug where a large envoy config could cause the `consul connect envoy` command to deadlock when attempting to start envoy. [[GH-10324](https://github.com/hashicorp/consul/issues/10324)]
+* monitor: fix monitor to produce json format logs when requested [[GH-10358](https://github.com/hashicorp/consul/issues/10358)]
+
 ## 1.10.0-beta3 (May 27, 2021)
 
 BREAKING CHANGES:
