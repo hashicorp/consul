@@ -487,7 +487,7 @@ github.com/hashicorp/raft
 github.com/hashicorp/raft-autopilot
 # github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 github.com/hashicorp/raft-boltdb
-# github.com/hashicorp/serf v0.9.5
+# github.com/hashicorp/serf v0.9.6-0.20210609195804-2b5dd0cd2de9
 github.com/hashicorp/serf/coordinate
 github.com/hashicorp/serf/serf
 # github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
