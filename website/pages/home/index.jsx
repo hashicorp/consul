@@ -145,7 +145,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
             icon: require('./img/kubernetes/logo.svg?include'),
             title: 'Consul for Kubernetes',
             description:
-              "Consul service mesh secures service to service communication in any environment. Not using service mesh? Consul's service discovery  and network infrastructure automation capabilities can help solve any service networking challenge.",
+              "Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.",
             eyebrow: 'Tutorial',
             link: {
               text: 'Get Started with Consul on Kubernetes',
@@ -157,7 +157,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
             icon: require('./img/kubernetes/communication-arrows.svg?include'),
             title: 'Consul for Everything Else',
             description:
-              'Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.',
+              "Consul service mesh support multiple orchestrators, like Nomad and Amazon ECS. Not using service mesh? Consul's service discovery and network infrastructure automation capabilities can help solve any service networking challenge.",
             eyebrow: 'Tutorial',
             link: {
               text: 'Get Started with Service Mesh on VMs',
