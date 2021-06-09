@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -1202,7 +1203,8 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	// a gzip stream it will go ahead and write out the HTTP response header
 	resp.Write([]byte(""))
 	flusher.Flush()
-
+	const flushDelay = 200 * time.Millisecond
+	t := time.AfterFunc(flushDelay, flusher.Flush)
 	// Stream logs until the connection is closed.
 	for {
 		select {
@@ -1215,6 +1217,11 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 			return nil, nil
 		case log := <-logsCh:
 			fmt.Fprint(resp, string(log))
+			select {
+			case <-t.C:
+				t = time.AfterFunc(flushDelay, flusher.Flush)
+			default:
+			}
 		}
 	}
 }
