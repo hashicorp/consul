@@ -126,7 +126,7 @@ func (r serviceRequest) CacheInfo() cache.RequestInfo {
 }
 
 func (r serviceRequest) Type() string {
-	return "service-health"
+	return "agent.rpcclient.health.serviceRequest"
 }
 
 func (r serviceRequest) NewMaterializer() (*submatview.Materializer, error) {
