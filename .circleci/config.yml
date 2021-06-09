@@ -249,6 +249,8 @@ jobs:
       # but we can run a little over that limit.
     steps:
       - checkout
+      - attach_workspace:
+          at: /go/bin
       - run: *install-gotestsum
       - run: go mod download
       - run:
@@ -989,7 +991,8 @@ workflows:
           requires: [dev-build]
       - go-test-api:
           requires: [dev-build]
-      - go-test-race: *filter-ignore-non-go-branches
+      - go-test-race:
+          requires: [dev-build]
       - go-test-sdk: *filter-ignore-non-go-branches
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
