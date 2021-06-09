@@ -342,7 +342,7 @@ func (s *TestServer) Stop() error {
 		return err
 	case <-time.After(10 * time.Second):
 		s.cmd.Process.Signal(syscall.SIGABRT)
-		s.cmd.Wait()
+		<-waitDone
 		return fmt.Errorf("timeout waiting for server to stop gracefully")
 	}
 }
