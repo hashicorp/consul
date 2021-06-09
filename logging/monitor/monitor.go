@@ -84,9 +84,7 @@ func (d *monitor) Stop() int {
 // received log messages over the returned channel.
 func (d *monitor) Start() <-chan []byte {
 	// register our sink with the logger
-	d.logger.RegisterSink(d.sink)
 	streamCh := make(chan []byte, d.bufSize)
-
 	// run a go routine that listens for streamed
 	// log messages and sends them to streamCh
 	go func() {
@@ -105,7 +103,7 @@ func (d *monitor) Start() <-chan []byte {
 			}
 		}
 	}()
-
+	d.logger.RegisterSink(d.sink)
 	return streamCh
 }
 
