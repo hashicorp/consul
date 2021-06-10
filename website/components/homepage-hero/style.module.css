@@ -1,65 +1,173 @@
-.homepageHero {
-  & :global(.g-text-split) :global(.g-grid-container) {
-    @media (width < 1120px) {
-      flex-direction: column-reverse;
+.consulHero {
+  & .videos {
+    position: relative;
+  }
+
+  & .video-wrapper {
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+    position: relative;
+    transform: translateX(-60px);
+    line-height: 0;
+    box-shadow: 0 14.3254px 14.3254px rgba(37, 41, 55, 0.16);
+
+    &.is-active {
+      opacity: 1;
+      padding-top: calc((100% * 0.63569) + 28px);
+      transform: translateX(0);
+      transition: opacity 0.5s, transform 0.5s;
+      transition-timing-function: ease-out;
     }
 
-    & > div {
-      @media (768px < width < 1120px) {
-        width: 40em;
-      }
-
-      &:last-child {
-        @media (width < 1120px) {
-          margin-bottom: 64px;
-          text-align: center;
-        }
-
-        & p {
-          @media (width < 1120px) {
-            margin: 16px auto;
-          }
-        }
-      }
-    }
-
-    /**
-         * HACK:
-         * Overrides the H2 with styling from
-         * our global g-type-display-1 class.
-         *
-         * This was because there's no way to
-         * override the heading in <TextSplit />
-         * with the designed h1 styling.
-         *
-         * TODO:
-         * Address this at the component
-         * level or revert to just using h2
-         * as is default.
-         */
-    & h2 {
-      font-size: 2.125rem;
-      letter-spacing: -0.008em;
-      line-height: 1.265em;
-
-      @media (--medium-up) {
-        font-size: 2.625rem;
-        letter-spacing: -0.01em;
-        line-height: 1.19em;
-      }
-
-      @media (--large) {
-        font-size: 3.125rem;
-        line-height: 1.2em;
-      }
-    }
-
-    & p {
-      max-width: 440px;
-      font-size: 1.25rem;
-      line-height: 1.55em;
+    &.is-deactivating {
+      opacity: 0;
+      transform: translateX(90px);
+      transition-timing-function: ease-in;
     }
   }
+
+  & .bar {
+    align-items: center;
+    background: #0e1016;
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    height: 28px;
+    padding: 0 12px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+
+    & span {
+      background: #252937;
+      border-radius: 50%;
+      display: block;
+      height: 9px;
+      margin-right: 7px;
+      width: 9px;
+    }
+  }
+
+  & .video {
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    top: 28px;
+    right: 0;
+  }
+
+  & video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  & .controls {
+    display: flex;
+    padding: 28px 20px 0;
+
+    @media (max-width: 1119px) {
+      padding: 37px 0 0;
+    }
+  }
+
+  & .control {
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+
+    &:hover .control-hover {
+      transform: translateY(-4px);
+    }
+
+    & + .control {
+      margin-left: 24px;
+    }
+
+    & .control-hover {
+      transition: 0.3s ease-in-out;
+      transition-property: transform;
+    }
+  }
+
+  & .progress-bar {
+    background-color: var(--gray-2);
+    height: 2px;
+    margin-top: 4px;
+    position: relative;
+    width: 100%;
+
+    & span {
+      background: var(--white);
+      display: block;
+      height: 2px;
+      position: absolute;
+      transition: width linear 0.2s;
+      width: 0;
+    }
+  }
+  
+    & .video {
+      bottom: 0;
+      left: 0;
+      position: absolute;
+      top: 28px;
+      right: 0;
+    }
+  
+    & .video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+    }
+  
+    & .controls {
+      display: flex;
+      padding: 28px 20px 0;
+  
+      @media (max-width: 1119px) {
+        padding: 37px 0 0;
+      }
+    }
+  
+    & .control {
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+  
+      &:hover .control-hover {
+        transform: translateY(-4px);
+      }
+  
+      & + .control {
+        margin-left: 24px;
+      }
+  
+      & .control-hover {
+        transition: 0.3s ease-in-out;
+        transition-property: transform;
+      }
+    }
+  
+    & .progress-bar {
+      background-color: var(--gray-2);
+      height: 2px;
+      margin-top: 4px;
+      position: relative;
+      width: 100%;
+  
+      & span {
+        background: var(--white);
+        display: block;
+        height: 2px;
+        position: absolute;
+        transition: width linear 0.2s;
+        width: 0;
+      }
+    } 
 
   /* Customize the branding  */
   & :global(.carousel .controls .control) {

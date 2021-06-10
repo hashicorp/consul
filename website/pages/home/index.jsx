@@ -5,53 +5,47 @@ import CodeBlock from '@hashicorp/react-code-block'
 import UseCases from '@hashicorp/react-use-cases'
 import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
-import HomepageHero from 'components/homepage-hero'
+import ConsulHero from 'components/homepage-hero'
 import StaticDynamicDiagram from 'components/static-dynamic-diagram'
 import highlightString from '@hashicorp/nextjs-scripts/prism/highlight-string'
 
 export default function HomePage({ serviceMeshIngressGatewayCode }) {
   return (
     <div className="p-home">
-      <HomepageHero
+      <ConsulHero
+        alert={{
+          url: 
+          'https://www.consul.io/docs/ecs',
+          text: 'Consul service mesh now available on ECS',
+          tag: 'Tech Preview',
+        }}
         title="Service Mesh for any runtime or cloud"
         description="Consul automates networking for simple and secure application delivery."
         links={[
           {
-            type: 'none',
-            text: 'Try HCP Consul',
+            external: false,
+            title: 'Try HCP Consul',
             url:
               'https://portal.cloud.hashicorp.com/sign-up?utm_source=docs&utm_content=consul_hero',
           },
           {
-            type: 'none',
-            text: 'Download',
+            external: false,
+            title: 'Download',
             url: '/downloads',
           },
         ]}
-        videos={[
-          {
+        uiVideo={{
             name: 'UI',
             playbackRate: 2,
-            src: [
-              {
-                srcType: 'mp4',
-                url:
-                  'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
-              },
-            ],
-          },
-          {
+            srcType: 'mp4',
+            url: 'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
+          }}
+        cliVideo={{
             name: 'CLI',
             playbackRate: 2,
-            src: [
-              {
-                srcType: 'mp4',
-                url:
-                  'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
-              },
-            ],
-          },
-        ]}
+            srcType: 'mp4',
+            url: 'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
+          }}
       />
       <StaticDynamicDiagram
         heading="Service-based networking for dynamic infrastructure"
