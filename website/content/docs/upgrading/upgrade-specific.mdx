@@ -14,7 +14,9 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.10.0 <EnterpriseAlert inline />
+## Consul 1.10.0
+
+### Licensing Changes <EnterpriseAlert inline />
 
 Consul Enterprise 1.10 has removed temporary licensing capabilities from the binaries
 found on https://releases.hashicorp.com. Servers will no longer load a license previously
@@ -33,7 +35,7 @@ agents require that either the [`start_join`](/docs/agent/opts#start_join) or
 agents. If those stipulations are not met, attempting to start the client or snapshot agent will
 result in it immediately shutting down.
 
-### Migration <EnterpriseAlert inline />
+#### Migration <EnterpriseAlert inline />
 Prior to upgrading Consul Enterprise to v1.10 you should ensure the license is set in all the right places.
 In general following these steps should be all thats necessary to ensure a smooth upgrade.
 
@@ -45,6 +47,69 @@ In general following these steps should be all thats necessary to ensure a smoot
    `retry_join` configurations pointing to servers, then repeat step 2 for all client agents.
 4. If ACLs are not in use then repeat step 2 for all snapshot agents.
 5. Now proceed with the [standard upgrade procedure](/docs/upgrading#standard-upgrades).
+
+### Envoy xDS Protocol Upgrades
+
+Consul versions 1.9 and earlier exposed an xDS server for use by
+[Envoy](https://www.envoyproxy.io) proxies using the v2 ["State of the
+World"](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-docs/xds_protocol#variants-of-the-xds-transport-protocol)
+protocol variant.
+
+Consul 1.10.0 adds support for the v3
+[Incremental](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-docs/xds_protocol#incremental-xds)
+protocol variant as the preferred way of conversing with Envoy. Both protocol
+variants are supported in this Consul version to facilitate upgrading Consul
+and Envoy in a stairstep order to avoid downtime.
+
+In a future version of Consul the v2 State of the World protocol support will
+be removed.
+
+| Protocol           | Version | Compatible Envoy Versions | Compatible Consul Versions |
+| ------------------ | ------- | ------------------------- | -------------------------- |
+| Incremental        | v3      | 1.18.x, 1.17.x            | 1.10.x                     |
+| State of the World | v2      | 1.16.x and older          | 1.10.x and older           |
+
+#### Escape Hatches
+
+Any [escape hatches](/docs/connect/proxies/envoy#advanced-configuration) that
+are defined will likely need to be switched from using xDS v2 to xDS v3
+structures. Mostly this involves migrating off of deprecated (and now removed)
+fields and switching untyped config to [typed config](https://www.envoyproxy.io/docs/envoy/v1.17.2/configuration/overview/extension)
+with `@type` attributes set appropriately.
+
+xDS v3 syntax has been [supported since Envoy
+1.13.0](https://www.envoyproxy.io/docs/envoy/v1.13.0/api-v3/api) so this could
+be done on most earlier versions of Consul+Envoy in advance of the Consul
+1.10.0 upgrade.
+
+As an example, here's a Zipkin integration
+[before](https://github.com/hashicorp/consul/blob/v1.9.5/test/integration/connect/envoy/case-zipkin/service_s2.hcl)
+and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/test/integration/connect/envoy/case-zipkin/service_s2.hcl)
+
+#### Stairstep Upgrade Path
+
+1. Upgrade Envoy sidecars to the latest version of Envoy that is
+   [supported](/docs/connect/proxies/envoy#supported-versions) by the currently
+   running version of Consul as well as Consul 1.10.0.
+
+1. Determine if you are using the [escape hatch](/docs/connect/proxies/envoy#advanced-configuration)
+   feature. If so, rewrite the escape hatch to use the xDS v3 syntax and update
+   the service registration to reflect the updated escape hatch configuration
+   by re-registering. This should purge v2 elements from any configs.
+
+1. Perform a normal upgrade of both Consul servers and clients to 1.10.0. At
+   this point the existing Envoy instances will continue to speak the v2 State
+   of the World protocol to the new Consul instances without issue.
+
+1. Once a Consul client is upgraded, use an updated CLI binary to re-bootstrap
+   and restart Envoy using [`consul connect envoy`](/commands/connect/envoy).
+   This will ensure it switches over to the v3 Incremental xDS protocol.
+
+   Depending upon how you have chosen to run Envoy this is either one step
+   (`consul connect envoy`) or two steps (`consul connect envoy -bootstrap`
+   followed by running Envoy directly).
+
+1. (Optionally) upgrade Envoy to the latest version supported in Consul 1.10.0.
 
 ## Consul 1.9.0
 

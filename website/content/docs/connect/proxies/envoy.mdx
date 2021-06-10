@@ -10,7 +10,7 @@ Consul Connect has first class support for using
 [Envoy](https://www.envoyproxy.io) as a proxy. Consul configures Envoy by
 optionally exposing a gRPC service on the local agent that serves [Envoy's xDS
 configuration
-API](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol).
+API](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-docs/xds_protocol).
 
 Consul can configure Envoy sidecars to proxy http/1.1, http2, or gRPC traffic at
 L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
@@ -43,7 +43,7 @@ compatible Envoy versions.
 | 1.4.x, 1.3.x        | 1.9.1, 1.8.0†, 1.7.0†            |
 
 ~> ‡ To ensure that intention enforcement is updated as quickly as possible
-after any changes, it is advised to run Consul 1.9.0 with Envoy 1.15.0+ due to a
+after any changes, it is advised to run Consul 1.9.0+ with Envoy 1.15.0+ due to a
 [listener update improvement](https://github.com/envoyproxy/envoy/pull/10662).<br/><br/>
 † Envoy versions lower than 1.9.1 are vulnerable to
 [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
@@ -166,7 +166,7 @@ definition](/docs/connect/registration/service-registration) or
   all metrics produced by the proxy.
 
 - `envoy_stats_flush_interval` - Configures Envoy's
-  [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-flush-interval).
+  [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval).
 
 There are more possibilities available in the [Advanced
 Configuration](#advanced-configuration) section that allow incremental or
@@ -224,7 +224,7 @@ defaults that are inherited by all services.
   - `grpc` - gRPC is a common RPC protocol based on http2. In addition to the
     http2 support above, Envoy listeners will be configured with a
     [gRPC bridge
-    filter](https://www.envoyproxy.io/docs/envoy/v1.10.0/configuration/http_filters/grpc_http1_bridge_filter#config-http-filters-grpc-bridge)
+    filter](https://www.envoyproxy.io/docs/envoy/v1.17.2/configuration/http/http_filters/grpc_http1_bridge_filter)
     that translates HTTP/1.1 calls into gRPC, and instruments
     metrics with `gRPC-status` trailer codes.
 
@@ -343,7 +343,7 @@ will continue to be supported.
 
 - `envoy_dns_discovery_type` - Determines how Envoy will resolve hostnames. Defaults to `LOGICAL_DNS`.
   Must be one of `STRICT_DNS` or `LOGICAL_DNS`. Details for each type are available in
-  the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.14.1/intro/arch_overview/upstream/service_discovery).
+  the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/intro/arch_overview/upstream/service_discovery).
   This option applies to terminating gateways that route to services
   addressed by a hostname, such as a managed databased. It also applies to mesh gateways,
   such as when gateways in other Consul datacenters are behind a load balancer that is addressed by a hostname.
@@ -381,20 +381,21 @@ noted.
 
 The JSON supplied may describe a protobuf `types.Any` message with an `@type`
 field set to the appropriate type (for example
-`type.googleapis.com/envoy.api.v2.Listener`), or it may be the direct encoding
-with no `@type` field.
+`type.googleapis.com/envoy.config.listener.v3.Listener`).
 
 For example, given a tracing config:
 
 ```json
-"tracing": {
+{
   "http": {
-     "name": "envoy.zipkin",
-     "config": {
-        "collector_cluster": "zipkin",
-        "collector_endpoint": "/api/v1/spans",
-        "shared_span_context": false
-     }
+    "name": "envoy.tracers.zipkin",
+    "typedConfig": {
+      "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+      "collector_cluster": "zipkin",
+      "collector_endpoint_version": "HTTP_JSON",
+      "collector_endpoint": "/api/v1/spans",
+      "shared_span_context": false
+    }
   }
 }
 ```
@@ -407,7 +408,7 @@ and then use that as the value for `envoy_tracing_json`:
   "kind": "proxy-defaults",
   "name": "global",
   "config": {
-    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.zipkin\",\"config\":{\"collector_cluster\":\"zipkin\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}"
+    "envoy_tracing_json": "{\"http\":{\"name\":\"envoy.tracers.zipkin\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig\",\"collector_cluster\":\"zipkin\",\"collector_endpoint_version\":\"HTTP_JSON\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}\n"
   }
 }
 ```
@@ -421,9 +422,11 @@ Config {
   envoy_tracing_json = <<EOF
 {
   "http": {
-    "name": "envoy.zipkin",
-    "config": {
+    "name": "envoy.tracers.zipkin",
+    "typedConfig": {
+      "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
       "collector_cluster": "zipkin",
+      "collector_endpoint_version": "HTTP_JSON",
       "collector_endpoint": "/api/v1/spans",
       "shared_span_context": false
     }
@@ -442,30 +445,34 @@ override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
-- `envoy_extra_static_clusters_json` - Specifies one or more [Envoy
-  clusters](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
+- `envoy_extra_static_clusters_json` - Specifies one or more [Envoy clusters][pb-cluster]
   that will be appended to the array of [static
-  clusters](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-clusters)
+  clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters)
   in the bootstrap config. This allows adding custom clusters for tracing sinks
   for example. For a single cluster just encode a single object, for multiple,
   they should be comma separated with no trailing comma suitable for
   interpolating directly into a JSON array inside the braces.
+
 - `envoy_extra_static_listeners_json` - Similar to
-  `envoy_extra_static_clusters_json` but appends [static
-  listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-staticresources-listeners) definitions.
+  `envoy_extra_static_clusters_json` but appends one or more [Envoy listeners][pb-listener] to the array of [static
+  listener](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-listeners) definitions.
   Can be used to setup limited access that bypasses Connect mTLS or
   authorization for health checks or metrics.
+
 - `envoy_extra_stats_sinks_json` - Similar to `envoy_extra_static_clusters_json`
-  but for [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-sinks). These are appended to any sinks defined by use of the
+  but for [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-sinks).
+  These are appended to any sinks defined by use of the
   higher-level [`envoy_statsd_url`](#envoy_statsd_url) or
   [`envoy_dogstatsd_url`](#envoy_dogstatsd_url) config options.
+
 - `envoy_stats_config_json` - The entire [stats
-  config](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-stats-config).
+  config](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-config).
   If provided this will override the higher-level
   [`envoy_stats_tags`](#envoy_stats_tags). It allows full control over dynamic
   tag replacements etc.
+
 - `envoy_tracing_json` - The entire [tracing
-  config](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-field-config-bootstrap-v2-bootstrap-tracing).
+  config](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-tracing).
   Most tracing providers will also require adding static clusters to define the
   endpoints to send tracing data to.
 
@@ -480,19 +487,20 @@ definition](/docs/connect/registration/service-registration) or
 
 - `envoy_bootstrap_json_tpl` - Specifies a template in Go template syntax that
   is used in place of [the default
-  template](https://github.com/hashicorp/consul/blob/b64bda880843afaaf44591c3200f921626716849/command/connect/envoy/bootstrap_tpl.go#L87)
+  template](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L129)
   when generating bootstrap via [`consul connect envoy`
   command](/commands/connect/envoy). The variables that are available
   to be interpolated are [documented
-  here](https://github.com/hashicorp/consul/blob/b64bda880843afaaf44591c3200f921626716849/command/connect/envoy/bootstrap_tpl.go#L5).
+  here](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L5).
   This offers complete control of the proxy's bootstrap although major
   deviations from the default template may break Consul's ability to correctly
   manage the proxy or enforce its security model.
-- `envoy_public_listener_json` - Specifies a complete
-  [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)
+
+- `envoy_public_listener_json` - Specifies a complete [Envoy listener][pb-listener]
   to be delivered in place of the main public listener that the proxy used to
   accept inbound connections. This will be used verbatim with the following
   exceptions:
+
   - Every `FilterChain` added to the listener will have its `TlsContext`
     overridden by the Connect TLS certificates and validation context. This
     means there is no way to override Connect's mutual TLS for the public
@@ -500,8 +508,8 @@ definition](/docs/connect/registration/service-registration) or
   - Every `FilterChain` will have the `envoy.filters.{network|http}.rbac` filter 
     prepended to the filters array to ensure that all inbound connections are 
     authorized by Connect. Before Consul 1.9.0 `envoy.ext_authz` was inserted instead.
-- `envoy_local_cluster_json` - Specifies a complete [Envoy
-  cluster](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
+
+- `envoy_local_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]
   to be delivered in place of the local application cluster. This allows
   customization of timeouts, rate limits, load balancing strategy etc.
 
@@ -517,17 +525,17 @@ definition](/docs/connect/registration/service-registration) or
 entry exists for a service the below escape hatches are ignored and will log a
 warning.
 
-- `envoy_listener_json` - Specifies a complete
-  [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)
+- `envoy_listener_json` - Specifies a complete [Listener][pb-listener]
   to be delivered in place of the upstream listener that the proxy exposes to
   the application for outbound connections. This will be used verbatim with the
   following exceptions:
+
   - Every `FilterChain` added to the listener will have its `TlsContext`
     overridden by the Connect TLS certificates and validation context. This
     means there is no way to override Connect's mutual TLS for the public
     listener.
-- `envoy_cluster_json` - Specifies a complete [Envoy
-  cluster](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/cds.proto#cluster)
+
+- `envoy_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]
   to be delivered in place of the discovered upstream cluster. This allows
   customization of timeouts, circuit breaking, rate limits, load balancing
   strategy etc.
@@ -535,3 +543,5 @@ warning.
 [protocol]: /docs/connect/config-entries/service-defaults#protocol
 [intentions]: /docs/connect/intentions
 [intentions]: /docs/connect/intentions
+[pb-cluster]: https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto
+[pb-listener]: https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto
