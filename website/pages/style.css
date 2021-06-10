@@ -10,6 +10,8 @@
 }
 
 @import '~@hashicorp/react-alert-banner/style.css';
+@import '~@hashicorp/react-alert/style.css';
+@import '~@hashicorp/react-hero/style.css';
 @import '~@hashicorp/react-button/styles/index.css';
 @import '~@hashicorp/react-callouts/style.css';
 @import '~@hashicorp/react-call-to-action/style.css';
@@ -35,7 +37,6 @@
 @import '../components/cloud-offerings-list/style.css';
 @import '../components/enterprise-comparison/style.css';
 @import '../components/footer/style.css';
-@import '../components/homepage-hero/carousel.css';
 @import '../components/mini-cta/style.css';
 @import '../components/use-cases-layout/style.css';
 
