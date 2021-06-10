@@ -13,45 +13,38 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
   return (
     <div className="p-home">
       <HomepageHero
+        alert={{
+          url: 'https://www.consul.io/docs/ecs',
+          text: 'Consul service mesh now available on ECS',
+          tag: 'Tech Preview',
+        }}
         title="Service Mesh for any runtime or cloud"
         description="Consul automates networking for simple and secure application delivery."
         links={[
           {
-            type: 'none',
-            text: 'Try HCP Consul',
+            external: false,
+            title: 'Try HCP Consul',
             url:
               'https://portal.cloud.hashicorp.com/sign-up?utm_source=docs&utm_content=consul_hero',
           },
           {
-            type: 'none',
-            text: 'Download',
+            external: false,
+            title: 'Download',
             url: '/downloads',
           },
         ]}
-        videos={[
-          {
-            name: 'UI',
-            playbackRate: 2,
-            src: [
-              {
-                srcType: 'mp4',
-                url:
-                  'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
-              },
-            ],
-          },
-          {
-            name: 'CLI',
-            playbackRate: 2,
-            src: [
-              {
-                srcType: 'mp4',
-                url:
-                  'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
-              },
-            ],
-          },
-        ]}
+        uiVideo={{
+          name: 'UI',
+          playbackRate: 2,
+          srcType: 'mp4',
+          url: 'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
+        }}
+        cliVideo={{
+          name: 'CLI',
+          playbackRate: 2,
+          srcType: 'mp4',
+          url: 'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
+        }}
       />
       <StaticDynamicDiagram
         heading="Service-based networking for dynamic infrastructure"
