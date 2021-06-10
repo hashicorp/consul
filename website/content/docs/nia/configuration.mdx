@@ -103,7 +103,7 @@ service {
 
 ## Task
 
-A `task` block configures which task to run in automation for the selected services. The list of services can include services explicitly defined by a `service` block or implicitly declared by the service name. The `task` block may be specified multiple times to configure multiple tasks.
+A `task` block configures which task to execute in automation. When the task should execute can be determined by the `service` block and `condition` block. The `task` block may be specified multiple times to configure multiple tasks.
 
 ```hcl
 task {
@@ -115,6 +115,9 @@ task {
   source = "org/example/module"
   version = "1.0.0"
   variable_files = []
+  condition "catalog-services" {
+    regexp = ".*"
+  }
 }
 ```
 
@@ -122,7 +125,7 @@ task {
 - `name` - (string: required) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
-- `services` - (list[string]: required) Services is the list of logical service names or service IDs the task executes on. Consul-Terraform-Sync monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace.
+- `services` - (list[string]) Required depending on [`condition`](#condition) configuration. Services is the list of logical service names or service IDs the task executes on. Consul-Terraform-Sync monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace. Alternative to configuring `services`, a `condition` can be configured so that the task does not trigger on changes to services (default behavior) but instead trigger on a different condition. See [Task Condition](#task-condition) configuration for more details.
 - `source` - (string: required) Source is the location the driver uses to fetch task dependencies. The source format is dependent on the driver. For the [Terraform driver](#terraform-driver), the source is the module path (local or remote). Read more on [Terraform module source here](https://www.terraform.io/docs/modules/sources.html).
 - `variable_files` - (list[string]) A list of paths to files containing variables for the task. For the [Terraform driver](#terraform-driver), these are used as Terraform [variable defintion (`.tfvars`) files](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files) and consists of only variable name assignments. The variable assignments must match the corresponding variable declarations available by the Terraform module for the task. Consul-Terraform-Sync will generate the intermediate variable declarations to pass as arguments from the auto-generated root module to the task's module. Variables are loaded in the same order as they appear in the order of the files. Duplicate variables are overwritten with the later value. _Note: unless specified by the module, configure arguments for Terraform providers using [`terraform_provider` blocks](#terraform-provider)._
   ```hcl
@@ -137,6 +140,67 @@ task {
   - `enabled` - (bool) Enable or disable buffer periods for this task. Specifying `min` will also enable it.
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
+- `condition` - (obj) The requirement that, when met, triggers Consul-Terraform-Sync to execute the task. When unconfigured, the default condition is to trigger the task on changes in the services configured in [`services`](#services). Only one `condition` may be configured per task. Consul-Terraform-Sync supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
+
+### Task Condition
+
+A `task` block can be optionally configured with a `condition` block to set the conditions that should be met in order to execute that particular task. Below are the different types of conditions that Consul-Terraform-Sync supports.
+
+#### Services Condition
+
+This is the default type of condition when no `condition` block is configured for a task. This condition will trigger the task on changes in services configured in [`task.services`](#services). The task can be optionally configured with a services condition block. However, this is not necessary since this is the default type of condition and there is currently no additional configuration options available for services condition.
+
+See [Task Execution: Services Condition](/docs/nia/tasks#services-condition) for more details on how tasks are triggered with a services condition.
+
+```hcl
+task {
+  name = "services_condition_task"
+  description = "execute on changes to api, db, and web services"
+  services = ["api", "db", "web"]
+  providers = ["my-provider"]
+  source = "path/to/services-condition-module"
+
+  // optional: declare empty services condition block
+  condition "services" {
+    // no additional configuration options currently
+  }
+}
+```
+
+#### Catalog-Services Condition
+
+A catalog-services condition block configures a task to only execute on service registration and deregistration, more specifically on first service instance registration and last service instance deregistration respectively. The catalog-services condition has additional configuration options to specify the services that can trigger the task on registration and deregistration.
+
+See [Task Execution: Catalog Services Condition](/docs/nia/tasks#catalog-services-condition) for more information on how tasks are triggered with a catalog-services condition.
+
+```hcl
+task {
+  name = "catalog_service_condition_task"
+  description = "execute on service de/registrations with name matching 'web.*'"
+  source = "path/to/catalog-service-module"
+  providers = ["my-provider"]
+
+  // configure depending on module. provides additional services information but
+  // does not execute task. refer to module docs on how to configure.
+  services = ["web-api"]
+
+  condition "catalog-service" {
+    datacenter          = "dc1"
+    namespace           = "default"
+    regexp              = "web.*"
+    source_includes_var = false
+    node_meta {
+      key = "value"
+    }
+  }
+}
+```
+
+- `datacenter` - (string) The datacenter of the services to query for the task. If not provided, the datacenter will default to the datacenter of the agent that Consul-Terraform-Sync queries.
+- `namespace` <EnterpriseAlert inline /> - (string) The namespace of the services to query for the task. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token or default to the `default` namespace.
+- `node_meta` - (map[string]) The node metadata key/value pairs used to filter services. Only services registered at a node with the specified key/value pairs are used by the task.
+- `regexp` - (string) Optional if [`task.services`](/docs/nia/configuration#services) is configured. Either `regexp` or `task.services` or both must be configured. Only services that have a name which matches the regular expression are used by the task. If not provided, `regexp` will default to an exact match on `task.services` list. For example, if `task.services = ["api", "web"]`, then regexp will default to `^api$|^web$`. Some resources for more information on regular expressions: [regular expression syntax](https://github.com/google/re2/wiki/Syntax), [try out regular expression string matching](https://golang.org/pkg/regexp/#Regexp.MatchString).
+- `source_includes_var` - (bool: false) Whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable). Please refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
 
 ## Terraform Driver
 
