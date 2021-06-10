@@ -5,17 +5,16 @@ import CodeBlock from '@hashicorp/react-code-block'
 import UseCases from '@hashicorp/react-use-cases'
 import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
-import ConsulHero from 'components/homepage-hero'
+import HomepageHero from 'components/homepage-hero'
 import StaticDynamicDiagram from 'components/static-dynamic-diagram'
 import highlightString from '@hashicorp/nextjs-scripts/prism/highlight-string'
 
 export default function HomePage({ serviceMeshIngressGatewayCode }) {
   return (
     <div className="p-home">
-      <ConsulHero
+      <HomepageHero
         alert={{
-          url: 
-          'https://www.consul.io/docs/ecs',
+          url: 'https://www.consul.io/docs/ecs',
           text: 'Consul service mesh now available on ECS',
           tag: 'Tech Preview',
         }}
@@ -35,17 +34,17 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
           },
         ]}
         uiVideo={{
-            name: 'UI',
-            playbackRate: 2,
-            srcType: 'mp4',
-            url: 'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
-          }}
+          name: 'UI',
+          playbackRate: 2,
+          srcType: 'mp4',
+          url: 'https://www.datocms-assets.com/2885/1621637919-consul-ui.mp4',
+        }}
         cliVideo={{
-            name: 'CLI',
-            playbackRate: 2,
-            srcType: 'mp4',
-            url: 'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
-          }}
+          name: 'CLI',
+          playbackRate: 2,
+          srcType: 'mp4',
+          url: 'https://www.datocms-assets.com/2885/1621637930-consul-cli.mp4',
+        }}
       />
       <StaticDynamicDiagram
         heading="Service-based networking for dynamic infrastructure"

@@ -1,20 +1,18 @@
 import Hero from '@hashicorp/react-hero'
 import s from './style.module.css'
 
-
-export default function ConsulHero ({
-
-    title,
-    description,
-    links,
-    uiVideo,
-    cliVideo,
-    alert,
-    image,
-}) { 
-    return (
-        <div className={s.consulHero}>
-        <Hero
+export default function HomepageHero({
+  title,
+  description,
+  links,
+  uiVideo,
+  cliVideo,
+  alert,
+  image,
+}) {
+  return (
+    <div className={s.consulHero}>
+      <Hero
         data={{
           product: 'consul',
           alert: alert ? { ...alert, tagColor: 'consul-pink' } : null,
@@ -57,5 +55,5 @@ export default function ConsulHero ({
         }}
       />
     </div>
-    )
+  )
 }
