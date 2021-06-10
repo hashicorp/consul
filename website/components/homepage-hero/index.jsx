@@ -1,5 +1,5 @@
-import Hero from '@hashicorp/react-hero'
 import s from './style.module.css'
+import Hero from '@hashicorp/react-hero'
 
 export default function HomepageHero({
   title,
