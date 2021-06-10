@@ -32,6 +32,7 @@
 @import '~@hashicorp/react-vertical-text-block-list/style.css';
 
 /* Local Components */
+@import '../components/basic-hero/style.css';
 @import '../components/case-study-carousel/style.css';
 @import '../components/cloud-offerings-list/style.css';
 @import '../components/enterprise-comparison/style.css';
