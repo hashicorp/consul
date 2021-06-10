@@ -44,7 +44,7 @@
   "devDependencies": {
     "@types/react": "^17.0.3",
     "dart-linkcheck": "2.0.15",
-    "husky": "4.3.7",
+    "husky": "^4.3.7",
     "prettier": "2.2.1"
   },
   "husky": {
