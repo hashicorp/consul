@@ -74,19 +74,21 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	config := struct {
-		Datacenter string
-		NodeName   string
-		NodeID     string
-		Revision   string
-		Server     bool
-		Version    string
+		Datacenter        string
+		PrimaryDatacenter string
+		NodeName          string
+		NodeID            string
+		Revision          string
+		Server            bool
+		Version           string
 	}{
-		Datacenter: s.agent.config.Datacenter,
-		NodeName:   s.agent.config.NodeName,
-		NodeID:     string(s.agent.config.NodeID),
-		Revision:   s.agent.config.Revision,
-		Server:     s.agent.config.ServerMode,
-		Version:    s.agent.config.Version,
+		Datacenter:        s.agent.config.Datacenter,
+		PrimaryDatacenter: s.agent.config.PrimaryDatacenter,
+		NodeName:          s.agent.config.NodeName,
+		NodeID:            string(s.agent.config.NodeID),
+		Revision:          s.agent.config.Revision,
+		Server:            s.agent.config.ServerMode,
+		Version:           s.agent.config.Version,
 	}
 	return Self{
 		Config:      config,
