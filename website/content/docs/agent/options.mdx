@@ -853,17 +853,17 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   and configure a sink and filters for their audit logs. For more information, review the [audit log tutorial](https://learn.hashicorp.com/tutorials/consul/audit-logging).
 
   ```hcl
-    audit {
-      enabled = true
-      sink "My sink" {
-        type   = "file"
-        format = "json"
-        path   = "data/audit/audit.json"
-        delivery_guarantee = "best-effort"
-        rotate_duration = "24h"
-        rotate_max_files = 15
-        rotate_bytes = 25165824
-      }
+  audit {
+    enabled = true
+    sink "My sink" {
+      type   = "file"
+      format = "json"
+      path   = "data/audit/audit.json"
+      delivery_guarantee = "best-effort"
+      rotate_duration = "24h"
+      rotate_max_files = 15
+      rotate_bytes = 25165824
+    }
   }
   ```
 
