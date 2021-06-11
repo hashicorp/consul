@@ -57,7 +57,8 @@ html.is-debug body > .brand-loader {
     }
     > h1,
     > h2,
-    > h3 {
+    > h3,
+    > h4 {
       margin-bottom: 1em;
     }
     > h1 {
@@ -69,6 +70,9 @@ html.is-debug body > .brand-loader {
     }
     > h3 {
       @extend %h300;
+    }
+    > h4 {
+      @extend %h400;
     }
     > p {
       @extend %p1;

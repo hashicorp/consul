@@ -5,6 +5,16 @@ title: Introduction
 
 Welcome to Consul UIs engineering documentation.
 
+## Environment Variables
+
+There are various environment variable you can use whilst running `make start` or `make test` to configure various features:
+
+| Variable | Default Value | Description |
+| -------- | ------------- | ----------- |
+| `TESTEM_AUTOLAUNCH` | Chrome | Controls which browser to open tests in. A setting of `""` means 'let me manually open the browser' |
+| `EMBER_TEST_REPORT` |  | Output a test report |
+| `CONSUL_DOCFY_CONFIG` |  | Define an additional `docfy-config.json` file to use |
+
 ## Adding documentation
 
 Our documentation use [docfy](https://docfy.dev/docs) for rendering our markdown+glimmer-component documentation. In order to live render any code examples use the `preview-template` meta, for example:

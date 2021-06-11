@@ -90,12 +90,7 @@ CONSUL_HTTP_ADDR=http://10.0.0.1:8500 make start-consul
 
 ### Environment Variables
 
-There are various environment variable you can use whilst running `make start` or `make test` to configure various features:
-
-| Variable | Default Value | Description |
-| -------- | ------------- | ----------- |
-| `TESTEM_AUTOLAUNCH` | Chrome | Controls which browser to open tests in. A setting of "" means 'let me manually open the browser' |
-| `EMBER_TEST_REPORT` |  | Output a test report |
+See [./docs/index.mdx](./docs/index.mdx#environment-variables)
 
 ### Contributing/Engineering Documentation
 

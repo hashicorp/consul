@@ -1,10 +1,32 @@
 const path = require('path');
+
 const autolinkHeadings = require('remark-autolink-headings');
 const refractor = require('refractor');
 const prism = require('@mapbox/rehype-prism');
 
+const fs = require('fs');
+const read = fs.readFileSync;
+const exists = fs.existsSync;
+const chalk = require('chalk'); // comes with ember
+
+// allow extra docfy config
+let user = {sources: [], labels: {}};
+const $CONSUL_DOCFY_CONFIG = process.env.CONSUL_DOCFY_CONFIG || '';
+if($CONSUL_DOCFY_CONFIG.length > 0) {
+  try {
+      if(exists($CONSUL_DOCFY_CONFIG)) {
+        user = JSON.parse(read($CONSUL_DOCFY_CONFIG));
+      } else {
+        throw new Error(`Unable to locate ${$CONSUL_DOCFY_CONFIG}`);
+      }
+  } catch(e) {
+    console.error(chalk.yellow(`Docfy: ${e.message}`));
+  }
+}
+
 refractor.alias('handlebars', 'hbs');
 refractor.alias('shell', 'sh');
+
 
 module.exports = {
   remarkHbsOptions: {
@@ -56,8 +78,9 @@ module.exports = {
       urlSchema: 'auto',
       urlPrefix: 'docs/consul',
     }
-  ],
+  ].concat(user.sources),
   labels: {
-    "consul": "Consul Components"
+    "consul": "Consul Components",
+    ...user.labels
   }
 };
