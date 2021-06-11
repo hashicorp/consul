@@ -4,16 +4,16 @@ page_title: Consul Enterprise License FAQ
 description: Frequently Asked Questions pertaining to Consul Enterprise Licensing.
 ---
 
-# Frequently Asked Questions (FAQ)
+# Licensing Frequently Asked Questions (FAQ)
 
-This FAQ is for the license changes introduced in Consul Enterprise version v1.10.0+ent.
-Consul Enterprise automatically load Consul licenses when a Consul server agent starts.
+This FAQ is for the license changes introduced in Consul Enterprise version 1.10.0.
+Consul Enterprise automatically loads Consul licenses when the server agent starts.
 
 ## Q: Can I get a quick summary of the Consul changes?
 
 Starting with Consul Enterprise v1.10.0, the license enablement process is different.
 
-HashiCorp Enterprise servers will no longer start without a license. When the server instance initializes the license watcher, the server reads from either an environment variable or file.
+HashiCorp Enterprise servers will no longer start without a license. Servers require licenses to be provided from either an environment variable or file.
 If the license is missing, invalid, or expired, the server will immediately exit.
 This check is part of the server boot-up process.
 
@@ -39,24 +39,24 @@ The list below is a great starting point for learning more about the license cha
 ## Q: Do these changes impact all customers/licenses?
 
 The license changes introduced in v1.10.0 only affect Consul Enterprise.
-This impacts customers that have an enterprise binarie (EVAL / non-EVAL licenses) downloaded from releases.hashicorp.com.
+This impacts customers that have an enterprise binary (evaluation or non-evaluation licenses) downloaded from <releases.hashicorp.com>.
 The license changes do not impact customers with the baked-in licensed binaries. In a later release of Consul Enterprise, baked-in binaries will be deprecated.
 
 ## Q: What is the product behavior change introduced by the licensing changes?
 
-Starting with Consul Enterprise v1.10.0+ent, a valid license is required on-disk (auto-loading) or as an environment variable for Consul Enterprise to successfully boot-up.
+Starting with Consul Enterprise 1.10.0, a valid license is required on-disk (auto-loading) or as an environment variable for Consul Enterprise to successfully boot-up.
 The in-storage license feature will not be supported starting with Consul Enteprise v1.10.0+ent. All Consul Enterprise clusters using v1.10.0+ent must ensure that there is a valid license on-disk (auto-loaded) or as an environment variable.
 
-## Q: What is the impact on EVAL licenses due to this change?
+## Q: What is the impact on evaluation licenses due to this change?
 
-The 6-hour trial period for EVAL licenses will be deprecated as of Consul Enterprise 1.10.0.  
+The 6-hour trial period for evaluation licenses will be deprecated as of Consul Enterprise 1.10.0.  
 This means that any clusters deployed with Consul v1.10.0+ent binaries will need to have a valid license on the disk (auto-loaded) or as an environment variable.
-Failure in providing a valid license key will result in the Consul server agent not starting.
+Failure to provide a valid license key will result in the Consul server agent not starting.
 
 ## Q: Is there a grace period when licenses expire?
 
 A license includes an `expiration_date` and a `termination_date`. An enteprise binary will cease to function once the `termination_date` has passed.
-Licenses will now have a 24 hrs grace period. The grace period is the time between license expiry till it terminates.
+Licenses will now have a 24 hrs grace period. The grace period is the time between license expiry until the time it terminates.
 As Consul Enterprise approaches the expiration date, warnings will be issued in the system logs.
 
 ## Q: Does this affect client agents?
@@ -69,11 +69,16 @@ For new Consul clusters using Consul v1.10.0+ent, customers must ensure that the
 
 Same behavior as Consul clients. See answer for [Does this affect snapshot agents? ](faq#q-does-this-affect-client-agents)
 
-## Q: What is the behavior is the license is missing?
+## Q: What is the behavior if the license is missing?
 
 Consul server agents will detect the absence of the license and immediately exit.
 
-Consul client agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `start_join/retry_join` addresses, the start/retry join addresses are addresses of the Consul servers.
+Consul client agents will attempt to retrieve the license from servers if certain conditions are met:
+
+* ACLs are enabled.
+* An ACL token is provided to the client agent.
+* The client agents configuration contains `start_join/retry_join` addresses.
+* The start/retry join addresses are addresses of the Consul servers.
 
 Consul snapshot agents will attempt to retrieve the license from servers if certain conditions are met: ACLs are enabled, a ACL token is provided to the client agent, the client agents configuration contains `start_join/retry_join` addresses, the start/retry join addresses are addresses of the Consul servers.
 
@@ -91,7 +96,7 @@ This will not impact HCP Consul.
 
 ## Q: Does this need to happen every time a node restarts, or is this a one-time check?
 
-Consul Enterprise binaries starting with v1.10.0+ent, will be subject to EULA check. Release v1.10.0+ent introduces the EULA check for eval licenses (non-EVAL licenses already go through EULA check during contractual agreement).
+Consul Enterprise binaries starting with v1.10.0+ent, will be subject to EULA check. Release v1.10.0+ent introduces the EULA check for evaluation licenses (non-evaluation licenses already go through EULA check during contractual agreement).
 
 The agreement to a EULA happens only once (when the user gets their license), Consul Enterprise **will check for the presence of a valid license every time a node restarts**.
 
@@ -106,18 +111,18 @@ This valid license must be on-disk (auto-loaded) or as an environment variable.
 
 ## Q: What is the migration path for customers who want to migrate from their existing license-as-applied-via-the-CLI flow to the license on disk flow?
 
-Run consul `license get -signed` to extract the license from their running cluster. Store the license in a secure location on disk.
-Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
-Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-Proceed with the upgrade as normal.
+1. Run [`consul license get -signed`](/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
+1. Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
+1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
+1. Proceed with the upgrade as normal.
 
 ## Q: What is the migration path for customers who want to migrate from their existing perpetually-licensed binaries to the license on disk flow?
 
-Aquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
-Store the license in a secure location on disk.
-Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-Proceed with the upgrade as normal.
+1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
+1. Store the license in a secure location on disk.
+1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
+1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
+1. Proceed with the upgrade as normal.
 
 ## Q: Will Consul downgrades/rollbacks work?
 
