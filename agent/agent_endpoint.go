@@ -1205,6 +1205,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	flusher.Flush()
 	const flushDelay = 200 * time.Millisecond
 	flushTicker := time.NewTicker(flushDelay)
+	defer flushTicker.Stop()
 
 	// Stream logs until the connection is closed.
 	for {
