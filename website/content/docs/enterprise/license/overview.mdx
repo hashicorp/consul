@@ -12,12 +12,14 @@ All Consul Enterprise agents must be licensed when they are started. Where that 
 on which binary is in use, whether the agent is a server, client or snapshot agent and whether ACLs have been
 enabled for the cluster.
 
--> ** Consul Enterprise v1.10.0 removed temporary licensing.** In previous versions Consul Enterprise
+-> ** Consul Enterprise 1.10.0 removed temporary licensing.** In previous versions Consul Enterprise
 agents could start without a license and then have a license applied to them later on via the CLI
 or API. That functionality has been removed and replaced with the ability to load licenses from the
-agent's configuration or environment. Also prior to v1.10.0 server agents would automatically propagate
+agent's configuration or environment. Also prior to 1.10.0 server agents would automatically propagate
 the license between themselves. This no longer occurs and the license must be present on each server
 when they are started.
+
+-> Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
 
 ### Binaries with Built In Licenses
 
@@ -33,7 +35,7 @@ When using these binaries no further action is necessary to configure the licens
 
 ### Binaries Without Built In Licenses
 
-For binaries that do not include built in licenses a license must be available at the time the agent starts.
+For Consul Enterprise 1.10.0 or greater, binaries that do not include built in licenses a license must be available at the time the agent starts.
 For server agents this means that they must either have the [`license_path`](/docs/agent/options#license_path)
 configuration set or have a license configured in the servers environment with the `CONSUL_LICENSE` or
 `CONSUL_LICENSE_PATH` environment variables. Both the configuration item and the `CONSUL_LICENSE_PATH`
@@ -56,9 +58,17 @@ request but the token doesn't need any particular permissions. As the license is
 actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/opts#start_join)
 or [`retry_join`](/docs/agent/opts#retry_join) configurations. If those are both unset or no
 [`agent` token](/docs/agent/opts#acl_tokens_agent) is set then the client agent will immediately shut itself down.
+
 If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to
 request the license. These requests will be retried for up to 5 minutes and if it is unable to retrieve a
 license within that time frame it will shut itself down.
+
+If ACLs are disabled then the license must be provided to the client agent through one of the three methods listed below.
+Failure in providing the client agent with a licence will prevent the client agent from joining the cluster.
+
+1. `CONSUL_LICENSE` environment variable
+2. `CONSUL_LICENSE_PATH` environment variable
+3. `license_path` configuration item.
 
 #### Snapshot Agent License Retrieval
 
