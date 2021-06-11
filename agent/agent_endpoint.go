@@ -1204,7 +1204,8 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	resp.Write([]byte(""))
 	flusher.Flush()
 	const flushDelay = 200 * time.Millisecond
-	t := time.AfterFunc(flushDelay, flusher.Flush)
+	flushTicker := time.NewTicker(flushDelay)
+
 	// Stream logs until the connection is closed.
 	for {
 		select {
@@ -1215,13 +1216,12 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 			}
 			flusher.Flush()
 			return nil, nil
+
 		case log := <-logsCh:
 			fmt.Fprint(resp, string(log))
-			select {
-			case <-t.C:
-				t = time.AfterFunc(flushDelay, flusher.Flush)
-			default:
-			}
+
+		case <-flushTicker.C:
+			flusher.Flush()
 		}
 	}
 }
