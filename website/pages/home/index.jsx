@@ -29,8 +29,8 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
           },
           {
             external: false,
-            title: 'Download',
-            url: '/downloads',
+            title: 'Get Started',
+            url: 'https://learn.hashicorp.com/consul',
           },
         ]}
         uiVideo={{
