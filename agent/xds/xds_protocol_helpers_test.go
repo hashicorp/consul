@@ -391,6 +391,24 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			ConnectTimeout:  ptypes.DurationProto(5 * time.Second),
 			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"),
 		}
+	case "tcp:db:timeout":
+		return &envoy_cluster_v3.Cluster{
+			Name: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
+				Type: envoy_cluster_v3.Cluster_EDS,
+			},
+			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
+				EdsConfig: xdsNewADSConfig(),
+			},
+			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
+			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
+			AltStatName:      "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
+				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
+			},
+			ConnectTimeout:  ptypes.DurationProto(1337 * time.Second),
+			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"),
+		}
 	case "http2:db":
 		return &envoy_cluster_v3.Cluster{
 			Name: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",

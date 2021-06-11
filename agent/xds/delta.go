@@ -120,6 +120,18 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 		EndpointType: newDeltaType(generator, stream, EndpointType, nil),
 	}
 
+	// Endpoints are stored within a Cluster (and Routes
+	// are stored within a Listener) so whenever the
+	// enclosing resource is updated the inner resource
+	// list is cleared implicitly.
+	//
+	// When this happens we should update our local
+	// representation of envoy state to force an update.
+	//
+	// see: https://github.com/envoyproxy/envoy/issues/13009
+	handlers[ListenerType].childType = handlers[RouteType]
+	handlers[ClusterType].childType = handlers[EndpointType]
+
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
 		authTimer = time.After(s.AuthCheckFrequency)
@@ -352,6 +364,11 @@ type xDSDeltaType struct {
 	typeURL      string
 	allowEmptyFn func(kind structs.ServiceKind) bool
 
+	// childType is a type that in Envoy is actually stored within this type.
+	// Upserts of THIS type should trigger similarly named resources within the
+	// child to be re-configured.
+	childType *xDSDeltaType
+
 	// registered indicates if this type has been requested at least once by
 	// the proxy
 	registered bool
@@ -516,6 +533,20 @@ func (t *xDSDeltaType) ack(nonce string) {
 			delete(t.resourceVersions, name)
 		} else {
 			t.resourceVersions[name] = version
+		}
+		if t.childType != nil && version != "" {
+			// This branch only matters on UPDATE, since we already have
+			// mechanisms to clean up orphaned resources.
+			if _, exist := t.childType.resourceVersions[name]; exist {
+				t.generator.Logger.Trace(
+					"triggering implicit update of resource",
+					"typeUrl", t.typeURL,
+					"childTypeUrl", t.childType.typeURL,
+					"resource", name,
+				)
+				// Basically manifest this as a re-subscribe
+				t.childType.resourceVersions[name] = ""
+			}
 		}
 	}
 	t.sentToEnvoyOnce = true

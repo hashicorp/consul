@@ -327,6 +327,137 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 	}
 }
 
+func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpactEndpoints(t *testing.T) {
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		// Allow all
+		return acl.RootAuthorizer("manage"), nil
+	}
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
+	mgr, errCh, envoy := scenario.mgr, scenario.errCh, scenario.envoy
+
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, sid)
+
+	snap := newTestSnapshot(t, nil, "")
+
+	// Send initial cluster discover.
+	envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{})
+
+	// Check no response sent yet
+	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+	requireProtocolVersionGauge(t, scenario, "v3", 1)
+
+	// Deliver a new snapshot (tcp with one tcp upstream)
+	mgr.DeliverConfig(t, sid, snap)
+
+	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+		TypeUrl: ClusterType,
+		Nonce:   hexString(1),
+		Resources: makeTestResources(t,
+			makeTestCluster(t, snap, "tcp:local_app"),
+			makeTestCluster(t, snap, "tcp:db"),
+			makeTestCluster(t, snap, "tcp:geo-cache"),
+		),
+	})
+
+	// Envoy then tries to discover endpoints for those clusters.
+	envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+		ResourceNamesSubscribe: []string{
+			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			"geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+		},
+	})
+
+	// It also (in parallel) issues the cluster ACK
+	envoy.SendDeltaReqACK(t, ClusterType, 1, true, nil)
+
+	// We should get a response immediately since the config is already present in
+	// the server for endpoints. Note that this should not be racy if the server
+	// is behaving well since the Cluster send above should be blocked until we
+	// deliver a new config version.
+	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+		TypeUrl: EndpointType,
+		Nonce:   hexString(2),
+		Resources: makeTestResources(t,
+			makeTestEndpoints(t, snap, "tcp:db"),
+			makeTestEndpoints(t, snap, "tcp:geo-cache"),
+		),
+	})
+
+	// And no other response yet
+	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+	// Envoy now sends listener request
+	envoy.SendDeltaReq(t, ListenerType, nil)
+
+	// It also (in parallel) issues the endpoint ACK
+	envoy.SendDeltaReqACK(t, EndpointType, 2, true, nil)
+
+	// And should get a response immediately.
+	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+		TypeUrl: ListenerType,
+		Nonce:   hexString(3),
+		Resources: makeTestResources(t,
+			makeTestListener(t, snap, "tcp:public_listener"),
+			makeTestListener(t, snap, "tcp:db"),
+			makeTestListener(t, snap, "tcp:geo-cache"),
+		),
+	})
+
+	// And no other response yet
+	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+	// ACKs the listener
+	envoy.SendDeltaReqACK(t, ListenerType, 3, true, nil)
+
+	// Update the snapshot in a way that causes a single cluster update.
+	snap = newTestSnapshot(t, snap, "", &structs.ServiceResolverConfigEntry{
+		Kind:           structs.ServiceResolver,
+		Name:           "db",
+		ConnectTimeout: 1337 * time.Second,
+	})
+	mgr.DeliverConfig(t, sid, snap)
+
+	// The cluster is updated
+	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+		TypeUrl: ClusterType,
+		Nonce:   hexString(4),
+		Resources: makeTestResources(t,
+			// SAME makeTestCluster(t, snap, "tcp:local_app"),
+			makeTestCluster(t, snap, "tcp:db:timeout"),
+			// SAME makeTestCluster(t, snap, "tcp:geo-cache"),
+		),
+	})
+
+	envoy.SendDeltaReqACK(t, ClusterType, 4, true, nil)
+
+	// And we re-send the endpoints for the updated cluster after getting the
+	// ACK for the cluster.
+	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+		TypeUrl: EndpointType,
+		Nonce:   hexString(5),
+		Resources: makeTestResources(t,
+			makeTestEndpoints(t, snap, "tcp:db"),
+			// SAME makeTestEndpoints(t, snap, "tcp:geo-cache"),
+		),
+	})
+	envoy.SendDeltaReqACK(t, EndpointType, 5, true, nil)
+
+	// And no other response yet
+	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+	envoy.Close()
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
 func TestServer_DeltaAggregatedResources_v3_ACLEnforcement(t *testing.T) {
 	tests := []struct {
 		name        string
