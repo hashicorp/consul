@@ -401,7 +401,27 @@ For example, given a tracing config:
 ```
 
 JSON escape the value of `tracing` into a string, for example using [https://codebeautify.org/json-escape-unescape](https://codebeautify.org/json-escape-unescape),
-and then use that as the value for `envoy_tracing_json`:
+or using [jq](https://stedolan.github.io/jq/).
+
+```shell
+$ cat <<EOF | jq '. | @json'
+{
+  "http": {
+    "name": "envoy.tracers.zipkin",
+    "typedConfig": {
+      "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+      "collector_cluster": "zipkin",
+      "collector_endpoint_version": "HTTP_JSON",
+      "collector_endpoint": "/api/v1/spans",
+      "shared_span_context": false
+    }
+  }
+}
+EOF
+"{\"http\":{\"name\":\"envoy.tracers.zipkin\",\"typedConfig\":{\"@type\":\"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig\",\"collector_cluster\":\"zipkin\",\"collector_endpoint_version\":\"HTTP_JSON\",\"collector_endpoint\":\"/api/v1/spans\",\"shared_span_context\":false}}}"
+```
+
+Then use that as the value for `envoy_tracing_json`:
 
 ```json
 {
