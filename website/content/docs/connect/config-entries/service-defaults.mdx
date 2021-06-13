@@ -18,6 +18,12 @@ service, such as its protocol.
 
 ### Default protocol
 
+-> **NOTE**: The default protocol can also be configured globally for all proxies
+using the [`proxy defaults`](/docs/connect/config-entries/proxy-defaults#default-protocol)
+config entry. However, if a protocol value is specified in service defaults
+config entry for a given service, that value will take precedence over the
+globally configured value from proxy defaults.
+
 <Tabs>
 <Tab heading="HCL">
 
