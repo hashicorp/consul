@@ -27,29 +27,23 @@ and discovery terminates.
 
 ### Filter on service version
 
-<Tabs>
-<Tab heading="HCL">
-
 Create service subsets based on a version metadata and override the defaults:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind          = "service-resolver"
 Name          = "web"
 DefaultSubset = "v1"
 Subsets = {
-  "v1" = {
+  v1 = {
     Filter = "Service.Meta.version == v1"
   }
-  "v2" = {
+  v2 = {
     Filter = "Service.Meta.version == v2"
   }
 }
 ```
-
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Create service subsets based on a version metadata and override the defaults:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -57,23 +51,37 @@ kind: ServiceResolver
 metadata:
   name: web
 spec:
-  defaultSubset: 'v1'
+  defaultSubset: v1
   subsets:
-    'v1':
+    v1:
       filter: 'Service.Meta.version == v1'
-    'v2':
+    v2:
       filter: 'Service.Meta.version == v2'
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "web",
+  "DefaultSubset": "v1",
+  "Subsets": {
+    "v1": {
+      "Filter": "Service.Meta.version == v1"
+    },
+    "v2": {
+      "Filter": "Service.Meta.version == v2"
+    }
+  }
+}
+```
+
+</CodeTabs>
 
 ### Other datacenters
 
-<Tabs>
-<Tab heading="HCL">
-
 Expose a set of services in another datacenter as a virtual service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-resolver"
@@ -83,11 +91,6 @@ Redirect {
   Datacenter = "dc2"
 }
 ```
-
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Expose a set of services in another datacenter as a virtual service:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -100,31 +103,38 @@ spec:
     datacenter: dc2
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "web-dc2",
+  "Redirect": {
+    "Service": "web",
+    "Datacenter": "dc2"
+  }
+}
+```
+
+</CodeTabs>
 
 ### Datacenter failover
 
-<Tabs>
-<Tab heading="HCL">
+Enable failover for subset 'v2' to 'dc2', and all other subsets to dc3 or dc4:
 
-Enable failover for all subsets:
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind           = "service-resolver"
 Name           = "web"
 ConnectTimeout = "15s"
 Failover = {
+  v2 = {
+    Datacenters = ["dc2"]
+  }
   "*" = {
     Datacenters = ["dc3", "dc4"]
   }
 }
 ```
-
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Enable failover for all subsets:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -134,19 +144,35 @@ metadata:
 spec:
   connectTimeout: 15s
   failover:
+    v2:
+      datacenters: ['dc2']
     '*':
       datacenters: ['dc3', 'dc4']
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "web",
+  "ConnectTimeout": "15s",
+  "Failover": {
+    "v2": {
+      "Datacenters": ["dc2"]
+    },
+    "*": {
+      "Datacenters": ["dc3", "dc4"]
+    }
+  }
+}
+```
+
+</CodeTabs>
 
 ### Consistent load balancing
 
-<Tabs>
-<Tab heading="HCL">
-
 Apply consistent load balancing for requests based on `x-user-id` header:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-resolver"
@@ -163,11 +189,6 @@ LoadBalancer = {
 }
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Apply consistent load balancing for requests based on `x-user-id` header:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceResolver
@@ -181,8 +202,23 @@ spec:
         fieldValue: x-user-id
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-resolver",
+  "Name": "web",
+  "LoadBalancer": {
+    "Policy": "maglev",
+    "HashPolicies": [
+      {
+        "Field": "header",
+        "FieldValue": "x-user-id"
+      }
+    ]
+  }
+}
+```
+
+</CodeTabs>
 
 ## Available Fields
 

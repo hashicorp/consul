@@ -43,10 +43,9 @@ resolution stage.
 
 ### Two subsets of same service
 
-<Tabs>
-<Tab heading="HCL">
-
 Split traffic between two subsets of the same service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-splitter"
@@ -63,11 +62,6 @@ Splits = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Split traffic between two subsets of the same service:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -81,15 +75,30 @@ spec:
       serviceSubset: v2
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 90,
+      "ServiceSubset": "v1"
+    },
+    {
+      "Weight": 10,
+      "ServiceSubset": "v2"
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### Two different services
 
-<Tabs>
-<Tab heading="HCL">
-
 Split traffic between two services:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-splitter"
@@ -106,11 +115,6 @@ Splits = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Split traffic between two services:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceSplitter
@@ -124,8 +128,23 @@ spec:
       service: web-rewrite
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 50
+    },
+    {
+      "Weight": 50,
+      "Service": "web-rewrite"
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ## Available Fields
 
