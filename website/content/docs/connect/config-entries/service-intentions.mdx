@@ -36,10 +36,9 @@ or globally via [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) 
 
 ### REST Access
 
-<Tabs>
-<Tab heading="HCL">
-
 Grant some clients more REST access than others:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-intentions"
@@ -74,11 +73,6 @@ Sources = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Grant some clients more REST access than others:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -104,17 +98,47 @@ spec:
     # unmatched connections and requests. Typically this will be DENY.
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "api",
+  "Sources": [
+    {
+      "Name": "admin-dashboard",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/v2",
+            "Methods": ["GET", "PUT", "POST", "DELETE", "HEAD"]
+          }
+        }
+      ]
+    },
+    {
+      "Name": "report-generator",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/v2/widgets",
+            "Methods": ["GET"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+</CodeTabs>
 
 ### gRPC
-
-<Tabs>
-<Tab heading="HCL">
 
 Selectively deny some gRPC service methods. Since gRPC method calls [are
 HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
 use an HTTP path match rule to control traffic:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-intentions"
@@ -156,13 +180,6 @@ Sources = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Selectively deny some gRPC service methods. Since gRPC method calls [are
-HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
-use an HTTP path match rule to control traffic:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -192,15 +209,50 @@ spec:
     # unmatched connections and requests. Typically this will be DENY.
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "billing",
+  "Sources": [
+    {
+      "Name": "frontend-web",
+      "Permissions": [
+        {
+          "Action": "deny",
+          "HTTP": {
+            "PathExact": "/mycompany.BillingService/IssueRefund"
+          }
+        },
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/mycompany.BillingService/"
+          }
+        }
+      ]
+    },
+    {
+      "Name": "support-portal",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/mycompany.BillingService/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### L4 and L7
 
-<Tabs>
-<Tab heading="HCL">
-
 You can mix and match L4 and L7 intentions per source:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-intentions"
@@ -231,11 +283,6 @@ Sources = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-You can mix and match L4 and L7 intentions per source:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -259,8 +306,35 @@ spec:
     # unmatched connections and requests. Typically this will be DENY.
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "api",
+  "Sources": [
+    {
+      "Name": "hackathon-project",
+      "Action": "deny"
+    },
+    {
+      "Name": "web",
+      "Action": "allow"
+    },
+    {
+      "Name": "nightly-reconciler",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathExact": "/v1/reconcile-data",
+            "Methods": ["POST"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+</CodeTabs>
 
 ## Available Fields
 
