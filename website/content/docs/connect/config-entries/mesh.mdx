@@ -23,7 +23,9 @@ Settings in this config entry apply across all namespaces and federated datacent
 Only allow transparent proxies to dial addresses in the mesh.
 
 <Tabs>
-<Tab heading="HCL">
+<Tab heading="Consul OSS">
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "mesh"
@@ -32,11 +34,34 @@ TransparentProxy {
 }
 ```
 
-</Tab>
-<Tab heading="HCL (Consul Enterprise)">
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: Mesh
+metadata:
+  name: mesh
+spec:
+  transparentProxy:
+    meshDestinationsOnly: true
+```
 
-**NOTE:** The `mesh` config entry can only be created in the `default`
+```json
+{
+  "Kind": "mesh",
+  "TransparentProxy": {
+    "MeshDestinationsOnly": true
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+-> **Note**: The `mesh` config entry can only be created in the `default`
 namespace and it will apply to proxies across **all** namespaces.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind      = "mesh"
@@ -47,9 +72,6 @@ TransparentProxy {
 }
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: Mesh
@@ -60,22 +82,17 @@ spec:
     meshDestinationsOnly: true
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML (Consul Enterprise)">
-
-**NOTE:** A `Mesh` resource can be created in any Kubernetes
-namespace but it will apply to proxies across **all** namespaces. Only one
-`Mesh` resource can exist in the cluster.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: Mesh
-metadata:
-  name: mesh
-spec:
-  transparentProxy:
-    meshDestinationsOnly: true
+```json
+{
+  "Kind": "mesh",
+  "Namespace": "default",
+  "TransparentProxy": {
+    "MeshDestinationsOnly": true
+  }
+}
 ```
+
+</CodeTabs>
 
 </Tab>
 </Tabs>
