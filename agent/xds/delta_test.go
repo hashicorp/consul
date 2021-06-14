@@ -464,7 +464,6 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP_clusterChangesImpa
 }
 
 func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2_RDS_listenerChangesImpactRoutes(t *testing.T) {
-	// NOTE: this actually has to be a multi-terminating gateway
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
 		return acl.RootAuthorizer("manage"), nil
