@@ -574,38 +574,38 @@ func TestStructs_NodeService_ValidateExposeConfig(t *testing.T) {
 	}
 	cases := map[string]testCase{
 		"valid": {
-			func(x *NodeService) {},
-			"",
+			Modify: func(x *NodeService) {},
+			Err:    "",
 		},
 		"empty path": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].Path = "" },
-			"empty path exposed",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].Path = "" },
+			Err:    "empty path exposed",
 		},
 		"invalid port negative": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = -1 },
-			"invalid listener port",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = -1 },
+			Err:    "invalid listener port",
 		},
 		"invalid port too large": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = 65536 },
-			"invalid listener port",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = 65536 },
+			Err:    "invalid listener port",
 		},
-		"duplicate paths": {
-			func(x *NodeService) {
-				x.Proxy.Expose.Paths[0].Path = "/metrics"
-				x.Proxy.Expose.Paths[1].Path = "/metrics"
+		"duplicate paths are allowed": {
+			Modify: func(x *NodeService) {
+				x.Proxy.Expose.Paths[0].Path = "/healthz"
+				x.Proxy.Expose.Paths[1].Path = "/healthz"
 			},
-			"duplicate paths exposed",
+			Err: "",
 		},
-		"duplicate ports": {
-			func(x *NodeService) {
+		"duplicate listener ports are not allowed": {
+			Modify: func(x *NodeService) {
 				x.Proxy.Expose.Paths[0].ListenerPort = 21600
 				x.Proxy.Expose.Paths[1].ListenerPort = 21600
 			},
-			"duplicate listener ports exposed",
+			Err: "duplicate listener ports exposed",
 		},
 		"protocol not supported": {
-			func(x *NodeService) { x.Proxy.Expose.Paths[0].Protocol = "foo" },
-			"protocol 'foo' not supported for path",
+			Modify: func(x *NodeService) { x.Proxy.Expose.Paths[0].Protocol = "foo" },
+			Err:    "protocol 'foo' not supported for path",
 		},
 	}
 

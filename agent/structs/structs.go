@@ -1205,17 +1205,12 @@ func (s *NodeService) Validate() error {
 			}
 			bindAddrs[addr] = struct{}{}
 		}
-		var knownPaths = make(map[string]bool)
+
 		var knownListeners = make(map[int]bool)
 		for _, path := range s.Proxy.Expose.Paths {
 			if path.Path == "" {
 				result = multierror.Append(result, fmt.Errorf("expose.paths: empty path exposed"))
 			}
-
-			if seen := knownPaths[path.Path]; seen {
-				result = multierror.Append(result, fmt.Errorf("expose.paths: duplicate paths exposed"))
-			}
-			knownPaths[path.Path] = true
 
 			if seen := knownListeners[path.ListenerPort]; seen {
 				result = multierror.Append(result, fmt.Errorf("expose.paths: duplicate listener ports exposed"))
