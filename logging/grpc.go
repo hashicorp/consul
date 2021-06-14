@@ -28,7 +28,8 @@ func NewGRPCLogger(logLevel string, logger hclog.Logger) *GRPCLogger {
 
 // Info implements grpclog.LoggerV2
 func (g *GRPCLogger) Info(args ...interface{}) {
-	g.logger.Info(fmt.Sprint(args...))
+	// gRPC's INFO level is more akin to Consul's TRACE level
+	g.logger.Trace(fmt.Sprint(args...))
 }
 
 // Infoln implements grpclog.LoggerV2
