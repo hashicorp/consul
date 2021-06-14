@@ -82,7 +82,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.1.10
-	golang.org/x/crypto v0.0.0-20200930160638-afb6bcd081ae
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
