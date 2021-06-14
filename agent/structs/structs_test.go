@@ -589,13 +589,6 @@ func TestStructs_NodeService_ValidateExposeConfig(t *testing.T) {
 			func(x *NodeService) { x.Proxy.Expose.Paths[0].ListenerPort = 65536 },
 			"invalid listener port",
 		},
-		"duplicate paths": {
-			func(x *NodeService) {
-				x.Proxy.Expose.Paths[0].Path = "/metrics"
-				x.Proxy.Expose.Paths[1].Path = "/metrics"
-			},
-			"duplicate paths exposed",
-		},
 		"duplicate ports": {
 			func(x *NodeService) {
 				x.Proxy.Expose.Paths[0].ListenerPort = 21600
