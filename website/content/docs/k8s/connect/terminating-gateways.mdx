@@ -84,23 +84,37 @@ Registering the external services with Consul is a multi-step process:
 
 ### Register external services with Consul
 
+-> **Note:** Normal Consul services are registered with the Consul client on the node that
+they're running on. Since this is an external service, there is no Consul node
+to register it onto. Instead, we will make up a node name and register the
+service to that node.
+
 Create a sample external service and register it with Consul.
 
 ```json
 {
-  "Node": "legacy_node",
+  "Node": "example_com",
   "Address": "example.com",
   "NodeMeta": {
     "external-node": "true",
     "external-probe": "true"
   },
   "Service": {
+    "Address": "example.com",
     "ID": "example-https",
     "Service": "example-https",
     "Port": 443
   }
 }
 ```
+
+- `"Node": "example_com"` is our made up node name.
+- `"Address": "example.com"` is the address of our node. Services registered to that node will use this address if
+  their own address isn't specified. If you're registering multiple external services, ensure you
+  use different node names with different addresses or set the `Service.Address` key.
+- `"Service": { "Address": "example.com" ... }` is the address of our service. In this example this doesn't need to be set
+  since the address of the node is the same, but if there were two services registered to that same node
+  then this should be set.
 
 Register the external service with Consul:
 
