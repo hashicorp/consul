@@ -23,6 +23,9 @@ one global entry is supported.
 <Tabs>
 <Tab heading="HCL">
 
+<Tabs>
+<Tab heading="Consul OSS">
+
 Set the default protocol for all sidecar proxies:
 
 ```hcl
@@ -34,7 +37,7 @@ Config {
 ```
 
 </Tab>
-<Tab heading="HCL (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Set the default protocol for all sidecar proxies.
 
@@ -51,7 +54,33 @@ Config {
 ```
 
 </Tab>
+</Tabs>
+
+</Tab>
+
 <Tab heading="Kubernetes YAML">
+
+<Tabs>
+<Tab heading="Consul OSS">
+
+Set the default protocol for all sidecar proxies:
+
+**NOTE:** The `proxy-defaults` config entry can only be created in the `default`
+namespace and it will configure proxies in **all** namespaces.
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+  namespace: default
+spec:
+  config:
+    protocol: http
+```
+
+</Tab>
+<Tab heading="Consul Enterprise">
 
 Set the default protocol for all sidecar proxies:
 
@@ -66,20 +95,47 @@ spec:
 ```
 
 </Tab>
-<Tab heading="Kubernetes YAML (Consul Enterprise)">
+</Tabs>
+
+</Tab>
+<Tab heading="JSON">
+
+<Tabs>
+<Tab heading="Consul OSS">
 
 Set the default protocol for all sidecar proxies:
 
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ProxyDefaults
-metadata:
-  name: global
-spec:
-  config:
-    protocol: http
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Config": {
+    "protocol": "http"
+  }
+}
 ```
 
+</Tab>
+<Tab heading="Consul Enterprise">
+
+Set the default protocol for all sidecar proxies.
+
+**NOTE:** The `proxy-defaults` config entry can only be created in the `default`
+namespace and it will configure proxies in **all** namespaces.
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Namespace": "default",
+  "Config": {
+    "protocol": "http"
+  }
+}
+```
+
+</Tab>
+</Tabs>
 </Tab>
 </Tabs>
 
@@ -114,6 +170,22 @@ spec:
 ```
 
 </Tab>
+<Tab heading="JSON">
+
+Expose prometheus metrics:
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Config": {
+    "envoy_prometheus_bind_addr": "0.0.0.0:9102"
+  }
+}
+```
+
+</Tab>
+
 </Tabs>
 
 ### Proxy-specific defaults
@@ -146,6 +218,22 @@ spec:
   config:
     local_connect_timeout_ms: 1000
     handshake_timeout_ms: 10000
+```
+
+</Tab>
+<Tab heading="JSON">
+
+Set proxy-specific defaults:
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Config": {
+    "local_connect_timeout_ms": 1000,
+    "handshake_timeout_ms": 10000
+  }
+}
 ```
 
 </Tab>
@@ -207,8 +295,8 @@ spec:
       description: `An arbitrary map of configuration values used by Connect proxies.
     The available configurations depend on the Connect proxy you use.
      Any values that your proxy allows can be configured globally here. To explore these options please see the documentation for your chosen proxy.
-     <ul><li>[Envoy](/docs/connect/proxies/envoy#bootstrap-configuration)</li>
-     <li>[Consul's built-in proxy](/docs/connect/proxies/built-in)</li></ul>`,
+     <ul><li>[Envoy](/docs/connect/proxies/envoy#proxy-config-options)</li>
+     <li>[Consul's built-in proxy](/docs/connect/proxies/built-in#proxy-config-key-reference)</li></ul>`,
     },
     {
       name: 'Mode',

@@ -85,6 +85,32 @@ spec:
 ```
 
 </Tab>
+<Tab heading="JSON">
+
+Route HTTP requests with a path starting with `/admin` to a different service:
+
+```json
+{
+  "Kind": "service-router",
+  "Name": "web",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/admin"
+        }
+      },
+      "Destination": {
+        "Service": "admin"
+      }
+    }
+  ]
+}
+```
+
+**NOTE**: a default catch-all will send unmatched traffic to "web"
+
+</Tab>
 </Tabs>
 
 ### Header/query parameter matching
@@ -166,6 +192,54 @@ spec:
 ```
 
 </Tab>
+<Tab heading="JSON">
+
+Route HTTP requests with a special url parameter or header to a canary subset:
+
+```json
+{
+  "Kind": "service-router",
+  "Name": "web",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "Header": [
+            {
+              "Name": "x-debug",
+              "Exact": "1"
+            }
+          ]
+        }
+      },
+      "Destination": {
+        "Service": "web",
+        "ServiceSubset": "canary"
+      }
+    },
+    {
+      "Match": {
+        "HTTP": {
+          "QueryParam": [
+            {
+              "Name": "x-debug",
+              "Exact": "1"
+            }
+          ]
+        }
+      },
+      "Destination": {
+        "Service": "web",
+        "ServiceSubset": "canary"
+      }
+    }
+  ]
+}
+```
+
+**NOTE**: a default catch-all will send unmatched traffic to "web"
+
+</Tab>
 </Tabs>
 
 ### gRPC routing
@@ -215,6 +289,33 @@ spec:
         service: invoice-generator
   # NOTE: a default catch-all will send unmatched traffic to "billing"
 ```
+
+</Tab>
+<Tab heading="JSON">
+
+Re-route a gRPC method to another service. Since gRPC method calls [are
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
+
+```json
+{
+  "Kind": "service-router",
+  "Name": "billing",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathExact": "/mycompany.BillingService/GenerateInvoice"
+        }
+      },
+      "Destination": {
+        "Service": "invoice-generator"
+      }
+    }
+  ]
+}
+```
+
+**NOTE**: a default catch-all will send unmatched traffic to "billing"
 
 </Tab>
 </Tabs>

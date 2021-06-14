@@ -105,6 +105,47 @@ spec:
 ```
 
 </Tab>
+<Tab heading="JSON">
+
+Grant some clients more REST access than others:
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "api",
+  "Sources": [
+    {
+      "Name": "admin-dashboard",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/v2",
+            "Methods": ["GET", "PUT", "POST", "DELETE", "HEAD"]
+          }
+        }
+      ]
+    },
+    {
+      "Name": "report-generator"
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/v2/widgets",
+            "Methods": ["GET"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**NOTE**: a default catch-all based on the default ACL policy will apply to
+unmatched connections and requests. Typically this will be DENY.
+
+</Tab>
 </Tabs>
 
 ### gRPC
@@ -193,6 +234,58 @@ spec:
 ```
 
 </Tab>
+<Tab heading="JSON">
+
+Selectively deny some gRPC service methods. Since gRPC method calls [are
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
+use an HTTP path match rule to control traffic:
+
+The frontend website can execute all billing service methods except issuing refunds.
+
+The support team portal page can execute all methods.
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "billing",
+  "Sources": [
+    {
+      "Name": "frontend-web",
+      "Permissions": [
+        {
+          "Action": "deny",
+          "HTTP": {
+            "PathExact": "/mycompany.BillingService/IssueRefund"
+          }
+        },
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/mycompany.BillingService/"
+          }
+        }
+      ]
+    },
+    {
+      "Name": "support-portal",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathPrefix": "/mycompany.BillingService/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+
+**NOTE**: a default catch-all based on the default ACL policy will apply to
+unmatched connections and requests. Typically this will be DENY.
+
+</Tab>
 </Tabs>
 
 ### L4 and L7
@@ -258,6 +351,43 @@ spec:
     # NOTE: a default catch-all based on the default ACL policy will apply to
     # unmatched connections and requests. Typically this will be DENY.
 ```
+
+</Tab>
+<Tab heading="JSON">
+
+You can mix and match L4 and L7 intentions per source:
+
+```json
+{
+  "Kind": "service-intentions",
+  "Name": "api",
+  "Sources": [
+    {
+      "Name": "hackathon-project",
+      "Action": "deny"
+    },
+    {
+      "Name": "web",
+      "Action": "allow"
+    },
+    {
+      "Name": "nightly-reconciler",
+      "Permissions": [
+        {
+          "Action": "allow",
+          "HTTP": {
+            "PathExact": "/v1/reconcile-data",
+            "Methods": ["POST"]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+**NOTE**: a default catch-all based on the default ACL policy will apply to
+unmatched connections and requests. Typically this will be DENY.
 
 </Tab>
 </Tabs>
