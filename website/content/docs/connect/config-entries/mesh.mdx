@@ -62,8 +62,8 @@ TransparentProxy {
   `transparent` [mode](/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.
 
   - `MeshDestinationsOnly` `(bool: false)` - Determines whether sidecar proxies operating in transparent mode can
-    proxy traffic to IP addresses not registered in Consul's catalog. If enabled, traffic will only be proxied
-    to upstreams with service registrations in the catalog. If disabled, requests will be proxied as-is to the
+    proxy traffic to IP addresses not registered in Consul's mesh. If enabled, traffic will only be proxied
+    to upstream proxies or Connect-native services. If disabled, requests will be proxied as-is to the
     original destination IP address. Consul will not encrypt the connection.
 
 ## ACLs
