@@ -44,7 +44,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out RaftConfiguration
 	if err := decodeBody(resp, &out); err != nil {
@@ -67,7 +67,7 @@ func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) err
 		return err
 	}
 
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }
 
@@ -84,6 +84,6 @@ func (op *Operator) RaftRemovePeerByID(id string, q *WriteOptions) error {
 		return err
 	}
 
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }

@@ -43,7 +43,7 @@ func (d *DiscoveryChain) Get(name string, opts *DiscoveryChainOptions, q *QueryO
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

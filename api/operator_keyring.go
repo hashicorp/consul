@@ -40,7 +40,7 @@ func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }
 
@@ -52,7 +52,7 @@ func (op *Operator) KeyringList(q *QueryOptions) ([]*KeyringResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out []*KeyringResponse
 	if err := decodeBody(resp, &out); err != nil {
@@ -72,7 +72,7 @@ func (op *Operator) KeyringRemove(key string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }
 
@@ -87,6 +87,6 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }

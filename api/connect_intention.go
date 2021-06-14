@@ -170,7 +170,7 @@ func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -194,7 +194,7 @@ func (h *Connect) IntentionGetExact(source, destination string, q *QueryOptions)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -226,7 +226,7 @@ func (h *Connect) IntentionGet(id string, q *QueryOptions) (*Intention, *QueryMe
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -259,7 +259,7 @@ func (h *Connect) IntentionDeleteExact(source, destination string, q *WriteOptio
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -277,7 +277,7 @@ func (h *Connect) IntentionDelete(id string, q *WriteOptions) (*WriteMeta, error
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -303,7 +303,7 @@ func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[str
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -330,7 +330,7 @@ func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *
 	if err != nil {
 		return false, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -355,7 +355,7 @@ func (c *Connect) IntentionUpsert(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -382,7 +382,7 @@ func (c *Connect) IntentionCreate(ixn *Intention, q *WriteOptions) (string, *Wri
 	if err != nil {
 		return "", nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -406,7 +406,7 @@ func (c *Connect) IntentionUpdate(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

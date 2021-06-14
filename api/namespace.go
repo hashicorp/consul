@@ -67,7 +67,7 @@ func (n *Namespaces) Create(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out Namespace
@@ -90,7 +90,7 @@ func (n *Namespaces) Update(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out Namespace
@@ -109,7 +109,7 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -132,7 +132,7 @@ func (n *Namespaces) Delete(name string, q *WriteOptions) (*WriteMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -146,7 +146,7 @@ func (n *Namespaces) List(q *QueryOptions) ([]*Namespace, *QueryMeta, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
