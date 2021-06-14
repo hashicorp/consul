@@ -663,6 +663,51 @@ const (
 	httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
 )
 
+func extractRdsResourceNames(listener *envoy_listener_v3.Listener) ([]string, error) {
+	var found []string
+
+	for chainIdx, chain := range listener.FilterChains {
+		for filterIdx, filter := range chain.Filters {
+			if filter.Name != httpConnectionManagerNewName {
+				continue
+			}
+
+			tc, ok := filter.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
+			if !ok {
+				return nil, fmt.Errorf(
+					"filter chain %d has a %q filter %d with an unsupported config type: %T",
+					chainIdx,
+					filter.Name,
+					filterIdx,
+					filter.ConfigType,
+				)
+			}
+
+			var hcm envoy_http_v3.HttpConnectionManager
+			if err := ptypes.UnmarshalAny(tc.TypedConfig, &hcm); err != nil {
+				return nil, err
+			}
+
+			if hcm.RouteSpecifier == nil {
+				continue
+			}
+
+			rds, ok := hcm.RouteSpecifier.(*envoy_http_v3.HttpConnectionManager_Rds)
+			if !ok {
+				continue
+			}
+
+			if rds.Rds == nil {
+				continue
+			}
+
+			found = append(found, rds.Rds.RouteConfigName)
+		}
+	}
+
+	return found, nil
+}
+
 // Locate the existing http connect manager L4 filter and inject our RBAC filter at the top.
 func injectHTTPFilterOnFilterChains(
 	listener *envoy_listener_v3.Listener,
