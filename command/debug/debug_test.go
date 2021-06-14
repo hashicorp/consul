@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/google/pprof/profile"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -55,18 +56,16 @@ func TestDebugCommand(t *testing.T) {
 		"-output=" + outputPath,
 		"-duration=100ms",
 		"-interval=50ms",
+		"-archive=false",
 	}
 
 	code := cmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Equal(t, "", ui.ErrorWriter.String())
 
-	if code != 0 {
-		t.Errorf("should exit 0, got code: %d", code)
-	}
-
-	errOutput := ui.ErrorWriter.String()
-	if errOutput != "" {
-		t.Errorf("expected no error output, got %q", errOutput)
-	}
+	metricsFiles, err := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, "metrics.json"))
+	require.NoError(t, err)
+	require.Len(t, metricsFiles, 1)
 }
 
 func TestDebugCommand_Archive(t *testing.T) {
@@ -79,6 +78,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 	a := agent.NewTestAgent(t, `
 	enable_debug = true
 	`)
+
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -93,28 +93,24 @@ func TestDebugCommand_Archive(t *testing.T) {
 		"-capture=agent",
 	}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("should exit 0, got code: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Equal(t, "", ui.ErrorWriter.String())
 
-	archivePath := fmt.Sprintf("%s%s", outputPath, debugArchiveExtension)
+	archivePath := outputPath + debugArchiveExtension
 	file, err := os.Open(archivePath)
-	if err != nil {
-		t.Fatalf("failed to open archive: %s", err)
-	}
+	require.NoError(t, err)
+
 	gz, err := gzip.NewReader(file)
-	if err != nil {
-		t.Fatalf("failed to read gzip archive: %s", err)
-	}
+	require.NoError(t, err)
 	tr := tar.NewReader(gz)
 
 	for {
 		h, err := tr.Next()
-
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		switch {
+		case err == io.EOF:
+			return
+		case err != nil:
 			t.Fatalf("failed to read file in archive: %s", err)
 		}
 
@@ -128,7 +124,6 @@ func TestDebugCommand_Archive(t *testing.T) {
 			t.Fatalf("archive contents do not match: %s", h.Name)
 		}
 	}
-
 }
 
 func TestDebugCommand_ArgsBad(t *testing.T) {

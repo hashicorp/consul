@@ -487,6 +487,19 @@ func (a *Agent) Metrics() (*MetricsInfo, error) {
 	return out, nil
 }
 
+// MetricsStream returns an io.ReadCloser which will emit a stream of metrics
+// until the context is cancelled. The metrics are json encoded.
+// The caller is responsible for closing the returned io.ReadCloser.
+func (a *Agent) MetricsStream(ctx context.Context) (io.ReadCloser, error) {
+	r := a.c.newRequest("GET", "/v1/agent/metrics/stream")
+	r.ctx = ctx
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
 // Reload triggers a configuration reload for the agent we are connected to.
 func (a *Agent) Reload() error {
 	r := a.c.newRequest("PUT", "/v1/agent/reload")

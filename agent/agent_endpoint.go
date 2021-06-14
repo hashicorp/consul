@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -164,6 +165,54 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		return nil, nil
 	}
 	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
+}
+
+func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+		return nil, acl.ErrPermissionDenied
+	}
+
+	flusher, ok := resp.(http.Flusher)
+	if !ok {
+		return nil, fmt.Errorf("Streaming not supported")
+	}
+
+	resp.WriteHeader(http.StatusOK)
+
+	// 0 byte write is needed before the Flush call so that if we are using
+	// a gzip stream it will go ahead and write out the HTTP response header
+	resp.Write([]byte(""))
+	flusher.Flush()
+
+	enc := metricsEncoder{
+		logger:  s.agent.logger,
+		encoder: json.NewEncoder(resp),
+		flusher: flusher,
+	}
+	s.agent.baseDeps.MetricsHandler.Stream(req.Context(), enc)
+	return nil, nil
+}
+
+type metricsEncoder struct {
+	logger  hclog.Logger
+	encoder *json.Encoder
+	flusher http.Flusher
+}
+
+func (m metricsEncoder) Encode(summary interface{}) error {
+	if err := m.encoder.Encode(summary); err != nil {
+		m.logger.Error("failed to encode metrics summary", "error", err)
+		return err
+	}
+	m.flusher.Flush()
+	return nil
 }
 
 func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
