@@ -19,7 +19,7 @@ var CertExpirationGauges = []prometheus.GaugeDefinition{
 	},
 }
 
-var metricsKeyMeshRootCAExpiry = []string{"mesh", "root-ca", "expiry"}
+var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
 
 func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 	return certExpirationMonitor{
@@ -31,8 +31,11 @@ func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 		Query: func() (time.Duration, error) {
 			state := s.fsm.State()
 			_, root, err := state.CARootActive(nil)
-			if err != nil {
+			switch {
+			case err != nil:
 				return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+			case root == nil:
+				return 0, fmt.Errorf("no active root CA")
 			}
 
 			return time.Until(root.NotAfter), nil
