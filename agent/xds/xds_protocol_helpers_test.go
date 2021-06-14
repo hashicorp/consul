@@ -481,6 +481,17 @@ func makeTestEndpoints(t *testing.T, _ *proxycfg.ConfigSnapshot, fixtureName str
 				},
 			},
 		}
+	case "tcp:db[0]":
+		return &envoy_endpoint_v3.ClusterLoadAssignment{
+			ClusterName: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
+						xdsNewEndpointWithHealth("10.10.1.1", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
+					},
+				},
+			},
+		}
 	case "http2:db", "http:db":
 		return &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",

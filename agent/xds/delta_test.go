@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
+	rpcstatus "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -16,16 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 )
-
-/* TODO: Test scenarios
-
-- initial resource versions
-- removing resources
-- nack
-- unsubscribe
-- error during handling causing retry
-
-*/
 
 // NOTE: For these tests, prefer not using xDS protobuf "factory" methods if
 // possible to avoid using them to test themselves.
@@ -45,132 +37,228 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	// Register the proxy to create state needed to Watch() on
 	mgr.RegisterProxy(t, sid)
 
-	snap := newTestSnapshot(t, nil, "")
+	var snap *proxycfg.ConfigSnapshot
 
-	// Send initial cluster discover. We'll assume we are testing a partial
-	// reconnect and include some initial resource versions that will be
-	// cleaned up.
-	envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-		InitialResourceVersions: mustMakeVersionMap(t,
-			makeTestCluster(t, snap, "tcp:geo-cache"),
-		),
+	runStep(t, "initial setup", func(t *testing.T) {
+		snap = newTestSnapshot(t, nil, "")
+
+		// Send initial cluster discover. We'll assume we are testing a partial
+		// reconnect and include some initial resource versions that will be
+		// cleaned up.
+		envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			InitialResourceVersions: mustMakeVersionMap(t,
+				makeTestCluster(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// Check no response sent yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		requireProtocolVersionGauge(t, scenario, "v3", 1)
+
+		// Deliver a new snapshot (tcp with one tcp upstream)
+		mgr.DeliverConfig(t, sid, snap)
 	})
 
-	// Check no response sent yet
-	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	runStep(t, "first sync", func(t *testing.T) {
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: ClusterType,
+			Nonce:   hexString(1),
+			Resources: makeTestResources(t,
+				makeTestCluster(t, snap, "tcp:local_app"),
+				makeTestCluster(t, snap, "tcp:db"),
+				// SAME_AS_INITIAL_VERSION: makeTestCluster(t, snap, "tcp:geo-cache"),
+			),
+		})
 
-	requireProtocolVersionGauge(t, scenario, "v3", 1)
+		// Envoy then tries to discover endpoints for those clusters.
+		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			// We'll assume we are testing a partial "reconnect"
+			InitialResourceVersions: mustMakeVersionMap(t,
+				makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+			ResourceNamesSubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+				// "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+				//
+				// Include "fake-endpoints" here to test subscribing to an unknown
+				// thing and have consul tell us there's no data for it.
+				"fake-endpoints",
+			},
+		})
 
-	// Deliver a new snapshot (tcp with one tcp upstream)
-	mgr.DeliverConfig(t, sid, snap)
+		// It also (in parallel) issues the cluster ACK
+		envoy.SendDeltaReqACK(t, ClusterType, 1, true, nil)
 
-	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-		TypeUrl: ClusterType,
-		Nonce:   hexString(1),
-		Resources: makeTestResources(t,
-			makeTestCluster(t, snap, "tcp:local_app"),
-			makeTestCluster(t, snap, "tcp:db"),
-			// SAME_AS_INITIAL_VERSION: makeTestCluster(t, snap, "tcp:geo-cache"),
-		),
+		// We should get a response immediately since the config is already present in
+		// the server for endpoints. Note that this should not be racy if the server
+		// is behaving well since the Cluster send above should be blocked until we
+		// deliver a new config version.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(2),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db"),
+				// SAME_AS_INITIAL_VERSION: makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// And no other response yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// Envoy now sends listener request
+		envoy.SendDeltaReq(t, ListenerType, nil)
+
+		// It also (in parallel) issues the endpoint ACK
+		envoy.SendDeltaReqACK(t, EndpointType, 2, true, nil)
+
+		// And should get a response immediately.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: ListenerType,
+			Nonce:   hexString(3),
+			Resources: makeTestResources(t,
+				makeTestListener(t, snap, "tcp:public_listener"),
+				makeTestListener(t, snap, "tcp:db"),
+				makeTestListener(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// cleanup unused resources now that we've created/updated relevant things
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(4),
+			RemovedResources: []string{
+				"fake-endpoints", // correcting the errant subscription
+			},
+		})
+
+		// And no other response yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// ACKs the listener
+		envoy.SendDeltaReqACK(t, ListenerType, 3, true, nil)
+
+		// ACK the endpoint removal
+		envoy.SendDeltaReqACK(t, EndpointType, 4, true, nil)
+
+		// If we re-subscribe to something even if there are no changes we get a
+		// fresh copy.
+		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesSubscribe: []string{
+				"geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(5),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		envoy.SendDeltaReqACK(t, EndpointType, 5, true, nil)
+
+		// And no other response yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	// Envoy then tries to discover endpoints for those clusters.
-	envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-		// We'll assume we are testing a partial "reconnect"
-		InitialResourceVersions: mustMakeVersionMap(t,
-			makeTestEndpoints(t, snap, "tcp:geo-cache"),
-		),
-		ResourceNamesSubscribe: []string{
-			"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-			// "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-			//
-			// Include "fake-endpoints" here to test subscribing to an unknown
-			// thing and have consul tell us there's no data for it.
-			"fake-endpoints",
-		},
+	deleteAllButOneEndpoint := func(snap *proxycfg.ConfigSnapshot, svc, targetID string) {
+		snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID] =
+			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID][0:1]
+	}
+
+	runStep(t, "envoy randomly decides to unsubscribe from an endpoint", func(t *testing.T) {
+		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesUnsubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for DB
+		snap = newTestSnapshot(t, snap, "")
+		deleteAllButOneEndpoint(snap, "db", "db.default.dc1")
+		mgr.DeliverConfig(t, sid, snap)
+
+		// We never send an EDS reply about this change.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	// It also (in parallel) issues the cluster ACK
-	envoy.SendDeltaReqACK(t, ClusterType, 1, true, nil)
+	runStep(t, "restore endpoint subscription", func(t *testing.T) {
+		// Fix the snapshot
+		snap = newTestSnapshot(t, snap, "")
+		mgr.DeliverConfig(t, sid, snap)
 
-	// We should get a response immediately since the config is already present in
-	// the server for endpoints. Note that this should not be racy if the server
-	// is behaving well since the Cluster send above should be blocked until we
-	// deliver a new config version.
-	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-		TypeUrl: EndpointType,
-		Nonce:   hexString(2),
-		Resources: makeTestResources(t,
-			makeTestEndpoints(t, snap, "tcp:db"),
-			// SAME_AS_INITIAL_VERSION: makeTestEndpoints(t, snap, "tcp:geo-cache"),
-		),
+		// and fix the subscription
+		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesSubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(6),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db"),
+			),
+		})
+
+		envoy.SendDeltaReqACK(t, EndpointType, 6, true, nil)
+
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	// And no other response yet
-	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	runStep(t, "simulate envoy NACKing an endpoint update", func(t *testing.T) {
+		// Trigger only an EDS update.
+		snap = newTestSnapshot(t, snap, "")
+		deleteAllButOneEndpoint(snap, "db", "db.default.dc1")
+		mgr.DeliverConfig(t, sid, snap)
 
-	// Envoy now sends listener request
-	envoy.SendDeltaReq(t, ListenerType, nil)
+		// Send envoy an EDS update.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(7),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db[0]"),
+			),
+		})
 
-	// It also (in parallel) issues the endpoint ACK
-	envoy.SendDeltaReqACK(t, EndpointType, 2, true, nil)
+		envoy.SendDeltaReqNACK(t, EndpointType, 7, &rpcstatus.Status{})
 
-	// And should get a response immediately.
-	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-		TypeUrl: ListenerType,
-		Nonce:   hexString(3),
-		Resources: makeTestResources(t,
-			makeTestListener(t, snap, "tcp:public_listener"),
-			makeTestListener(t, snap, "tcp:db"),
-			makeTestListener(t, snap, "tcp:geo-cache"),
-		),
+		// Send it again.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(8),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db[0]"),
+			),
+		})
+
+		envoy.SendDeltaReqACK(t, EndpointType, 8, true, nil)
+
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
-	// cleanup unused resources now that we've created/updated relevant things
-	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-		TypeUrl: EndpointType,
-		Nonce:   hexString(4),
-		RemovedResources: []string{
-			"fake-endpoints", // correcting the errant subscription
-		},
+	// NOTE: this has to be the last subtest since it kills the stream
+	runStep(t, "simulate an envoy error sending an update to envoy", func(t *testing.T) {
+		// Force sends to fail
+		envoy.SetSendErr(errors.New("test error"))
+
+		// Trigger only an EDS update (flipping BACK to 2 endpoints in the LBassignment)
+		snap = newTestSnapshot(t, snap, "")
+		mgr.DeliverConfig(t, sid, snap)
 	})
-
-	// And no other response yet
-	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-	// ACKs the listener
-	envoy.SendDeltaReqACK(t, ListenerType, 3, true, nil)
-
-	// ACK the endpoint removal
-	envoy.SendDeltaReqACK(t, EndpointType, 4, true, nil)
-
-	// If we re-subscribe to something even if there are no changes we get a
-	// fresh copy.
-	envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
-		ResourceNamesSubscribe: []string{
-			"geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-		},
-	})
-
-	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-		TypeUrl: EndpointType,
-		Nonce:   hexString(5),
-		Resources: makeTestResources(t,
-			makeTestEndpoints(t, snap, "tcp:geo-cache"),
-		),
-	})
-
-	envoy.SendDeltaReqACK(t, EndpointType, 5, true, nil)
-
-	// And no other response yet
-	assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
-
-	// TODO(rb): test NACK
 
 	envoy.Close()
 	select {
 	case err := <-errCh:
-		require.NoError(t, err)
+		// Envoy died.
+		expect := status.Errorf(codes.Unavailable,
+			"failed to send upsert reply for type %q: test error",
+			EndpointType)
+		require.EqualError(t, err, expect.Error())
 	case <-time.After(50 * time.Millisecond):
 		t.Fatalf("timed out waiting for handler to finish")
 	}

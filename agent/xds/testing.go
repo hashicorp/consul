@@ -30,6 +30,9 @@ type TestADSDeltaStream struct {
 	stubGrpcServerStream
 	sendCh chan *envoy_discovery_v3.DeltaDiscoveryResponse
 	recvCh chan *envoy_discovery_v3.DeltaDiscoveryRequest
+
+	mu      sync.Mutex
+	sendErr error
 }
 
 var _ ADSDeltaStream = (*TestADSDeltaStream)(nil)
@@ -45,8 +48,22 @@ func NewTestADSDeltaStream(t testing.T, ctx context.Context) *TestADSDeltaStream
 
 // Send implements ADSDeltaStream
 func (s *TestADSDeltaStream) Send(r *envoy_discovery_v3.DeltaDiscoveryResponse) error {
+	s.mu.Lock()
+	err := s.sendErr
+	s.mu.Unlock()
+
+	if err != nil {
+		return err
+	}
+
 	s.sendCh <- r
 	return nil
+}
+
+func (s *TestADSDeltaStream) SetSendErr(err error) {
+	s.mu.Lock()
+	s.sendErr = err
+	s.mu.Unlock()
 }
 
 // Recv implements ADSDeltaStream
@@ -65,6 +82,9 @@ type TestADSStream struct {
 	stubGrpcServerStream
 	sendCh chan *envoy_api_v2.DiscoveryResponse
 	recvCh chan *envoy_api_v2.DiscoveryRequest
+
+	mu      sync.Mutex
+	sendErr error
 }
 
 // NewTestADSStream makes a new TestADSStream
@@ -79,8 +99,22 @@ func NewTestADSStream(t testing.T, ctx context.Context) *TestADSStream {
 
 // Send implements ADSStream
 func (s *TestADSStream) Send(r *envoy_api_v2.DiscoveryResponse) error {
+	s.mu.Lock()
+	err := s.sendErr
+	s.mu.Unlock()
+
+	if err != nil {
+		return err
+	}
+
 	s.sendCh <- r
 	return nil
+}
+
+func (s *TestADSStream) SetSendErr(err error) {
+	s.mu.Lock()
+	s.sendErr = err
+	s.mu.Unlock()
 }
 
 // Recv implements ADSStream
@@ -197,6 +231,11 @@ func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) 
 	}
 }
 
+func (e *TestEnvoy) SetSendErr(err error) {
+	e.stream.SetSendErr(err)
+	e.deltaStream.SetSendErr(err)
+}
+
 // SendDeltaReq sends a delta request from the test server.
 //
 // NOTE: the input request is mutated before sending by injecting the node.
@@ -214,11 +253,20 @@ func (e *TestEnvoy) SendDeltaReqACK(
 	ack bool,
 	errorDetail *status.Status,
 ) {
+	// TODO(rb): fix this signature since we have an ACK/NACK pair of methods.
 	req := &envoy_discovery_v3.DeltaDiscoveryRequest{}
 	if !ack {
 		req.ErrorDetail = errorDetail
 	}
 	e.sendDeltaReq(t, typeURL, &nonce, req)
+}
+func (e *TestEnvoy) SendDeltaReqNACK(
+	t testing.T,
+	typeURL string,
+	nonce uint64,
+	errorDetail *status.Status,
+) {
+	e.SendDeltaReqACK(t, typeURL, nonce, false, errorDetail)
 }
 func (e *TestEnvoy) sendDeltaReq(
 	t testing.T,
