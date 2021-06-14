@@ -35,7 +35,7 @@ type monitor struct {
 	droppedCount int
 
 	// doneCh coordinates the shutdown of logCh
-	doneCh chan bool
+	doneCh chan struct{}
 
 	// Defaults to 512.
 	bufSize int
@@ -58,7 +58,7 @@ func New(cfg Config) Monitor {
 	sw := &monitor{
 		logger:  cfg.Logger,
 		logCh:   make(chan []byte, bufSize),
-		doneCh:  make(chan bool, 1),
+		doneCh:  make(chan struct{}, 1),
 		bufSize: bufSize,
 	}
 
@@ -72,11 +72,7 @@ func New(cfg Config) Monitor {
 // Stop deregisters the sink and stops the monitoring process
 func (d *monitor) Stop() int {
 	d.logger.DeregisterSink(d.sink)
-	select {
-	case d.doneCh <- true:
-	default:
-	}
-
+	close(d.doneCh)
 	return d.droppedCount
 }
 

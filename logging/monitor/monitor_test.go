@@ -178,7 +178,7 @@ func TestMonitor_WriteStopped(t *testing.T) {
 
 	mwriter := &monitor{
 		logger: logger,
-		doneCh: make(chan bool, 1),
+		doneCh: make(chan struct{}, 1),
 	}
 
 	mwriter.Stop()
