@@ -656,7 +656,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 				snap.ConnectProxy.MeshConfigSet = true
 				snap.ConnectProxy.MeshConfig = &structs.MeshConfigEntry{
 					TransparentProxy: structs.TransparentProxyMeshConfig{
-						CatalogDestinationsOnly: true,
+						MeshDestinationsOnly: true,
 					},
 				}
 			},

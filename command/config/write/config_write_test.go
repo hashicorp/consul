@@ -124,7 +124,7 @@ meta {
 	"gir" = "zim"
 }
 transparent_proxy {
-	catalog_destinations_only = true
+	mesh_destinations_only = true
 }
 `)
 
@@ -2674,7 +2674,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir" = "zim"
 				}
 				transparent_proxy {
-					catalog_destinations_only = true
+					mesh_destinations_only = true
 				}
 			`,
 			camel: `
@@ -2684,7 +2684,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir" = "zim"
 				}
 				TransparentProxy {
-					CatalogDestinationsOnly = true
+					MeshDestinationsOnly = true
 				}
 			`,
 			snakeJSON: `
@@ -2695,7 +2695,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"transparent_proxy": {
-					"catalog_destinations_only": true
+					"mesh_destinations_only": true
 				}
 			}
 			`,
@@ -2707,7 +2707,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir": "zim"
 				},
 				"TransparentProxy": {
-					"CatalogDestinationsOnly": true
+					"MeshDestinationsOnly": true
 				}
 			}
 			`,
@@ -2717,7 +2717,7 @@ func TestParseConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TransparentProxy: api.TransparentProxyMeshConfig{
-					CatalogDestinationsOnly: true,
+					MeshDestinationsOnly: true,
 				},
 			},
 		},

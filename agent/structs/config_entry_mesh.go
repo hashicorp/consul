@@ -20,9 +20,9 @@ type MeshConfigEntry struct {
 // TransparentProxyMeshConfig contains cluster-wide options pertaining to
 // TPROXY mode when enabled.
 type TransparentProxyMeshConfig struct {
-	// CatalogDestinationsOnly can be used to disable the pass-through that
+	// MeshDestinationsOnly can be used to disable the pass-through that
 	// allows traffic to destinations outside of the mesh.
-	CatalogDestinationsOnly bool `alias:"catalog_destinations_only"`
+	MeshDestinationsOnly bool `alias:"mesh_destinations_only"`
 }
 
 func (e *MeshConfigEntry) GetKind() string {

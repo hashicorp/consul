@@ -178,7 +178,7 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 	clusters := make([]proto.Message, 0, len(cfgSnap.ConnectProxy.PassthroughUpstreams)+1)
 
 	if cfgSnap.ConnectProxy.MeshConfig == nil ||
-		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
+		!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
 
 		clusters = append(clusters, &envoy_cluster_v3.Cluster{
 			Name: OriginalDestinationClusterName,
