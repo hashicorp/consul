@@ -36,9 +36,9 @@ func TestGRPCLogger(t *testing.T) {
 	grpclog.Errorf("Errorf: %d", 1)
 
 	// Fatal tests are hard... assume they are good!
-	expect := `timeformat [INFO]  Info,
-timeformat [INFO]  Infoln
-timeformat [INFO]  Infof: 1
+	expect := `timeformat [TRACE] Info,
+timeformat [TRACE] Infoln
+timeformat [TRACE] Infof: 1
 timeformat [WARN]  Warning,
 timeformat [WARN]  Warningln
 timeformat [WARN]  Warningf: 1
