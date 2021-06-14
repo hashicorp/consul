@@ -1316,7 +1316,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir" = "zim"
 				}
 				transparent_proxy {
-					catalog_destinations_only = true
+					mesh_destinations_only = true
 				}
 			`,
 			camel: `
@@ -1326,7 +1326,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir" = "zim"
 				}
 				TransparentProxy {
-					CatalogDestinationsOnly = true
+					MeshDestinationsOnly = true
 				}
 			`,
 			expect: &MeshConfigEntry{
@@ -1335,7 +1335,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					"gir": "zim",
 				},
 				TransparentProxy: TransparentProxyMeshConfig{
-					CatalogDestinationsOnly: true,
+					MeshDestinationsOnly: true,
 				},
 			},
 		},

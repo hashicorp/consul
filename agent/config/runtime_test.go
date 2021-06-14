@@ -4196,7 +4196,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								"gir": "zim"
 							},
 							"transparent_proxy": {
-								"catalog_destinations_only": true
+								"mesh_destinations_only": true
 							}
 						}
 					]
@@ -4212,7 +4212,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"gir" = "zim"
 					}
 					transparent_proxy {
-						catalog_destinations_only = true
+						mesh_destinations_only = true
 					}
 				  }
 				}
@@ -4228,7 +4228,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					EnterpriseMeta: *defaultEntMeta,
 					TransparentProxy: structs.TransparentProxyMeshConfig{
-						CatalogDestinationsOnly: true,
+						MeshDestinationsOnly: true,
 					},
 				},
 			}
@@ -4247,7 +4247,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								"gir": "zim"
 							},
 							"TransparentProxy": {
-								"CatalogDestinationsOnly": true
+								"MeshDestinationsOnly": true
 							}
 						}
 					]
@@ -4263,7 +4263,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"gir" = "zim"
 					}
 					TransparentProxy {
-						CatalogDestinationsOnly = true
+						MeshDestinationsOnly = true
 					}
 				  }
 				}
@@ -4279,7 +4279,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					},
 					EnterpriseMeta: *defaultEntMeta,
 					TransparentProxy: structs.TransparentProxyMeshConfig{
-						CatalogDestinationsOnly: true,
+						MeshDestinationsOnly: true,
 					},
 				},
 			}

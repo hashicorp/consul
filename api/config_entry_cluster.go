@@ -11,7 +11,7 @@ type MeshConfigEntry struct {
 }
 
 type TransparentProxyMeshConfig struct {
-	CatalogDestinationsOnly bool `alias:"catalog_destinations_only"`
+	MeshDestinationsOnly bool `alias:"mesh_destinations_only"`
 }
 
 func (e *MeshConfigEntry) GetKind() string {

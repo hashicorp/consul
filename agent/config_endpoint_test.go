@@ -53,7 +53,7 @@ func TestConfig_Get(t *testing.T) {
 			Datacenter: "dc1",
 			Entry: &structs.MeshConfigEntry{
 				TransparentProxy: structs.TransparentProxyMeshConfig{
-					CatalogDestinationsOnly: true,
+					MeshDestinationsOnly: true,
 				},
 				Meta: map[string]string{
 					"key1": "value1",
@@ -128,7 +128,7 @@ func TestConfig_Get(t *testing.T) {
 {
 	"Kind": "mesh",
 	"TransparentProxy": {
-		"CatalogDestinationsOnly": true
+		"MeshDestinationsOnly": true
 	},
 	"Meta":{
 		"key1": "value1",

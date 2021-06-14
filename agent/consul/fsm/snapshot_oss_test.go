@@ -429,7 +429,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// mesh config entry
 	meshConfig := &structs.MeshConfigEntry{
 		TransparentProxy: structs.TransparentProxyMeshConfig{
-			CatalogDestinationsOnly: true,
+			MeshDestinationsOnly: true,
 		},
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(27, meshConfig))

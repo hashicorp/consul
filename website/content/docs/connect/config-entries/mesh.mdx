@@ -18,7 +18,7 @@ Settings in this config entry apply across all namespaces and federated datacent
 
 ## Sample Config Entries
 
-### Proxy traffic to catalog destinations only
+### Only allow transparent proxies to dial addresses in the mesh.
 
 <Tabs>
 <Tab heading="HCL">
@@ -27,7 +27,7 @@ Settings in this config entry apply across all namespaces and federated datacent
 Kind      = "mesh"
 
 TransparentProxy {
-  CatalogDestinationsOnly = true
+  MeshDestinationsOnly = true
 }
 ```
 
@@ -42,7 +42,7 @@ Kind      = "mesh"
 Namespace = "default" # Can only be set to "default".
 
 TransparentProxy {
-  CatalogDestinationsOnly = true
+  MeshDestinationsOnly = true
 }
 ```
 
@@ -61,7 +61,7 @@ TransparentProxy {
 - `TransparentProxy` `(TransparentProxyConfig: <optional>)` - Controls configuration specific to proxies in
   `transparent` [mode](/docs/connect/config-entries/service-defaults#mode). Added in v1.10.0.
 
-  - `CatalogDestinationsOnly` `(bool: false)` - Determines whether sidecar proxies operating in transparent mode can
+  - `MeshDestinationsOnly` `(bool: false)` - Determines whether sidecar proxies operating in transparent mode can
     proxy traffic to IP addresses not registered in Consul's catalog. If enabled, traffic will only be proxied
     to upstreams with service registrations in the catalog. If disabled, requests will be proxied as-is to the
     original destination IP address. Consul will not encrypt the connection.
