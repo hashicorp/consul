@@ -212,9 +212,9 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				outboundListener.FilterChains[j].FilterChainMatch.PrefixRanges[0].AddressPrefix
 		})
 
-		// Add a catch-all filter chain that acts as a TCP proxy to non-catalog destinations
+		// Add a catch-all filter chain that acts as a TCP proxy to destinations outside the mesh
 		if cfgSnap.ConnectProxy.MeshConfig == nil ||
-			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.CatalogDestinationsOnly {
+			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
 
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 				"",
