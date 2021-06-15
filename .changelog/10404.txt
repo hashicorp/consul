@@ -1,0 +1,8 @@
+```release-note:feature
+connect: generate upstream service labels for terminating gateway listener stats.
+```
+
+```release-note:breaking-change
+connect: avoid encoding listener info in ingress and terminating gateway listener stats names.
+```
+
