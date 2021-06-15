@@ -116,14 +116,14 @@ This valid license must be on-disk (auto-loaded) or as an environment variable.
 1. Run [`consul license get -signed`](/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
 1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-1. Proceed with the upgrade as normal.
+1. Follow the Consul upgrade [docummentation](/docs/upgrading).
 
 ### Kubernetes
 
-1. Run [`consul license get -signed`](/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
+1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
-1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-1. Proceed with the `helm` [upgrade instructions](/docs/k8s/upgrade)
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
+1. Proceed with the `helm` [upgrade instructions](/docs/k8s/upgrade).
 
 ## Q: What is the migration path for customers who want to migrate from their existing perpetually-licensed binaries to the license on disk flow?
 
@@ -132,17 +132,30 @@ This valid license must be on-disk (auto-loaded) or as an environment variable.
 1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
 1. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-1. Proceed with the upgrade as normal.
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
+1. Follow the Consul upgrade [docummentation](/docs/upgrading).
 
 ### Kubernetes
 
 1. Acquire a valid Consul Enterprise license. If you are an existing HashiCorp enterprise customer you may contact your organization's customer success manager (CSM) or email support-softwaredelivery@hashicorp.com for information on how to get your organization's enterprise license.
-1. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
-1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
+   Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
 1. Proceed with the `helm` [upgrade instructions](/docs/k8s/upgrade)
 
 ## Q: Will Consul downgrades/rollbacks work?
 
 When downgrading to a version of Consul before 1.10.0+ent, customers will need to follow the previous process for applying an enterprise licenses to Consul Enterprise.
+
+## Q: Are there potential pitfalls when downgrading or upgrading?
+
+Assume a scenario where there are three Consul server nodes:
+
+- Node A: v1.9.5
+- Node B: v1.10.0 [Leader]
+- Node C: v1.9.5
+
+The command `consul license put` is issued from Node A. This will result in an error due to how Consul routes calls to the server node, Node B in this example.
+Because Node A is a follower when the call `consul license put` is issued, the call will be redirected to Node B (leader).
+The `consul license put` operation will fail due to being removed from v1.10.0.
+This is a scenario that could occur if a customer downgrades from 1.10.0+ and the Consul leadership has not transferred back over to a node not running 1.10.0+.
+This also has the potential of occurring when upgrading if scheduled license updates or autoscaling groups recoveries are in place.
