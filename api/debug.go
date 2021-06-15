@@ -27,7 +27,7 @@ func (d *Debug) Heap() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	if resp.StatusCode != 200 {
 		return nil, generateUnexpectedResponseCodeError(resp)
@@ -54,7 +54,7 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	if resp.StatusCode != 200 {
 		return nil, generateUnexpectedResponseCodeError(resp)
@@ -81,7 +81,7 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	if resp.StatusCode != 200 {
 		return nil, generateUnexpectedResponseCodeError(resp)
@@ -105,7 +105,7 @@ func (d *Debug) Goroutine() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	if resp.StatusCode != 200 {
 		return nil, generateUnexpectedResponseCodeError(resp)

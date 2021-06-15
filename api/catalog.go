@@ -122,7 +122,7 @@ func (c *Catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMet
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -138,7 +138,7 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -153,7 +153,7 @@ func (c *Catalog) Datacenters() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out []string
 	if err := decodeBody(resp, &out); err != nil {
@@ -170,7 +170,7 @@ func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -191,7 +191,7 @@ func (c *Catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, er
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -248,7 +248,7 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -269,7 +269,7 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -293,7 +293,7 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -314,7 +314,7 @@ func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*GatewaySe
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

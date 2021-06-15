@@ -284,7 +284,7 @@ func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfig
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out AutopilotConfiguration
 	if err := decodeBody(resp, &out); err != nil {
@@ -303,7 +303,7 @@ func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *W
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return nil
 }
 
@@ -319,7 +319,7 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
@@ -340,7 +340,7 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		if resp != nil {
-			resp.Body.Close()
+			closeResponseBody(resp)
 		}
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 		return nil, generateUnexpectedResponseCodeError(resp)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out OperatorHealthReply
 	if err := decodeBody(resp, &out); err != nil {
@@ -367,7 +367,7 @@ func (op *Operator) AutopilotState(q *QueryOptions) (*AutopilotState, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var out AutopilotState
 	if err := decodeBody(resp, &out); err != nil {

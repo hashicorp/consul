@@ -939,7 +939,7 @@ func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*Quer
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -961,7 +961,7 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	if out != nil {
@@ -1055,7 +1055,7 @@ func encodeBody(obj interface{}) (io.Reader, error) {
 func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *http.Response, error) {
 	if e != nil {
 		if resp != nil {
-			resp.Body.Close()
+			closeResponseBody(resp)
 		}
 		return d, nil, e
 	}
@@ -1063,6 +1063,14 @@ func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *h
 		return d, nil, generateUnexpectedResponseCodeError(resp)
 	}
 	return d, resp, nil
+}
+
+// closeResponseBody reads resp.Body until EOF, and then closes it. The read
+// is necessary to ensure that the http.Client's underlying RoundTripper is able
+// to re-use the TCP connection. See godoc on net/http.Client.Do.
+func closeResponseBody(resp *http.Response) error {
+	_, _ = io.Copy(io.Discard, resp.Body)
+	return resp.Body.Close()
 }
 
 func (req *request) filterQuery(filter string) {
@@ -1079,14 +1087,14 @@ func (req *request) filterQuery(filter string) {
 func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	var buf bytes.Buffer
 	io.Copy(&buf, resp.Body)
-	resp.Body.Close()
+	closeResponseBody(resp)
 	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
 }
 
 func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
 	if e != nil {
 		if resp != nil {
-			resp.Body.Close()
+			closeResponseBody(resp)
 		}
 		return false, d, nil, e
 	}
