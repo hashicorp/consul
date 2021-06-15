@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -1191,6 +1192,9 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 	// a gzip stream it will go ahead and write out the HTTP response header
 	resp.Write([]byte(""))
 	flusher.Flush()
+	const flushDelay = 200 * time.Millisecond
+	flushTicker := time.NewTicker(flushDelay)
+	defer flushTicker.Stop()
 
 	// Stream logs until the connection is closed.
 	for {
@@ -1200,9 +1204,13 @@ func (s *HTTPServer) AgentMonitor(resp http.ResponseWriter, req *http.Request) (
 			if droppedCount > 0 {
 				s.agent.logger.Warn("Dropped logs during monitor request", "dropped_count", droppedCount)
 			}
+			flusher.Flush()
 			return nil, nil
+
 		case log := <-logsCh:
 			fmt.Fprint(resp, string(log))
+
+		case <-flushTicker.C:
 			flusher.Flush()
 		}
 	}
