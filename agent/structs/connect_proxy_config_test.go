@@ -123,7 +123,7 @@ func TestConnectProxyConfig_MarshalJSON(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeLocal},
 				Expose:      ExposeConfig{Checks: true},
 
-				// No transparent proxy config, since proxy is direct.
+				// No transparent proxy config, since proxy is set to "direct" mode.
 				// Field should be omitted from json output.
 				// TransparentProxy: TransparentProxyConfig{},
 			},
