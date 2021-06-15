@@ -380,7 +380,7 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 				OverrideConnectTimeout: cfg.ConnectTimeout(),
 			}, "discovery-chain:"+u.Identifier(), s.ch)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to watch discovery chain for %s: %v", u.Identifier(), err)
 			}
 
 		default:
@@ -815,6 +815,7 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 				id:          svc.String(),
 				name:        svc.Name,
 				namespace:   svc.NamespaceOrDefault(),
+				datacenter:  s.source.Datacenter,
 				cfg:         cfg,
 				meshGateway: meshGateway,
 			}
@@ -826,26 +827,46 @@ func (s *state) handleUpdateConnectProxy(u cache.UpdateEvent, snap *ConfigSnapsh
 
 		// Clean up data from services that were not in the update
 		for sn := range snap.ConnectProxy.WatchedUpstreams {
+			upstream := snap.ConnectProxy.UpstreamConfig[sn]
+			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
 			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.WatchedUpstreams, sn)
 			}
 		}
 		for sn := range snap.ConnectProxy.WatchedUpstreamEndpoints {
+			upstream := snap.ConnectProxy.UpstreamConfig[sn]
+			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
 			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.WatchedUpstreamEndpoints, sn)
 			}
 		}
 		for sn := range snap.ConnectProxy.WatchedGateways {
+			upstream := snap.ConnectProxy.UpstreamConfig[sn]
+			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
 			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.WatchedGateways, sn)
 			}
 		}
 		for sn := range snap.ConnectProxy.WatchedGatewayEndpoints {
+			upstream := snap.ConnectProxy.UpstreamConfig[sn]
+			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
 			if _, ok := seenServices[sn]; !ok {
 				delete(snap.ConnectProxy.WatchedGatewayEndpoints, sn)
 			}
 		}
 		for sn, cancelFn := range snap.ConnectProxy.WatchedDiscoveryChains {
+			upstream := snap.ConnectProxy.UpstreamConfig[sn]
+			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+				continue
+			}
 			if _, ok := seenServices[sn]; !ok {
 				cancelFn()
 				delete(snap.ConnectProxy.WatchedDiscoveryChains, sn)
@@ -1721,9 +1742,10 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 			u := makeUpstream(service)
 
 			watchOpts := discoveryChainWatchOpts{
-				id:        u.Identifier(),
-				name:      u.DestinationName,
-				namespace: u.DestinationNamespace,
+				id:         u.Identifier(),
+				name:       u.DestinationName,
+				namespace:  u.DestinationNamespace,
+				datacenter: s.source.Datacenter,
 			}
 			err := s.watchDiscoveryChain(snap, watchOpts)
 			if err != nil {
@@ -1781,6 +1803,7 @@ type discoveryChainWatchOpts struct {
 	id          string
 	name        string
 	namespace   string
+	datacenter  string
 	cfg         reducedUpstreamConfig
 	meshGateway structs.MeshGatewayConfig
 }
@@ -1795,7 +1818,7 @@ func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, opts discoveryChainWat
 		Datacenter:             s.source.Datacenter,
 		QueryOptions:           structs.QueryOptions{Token: s.token},
 		Name:                   opts.name,
-		EvaluateInDatacenter:   s.source.Datacenter,
+		EvaluateInDatacenter:   opts.datacenter,
 		EvaluateInNamespace:    opts.namespace,
 		OverrideProtocol:       opts.cfg.Protocol,
 		OverrideConnectTimeout: opts.cfg.ConnectTimeout(),
