@@ -1133,7 +1133,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
 		protocol:   protocol,
-		filterName: fmt.Sprintf("%s.%s.%s.", service.Name, service.NamespaceOrDefault(), cfgSnap.Datacenter),
+		filterName: fmt.Sprintf("%s.%s.%s", service.Name, service.NamespaceOrDefault(), cfgSnap.Datacenter),
 		routeName:  cluster, // Set cluster name for route config since each will have its own
 		cluster:    cluster,
 		statPrefix: "upstream.",
