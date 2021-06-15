@@ -2,24 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !aix && !darwin && !dragonfly && !freebsd && !linux && !netbsd && !openbsd && !solaris && !zos
-// +build !aix,!darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!zos
+// +build !aix,!darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris
 
 package socket
 
-func controlHeaderLen() int {
-	return 0
-}
-
-func controlMessageLen(dataLen int) int {
-	return 0
-}
-
-func controlMessageSpace(dataLen int) int {
-	return 0
-}
-
 type cmsghdr struct{}
+
+const sizeofCmsghdr = 0
 
 func (h *cmsghdr) len() int { return 0 }
 func (h *cmsghdr) lvl() int { return 0 }

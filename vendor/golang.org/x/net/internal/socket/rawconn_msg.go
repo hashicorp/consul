@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || windows || zos
-// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows zos
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris windows
 
 package socket
 
@@ -25,7 +24,7 @@ func (c *Conn) recvMsg(m *Message, flags int) error {
 	var n int
 	fn := func(s uintptr) bool {
 		n, operr = recvmsg(s, &h, flags)
-		if operr == syscall.EAGAIN || operr == syscall.EWOULDBLOCK {
+		if operr == syscall.EAGAIN {
 			return false
 		}
 		return true
@@ -62,7 +61,7 @@ func (c *Conn) sendMsg(m *Message, flags int) error {
 	var n int
 	fn := func(s uintptr) bool {
 		n, operr = sendmsg(s, &h, flags)
-		if operr == syscall.EAGAIN || operr == syscall.EWOULDBLOCK {
+		if operr == syscall.EAGAIN {
 			return false
 		}
 		return true
