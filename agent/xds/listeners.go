@@ -1133,13 +1133,12 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	// Lastly we setup the actual proxying component. For L4 this is a straight
 	// tcp proxy. For L7 this is a very hands-off HTTP proxy just to inject an
 	// HTTP filter to do intention checks here instead.
-	statPrefix := fmt.Sprintf("terminating_gateway.%s.%s.", service.NamespaceOrDefault(), service.Name)
 	opts := listenerFilterOpts{
 		protocol:   protocol,
-		filterName: listener,
+		filterName: fmt.Sprintf("%s.%s.%s.", service.Name, service.NamespaceOrDefault(), cfgSnap.Datacenter),
 		routeName:  cluster, // Set cluster name for route config since each will have its own
 		cluster:    cluster,
-		statPrefix: statPrefix,
+		statPrefix: "upstream.",
 		routePath:  "",
 	}
 
