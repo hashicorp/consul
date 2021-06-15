@@ -133,10 +133,18 @@ type TransparentProxyConfig struct {
 }
 
 func (c TransparentProxyConfig) ToAPI() *api.TransparentProxyConfig {
+	if c.IsZero() {
+		return nil
+	}
 	return &api.TransparentProxyConfig{
 		OutboundListenerPort: c.OutboundListenerPort,
 		DialedDirectly:       c.DialedDirectly,
 	}
+}
+
+func (c *TransparentProxyConfig) IsZero() bool {
+	zeroVal := TransparentProxyConfig{}
+	return *c == zeroVal
 }
 
 // ConnectProxyConfig describes the configuration needed for any proxy managed
@@ -242,16 +250,18 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 }
 
 func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
-	type typeCopy ConnectProxyConfig
-	copy := typeCopy(*c)
-
-	proxyConfig, err := lib.MapWalk(copy.Config)
-	if err != nil {
-		return nil, err
+	type Alias ConnectProxyConfig
+	out := struct {
+		TransparentProxy *TransparentProxyConfig `json:",omitempty"`
+		Alias
+	}{
+		Alias: (Alias)(*c),
 	}
-	copy.Config = proxyConfig
+	if !c.TransparentProxy.IsZero() {
+		out.TransparentProxy = &out.Alias.TransparentProxy
+	}
 
-	return json.Marshal(&copy)
+	return json.Marshal(&out)
 }
 
 // ToAPI returns the api struct with the same fields. We have duplicates to
