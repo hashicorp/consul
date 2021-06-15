@@ -1033,7 +1033,6 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 
 		clusterChain, err := s.makeFilterChainTerminatingGateway(
 			cfgSnap,
-			name,
 			clusterName,
 			svc,
 			intentions,
@@ -1052,7 +1051,6 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 
 				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
 					cfgSnap,
-					name,
 					subsetClusterName,
 					svc,
 					intentions,
@@ -1095,7 +1093,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 
 func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	cfgSnap *proxycfg.ConfigSnapshot,
-	listener, cluster string,
+	cluster string,
 	service structs.ServiceName,
 	intentions structs.Intentions,
 	protocol string,
