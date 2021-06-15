@@ -257,6 +257,13 @@ func (c *ConnectProxyConfig) MarshalJSON() ([]byte, error) {
 	}{
 		Alias: (Alias)(*c),
 	}
+
+	proxyConfig, err := lib.MapWalk(c.Config)
+	if err != nil {
+		return nil, err
+	}
+	out.Alias.Config = proxyConfig
+
 	if !c.TransparentProxy.IsZero() {
 		out.TransparentProxy = &out.Alias.TransparentProxy
 	}
