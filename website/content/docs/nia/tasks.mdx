@@ -68,11 +68,32 @@ Tasks with a catalog-services condition monitor and execute on service registrat
 
 The catalog-services condition operates by monitoring the [Catalog List Services API](/api-docs/catalog#list-services) and executing the task when services are added or removed in the list of registered services. Note, the task does not execute on changes to the tags of the list of services. This is similar to how changes to service instance information, mentioned above, also does not execute a task.
 
-The module selected for a task will likely determine whether the task should be configured with a catalog-services condition. Authors for a catalog-services condition module have the option to include and use the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable). When this variable is included in the module, the user of this module will need to configure the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var) value to be true. Catalog-Services condition modules should have the condition type and `source_includes_var` configuration value documented for users to reference when configuring a task.
+Below is an example configuration for a task that will execute when a service with a name that matches the "web.*" regular expression in datacenter "dc1" has a registration change. It additionally monitors but does not execute on service instance changes to "web-api" in datacenter "dc2".
+```hcl
+task {
+  name = "catalog_service_condition_task"
+  source = "path/to/catalog-service-module"
+  providers = ["my-provider"]
+  services = ["web-api"]
+
+  condition "catalog-service" {
+    datacenter          = "dc1"
+    regexp              = "web.*"
+    source_includes_var = false
+  }
+}
+
+service {
+  name = "web-api"
+  datacenter = "dc2"
+}
+```
+
+The module selected for a task will likely determine whether the task should be configured with a catalog-services condition. Module authors have the option to include and use the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable) in addition to the required `services` variable. When this variable is included in the module, the user of this module will need to configure the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var) value to be true. Catalog-Services condition modules should have the condition type and `source_includes_var` configuration value documented for users to reference when configuring a task.
 
 In addition to `source_includes_var`, a task's catalog-services condition has other configuration fields that can be used to specify which services' registration changes should execute the task. For example, registration changes can be filtered for services in a specific datacenter or namespace. See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for more details.
 
-One particular condition configuration, [`regexp`](/docs/nia/configuration#regexp), filters service registration changes by services that have a name which matches the configured regular expression. When unconfigured, the `regexp` value will default to match on any service that has a name which matches the services listed in [`task.services`](/docs/nia/configuration#services). As such, either `regexp` or `task.services` must be configured. When both are configured, the task will monitor and execute on registration changes to services matching the `regexp`, and the task will additionally monitor but not execute on service instances listed in `task.services` to optionally provide additional service information to the module.
+One particular condition configuration, [`regexp`](/docs/nia/configuration#regexp), filters service registration changes by services that have a name which matches the configured regular expression. When unconfigured, the `regexp` value will default to match on any service that has a name which matches the services listed in [`task.services`](/docs/nia/configuration#services). As such, either `regexp` or `task.services` must be configured. When both are configured, see example above, the task will monitor and execute on registration changes to services matching the `regexp`, and the task will additionally monitor but not execute on service instances listed in `task.services` to optionally provide additional service information to the module.
 
 ## Task Automation
 
