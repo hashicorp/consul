@@ -168,7 +168,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 			snap.ConnectProxy.ConfigSnapshotUpstreams.WatchedUpstreamEndpoints[svc][targetID][0:1]
 	}
 
-	runStep(t, "envoy randomly decides to unsubscribe from an endpoint", func(t *testing.T) {
+	runStep(t, "avoid sending config for unsubscribed resource", func(t *testing.T) {
 		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 			ResourceNamesUnsubscribe: []string{
 				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
