@@ -557,6 +557,8 @@ type dhGEXSHA struct {
 	hashFunc crypto.Hash
 }
 
+const numMRTests = 64
+
 const (
 	dhGroupExchangeMinimumBits   = 2048
 	dhGroupExchangePreferredBits = 2048
@@ -600,8 +602,15 @@ func (gex dhGEXSHA) Client(c packetConn, randSource io.Reader, magics *handshake
 	gex.p = kexDHGexGroup.P
 	gex.g = kexDHGexGroup.G
 
-	// Check if g is safe by verifing that g > 1 and g < p - 1
+	// Check if p is safe by verifing that p and (p-1)/2 are primes
 	one := big.NewInt(1)
+	var pHalf = &big.Int{}
+	pHalf.Rsh(gex.p, 1)
+	if !gex.p.ProbablyPrime(numMRTests) || !pHalf.ProbablyPrime(numMRTests) {
+		return nil, fmt.Errorf("ssh: server provided gex p is not safe")
+	}
+
+	// Check if g is safe by verifing that g > 1 and g < p - 1
 	var pMinusOne = &big.Int{}
 	pMinusOne.Sub(gex.p, one)
 	if gex.g.Cmp(one) != 1 && gex.g.Cmp(pMinusOne) != -1 {
@@ -609,8 +618,6 @@ func (gex dhGEXSHA) Client(c packetConn, randSource io.Reader, magics *handshake
 	}
 
 	// Send GexInit
-	var pHalf = &big.Int{}
-	pHalf.Rsh(gex.p, 1)
 	x, err := rand.Int(randSource, pHalf)
 	if err != nil {
 		return nil, err

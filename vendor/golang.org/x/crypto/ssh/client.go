@@ -77,7 +77,7 @@ func NewClientConn(c net.Conn, addr string, config *ClientConfig) (Conn, <-chan 
 	}
 
 	conn := &connection{
-		sshConn: sshConn{conn: c, user: fullConf.User},
+		sshConn: sshConn{conn: c},
 	}
 
 	if err := conn.clientHandshake(addr, &fullConf); err != nil {

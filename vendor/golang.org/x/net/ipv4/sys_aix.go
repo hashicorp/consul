@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // Added for go1.11 compatibility
-//go:build aix
 // +build aix
 
 package ipv4

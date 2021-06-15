@@ -4,7 +4,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build go1.10
 // +build go1.10
 
 // Package idna implements IDNA2008 using the compatibility processing

@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build netbsd || openbsd
 // +build netbsd openbsd
 
 package ipv4
