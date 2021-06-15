@@ -24,7 +24,7 @@ Below are the two required elements for module compatibility with Consul-Terrafo
 
 Below are additional input variables provided by Consul-Terraform-Sync that may be included in a module alongside the `services` input variable. Details for each input variable contain guidance on when to include them in a module.
 
- - [**`catalog_services` input variable**](#catalog-services-variable) - This variable can optionally be included in modules for the [catalog-services condition](/docs/nia/tasks#catalog-services-condition). The declaration of the `catalog_services` input variable can be included at the top of the suggested `variables.tf` file alongside the required `services` input variable and other input variables. This variable functions as the response object from the Consul catalog list services API and surfaces registered services information. It is structured as a map of lists.
+ - [**`catalog_services` input variable**](#catalog-services-variable) - This variable can optionally be included in modules for the [catalog-services condition](/docs/nia/tasks#catalog-services-condition). The declaration of the `catalog_services` input variable can be included at the top of the suggested `variables.tf` file alongside the required `services` input variable and other input variables. This variable functions as the response object from the [Consul catalog list services API](/api-docs/catalog#list-services) and surfaces registered services information. It is structured as a map of lists.
 
 ## How to Create a Compatible Terraform Module
 
@@ -101,7 +101,7 @@ variable "services" {
 
 ### Catalog Services Variable
 
-If you are creating a module with for a [catalog-service condition](/docs/nia/tasks#catalog-services-condition), then you have the option to add the `catalog_services` variable, which contains service registration and tag information. If your module would benefit from consuming this information, you can copy the `catalog_services` variable declaration to your `variables.tf` file in addition to the other variables.
+If you are creating a module for a [catalog-service condition](/docs/nia/tasks#catalog-services-condition), then you have the option to add the `catalog_services` variable, which contains service registration and tag information. If your module would benefit from consuming this information, you can copy the `catalog_services` variable declaration to your `variables.tf` file in addition to the other variables.
 
 ```hcl
 variable "catalog_services" {
