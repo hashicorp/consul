@@ -1,0 +1,3 @@
+```release-note:bug
+return an invalid record when asked for an addr dns with type other then A and AAAA.
+```
