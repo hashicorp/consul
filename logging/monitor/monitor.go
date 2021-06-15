@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"errors"
+	"sync"
 
 	log "github.com/hashicorp/go-hclog"
 )
@@ -80,21 +81,22 @@ func (d *monitor) Stop() int {
 // received log messages over the returned channel.
 func (d *monitor) Start() <-chan []byte {
 	// register our sink with the logger
-	d.logger.RegisterSink(d.sink)
 	streamCh := make(chan []byte, d.bufSize)
-
 	// run a go routine that listens for streamed
 	// log messages and sends them to streamCh
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	go func() {
 		defer close(streamCh)
-
+		wg.Done()
 		for {
 			select {
-			case log := <-d.logCh:
+			case logLine := <-d.logCh:
 				select {
 				case <-d.doneCh:
 					return
-				case streamCh <- log:
+				case streamCh <- logLine:
 				}
 			case <-d.doneCh:
 				return
@@ -102,6 +104,9 @@ func (d *monitor) Start() <-chan []byte {
 		}
 	}()
 
+	//wait for the consumer loop to start before registering the sink to avoid filling the log channel
+	wg.Wait()
+	d.logger.RegisterSink(d.sink)
 	return streamCh
 }
 
