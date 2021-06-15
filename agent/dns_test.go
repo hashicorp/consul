@@ -6072,6 +6072,50 @@ func TestDNS_AddressLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_AddressLookupANY(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Look up the addresses
+	cases := map[string]string{
+		"7f000001.addr.dc1.consul.": "127.0.0.1",
+	}
+	for question, answer := range cases {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeANY)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		if in.Answer[0].Header().Rrtype != dns.TypeA {
+			t.Fatalf("Invalid type: %#v", in.Answer[0])
+		}
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.A.To4().String() != answer {
+			t.Fatalf("Bad: %#v", aRec)
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
+}
+
 func TestDNS_AddressLookupInvalidType(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

@@ -783,8 +783,8 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 	case "addr":
 		// <address>.addr.<suffixes>.<domain> - addr must be the second label, datacenter is optional
 
-		//check if the query type is A for IPv4 or AAAA for IPv6
-		if req.Question[0].Qtype != dns.TypeA && len(queryParts[0])/2 == 4 || req.Question[0].Qtype != dns.TypeAAAA && len(queryParts[0])/2 == 16 {
+		//check if the query type is A for IPv4 or AAAA for IPv6 or ANY
+		if (req.Question[0].Qtype != dns.TypeANY) && (req.Question[0].Qtype != dns.TypeA || len(queryParts[0])/2 != 4) && (req.Question[0].Qtype != dns.TypeAAAA || len(queryParts[0])/2 != 16) {
 			return invalid()
 		}
 		if len(queryParts) != 1 {
