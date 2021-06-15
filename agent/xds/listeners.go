@@ -536,7 +536,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				filterName:      listenerKey.RouteName(),
 				routeName:       listenerKey.RouteName(),
 				cluster:         "",
-				statPrefix:      "ingress_upstream.",
+				statPrefix:      "ingress_upstream_",
 				routePath:       "",
 				httpAuthzFilter: nil,
 			}
