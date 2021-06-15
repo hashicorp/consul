@@ -22,7 +22,7 @@ func (s *Status) LeaderWithQueryOptions(q *QueryOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var leader string
 	if err := decodeBody(resp, &leader); err != nil {
@@ -47,7 +47,7 @@ func (s *Status) PeersWithQueryOptions(q *QueryOptions) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
 
 	var peers []string
 	if err := decodeBody(resp, &peers); err != nil {
