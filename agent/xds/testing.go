@@ -246,28 +246,26 @@ func (e *TestEnvoy) SendDeltaReq(
 ) {
 	e.sendDeltaReq(t, typeURL, nil, req)
 }
+
 func (e *TestEnvoy) SendDeltaReqACK(
 	t testing.T,
 	typeURL string,
 	nonce uint64,
-	ack bool,
-	errorDetail *status.Status,
 ) {
-	// TODO(rb): fix this signature since we have an ACK/NACK pair of methods.
-	req := &envoy_discovery_v3.DeltaDiscoveryRequest{}
-	if !ack {
-		req.ErrorDetail = errorDetail
-	}
-	e.sendDeltaReq(t, typeURL, &nonce, req)
+	e.sendDeltaReq(t, typeURL, &nonce, nil)
 }
+
 func (e *TestEnvoy) SendDeltaReqNACK(
 	t testing.T,
 	typeURL string,
 	nonce uint64,
 	errorDetail *status.Status,
 ) {
-	e.SendDeltaReqACK(t, typeURL, nonce, false, errorDetail)
+	e.sendDeltaReq(t, typeURL, &nonce, &envoy_discovery_v3.DeltaDiscoveryRequest{
+		ErrorDetail: errorDetail,
+	})
 }
+
 func (e *TestEnvoy) sendDeltaReq(
 	t testing.T,
 	typeURL string,
