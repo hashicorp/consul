@@ -1,3 +1,3 @@
 ```release-note:bug
-proxycfg: Explicit upstreams in other datacenters shouldn't be deleted when transparent proxy is enabled, and when they're not in the seen services list of explicit and implicit upstreams within a datacenter.
+proxycfg: Ensure that endpoints for explicit upstreams in other datacenters are watched in transparent mode.
 ```
