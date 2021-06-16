@@ -117,7 +117,7 @@ service "consul-snapshot" {
 </Tabs>
 
 Additional `session` rules should be created, or `session_prefix` used, if the
-snapshot agent is deployed across more than one hosts.
+snapshot agent is deployed across more than one host.
 
 ## Usage
 
@@ -281,7 +281,7 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 - `-aws-s3-server-side-encryption` - Enables saving snapshots to S3 using server side encryption with [Amazon S3-Managed Encryption Keys](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
 
-- `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or versionize snapshots, and will save them with the same name each time.
+- `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or version snapshots, and will save them with the same name each time.
   Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
 
 - `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.

@@ -261,7 +261,7 @@ The options below are all specified on the command-line.
 - `-log-file` ((#\_log_file)) - writes all the Consul agent log messages
   to a file. This value is used as a prefix for the log file name. The current timestamp
   is appended to the file name. If the value ends in a path separator, `consul-`
-  will be appened to the value. If the file name is missing an extension, `.log`
+  will be appended to the value. If the file name is missing an extension, `.log`
   is appended. For example, setting `log-file` to `/var/log/` would result in a log
   file path of `/var/log/consul-{timestamp}.log`. `log-file` can be combined with
   [`-log-rotate-bytes`](#_log_rotate_bytes) and [-log-rotate-duration](#_log_rotate_duration)
@@ -455,7 +455,7 @@ The options below are all specified on the command-line.
   segment.
 
 - `-serf-lan-allowed-cidrs` ((#\_serf_lan_allowed_cidrs)) - The Serf LAN allowed CIDRs allow to accept incoming
-  connections for Serf only from several networks (mutiple values are supported).
+  connections for Serf only from several networks (multiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
 
@@ -464,7 +464,7 @@ The options below are all specified on the command-line.
   and later.
 
 - `-serf-wan-allowed-cidrs` ((#\_serf_wan_allowed_cidrs)) - The Serf WAN allowed CIDRs allow to accept incoming
-  connections for Serf only from several networks (mutiple values are supported).
+  connections for Serf only from several networks (multiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
 
@@ -814,7 +814,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `advertise_reconnect_timeout` This is a per-agent setting of the [`reconnect_timeout`](#reconnect_timeout) parameter.
   This agent will advertise to all other nodes in the cluster that after this timeout, the node may be completely
   removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
-  `reconnect_timeout` setting when determing when this node may be removed from the cluster.
+  `reconnect_timeout` setting when determining when this node may be removed from the cluster.
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
@@ -953,7 +953,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     client agent's TLS certificate. The `localhost` DNS SAN is always requested.
 
   - `ip_sans` (Defaults to `[]`) This is a list of extra IP SANs to request in the
-    client agent's TLS certficate. The `::1` and `127.0.0.1` IP SANs are always requested.
+    client agent's TLS certificate. The `::1` and `127.0.0.1` IP SANs are always requested.
 
   - `authorization` This object controls how a Consul server will authorize `auto_config`
     requests and in particular how to verify the JWT intro token.
@@ -1089,7 +1089,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `bind_addr` Equivalent to the [`-bind` command-line flag](#_bind).
 
   This parameter can be set to a go-sockaddr template that resolves to a single
-  address. Special characters such as blackslashes `\` or double quotes `"`
+  address. Special characters such as backslashes `\` or double quotes `"`
   within a double quoted string value must be escaped with a backslash `\`.
   Some example templates:
 
@@ -1291,7 +1291,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](#_disable_host_node_id).
 
-- `disable_http_unprintable_char_filter` Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where malicious users could craft KV keys with unprintable chars that would confuse operators using the CLI or UI into taking wrong actions. Users who had data written in older versions of Consul that did not have this restriction will be unable to deletethose values by default in 1.0.3 or later. This setting enables those users to **temporarily** disable the filter such that delete operations can work on those keys again to get back to a healthy state. It is strongly recommended that this filter is not disabled permanently as it exposes the original security vulnerability.
+- `disable_http_unprintable_char_filter` Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where malicious users could craft KV keys with unprintable chars that would confuse operators using the CLI or UI into taking wrong actions. Users who had data written in older versions of Consul that did not have this restriction will be unable to delete those values by default in 1.0.3 or later. This setting enables those users to **temporarily** disable the filter such that delete operations can work on those keys again to get back to a healthy state. It is strongly recommended that this filter is not disabled permanently as it exposes the original security vulnerability.
 
 - `disable_remote_exec` Disables support for remote execution. When set to true, the agent will ignore
   any incoming remote exec requests. In versions of Consul prior to 0.8, this defaulted
@@ -1346,7 +1346,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `only_passing` - If set to true, any nodes whose
     health checks are warning or critical will be excluded from DNS results. If false,
-    the default, only nodes whose healthchecks are failing as critical will be excluded.
+    the default, only nodes whose health checks are failing as critical will be excluded.
     For service lookups, the health checks of the node itself, as well as the service-specific
     checks are considered. For example, if a node has a health check that is critical
     then all services on that node will be excluded because they are also considered
@@ -1598,7 +1598,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
-- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to faciliate forwards compatibility with 1.10 but will only actually be used by client agents.
+- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
 - `limits` Available in Consul 0.9.3 and later, this is a nested
   object that configures limits that are enforced by the agent. Prior to Consul 1.5.2,
@@ -1892,10 +1892,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `circonus_submission_url` ((#telemetry-circonus_submission_url))
     The `check.config.submission_url` field, of a Check API object, from a previously
-    created HTTPTRAP check.
+    created HTTPTrap check.
 
   - `circonus_check_id` ((#telemetry-circonus_check_id))
-    The Check ID (not **check bundle**) from a previously created HTTPTRAP check.
+    The Check ID (not **check bundle**) from a previously created HTTPTrap check.
     The numeric portion of the `check._cid` field in the Check API object.
 
   - `circonus_check_force_metric_activation` ((#telemetry-circonus_check_force_metric_activation)) Force activation of metrics which already exist and are not currently active.
@@ -1925,7 +1925,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     portion of `broker._cid` field in a Broker API object. If metric management is
     enabled and neither a Submission URL nor Check ID is provided, an attempt will
     be made to search for an existing check using Instance ID and Search Tag. If
-    one is not found, a new HTTPTRAP check will be created. By default, this is not
+    one is not found, a new HTTPTrap check will be created. By default, this is not
     used and a random Enterprise Broker is selected, or the default Circonus Public
     Broker.
 
