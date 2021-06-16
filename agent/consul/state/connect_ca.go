@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-memdb"
 
@@ -209,6 +210,18 @@ func (s *Snapshot) CARoots() (structs.CARoots, error) {
 
 	return ret, nil
 }
+func trimCA(r *structs.CARoot) {
+	r.RootCert = strings.TrimSuffix(r.RootCert, "\n")
+	newIntermediate := make([]string, 0)
+	if r.IntermediateCerts != nil {
+		for _, intermediate := range r.IntermediateCerts {
+			intermediate = strings.TrimSuffix(intermediate, "\n")
+			newIntermediate = append(newIntermediate, intermediate)
+		}
+		r.IntermediateCerts = newIntermediate
+	}
+	return
+}
 
 // CARoots is used when restoring from a snapshot.
 func (s *Restore) CARoot(r *structs.CARoot) error {
@@ -320,6 +333,7 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 
 	// Insert all
 	for _, r := range rs {
+		trimCA(r)
 		if err := tx.Insert(tableConnectCARoots, r); err != nil {
 			return false, err
 		}
