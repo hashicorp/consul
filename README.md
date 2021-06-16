@@ -55,3 +55,9 @@ https://www.consul.io/docs
 ## Contributing
 
 Thank you for your interest in contributing! Please refer to [CONTRIBUTING.md](https://github.com/hashicorp/consul/blob/master/.github/CONTRIBUTING.md) for guidance.
+
+## End-User License Agreement & Terms of Evaluation (Consul Enterprise) 
+
+The following shall apply unless your organization has a separately signed Enterprise License Agreement or Evaluation Agreement governing your use of the software:
+
+Software in this repository is subject to the license terms located in the software, copies of which are also available at [EULA](https://eula.hashicorp.com/ClickThruELA-Global.pdf) or [Terms Of Evaluation](https://www.hashicorp.com/terms-of-evaluation) as applicable. Please read the license terms prior to using the software. Your installation and use of the software constitutes your acceptance of these terms. If you do not accept the terms, do not use the software.
