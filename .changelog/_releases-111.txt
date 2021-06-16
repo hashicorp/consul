@@ -1,0 +1,3 @@
+```release-note:note
+legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+```
