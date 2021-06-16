@@ -340,7 +340,8 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 	if err == ErrBackendNotInitialized {
 		return "", nil
 	}
-	return cert, err
+	return strings.TrimSuffix(cert, "\n"), err
+
 }
 
 // getCA returns the raw CA cert for the given endpoint if there is one.
@@ -370,7 +371,7 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 		return "", ErrBackendNotInitialized
 	}
 
-	return root, nil
+	return strings.TrimSuffix(root, "\n"), nil
 }
 
 // GenerateIntermediate mounts the configured intermediate PKI backend if
@@ -514,7 +515,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("certificate was not a string")
 	}
 
-	return xcCert, nil
+	return strings.TrimSuffix(xcCert, "\n"), nil
 }
 
 // SupportsCrossSigning implements Provider

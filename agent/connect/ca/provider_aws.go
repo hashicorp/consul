@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -505,7 +506,7 @@ func (a *AWSProvider) ActiveRoot() (string, error) {
 	if a.rootPEM == "" {
 		return "", fmt.Errorf("Secondary AWS CA provider not fully Initialized")
 	}
-	return a.rootPEM, nil
+	return strings.TrimSuffix(a.rootPEM, "\n"), nil
 }
 
 // GenerateIntermediateCSR implements Provider
@@ -576,7 +577,7 @@ func (a *AWSProvider) ActiveIntermediate() (string, error) {
 		return "", fmt.Errorf("secondary AWS CA provider not fully Initialized")
 	}
 
-	return a.intermediatePEM, nil
+	return strings.TrimSuffix(a.intermediatePEM, "\n"), nil
 }
 
 // GenerateIntermediate implements Provider

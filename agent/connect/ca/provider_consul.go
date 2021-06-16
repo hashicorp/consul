@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,7 +151,7 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 		return "", err
 	}
 
-	return providerState.RootCert, nil
+	return strings.TrimSuffix(providerState.RootCert, "\n"), nil
 }
 
 // GenerateRoot initializes a new root certificate and private key
@@ -300,7 +301,7 @@ func (c *ConsulProvider) ActiveIntermediate() (string, error) {
 		return "", err
 	}
 
-	return providerState.IntermediateCert, nil
+	return strings.TrimSuffix(providerState.IntermediateCert, "\n"), nil
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
@@ -586,7 +587,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	return buf.String(), nil
+	return strings.TrimSuffix(buf.String(), "\n"), nil
 }
 
 // SupportsCrossSigning implements Provider

@@ -2,7 +2,6 @@ package state
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -212,7 +211,6 @@ func TestStore_CARootSetList(t *testing.T) {
 		CreateIndex: 1,
 		ModifyIndex: 1,
 	}
-	expected.RootCert = strings.TrimSuffix(expected.RootCert, "\n")
 	ws = memdb.NewWatchSet()
 	_, roots, err := s.CARoots(ws)
 	assert.Nil(err)

@@ -4,6 +4,7 @@ package ca
 
 import (
 	x509 "crypto/x509"
+	"strings"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -31,7 +32,7 @@ func (_m *MockProvider) ActiveIntermediate() (string, error) {
 		r1 = ret.Error(1)
 	}
 
-	return r0, r1
+	return strings.TrimSuffix(r0, "\n"), r1
 }
 
 // ActiveRoot provides a mock function with given fields:
@@ -52,7 +53,7 @@ func (_m *MockProvider) ActiveRoot() (string, error) {
 		r1 = ret.Error(1)
 	}
 
-	return r0, r1
+	return strings.TrimSuffix(r0, "\n"), r1
 }
 
 // Cleanup provides a mock function with given fields: providerTypeChange, config
@@ -101,7 +102,7 @@ func (_m *MockProvider) CrossSignCA(_a0 *x509.Certificate) (string, error) {
 		r1 = ret.Error(1)
 	}
 
-	return r0, r1
+	return strings.TrimSuffix(r0, "\n"), r1
 }
 
 // GenerateIntermediate provides a mock function with given fields:
