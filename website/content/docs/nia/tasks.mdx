@@ -30,7 +30,19 @@ A task can be either enabled or disabled using the [task cli](/docs/nia/cli/task
 
 ## Task Execution
 
-An enabled task is executed when any change of information for services the task is configured for is detected from the Consul catalog. Execution could include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
+An enabled task can be configured to monitor and execute on different types of conditions. For example, on changes to services ([services condition](/docs/nia/tasks#services-condition)) or on service registration and deregistration ([catalog-services condition](/docs/nia/tasks#catalog-services-condition)).
+
+A task can also monitor but not execute on other variables that are simply included to provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes but additionally monitor service instances for IP information. The details of what values are monitored and what values can execute the task are determined by the module.
+
+Below are details on the types of execution conditions that Consul-Terraform-Sync supports.
+
+### Services Condition
+
+The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on changes to a list of configured services.
+
+In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services). The task's `condition` block can be left unconfigured since it is the default. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
+
+The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
 
 | Attribute               | Description                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -49,7 +61,39 @@ An enabled task is executed when any change of information for services the task
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
-Consul-Terraform-Sync automatically generates any files needed to execute the network driver for each task. See [network drivers](/docs/nia/network-drivers) for more details on the files generated for the Terraform driver.
+
+### Catalog-Services Condition
+
+Tasks with a catalog-services condition monitor and execute on service registration changes for services that satisfy the condition configuration. 'Service registration changes' specifically refers to service registration and deregistration where service registration occurs on the first service instance registration, and service deregistration occurs on the last service instance registration. Tasks with a catalog-services condition may, depending on the module, additionally monitor but not execute on service instance information.
+
+The catalog-services condition operates by monitoring the [Catalog List Services API](/api-docs/catalog#list-services) and executing the task when services are added or removed in the list of registered services. Note, the task does not execute on changes to the tags of the list of services. This is similar to how changes to service instance information, mentioned above, also does not execute a task.
+
+Below is an example configuration for a task that will execute when a service with a name that matches the "web.*" regular expression in datacenter "dc1" has a registration change. It additionally monitors but does not execute on service instance changes to "web-api" in datacenter "dc2".
+```hcl
+task {
+  name = "catalog_service_condition_task"
+  source = "path/to/catalog-service-module"
+  providers = ["my-provider"]
+  services = ["web-api"]
+
+  condition "catalog-service" {
+    datacenter          = "dc1"
+    regexp              = "web.*"
+    source_includes_var = false
+  }
+}
+
+service {
+  name = "web-api"
+  datacenter = "dc2"
+}
+```
+
+The module selected for a task will likely determine whether the task should be configured with a catalog-services condition. Module authors have the option to include and use the [`catalog_services` input variable](/docs/nia/terraform-modules#catalog-services-variable) in addition to the required `services` variable. When this variable is included in the module, the user of this module will need to configure the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var) value to be true. Catalog-Services condition modules should have the condition type and `source_includes_var` configuration value documented for users to reference when configuring a task.
+
+In addition to `source_includes_var`, a task's catalog-services condition has other configuration fields that can be used to specify which services' registration changes should execute the task. For example, registration changes can be filtered for services in a specific datacenter or namespace. See the [Catalog-Services Condition](/docs/nia/configuration#catalog-services-condition) configuration section for more details.
+
+One particular condition configuration, [`regexp`](/docs/nia/configuration#regexp), filters service registration changes by services that have a name which matches the configured regular expression. When unconfigured, the `regexp` value will default to match on any service that has a name which matches the services listed in [`task.services`](/docs/nia/configuration#services). As such, either `regexp` or `task.services` must be configured. When both are configured, see example above, the task will monitor and execute on registration changes to services matching the `regexp`, and the task will additionally monitor but not execute on service instances listed in `task.services` to optionally provide additional service information to the module.
 
 ## Task Automation
 
