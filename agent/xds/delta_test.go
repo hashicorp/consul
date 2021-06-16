@@ -191,6 +191,9 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		snap = newTestSnapshot(t, snap, "")
 		mgr.DeliverConfig(t, sid, snap)
 
+		// We never send an EDS reply about this change.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
 		// and fix the subscription
 		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
 			ResourceNamesSubscribe: []string{
@@ -249,6 +252,9 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		// Trigger only an EDS update (flipping BACK to 2 endpoints in the LBassignment)
 		snap = newTestSnapshot(t, snap, "")
 		mgr.DeliverConfig(t, sid, snap)
+
+		// We never send any replies about this change because we died.
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
 
 	envoy.Close()
