@@ -46,3 +46,11 @@ BUG FIXES:
 {{ end -}}
 {{- end -}}
 
+{{- if .NotesByType.note }}
+NOTES:
+
+{{range .NotesByType.note -}}
+* {{ template "note" . }}
+{{ end -}}
+{{- end -}}
+
