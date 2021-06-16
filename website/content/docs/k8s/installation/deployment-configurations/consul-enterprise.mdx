@@ -24,19 +24,34 @@ In your `config.yaml`, change the value of `global.image` to one of the enterpri
 ```yaml
 # config.yaml
 global:
-  image: 'hashicorp/consul-enterprise:1.4.3-ent'
+  image: 'hashicorp/consul-enterprise:1.10.0-ent'
 ```
 
-Add the name and key of the secret you just created to `server.enterpriseLicense`.
+Add the name and key of the secret you just created to `server.enterpriseLicense`, if using Consul version 1.10+.
 
 ```yaml
 # config.yaml
 global:
-  image: 'hashicorp/consul-enterprise:1.4.3-ent'
+  image: 'hashicorp/consul-enterprise:1.10.0-ent'
 server:
   enterpriseLicense:
     secretName: 'consul-ent-license'
     secretKey: 'key'
+```
+
+If the version of Consul is < 1.10, use the following config with the name and key of the secret you just created.
+
+-> **Note:** The value of `server.enterpriseLicense.enableLicenseAutoload` must be set to `false`.
+
+```yaml
+# config.yaml
+global:
+  image: 'hashicorp/consul-enterprise:1.8.3-ent'
+server:
+  enterpriseLicense:
+    secretName: 'consul-ent-license'
+    secretKey: 'key'
+    enableLicenseAutoload: false
 ```
 
 Now run `helm install`:
@@ -74,9 +89,9 @@ Licensed Features:
         Advanced Network Federation
 $ consul members
 Node                                       Address           Status  Type    Build      Protocol  DC   Segment
-hashicorp-consul-server-0                  10.60.0.187:8301  alive   server  1.4.3+ent  2         dc1  <all>
-hashicorp-consul-server-1                  10.60.1.229:8301  alive   server  1.4.3+ent  2         dc1  <all>
-hashicorp-consul-server-2                  10.60.2.197:8301  alive   server  1.4.3+ent  2         dc1  <all>
+hashicorp-consul-server-0                  10.60.0.187:8301  alive   server  1.10.0+ent  2         dc1  <all>
+hashicorp-consul-server-1                  10.60.1.229:8301  alive   server  1.10.0+ent  2         dc1  <all>
+hashicorp-consul-server-2                  10.60.2.197:8301  alive   server  1.10.0+ent  2         dc1  <all>
 ```
 
 If you get an error:
