@@ -268,7 +268,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	// Set the response
 	reply := structs.IssuedCert{
 		SerialNumber:   connect.EncodeSerialNumber(cert.SerialNumber),
-		CertPEM:        pem,
+		CertPEM:        strings.TrimSuffix(pem, "\n"),
 		ValidAfter:     cert.NotBefore,
 		ValidBefore:    cert.NotAfter,
 		EnterpriseMeta: entMeta,
