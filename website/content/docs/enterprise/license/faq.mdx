@@ -156,6 +156,17 @@ Assume a scenario where there are three Consul server nodes:
 
 The command `consul license put` is issued from Node A. This will result in an error due to how Consul routes calls to the server node, Node B in this example.
 Because Node A is a follower when the call `consul license put` is issued, the call will be redirected to Node B (leader).
-The `consul license put` operation will fail due to being removed from v1.10.0.
+The `consul license put` operation will fail due to being removed from 1.10.0.
 This is a scenario that could occur if a customer downgrades from 1.10.0+ and the Consul leadership has not transferred back over to a node not running 1.10.0+.
 This also has the potential of occurring when upgrading if scheduled license updates or autoscaling groups recoveries are in place.
+
+## Q: Any impacts to Consul Kubernetes?
+
+If you are using a Consul Enterprise version prior to 1.10.0 and decide to upgrade the Helm chart to version 0.32.0 or newer, but not the Consul version.
+You will need to add the following configuration.
+
+```
+server:
+  enterpriseLicense:
+    enableLicenseAutoload: false
+```
