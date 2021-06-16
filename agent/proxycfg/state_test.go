@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
@@ -2151,13 +2152,14 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			}
 
 			// setup the ctx as initWatches expects this to be there
-			state.ctx, state.cancel = context.WithCancel(context.Background())
+			var ctx context.Context
+			ctx, state.cancel = context.WithCancel(context.Background())
 
 			// get the initial configuration snapshot
 			snap := state.initialConfigSnapshot()
 
 			// ensure the initial watch setup did not error
-			require.NoError(t, state.initWatches(&snap))
+			require.NoError(t, state.initWatches(ctx, &snap))
 
 			//--------------------------------------------------------------------
 			//
@@ -2184,7 +2186,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					// therefore we just tell it about the updates
 					for eveIdx, event := range stage.events {
 						require.True(t, t.Run(fmt.Sprintf("update-%d", eveIdx), func(t *testing.T) {
-							require.NoError(t, state.handleUpdate(event, &snap))
+							require.NoError(t, state.handleUpdate(ctx, event, &snap))
 						}))
 					}
 
