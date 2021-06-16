@@ -246,23 +246,23 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
 
-Those endpoints return the aggregated values of all healthchecks for the
+Those endpoints return the aggregated values of all health checks for the
 service instance(s) and will return the corresponding HTTP codes:
 
 | Result | Meaning                                                         |
 | ------ | --------------------------------------------------------------- |
-| `200`  | All healthchecks of every matching service instance are passing |
+| `200`  | All health checks of every matching service instance are passing |
 | `400`  | Bad parameter (missing service name of id)                      |
 | `404`  | No such service id or name                                      |
-| `429`  | Some healthchecks are passing, at least one is warning          |
-| `503`  | At least one of the healthchecks is critical                    |
+| `429`  | Some health checks are passing, at least one is warning          |
+| `503`  | At least one of the health checks is critical                    |
 
 Those endpoints might be useful for the following use-cases:
 
 - a load-balancer wants to check IP connectivity with an agent and retrieve
   the aggregated status of given service
-- create aliases for a given service (thus, the healthcheck of alias uses
-  http://localhost:8500/v1/agent/service/id/aliased_service_id healthcheck)
+- create aliases for a given service (thus, the health check of alias uses
+  http://localhost:8500/v1/agent/service/id/aliased_service_id health check)
 
 ##### Note
 
@@ -492,7 +492,7 @@ The table below shows this endpoint's support for
 
 ### Query string parameters
 
-- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
+- `replace-existing-checks` - Missing health checks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
 
 ### Parameters
 
