@@ -20,7 +20,7 @@ which is the combination of all Kubernetes probes registered with the pod.
 1. If the pod is utilizing [Transparent Proxy](/docs/connect/transparent-proxy) mode, the mutating webhook will mutate all `http` based Startup, Liveness, and Readiness probes in the pod to redirect through the Envoy proxy.
 This is done with [`ExposePaths` configuration](/docs/connect/registration/service-registration#expose-paths-configuration-reference) for each probe so that kubelet can access the endpoint through the Envoy proxy.
 
-~> The mutation behaviour can be disabled by either setting the `consul.hashicorp.com/transparent-proxy-overwrite-probes` pod annotation to `false` or the `connectInject.defaultOverwriteProbes` Helm value to `false`.
+~> The mutation behavior can be disabled by either setting the `consul.hashicorp.com/transparent-proxy-overwrite-probes` pod annotation to `false` or the `connectInject.defaultOverwriteProbes` Helm value to `false`.
 
 When readiness probes are set for a pod, the status of the pod will be reflected within Consul and will cause Consul to redirect service
 mesh traffic to the pod based on the pod's health. If the pod has failing health checks, Consul will no longer use
