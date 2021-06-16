@@ -1,3 +1,3 @@
 ```release-note:bug
-Fixed a bug that return a malformat certificate chain when the certificate is not having a trailing newline.
+Fixed a bug that return a trailing newline depending which ca provider is used (Vault or Consul).
 ```
