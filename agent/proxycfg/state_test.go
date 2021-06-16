@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
