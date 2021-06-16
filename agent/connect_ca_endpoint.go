@@ -77,7 +77,7 @@ func (s *HTTPHandlers) ConnectCAConfiguration(resp http.ResponseWriter, req *htt
 		return s.ConnectCAConfigurationGet(resp, req)
 
 	case "PUT":
-		return s.ConnectCAConfigurationSet(resp, req)
+		return s.ConnectCAConfigurationSet(req)
 
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST"}}
@@ -102,7 +102,7 @@ func (s *HTTPHandlers) ConnectCAConfigurationGet(resp http.ResponseWriter, req *
 }
 
 // PUT /v1/connect/ca/configuration
-func (s *HTTPHandlers) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 
 	var args structs.CARequest
