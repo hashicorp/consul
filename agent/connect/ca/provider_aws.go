@@ -232,7 +232,7 @@ func (a *AWSProvider) ensureCA() error {
 		return err
 	}
 
-	a.rootPEM = certPEM
+	a.rootPEM = strings.TrimSuffix(certPEM, "\n")
 	return nil
 }
 
@@ -363,15 +363,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = *output.Certificate
+		a.rootPEM = strings.TrimSuffix(*output.Certificate, "\n")
 	} else {
-		a.intermediatePEM = *output.Certificate
+		a.intermediatePEM = strings.TrimSuffix(*output.Certificate, "\n")
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = *output.CertificateChain
+		a.rootPEM = strings.TrimSuffix(*output.Certificate, "\n")
 	}
 	return nil
 }
@@ -506,7 +506,7 @@ func (a *AWSProvider) ActiveRoot() (string, error) {
 	if a.rootPEM == "" {
 		return "", fmt.Errorf("Secondary AWS CA provider not fully Initialized")
 	}
-	return strings.TrimSuffix(a.rootPEM, "\n"), nil
+	return a.rootPEM, nil
 }
 
 // GenerateIntermediateCSR implements Provider
@@ -545,8 +545,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 	}
 
 	// We succsefully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = rootPEM
-	a.intermediatePEM = intermediatePEM
+	a.rootPEM = strings.TrimSuffix(rootPEM, "\n")
+	a.intermediatePEM = strings.TrimSuffix(intermediatePEM, "\n")
 
 	return nil
 }
@@ -577,7 +577,7 @@ func (a *AWSProvider) ActiveIntermediate() (string, error) {
 		return "", fmt.Errorf("secondary AWS CA provider not fully Initialized")
 	}
 
-	return strings.TrimSuffix(a.intermediatePEM, "\n"), nil
+	return a.intermediatePEM, nil
 }
 
 // GenerateIntermediate implements Provider

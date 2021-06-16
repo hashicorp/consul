@@ -192,9 +192,9 @@ func (c *ConsulProvider) GenerateRoot() error {
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
-		newState.RootCert = ca
+		newState.RootCert = strings.TrimSuffix(ca, "\n")
 	} else {
-		newState.RootCert = c.config.RootCert
+		newState.RootCert = strings.TrimSuffix(c.config.RootCert, "\n")
 	}
 
 	// Write the provider state
@@ -276,8 +276,8 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 
 	// Update the state
 	newState := *providerState
-	newState.IntermediateCert = intermediatePEM
-	newState.RootCert = rootPEM
+	newState.IntermediateCert = strings.TrimSuffix(intermediatePEM, "\n")
+	newState.RootCert = strings.TrimSuffix(rootPEM, "\n")
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
@@ -301,7 +301,7 @@ func (c *ConsulProvider) ActiveIntermediate() (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSuffix(providerState.IntermediateCert, "\n"), nil
+	return providerState.IntermediateCert, nil
 }
 
 // We aren't maintaining separate root/intermediate CAs for the builtin
