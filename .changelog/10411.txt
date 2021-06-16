@@ -1,0 +1,3 @@
+```release-note:bug
+Fixed a bug that return a malformat certificate chain when the certificate is not having a trailing newline..
+```
