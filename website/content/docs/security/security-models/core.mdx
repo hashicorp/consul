@@ -80,7 +80,7 @@ environment and adapt these configurations accordingly.
     to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled. TLS for the API
     may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 
-  - [`verifing_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) - By default this is false, and should almost
+  - [`verify_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) - By default this is false, and should almost
     always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
 
   - [`verify_outgoing`](/docs/agent/options#verify_outgoing) - By default this is false, and should be set to true to
@@ -239,7 +239,7 @@ environment and adapt these configurations accordingly.
 
   ```hcl
   http_config {
-    reponse_headers {
+    response_headers {
         "X-Frame-Options" = "DENY"
     }
   }
@@ -374,7 +374,7 @@ The following are not part of the threat model for client agents:
   to your cluster in certain situations, especially in multi-team deployments. They may accidentally or intentionally
   abuse access to Consul components which can help be protected against using Namespace, and Sentinel policies.
 
-- **Application** - A malicious internal application, suchs as a compromised third-party dependency with access to a
+- **Application** - A malicious internal application, such as a compromised third-party dependency with access to a
   Consul agent, along with the TLS certificate or ACL token used by the local agent, could effectively do anything the
   token permits. Consider enabling HTTPS for the local Consul agent API, enforcing full mutual TLS verification,
   segmenting services using namespaces, as well as configuring OS users, groups, and file permissions to build a defense-in-depth approach.
