@@ -412,6 +412,8 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 // a new leaf certificate based on the provided CSR, with the issuing
 // intermediate CA cert attached.
 func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	var pemBuf bytes.Buffer
 	if err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw}); err != nil {
 		return "", err
@@ -444,6 +446,8 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // SignIntermediate returns a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	err := validateSignIntermediate(csr, v.spiffeID)
 	if err != nil {
 		return "", err
@@ -492,6 +496,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	if rootCert.NotAfter.Before(time.Now()) {
 		return "", fmt.Errorf("root certificate is expired")
 	}
+	// connect.ClearCertSubject(cert) // TODO:????
 
 	var pemBuf bytes.Buffer
 	err = pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})

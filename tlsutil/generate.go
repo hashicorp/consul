@@ -15,8 +15,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
 	"net/url"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -107,7 +108,8 @@ func GenerateCA(opts CAOpts) (string, string, error) {
 			Locality:      []string{"San Francisco"},
 			StreetAddress: []string{"101 Second Street"},
 			Organization:  []string{"HashiCorp Inc."},
-			CommonName:    name,
+			// TODO(rb): should we stop inserting CommonNames here as well?
+			CommonName: name,
 		},
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,

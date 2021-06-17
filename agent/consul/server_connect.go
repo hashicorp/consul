@@ -8,13 +8,14 @@ import (
 	"strings"
 	"sync"
 
+	memdb "github.com/hashicorp/go-memdb"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/semaphore"
-	memdb "github.com/hashicorp/go-memdb"
-	"golang.org/x/time/rate"
 )
 
 type connectSignRateLimiter struct {
@@ -169,7 +170,6 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 			originalURI := agentID.URI()
 
 			agentID.Host = trustDomain
-			csr.Subject.CommonName = connect.AgentCN(agentID.Agent, trustDomain)
 
 			// recreate the URIs list
 			uris := make([]*url.URL, len(csr.URIs))
@@ -208,7 +208,10 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 		defer s.caLeafLimiter.csrConcurrencyLimiter.Release()
 	}
 
+	connect.HackSANExtensionForCSR(csr)
+
 	// All seems to be in order, actually sign it.
+
 	pem, err := provider.Sign(csr)
 	if err == ca.ErrRateLimited {
 		return nil, ErrRateLimited

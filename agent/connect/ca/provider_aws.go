@@ -14,10 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -28,10 +29,12 @@ const (
 	// IntermediateTemplateARN is the AWS-defined template we need to use when
 	// issuing an intermediate cert.
 	IntermediateTemplateARN = "arn:aws:acm-pca:::template/SubordinateCACertificate_PathLen0/V1"
+	// IntermediateTemplateARN = "arn:aws:acm-pca:::template/SubordinateCACertificate_PathLen0_CSRPassthrough/V1"
 
 	// LeafTemplateARN is the AWS-defined template we need to use when issuing a
 	// leaf cert.
 	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
+	// LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate_CSRPassthrough/V1"
 
 	// RootTTL is the validity duration for root certs we create.
 	AWSRootTTL = 5 * 365 * 24 * time.Hour
@@ -594,6 +597,8 @@ func (a *AWSProvider) GenerateIntermediate() (string, error) {
 
 // Sign implements Provider
 func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	if a.rootPEM == "" {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
 	}
@@ -607,6 +612,8 @@ func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 
 // SignIntermediate implements Provider
 func (a *AWSProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	err := validateSignIntermediate(csr, &connect.SpiffeIDSigning{ClusterID: a.clusterID, Domain: "consul"})
 	if err != nil {
 		return "", err

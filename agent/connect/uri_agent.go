@@ -20,7 +20,3 @@ func (id *SpiffeIDAgent) URI() *url.URL {
 	result.Path = fmt.Sprintf("/agent/client/dc/%s/id/%s", id.Datacenter, id.Agent)
 	return &result
 }
-
-func (id *SpiffeIDAgent) CommonName() string {
-	return AgentCN(id.Agent, id.Host)
-}

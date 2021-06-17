@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"fmt"
 	"net"
 	"net/url"
@@ -45,16 +44,7 @@ func TestAutoEncrypt_generateCSR(t *testing.T) {
 				AutoEncryptTLS:   true,
 				AutoEncryptIPSAN: []net.IP{net.IPv4(198, 18, 0, 1), net.IPv4(198, 18, 0, 2)},
 			},
-			expectedSubject: pkix.Name{
-				CommonName: connect.AgentCN("test-node", unknownTrustDomain),
-				Names: []pkix.AttributeTypeAndValue{
-					{
-						// 2,5,4,3 is the CommonName type ASN1 identifier
-						Type:  asn1.ObjectIdentifier{2, 5, 4, 3},
-						Value: "testnode.agnt.unknown.consul",
-					},
-				},
-			},
+			expectedSubject:  pkix.Name{},
 			expectedSigAlg:   x509.ECDSAWithSHA256,
 			expectedPubAlg:   x509.ECDSA,
 			expectedDNSNames: defaultDNSSANs,
@@ -77,16 +67,7 @@ func TestAutoEncrypt_generateCSR(t *testing.T) {
 				AutoEncryptTLS:    true,
 				AutoEncryptDNSSAN: []string{"foo.local", "bar.local"},
 			},
-			expectedSubject: pkix.Name{
-				CommonName: connect.AgentCN("test-node", unknownTrustDomain),
-				Names: []pkix.AttributeTypeAndValue{
-					{
-						// 2,5,4,3 is the CommonName type ASN1 identifier
-						Type:  asn1.ObjectIdentifier{2, 5, 4, 3},
-						Value: "testnode.agnt.unknown.consul",
-					},
-				},
-			},
+			expectedSubject:  pkix.Name{},
 			expectedSigAlg:   x509.ECDSAWithSHA256,
 			expectedPubAlg:   x509.ECDSA,
 			expectedDNSNames: append(defaultDNSSANs, "foo.local", "bar.local"),
