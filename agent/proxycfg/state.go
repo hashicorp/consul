@@ -846,8 +846,7 @@ func (s *state) handleUpdateConnectProxy(ctx context.Context, u cache.UpdateEven
 
 		// Clean up data from services that were not in the update
 		for sn := range snap.ConnectProxy.WatchedUpstreams {
-			upstream := snap.ConnectProxy.UpstreamConfig[sn]
-			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
@@ -855,8 +854,7 @@ func (s *state) handleUpdateConnectProxy(ctx context.Context, u cache.UpdateEven
 			}
 		}
 		for sn := range snap.ConnectProxy.WatchedUpstreamEndpoints {
-			upstream := snap.ConnectProxy.UpstreamConfig[sn]
-			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
@@ -864,8 +862,7 @@ func (s *state) handleUpdateConnectProxy(ctx context.Context, u cache.UpdateEven
 			}
 		}
 		for sn := range snap.ConnectProxy.WatchedGateways {
-			upstream := snap.ConnectProxy.UpstreamConfig[sn]
-			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
@@ -873,8 +870,7 @@ func (s *state) handleUpdateConnectProxy(ctx context.Context, u cache.UpdateEven
 			}
 		}
 		for sn := range snap.ConnectProxy.WatchedGatewayEndpoints {
-			upstream := snap.ConnectProxy.UpstreamConfig[sn]
-			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
@@ -882,8 +878,7 @@ func (s *state) handleUpdateConnectProxy(ctx context.Context, u cache.UpdateEven
 			}
 		}
 		for sn, cancelFn := range snap.ConnectProxy.WatchedDiscoveryChains {
-			upstream := snap.ConnectProxy.UpstreamConfig[sn]
-			if upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
+			if upstream, ok := snap.ConnectProxy.UpstreamConfig[sn]; ok && upstream.Datacenter != "" && upstream.Datacenter != s.source.Datacenter {
 				continue
 			}
 			if _, ok := seenServices[sn]; !ok {
