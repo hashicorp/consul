@@ -245,7 +245,7 @@ func (c *Configurator) Update(config Config) error {
 	if err != nil {
 		return err
 	}
-	if err = c.check(config, pool, cert); err != nil {
+	if err = validateConfig(config, pool, cert); err != nil {
 		return err
 	}
 	c.base = &config
@@ -270,7 +270,7 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	if err != nil {
 		return err
 	}
-	if err = c.check(*c.base, pool, c.manual.cert); err != nil {
+	if err = validateConfig(*c.base, pool, c.manual.cert); err != nil {
 		return err
 	}
 	c.autoTLS.connectCAPems = connectCAPems
@@ -357,7 +357,9 @@ func pool(pems []string) (*x509.CertPool, error) {
 	return pool, nil
 }
 
-func (c *Configurator) check(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
+// validateConfig checks that config is valid and does not conflict with the pool
+// or cert.
+func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
 		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {

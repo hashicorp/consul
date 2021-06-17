@@ -524,7 +524,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			require.NoError(t, err, info)
 			pool, err := pool(pems)
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, pool, cert)
+			err3 = validateConfig(v.config, pool, cert)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
