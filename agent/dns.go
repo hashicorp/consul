@@ -784,9 +784,6 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 		// <address>.addr.<suffixes>.<domain> - addr must be the second label, datacenter is optional
 
 		//check if the query type is A for IPv4 or AAAA for IPv6 or ANY
-		if (req.Question[0].Qtype != dns.TypeANY) && (req.Question[0].Qtype != dns.TypeA || len(queryParts[0])/2 != 4) && (req.Question[0].Qtype != dns.TypeAAAA || len(queryParts[0])/2 != 16) {
-			return invalid()
-		}
 		if len(queryParts) != 1 {
 			return invalid()
 		}
@@ -798,32 +795,38 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 			if err != nil {
 				return invalid()
 			}
-
-			resp.Answer = append(resp.Answer, &dns.A{
-				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
-					Rrtype: dns.TypeA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(cfg.NodeTTL / time.Second),
-				},
-				A: ip,
-			})
+			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
+				resp.SetRcode(req, dns.RcodeSuccess)
+			} else {
+				resp.Answer = append(resp.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   qName + d.domain,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					A: ip,
+				})
+			}
 		// IPv6
 		case 16:
 			ip, err := hex.DecodeString(queryParts[0])
 			if err != nil {
 				return invalid()
 			}
-
-			resp.Answer = append(resp.Answer, &dns.AAAA{
-				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
-					Rrtype: dns.TypeAAAA,
-					Class:  dns.ClassINET,
-					Ttl:    uint32(cfg.NodeTTL / time.Second),
-				},
-				AAAA: ip,
-			})
+			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
+				resp.SetRcode(req, dns.RcodeSuccess)
+			} else {
+				resp.Answer = append(resp.Answer, &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   qName + d.domain,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					AAAA: ip,
+				})
+			}
 		}
 	}
 	return true

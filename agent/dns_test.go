@@ -6140,6 +6140,9 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		if in.Rcode != 0 {
+			t.Fatalf("Bad Rcode: %#v", in)
+		}
 		if in.Answer == nil {
 			t.Fatalf("Bad: %#v", in)
 		}
