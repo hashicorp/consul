@@ -29,12 +29,10 @@ const (
 	// IntermediateTemplateARN is the AWS-defined template we need to use when
 	// issuing an intermediate cert.
 	IntermediateTemplateARN = "arn:aws:acm-pca:::template/SubordinateCACertificate_PathLen0/V1"
-	// IntermediateTemplateARN = "arn:aws:acm-pca:::template/SubordinateCACertificate_PathLen0_CSRPassthrough/V1"
 
 	// LeafTemplateARN is the AWS-defined template we need to use when issuing a
 	// leaf cert.
 	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
-	// LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate_CSRPassthrough/V1"
 
 	// RootTTL is the validity duration for root certs we create.
 	AWSRootTTL = 5 * 365 * 24 * time.Hour
