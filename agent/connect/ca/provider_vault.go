@@ -496,7 +496,6 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 	if rootCert.NotAfter.Before(time.Now()) {
 		return "", fmt.Errorf("root certificate is expired")
 	}
-	// connect.ClearCertSubject(cert) // TODO:????
 
 	var pemBuf bytes.Buffer
 	err = pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
