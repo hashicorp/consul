@@ -1026,11 +1026,10 @@ func TestConfigurator_UpdateChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, c.Update(Config{}))
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Error(t, c.Update(Config{VerifyIncoming: true,
-		CAFile: "../test/ca/root.cer"}))
+	require.Error(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer"}))
 	require.False(t, c.base.VerifyIncoming)
 	require.False(t, c.base.VerifyOutgoing)
-	require.Equal(t, c.version, 2)
+	require.Equal(t, uint64(2), c.version)
 }
 
 func TestConfigurator_UpdateSetsStuff(t *testing.T) {
@@ -1039,10 +1038,10 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.Nil(t, c.caPool)
 	require.Nil(t, c.manual.cert)
 	require.Equal(t, c.base, &Config{})
-	require.Equal(t, 1, c.version)
+	require.Equal(t, uint64(1), c.version)
 
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Equal(t, c.version, 1)
+	require.Equal(t, uint64(1), c.version)
 
 	config := Config{
 		CAFile:   "../test/ca/root.cer",
@@ -1054,7 +1053,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.Len(t, c.caPool.Subjects(), 1)
 	require.NotNil(t, c.manual.cert)
 	require.Equal(t, c.base, &config)
-	require.Equal(t, 2, c.version)
+	require.Equal(t, uint64(2), c.version)
 }
 
 func TestConfigurator_ServerNameOrNodeName(t *testing.T) {

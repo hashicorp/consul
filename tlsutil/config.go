@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -176,16 +177,20 @@ type manual struct {
 // Configurator holds a Config and is responsible for generating all the
 // *tls.Config necessary for Consul. Except the one in the api package.
 type Configurator struct {
-	// lock synchronizes access to all fields on this struct
+	// lock synchronizes access to all fields on this struct except for logger and version.
 	lock                 sync.RWMutex
 	base                 *Config
 	autoTLS              *autoTLS
 	manual               *manual
 	peerDatacenterUseTLS map[string]bool
+	caPool               *x509.CertPool
 
-	caPool  *x509.CertPool
-	logger  hclog.Logger
-	version int
+	// logger is not protected by a lock. It must never be changed after
+	// Configurator is created.
+	logger hclog.Logger
+	// version is increased each time the Configurator is updated. Must be accessed
+	// using sync/atomic.
+	version uint64
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
@@ -229,8 +234,6 @@ func (c *Configurator) ManualCAPems() []string {
 // This function acquires a write lock because it writes the new config.
 func (c *Configurator) Update(config Config) error {
 	c.lock.Lock()
-	// order of defers matters because log acquires a RLock()
-	defer c.log("Update")
 	defer c.lock.Unlock()
 
 	cert, err := loadKeyPair(config.CertFile, config.KeyFile)
@@ -252,7 +255,8 @@ func (c *Configurator) Update(config Config) error {
 	c.manual.cert = cert
 	c.manual.caPems = pems
 	c.caPool = pool
-	c.version++
+	atomic.AddUint64(&c.version, 1)
+	c.log("Update")
 	return nil
 }
 
@@ -262,8 +266,6 @@ func (c *Configurator) Update(config Config) error {
 // Or it is being called on the client side when CA changes are detected.
 func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	c.lock.Lock()
-	// order of defers matters because log acquires a RLock()
-	defer c.log("UpdateAutoEncryptCA")
 	defer c.lock.Unlock()
 
 	pool, err := pool(append(c.manual.caPems, append(c.autoTLS.manualCAPems, connectCAPems...)...))
@@ -275,14 +277,13 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	}
 	c.autoTLS.connectCAPems = connectCAPems
 	c.caPool = pool
-	c.version++
+	atomic.AddUint64(&c.version, 1)
+	c.log("UpdateAutoTLSCA")
 	return nil
 }
 
 // UpdateAutoTLSCert
 func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
-	// order of defers matters because log acquires a RLock()
-	defer c.log("UpdateAutoEncryptCert")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
 		return fmt.Errorf("Failed to load cert/key pair: %v", err)
@@ -292,15 +293,14 @@ func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	defer c.lock.Unlock()
 
 	c.autoTLS.cert = &cert
-	c.version++
+	atomic.AddUint64(&c.version, 1)
+	c.log("UpdateAutoTLSCert")
 	return nil
 }
 
 // UpdateAutoTLS sets everything under autoEncrypt. This is being called on the
 // client when it received its cert from AutoEncrypt/AutoConfig endpoints.
 func (c *Configurator) UpdateAutoTLS(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
-	// order of defers matters because log acquires a RLock()
-	defer c.log("UpdateAutoEncrypt")
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
 		return fmt.Errorf("Failed to load cert/key pair: %v", err)
@@ -318,14 +318,16 @@ func (c *Configurator) UpdateAutoTLS(manualCAPems, connectCAPems []string, pub, 
 	c.autoTLS.cert = &cert
 	c.caPool = pool
 	c.autoTLS.verifyServerHostname = verifyServerHostname
-	c.version++
+	atomic.AddUint64(&c.version, 1)
+	c.log("UpdateAutoTLS")
 	return nil
 }
 
 func (c *Configurator) UpdateAreaPeerDatacenterUseTLS(peerDatacenter string, useTLS bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.version++
+	atomic.AddUint64(&c.version, 1)
+	c.log("UpdateAreaPeerDatacenterUseTLS")
 	c.peerDatacenterUseTLS[peerDatacenter] = useTLS
 }
 
@@ -818,12 +820,9 @@ func (c *Configurator) AutoEncryptCertExpired() bool {
 	return c.AutoEncryptCertNotAfter().Before(time.Now())
 }
 
-// This function acquires a read lock because it reads from the config.
 func (c *Configurator) log(name string) {
-	if c.logger != nil {
-		c.lock.RLock()
-		defer c.lock.RUnlock()
-		c.logger.Trace(name, "version", c.version)
+	if c.logger != nil && c.logger.IsTrace() {
+		c.logger.Trace(name, "version", atomic.LoadUint64(&c.version))
 	}
 }
 
