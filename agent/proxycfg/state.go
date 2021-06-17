@@ -151,17 +151,19 @@ func newState(ns *structs.NodeService, token string, config stateConfig) (*state
 	}
 
 	var handler kindHandler
+	h := handlerState{stateConfig: config, serviceInstance: s, ch: ch}
+
 	switch ns.Kind {
 	case structs.ServiceKindConnectProxy:
-		handler = &handlerConnectProxy{stateConfig: config, serviceInstance: s, ch: ch}
+		handler = &handlerConnectProxy{handlerState: h}
 	case structs.ServiceKindTerminatingGateway:
-		config.logger = config.logger.Named(logging.TerminatingGateway)
-		handler = &handlerTerminatingGateway{stateConfig: config, serviceInstance: s, ch: ch}
+		h.stateConfig.logger = config.logger.Named(logging.TerminatingGateway)
+		handler = &handlerTerminatingGateway{handlerState: h}
 	case structs.ServiceKindMeshGateway:
-		config.logger = config.logger.Named(logging.MeshGateway)
-		handler = &handlerMeshGateway{stateConfig: config, serviceInstance: s, ch: ch}
+		h.stateConfig.logger = config.logger.Named(logging.MeshGateway)
+		handler = &handlerMeshGateway{handlerState: h}
 	case structs.ServiceKindIngressGateway:
-		handler = &handlerIngressGateway{stateConfig: config, serviceInstance: s, ch: ch}
+		handler = &handlerIngressGateway{handlerState: h}
 	default:
 		return nil, errors.New("not a connect-proxy, terminating-gateway, mesh-gateway, or ingress-gateway")
 	}
@@ -237,19 +239,27 @@ func (s *state) Close() error {
 	return nil
 }
 
-type handler struct {
+type handlerState struct {
 	stateConfig     // TODO: un-embed
 	serviceInstance // TODO: un-embed
 	ch              chan cache.UpdateEvent
 }
 
-type handlerMeshGateway handler
+type handlerMeshGateway struct {
+	handlerState
+}
 
-type handlerTerminatingGateway handler
+type handlerTerminatingGateway struct {
+	handlerState
+}
 
-type handlerConnectProxy handler
+type handlerConnectProxy struct {
+	handlerState
+}
 
-type handlerIngressGateway handler
+type handlerIngressGateway struct {
+	handlerState
+}
 
 func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upstreamID string) error {
 	return s.cache.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
@@ -262,7 +272,9 @@ func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upst
 	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
-type handlerUpstreams handler
+type handlerUpstreams struct {
+	handlerState
+}
 
 func (s *handlerUpstreams) watchConnectProxyService(ctx context.Context, correlationId string, target *structs.DiscoveryTarget) error {
 	return s.stateConfig.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
@@ -844,7 +856,8 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				cfg:         cfg,
 				meshGateway: meshGateway,
 			}
-			err = (*handlerUpstreams)(s).watchDiscoveryChain(ctx, snap, watchOpts)
+			up := &handlerUpstreams{handlerState: s.handlerState}
+			err = up.watchDiscoveryChain(ctx, snap, watchOpts)
 			if err != nil {
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", svc.String(), err)
 			}
@@ -1776,7 +1789,8 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 				namespace:  u.DestinationNamespace,
 				datacenter: s.source.Datacenter,
 			}
-			err := (*handlerUpstreams)(s).watchDiscoveryChain(ctx, snap, watchOpts)
+			up := &handlerUpstreams{handlerState: s.handlerState}
+			err := up.watchDiscoveryChain(ctx, snap, watchOpts)
 			if err != nil {
 				return fmt.Errorf("failed to watch discovery chain for %s: %v", u.Identifier(), err)
 			}
