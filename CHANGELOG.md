@@ -1,5 +1,9 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* proxycfg: avoid panic when transparent proxy upstream is added and then removed. [[GH-10423](https://github.com/hashicorp/consul/issues/10423)]
+
 ## 1.10.0-rc (June 16, 2021)
 
 BREAKING CHANGES:
