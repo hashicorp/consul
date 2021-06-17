@@ -11,9 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func startRPCTLSServer(config *Config) (net.Conn, chan error) {
@@ -829,6 +831,17 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 
 		require.True(t, c.mutualTLSCapable())
 	})
+}
+
+func TestConfigurator_UpdateAutoTLSCA_DoesNotPanic(t *testing.T) {
+	config := Config{
+		Domain: "consul",
+	}
+	c, err := NewConfigurator(config, hclog.New(nil))
+	require.NoError(t, err)
+
+	err = c.UpdateAutoTLSCA([]string{"invalid pem"})
+	require.Error(t, err)
 }
 
 func TestConfigurator_VerifyIncomingRPC(t *testing.T) {

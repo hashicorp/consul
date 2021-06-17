@@ -268,11 +268,9 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 
 	pool, err := pool(append(c.manual.caPems, append(c.autoTLS.manualCAPems, connectCAPems...)...))
 	if err != nil {
-		c.lock.RUnlock()
 		return err
 	}
 	if err = c.check(*c.base, pool, c.manual.cert); err != nil {
-		c.lock.RUnlock()
 		return err
 	}
 	c.autoTLS.connectCAPems = connectCAPems
