@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: reference to entry in map should not panic.
+```
