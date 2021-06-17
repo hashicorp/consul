@@ -55,9 +55,9 @@ to retrieve the license automatically under specific circumstances.
 When a client agent starts without a license in its configuration or environment, it will try to retrieve the
 license from the servers via RPCs. That RPC always requires a valid non-anonymous ACL token to authorize the
 request but the token doesn't need any particular permissions. As the license is required before the client
-actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/opts#start_join)
-or [`retry_join`](/docs/agent/opts#retry_join) configurations. If those are both unset or no
-[`agent` token](/docs/agent/opts#acl_tokens_agent) is set then the client agent will immediately shut itself down.
+actually joins the cluster, where to make those RPC requests to is inferred from the [`start_join`](/docs/agent/options#start_join)
+or [`retry_join`](/docs/agent/options#retry_join) configurations. If those are both unset or no
+[`agent` token](/docs/agent/options#acl_tokens_agent) is set then the client agent will immediately shut itself down.
 
 If all preliminary checks pass the client agent will attempt to reach out to any server on its RPC port to
 request the license. These requests will be retried for up to 5 minutes and if it is unable to retrieve a
