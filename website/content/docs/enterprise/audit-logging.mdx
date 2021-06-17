@@ -126,25 +126,62 @@ audit {
 
 ## Example Audit Log
 
+In this example a client has issued an HTTP GET request to look up the `ssh`
+service in the `/v1/catalog/service/` endpoint.
+
+Details from the HTTP request are recorded in the audit log. The `stage` field
+is set to `OperationStart` which indicates the agent has begun processing the
+request.
+
 ```json
 {
-  "created_at": "2020-12-07T03:34:19.995543507Z",
+  "created_at": "2020-12-08T12:30:29.196365-05:00",
   "event_type": "audit",
   "payload": {
-    "id": "57a077a3-6cd7-f825-3da0-79ec78287ae2",
+    "id": "e4a20aec-d250-72c4-2aea-454fe8ae8051",
     "version": "1",
     "type": "HTTPEvent",
-    "timestamp": "2020-12-07T03:34:19.995459722Z",
+    "timestamp": "2020-12-08T12:30:29.196206-05:00",
     "auth": {
-      "accessor_id": "38431d0e-a542-1efa-11fc-9f2985b3e05b",
-      "description": "Master Token",
-      "create_time": "2020-12-07T03:33:52.76502444Z"
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
     },
     "request": {
       "operation": "GET",
-      "endpoint": "/v1/acl/policies",
-      "remote_addr": "127.0.0.1:46842",
-      "user_agent": "Go-http-client/1.1",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
+      "host": "127.0.0.1:8500"
+    },
+    "stage": "OperationStart"
+  }
+}
+```
+
+After the request is processed, a corresponding log entry is written for the HTTP
+response. The `stage` field is set to `OperationComplete` which indicates the agent
+has completed processing the request.
+
+```json
+{
+  "created_at": "2020-12-08T12:30:29.202935-05:00",
+  "event_type": "audit",
+  "payload": {
+    "id": "1f85053f-badb-4567-d239-abc0ecee1570",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2020-12-08T12:30:29.202863-05:00",
+    "auth": {
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
       "host": "127.0.0.1:8500"
     },
     "response": {
