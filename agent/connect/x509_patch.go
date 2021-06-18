@@ -42,11 +42,6 @@ func HackSANExtensionForCSR(template *x509.CertificateRequest) {
 		return
 	}
 
-	// Ensure we wipe the subject field completely since we're going to use the
-	// SAN field instead.
-	template.RawSubject = nil
-	template.Subject = pkix.Name{}
-
 	value, err := x509_marshalSANs(template.DNSNames, template.EmailAddresses, template.IPAddresses, template.URIs)
 	if err != nil {
 		return
