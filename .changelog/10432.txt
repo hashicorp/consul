@@ -1,0 +1,3 @@
+```release-note:bug
+license: **(Enterprise only)** Fixed an issue that would cause client agents on versions before 1.10 to not be able to retrieve the license from a 1.10+ server.
+```
