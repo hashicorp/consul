@@ -6779,17 +6779,15 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	{
-		m := new(dns.Msg)
-		m.SetQuestion("foo.query.consul.", dns.TypeSRV)
-		m.SetEdns0(2048, true)
-		m.Compress = false
+	req := new(dns.Msg)
+	req.SetQuestion("foo.query.consul.", dns.TypeSRV)
+	req.SetEdns0(2048, true)
+	req.Compress = false
 
-		c := new(dns.Client)
-		r, _, err := c.Exchange(m, a.DNSAddr())
-		require.NoError(t, err)
-		require.True(t, r.Len() < 2048)
-	}
+	c := new(dns.Client)
+	resp, _, err := c.Exchange(req, a.DNSAddr())
+	require.NoError(t, err)
+	require.True(t, resp.Len() < 2048)
 }
 
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {

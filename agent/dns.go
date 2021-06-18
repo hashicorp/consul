@@ -609,7 +609,6 @@ func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
 
 var errECSNotGlobal = fmt.Errorf("ECS response is not global")
 var errNameNotFound = fmt.Errorf("DNS name not found")
-var errQueryRefused = fmt.Errorf("query refused")
 
 // errNoAnswer is used to indicate that the response should set SOA, and the
 // success response code.
@@ -876,12 +875,9 @@ func rCodeFromError(err error) int {
 	case err == nil:
 		return dns.RcodeSuccess
 	case errors.Is(err, errNoAnswer):
-		// TODO: why do we return success if the answer is empty?
 		return dns.RcodeSuccess
 	case errors.Is(err, errECSNotGlobal):
 		return rCodeFromError(errors.Unwrap(err))
-	case errors.Is(err, errQueryRefused):
-		return dns.RcodeRefused
 	case errors.Is(err, errNameNotFound):
 		return dns.RcodeNameError
 	case structs.IsErrNoDCPath(err) || structs.IsErrQueryNotFound(err):
@@ -896,7 +892,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, res
 	// Only handle ANY, A, AAAA, and TXT type requests
 	qType := req.Question[0].Qtype
 	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
-		return errQueryRefused
+		return nil
 	}
 
 	// Make an RPC request
