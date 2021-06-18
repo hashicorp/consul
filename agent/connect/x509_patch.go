@@ -76,7 +76,7 @@ func x509_oidInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension
 	return false
 }
 
-// marshalSANs marshals a list of addresses into a the contents of an X.509
+// x509_marshalSANs marshals a list of addresses into a the contents of an X.509
 // SubjectAlternativeName extension.
 func x509_marshalSANs(dnsNames, emailAddresses []string, ipAddresses []net.IP, uris []*url.URL) (derBytes []byte, err error) {
 	var rawValues []asn1.RawValue
