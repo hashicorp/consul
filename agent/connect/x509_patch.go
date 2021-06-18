@@ -65,7 +65,7 @@ func HackSANExtensionForCSR(template *x509.CertificateRequest) {
 	template.ExtraExtensions = append(template.ExtraExtensions, ext)
 }
 
-// oidNotInExtensions reports whether an extension with the given oid exists in
+// x509_oidInExtensions reports whether an extension with the given oid exists in
 // extensions.
 func x509_oidInExtensions(oid asn1.ObjectIdentifier, extensions []pkix.Extension) bool {
 	for _, e := range extensions {
