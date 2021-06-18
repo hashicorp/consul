@@ -11,9 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func startRPCTLSServer(config *Config) (net.Conn, chan error) {
@@ -522,7 +524,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			require.NoError(t, err, info)
 			pool, err := pool(pems)
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, pool, cert)
+			err3 = validateConfig(v.config, pool, cert)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
@@ -831,6 +833,17 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 	})
 }
 
+func TestConfigurator_UpdateAutoTLSCA_DoesNotPanic(t *testing.T) {
+	config := Config{
+		Domain: "consul",
+	}
+	c, err := NewConfigurator(config, hclog.New(nil))
+	require.NoError(t, err)
+
+	err = c.UpdateAutoTLSCA([]string{"invalid pem"})
+	require.Error(t, err)
+}
+
 func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
 	c := Configurator{base: &Config{
 		VerifyIncomingRPC: true,
@@ -1013,11 +1026,10 @@ func TestConfigurator_UpdateChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, c.Update(Config{}))
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Error(t, c.Update(Config{VerifyIncoming: true,
-		CAFile: "../test/ca/root.cer"}))
+	require.Error(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer"}))
 	require.False(t, c.base.VerifyIncoming)
 	require.False(t, c.base.VerifyOutgoing)
-	require.Equal(t, c.version, 2)
+	require.Equal(t, uint64(2), c.version)
 }
 
 func TestConfigurator_UpdateSetsStuff(t *testing.T) {
@@ -1026,10 +1038,10 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.Nil(t, c.caPool)
 	require.Nil(t, c.manual.cert)
 	require.Equal(t, c.base, &Config{})
-	require.Equal(t, 1, c.version)
+	require.Equal(t, uint64(1), c.version)
 
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Equal(t, c.version, 1)
+	require.Equal(t, uint64(1), c.version)
 
 	config := Config{
 		CAFile:   "../test/ca/root.cer",
@@ -1041,7 +1053,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.Len(t, c.caPool.Subjects(), 1)
 	require.NotNil(t, c.manual.cert)
 	require.Equal(t, c.base, &config)
-	require.Equal(t, 2, c.version)
+	require.Equal(t, uint64(2), c.version)
 }
 
 func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
