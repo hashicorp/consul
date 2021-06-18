@@ -783,7 +783,6 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 	case "addr":
 		// <address>.addr.<suffixes>.<domain> - addr must be the second label, datacenter is optional
 
-		//check if the query type is A for IPv4 or AAAA for IPv6 or ANY
 		if len(queryParts) != 1 {
 			return invalid()
 		}
@@ -795,6 +794,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 			if err != nil {
 				return invalid()
 			}
+			//check if the query type is  A for IPv4 or ANY
 			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
 				resp.SetRcode(req, dns.RcodeSuccess)
 			} else {
@@ -814,6 +814,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 			if err != nil {
 				return invalid()
 			}
+			//check if the query type is  AAAA for IPv6 or ANY
 			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
 				resp.SetRcode(req, dns.RcodeSuccess)
 			} else {
