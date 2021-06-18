@@ -28,6 +28,15 @@ const (
 	x509_nameTypeIP    = 7
 )
 
+// HackSANExtensionForCSR will create a SAN extension on the CSR off of the
+// convenience fields (DNSNames, EmailAddresses, IPAddresses, URIs) and
+// appropriately marks that SAN extension as critical if the CSR has an empty
+// subject.
+//
+// This is basically attempting to repeat this blob of code from the stdlib
+// ourselves:
+//
+// https://github.com/golang/go/blob/0e67ce3d28320e816dd8e7cf7d701c1804fb977e/src/crypto/x509/x509.go#L1088
 func HackSANExtensionForCSR(template *x509.CertificateRequest) {
 	switch {
 	case len(template.DNSNames) > 0:
