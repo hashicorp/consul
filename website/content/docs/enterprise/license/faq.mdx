@@ -20,6 +20,11 @@ This check is part of the server boot-up process.
 In previous versions of HashiCorp enterprise products, one server could distribute a license to other servers via the Raft protocol.
 This will no longer work since each server must be able to find a valid license during the startup process.
 
+## Q: What are the upgrade requirements?
+
+If ACLs are enabled, customers on Consul Enterprise 1.8+ or 1.9+ must upgrade Consul agents to the latest patch available (1.8.13 or 1.9.7) prior to upgrading the Consul server instances to 1.10.0.
+Otherwise, the Consul agents will fail to retrieve the license with a valid agent token.
+
 ## Q: Is there a tutorial available for the license configuration steps?
 
 Please visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise).
@@ -49,7 +54,7 @@ The in-storage license feature will not be supported starting with Consul Entepr
 
 ## Q: What is the impact on evaluation licenses due to this change?
 
-The 6-hour trial period for evaluation licenses will be deprecated as of Consul Enterprise 1.10.0.  
+The 6-hour trial period for evaluation licenses will be deprecated as of Consul Enterprise 1.10.0.
 This means that any clusters deployed with Consul 1.10.0+ent binaries will need to have a valid license on the disk (auto-loaded) or as an environment variable.
 Failure to provide a valid license key will result in the Consul server agent not starting.
 
@@ -61,13 +66,14 @@ As Consul Enterprise approaches the expiration date, warnings will be issued in 
 
 ## Q: Does this affect client agents?
 
-For existing clusters, if the clients agents are using ACLs and have a valid token, then they will be able to retrieve the license from the server.
+For existing clusters, if the clients agents are using ACLs and have a valid token, then they will be able to retrieve the license from the server if the upgrade requirements have been met. Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
+
 If the client agents are not using ACLs, then the client agents will be need to have the license on-disk (auto-loading) or as an environment variable.
 For new Consul clusters using Consul 1.10.0+ent, customers must ensure that there is a valid license on-disk (auto-loaded) or as an environment variable.
 
 ## Q: Does this affect snapshot agents?
 
-Same behavior as Consul clients. See answer for [Does this affect snapshot agents? ](faq#q-does-this-affect-client-agents)
+Same behavior as Consul clients. See answer for [Does this affect client agents? ](faq#q-does-this-affect-client-agents)
 
 ## Q: What is the behavior if the license is missing?
 
@@ -108,6 +114,7 @@ When a customer deploys new clusters to a 1.10.0+ent release, they need to have 
 
 New Consul cluster deployments using 1.10.0+ent will need to have a valid license to successfully deploy.
 This valid license must be on-disk (auto-loaded) or as an environment variable.
+Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
 ## Q: What is the migration path for customers who want to migrate from their existing license-as-applied-via-the-CLI flow to the license on disk flow?
 
@@ -127,6 +134,7 @@ This valid license must be on-disk (auto-loaded) or as an environment variable.
 1. Follow the [Kubernetes Upgrade Docs](/docs/k8s/upgrade) to upgrade. No changes to your `values.yaml` file are needed to enable enterprise autoloading since this support is built in to consul-helm 0.32.0 and greater.
 
 ~> **WARNING:** If you are upgrading the Helm chart but **not** upgrading the Consul version, you must set `server.enterpriseLicense.enableLicenseAutoload: false`. See [Kubernetes - Consul Enterprise](/docs/k8s/installation/deployment-configurations/consul-enterprise) for more details.
+
 ## Q: What is the migration path for customers who want to migrate from their existing perpetually-licensed binaries to the license on disk flow?
 
 ### VM
@@ -148,7 +156,9 @@ This valid license must be on-disk (auto-loaded) or as an environment variable.
 
 When downgrading to a version of Consul before 1.10.0+ent, customers will need to follow the previous process for applying an enterprise licenses to Consul Enterprise.
 
-## Q: Are there potential pitfalls when downgrading or upgrading?
+## Q: Are there potential pitfalls when downgrading or upgrading Consul server instances?
+
+~> Verify that you meet the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
 Assume a scenario where there are three Consul server nodes:
 
