@@ -85,7 +85,6 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl ti
 	} else {
 		after = after.AddDate(10, 0, 0)
 	}
-	// TODO: should this have a SUBJECT?
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: result.Name},
