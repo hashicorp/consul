@@ -639,7 +639,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
 	serialNum := &big.Int{}
 	serialNum.SetUint64(sn)
-	// TODO(rb): should we remove CommonName here as well and move this into a SAN?
 	template := x509.Certificate{
 		SerialNumber:          serialNum,
 		Subject:               pkix.Name{CommonName: cn},
