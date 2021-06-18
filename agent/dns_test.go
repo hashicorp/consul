@@ -6751,8 +6751,13 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+	a := NewTestAgent(t, `
+		dns_config {
+			enable_truncate = true
+		}
+	`)
 	defer a.Shutdown()
+	a.DNSDisableCompression(true)
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	m := MockPreparedQuery{
@@ -6778,11 +6783,12 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 		m := new(dns.Msg)
 		m.SetQuestion("foo.query.consul.", dns.TypeSRV)
 		m.SetEdns0(2048, true)
+		m.Compress = false
 
 		c := new(dns.Client)
 		r, _, err := c.Exchange(m, a.DNSAddr())
 		require.NoError(t, err)
-		require.Len(t, r.Answer, 53)
+		require.True(t, r.Len() < 2048)
 	}
 }
 
