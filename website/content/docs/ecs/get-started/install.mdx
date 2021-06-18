@@ -11,9 +11,9 @@ Installing Consul on ECS is a multi-part process:
 
 1. [**Terraform:**](#terraform) Your tasks must be specified in Terraform using [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
    and [`ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) resources.
-1. [**Consul Server:**](#consul-server) You must deploy the Consul server onto the cluster using the [`dev-server` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/dev-server).
+1. [**Consul Server:**](#consul-server) You must deploy the Consul server onto the cluster using the [`dev-server` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/dev-server).
 1. [**Task IAM Role:**](#task-iam-role) Modify task IAM role to add `ecs:ListTasks` and `ecs:DescribeTasks` permissions.
-1. [**Task Module:**](#task-module) You can then take your `ecs_task_definition` resources and copy their configuration into a new [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-task)
+1. [**Task Module:**](#task-module) You can then take your `ecs_task_definition` resources and copy their configuration into a new [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task)
    resource that will add the necessary containers to the task definition.
 1. [**Routing:**](#routing) With your tasks as part of the mesh, you must specify their upstream
    services and change the URLs the tasks are using so that they're making requests
@@ -28,7 +28,7 @@ Installing Consul on ECS is a multi-part process:
 
 Your tasks must first be specified in Terraform using [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
 and [`ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) resources so that
-they can later be converted to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-task).
+they can later be converted to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
 
 For example, your tasks should be defined with Terraform similar to the following:
 
@@ -125,7 +125,7 @@ output "consul_server_url" {
 ```
 
 -> **NOTE:** The documentation for all possible inputs can be found in the [module reference
-docs](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/dev-server?tab=inputs).
+docs](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/dev-server?tab=inputs).
 
 The example code above will create a Consul server ECS task and Application Load
 Balancer for the Consul UI. You can then use the output `consul_server_url` as
@@ -141,7 +141,7 @@ The specific permissions needed are:
 
 1. `ecs:ListTasks` on resource `*`.
 1. `ecs:DescribeTasks` on all tasks in this account and region. You can either
-   use `*` for simplicity or scope it to the region and account, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/*`. If 
+   use `*` for simplicity or scope it to the region and account, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/*`. If
    your account is configured to use the new, [longer ECS task ARN format](https://docs.aws.amazon.com/AmazonECS/latest/userguide/ecs-account-settings.html#ecs-resource-ids)
    then you can further scope `ecs:DescribeTasks` down to tasks in a specific cluster, e.g. `arn:aws:ecs:us-east-1:1111111111111:task/MY_CLUSTER_NAME/*`.
 
@@ -205,7 +205,7 @@ resource "aws_iam_role" "this_task" {
 ## Task Module
 
 In order to add the necessary sidecar containers for your task to join the mesh,
-you must use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-task).
+you must use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
 
 The module will reference the same inputs as your old ECS task definition but it will
 create a new version of the task definition with additional containers.
@@ -243,7 +243,7 @@ module "my_task" {
 }
 ```
 
-All possible inputs are documented on the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul/aws-ecs/latest/submodules/mesh-tas?tab=inputs)
+All possible inputs are documented on the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs)
 however there are some important inputs worth highlighting:
 
 - `family` is used as the [task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family)
