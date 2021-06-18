@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
@@ -87,6 +88,9 @@ type Client struct {
 	EnterpriseClient
 
 	tlsConfigurator *tlsutil.Configurator
+
+	// tokens is the agent wide token store
+	tokens *token.Store
 }
 
 // NewClient creates and returns a Client
@@ -131,6 +135,7 @@ func NewClient(config *Config, options ...ConsulOption) (*Client, error) {
 		logger:          logger,
 		shutdownCh:      make(chan struct{}),
 		tlsConfigurator: tlsConfigurator,
+		tokens:          flat.tokens,
 	}
 
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
