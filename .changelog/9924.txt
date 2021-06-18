@@ -1,0 +1,4 @@
+```release-note:improvement
+telemetry: add a new `mesh.active-root-ca.expiry` metric for tracking when the root certificate expires.
+```
+
