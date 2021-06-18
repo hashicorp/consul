@@ -6745,6 +6745,47 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	}
 }
 
+func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := MockPreparedQuery{
+		executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			// Check that the agent inserted its self-name and datacenter to
+			// the RPC request body.
+			if args.Agent.Datacenter != a.Config.Datacenter ||
+				args.Agent.Node != a.Config.NodeName {
+				t.Fatalf("bad: %#v", args.Agent)
+			}
+			for i := 0; i < 100; i++ {
+				reply.Nodes = append(reply.Nodes, structs.CheckServiceNode{Node: &structs.Node{Node: "apple", Address: fmt.Sprintf("node.address:%d", i)}, Service: &structs.NodeService{Service: "appleService", Address: fmt.Sprintf("service.address:%d", i)}})
+			}
+			return nil
+		},
+	}
+
+	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	{
+		m := new(dns.Msg)
+		m.SetQuestion("foo.query.consul.", dns.TypeSRV)
+		m.SetEdns0(2048, true)
+
+		c := new(dns.Client)
+		r, _, err := c.Exchange(m, a.DNSAddr())
+		require.NoError(t, err)
+		require.Len(t, r.Answer, 53)
+	}
+}
+
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 	t.Parallel()
 	req := &dns.Msg{}
