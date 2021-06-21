@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -488,7 +489,8 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 			}
 
 			if certOutput.Certificate != nil {
-				return true, *certOutput.Certificate, nil
+				cert := strings.TrimSuffix(*certOutput.Certificate, "\n")
+				return true, fmt.Sprintf("%s\n", cert), nil
 			}
 
 			return false, "", nil
