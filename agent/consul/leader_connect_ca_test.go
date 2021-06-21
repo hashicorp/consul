@@ -8,15 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -292,4 +294,11 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	}
 
 	require.EqualValues(t, caStateInitialized, manager.state)
+}
+
+func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {
+	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
+	d := &caDelegateWithState{Server: &s}
+	req := d.generateCASignRequest("A")
+	require.Equal(t, "east", req.RequestDatacenter())
 }

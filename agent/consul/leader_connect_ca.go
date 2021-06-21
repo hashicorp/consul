@@ -83,6 +83,14 @@ func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{
 	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
 }
 
+func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignRequest {
+	return &structs.CASignRequest{
+		Datacenter:   c.Server.config.PrimaryDatacenter,
+		CSR:          csr,
+		WriteRequest: structs.WriteRequest{Token: c.Server.tokens.ReplicationToken()},
+	}
+}
+
 func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
 		delegate:             delegate,

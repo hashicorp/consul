@@ -181,11 +181,3 @@ func lessThanHalfTimePassed(now, notBefore, notAfter time.Time) bool {
 	t := notBefore.Add(halfTime(notBefore, notAfter))
 	return t.Sub(now) > 0
 }
-
-func (s *Server) generateCASignRequest(csr string) *structs.CASignRequest {
-	return &structs.CASignRequest{
-		Datacenter:   s.config.PrimaryDatacenter,
-		CSR:          csr,
-		WriteRequest: structs.WriteRequest{Token: s.tokens.ReplicationToken()},
-	}
-}
