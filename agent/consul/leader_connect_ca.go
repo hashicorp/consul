@@ -37,7 +37,6 @@ type caServerDelegate interface {
 
 	forwardDC(method, dc string, args interface{}, reply interface{}) error
 	generateCASignRequest(csr string) *structs.CASignRequest
-	raftApply(t structs.MessageType, msg interface{}) (interface{}, error)
 
 	checkServersProvider
 }
@@ -188,7 +187,7 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if resp, err := c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
+	if resp, err := c.delegate.ApplyCARequest(&req); err != nil {
 		return nil, err
 	} else if respErr, ok := resp.(error); ok {
 		return nil, respErr
@@ -475,7 +474,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 			Op:     structs.CAOpSetConfig,
 			Config: conf,
 		}
-		if _, err = c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
+		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
 			return fmt.Errorf("error persisting provider state: %v", err)
 		}
 	}
@@ -524,7 +523,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	}
 
 	// Store the root cert in raft
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+	resp, err := c.delegate.ApplyCARequest(&structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: []*structs.CARoot{rootCA},
@@ -732,7 +731,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Roots:  newRoots,
 		Config: &newConf,
 	}
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
 	}
@@ -873,7 +872,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
-		resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+		resp, err := c.delegate.ApplyCARequest(args)
 		if err != nil {
 			return err
 		}
@@ -976,7 +975,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	args.Index = idx
 	args.Config.ModifyIndex = confIdx
 	args.Roots = newRoots
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
 	}
