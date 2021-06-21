@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -78,7 +79,9 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 		t.Fatalf("err: %v", err)
 	}
 
-	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(tlsConf))
+	store := &token.Store{}
+
+	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(tlsConf), WithTokenStore(store))
 	return dir, client, err
 }
 

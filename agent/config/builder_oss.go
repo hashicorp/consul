@@ -40,6 +40,9 @@ var (
 		"audit": func(c *Config) {
 			c.Audit = nil
 		},
+		"license_path": func(c *Config) {
+			c.LicensePath = nil
+		},
 	}
 )
 

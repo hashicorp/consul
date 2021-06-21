@@ -116,6 +116,16 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 				require.Nil(t, c.ACL.Tokens.ManagedServiceProvider)
 			},
 		},
+		"license_path": {
+			config: Config{
+				LicensePath: &stringVal,
+			},
+			keys:    []string{"license_path"},
+			badKeys: []string{"license_path"},
+			check: func(t *testing.T, c *Config) {
+				require.Empty(t, c.LicensePath)
+			},
+		},
 		"multi": {
 			config: Config{
 				NonVotingServer: &boolVal,
