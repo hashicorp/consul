@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -125,7 +124,7 @@ func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
 func (m *mockCAProvider) GenerateRoot() error                   { return nil }
 func (m *mockCAProvider) ActiveRoot() (string, error) {
-	return strings.TrimSuffix(m.rootPEM, "\n"), nil
+	return ca.AddSingleNewline(m.rootPEM), nil
 }
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
@@ -136,7 +135,7 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 	return nil
 }
 func (m *mockCAProvider) ActiveIntermediate() (string, error) {
-	return strings.TrimSuffix(m.rootPEM, "\n"), nil
+	return ca.AddSingleNewline(m.rootPEM), nil
 }
 func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
