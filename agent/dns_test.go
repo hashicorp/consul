@@ -6132,7 +6132,7 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 	}
 	for question := range cases {
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSOA)
+		m.SetQuestion(question, dns.TypeSRV)
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
@@ -6146,6 +6146,7 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 		if in.Answer == nil {
 			t.Fatalf("Bad: %#v", in)
 		}
+		require.Len(t, in.Extra, 1)
 	}
 }
 

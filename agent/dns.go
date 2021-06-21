@@ -796,7 +796,16 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 			}
 			//check if the query type is  A for IPv4 or ANY
 			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
-				resp.SetRcode(req, dns.RcodeSuccess)
+				//resp.SetRcode(req, dns.RcodeSuccess)
+				resp.Extra = append(resp.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   qName + d.domain,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					A: ip,
+				})
 			} else {
 				resp.Answer = append(resp.Answer, &dns.A{
 					Hdr: dns.RR_Header{
@@ -816,7 +825,16 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 			}
 			//check if the query type is  AAAA for IPv6 or ANY
 			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
-				resp.SetRcode(req, dns.RcodeSuccess)
+				//resp.SetRcode(req, dns.RcodeSuccess)
+				resp.Extra = append(resp.Extra, &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   qName + d.domain,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    uint32(cfg.NodeTTL / time.Second),
+					},
+					AAAA: ip,
+				})
 			} else {
 				resp.Answer = append(resp.Answer, &dns.AAAA{
 					Hdr: dns.RR_Header{
