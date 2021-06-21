@@ -139,11 +139,6 @@ func tlsVersions() []string {
 	return versions
 }
 
-// KeyPair is used to open and parse a certificate and key file
-func (c *Config) KeyPair() (*tls.Certificate, error) {
-	return loadKeyPair(c.CertFile, c.KeyFile)
-}
-
 // SpecificDC is used to invoke a static datacenter
 // and turns a DCWrapper into a Wrapper type.
 func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {

@@ -405,7 +405,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 	require.Equal(t, []uint16{}, v)
 }
 
-func TestConfigurator_loadKeyPair(t *testing.T) {
+func TestLoadKeyPair(t *testing.T) {
 	type variant struct {
 		cert, key string
 		shoulderr bool
@@ -422,24 +422,20 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 			false, false},
 	}
 	for i, v := range variants {
-		info := fmt.Sprintf("case %d", i)
-		cert1, err1 := loadKeyPair(v.cert, v.key)
-		config := &Config{CertFile: v.cert, KeyFile: v.key}
-		cert2, err2 := config.KeyPair()
-		if v.shoulderr {
-			require.Error(t, err1, info)
-			require.Error(t, err2, info)
-		} else {
-			require.NoError(t, err1, info)
-			require.NoError(t, err2, info)
-		}
-		if v.isnil {
-			require.Nil(t, cert1, info)
-			require.Nil(t, cert2, info)
-		} else {
-			require.NotNil(t, cert1, info)
-			require.NotNil(t, cert2, info)
-		}
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			cert, err := loadKeyPair(v.cert, v.key)
+			if v.shoulderr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if v.isnil {
+				require.Nil(t, cert)
+			} else {
+				require.NotNil(t, cert)
+			}
+		})
 	}
 }
 
@@ -518,7 +514,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 
 		var err3 error
 		if !v.excludeCheck {
-			cert, err := v.config.KeyPair()
+			cert, err := loadKeyPair(v.config.CertFile, v.config.KeyFile)
 			require.NoError(t, err, info)
 			pems, err := LoadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
