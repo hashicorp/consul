@@ -83,6 +83,7 @@ func testSignAndValidate(t *testing.T, p Provider, rootPEM string, intermediateP
 
 	err = connect.ValidateLeaf(rootPEM, leafPEM, intermediatePEMs)
 	require.NoError(t, err)
+	require.Equal(t, '\n', rune(leafPEM[len(leafPEM)-1]))
 }
 
 func TestAWSBootstrapAndSignSecondary(t *testing.T) {

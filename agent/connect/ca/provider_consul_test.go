@@ -150,6 +150,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 				cert, err := provider.Sign(csr)
 				require.NoError(err)
 
+				require.Equal('\n', rune(cert[len(cert)-1]))
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
