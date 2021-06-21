@@ -271,6 +271,14 @@ func (c *CAManager) Stop() {
 	c.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
 	c.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
 	c.leaderRoutineManager.Stop(backgroundCAInitializationRoutineName)
+
+	if provider, _ := c.getCAProvider(); provider != nil {
+		if needsStop, ok := provider.(ca.NeedsStop); ok {
+			needsStop.Stop()
+		}
+	}
+	c.setCAProvider(nil, nil)
+	c.setState(caStateUninitialized, false)
 }
 
 func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {

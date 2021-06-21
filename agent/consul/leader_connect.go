@@ -49,14 +49,6 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
 	s.leaderRoutineManager.Stop(caSigningMetricRoutineName)
-
-	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
-	provider, _ := s.caManager.getCAProvider()
-	if provider != nil {
-		if needsStop, ok := provider.(ca.NeedsStop); ok {
-			needsStop.Stop()
-		}
-	}
 }
 
 // createProvider returns a connect CA provider from the given config.
