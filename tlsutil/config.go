@@ -163,6 +163,8 @@ func (a autoTLS) caPems() []string {
 	return append(a.manualCAPems, a.connectCAPems...)
 }
 
+// manual stores the TLS CA and cert received from Configurator.Update which
+// generally comes from the agent configuration.
 type manual struct {
 	caPems []string
 	cert   *tls.Certificate
@@ -177,7 +179,7 @@ type Configurator struct {
 	lock    sync.RWMutex
 	base    *Config
 	autoTLS autoTLS
-	manual  *manual
+	manual  manual
 	caPool  *x509.CertPool
 	// peerDatacenterUseTLS is a map of DC name to a bool indicating if the DC
 	// uses TLS for RPC requests.
@@ -202,7 +204,6 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 
 	c := &Configurator{
 		logger:               logger.Named(logging.TLSUtil),
-		manual:               &manual{},
 		peerDatacenterUseTLS: map[string]bool{},
 	}
 	err := c.Update(config)

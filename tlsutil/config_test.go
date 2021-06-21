@@ -506,7 +506,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
 	}
 
-	c := Configurator{manual: &manual{}}
+	c := Configurator{}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
 		_, err1 := NewConfigurator(v.config, nil)
