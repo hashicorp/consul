@@ -21,6 +21,13 @@ These events contain a timestamp, the operation performed, and the user who init
 Audit logging enables security and compliance teams within an organization to get
 greater insight into Consul access and usage patterns.
 
+For more experience leveraging Consul's audit logging functionality, explore our
+HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging).
+
+For detailed configuration information on configuring the Consul Enterprise's audit
+logging, review the Consul [Audit Log](https://www.consul.io/docs/agent/options#audit)
+documentation.
+
 ## Example Configuration
 
 Audit logging must be enabled on every agent in order to accurately capture all
@@ -133,6 +140,9 @@ Details from the HTTP request are recorded in the audit log. The `stage` field
 is set to `OperationStart` which indicates the agent has begun processing the
 request.
 
+The value of the `payload.auth.accessor_id` field is the accessor ID of the
+[ACL token](/docs/security/acl/acl-system#acl-tokens) which issued the request.
+
 ```json
 {
   "created_at": "2020-12-08T12:30:29.196365-05:00",
@@ -191,10 +201,3 @@ has completed processing the request.
   }
 }
 ```
-
-For more experience leveraging Consul's audit logging functionality, explore our
-HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging).
-
-For detailed configuration information on configuring the Consul Enterprise's audit
-logging, review the Consul [Audit Log](https://www.consul.io/docs/agent/options#audit)
-documentation.
