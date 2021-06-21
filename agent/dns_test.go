@@ -6143,7 +6143,11 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 		if in.Rcode != 0 {
 			t.Fatalf("Bad Rcode: %#v", in)
 		}
-		if in.Answer == nil {
+
+		if in.Answer != nil {
+			t.Fatalf("Bad: %#v", in)
+		}
+		if in.Extra == nil {
 			t.Fatalf("Bad: %#v", in)
 		}
 		require.Len(t, in.Extra, 1)
