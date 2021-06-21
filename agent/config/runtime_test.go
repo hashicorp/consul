@@ -5301,6 +5301,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
+			"license_path": "/path/to/license.lic",
 			"limits": {
 				"http_max_conns_per_client": 100,
 				"https_handshake_timeout": "2391ms",
@@ -5990,6 +5991,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
+			license_path = "/path/to/license.lic"
 			limits {
 				http_max_conns_per_client = 100
 				https_handshake_timeout = "2391ms"
