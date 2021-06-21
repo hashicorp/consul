@@ -100,13 +100,6 @@ func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manag
 	}
 }
 
-func (c *CAManager) reset() {
-	c.state = caStateUninitialized
-	c.primaryRoots = structs.IndexedCARoots{}
-	c.actingSecondaryCA = false
-	c.setCAProvider(nil, nil)
-}
-
 // setState attempts to update the CA state to the given state.
 // Valid state transitions are:
 //
@@ -229,12 +222,10 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 // as well as the active root.
 func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 	retries := 0
-	var result ca.Provider
-	var resultRoot *structs.CARoot
-	for result == nil {
+	for {
 		c.providerLock.RLock()
-		result = c.provider
-		resultRoot = c.providerRoot
+		result := c.provider
+		resultRoot := c.providerRoot
 		c.providerLock.RUnlock()
 
 		// In cases where an agent is started with managed proxies, we may ask
@@ -246,10 +237,8 @@ func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 			continue
 		}
 
-		break
+		return result, resultRoot
 	}
-
-	return result, resultRoot
 }
 
 // setCAProvider is being called while holding the stateLock
