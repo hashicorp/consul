@@ -3,6 +3,10 @@
 
 // temporary component debugging setup
 @import 'consul-ui/components/main-nav-vertical/debug';
+@import 'consul-ui/components/badge/debug';
+@import 'consul-ui/components/csv-list/debug';
+@import 'consul-ui/components/horizontal-kv-list/debug';
+@import 'consul-ui/components/icon-definition/debug';
 
 html.is-debug body > .brand-loader {
   display: none !important;
@@ -26,6 +30,10 @@ html.is-debug body > .brand-loader {
     li.components a::before {
       @extend %with-glimmer-logo-color-icon, %as-pseudo;
       margin-right: 5px;
+    }
+    li.consul-components.css-component a::before,
+    li.components.css-component a::before {
+      @extend %with-glimmer-logo-color-icon, %as-pseudo;
     }
     li.consul-components.ember-component a::before,
     li.components.ember-component a::before {
@@ -77,6 +85,10 @@ html.is-debug body > .brand-loader {
     }
     > table tr:hover {
       box-shadow: none;
+    }
+    > ol code,
+    > ul code {
+      @extend %inline-code;
     }
   }
   .docfy-demo {

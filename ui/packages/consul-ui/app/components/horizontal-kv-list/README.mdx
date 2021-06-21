@@ -1,0 +1,238 @@
+---
+class: css
+---
+# horizontal-kv-list
+
+Provides a horizontally stacked list of key/value pairs, commonly used with a
+definition/description list.
+
+The keys can be configured to be either, visible, invisible, or with an icon.
+
+- **Icon Configuration:** Add a `class` that describes the key/value pair and configure the icon for that class in the CSS
+- **Visible Title Configuration:** Add an empty `class` attribute. A trailing `:`
+  will be added to the title (ensure you collapse the whitespace in the `dt`).
+- **Invisible Title Configuration:** Don't add a `class` attribute at all, i.e. by default
+  the title is not shown.
+
+If you are providing an icon, you should also use the `{{tooltip}}` modifier
+to provide a textual tooltip for the icon. Using the `{{tooltip}}` modifier
+with no arguments will make it use the text/DOM content of the DOM element it
+is attached to, see below for a full usage example.
+
+`<CopyButton />` components are commonly added to the value, and can be added
+to the left or right of the value.
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    All KVs can be specified in a single list
+  </figcaption>
+
+  <dl>
+    <dt class="kind-terminating-gateway">Kind</dt>
+    <dd>
+      Terminating Gateway
+    </dd>
+{{#if true}}
+    <dt
+      {{tooltip}}
+      class="lock-delay"
+    >
+      Lock Delay
+    </dt>
+    <dd>10ms</dd>
+{{/if}}
+    <dt
+      {{tooltip}}
+      class="ttl"
+    >
+      TTL
+    </dt>
+    <dd>
+      <CopyButton
+        @value={{"1m30s10ms"}}
+        @name="TTL"
+      />
+      1m30s10ms
+    </dd>
+    <dt>
+      Invisible title
+    </dt>
+    <dd>
+      local
+    </dd>
+    <dt class>Visible title</dt>
+    <dd>
+      global
+    </dd>
+  </dl>
+
+</figure>
+<hr />
+<figure>
+  <figcaption>...or they can all be specified as individual lists (for if you have a component that is already wrapped in a dl, such as our TagList)</figcaption>
+
+  <dl>
+    <dt
+      class="service-identity"
+    >
+      Service Identity
+    </dt>
+    <dd>service-0</dd>
+  </dl><dl>
+    <dt
+      {{tooltip}}
+      class="lock-delay"
+    >
+      Lock Delay
+    </dt>
+    <dd>10ms</dd>
+  </dl><dl>
+    <dt
+      {{tooltip}}
+      class="ttl"
+    >
+      TTL
+    </dt>
+    <dd>
+      1m30s10ms
+      <CopyButton
+        @value={{"1m30s10ms"}}
+        @name="TTL"
+      />
+    </dd>
+  </dl><dl>
+    <dt>
+      No visible title
+    </dt>
+    <dd>local</dd>
+  </dl><dl>
+    <dt class>Visible title</dt>
+    <dd>global</dd>
+  </dl><!--
+      Collapse the whitespace but keep our indentation
+--><TagList @tags={{array 'one' 'two'}} />
+
+</figure>
+<hr />
+<figure class="reversed">
+  <figcaption>When reversing, you'll probably want to use indiviudual dl's so as to not reverse the order of the KV pairs</figcaption>
+  <dl>
+      <dt class="kind-terminating-gateway">Kind</dt>
+      <dd>
+        Terminating Gateway
+      </dd>
+  </dl>
+  <dl>
+    <dt
+      class="service-identity"
+    >
+      Service Identity
+    </dt>
+    <dd>service-0</dd>
+  </dl>
+  <dl>
+    <dt
+      {{tooltip}}
+      class="lock-delay"
+    >
+      Lock Delay
+    </dt>
+    <dd>10ms</dd>
+  </dl><dl>
+    <dt
+      {{tooltip}}
+      class="ttl"
+    >
+      TTL
+    </dt>
+    <dd>
+      <CopyButton
+        @value={{"1m30s10ms"}}
+        @name="TTL"
+      />
+      1m30s10ms
+    </dd>
+  </dl><dl>
+    <dt>
+      No visible title
+    </dt>
+    <dd>local</dd>
+  </dl><dl>
+    <dt class>Visible title</dt>
+    <dd>global</dd>
+  </dl>
+
+</figure>
+```
+When conditionally listing key/values within a single `dl`, be aware that if no key/values should be shown, then you will be left with an empty `dl`. If you collapse the whitespace using handlebars whitespace collapsing `~`, then this empty `dl` will be removed from the flow via CSS. Alternatively consider using multiple `dl`s which can be wrapped with conditionals individually and therefore leave no empty DOM.
+
+When using as individual `dl` lists be aware of whitespace between `dl`s. There are various ways you can counter this:
+
+1. remove the whitespace `</dl><dl>`.
+2. Wrap the whitespace in comments `</dl><!-- carriage return --><dl>`
+3. Use handlebars whitespace removal `~` as above.
+4. Put a `display: inline-flex` on the parent element (this can affect other layout).
+
+Depending on your exact usecase one of the above options may be more suited than others.
+
+```hbs preview-template
+<figure>
+  <figcaption>
+    Conditionally showing multiple key/values sometimes means that you insert an empty `dl` into the DOM
+  </figcaption>
+
+  <dl>
+    {{~#if false}}
+      <dt>Something that might not be set</dt>
+      <dd>No value!</dd>
+    {{/if~}}
+    {{~#if false}}
+      <dt>Something that might not be set</dt>
+      <dd>No value!</dd>
+    {{/if~}}
+  </dl>
+</figure>
+```
+
+
+```css
+dl {
+  @extend %horizontal-kv-list;
+}
+.lock-delay::before {
+  @extend %with-delay-mask, %as-pseudo;
+  color: var(--gray-700);
+}
+.ttl::before {
+  @extend %with-history-mask, %as-pseudo;
+  color: var(--blue-500);
+}
+.service-identity {
+  @extend %badge;
+}
+.kind-terminating-gateway {
+  @extend %badge, %badge-with-icon;
+}
+.kind-terminating-gateway::before {
+  @extend %with-gateway-mask, %as-pseudo;
+}
+.reversed > dl {
+  @extend %horizontal-kv-list-reversed;
+}
+.reversed .service-identity {
+  @extend %badge-reversed;
+}
+.reversed .kind-terminating-gateway {
+  @extend %badge-with-icon-reversed;
+}
+```
+
+## Properties
+
+| Property | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--horizontal-kv-list-separator-width` | `length-percentage` | `18px` | The width of the whitespace between two sets of key/value pairs |
+| `--horizontal-kv-list-key-separator` | `string` | `:` | Separator used for between `Key: Value` for textual key/values |
+| `--horizontal-kv-list-key-wrapper-start` | `string` | `(` | Starting wrapper used for wrapping `Value (Key)` for reversed textual key/values |
+| `--horizontal-kv-list-key-wrapper-end` | `string` | `)` | Ending wrapper used for wrapping `Value (Key)` for reversed textual key/values |
