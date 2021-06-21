@@ -3,8 +3,6 @@ package ca
 import (
 	"crypto/x509"
 	"errors"
-
-	"github.com/hashicorp/go-hclog"
 )
 
 //go:generate mockery -name Provider -inpkg
@@ -169,13 +167,6 @@ type Provider interface {
 	// provider should check if the intermediate PKI path is changing. If it is not
 	// changing then the provider should not remove that path from Vault.
 	Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error
-}
-
-// NeedsLogger is an optional interface that allows a CA provider to use the
-// Consul logger to output diagnostic messages.
-type NeedsLogger interface {
-	// SetLogger will pass a configured Logger to the provider.
-	SetLogger(logger hclog.Logger)
 }
 
 // NeedsStop is an optional interface that allows a CA to define a function

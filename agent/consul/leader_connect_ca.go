@@ -32,10 +32,9 @@ const (
 // caServerDelegate is an interface for server operations for facilitating
 // easier testing.
 type caServerDelegate interface {
-	State() *state.Store
+	ca.ConsulProviderStateDelegate
 	IsLeader() bool
 
-	createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error)
 	forwardDC(method, dc string, args interface{}, reply interface{}) error
 	generateCASignRequest(csr string) *structs.CASignRequest
 	raftApply(t structs.MessageType, msg interface{}) (interface{}, error)
@@ -68,6 +67,8 @@ type CAManager struct {
 	actingSecondaryCA bool                   // True if this datacenter has been initialized as a secondary CA.
 
 	leaderRoutineManager *routine.Manager
+	// providerShim is used to test CAManager with a fake provider.
+	providerShim ca.Provider
 }
 
 type caDelegateWithState struct {
@@ -76,6 +77,10 @@ type caDelegateWithState struct {
 
 func (c *caDelegateWithState) State() *state.Store {
 	return c.fsm.State()
+}
+
+func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
+	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
 }
 
 func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
@@ -344,7 +349,7 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	if err != nil {
 		return err
 	}
-	provider, err := c.delegate.createCAProvider(conf)
+	provider, err := c.newProvider(conf)
 	if err != nil {
 		return err
 	}
@@ -392,6 +397,24 @@ func (c *CAManager) InitializeCA() (reterr error) {
 
 	c.logger.Info("initialized secondary datacenter CA with provider", "provider", conf.Provider)
 	return nil
+}
+
+// createProvider returns a connect CA provider from the given config.
+func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	logger := c.logger.Named(conf.Provider)
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		return &ca.ConsulProvider{Delegate: c.delegate, Logger: logger}, nil
+	case structs.VaultCAProvider:
+		return ca.NewVaultProvider(logger), nil
+	case structs.AWSCAProvider:
+		return ca.NewAWSProvider(logger), nil
+	default:
+		if c.providerShim != nil {
+			return c.providerShim, nil
+		}
+		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
 }
 
 // initializeRootCA runs the initialization logic for a root CA. It should only
@@ -774,7 +797,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
 	// before we commit any changes to Raft.
-	newProvider, err := c.delegate.createCAProvider(args.Config)
+	newProvider, err := c.newProvider(args.Config)
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}

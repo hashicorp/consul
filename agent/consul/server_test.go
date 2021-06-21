@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/ipaddr"
 
 	"github.com/hashicorp/go-uuid"
@@ -1644,10 +1643,6 @@ func TestServer_CALogging(t *testing.T) {
 	require.NoError(t, err)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	if _, ok := s1.caManager.provider.(ca.NeedsLogger); !ok {
-		t.Fatalf("provider does not implement NeedsLogger")
-	}
 
 	// Wait til CA root is setup
 	retry.Run(t, func(r *retry.R) {

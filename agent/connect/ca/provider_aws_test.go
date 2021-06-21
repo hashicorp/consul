@@ -7,9 +7,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 // skipIfAWSNotConfigured skips the test unless ENABLE_AWS_PCA_TESTS=true.
@@ -375,9 +376,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 }
 
 func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
-	p := &AWSProvider{}
-	logger := testutil.Logger(t)
-	p.SetLogger(logger)
+	p := &AWSProvider{logger: testutil.Logger(t)}
 	require.NoError(t, p.Configure(cfg))
 	return p
 }

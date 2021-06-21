@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 var (
@@ -38,7 +37,7 @@ type ConsulProvider struct {
 	clusterID string
 	isPrimary bool
 	spiffeID  *connect.SpiffeIDSigning
-	logger    hclog.Logger
+	Logger    hclog.Logger
 
 	// testState is only used to test Consul leader's handling of providers that
 	// need to persist state. Consul provider actually manages it's state directly
@@ -127,7 +126,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
-	c.logger.Debug("consul CA provider configured",
+	c.Logger.Debug("consul CA provider configured",
 		"id", c.id,
 		"is_primary", c.isPrimary,
 	)
@@ -665,14 +664,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
-}
-
-// SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (c *ConsulProvider) SetLogger(logger hclog.Logger) {
-	c.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.Consul)
 }
 
 func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {

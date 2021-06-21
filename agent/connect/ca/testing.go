@@ -7,14 +7,15 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-hclog"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/mitchellh/go-testing-interface"
 )
 
 // KeyTestCases is a list of the important CA key types that we should test
@@ -75,13 +76,9 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 
 // TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
 // Logger so that logging calls don't panic. If logging output is important
-// SetLogger can be called again with another logger to capture logs.
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
-	provider := &ConsulProvider{Delegate: d}
-	logger := hclog.New(&hclog.LoggerOptions{
-		Output: ioutil.Discard,
-	})
-	provider.SetLogger(logger)
+	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
+	provider := &ConsulProvider{Delegate: d, Logger: logger}
 	return provider
 }
 
