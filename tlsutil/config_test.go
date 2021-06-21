@@ -708,12 +708,12 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
 	require.NoError(t, err)
-	require.Equal(t, c.commonTLSConfig(false).MinVersion, TLSLookup["tls10"])
+	require.Equal(t, c.commonTLSConfig(false).MinVersion, tlsLookup["tls10"])
 
 	for _, version := range tlsVersions() {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			TLSLookup[version])
+			tlsLookup[version])
 	}
 
 	require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
@@ -930,12 +930,12 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c.base.ServerName = "servername"
 	tlsConf = c.OutgoingTLSConfigForCheck(true, "")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
-	require.Equal(t, TLSLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
+	require.Equal(t, tlsLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
 	require.Equal(t, c.base.ServerName, tlsConf.ServerName)
 
 	tlsConf = c.OutgoingTLSConfigForCheck(true, "servername2")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
-	require.Equal(t, TLSLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
+	require.Equal(t, tlsLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
 	require.Equal(t, "servername2", tlsConf.ServerName)
 }
 
@@ -1141,5 +1141,6 @@ func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
 
 func TestConfig_tlsVersions(t *testing.T) {
 	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
-	require.Equal(t, strings.Join(tlsVersions(), ", "), TLSVersions)
+	expected := "tls10, tls11, tls12, tls13"
+	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
 }

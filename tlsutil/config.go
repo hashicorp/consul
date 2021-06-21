@@ -34,17 +34,14 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
-// TLSLookup maps the tls_min_version configuration to the internal value
-var TLSLookup = map[string]uint16{
+// tlsLookup maps the tls_min_version configuration to the internal value
+var tlsLookup = map[string]uint16{
 	"":      tls.VersionTLS10, // default in golang
 	"tls10": tls.VersionTLS10,
 	"tls11": tls.VersionTLS11,
 	"tls12": tls.VersionTLS12,
 	"tls13": tls.VersionTLS13,
 }
-
-// TLSVersions has all the keys from the map above.
-var TLSVersions = strings.Join(tlsVersions(), ", ")
 
 // Config used to create tls.Config
 type Config struct {
@@ -133,7 +130,7 @@ type Config struct {
 
 func tlsVersions() []string {
 	versions := []string{}
-	for v := range TLSLookup {
+	for v := range tlsLookup {
 		if v != "" {
 			versions = append(versions, v)
 		}
@@ -364,8 +361,9 @@ func pool(pems []string) (*x509.CertPool, error) {
 func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
-		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
-			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, TLSVersions)
+		if _, ok := tlsLookup[config.TLSMinVersion]; !ok {
+			versions := strings.Join(tlsVersions(), ", ")
+			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, versions)
 		}
 	}
 
@@ -517,10 +515,10 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.ClientCAs = c.caPool
 	tlsConfig.RootCAs = c.caPool
 
-	// This is possible because TLSLookup also contains "" with golang's
+	// This is possible because tlsLookup also contains "" with golang's
 	// default (tls10). And because the initial check makes sure the
 	// version correctly matches.
-	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
+	tlsConfig.MinVersion = tlsLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
 	if verifyIncoming {
@@ -794,9 +792,7 @@ func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 		return nil
 	}
 
-	return func(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, error) {
-		return c.wrapALPNTLSClient(dc, nodeName, alpnProto, conn)
-	}
+	return c.wrapALPNTLSClient
 }
 
 // AutoEncryptCertNotAfter returns NotAfter from the auto_encrypt cert. In case
