@@ -506,7 +506,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
 	}
 
-	c := Configurator{autoTLS: &autoTLS{}, manual: &manual{}}
+	c := Configurator{manual: &manual{}}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
 		_, err1 := NewConfigurator(v.config, nil)
@@ -716,7 +716,7 @@ func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 }
 
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	type variant struct {
 		verify   bool
 		expected tls.ClientAuthType
@@ -731,7 +731,7 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	type variant struct {
 		verify         bool
 		autoEncryptTLS bool
@@ -909,7 +909,7 @@ func TestConfigurator_IncomingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
 }
 
@@ -917,7 +917,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c := Configurator{base: &Config{
 		TLSMinVersion:           "tls12",
 		EnableAgentTLSForChecks: false,
-	}, autoTLS: &autoTLS{}}
+	}}
 	tlsConf := c.OutgoingTLSConfigForCheck(true, "")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, uint16(0), tlsConf.MinVersion)
@@ -936,7 +936,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	require.Nil(t, c.OutgoingRPCConfig())
 
 	c, err := NewConfigurator(Config{
@@ -954,7 +954,7 @@ func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	require.Nil(t, c.OutgoingALPNRPCConfig())
 
 	c, err := NewConfigurator(Config{
@@ -974,7 +974,7 @@ func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
@@ -996,7 +996,7 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
@@ -1071,7 +1071,7 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 }
 
 func TestConfigurator_VerifyOutgoing(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	type variant struct {
 		verify         bool
 		autoEncryptTLS bool
@@ -1104,7 +1104,7 @@ func TestConfigurator_Domain(t *testing.T) {
 }
 
 func TestConfigurator_VerifyServerHostname(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	require.False(t, c.VerifyServerHostname())
 
 	c.base.VerifyServerHostname = true
@@ -1121,7 +1121,7 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 }
 
 func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	require.True(t, c.AutoEncryptCertExpired())
 
 	cert, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")

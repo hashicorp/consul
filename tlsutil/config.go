@@ -150,6 +150,8 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
+// autoTLS stores configuration that is received from the auto-encrypt or
+// auto-config features.
 type autoTLS struct {
 	manualCAPems         []string
 	connectCAPems        []string
@@ -157,7 +159,7 @@ type autoTLS struct {
 	verifyServerHostname bool
 }
 
-func (a *autoTLS) caPems() []string {
+func (a autoTLS) caPems() []string {
 	return append(a.manualCAPems, a.connectCAPems...)
 }
 
@@ -172,7 +174,7 @@ type Configurator struct {
 	// lock synchronizes access to all fields on this struct except for logger and version.
 	lock                 sync.RWMutex
 	base                 *Config
-	autoTLS              *autoTLS
+	autoTLS              autoTLS
 	manual               *manual
 	peerDatacenterUseTLS map[string]bool
 	caPool               *x509.CertPool
@@ -197,7 +199,6 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 	c := &Configurator{
 		logger:               logger.Named(logging.TLSUtil),
 		manual:               &manual{},
-		autoTLS:              &autoTLS{},
 		peerDatacenterUseTLS: map[string]bool{},
 	}
 	err := c.Update(config)
@@ -274,7 +275,7 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	return nil
 }
 
-// UpdateAutoTLSCert
+// UpdateAutoTLSCert receives the updated Auto-Encrypt certificate.
 func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
@@ -290,8 +291,8 @@ func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	return nil
 }
 
-// UpdateAutoTLS sets everything under autoEncrypt. This is being called on the
-// client when it received its cert from AutoEncrypt/AutoConfig endpoints.
+// UpdateAutoTLS receives updates from Auto-Config, only expected to be called on
+// client agents.
 func (c *Configurator) UpdateAutoTLS(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
