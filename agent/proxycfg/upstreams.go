@@ -294,23 +294,6 @@ func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upst
 	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
-func (s *handlerUpstreams) watchConnectProxyService(ctx context.Context, correlationId string, target *structs.DiscoveryTarget) error {
-	return s.stateConfig.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
-		Datacenter: target.Datacenter,
-		QueryOptions: structs.QueryOptions{
-			Token:  s.serviceInstance.token,
-			Filter: target.Subset.Filter,
-		},
-		ServiceName: target.Service,
-		Connect:     true,
-		// Note that Identifier doesn't type-prefix for service any more as it's
-		// the default and makes metrics and other things much cleaner. It's
-		// simpler for us if we have the type to make things unambiguous.
-		Source:         *s.stateConfig.source,
-		EnterpriseMeta: *target.GetEnterpriseMetadata(),
-	}, correlationId, s.ch)
-}
-
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
 	s.logger.Trace("initializing watch of target",
 		"upstream", opts.upstreamID,
