@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -255,7 +254,7 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 		return "", "", err
 	}
 
-	return csr, strings.TrimSuffix(pkPEM, "\n"), nil
+	return csr, pkPEM, nil
 }
 
 func (ac *AutoConfig) getDNSSANs() []string {

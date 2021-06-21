@@ -43,7 +43,7 @@ func generateRSAKey(keyBits int) (crypto.Signer, string, error) {
 		return nil, "", err
 	}
 
-	return pk, strings.TrimSuffix(pemBlock, "\n"), nil
+	return pk, pemBlock, nil
 }
 
 func generateECDSAKey(keyBits int) (crypto.Signer, string, error) {
@@ -78,7 +78,7 @@ func generateECDSAKey(keyBits int) (crypto.Signer, string, error) {
 		return nil, "", err
 	}
 
-	return pk, strings.TrimSuffix(pemBlock, "\n"), nil
+	return pk, pemBlock, nil
 }
 
 // GeneratePrivateKey generates a new Private key
