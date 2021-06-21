@@ -43,6 +43,8 @@ export default class RoleAdapter extends Adapter {
   requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       PUT /v1/acl/role?${params}
@@ -53,7 +55,6 @@ export default class RoleAdapter extends Adapter {
         Policies: serialized.Policies,
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -61,6 +62,8 @@ export default class RoleAdapter extends Adapter {
   requestForUpdateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       PUT /v1/acl/role/${data[SLUG_KEY]}?${params}
@@ -71,7 +74,6 @@ export default class RoleAdapter extends Adapter {
         Policies: serialized.Policies,
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -79,7 +81,8 @@ export default class RoleAdapter extends Adapter {
   requestForDeleteRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       DELETE /v1/acl/role/${data[SLUG_KEY]}?${params}

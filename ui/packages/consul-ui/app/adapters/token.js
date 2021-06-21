@@ -46,6 +46,8 @@ export default class TokenAdapter extends Adapter {
   requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       PUT /v1/acl/token?${params}
@@ -57,7 +59,6 @@ export default class TokenAdapter extends Adapter {
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -79,6 +80,8 @@ export default class TokenAdapter extends Adapter {
     }
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${params}
@@ -90,7 +93,6 @@ export default class TokenAdapter extends Adapter {
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -98,8 +100,8 @@ export default class TokenAdapter extends Adapter {
   requestForDeleteRecord(request, serialized, data) {
     const params = {
       dc: data.dc,
-      ns: data.ns,
-      partition: data.partition,
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${params}

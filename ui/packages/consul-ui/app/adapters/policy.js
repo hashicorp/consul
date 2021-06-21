@@ -1,16 +1,6 @@
 import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/policy';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
-
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
 
 // TODO: Update to use this.formatDatacenter()
 export default class PolicyAdapter extends Adapter {
@@ -44,6 +34,8 @@ export default class PolicyAdapter extends Adapter {
   requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       PUT /v1/acl/policy?${params}
@@ -53,7 +45,6 @@ export default class PolicyAdapter extends Adapter {
         Description: serialized.Description,
         Rules: serialized.Rules,
         Datacenters: serialized.Datacenters,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -61,6 +52,8 @@ export default class PolicyAdapter extends Adapter {
   requestForUpdateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       PUT /v1/acl/policy/${data[SLUG_KEY]}?${params}
@@ -70,7 +63,6 @@ export default class PolicyAdapter extends Adapter {
         Description: serialized.Description,
         Rules: serialized.Rules,
         Datacenters: serialized.Datacenters,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -78,7 +70,8 @@ export default class PolicyAdapter extends Adapter {
   requestForDeleteRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      ns: serialized.Namespace,
+      partition: serialized.Partition,
     };
     return request`
       DELETE /v1/acl/policy/${data[SLUG_KEY]}?${params}

@@ -31,11 +31,10 @@ export default class OidcProviderAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     return request`
-      POST /v1/acl/oidc/auth-url?${{ dc }}
+      POST /v1/acl/oidc/auth-url?${{ dc, ns, partition }}
       Cache-Control: no-store
 
       ${{
-        ...Namespace(ns),
         AuthMethod: id,
         RedirectURI: `${this.env.var('CONSUL_BASE_UI_URL')}/oidc/callback`,
       }}
@@ -53,11 +52,10 @@ export default class OidcProviderAdapter extends Adapter {
       throw new Error('You must specify an state');
     }
     return request`
-      POST /v1/acl/oidc/callback?${{ dc }}
+      POST /v1/acl/oidc/callback?${{ dc, ns, partition }}
       Cache-Control: no-store
 
       ${{
-        ...Namespace(ns),
         AuthMethod: id,
         Code: code,
         State: state,
