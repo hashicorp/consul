@@ -1,5 +1,16 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* debug: capture a single stream of logs, and single pprof profile and trace for the whole duration [[GH-10279](https://github.com/hashicorp/consul/issues/10279)]
+* licensing: **(Enterprise Only)** In order to have forward compatibility with Consul Enterprise v1.10, the ability to parse licenses from the configuration or environment has been added. This can be specified with the `license_path` configuration, the `CONSUL_LICENSE` environment variable or the `CONSUL_LICENSE_PATH` environment variable. On server agents this configuration will be ignored. Client agents and the snapshot agent will use the configured license instead of automatically retrieving one. [[GH-10441](https://github.com/hashicorp/consul/issues/10441)]
+* monitoring: optimize the monitoring endpoint to avoid losing logs when under high load. [[GH-10368](https://github.com/hashicorp/consul/issues/10368)]
+
+BUG FIXES:
+
+* license: **(Enterprise only)** Fixed an issue that would cause client agents on versions before 1.10 to not be able to retrieve the license from a 1.10+ server. [[GH-10432](https://github.com/hashicorp/consul/issues/10432)]
+* monitor: fix monitor to produce json format logs when requested [[GH-10358](https://github.com/hashicorp/consul/issues/10358)]
+
 ## 1.9.6 (June 04, 2021)
 
 IMPROVEMENTS:
