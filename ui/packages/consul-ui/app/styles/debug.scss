@@ -34,7 +34,7 @@ html.is-debug body > .brand-loader {
     }
     li.consul-components.css-component a::before,
     li.components.css-component a::before {
-      @extend %with-glimmer-logo-color-icon, %as-pseudo;
+      @extend %with-logo-glimmer-color-icon, %as-pseudo;
     }
     li.consul-components.ember-component a::before,
     li.components.ember-component a::before {
