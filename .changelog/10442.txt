@@ -1,0 +1,3 @@
+```release-note:improvement
+ licensing: **(Enterprise Only)** In order to have forward compatibility with Consul Enterprise v1.10, the ability to parse licenses from the configuration or environment has been added. This can be specified with the `license_path` configuration, the `CONSUL_LICENSE` environment variable or the `CONSUL_LICENSE_PATH` environment variable. On server agents this configuration will be ignored. Client agents and the snapshot agent will use the configured license instead of automatically retrieving one.
+ ```

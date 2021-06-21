@@ -4,6 +4,8 @@ package config
 
 var entMetaJSON = `{}`
 
+var entAuthMethodFieldsJSON = `{}`
+
 var entRuntimeConfigSanitize = `{}`
 
 var entFullDNSJSONConfig = ``
