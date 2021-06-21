@@ -25,6 +25,54 @@ This will no longer work since each server must be able to find a valid license 
 If ACLs are enabled, customers on Consul Enterprise 1.8+ or 1.9+ must upgrade Consul agents to the latest patch available (1.8.13 or 1.9.7) prior to upgrading the Consul server instances to 1.10.0.
 Otherwise, the Consul agents will fail to retrieve the license with a valid agent token.
 
+The following table provides an overview of 1.10.0 upgrade scenarios.
+
+| Client Version | Server Version | ACLs     | Snapshot Agent Version                             | Guidance                                                                                                                                      |
+| -------------- | -------------- | -------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.9.x          | 1.9.x          | Enabled  | Do not upgrade Snapshot Agent to the latest 1.9.x. | See [Upgrade Path for Consul Clients and Servers 1.9.x - ACLs Enabled](faq#upgrade-path-for-consul-clients-and-servers-1-9-x-acls-enabled).   |
+| 1.9.x          | 1.9.x          | Disabled | Snapshot Agent affected by upgrade.                | See [Upgrade Path for Consul Clients and Servers 1.9.x - ACLs Disabled](faq#upgrade-path-for-consul-clients-and-servers-1-9-x-acls-disabled). |
+| 1.8.x          | 1.8.x          | Enabled  | Do not upgrade Snapshot Agent to the latest 1.8.x  | See [Upgrade Path for Consul Clients and Servers 1.8.x - ACLs Disabled](faq#upgrade-path-for-consul-clients-and-servers-1-8-x-acls-enabled).  |
+| 1.8.x          | 1.8.x          | Disabled | Snapshot Agent affected by upgrade.                | See [Upgrade Path for Consul Clients and Servers 1.8.x - ACLs Disabled](faq#upgrade-path-for-consul-clients-and-servers-1-8-x-acls-disabled). |
+
+For Consul clients and servers older than 1.8, follow the instructions for [upgrading to specific versions](https://www.consul.io/docs/upgrading/upgrade-specific) to install Consul 1.8.X on clients and servers before performing one of the following upgrade scenarios.
+
+### Upgrade Path for Consul Clients and Servers 1.9.x - ACLs Enabled
+
+1. Upgrade Consul clients to the latest version of 1.9.x.
+1. Upgrade Consul servers to the latest version of 1.9.x.
+1. Upgrade Consul servers to 1.10.0 and configure the license file or set the license environment variable.
+1. Upgrade Consul clients to 1.10.0.
+1. Upgrade Snapshot Agent to 1.10.0.
+
+### Upgrade Path for Consul Clients and Servers 1.9.x - ACLs Disabled
+
+1. Upgrade Snapshot Agent to the latest version of 1.9.x and the license file/environment variable must be configured.
+1. Configure the license file or set the license environment variable for Consul clients and servers.
+1. Upgrade Consul clients to the latest version of 1.9.x.
+1. Upgrade Consul servers to the latest version of 1.9.x.
+1. Upgrade Consul servers to 1.10.0.
+1. Upgrade Consul clients to 1.10.0.
+1. Upgrade Snapshot Agents to 1.10.0.
+
+### Upgrade Path for Consul Clients and Servers 1.8.x - ACLs Enabled
+
+1. Configure the license file or set the license environment variable for Consul clients and servers.
+1. Upgrade Consul clients to the latest version of 1.8.x.
+1. Upgrade Consul servers to the latest version of 1.8.x.
+1. Upgrade Consul servers to 1.10.0.
+1. Upgrade Consul clients to 1.10.0.
+1. Upgrade Snapshot Agents to 1.10.0.
+
+### Upgrade Path for Consul Clients and Servers 1.8.x - ACLs Disabled
+
+1. Upgrade Snapshot Agent to the latest version of 1.8.x and the license file/environment variable must be configured.
+1. Configure the license file or set the license environment variable for Consul clients and servers.
+1. Upgrade Consul clients to the latest version of 1.8.x.
+1. Upgrade Consul servers to the latest version of 1.8.x.
+1. Upgrade Consul servers to 1.10.0.
+1. Upgrade Consul clients to 1.10.0.
+1. Upgrade Snapshot Agents to 1.10.0.
+
 ## Q: Is there a tutorial available for the license configuration steps?
 
 Please visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise).
