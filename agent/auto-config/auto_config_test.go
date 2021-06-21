@@ -2,6 +2,7 @@ package autoconf
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -577,7 +578,9 @@ func TestGoRoutineManagement(t *testing.T) {
 	mcfg.tokens.On("Notify", token.TokenKindAgent).Return(token.Notifier{}).Times(2)
 	mcfg.tokens.On("StopNotify", token.Notifier{}).Times(2)
 
-	mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(time.Now().Add(10 * time.Minute)).Times(0)
+	mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: time.Now().Add(10 * time.Minute),
+	}).Times(0)
 
 	// ensure that auto-config isn't running
 	require.False(t, ac.IsRunning())
@@ -734,7 +737,9 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", originalToken)
 
-	mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(cert.ValidBefore).Once()
+	mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: cert.ValidBefore,
+	}).Once()
 
 	populateResponse := func(args mock.Arguments) {
 		method := args.String(3)
@@ -920,7 +925,9 @@ func TestRootsUpdate(t *testing.T) {
 	})
 
 	// when a cache event comes in we end up recalculating the fallback timer which requires this call
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(time.Now().Add(10 * time.Minute)).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: time.Now().Add(10 * time.Minute),
+	}).Once()
 
 	req := structs.DCSpecificRequest{Datacenter: "dc1"}
 	require.True(t, testAC.mcfg.cache.sendNotification(context.Background(), req.CacheInfo().Key, cache.UpdateEvent{
@@ -960,7 +967,9 @@ func TestCertUpdate(t *testing.T) {
 	})
 
 	// when a cache event comes in we end up recalculating the fallback timer which requires this call
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(secondCert.ValidBefore).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: secondCert.ValidBefore,
+	}).Once()
 
 	req := cachetype.ConnectCALeafRequest{
 		Datacenter: "dc1",
@@ -1025,8 +1034,9 @@ func TestFallback(t *testing.T) {
 	})
 
 	// when a cache event comes in we end up recalculating the fallback timer which requires this call
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(secondCert.ValidBefore).Once()
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertExpired").Return(true).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: secondCert.ValidBefore,
+	}).Times(2)
 
 	fallbackCtx, fallbackCancel := context.WithCancel(context.Background())
 
@@ -1082,7 +1092,9 @@ func TestFallback(t *testing.T) {
 	testAC.mcfg.expectInitialTLS(t, "autoconf", "dc1", testAC.originalToken, secondCA, &secondRoots, thirdCert, testAC.extraCerts)
 
 	// after the second RPC we now will use the new certs validity period in the next run loop iteration
-	testAC.mcfg.tlsCfg.On("AutoEncryptCertNotAfter").Return(time.Now().Add(10 * time.Minute)).Once()
+	testAC.mcfg.tlsCfg.On("AutoEncryptCert").Return(&x509.Certificate{
+		NotAfter: time.Now().Add(10 * time.Minute),
+	}).Once()
 
 	// now that all the mocks are set up we can trigger the whole thing by sending the second expired cert
 	// as a cache update event.

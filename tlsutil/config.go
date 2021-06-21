@@ -796,25 +796,19 @@ func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 	return c.wrapALPNTLSClient
 }
 
-// AutoEncryptCertNotAfter returns NotAfter from the auto_encrypt cert. In case
-// there is no cert, it will return a time in the past.
-func (c *Configurator) AutoEncryptCertNotAfter() time.Time {
+// AutoEncryptCert returns the TLS certificate received from auto-encrypt.
+func (c *Configurator) AutoEncryptCert() *x509.Certificate {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	tlsCert := c.autoTLS.cert
 	if tlsCert == nil || tlsCert.Certificate == nil {
-		return time.Now().AddDate(0, 0, -1)
+		return nil
 	}
 	cert, err := x509.ParseCertificate(tlsCert.Certificate[0])
 	if err != nil {
-		return time.Now().AddDate(0, 0, -1)
+		return nil
 	}
-	return cert.NotAfter
-}
-
-// AutoEncryptCertExpired returns if the auto_encrypt cert is expired.
-func (c *Configurator) AutoEncryptCertExpired() bool {
-	return c.AutoEncryptCertNotAfter().Before(time.Now())
+	return cert
 }
 
 func (c *Configurator) log(name string) {

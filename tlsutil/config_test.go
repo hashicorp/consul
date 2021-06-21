@@ -1120,19 +1120,19 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 	require.True(t, c.VerifyServerHostname())
 }
 
-func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
+func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	c := Configurator{base: &Config{}}
-	require.True(t, c.AutoEncryptCertExpired())
+	require.Nil(t, c.AutoEncryptCert())
 
 	cert, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.True(t, c.AutoEncryptCertExpired())
+	require.Equal(t, int64(1561561551), c.AutoEncryptCert().NotAfter.Unix())
 
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.False(t, c.AutoEncryptCertExpired())
+	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfig_tlsVersions(t *testing.T) {
