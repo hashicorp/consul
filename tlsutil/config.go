@@ -168,16 +168,20 @@ type manual struct {
 	cert   *tls.Certificate
 }
 
-// Configurator holds a Config and is responsible for generating all the
-// *tls.Config necessary for Consul. Except the one in the api package.
+// Configurator provides tls.Config and net.Dial wrappers to enable TLS for
+// clients and servers, for both HTTPS and RPC requests.
+// Configurator receives an initial TLS configuration from agent configuration,
+// and receives updates from config reloads, auto-encrypt, and auto-config.
 type Configurator struct {
 	// lock synchronizes access to all fields on this struct except for logger and version.
-	lock                 sync.RWMutex
-	base                 *Config
-	autoTLS              autoTLS
-	manual               *manual
+	lock    sync.RWMutex
+	base    *Config
+	autoTLS autoTLS
+	manual  *manual
+	caPool  *x509.CertPool
+	// peerDatacenterUseTLS is a map of DC name to a bool indicating if the DC
+	// uses TLS for RPC requests.
 	peerDatacenterUseTLS map[string]bool
-	caPool               *x509.CertPool
 
 	// logger is not protected by a lock. It must never be changed after
 	// Configurator is created.
