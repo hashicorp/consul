@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/connect"
 )
@@ -88,4 +89,8 @@ func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.Sp
 		}
 	}
 	return nil
+}
+
+func AddSingleNewline(cert string) string {
+	return fmt.Sprintf("%s\n", strings.TrimSuffix(cert, "\n"))
 }

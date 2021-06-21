@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -151,7 +150,7 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSuffix(providerState.RootCert, "\n"), nil
+	return AddSingleNewline(providerState.RootCert), nil
 }
 
 // GenerateRoot initializes a new root certificate and private key
@@ -192,9 +191,9 @@ func (c *ConsulProvider) GenerateRoot() error {
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
-		newState.RootCert = strings.TrimSuffix(ca, "\n")
+		newState.RootCert = AddSingleNewline(ca)
 	} else {
-		newState.RootCert = strings.TrimSuffix(c.config.RootCert, "\n")
+		newState.RootCert = AddSingleNewline(c.config.RootCert)
 	}
 
 	// Write the provider state
@@ -276,8 +275,8 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 
 	// Update the state
 	newState := *providerState
-	newState.IntermediateCert = strings.TrimSuffix(intermediatePEM, "\n")
-	newState.RootCert = strings.TrimSuffix(rootPEM, "\n")
+	newState.IntermediateCert = AddSingleNewline(intermediatePEM)
+	newState.RootCert = AddSingleNewline(rootPEM)
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
@@ -587,7 +586,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	return strings.TrimSuffix(buf.String(), "\n"), nil
+	return AddSingleNewline(buf.String()), nil
 }
 
 // SupportsCrossSigning implements Provider

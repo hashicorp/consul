@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -232,7 +231,7 @@ func (a *AWSProvider) ensureCA() error {
 		return err
 	}
 
-	a.rootPEM = strings.TrimSuffix(certPEM, "\n")
+	a.rootPEM = AddSingleNewline(certPEM)
 	return nil
 }
 
@@ -363,15 +362,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = strings.TrimSuffix(*output.Certificate, "\n")
+		a.rootPEM = AddSingleNewline(*output.Certificate)
 	} else {
-		a.intermediatePEM = strings.TrimSuffix(*output.Certificate, "\n")
+		a.intermediatePEM = AddSingleNewline(*output.Certificate)
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = strings.TrimSuffix(*output.Certificate, "\n")
+		a.rootPEM = AddSingleNewline(*output.Certificate)
 	}
 	return nil
 }
@@ -545,8 +544,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 	}
 
 	// We succsefully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = strings.TrimSuffix(rootPEM, "\n")
-	a.intermediatePEM = strings.TrimSuffix(intermediatePEM, "\n")
+	a.rootPEM = AddSingleNewline(rootPEM)
+	a.intermediatePEM = AddSingleNewline(intermediatePEM)
 
 	return nil
 }
