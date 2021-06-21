@@ -2,13 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/structs"
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
-
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // GET /v1/connect/ca/roots
@@ -49,20 +48,12 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 }
 
 func writeCA(resp io.Writer, roots []*structs.CARoot) error {
-	trailing := ""
 	for _, root := range roots {
-		if _, err := resp.Write([]byte(trailing)); err != nil {
+		if _, err := resp.Write([]byte(ca.AddSingleNewline(root.RootCert))); err != nil {
 			return err
 		}
-		if _, err := resp.Write([]byte(strings.TrimSuffix(root.RootCert, "\n"))); err != nil {
-			return err
-		}
-		trailing = "\n"
 		for _, intermediate := range root.IntermediateCerts {
-			if _, err := resp.Write([]byte(trailing)); err != nil {
-				return err
-			}
-			if _, err := resp.Write([]byte((strings.TrimSuffix(intermediate, "\n")))); err != nil {
+			if _, err := resp.Write([]byte(ca.AddSingleNewline(intermediate))); err != nil {
 				return err
 			}
 		}

@@ -313,8 +313,8 @@ func Test_writeCA(t *testing.T) {
 	}
 	const ca = "-----BEGIN CERTIFICATE-----\nMIIB3TCCAYKgAwIBAgIIHk4Xdb5VAukwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAxMB4XDTIxMDYxNjE1MjExOFoXDTMxMDYxNjE1MjExOFowFDESMBAG\nA1UEAxMJVGVzdCBDQSAxMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQ268w92S\n3z1FUBjDA85hYLAFvHWEj1SyhByG5xH1i0Agbj3MQDEYEWvKpLa1IWAi6thowmg+\npAvOjKlFrdN3saOBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB\n/zApBgNVHQ4EIgQg1GebhqO6UZ0UDbFS4J3T4fZLu1fpOlQq+GAzjG48mJIwKwYD\nVR0jBCQwIoAg1GebhqO6UZ0UDbFS4J3T4fZLu1fpOlQq+GAzjG48mJIwPwYDVR0R\nBDgwNoY0c3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1\nNTU1LmNvbnN1bDAKBggqhkjOPQQDAgNJADBGAiEAhPvUug/B5NhEFZzivsKt5Xtr\ncEyoASTqwCnKCWdNy3cCIQDgX3Stt+VlgaT4YcpLbl/GzezMVgt9F3Z6dKKHf0E9\ntA==\n-----END CERTIFICATE-----"
 	const caCarriage = ca + "\n"
-	expected := fmt.Sprintf("%s\n%s\n%s", ca, ca, ca)
-	expectedRoot := fmt.Sprintf("%s", ca)
+	expected := fmt.Sprintf("%s\n%s\n%s\n", ca, ca, ca)
+	expectedRoot := fmt.Sprintf("%s\n", ca)
 	tests := []struct {
 		name     string
 		args     args
