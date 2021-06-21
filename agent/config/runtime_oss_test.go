@@ -9,6 +9,7 @@ func entFullRuntimeConfig(rt *RuntimeConfig) {}
 var enterpriseReadReplicaWarnings = []string{enterpriseConfigKeyError{key: "read_replica (or the deprecated non_voting_server)"}.Error()}
 
 var enterpriseConfigKeyWarnings = []string{
+	enterpriseConfigKeyError{key: "license_path"}.Error(),
 	enterpriseConfigKeyError{key: "read_replica (or the deprecated non_voting_server)"}.Error(),
 	enterpriseConfigKeyError{key: "segment"}.Error(),
 	enterpriseConfigKeyError{key: "segments"}.Error(),
