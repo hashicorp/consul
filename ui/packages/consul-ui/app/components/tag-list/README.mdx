@@ -4,6 +4,8 @@ Template only component for rendering a list of tags. You can pass either/or/and
 
 Tags are de-duplicated when rendered.
 
+Uses `%horizontal-kv-list` for positioning/icon and `%csv-list` for tag separating
+
 ```hbs preview-template
 <TagList
   @item={{hash
@@ -43,7 +45,7 @@ Tags are de-duplicated when rendered.
 
 <figure>
   <figcaption>
-    This list has no tags therefore the tags _and_ red border div will **not** be rendered.
+    This list has no tags therefore the tags _and_ red border div will <strong>not</strong> be rendered.
   </figcaption>
 
   <TagList
@@ -66,7 +68,7 @@ Tags are de-duplicated when rendered.
 | `item` | `Object` |  | Object with a `Tags` property equalling an array of string tags |
 | `tags` | `Array` |  | An array of string tags |
 
-## Yields
+## Exports
 
 When used as a block level component the `TagList` yields itself, see above example for usage.
 
