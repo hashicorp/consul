@@ -21,7 +21,7 @@ upgrade flow.
 Consul Enterprise 1.10 has removed temporary licensing capabilities from the binaries
 found on https://releases.hashicorp.com. Servers will no longer load a license previously
 set through the CLI or API. Instead the license must be present in the server's configuration
-or environment prior to starting. See the [licensing documentation](/docs/enterprise#licensing) 
+or environment prior to starting. See the [licensing documentation](/docs/enterprise/license/overview) 
 for more information about how to configure the license. Client agents previously retrieved their
 license from the servers in the cluster within 30 minutes of starting and the snapshot agent
 would similarly retrieve its license from the server or client agent it was configured to use. As
@@ -35,18 +35,8 @@ agents require that either the [`start_join`](/docs/agent/opts#start_join) or
 agents. If those stipulations are not met, attempting to start the client or snapshot agent will
 result in it immediately shutting down.
 
-#### Migration <EnterpriseAlert inline />
-Prior to upgrading Consul Enterprise to v1.10 you should ensure the license is set in all the right places.
-In general following these steps should be all thats necessary to ensure a smooth upgrade.
-
-1. Retrieve the existing license from your existing cluster by running `consul license get -signed`
-2. Ensure that the license is configured on all your servers by setting the one of the `license_path`
-   configuration item, the `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE`
-   environment variable.
-3. If ACLs are not in use or if not all client agents are configured with the necessary `start_join` /
-   `retry_join` configurations pointing to servers, then repeat step 2 for all client agents.
-4. If ACLs are not in use then repeat step 2 for all snapshot agents.
-5. Now proceed with the [standard upgrade procedure](/docs/upgrading#standard-upgrades).
+For the step by step upgrade procedures see the [Upgrading to 1.10.0](/docs/upgrading/instructions/upgrade-to-1-10-x) documentation.
+For answers to common licensing questions please refer to the [FAQ](/docs/enterprise/license/faq)
 
 ### Envoy xDS Protocol Upgrades
 
