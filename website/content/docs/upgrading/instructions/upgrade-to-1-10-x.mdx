@@ -66,8 +66,8 @@ for more information.
 consul license get -signed > consul.hclic
 ```
 
-This will save the license to a file in the local directory named `consul.hclic`. Having this 
-will be useful when preparing the license for the 1.10 upgrades later on in the process.
+  This will save the license to a file in the local directory named `consul.hclic`. Having this 
+  will be useful when preparing the license for the 1.10 upgrades later on in the process.
 
 **2.** Take a snapshot of the cluster by running:
 
@@ -75,8 +75,8 @@ will be useful when preparing the license for the 1.10 upgrades later on in the 
 consul snapshot save original.snap
 ```
 
-This snapshot should not be needed but if something were to go wrong, having
-the snapshot would make it possible to restore the previous state.
+  This snapshot should not be needed but if something were to go wrong, having
+  the snapshot would make it possible to restore the previous state.
 
 **3.** Determine if ACLs are enabled by running the following CLI command.
 
@@ -84,7 +84,7 @@ the snapshot would make it possible to restore the previous state.
 consul info | grep "acl ="
 ````
 
-If you receive output like either of the following then ACLs are enabled:
+  If you receive output like either of the following then ACLs are enabled:
 
 ```text
 Error querying agent: Unexpected response code: 403 (Permission denied)
@@ -95,8 +95,8 @@ Error querying agent: Unexpected response code: 403 (Permission denied)
 
 ```
 
-Select the correct tab below based on whether ACLs are enabled or disabled or if you
-are operating Consul within Kubernetes.
+  Select the correct tab below based on whether ACLs are enabled or disabled or if you
+  are operating Consul within Kubernetes.
 
 <Tabs>
 <Tab heading="ACLs Enabled">
@@ -113,15 +113,15 @@ are operating Consul within Kubernetes.
 consul snapshot save intermediate.snap
 ```
 
-This snapshot should not be needed but if something were to go wrong, having
-the snapshot would make it possible to restore the previous state.
+  This snapshot should not be needed but if something were to go wrong, having
+  the snapshot would make it possible to restore the previous state.
 
 **8.** Pre-configure the server agents with a license.
 
-This can either be set with the `license_path` configuration item, the 
-`CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
-environment variable. See the [licensing documentation](/docs/enterprise/license/overview) 
-for more information about how to configure the license.
+  This can either be set with the `license_path` configuration item, the 
+  `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
+  environment variable. See the [licensing documentation](/docs/enterprise/license/overview) 
+  for more information about how to configure the license.
 
 **9.** Upgrade all server agents to v1.10.0.
 
@@ -133,26 +133,26 @@ for more information about how to configure the license.
 <Tab heading="ACLs Disabled">
 
 ~> We do not recommend running in production with ACLs disabled. An alternative upgrade
-path involves first enabling ACLs by following [this tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
-and then proceeding with the instructions within the "ACLs Enabled" tab.
+  path involves first enabling ACLs by following [this tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
+  and then proceeding with the instructions within the "ACLs Enabled" tab.
 
 **4.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
 
 **5.** Pre-configure the client agents with a license.
 
-This can either be set with the `license_path` configuration item, the 
-`CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
-environment variable. See the [licensing documentation](/docs/enterprise/license/overview) 
-for more information about how to configure the license. Note that while
-Consul Enterprise 1.8.13 and 1.9.7 have the ability to load the license
-from these configurations, it is intended to only be used during upgrades.
-Licenses loaded this way are not online reloadable. It is therefore important
-to promptly proceed with the upgrade and not leave agents in the intermediate state.
+  This can either be set with the `license_path` configuration item, the 
+  `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
+  environment variable. See the [licensing documentation](/docs/enterprise/license/overview) 
+  for more information about how to configure the license. Note that while
+  Consul Enterprise 1.8.13 and 1.9.7 have the ability to load the license
+  from these configurations, it is intended to only be used during upgrades.
+  Licenses loaded this way are not online reloadable. It is therefore important
+  to promptly proceed with the upgrade and not leave agents in the intermediate state.
 
 **6.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
 **7.** Pre-configure the snapshot agents with a license. This is the same process that
-was executed for the servers in step 5.
+  was executed for the servers in step 5.
 
 **8.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
@@ -162,11 +162,11 @@ was executed for the servers in step 5.
 consul snapshot save intermediate.snap
 ```
 
-This snapshot should not be needed but if something were to go wrong, having
-the snapshot would make it possible to restore the previous state.
+  This snapshot should not be needed but if something were to go wrong, having
+  the snapshot would make it possible to restore the previous state.
 
 **8.** Pre-configure the server agents with a license. This is the same process that
-was executed for the servers in step 5.
+  was executed for the servers in step 5.
 
 **9.** Upgrade all server agents to v1.10.0.
 
@@ -183,25 +183,36 @@ to the latest 1.8.x or 1.9.x before the next steps.
 **5.** Upgrade to the latest Consul helm chart v0.32.0+.
 
 **6.** Update the value of `global.image` in the values file to the latest 1.8.x or 1.9.x image.
-Additionally, ensure that the Kuberenetes secret with the license is correctly specified in the
-values `server.enterpriseLicense.secretName` and `server.enterpriseLicense.secretKey`.
+
+  Additionally, ensure that the Kuberenetes secret with the license is correctly specified in the
+  values `server.enterpriseLicense.secretName` and `server.enterpriseLicense.secretKey`.
 
 **7.** Upgrade the cluster.
 
-Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
-to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
-and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
+  Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
+  to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+  and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
 
 **8.** If the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
-  to 1.10.0 before the next steps.
+  to 1.10.0 before the next steps. 
+  
+  This will require pre-configuring the servers with a license
+  before running 1.10. This can either be set with the `license_path` configuration item, the 
+  `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
+  environment variable. See the [licensing documentation](/docs/enterprise/license/overview) 
+  for more information about how to configure the license. Note that while
+  Consul Enterprise 1.8.13 and 1.9.7 have the ability to load the license
+  from these configurations, it is intended to only be used during upgrades.
+  Licenses loaded this way are not online reloadable. It is therefore important
+  to promptly proceed with the upgrade and not leave agents in the intermediate state.
 
 **9.** Update the value of `global.image` in the values file to the 1.10.0 image.
 
 **10.** Upgrade the cluster.
 
-Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
-to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
-and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
+  Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
+  to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+  and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
 
 </Tab>
 </Tabs>
