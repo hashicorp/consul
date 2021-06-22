@@ -132,7 +132,7 @@ ui:
 ## Deploying Prometheus (_for demo and non-production use-cases only_)
 
 The Helm chart contains demo manifests for deploying Prometheus. It can be installed with Helm via `prometheus.enabled`. This manifest is based on the community manifest for Prometheus.
-The Prometheus deployment included with Consu Helm is designed to allow quick bootstrapping for trial and demo use cases and not for production use-cases.
+The Prometheus deployment is designed to allow quick bootstrapping for trial and demo use cases, and is not recommended for production use-cases.
 
 Prometheus will be installed in the same namespace that Consul will be installed in and will be installed
 and uninstalled along with the Consul installation. In addition, Grafana can be utilized with Prometheus and separately installed and configured option through its own installation via Helm (an example is provided in the following Learn Guide, [Layer 7 Observability with Prometheus, Grafana, and Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes)).
