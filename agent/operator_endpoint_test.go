@@ -24,6 +24,7 @@ func TestOperator_RaftConfiguration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -53,6 +54,7 @@ func TestOperator_RaftPeer(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -91,6 +93,7 @@ func TestOperator_KeyringInstall(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
 	a := NewTestAgent(t, `
@@ -130,6 +133,7 @@ func TestOperator_KeyringList(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
@@ -180,6 +184,7 @@ func TestOperator_KeyringListLocalOnly(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
@@ -222,6 +227,7 @@ func TestOperator_KeyringRemove(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	tempKey := "z90lFx3sZZLtTOkutXcwYg=="
 	a := NewTestAgent(t, `
@@ -283,6 +289,7 @@ func TestOperator_KeyringUse(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	oldKey := "H3/9gBxcKKRf45CaI2DlRg=="
 	newKey := "z90lFx3sZZLtTOkutXcwYg=="
 	a := NewTestAgent(t, `
@@ -330,6 +337,7 @@ func TestOperator_Keyring_InvalidRelayFactor(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
@@ -355,6 +363,7 @@ func TestOperator_Keyring_LocalOnly(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key := "H3/9gBxcKKRf45CaI2DlRg=="
 	a := NewTestAgent(t, `
 		encrypt = "`+key+`"
@@ -393,6 +402,7 @@ func TestOperator_AutopilotGetConfiguration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -421,6 +431,7 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -452,6 +463,7 @@ func TestOperator_AutopilotCASConfiguration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -523,6 +535,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, `
 		raft_protocol = 3
 	`)
@@ -558,6 +571,7 @@ func TestOperator_ServerHealth_Unhealthy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, `
 		raft_protocol = 3
 		autopilot {

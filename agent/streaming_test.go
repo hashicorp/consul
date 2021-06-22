@@ -33,7 +33,7 @@ func testGRPCStreamingWorking(t *testing.T, config string) {
 }
 
 func TestGRPCWithTLSConfigs(t *testing.T) {
-
+	t.Parallel()
 	testCases := []struct {
 		name   string
 		config string

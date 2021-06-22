@@ -159,7 +159,7 @@ func testACLRolesStateStore(t *testing.T) *Store {
 }
 
 func TestStateStore_ACLBootstrap(t *testing.T) {
-
+	t.Parallel()
 	token1 := &structs.ACLToken{
 		AccessorID:  "30fca056-9fbb-4455-b94a-bf0e2bc575d6",
 		SecretID:    "cbe1c6fd-d865-4034-9d6d-64fef7fb46a9",
@@ -239,9 +239,9 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 }
 
 func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
-
+	t.Parallel()
 	t.Run("Legacy - Existing With Policies", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		token := &structs.ACLToken{
@@ -262,7 +262,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 	})
 
 	t.Run("Legacy - Empty Type", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "271cd056-0038-4fd3-90e5-f97f50fb3ac8",
@@ -277,7 +277,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 	})
 
 	t.Run("Legacy - New", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			SecretID: "2989e271-6169-4f34-8fec-4618d70008fb",
@@ -301,7 +301,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 	})
 
 	t.Run("Legacy - Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		original := &structs.ACLToken{
 			SecretID: "2989e271-6169-4f34-8fec-4618d70008fb",
@@ -336,9 +336,9 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 }
 
 func TestStateStore_ACLToken_SetGet(t *testing.T) {
-
+	t.Parallel()
 	t.Run("Missing Secret", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "39171632-6f34-4411-827f-9416403687f4",
@@ -350,7 +350,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Accessor", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			SecretID: "39171632-6f34-4411-827f-9416403687f4",
@@ -362,7 +362,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Service Identity Fields", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -377,7 +377,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Service Identity Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -394,7 +394,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Policy ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -411,7 +411,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Role ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -428,7 +428,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Unresolvable Policy ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -445,7 +445,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Unresolvable Role ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -462,7 +462,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Unresolvable AuthMethod", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -475,7 +475,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("New", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -515,7 +515,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		token := &structs.ACLToken{
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
@@ -573,7 +573,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 	})
 
 	t.Run("New with auth method", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -605,9 +605,10 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 }
 
 func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
 
 	t.Run("CAS - Deleted", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		// CAS op + nonexistent token should not work. This prevents modifying
@@ -629,7 +630,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("CAS - Updated", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		// CAS op + nonexistent token should not work. This prevents modifying
@@ -662,7 +663,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("CAS - Already Exists", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		tokens := structs.ACLTokens{
@@ -691,7 +692,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("Normal", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		tokens := structs.ACLTokens{
@@ -722,7 +723,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		tokens := structs.ACLTokens{
@@ -791,7 +792,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("AllowMissing - Policy", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		const fakePolicyID = "0ea7b58a-3d86-4e82-b656-577b63d727f3"
@@ -830,7 +831,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("AllowMissing - Role", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		const fakeRoleID = "fbd9776e-4403-47a1-8ff1-8d24179ec307"
@@ -869,7 +870,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 }
 
 func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
-
+	t.Parallel()
 	s := testACLTokensStateStore(t)
 
 	require.NoError(t, s.ACLTokenSet(2, &structs.ACLToken{
@@ -961,7 +962,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 }
 
 func TestStateStore_ACLToken_List(t *testing.T) {
-
+	t.Parallel()
 	s := testACLTokensStateStore(t)
 	setupExtraAuthMethods(t, s)
 
@@ -1212,7 +1213,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-
+			t.Parallel()
 			_, tokens, err := s.ACLTokenList(nil, tc.local, tc.global, tc.policy, tc.role, tc.methodName, nil, nil)
 			require.NoError(t, err)
 			require.Len(t, tokens, len(tc.accessors))
@@ -1231,7 +1232,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 	//    tracked by memdb
 	// 2. Token list/get operations should return an accurate set
 	//    of policy links
-
+	t.Parallel()
 	s := testACLTokensStateStore(t)
 
 	// the policy specific token
@@ -1357,7 +1358,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 	//    tracked by memdb
 	// 2. Token list/get operations should return an accurate set
 	//    of role links
-
+	t.Parallel()
 	s := testACLTokensStateStore(t)
 
 	// the role specific token
@@ -1480,9 +1481,10 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 }
 
 func TestStateStore_ACLToken_Delete(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Accessor", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		token := &structs.ACLToken{
@@ -1510,7 +1512,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 	})
 
 	t.Run("Secret", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		token := &structs.ACLToken{
@@ -1538,7 +1540,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 	})
 
 	t.Run("Multiple", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		tokens := structs.ACLTokens{
@@ -1586,7 +1588,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 	})
 
 	t.Run("Anonymous", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLTokensStateStore(t)
 
 		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID, nil))
@@ -1594,7 +1596,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// deletion of non-existent policies is not an error
@@ -1604,9 +1606,10 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 }
 
 func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Missing ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policy := structs.ACLPolicy{
@@ -1619,7 +1622,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policy := structs.ACLPolicy{
@@ -1632,10 +1635,11 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 	})
 
 	t.Run("Global Management", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		t.Run("Rules", func(t *testing.T) {
+			t.Parallel()
 
 			policy := structs.ACLPolicy{
 				ID:          structs.ACLPolicyGlobalManagementID,
@@ -1648,6 +1652,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		})
 
 		t.Run("Datacenters", func(t *testing.T) {
+			t.Parallel()
 
 			policy := structs.ACLPolicy{
 				ID:          structs.ACLPolicyGlobalManagementID,
@@ -1661,6 +1666,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 		})
 
 		t.Run("Change", func(t *testing.T) {
+			t.Parallel()
 
 			policy := structs.ACLPolicy{
 				ID:          structs.ACLPolicyGlobalManagementID,
@@ -1683,7 +1689,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 	})
 
 	t.Run("New", func(t *testing.T) {
-
+		t.Parallel()
 		// this actually creates a new policy - we just need to verify it.
 		s := testACLStateStore(t)
 
@@ -1726,7 +1732,7 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		// this creates the node read policy which we can update
 		s := testACLTokensStateStore(t)
 
@@ -1766,9 +1772,10 @@ func TestStateStore_ACLPolicy_SetGet(t *testing.T) {
 }
 
 func TestStateStore_ACLPolicy_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Normal", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policies := structs.ACLPolicies{
@@ -1803,7 +1810,7 @@ func TestStateStore_ACLPolicy_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policies := structs.ACLPolicies{
@@ -1867,7 +1874,7 @@ func TestStateStore_ACLPolicy_UpsertBatchRead(t *testing.T) {
 }
 
 func TestStateStore_ACLPolicy_List(t *testing.T) {
-
+	t.Parallel()
 	s := testACLStateStore(t)
 
 	policies := structs.ACLPolicies{
@@ -1917,9 +1924,10 @@ func TestStateStore_ACLPolicy_List(t *testing.T) {
 }
 
 func TestStateStore_ACLPolicy_Delete(t *testing.T) {
+	t.Parallel()
 
 	t.Run("ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policy := &structs.ACLPolicy{
@@ -1943,7 +1951,7 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 	})
 
 	t.Run("Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policy := &structs.ACLPolicy{
@@ -1967,7 +1975,7 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 	})
 
 	t.Run("Multiple", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		policies := structs.ACLPolicies{
@@ -2005,7 +2013,7 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 	})
 
 	t.Run("Global-Management", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		require.Error(t, s.ACLPolicyDeleteByID(5, structs.ACLPolicyGlobalManagementID, nil))
@@ -2013,7 +2021,7 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// deletion of non-existent policies is not an error
@@ -2023,9 +2031,10 @@ func TestStateStore_ACLPolicy_Delete(t *testing.T) {
 }
 
 func TestStateStore_ACLRole_SetGet(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Missing ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2042,7 +2051,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2059,7 +2068,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Service Identity Fields", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2074,7 +2083,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Service Identity Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2091,7 +2100,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Policy ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2108,7 +2117,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("Unresolvable Policy ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2125,7 +2134,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("New", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := structs.ACLRole{
@@ -2163,7 +2172,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		// Create the initial role
@@ -2227,9 +2236,10 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 }
 
 func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Normal", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		roles := structs.ACLRoles{
@@ -2270,7 +2280,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		// Seed initial data.
@@ -2349,7 +2359,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("AllowMissing - Policy", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		const fakePolicyID = "0ea7b58a-3d86-4e82-b656-577b63d727f3"
@@ -2390,7 +2400,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 }
 
 func TestStateStore_ACLRole_List(t *testing.T) {
-
+	t.Parallel()
 	s := testACLRolesStateStore(t)
 
 	roles := structs.ACLRoles{
@@ -2452,7 +2462,7 @@ func TestStateStore_ACLRole_List(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			//
+			// t.Parallel()
 			_, rroles, err := s.ACLRoleList(nil, tc.policy, nil)
 			require.NoError(t, err)
 
@@ -2491,7 +2501,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 	//    tracked by memdb
 	// 2. Role list/get operations should return an accurate set
 	//    of policy links
-
+	t.Parallel()
 	s := testACLRolesStateStore(t)
 
 	// the policy specific role
@@ -2611,9 +2621,10 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 }
 
 func TestStateStore_ACLRole_Delete(t *testing.T) {
+	t.Parallel()
 
 	t.Run("ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := &structs.ACLRole{
@@ -2642,7 +2653,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 	})
 
 	t.Run("Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		role := &structs.ACLRole{
@@ -2671,7 +2682,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 	})
 
 	t.Run("Multiple", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLRolesStateStore(t)
 
 		roles := structs.ACLRoles{
@@ -2717,7 +2728,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// deletion of non-existent roles is not an error
@@ -2727,12 +2738,13 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 }
 
 func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
+	t.Parallel()
 
 	// The state store only validates key pieces of data, so we only have to
 	// care about filling in Name+Type.
 
 	t.Run("Missing Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		method := structs.ACLAuthMethod{
@@ -2745,7 +2757,7 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing Type", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		method := structs.ACLAuthMethod{
@@ -2758,7 +2770,7 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 	})
 
 	t.Run("New", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		method := structs.ACLAuthMethod{
@@ -2781,7 +2793,7 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// Create the initial method
@@ -2819,6 +2831,7 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 }
 
 func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
+	t.Parallel()
 
 	// This ensures that when a primary DC and secondary DC create identically
 	// named auth methods, and the primary instance has a tokenLocality==global
@@ -2935,9 +2948,10 @@ func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
 }
 
 func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Normal", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		methods := structs.ACLAuthMethods{
@@ -2968,7 +2982,7 @@ func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// Seed initial data.
@@ -3023,7 +3037,7 @@ func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
 }
 
 func TestStateStore_ACLAuthMethod_List(t *testing.T) {
-
+	t.Parallel()
 	s := testACLStateStore(t)
 
 	methods := structs.ACLAuthMethods{
@@ -3061,9 +3075,10 @@ func TestStateStore_ACLAuthMethod_List(t *testing.T) {
 }
 
 func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		method := structs.ACLAuthMethod{
@@ -3087,7 +3102,7 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 	})
 
 	t.Run("Multiple", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		methods := structs.ACLAuthMethods{
@@ -3123,7 +3138,7 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// deletion of non-existent methods is not an error
@@ -3133,6 +3148,7 @@ func TestStateStore_ACLAuthMethod_Delete(t *testing.T) {
 
 // Deleting an auth method atomically deletes all rules and tokens as well.
 func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
+	t.Parallel()
 
 	s := testACLStateStore(t)
 
@@ -3254,12 +3270,13 @@ func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
 }
 
 func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
+	t.Parallel()
 
 	// The state store only validates key pieces of data, so we only have to
 	// care about filling in ID+AuthMethod.
 
 	t.Run("Missing ID", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3273,7 +3290,7 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 	})
 
 	t.Run("Missing AuthMethod", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3287,7 +3304,7 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 	})
 
 	t.Run("Unknown AuthMethod", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3301,7 +3318,7 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 	})
 
 	t.Run("New", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3325,7 +3342,7 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3364,9 +3381,10 @@ func TestStateStore_ACLBindingRule_SetGet(t *testing.T) {
 }
 
 func TestStateStore_ACLBindingRules_UpsertBatchRead(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Normal", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3398,7 +3416,7 @@ func TestStateStore_ACLBindingRules_UpsertBatchRead(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3452,7 +3470,7 @@ func TestStateStore_ACLBindingRules_UpsertBatchRead(t *testing.T) {
 }
 
 func TestStateStore_ACLBindingRule_List(t *testing.T) {
-
+	t.Parallel()
 	s := testACLStateStore(t)
 	setupExtraAuthMethods(t, s)
 
@@ -3491,9 +3509,10 @@ func TestStateStore_ACLBindingRule_List(t *testing.T) {
 }
 
 func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Name", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3518,7 +3537,7 @@ func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
 	})
 
 	t.Run("Multiple", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 		setupExtraAuthMethods(t, s)
 
@@ -3555,7 +3574,7 @@ func TestStateStore_ACLBindingRule_Delete(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-
+		t.Parallel()
 		s := testACLStateStore(t)
 
 		// deletion of non-existent rules is not an error
@@ -4193,9 +4212,10 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 }
 
 func TestStateStore_resolveACLLinks(t *testing.T) {
+	t.Parallel()
 
 	t.Run("missing link id", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)
@@ -4218,7 +4238,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 	})
 
 	t.Run("typical", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)
@@ -4251,7 +4271,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 	})
 
 	t.Run("unresolvable", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)
@@ -4275,6 +4295,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 }
 
 func TestStateStore_fixupACLLinks(t *testing.T) {
+	t.Parallel()
 
 	links := []pbacl.ACLLink{
 		{
@@ -4296,7 +4317,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 	}
 
 	t.Run("unaltered", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)
@@ -4323,7 +4344,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 	})
 
 	t.Run("renamed", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)
@@ -4355,7 +4376,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 	})
 
 	t.Run("deleted", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)
@@ -4382,7 +4403,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-
+		t.Parallel()
 		s := testStateStore(t)
 
 		tx := s.db.Txn(false)

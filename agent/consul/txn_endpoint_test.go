@@ -59,6 +59,7 @@ func TestTxn_CheckNotExists(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -114,6 +115,7 @@ func TestTxn_Apply(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -309,6 +311,8 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -626,6 +630,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -715,6 +720,8 @@ func TestTxn_Read(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -839,6 +846,8 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 

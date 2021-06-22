@@ -215,6 +215,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 
 //nolint:staticcheck
 func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
+	t.Parallel()
 
 	assert := assert.New(t)
 	ixn1 := structs.TestIntention(t)

@@ -83,7 +83,7 @@ func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
 }
 
 func TestClient_StartStop(t *testing.T) {
-
+	t.Parallel()
 	dir, client := testClient(t)
 	defer os.RemoveAll(dir)
 
@@ -97,6 +97,7 @@ func TestClient_JoinLAN(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -127,6 +128,7 @@ func TestClient_LANReap(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 
@@ -167,7 +169,7 @@ func TestClient_LANReap(t *testing.T) {
 }
 
 func TestClient_JoinLAN_Invalid(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -191,7 +193,7 @@ func TestClient_JoinLAN_Invalid(t *testing.T) {
 }
 
 func TestClient_JoinWAN_Invalid(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -215,7 +217,7 @@ func TestClient_JoinWAN_Invalid(t *testing.T) {
 }
 
 func TestClient_RPC(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -278,6 +280,8 @@ func TestClient_RPC_Retry(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -322,7 +326,7 @@ func TestClient_RPC_Retry(t *testing.T) {
 }
 
 func TestClient_RPC_Pool(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -369,6 +373,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	var servers []*Server
 	const numServers = 5
 
@@ -430,7 +435,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
-
+	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
@@ -519,6 +524,7 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -546,6 +552,7 @@ func TestClient_SnapshotRPC(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -590,6 +597,7 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, s1 := testServer(t)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -623,6 +631,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
@@ -679,6 +688,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	clientOut := make(chan serf.UserEvent, 2)
 	dir1, c1 := testClientWithConfig(t, func(conf *Config) {
 		conf.UserEventHandler = func(e serf.UserEvent) {

@@ -38,7 +38,7 @@ func makeLog(buf []byte) *raft.Log {
 }
 
 func TestFSM_IgnoreUnknown(t *testing.T) {
-
+	t.Parallel()
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	assert.Nil(t, err)

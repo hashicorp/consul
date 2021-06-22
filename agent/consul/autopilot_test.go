@@ -162,6 +162,7 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
@@ -222,6 +223,7 @@ func TestAutopilot_RollingUpdate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
@@ -304,6 +306,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -359,6 +362,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true

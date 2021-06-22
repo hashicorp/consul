@@ -14,7 +14,7 @@ import (
 )
 
 func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
-
+	t.Parallel()
 	var members []serf.Member
 
 	// All empty list cases should return false.
@@ -112,7 +112,7 @@ func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
 }
 
 func TestIsConsulNode(t *testing.T) {
-
+	t.Parallel()
 	m := serf.Member{
 		Tags: map[string]string{
 			"role": "node",
@@ -126,7 +126,7 @@ func TestIsConsulNode(t *testing.T) {
 }
 
 func TestGenerateUUID(t *testing.T) {
-
+	t.Parallel()
 	prev := generateUUID()
 	re, err := regexp.Compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}")
 	require.NoError(t, err)
@@ -163,7 +163,7 @@ func (p testServersProvider) CheckServers(datacenter string, fn func(*metadata.S
 }
 
 func TestServersInDCMeetMinimumVersion(t *testing.T) {
-
+	t.Parallel()
 	makeServer := func(versionStr string, datacenter string) metadata.Server {
 		return metadata.Server{
 			Name:        "foo",
@@ -248,7 +248,7 @@ func TestServersInDCMeetMinimumVersion(t *testing.T) {
 }
 
 func TestServersGetACLMode(t *testing.T) {
-
+	t.Parallel()
 	makeServer := func(datacenter string, acls structs.ACLMode, status serf.MemberStatus, addr net.IP) metadata.Server {
 		return metadata.Server{
 			Name:        "foo",

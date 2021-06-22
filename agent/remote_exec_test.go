@@ -29,7 +29,7 @@ func TestRexecWriter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	//  // timing test. no parallel
+	// t.Parallel() // timing test. no parallel
 	writer := &rexecWriter{
 		BufCh:    make(chan []byte, 16),
 		BufSize:  16,
@@ -105,6 +105,7 @@ func TestRemoteExecGetSpec(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testRemoteExecGetSpec(t, "", "", true, "")
 }
 
@@ -113,6 +114,7 @@ func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
 		acl_datacenter = "`+dc+`"
@@ -127,6 +129,7 @@ func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
 		acl_datacenter = "`+dc+`"
@@ -141,6 +144,7 @@ func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
 		acl_datacenter = "`+dc+`"
@@ -191,6 +195,7 @@ func TestRemoteExecWrites(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testRemoteExecWrites(t, "", "", true, "")
 }
 
@@ -199,6 +204,7 @@ func TestRemoteExecWrites_ACLToken(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
 		acl_datacenter = "`+dc+`"
@@ -213,6 +219,7 @@ func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
 		acl_datacenter = "`+dc+`"
@@ -227,6 +234,7 @@ func TestRemoteExecWrites_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
 		acl_datacenter = "`+dc+`"
@@ -362,6 +370,7 @@ func TestHandleRemoteExec(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testHandleRemoteExec(t, "uptime", "load", "0")
 }
 
@@ -370,6 +379,7 @@ func TestHandleRemoteExecFailed(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 

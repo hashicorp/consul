@@ -15,12 +15,14 @@ func TestACLTokenReap_Primary(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Run("global", func(t *testing.T) {
+	t.Parallel()
 
+	t.Run("global", func(t *testing.T) {
+		t.Parallel()
 		testACLTokenReap_Primary(t, false, true)
 	})
 	t.Run("local", func(t *testing.T) {
-
+		t.Parallel()
 		testACLTokenReap_Primary(t, true, false)
 	})
 }

@@ -135,6 +135,7 @@ func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -191,6 +192,7 @@ func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -244,6 +246,7 @@ func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -297,6 +300,7 @@ func TestRTT_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -350,6 +354,7 @@ func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()

@@ -125,7 +125,7 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	//  // timing test. no parallel
+	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
 	statusHandler := NewStatusHandler(notif, logger, 0, 0)
@@ -160,7 +160,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	//  // timing test. no parallel
+	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
 	statusHandler := NewStatusHandler(notif, logger, 0, 0)
@@ -192,7 +192,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 }
 
 func TestCheckMonitor_LimitOutput(t *testing.T) {
-
+	t.Parallel()
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
 	statusHandler := NewStatusHandler(notif, logger, 0, 0)
@@ -223,7 +223,7 @@ func TestCheckTTL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	//  // timing test. no parallel
+	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
 	cid := structs.NewCheckID("foo", nil)
@@ -274,6 +274,8 @@ func TestCheckHTTP(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	tests := []struct {
 		desc   string
@@ -385,6 +387,7 @@ func TestCheckHTTP(t *testing.T) {
 }
 
 func TestCheckHTTP_Proxied(t *testing.T) {
+	t.Parallel()
 
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Proxy Server")
@@ -421,6 +424,7 @@ func TestCheckHTTP_Proxied(t *testing.T) {
 }
 
 func TestCheckHTTP_NotProxied(t *testing.T) {
+	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Original Server")
@@ -533,7 +537,7 @@ func TestCheckHTTPTCP_BigTimeout(t *testing.T) {
 }
 
 func TestCheckMaxOutputSize(t *testing.T) {
-
+	t.Parallel()
 	timeout := 5 * time.Millisecond
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		body := bytes.Repeat([]byte{'x'}, 2*DefaultBufSize)
@@ -573,7 +577,7 @@ func TestCheckMaxOutputSize(t *testing.T) {
 }
 
 func TestCheckHTTPTimeout(t *testing.T) {
-
+	t.Parallel()
 	timeout := 5 * time.Millisecond
 	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		time.Sleep(2 * timeout)
@@ -608,7 +612,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 }
 
 func TestCheckHTTPBody(t *testing.T) {
-
+	t.Parallel()
 	timeout := 5 * time.Millisecond
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -676,7 +680,7 @@ func TestCheckHTTPBody(t *testing.T) {
 }
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
-
+	t.Parallel()
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
 	cid := structs.NewCheckID("foo", nil)
@@ -707,7 +711,7 @@ func largeBodyHandler(code int) http.Handler {
 }
 
 func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
-
+	t.Parallel()
 	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
@@ -752,6 +756,7 @@ func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
 
@@ -837,7 +842,7 @@ func expectTCPStatus(t *testing.T, tcp string, status string) {
 }
 
 func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *testing.T) {
-
+	t.Parallel()
 	cid := structs.NewCheckID("foo", nil)
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
@@ -879,7 +884,7 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 }
 
 func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T) {
-
+	t.Parallel()
 	cid := structs.NewCheckID("foo", nil)
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
@@ -929,7 +934,7 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 }
 
 func TestCheckTCPCritical(t *testing.T) {
-
+	t.Parallel()
 	var (
 		tcpServer net.Listener
 	)
@@ -940,7 +945,7 @@ func TestCheckTCPCritical(t *testing.T) {
 }
 
 func TestCheckTCPPassing(t *testing.T) {
-
+	t.Parallel()
 	var (
 		tcpServer net.Listener
 	)
@@ -961,6 +966,7 @@ func TestCheckTCPPassing(t *testing.T) {
 }
 
 func TestCheckH2PING(t *testing.T) {
+	t.Parallel()
 
 	tests := []struct {
 		desc        string
@@ -1075,6 +1081,7 @@ func TestCheckH2PING_TLS_BadVerify(t *testing.T) {
 	})
 }
 func TestCheckH2PINGInvalidListener(t *testing.T) {
+	t.Parallel()
 
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)

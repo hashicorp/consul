@@ -22,6 +22,8 @@ func TestFederationState_Apply_Upsert(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
 	})
@@ -106,6 +108,8 @@ func TestFederationState_Apply_Upsert_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
 		c.ACLDatacenter = "dc1"
@@ -181,6 +185,8 @@ func TestFederationState_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
 	})
@@ -221,6 +227,8 @@ func TestFederationState_Get_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
@@ -292,6 +300,8 @@ func TestFederationState_List(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
@@ -386,6 +396,8 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
@@ -579,6 +591,8 @@ func TestFederationState_Apply_Delete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
 	})
@@ -659,6 +673,8 @@ func TestFederationState_Apply_Delete_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true

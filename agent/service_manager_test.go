@@ -286,6 +286,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService.
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -512,6 +513,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService but for config files.
+	t.Parallel()
 
 	// Launch a server to manage the config entries.
 	serverAgent := NewTestAgent(t, "")

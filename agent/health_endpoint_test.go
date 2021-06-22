@@ -28,6 +28,7 @@ func TestHealthChecksInState(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("warning", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -80,6 +81,7 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -123,6 +125,7 @@ func TestHealthChecksInState_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -172,6 +175,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -249,6 +253,7 @@ func TestHealthNodeChecks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -287,6 +292,7 @@ func TestHealthNodeChecks_Filtering(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -334,6 +340,7 @@ func TestHealthServiceChecks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -393,6 +400,7 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -449,6 +457,7 @@ func TestHealthServiceChecks_Filtering(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -513,6 +522,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -596,6 +606,7 @@ func TestHealthServiceNodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -891,6 +902,8 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		config string
@@ -982,6 +995,7 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1047,6 +1061,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	dc := "dc1"
@@ -1129,6 +1144,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1229,6 +1245,7 @@ func TestHealthServiceNodes_CheckType(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1285,6 +1302,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
@@ -1373,6 +1391,8 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	assert := assert.New(t)
 	a := NewTestAgent(t, "")
@@ -1513,6 +1533,8 @@ func TestHealthConnectServiceNodes_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1552,6 +1574,8 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1624,7 +1648,7 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 }
 
 func TestFilterNonPassing(t *testing.T) {
-
+	t.Parallel()
 	nodes := structs.CheckServiceNodes{
 		structs.CheckServiceNode{
 			Checks: structs.HealthChecks{

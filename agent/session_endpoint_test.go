@@ -66,6 +66,7 @@ func TestSessionCreate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -127,6 +128,7 @@ func TestSessionCreate_NodeChecks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -191,6 +193,7 @@ func TestSessionCreate_Delete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -252,6 +255,7 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -289,6 +293,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -447,6 +452,7 @@ func TestSessionDestroy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -469,6 +475,7 @@ func TestSessionCustomTTL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	ttl := 250 * time.Millisecond
 	a := NewTestAgent(t, `
 		session_ttl_min = "250ms"
@@ -515,7 +522,7 @@ func TestSessionTTLRenew(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	//  // timing test. no parallel
+	// t.Parallel() // timing test. no parallel
 	ttl := 250 * time.Millisecond
 	a := NewTestAgent(t, `
 		session_ttl_min = "250ms"
@@ -606,6 +613,7 @@ func TestSessionGet(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -709,6 +717,7 @@ func TestSessionsForNode(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -762,6 +771,7 @@ func TestSessionDeleteDestroy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

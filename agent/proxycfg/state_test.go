@@ -383,6 +383,7 @@ func upstreamIDForDC2(name string) string {
 //    b. Process a bunch of UpdateEvents by calling handleUpdate
 //    c. Validate that the ConfigSnapshot has been updated appropriately
 func TestState_WatchesAndUpdates(t *testing.T) {
+	t.Parallel()
 
 	indexedRoots, issuedCert := TestCerts(t)
 

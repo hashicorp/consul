@@ -78,6 +78,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -169,6 +170,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -255,6 +257,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -631,6 +634,8 @@ func TestPreparedQuery_ExecuteCached(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -690,6 +695,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -788,6 +794,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -857,6 +864,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -938,6 +946,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -985,7 +994,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 }
 
 func TestPreparedQuery_parseLimit(t *testing.T) {
-
+	t.Parallel()
 	body := bytes.NewBuffer(nil)
 	req, _ := http.NewRequest("GET", "/v1/query", body)
 	limit := 99
@@ -1018,6 +1027,7 @@ func TestPreparedQuery_Integration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

@@ -27,6 +27,7 @@ func TestInitializeSessionTimers(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -63,6 +64,7 @@ func TestResetSessionTimer_Fault(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -106,6 +108,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -139,7 +142,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 }
 
 func TestResetSessionTimer_InvalidTTL(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -163,6 +166,7 @@ func TestResetSessionTimerLocked(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -239,6 +243,7 @@ func TestInvalidateSession(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -274,7 +279,7 @@ func TestInvalidateSession(t *testing.T) {
 }
 
 func TestClearSessionTimer(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -292,7 +297,7 @@ func TestClearSessionTimer(t *testing.T) {
 }
 
 func TestClearAllSessionTimers(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -314,6 +319,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

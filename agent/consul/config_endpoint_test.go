@@ -20,6 +20,8 @@ func TestConfigEntry_Apply(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -111,6 +113,8 @@ func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -142,6 +146,8 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -233,6 +239,8 @@ func TestConfigEntry_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -267,6 +275,8 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -342,6 +352,8 @@ func TestConfigEntry_List(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -383,6 +395,8 @@ func TestConfigEntry_ListAll(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -475,6 +489,8 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -557,6 +573,8 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -641,6 +659,8 @@ func TestConfigEntry_Delete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -712,6 +732,8 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -810,6 +832,8 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -873,6 +897,8 @@ func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	tt := []struct {
 		name     string
@@ -992,6 +1018,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+	t.Parallel()
 
 	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMeta())
 	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMeta())
@@ -1400,6 +1427,8 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -1570,6 +1599,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_Blocking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1768,6 +1799,8 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -1840,6 +1873,8 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -1886,6 +1921,8 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 
 	dir1, s1 := testServer(t)
@@ -1917,6 +1954,8 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -1990,6 +2029,8 @@ func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

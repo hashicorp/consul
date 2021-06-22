@@ -734,6 +734,7 @@ func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func
 }
 
 func TestACLResolver_Disabled(t *testing.T) {
+	t.Parallel()
 
 	delegate := &ACLResolverTestDelegate{
 		enabled:    false,
@@ -749,7 +750,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 }
 
 func TestACLResolver_ResolveRootACL(t *testing.T) {
-
+	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:    true,
 		datacenter: "dc1",
@@ -780,6 +781,7 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 }
 
 func TestACLResolver_DownPolicy(t *testing.T) {
+	t.Parallel()
 
 	requireIdentityCached := func(t *testing.T, r *ACLResolver, id string, present bool, msg string) {
 		t.Helper()
@@ -805,7 +807,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	}
 
 	t.Run("Deny", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -830,7 +832,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Allow", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -855,7 +857,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Policy", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -892,7 +894,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Role", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -924,7 +926,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Policy", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -955,7 +957,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Role", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -987,7 +989,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1024,7 +1026,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Role", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1057,7 +1059,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1105,7 +1107,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Role", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1148,7 +1150,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Policy", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1184,7 +1186,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Role", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1221,7 +1223,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache", func(t *testing.T) {
-
+		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1263,6 +1265,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
+		t.Parallel()
 
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
@@ -1329,6 +1332,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-PermissionDenied", func(t *testing.T) {
+		t.Parallel()
 
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
@@ -1391,7 +1395,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 }
 
 func TestACLResolver_DatacenterScoping(t *testing.T) {
-
+	t.Parallel()
 	t.Run("dc1", func(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -1441,8 +1445,10 @@ func TestACLResolver_Client(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Run("Racey-Token-Mod-Policy-Resolve", func(t *testing.T) {
+	t.Parallel()
 
+	t.Run("Racey-Token-Mod-Policy-Resolve", func(t *testing.T) {
+		t.Parallel()
 		var tokenReads int32
 		var policyResolves int32
 		modified := false
@@ -1533,6 +1539,7 @@ func TestACLResolver_Client(t *testing.T) {
 	})
 
 	t.Run("Resolve-Identity", func(t *testing.T) {
+		t.Parallel()
 
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -1562,6 +1569,7 @@ func TestACLResolver_Client(t *testing.T) {
 	})
 
 	t.Run("Resolve-Identity-Legacy", func(t *testing.T) {
+		t.Parallel()
 
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -1604,6 +1612,7 @@ func TestACLResolver_Client(t *testing.T) {
 	})
 
 	t.Run("Concurrent-Token-Resolve", func(t *testing.T) {
+		t.Parallel()
 
 		var tokenReads int32
 		var policyResolves int32
@@ -1671,7 +1680,7 @@ func TestACLResolver_Client(t *testing.T) {
 }
 
 func TestACLResolver_Client_TokensPoliciesAndRoles(t *testing.T) {
-
+	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
@@ -1688,7 +1697,7 @@ func TestACLResolver_Client_TokensPoliciesAndRoles(t *testing.T) {
 }
 
 func TestACLResolver_LocalTokensPoliciesAndRoles(t *testing.T) {
-
+	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
@@ -1703,6 +1712,7 @@ func TestACLResolver_LocalTokensPoliciesAndRoles(t *testing.T) {
 }
 
 func TestACLResolver_LocalPoliciesAndRoles(t *testing.T) {
+	t.Parallel()
 
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
@@ -1891,9 +1901,10 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 }
 
 func TestACLResolver_Legacy(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Cached", func(t *testing.T) {
-
+		t.Parallel()
 		cached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -1944,7 +1955,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 	})
 
 	t.Run("Cache-Expiry-Extend", func(t *testing.T) {
-
+		t.Parallel()
 		cached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -1997,7 +2008,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 	})
 
 	t.Run("Cache-Expiry-Allow", func(t *testing.T) {
-
+		t.Parallel()
 		cached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -2051,7 +2062,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 	})
 
 	t.Run("Cache-Expiry-Deny", func(t *testing.T) {
-
+		t.Parallel()
 		cached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -2105,7 +2116,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 	})
 
 	t.Run("Cache-Expiry-Async-Cache", func(t *testing.T) {
-
+		t.Parallel()
 		cached := false
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
@@ -2167,7 +2178,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 /*
 
 func TestACL_Replication(t *testing.T) {
-
+	t.Parallel()
 	aclExtendPolicies := []string{"extend-cache", "async-cache"} //"async-cache"
 
 	for _, aclDownPolicy := range aclExtendPolicies {
@@ -2288,7 +2299,7 @@ func TestACL_Replication(t *testing.T) {
 }
 
 func TestACL_MultiDC_Found(t *testing.T) {
-
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -2347,7 +2358,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 */
 
 func TestACL_filterHealthChecks(t *testing.T) {
-
+	t.Parallel()
 	// Create some health checks.
 	fill := func() structs.HealthChecks {
 		return structs.HealthChecks{
@@ -2417,7 +2428,7 @@ node "node1" {
 }
 
 func TestACL_filterIntentions(t *testing.T) {
-
+	t.Parallel()
 	assert := assert.New(t)
 
 	fill := func() structs.Intentions {
@@ -2469,7 +2480,7 @@ service "foo" {
 }
 
 func TestACL_filterServices(t *testing.T) {
-
+	t.Parallel()
 	// Create some services
 	services := structs.Services{
 		"service1": []string{},
@@ -2493,7 +2504,7 @@ func TestACL_filterServices(t *testing.T) {
 }
 
 func TestACL_filterServiceNodes(t *testing.T) {
-
+	t.Parallel()
 	// Create some service nodes.
 	fill := func() structs.ServiceNodes {
 		return structs.ServiceNodes{
@@ -2574,7 +2585,7 @@ node "node1" {
 }
 
 func TestACL_filterNodeServices(t *testing.T) {
-
+	t.Parallel()
 	// Create some node services.
 	fill := func() *structs.NodeServices {
 		return &structs.NodeServices{
@@ -2670,7 +2681,7 @@ node "node1" {
 }
 
 func TestACL_filterCheckServiceNodes(t *testing.T) {
-
+	t.Parallel()
 	// Create some nodes.
 	fill := func() structs.CheckServiceNodes {
 		return structs.CheckServiceNodes{
@@ -2768,7 +2779,7 @@ node "node1" {
 }
 
 func TestACL_filterServiceTopology(t *testing.T) {
-
+	t.Parallel()
 	// Create some nodes.
 	fill := func() structs.ServiceTopology {
 		return structs.ServiceTopology{
@@ -2928,7 +2939,7 @@ service "bar" {
 }
 
 func TestACL_filterCoordinates(t *testing.T) {
-
+	t.Parallel()
 	// Create some coordinates.
 	coords := structs.Coordinates{
 		&structs.Coordinate{
@@ -2957,7 +2968,7 @@ func TestACL_filterCoordinates(t *testing.T) {
 }
 
 func TestACL_filterSessions(t *testing.T) {
-
+	t.Parallel()
 	// Create a session list.
 	sessions := structs.Sessions{
 		&structs.Session{
@@ -2984,7 +2995,7 @@ func TestACL_filterSessions(t *testing.T) {
 }
 
 func TestACL_filterNodeDump(t *testing.T) {
-
+	t.Parallel()
 	// Create a node dump.
 	fill := func() structs.NodeDump {
 		return structs.NodeDump{
@@ -3089,7 +3100,7 @@ node "node1" {
 }
 
 func TestACL_filterNodes(t *testing.T) {
-
+	t.Parallel()
 	// Create a nodes list.
 	nodes := structs.Nodes{
 		&structs.Node{
@@ -3116,7 +3127,7 @@ func TestACL_filterNodes(t *testing.T) {
 }
 
 func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
-
+	t.Parallel()
 	// Create some data.
 	fixture := map[string]structs.CheckServiceNodes{
 		"dc1": []structs.CheckServiceNode{
@@ -3216,7 +3227,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 }
 
 func TestACL_redactPreparedQueryTokens(t *testing.T) {
-
+	t.Parallel()
 	query := &structs.PreparedQuery{
 		ID:    "f004177f-2c28-83b7-4229-eacc25fe55d1",
 		Token: "root",
@@ -3255,7 +3266,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 }
 
 func TestACL_redactTokenSecret(t *testing.T) {
-
+	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
@@ -3281,7 +3292,7 @@ func TestACL_redactTokenSecret(t *testing.T) {
 }
 
 func TestACL_redactTokenSecrets(t *testing.T) {
-
+	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
@@ -3309,7 +3320,7 @@ func TestACL_redactTokenSecrets(t *testing.T) {
 }
 
 func TestACL_filterPreparedQueries(t *testing.T) {
-
+	t.Parallel()
 	queries := structs.PreparedQueries{
 		&structs.PreparedQuery{
 			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
@@ -3381,6 +3392,7 @@ func TestACL_unhandledFilterType(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	defer func(t *testing.T) {
 		if recover() == nil {
 			t.Fatalf("should panic")
@@ -3398,7 +3410,7 @@ func TestACL_unhandledFilterType(t *testing.T) {
 }
 
 func TestACL_vetRegisterWithACL(t *testing.T) {
-
+	t.Parallel()
 	args := &structs.RegisterRequest{
 		Node:    "nope",
 		Address: "127.0.0.1",
@@ -3625,7 +3637,7 @@ node "node" {
 }
 
 func TestACL_vetDeregisterWithACL(t *testing.T) {
-
+	t.Parallel()
 	args := &structs.DeregisterRequest{
 		Node: "nope",
 	}

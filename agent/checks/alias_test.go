@@ -21,6 +21,8 @@ func TestCheckAlias_remoteErrBackoff(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
@@ -55,6 +57,8 @@ func TestCheckAlias_remoteNoChecks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
@@ -82,6 +86,8 @@ func TestCheckAlias_remoteNodeFailure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
@@ -130,6 +136,7 @@ func TestCheckAlias_remoteNodeFailure(t *testing.T) {
 
 // Only passing should result in passing
 func TestCheckAlias_remotePassing(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID("foo", nil)
@@ -178,6 +185,7 @@ func TestCheckAlias_remotePassing(t *testing.T) {
 
 // Remote service has no healtchecks, but service exists on remote host
 func TestCheckAlias_remotePassingWithoutChecksButWithService(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID("foo", nil)
@@ -234,6 +242,7 @@ func TestCheckAlias_remotePassingWithoutChecksButWithService(t *testing.T) {
 
 // Remote service has no healtchecks, service does not exists on remote host
 func TestCheckAlias_remotePassingWithoutChecksAndWithoutService(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID("foo", nil)
@@ -286,6 +295,7 @@ func TestCheckAlias_remotePassingWithoutChecksAndWithoutService(t *testing.T) {
 
 // If any checks are critical, it should be critical
 func TestCheckAlias_remoteCritical(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID("foo", nil)
@@ -340,6 +350,7 @@ func TestCheckAlias_remoteCritical(t *testing.T) {
 
 // If no checks are critical and at least one is warning, then it should warn
 func TestCheckAlias_remoteWarning(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID("foo", nil)
@@ -394,6 +405,7 @@ func TestCheckAlias_remoteWarning(t *testing.T) {
 
 // Only passing should result in passing for node-only checks
 func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
@@ -440,6 +452,7 @@ func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
 
 // Only critical should result in passing for node-only checks
 func TestCheckAlias_remoteNodeOnlyCritical(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
@@ -561,6 +574,7 @@ func (m *mockRPC) RPC(method string, args interface{}, reply interface{}) error 
 // Test that local checks immediately reflect the subject states when added and
 // don't require an update to the subject before being accurate.
 func TestCheckAlias_localInitialStatus(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	// We fake a local service web to ensure check if passing works
@@ -589,6 +603,7 @@ func TestCheckAlias_localInitialStatus(t *testing.T) {
 
 // Local check on non-existing service
 func TestCheckAlias_localInitialStatusShouldFailBecauseNoService(t *testing.T) {
+	t.Parallel()
 
 	notify := newMockAliasNotify()
 	chkID := structs.NewCheckID(types.CheckID("foo"), nil)

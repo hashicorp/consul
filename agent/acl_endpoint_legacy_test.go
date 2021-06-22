@@ -19,6 +19,7 @@ func TestACL_Legacy_Disabled_Response(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -77,6 +78,7 @@ func TestACL_Legacy_Update(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
@@ -110,6 +112,7 @@ func TestACL_Legacy_UpdateUpsert(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
@@ -142,6 +145,7 @@ func TestACL_Legacy_Destroy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
@@ -177,6 +181,7 @@ func TestACL_Legacy_Clone(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
@@ -224,6 +229,7 @@ func TestACL_Legacy_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	t.Run("wrong id", func(t *testing.T) {
 		a := NewTestAgent(t, TestACLConfig())
 		defer a.Shutdown()
@@ -272,6 +278,7 @@ func TestACL_Legacy_List(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 
@@ -303,6 +310,7 @@ func TestACLReplicationStatus(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
 

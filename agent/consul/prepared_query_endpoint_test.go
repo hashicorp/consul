@@ -30,6 +30,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -194,6 +195,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -480,6 +482,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 	})
@@ -547,7 +550,7 @@ func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
 }
 
 func TestPreparedQuery_parseQuery(t *testing.T) {
-
+	t.Parallel()
 	query := &structs.PreparedQuery{}
 
 	err := parseQuery(query)
@@ -638,6 +641,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -856,6 +860,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1113,6 +1118,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1325,6 +1331,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1465,6 +1472,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -2388,6 +2396,7 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2519,6 +2528,8 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 	dir1, s1 := testServer(t)
@@ -2671,7 +2682,7 @@ func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
 }
 
 func TestPreparedQuery_tagFilter(t *testing.T) {
-
+	t.Parallel()
 	testNodes := func() structs.CheckServiceNodes {
 		return structs.CheckServiceNodes{
 			structs.CheckServiceNode{
@@ -2767,6 +2778,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -2854,7 +2866,7 @@ func (m *mockQueryServer) ForwardDC(method, dc string, args interface{}, reply i
 }
 
 func TestPreparedQuery_queryFailover(t *testing.T) {
-
+	t.Parallel()
 	query := &structs.PreparedQuery{
 		Name: "test",
 		Service: structs.ServiceQuery{

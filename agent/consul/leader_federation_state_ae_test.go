@@ -18,6 +18,8 @@ func TestLeader_FederationStateAntiEntropy_FeatureIsStickyEvenIfSerfTagsRegress(
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	// We test this by having two datacenters with one server each. They
 	// initially come up and pass the serf barrier, then we power them both
 	// off. We leave the primary off permanently, and then we stand up the
@@ -92,6 +94,8 @@ func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -271,6 +275,8 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 	})
@@ -297,10 +303,6 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 		_, remote, err := s1.fsm.State().FederationStateList(nil)
 		require.NoError(r, err)
 		_, local, err := s2.fsm.State().FederationStateList(nil)
-		if err := s2.fsm.State().EnsureNode(11, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		s2.fsm.State().EnsureService(12, "foo", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000})
 		require.NoError(r, err)
 
 		require.Len(r, remote, 2)
@@ -330,15 +332,6 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 		require.Equal(r, "dc1", dcs[0])
 	})
 
-	// Wait until we know the router is updated.
-	retry.Run(t, func(r *retry.R) {
-		_, s, err := s2.fsm.State().ServiceList(nil, nil, nil)
-		require.NoError(t, err)
-		require.Len(t, s, 2)
-		require.Contains(t, s[0].Name+s[1].Name, "consul")
-		require.Contains(t, s[0].Name+s[1].Name, "api")
-	})
-
 	// Since the background routine is going to run every hour, it likely is
 	// not going to run during this test, so it's safe to directly invoke the
 	// core method.
@@ -358,6 +351,8 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
@@ -400,10 +395,6 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 		_, remote, err := s1.fsm.State().FederationStateList(nil)
 		require.NoError(r, err)
 		_, local, err := s2.fsm.State().FederationStateList(nil)
-		if err := s2.fsm.State().EnsureNode(11, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		s2.fsm.State().EnsureService(12, "foo", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000})
 		require.NoError(r, err)
 
 		require.Len(r, remote, 2)
@@ -431,15 +422,6 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 		dcs := s1.router.GetDatacenters()
 		require.Len(r, dcs, 1)
 		require.Equal(r, "dc1", dcs[0])
-	})
-
-	// Wait until we know the router is updated.
-	retry.Run(t, func(r *retry.R) {
-		_, s, err := s2.fsm.State().ServiceList(nil, nil, nil)
-		require.NoError(t, err)
-		require.Len(t, s, 2)
-		require.Contains(t, s[0].Name+s[1].Name, "consul")
-		require.Contains(t, s[0].Name+s[1].Name, "api")
 	})
 
 	// Since the background routine is going to run every hour, it likely is

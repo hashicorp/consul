@@ -82,6 +82,7 @@ func (d *indexReplicatorTestDelegate) PerformUpdates(ctx context.Context, update
 }
 
 func TestIndexReplicator(t *testing.T) {
+	t.Parallel()
 
 	t.Run("Remote Fetch Error", func(t *testing.T) {
 		delegate := &indexReplicatorTestDelegate{}

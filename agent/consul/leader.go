@@ -123,7 +123,7 @@ func (s *Server) monitorLeadership() {
 
 					s.logger.Debug("transitioning out of legacy ACL mode")
 					atomic.StoreInt32(&s.useNewACLs, 1)
-					//s.updateACLAdvertisement()
+					s.updateACLAdvertisement()
 
 					// setting this to nil ensures that we will never hit this case again
 					aclUpgradeCh = nil

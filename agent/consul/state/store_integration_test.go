@@ -17,6 +17,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
 
@@ -104,6 +105,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
 
@@ -225,6 +227,7 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
 

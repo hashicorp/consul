@@ -80,6 +80,7 @@ func TestGenerateKeys(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	for _, params := range goodParams {
 		t.Run(fmt.Sprintf("TestGenerateKeys-%s-%d", params.keyType, params.keyBits),
 			func(t *testing.T) {
@@ -97,7 +98,7 @@ func TestGenerateKeys(t *testing.T) {
 
 // Tests a variety of valid private key configs to make sure they're accepted.
 func TestValidateGoodConfigs(t *testing.T) {
-
+	t.Parallel()
 	for _, params := range goodParams {
 		config := makeConfig(params)
 		t.Run(fmt.Sprintf("TestValidateGoodConfigs-%s-%d", params.keyType, params.keyBits),
@@ -111,7 +112,7 @@ func TestValidateGoodConfigs(t *testing.T) {
 
 // Tests a variety of invalid private key configs to make sure they're caught.
 func TestValidateBadConfigs(t *testing.T) {
-
+	t.Parallel()
 	for _, params := range badParams {
 		config := makeConfig(params)
 		t.Run(fmt.Sprintf("TestValidateBadConfigs-%s-%d", params.keyType, params.keyBits), func(t *testing.T) {
@@ -128,6 +129,7 @@ func TestSignatureMismatches(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	r := require.New(t)
 	for _, p1 := range goodParams {
 		for _, p2 := range goodParams {

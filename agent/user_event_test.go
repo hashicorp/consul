@@ -10,7 +10,7 @@ import (
 )
 
 func TestValidateUserEventParams(t *testing.T) {
-
+	t.Parallel()
 	p := &UserEvent{}
 	err := validateUserEventParams(p)
 	if err == nil || err.Error() != "User event missing name" {
@@ -51,6 +51,7 @@ func TestShouldProcessUserEvent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -123,6 +124,7 @@ func TestIngestUserEvent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -157,6 +159,7 @@ func TestFireReceiveEvent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -196,6 +199,7 @@ func TestUserEventToken(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig()+`
 		acl_default_policy = "deny"
 	`)

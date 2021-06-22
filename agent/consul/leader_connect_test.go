@@ -30,6 +30,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	tests := []struct {
 		keyType string
 		keyBits int
@@ -292,7 +294,6 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 		Roots:         rootPool,
 	})
 	require.NoError(err)
-	s1.Shutdown()
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
@@ -431,6 +432,8 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 
@@ -583,6 +586,8 @@ func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
@@ -680,6 +685,8 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
@@ -779,6 +786,8 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	// Initialize dc1 as the primary DC
 	id1, err := uuid.GenerateUUID()
 	require.NoError(t, err)
@@ -868,6 +877,8 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	// Initialize dc1 as the primary DC
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1012,7 +1023,7 @@ func TestLeader_CARootPruning(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	// Can not use , because this modifies a global.
+	// Can not use t.Parallel(), because this modifies a global.
 	caRootPruneInterval = 200 * time.Millisecond
 
 	require := require.New(t)
@@ -1077,6 +1088,8 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1132,6 +1145,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	require.Len(root.IntermediateCerts, 1)
 
 	// Force a leader change and make sure the root CA values are preserved.
+	s1.Leave()
 	s1.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {

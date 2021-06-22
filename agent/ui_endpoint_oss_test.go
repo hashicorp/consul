@@ -19,6 +19,8 @@ func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	var (
 		lastHeadersSent atomic.Value
 		backendCalled   atomic.Value

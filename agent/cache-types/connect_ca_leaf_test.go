@@ -154,6 +154,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 	if testingRace {
 		t.Skip("fails with -race because caRoot.Active is modified concurrently")
 	}
+	t.Parallel()
 
 	require := require.New(t)
 	rpc := TestRPC(t)
@@ -264,6 +265,7 @@ func TestConnectCALeaf_changingRoots(t *testing.T) {
 // timeout, we return normally but then still renew the cert on a subsequent
 // call.
 func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
+	t.Parallel()
 
 	require := require.New(t)
 	rpc := TestRPC(t)
@@ -412,6 +414,7 @@ func TestConnectCALeaf_changingRootsJitterBetweenCalls(t *testing.T) {
 
 // Tests that if the root changes in between blocking calls we still pick it up.
 func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
+	t.Parallel()
 
 	require := require.New(t)
 	rpc := TestRPC(t)
@@ -519,6 +522,8 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	require := require.New(t)
 	rpc := TestRPC(t)
@@ -706,6 +711,7 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 	if testingRace {
 		t.Skip("fails with -race because caRoot.Active is modified concurrently")
 	}
+	t.Parallel()
 
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
@@ -901,6 +907,8 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
@@ -994,6 +1002,7 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 }
 
 func TestConnectCALeaf_DNSSANForService(t *testing.T) {
+	t.Parallel()
 
 	require := require.New(t)
 	rpc := TestRPC(t)

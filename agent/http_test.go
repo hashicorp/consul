@@ -38,6 +38,7 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
@@ -99,6 +100,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
@@ -139,6 +141,8 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
@@ -230,7 +234,7 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 }
 
 func TestSetIndex(t *testing.T) {
-
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	setIndex(resp, 1000)
 	header := resp.Header().Get("X-Consul-Index")
@@ -244,7 +248,7 @@ func TestSetIndex(t *testing.T) {
 }
 
 func TestSetKnownLeader(t *testing.T) {
-
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	setKnownLeader(resp, true)
 	header := resp.Header().Get("X-Consul-KnownLeader")
@@ -260,7 +264,7 @@ func TestSetKnownLeader(t *testing.T) {
 }
 
 func TestSetLastContact(t *testing.T) {
-
+	t.Parallel()
 	tests := []struct {
 		desc string
 		d    time.Duration
@@ -284,7 +288,7 @@ func TestSetLastContact(t *testing.T) {
 }
 
 func TestSetMeta(t *testing.T) {
-
+	t.Parallel()
 	meta := structs.QueryMeta{
 		Index:       1000,
 		KnownLeader: true,
@@ -310,6 +314,8 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	a := NewTestAgent(t, `
 		http_config {
@@ -395,6 +401,7 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
 		a := NewTestAgent(t, "")
@@ -441,6 +448,8 @@ func TestHTTPAPI_DefaultACLPolicy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	type testcase struct {
 		name   string
 		hcl    string
@@ -468,6 +477,7 @@ func TestHTTPAPI_DefaultACLPolicy(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
 			a := NewTestAgent(t, tc.hcl)
 			defer a.Shutdown()
@@ -490,6 +500,7 @@ func TestHTTPAPIResponseHeaders(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, `
 		ui_config {
 			# Explicitly disable UI so we can ensure the index replacement gets headers too.
@@ -532,6 +543,7 @@ func TestUIResponseHeaders(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, `
 		http_config {
 			response_headers = {
@@ -551,6 +563,7 @@ func TestAcceptEncodingGzip(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -593,6 +606,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -617,6 +631,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	buf := new(bytes.Buffer)
 	a := StartTestAgent(t, TestAgent{LogOutput: buf})
 	defer a.Shutdown()
@@ -673,6 +688,7 @@ func TestPrettyPrint(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testPrettyPrint("pretty=1", t)
 }
 
@@ -681,6 +697,7 @@ func TestPrettyPrintBare(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	testPrettyPrint("pretty", t)
 }
 
@@ -716,6 +733,7 @@ func TestParseSource(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -895,7 +913,7 @@ func TestParseCacheControl(t *testing.T) {
 }
 
 func TestParseWait(t *testing.T) {
-
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -917,6 +935,7 @@ func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -934,6 +953,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -951,6 +971,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	assert := assert.New(t)
 	dc1 := "dc1"
 
@@ -1021,7 +1042,7 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 }
 
 func TestParseWait_InvalidTime(t *testing.T) {
-
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -1036,7 +1057,7 @@ func TestParseWait_InvalidTime(t *testing.T) {
 }
 
 func TestParseWait_InvalidIndex(t *testing.T) {
-
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -1055,6 +1076,7 @@ func TestParseConsistency(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -1150,6 +1172,7 @@ func TestParseConsistency_Invalid(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
 
@@ -1171,6 +1194,7 @@ func TestACLResolution(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	var token string
 	// Request without token
 	req, _ := http.NewRequest("GET", "/v1/catalog/nodes", nil)
@@ -1311,6 +1335,7 @@ func TestEnableWebUI(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	a := NewTestAgent(t, `
 		ui_config {
 			enabled = true
@@ -1488,6 +1513,8 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	// Fire up an agent with TLS enabled.
 	a := StartTestAgent(t, TestAgent{
 		UseTLS: true,
@@ -1536,6 +1563,8 @@ func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	cases := []struct {
 		name       string

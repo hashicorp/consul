@@ -30,6 +30,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.Build = "0.8.0" // Too low for auto init of bootstrap.
 		c.ACLDatacenter = "dc1"
@@ -65,6 +66,7 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		// remove this as we are bootstrapping
 		c.ACLMasterToken = ""
@@ -113,6 +115,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -155,6 +158,7 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -209,6 +213,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -241,6 +246,7 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -262,6 +268,7 @@ func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -285,6 +292,7 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -308,6 +316,7 @@ func TestACLEndpoint_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -341,6 +350,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -385,6 +395,7 @@ func TestACLEndpoint_GetPolicy_Management(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 
 	// wait for leader election and leader establishment to finish.
@@ -408,6 +419,7 @@ func TestACLEndpoint_List(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 	var expectedIDs []string
@@ -459,6 +471,7 @@ func TestACLEndpoint_List_Denied(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -475,6 +488,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc2"
 		c.ACLTokenReplication = true
@@ -503,6 +517,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
 		c.ACLTokenMaxExpirationTTL = 5 * time.Second
@@ -608,6 +623,8 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
 		c.ACLTokenMaxExpirationTTL = 5 * time.Second
@@ -688,6 +705,8 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
@@ -1456,6 +1475,8 @@ func TestACLEndpoint_TokenSet_CustomID(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -1720,6 +1741,8 @@ func TestACLEndpoint_TokenSet_anon(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -1757,6 +1780,8 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, s1, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
@@ -1942,6 +1967,8 @@ func TestACLEndpoint_TokenDelete_anon(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -1968,6 +1995,8 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
@@ -2044,6 +2073,8 @@ func TestACLEndpoint_TokenBatchRead(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
 		c.ACLTokenMaxExpirationTTL = 5 * time.Second
@@ -2103,6 +2134,7 @@ func TestACLEndpoint_PolicyRead(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -2129,6 +2161,7 @@ func TestACLEndpoint_PolicyReadByName(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -2154,6 +2187,8 @@ func TestACLEndpoint_PolicyBatchRead(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2184,6 +2219,8 @@ func TestACLEndpoint_PolicySet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2270,6 +2307,8 @@ func TestACLEndpoint_PolicySet_CustomID(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, _ := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -2296,6 +2335,8 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2351,6 +2392,8 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -2381,6 +2424,8 @@ func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, _ := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 	acl := ACL{srv: srv}
@@ -2401,6 +2446,8 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2435,6 +2482,8 @@ func TestACLEndpoint_PolicyResolve(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2485,6 +2534,7 @@ func TestACLEndpoint_RoleRead(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -2510,6 +2560,8 @@ func TestACLEndpoint_RoleBatchRead(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2540,6 +2592,8 @@ func TestACLEndpoint_RoleSet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -2901,6 +2955,8 @@ func TestACLEndpoint_RoleSet_names(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -2981,6 +3037,8 @@ func TestACLEndpoint_RoleDelete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 	existingRole, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
@@ -3011,6 +3069,8 @@ func TestACLEndpoint_RoleList(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -3038,6 +3098,8 @@ func TestACLEndpoint_RoleResolve(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -3087,6 +3149,8 @@ func TestACLEndpoint_AuthMethodSet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	tempDir, err := ioutil.TempDir("", "consul")
 	require.NoError(t, err)
@@ -3367,6 +3431,8 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -3413,6 +3479,8 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -3530,6 +3598,8 @@ func TestACLEndpoint_AuthMethodList(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -3557,6 +3627,8 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -3817,6 +3889,8 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -3872,6 +3946,8 @@ func TestACLEndpoint_BindingRuleList(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -3914,6 +3990,8 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, s1, _ := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
@@ -4016,6 +4094,8 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, s1, codec1 := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
@@ -4441,6 +4521,8 @@ func TestACLEndpoint_Login(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -4827,6 +4909,8 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -4897,6 +4981,8 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, s1, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
@@ -5042,6 +5128,8 @@ func TestACLEndpoint_Login_k8s(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -5164,6 +5252,8 @@ func TestACLEndpoint_Login_jwt(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
+
+	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
@@ -5319,6 +5409,8 @@ func TestACLEndpoint_Logout(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
@@ -5449,6 +5541,7 @@ func gatherIDs(t *testing.T, v interface{}) []string {
 }
 
 func TestValidateBindingRuleBindName(t *testing.T) {
+	t.Parallel()
 
 	type testcase struct {
 		name     string
@@ -5529,7 +5622,7 @@ func TestValidateBindingRuleBindName(t *testing.T) {
 		for _, test := range cases {
 			test := test
 			t.Run(test.bindType+"--"+test.name, func(t *testing.T) {
-
+				t.Parallel()
 				valid, err := validateBindingRuleBindName(
 					test.bindType,
 					test.bindName,

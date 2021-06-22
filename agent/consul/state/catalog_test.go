@@ -75,7 +75,7 @@ func TestStateStore_GetNodeID(t *testing.T) {
 }
 
 func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
-
+	t.Parallel()
 	s := testStateStore(t)
 	nodeID := makeRandomNodeID(t)
 	req := &structs.RegisterRequest{
@@ -149,7 +149,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
-
+	t.Parallel()
 	s := testStateStore(t)
 
 	// Start with just a node.

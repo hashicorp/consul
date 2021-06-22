@@ -23,6 +23,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -80,6 +81,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -175,6 +177,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -236,6 +239,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
 	if err != nil {
@@ -322,6 +326,7 @@ func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
 	if err != nil {
@@ -406,6 +411,7 @@ func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
 	if err != nil {
@@ -442,6 +448,7 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -496,6 +503,7 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -549,6 +557,7 @@ func TestInternal_EventFire_Token(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir, srv := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -588,6 +597,7 @@ func TestInternal_ServiceDump(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -684,6 +694,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -743,6 +754,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -944,6 +956,7 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1073,6 +1086,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1285,6 +1299,7 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1429,6 +1444,7 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1664,6 +1680,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1885,6 +1902,7 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
@@ -1977,6 +1995,7 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2020,6 +2039,7 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true

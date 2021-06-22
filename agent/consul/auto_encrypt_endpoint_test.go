@@ -22,6 +22,8 @@ func TestAutoEncryptSign(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
+	t.Parallel()
+
 	type test struct {
 		Name      string
 		Config    tlsutil.Config
