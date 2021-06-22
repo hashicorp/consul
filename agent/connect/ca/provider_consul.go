@@ -191,6 +191,8 @@ func (c *ConsulProvider) GenerateRoot() error {
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
+		// Adding the single new line here is not necessary because `generateCA` will add it but we do it to be extra
+		// cautious and harmonize with other provider (ex:Vault)
 		newState.RootCert = AddSingleNewline(ca)
 	} else {
 		newState.RootCert = AddSingleNewline(c.config.RootCert)
