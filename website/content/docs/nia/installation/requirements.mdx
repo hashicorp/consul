@@ -72,7 +72,7 @@ If there is no existing Terraform provider, a new Terraform provider can be [cre
 
 ## Network Integration (using a Terraform Module)
 
-The Terraform module for a task in Consul-Terraform-Sync is the core component of the integration. It declares which resources and how your infrastructure is dynamically updated.
+The Terraform module for a task in Consul-Terraform-Sync is the core component of the integration. It declares which resources and how your infrastructure is dynamically updated. The module along with how it is configured within a task determines the condition under which your infrastructure is updated.
 
 Working with a Terraform provider, you can write an integration task for Consul-Terraform-Sync by [creating a Terraform module](/docs/nia/terraform-modules) that is compatible with the Terraform driver or use a module built by partners below.
 

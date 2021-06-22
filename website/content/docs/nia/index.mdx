@@ -19,11 +19,13 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 ## Glossary
 
+**Condition** - A task-level defined environmental requirement that, when met, triggers the Consul-Terraform-Sync binary to execute the related task to update network infrastructure.
+
 **Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
 **Network Drivers** - Network drivers are used by Consul-Terraform-Sync to execute and update network infrastructure. Drivers transform Consul service level information into downstream changes by understanding and abstracting API and resource details tied to specific network infrastructure.
 
-**Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered by service changes.
+**Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
 **Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
 
