@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
@@ -116,7 +116,7 @@ func TestStateChanged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			state, err := newState(tt.ns, tt.token)
+			state, err := newState(tt.ns, tt.token, stateConfig{logger: hclog.New(nil)})
 			require.NoError(err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
 			require.Equal(tt.want, state.Changed(otherNS, otherToken))
@@ -2126,7 +2126,19 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			state, err := newState(&tc.ns, "")
+			cn := newTestCacheNotifier()
+			state, err := newState(&tc.ns, "", stateConfig{
+				logger: testutil.Logger(t),
+				cache:  cn,
+				health: &health.Client{Cache: cn, CacheName: cachetype.HealthServicesName},
+				source: &structs.QuerySource{
+					Datacenter: tc.sourceDC,
+				},
+				dnsConfig: DNSConfig{
+					Domain:    "consul.",
+					AltDomain: "alt.consul.",
+				},
+			})
 
 			// verify building the initial state worked
 			require.NoError(t, err)
@@ -2135,29 +2147,12 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			// setup the test logger to use the t.Log
 			state.logger = testutil.Logger(t)
 
-			// setup a new testing cache notifier
-			cn := newTestCacheNotifier()
-			state.cache = cn
-			state.health = &health.Client{Cache: cn, CacheName: cachetype.HealthServicesName}
-
-			// setup the local datacenter information
-			state.source = &structs.QuerySource{
-				Datacenter: tc.sourceDC,
-			}
-
-			state.dnsConfig = DNSConfig{
-				Domain:    "consul.",
-				AltDomain: "alt.consul.",
-			}
-
 			// setup the ctx as initWatches expects this to be there
-			state.ctx, state.cancel = context.WithCancel(context.Background())
+			var ctx context.Context
+			ctx, state.cancel = context.WithCancel(context.Background())
 
-			// get the initial configuration snapshot
-			snap := state.initialConfigSnapshot()
-
-			// ensure the initial watch setup did not error
-			require.NoError(t, state.initWatches(&snap))
+			snap, err := state.handler.initialize(ctx)
+			require.NoError(t, err)
 
 			//--------------------------------------------------------------------
 			//
@@ -2184,7 +2179,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					// therefore we just tell it about the updates
 					for eveIdx, event := range stage.events {
 						require.True(t, t.Run(fmt.Sprintf("update-%d", eveIdx), func(t *testing.T) {
-							require.NoError(t, state.handleUpdate(event, &snap))
+							require.NoError(t, state.handler.handleUpdate(ctx, event, &snap))
 						}))
 					}
 

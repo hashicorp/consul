@@ -1,5 +1,30 @@
 ## UNRELEASED
 
+## 1.10.0-rc (June 16, 2021)
+
+BREAKING CHANGES:
+
+* connect: avoid encoding listener info in ingress and terminating gateway listener stats names. [[GH-10404](https://github.com/hashicorp/consul/issues/10404)]
+
+FEATURES:
+
+* connect: generate upstream service labels for terminating gateway listener stats. [[GH-10404](https://github.com/hashicorp/consul/issues/10404)]
+
+IMPROVEMENTS:
+
+* connect: allow exposing duplicate HTTP paths through a proxy instance. [[GH-10394](https://github.com/hashicorp/consul/issues/10394)]
+* grpc: move gRPC INFO logs to be emitted as TRACE logs from Consul [[GH-10395](https://github.com/hashicorp/consul/issues/10395)]
+* monitoring: optimize the monitoring endpoint to avoid losing logs when under high load. [[GH-10368](https://github.com/hashicorp/consul/issues/10368)]
+
+BUG FIXES:
+
+* proxycfg: Ensure that endpoints for explicit upstreams in other datacenters are watched in transparent mode. [[GH-10391](https://github.com/hashicorp/consul/issues/10391)]
+* xds: (beta-only) ensure that dependent xDS resources are reconfigured during primary type warming [[GH-10381](https://github.com/hashicorp/consul/issues/10381)]
+
+NOTES:
+
+* legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
 ## 1.10.0-beta4 (June 10, 2021)
 
 IMPROVEMENTS:

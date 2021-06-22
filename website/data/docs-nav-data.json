@@ -236,7 +236,7 @@
         "path": "connect/intentions-legacy"
       },
       {
-        "title": "Transparent Proxy <sup>Beta</sup>",
+        "title": "Transparent Proxy",
         "path": "connect/transparent-proxy"
       },
       {
@@ -830,6 +830,19 @@
       {
         "title": "Sentinel",
         "path": "enterprise/sentinel"
+      },
+      {
+        "title": "License",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "enterprise/license/overview"
+          },
+          {
+            "title": "FAQ",
+            "path": "enterprise/license/faq"
+          }
+        ]
       }
     ]
   },
@@ -926,8 +939,12 @@
             "path": "upgrading/instructions/upgrade-to-1-6-x"
           },
           {
-            "title": "Upgrading to 1.8.10",
+            "title": "Upgrading to 1.8.13",
             "path": "upgrading/instructions/upgrade-to-1-8-x"
+          },
+          {
+            "title": "Upgrading to 1.10.0",
+            "path": "upgrading/instructions/upgrade-to-1-10-x"
           }
         ]
       }

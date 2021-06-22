@@ -17,7 +17,7 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream.9191",
+                "statPrefix": "ingress_upstream_9191",
                 "rds": {
                   "configSource": {
                     "ads": {

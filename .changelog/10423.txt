@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: avoid panic when transparent proxy upstream is added and then removed.
+```

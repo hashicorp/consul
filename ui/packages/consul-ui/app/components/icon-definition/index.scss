@@ -1,4 +1,9 @@
-@import './icon-definition/index';
+%icon-definition {
+  @extend %horizontal-kv-list;
+}
+%icon-definition > dt > * {
+  display: none;
+}
 
 %icon-definition.passing dt::before,
 %composite-row-header .passing dd::before {

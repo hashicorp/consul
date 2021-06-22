@@ -47,7 +47,7 @@ spec:
 </Tab>
 </Tabs>
 
-### Upstream configuration <sup>Beta</sup>
+### Upstream configuration
 
 <Tabs>
 <Tab heading="HCL">
@@ -275,40 +275,33 @@ spec:
           type: 'array<UpstreamConfig>: []',
           description: `A list of optional overrides for per-upstream configuration.`,
           children: [
-            {
-              name: 'Name',
-              type: 'string: ""',
-              description: 'The upstream name to apply the configuration to.',
-            },
-            {
-              name: 'Namespace',
-              type: 'string: ""',
-              description: 'The namespace of the upstream.',
-            },
-            {
-              name: 'Protocol',
-              type: 'string: ""',
-              description: {
-                hcl: `The protocol for the upstream listener.<br><br>
-                    NOTE: The protocol of a service should ideally be configured via the
-                      [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
-                      field of a
-                      [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
-                      config entry for the upstream destination service. Configuring it in a
-                      proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic-management).
-                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                    `,
-                yaml: `The protocol for the upstream listener.<br><br>
-                    NOTE: The protocol of a service should ideally be configured via the
-                      [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
-                      field of a
-                      [\`ServiceDefaults\`](/docs/connect/config-entries/service-defaults)
-                      CRD for the upstream destination service. Configuring it in a
-                      proxy upstream config will not fully enable some
-                      [L7 features](/docs/connect/l7-traffic-management).
-                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                    `,
+              {
+                name: 'Name',
+                type: 'string: ""',
+                description:
+                  'The upstream name to apply the configuration to. This should not be set to the wildcard specifier `*`.',
+              },
+              {
+                name: 'Namespace',
+                type: 'string: ""',
+                description:
+                  'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
+              },
+              {
+                name: 'Protocol',
+                type: 'string: ""',
+                description:
+                  `The protocol for the upstream listener.
+                  
+                  NOTE: The protocol of a service should ideally be configured via the
+                    [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
+                    field of a
+                    [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
+                    config entry for the upstream destination service. Configuring it in a
+                    proxy upstream config will not fully enable some 
+                    [L7 features](/docs/connect/l7-traffic-management).
+                    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                  `,
               },
             },
             {

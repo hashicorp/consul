@@ -50,11 +50,11 @@
   border-color: $red-500;
 }
 %notice-success::before {
-  @extend %with-check-circle-fill-color-mask;
+  @extend %with-check-circle-fill-mask;
   color: $green-500;
 }
 %notice-info::before {
-  @extend %with-info-circle-fill-color-mask;
+  @extend %with-info-circle-fill-mask;
   color: $blue-500;
 }
 %notice-highlight::before {
@@ -62,10 +62,10 @@
   color: $yellow-500;
 }
 %notice-warning::before {
-  @extend %with-alert-triangle-color-mask;
+  @extend %with-alert-triangle-mask;
   color: $orange-500;
 }
 %notice-error::before {
-  @extend %with-cancel-square-fill-color-mask;
+  @extend %with-cancel-square-fill-mask;
   color: $red-500;
 }

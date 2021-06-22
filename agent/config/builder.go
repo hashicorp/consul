@@ -669,7 +669,6 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
-	autoEncryptTLS := boolVal(c.AutoEncrypt.TLS)
 	autoEncryptDNSSAN := []string{}
 	for _, d := range c.AutoEncrypt.DNSSAN {
 		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
@@ -685,13 +684,8 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 
 	}
 	autoEncryptAllowTLS := boolVal(c.AutoEncrypt.AllowTLS)
-
-	if autoEncryptAllowTLS {
-		connectEnabled = true
-	}
-
 	autoConfig := b.autoConfigVal(c.AutoConfig)
-	if autoConfig.Enabled {
+	if autoEncryptAllowTLS || autoConfig.Enabled {
 		connectEnabled = true
 	}
 
@@ -984,7 +978,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		Checks:                                 checks,
 		ClientAddrs:                            clientAddrs,
 		ConfigEntryBootstrap:                   configEntries,
-		AutoEncryptTLS:                         autoEncryptTLS,
+		AutoEncryptTLS:                         boolVal(c.AutoEncrypt.TLS),
 		AutoEncryptDNSSAN:                      autoEncryptDNSSAN,
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,

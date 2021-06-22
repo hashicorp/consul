@@ -1,0 +1,31 @@
+[id^=docfy-demo-preview-horizontal-kv-list] {
+  dl {
+    @extend %horizontal-kv-list;
+  }
+  .lock-delay::before {
+    @extend %with-delay-mask, %as-pseudo;
+    color: var(--gray-700);
+  }
+  .ttl::before {
+    @extend %with-history-mask, %as-pseudo;
+    color: var(--blue-500);
+  }
+  .service-identity {
+    @extend %badge;
+  }
+  .kind-terminating-gateway {
+    @extend %badge, %badge-with-icon;
+  }
+  .kind-terminating-gateway::before {
+    @extend %with-gateway-mask, %as-pseudo;
+  }
+  .reversed > dl {
+    @extend %horizontal-kv-list-reversed;
+  }
+  .reversed .service-identity {
+    @extend %badge-reversed;
+  }
+  .reversed .kind-terminating-gateway {
+    @extend %badge-with-icon-reversed;
+  }
+}

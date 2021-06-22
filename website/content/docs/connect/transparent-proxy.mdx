@@ -1,16 +1,16 @@
 ---
 layout: docs
 page_title: Connect - Transparent Proxy
-sidebar_title: Transparent Proxy <sup>Beta</sup>
+sidebar_title: Transparent Proxy
 description: |-
   Transparent proxy is used to direct inbound and outbound traffic to services via the Envoy proxy and configure
   upstreams via intentions.
 ---
 
-# Transparent Proxy <sup>Beta</sup>
+# Transparent Proxy
 
 Transparent proxy allows users to reach other services in the service mesh while ensuring that inbound and outbound
-traffic for services in the mesh are directed through the sidecar proxy. This makes it more likely that traffic is secure
+traffic for services in the mesh are directed through the sidecar proxy. Traffic is secured
 and only reaches intended destinations since the proxy can enforce security and policy like TLS and Service Intentions.
 
 Previously, service mesh users would need to explicitly define upstreams for a service as a local listener on the sidecar
@@ -30,17 +30,20 @@ the traffic redirection command is automatically set up via an init container.
 
 ### Kubernetes
 
-* To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to
-the Consul >= `1.10.0`.
+* To use transparent proxy on Kubernetes, Consul-helm >= `0.32.0` and Consul-k8s >= `0.26.0` are required in addition to Consul >= `1.10.0`.
 * If the default policy for ACLs is "deny", then Service Intentions should be set up to allow intended services to connect to each other.
 Otherwise, all Connect services can talk to all other services.
 
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.
 
+## Upgrading to Transparent Proxy
+
+~> When upgrading from older versions (i.e Consul-k8s < `0.26.0` or Consul-helm < `0.32.0`) to Consul-k8s >= `0.26.0` and Consul-helm >= `0.32.0`, please make sure to follow the upgrade steps [here](/docs/upgrading/upgrade-specific/#transparent-proxy-on-kubernetes).
 
 ## Configuration
 
+### Enabling Transparent Proxy
 Transparent proxy can be enabled in Kubernetes on the whole cluster via the Helm value:
 
 ```yaml
@@ -49,8 +52,15 @@ connectInject:
     defaultEnabled: true
 ```
 
+It can also be enabled on a per namespace basis by setting the label `consul.hashicorp.com/transparent-proxy=true` on the
+Kubernetes namespace. This will override the Helm value `connectInject.transparentProxy.defaultEnabled` and define the
+default behaviour of Pods in the namespace. For example:
+```bash
+kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
+```
+
 It can also be enabled on a per service basis via the annotation `consul.hashicorp.com/transparent-proxy=true` on the
-Pod for each service:
+Pod for each service, which will override both the Helm value and the namespace label:
 
 ```yaml
 apiVersion: v1
@@ -100,12 +110,34 @@ spec:
       serviceAccountName: static-server
 ```
 
-## Known Beta Limitations
+### Kubernetes HTTP Health Probes Configuration
+Traffic redirection interferes with [Kubernetes HTTP health
+probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) since the
+probes expect that kubelet can directly reach the application container on the probe's endpoint, but that traffic will
+be redirected through the sidecar proxy, causing errors because kubelet itself is not encrypting that traffic using a
+mesh proxy. For this reason, Consul allows you to (overwrite Kubernetes HTTP health probes)[/docs/k8s/connect/health] to point to the proxy instead.
+This can be done using the Helm value `connectInject.transparentProxy.defaultOverwriteProbes`
+or the Pod annotation `consul.hashicorp.com/transparent-proxy-overwrite-probes`.
 
-* There is no first class support for transparent proxying on VMs. 
-* Traffic can only be transparently proxied when the address dialed corresponds to the address of a service in the 
-transparent proxy's datacenter. Cross-datacenter transparent proxying is only possible using service-resolver
-configuration entries that resolve to remote datacenters.
+### Traffic Redirection Configuration
+Pods with transparent proxy enabled will have an init container injected that sets up traffic redirection for all
+inbound and outbound traffic through the sidecar proxies. This will include all traffic by default, with the ability to
+configure exceptions on a per-Pod basis. The following Pod annotations allow you to exclude certain traffic from redirection to the sidecar proxies:
+- [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports)
+- [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports)
+- [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs)
+- [`consul.hashicorp.com/transparent-proxy-exclude-uids`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-uids)
+
+
+## Known Limitations
+
+* Traffic can only be transparently proxied when the address dialed corresponds to the address of a service in the
+transparent proxy's datacenter. Cross-datacenter transparent proxying is only possible using
+[service-resolver configuration entries that resolve to remote datacenters](/docs/connect/config-entries/service-resolver#other-datacenters).
+Services can also dial explicit upstreams in other datacenters without transparent proxy, for example, by adding an
+[annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) such as
+`"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
+in the datacenter `dc2`.
 * When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
 Currently the upstream's protocol and connection timeout are not considered.
 
@@ -156,13 +188,13 @@ If ACLs with default "deny" policy are enabled, it also needs a
 
 ### Headless Services
 For services that are not addressed using a virtual cluster IP, the upstream service must be
-configured using the [DialedDirectly](/docs/connect/config-entries/service-defaults#dialeddirectly) 
-option. 
+configured using the [DialedDirectly](/docs/connect/config-entries/service-defaults#dialeddirectly)
+option.
 
 Individual instance addresses can then be discovered using DNS, and dialed through the transparent proxy.
 When this mode is enabled on the upstream, connect certificates will be presented for mTLS and
 intentions will be enforced at the destination.
 
-Note that when dialing individual instances HTTP routing rules configured with config entries 
+Note that when dialing individual instances HTTP routing rules configured with config entries
 will **not** be considered. The transparent proxy acts as a TCP proxy to the original
 destination IP address.

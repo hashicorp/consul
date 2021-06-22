@@ -1,0 +1,34 @@
+---
+class: css
+---
+# icon-definition
+
+This CSS component is deprecated, please use `%horizontal-kv-list` instead (which this component uses)
+
+```hbs preview-template
+<dl
+  class="lock-delay"
+>
+  <dt
+    {{tooltip}}
+  >
+    Lock Delay
+  </dt>
+  <dd>10ms</dd>
+</dl>
+<dl>
+  <dt>
+    Scope
+  </dt>
+  <dd>local</dd>
+</dl>
+```
+
+```css
+dl {
+  @extend %icon-definition;
+}
+.lock-delay dt::before {
+  @extend %with-delay-mask, %as-pseudo;
+}
+```

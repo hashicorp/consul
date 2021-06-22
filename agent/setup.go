@@ -194,6 +194,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
+		consul.CertExpirationGauges,
 		Gauges,
 		raftGauges,
 	}

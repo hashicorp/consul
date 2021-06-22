@@ -11,9 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func startRPCTLSServer(config *Config) (net.Conn, chan error) {
@@ -403,7 +405,7 @@ func TestConfig_ParseCiphers(t *testing.T) {
 	require.Equal(t, []uint16{}, v)
 }
 
-func TestConfigurator_loadKeyPair(t *testing.T) {
+func TestLoadKeyPair(t *testing.T) {
 	type variant struct {
 		cert, key string
 		shoulderr bool
@@ -420,24 +422,20 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 			false, false},
 	}
 	for i, v := range variants {
-		info := fmt.Sprintf("case %d", i)
-		cert1, err1 := loadKeyPair(v.cert, v.key)
-		config := &Config{CertFile: v.cert, KeyFile: v.key}
-		cert2, err2 := config.KeyPair()
-		if v.shoulderr {
-			require.Error(t, err1, info)
-			require.Error(t, err2, info)
-		} else {
-			require.NoError(t, err1, info)
-			require.NoError(t, err2, info)
-		}
-		if v.isnil {
-			require.Nil(t, cert1, info)
-			require.Nil(t, cert2, info)
-		} else {
-			require.NotNil(t, cert1, info)
-			require.NotNil(t, cert2, info)
-		}
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			cert, err := loadKeyPair(v.cert, v.key)
+			if v.shoulderr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if v.isnil {
+				require.Nil(t, cert)
+			} else {
+				require.NotNil(t, cert)
+			}
+		})
 	}
 }
 
@@ -508,7 +506,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		variants = append(variants, variant{Config{TLSMinVersion: v}, false, false})
 	}
 
-	c := Configurator{autoTLS: &autoTLS{}, manual: &manual{}}
+	c := Configurator{}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d, config: %+v", i, v.config)
 		_, err1 := NewConfigurator(v.config, nil)
@@ -516,13 +514,13 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 
 		var err3 error
 		if !v.excludeCheck {
-			cert, err := v.config.KeyPair()
+			cert, err := loadKeyPair(v.config.CertFile, v.config.KeyFile)
 			require.NoError(t, err, info)
 			pems, err := LoadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
 			pool, err := pool(pems)
 			require.NoError(t, err, info)
-			err3 = c.check(v.config, pool, cert)
+			err3 = validateConfig(v.config, pool, cert)
 		}
 		if v.shouldErr {
 			require.Error(t, err1, info)
@@ -706,19 +704,19 @@ func TestConfigurator_CommonTLSConfigCAs(t *testing.T) {
 func TestConfigurator_CommonTLSConfigTLSMinVersion(t *testing.T) {
 	c, err := NewConfigurator(Config{TLSMinVersion: ""}, nil)
 	require.NoError(t, err)
-	require.Equal(t, c.commonTLSConfig(false).MinVersion, TLSLookup["tls10"])
+	require.Equal(t, c.commonTLSConfig(false).MinVersion, tlsLookup["tls10"])
 
 	for _, version := range tlsVersions() {
 		require.NoError(t, c.Update(Config{TLSMinVersion: version}))
 		require.Equal(t, c.commonTLSConfig(false).MinVersion,
-			TLSLookup[version])
+			tlsLookup[version])
 	}
 
 	require.Error(t, c.Update(Config{TLSMinVersion: "tlsBOGUS"}))
 }
 
 func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	type variant struct {
 		verify   bool
 		expected tls.ClientAuthType
@@ -733,7 +731,7 @@ func TestConfigurator_CommonTLSConfigVerifyIncoming(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	type variant struct {
 		verify         bool
 		autoEncryptTLS bool
@@ -831,6 +829,17 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 	})
 }
 
+func TestConfigurator_UpdateAutoTLSCA_DoesNotPanic(t *testing.T) {
+	config := Config{
+		Domain: "consul",
+	}
+	c, err := NewConfigurator(config, hclog.New(nil))
+	require.NoError(t, err)
+
+	err = c.UpdateAutoTLSCA([]string{"invalid pem"})
+	require.Error(t, err)
+}
+
 func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
 	c := Configurator{base: &Config{
 		VerifyIncomingRPC: true,
@@ -900,7 +909,7 @@ func TestConfigurator_IncomingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
 }
 
@@ -908,7 +917,7 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c := Configurator{base: &Config{
 		TLSMinVersion:           "tls12",
 		EnableAgentTLSForChecks: false,
-	}, autoTLS: &autoTLS{}}
+	}}
 	tlsConf := c.OutgoingTLSConfigForCheck(true, "")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
 	require.Equal(t, uint16(0), tlsConf.MinVersion)
@@ -917,17 +926,17 @@ func TestConfigurator_OutgoingTLSConfigForChecks(t *testing.T) {
 	c.base.ServerName = "servername"
 	tlsConf = c.OutgoingTLSConfigForCheck(true, "")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
-	require.Equal(t, TLSLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
+	require.Equal(t, tlsLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
 	require.Equal(t, c.base.ServerName, tlsConf.ServerName)
 
 	tlsConf = c.OutgoingTLSConfigForCheck(true, "servername2")
 	require.Equal(t, true, tlsConf.InsecureSkipVerify)
-	require.Equal(t, TLSLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
+	require.Equal(t, tlsLookup[c.base.TLSMinVersion], tlsConf.MinVersion)
 	require.Equal(t, "servername2", tlsConf.ServerName)
 }
 
 func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	require.Nil(t, c.OutgoingRPCConfig())
 
 	c, err := NewConfigurator(Config{
@@ -945,7 +954,7 @@ func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	require.Nil(t, c.OutgoingALPNRPCConfig())
 
 	c, err := NewConfigurator(Config{
@@ -965,7 +974,7 @@ func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
@@ -987,7 +996,7 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 }
 
 func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
-	c := &Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := &Configurator{base: &Config{}}
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
@@ -1013,11 +1022,10 @@ func TestConfigurator_UpdateChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, c.Update(Config{}))
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Error(t, c.Update(Config{VerifyIncoming: true,
-		CAFile: "../test/ca/root.cer"}))
+	require.Error(t, c.Update(Config{VerifyIncoming: true, CAFile: "../test/ca/root.cer"}))
 	require.False(t, c.base.VerifyIncoming)
 	require.False(t, c.base.VerifyOutgoing)
-	require.Equal(t, c.version, 2)
+	require.Equal(t, uint64(2), c.version)
 }
 
 func TestConfigurator_UpdateSetsStuff(t *testing.T) {
@@ -1026,10 +1034,10 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.Nil(t, c.caPool)
 	require.Nil(t, c.manual.cert)
 	require.Equal(t, c.base, &Config{})
-	require.Equal(t, 1, c.version)
+	require.Equal(t, uint64(1), c.version)
 
 	require.Error(t, c.Update(Config{VerifyOutgoing: true}))
-	require.Equal(t, c.version, 1)
+	require.Equal(t, uint64(1), c.version)
 
 	config := Config{
 		CAFile:   "../test/ca/root.cer",
@@ -1041,7 +1049,7 @@ func TestConfigurator_UpdateSetsStuff(t *testing.T) {
 	require.Len(t, c.caPool.Subjects(), 1)
 	require.NotNil(t, c.manual.cert)
 	require.Equal(t, c.base, &config)
-	require.Equal(t, 2, c.version)
+	require.Equal(t, uint64(2), c.version)
 }
 
 func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
@@ -1063,7 +1071,7 @@ func TestConfigurator_ServerNameOrNodeName(t *testing.T) {
 }
 
 func TestConfigurator_VerifyOutgoing(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	type variant struct {
 		verify         bool
 		autoEncryptTLS bool
@@ -1096,7 +1104,7 @@ func TestConfigurator_Domain(t *testing.T) {
 }
 
 func TestConfigurator_VerifyServerHostname(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
+	c := Configurator{base: &Config{}}
 	require.False(t, c.VerifyServerHostname())
 
 	c.base.VerifyServerHostname = true
@@ -1112,22 +1120,23 @@ func TestConfigurator_VerifyServerHostname(t *testing.T) {
 	require.True(t, c.VerifyServerHostname())
 }
 
-func TestConfigurator_AutoEncrytCertExpired(t *testing.T) {
-	c := Configurator{base: &Config{}, autoTLS: &autoTLS{}}
-	require.True(t, c.AutoEncryptCertExpired())
+func TestConfigurator_AutoEncryptCert(t *testing.T) {
+	c := Configurator{base: &Config{}}
+	require.Nil(t, c.AutoEncryptCert())
 
 	cert, err := loadKeyPair("../test/key/something_expired.cer", "../test/key/something_expired.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.True(t, c.AutoEncryptCertExpired())
+	require.Equal(t, int64(1561561551), c.AutoEncryptCert().NotAfter.Unix())
 
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.False(t, c.AutoEncryptCertExpired())
+	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfig_tlsVersions(t *testing.T) {
 	require.Equal(t, []string{"tls10", "tls11", "tls12", "tls13"}, tlsVersions())
-	require.Equal(t, strings.Join(tlsVersions(), ", "), TLSVersions)
+	expected := "tls10, tls11, tls12, tls13"
+	require.Equal(t, expected, strings.Join(tlsVersions(), ", "))
 }

@@ -12,6 +12,7 @@
 @import 'consul-ui/components/sliding-toggle/index';
 @import 'consul-ui/components/table/index';
 @import 'consul-ui/components/toggle-button/index';
+@import 'consul-ui/components/flash-message';
 
 /**/
 
@@ -19,7 +20,6 @@
 @import './components/list-row/index';
 @import './components/expanded-single-select/index';
 
-@import './components/icon-definition';
 @import './components/form-elements';
 @import './components/breadcrumbs';
 @import './components/anchors';
@@ -29,8 +29,6 @@
 @import './components/secret-button';
 @import './components/pill';
 @import './components/table';
-@import './components/tag-list';
-@import './components/flash-message';
 @import './components/code-editor';
 @import './components/confirmation-dialog';
 @import './components/auth-form';
@@ -58,6 +56,12 @@
 @import 'consul-ui/components/hashicorp-consul';
 /**/
 @import 'consul-ui/components/menu-panel';
+
+@import 'consul-ui/components/horizontal-kv-list';
+@import 'consul-ui/components/csv-list';
+@import 'consul-ui/components/tag-list';
+@import 'consul-ui/components/badge';
+@import 'consul-ui/components/icon-definition';
 @import 'consul-ui/components/inline-code';
 @import 'consul-ui/components/overlay';
 @import 'consul-ui/components/tooltip';

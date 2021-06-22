@@ -1,0 +1,44 @@
+%horizontal-kv-list {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+%horizontal-kv-list-reversed {
+  flex-direction: row-reverse;
+}
+%horizontal-kv-list:empty {
+  display: none;
+}
+%horizontal-kv-list > * > * {
+  display: inline-block;
+}
+%horizontal-kv-list > * {
+  // align-self: center;
+  white-space: nowrap;
+}
+%horizontal-kv-list > dd {
+  flex-wrap: wrap;
+}
+%horizontal-kv-list-visible-title {
+  min-width: 18px;
+}
+%horizontal-kv-list-reversed:not(:first-of-type),
+%horizontal-kv-list dd + dt,
+%horizontal-kv-list dd + %horizontal-kv-list-hidden-title + dd {
+  margin-left: var(--horizontal-kv-list-separator-width);
+}
+/* this quite possibly should be dealt with by the parent/container not this */
+/* component. It adds the same whitespace separation between multiple kv-lists */
+/* in this case, as we can make lists with dls, or dt/dd combos, multiple dls */
+/* are seens as one component and therefore this is spacing not positioning */
+%horizontal-kv-list + %horizontal-kv-list:not(:first-of-type) {
+  margin-left: var(--horizontal-kv-list-separator-width);
+}
+/**/
+%horizontal-kv-list-reversed dt,
+%horizontal-kv-list-visible-title + dd {
+  margin-left: 4px;
+}
+
+%horizontal-kv-list-reversed dt + dd {
+  margin-left: 0;
+}

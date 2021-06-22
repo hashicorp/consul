@@ -1,0 +1,23 @@
+@import './skin';
+@import './layout';
+
+:root {
+  --horizontal-kv-list-separator-width: 18px;
+  --horizontal-kv-list-key-separator: ':';
+  --horizontal-kv-list-key-wrapper-start: '(';
+  --horizontal-kv-list-key-wrapper-end: ')';
+}
+%horizontal-kv-list:not([class]) dt:not([class]) {
+  @extend %horizontal-kv-list-hidden-title;
+}
+%horizontal-kv-list[class] dt,
+%horizontal-kv-list dt[class] {
+  @extend %horizontal-kv-list-visible-title;
+}
+%horizontal-kv-list-hidden-title {
+  @extend %visually-hidden;
+}
+%horizontal-kv-list-visible-title {
+  @extend %unvisually-hidden;
+  overflow: hidden;
+}

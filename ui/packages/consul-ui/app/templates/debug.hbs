@@ -24,6 +24,7 @@
             class={{concat
               (slugify section.label) ' '
               (if (eq child.frontmatter.class 'ember') 'ember-component') ' '
+              (if (eq child.frontmatter.class 'css') 'css-component') ' '
               (if (is-href (to-route child.url)) 'is-active')
             }}
           >

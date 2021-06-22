@@ -82,6 +82,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/enterprise/license',
+    destination: '/docs/enterprise/license/overview',
+    permanent: true,
+  },
+  {
     source: '/docs/enterprise/connect-multi-datacenter',
     destination: '/docs/enterprise',
     permanent: true,

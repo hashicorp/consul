@@ -48,13 +48,14 @@ would work on a Pod, a StatefulSet, or a DaemonSet.
 This Deployment specification starts a server that responds to any
 HTTP request with the static text "hello world".
 
--> **Note:** As of consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`, having a Kubernetes
+-> **Note:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, having a Kubernetes
 service is **required** to run services on the Consul Service Mesh.
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
+  # This name will be the service name in Consul.
   name: static-server
 spec:
   selector:
@@ -87,7 +88,6 @@ spec:
         'consul.hashicorp.com/connect-inject': 'true'
     spec:
       containers:
-        # This name will be the service name in Consul.
         - name: static-server
           image: hashicorp/http-echo:latest
           args:
@@ -96,7 +96,7 @@ spec:
           ports:
             - containerPort: 8080
               name: http
-        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
       serviceAccountName: static-server
 ```
 
@@ -117,13 +117,14 @@ To establish a connection to the pod using Connect, a client must use another Co
 proxy. The client Connect proxy will use Consul service discovery to find
 all available upstream proxies and their public ports.
 
-In the example above, the server is listening on `:8080`. This means
-the server will still bind to the pod IP and allow external connections.
-This is useful to transition to Connect by allowing both Connect and
-non-Connect connections. To restrict access to only Connect-authorized clients,
-any listeners should bind to localhost only (such as `127.0.0.1`).
+In the example above, the server is listening on `:8080`.
+By default, the Consul Service Mesh runs in [transparent proxy](/docs/connect/transparent-proxy) mode.
+This means that even though the server binds to all interfaces,
+the inbound and outbound connections will automatically go through to the sidecar proxy.
+It also allows you to use Kubernetes DNS like you normally would without the
+Consul Service Mesh.
 
--> **Note:** As of consul `v1.10.0-beta1`, consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`,
+-> **Note:** As of consul `v1.10.0`, consul-k8s `v0.26.0` and Consul Helm `v0.32.0`,
 all Consul Service Mesh services will run with transparent proxy enabled by default. Running with transparent
 proxy will enforce all inbound and outbound traffic to go through the Envoy proxy.
 
@@ -138,13 +139,14 @@ of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
 connection via Connect.
 
--> **Note:** As of consul-k8s `v0.26.0-beta1` and Consul Helm `v0.32.0-beta1`, having a Kubernetes
+-> **Note:** As of consul-k8s `v0.26.0` and Consul Helm `v0.32.0`, having a Kubernetes
 Service is **required** to run services on the Consul Service Mesh.
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
+  # This name will be the service name in Consul.
   name: static-client
 spec:
   selector:
@@ -173,46 +175,36 @@ spec:
         app: static-client
       annotations:
         'consul.hashicorp.com/connect-inject': 'true'
-        'consul.hashicorp.com/connect-service-upstreams': 'static-server:1234'
     spec:
       containers:
-        # This name will be the service name in Consul.
         - name: static-client
           image: tutum/curl:latest
           # Just spin & wait forever, we'll use `kubectl exec` to demo
           command: ['/bin/sh', '-c', '--']
           args: ['while true; do sleep 30; done;']
-        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
+      # If ACLs are enabled, the serviceAccountName must match the Consul service name.
       serviceAccountName: static-client
 ```
 
-Pods must specify upstream dependencies with the
-[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams).
-This annotation declares the names of any upstream dependencies and a
-local port for the proxy to listen on. When a connection is established to that local
-port, the proxy establishes a connection to the target service
-(`static-server` in this example) using
-mutual TLS and identifying as the source service (`static-client` in this
-example).
+By default when ACLs are enabled or when ACLs default policy is `allow`,
+Consul will automatically configure proxies with all upstreams from the same datacenter.
+When ACLs are enabled with default `deny` policy,
+you must supply an [intention](/docs/connect/intentions) to tell Consul which upstream you need to talk to.
 
-The injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
+When upstreams are specified explicitly with the
+[`consul.hashicorp.com/connect-service-upstreams` annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams),
+the injector will also set environment variables `<NAME>_CONNECT_SERVICE_HOST`
 and `<NAME>_CONNECT_SERVICE_PORT` in every container in the Pod for every defined
 upstream. This is analogous to the standard Kubernetes service environment variables, but
 point instead to the correct local proxy port to establish connections via
 Connect.
 
-Any containers running in the Pod that need to establish connections
-to dependencies must be reconfigured to use the local upstream address either
-directly or using the environment variables set by the injector (defined above).
-This means pods should not use Kubernetes service DNS or environment
-variables for these connections.
-
-We can verify access to the static text server using `kubectl exec`. Notice
-that we use the local address and port from the upstream annotation (1234)
-for this verification.
+We can verify access to the static text server using `kubectl exec`.
+Because transparent proxy is enabled by default,
+we use Kubernetes DNS to connect to our desired upstream.
 
 ```shell-session
-$ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
+$ kubectl exec deploy/static-client -- curl -s http://static-server/
 "hello world"
 ```
 
@@ -224,7 +216,7 @@ without updating either of the running pods. You can then remove this
 intention to allow connections again.
 
 ```shell-session
-$ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
+$ kubectl exec deploy/static-client -- curl -s http://static-server/
 command terminated with exit code 52
 ```
 
@@ -238,15 +230,34 @@ Pod annotations can be used to configure the injection behavior.
   specifying this value as "true". This default can be changed in the
   injector's configuration if desired.
 
-- `consul.hashicorp.com/transparent-proxy` <sup>Beta</sup> - If this is "true", this Pod
+- `consul.hashicorp.com/transparent-proxy` - If this is "true", this Pod
    will run with transparent proxy enabled. This means you can use Kubernetes
    DNS to access upstream services and all inbound and outbound traffic within
    the pod is redirected to go through the proxy.
-   Using this annotation requires consul-k8s `v0.26.0-beta1` or higher.
+
+- `consul.hashicorp.com/transparent-proxy-overwrite-probes` - If this is "true"
+   and transparent proxy is enabled, the Connect injector will overwrite Kubernetes
+   HTTP probes to point to the Envoy proxy.
+
+- `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports` - A comma-separated
+   list of inbound ports to exclude from traffic redirection when running in transparent proxy
+   mode.
+
+- `consul.hashicorp.com/transparent-proxy-exclude-inbound-cidrs` - A comma-separated
+   list of inbound CIDRs to exclude from traffic redirection when running in transparent proxy
+   mode.
+
+- `consul.hashicorp.com/transparent-proxy-exclude-outbound-ports` - A comma-separated
+   list of outbound ports to exclude from traffic redirection when running in transparent proxy
+   mode.
+
+- `consul.hashicorp.com/transparent-proxy-exclude-uids` - A comma-separated
+   list of additional user IDs to exclude from traffic redirection when running in transparent proxy
+   mode.
 
 - `consul.hashicorp.com/connect-service` - For pods that accept inbound
   connections, this specifies the name of the service that is being
-  served. This defaults to the name of the first container in the pod.
+  served. This defaults to the name of the Kubernetes service associated with the pod.
 
   If using ACLs, this must be the same name as the Pod's `ServiceAccount`.
 
@@ -260,7 +271,8 @@ Pod annotations can be used to configure the injection behavior.
 
 - `consul.hashicorp.com/connect-service-upstreams` - The list of upstream
   services that this pod needs to connect to via Connect along with a static
-  local port to listen for those connections.
+  local port to listen for those connections. When transparent proxy is enabled,
+  this annotation is optional.
 
   - Services
 
@@ -514,7 +526,12 @@ There are three options available:
 
 ### Consul Enterprise Namespace Upstreams
 
-To specify the namespace of your upstream services in the upstream annotation,
+When [transparent proxy](/docs/connect/transparent-proxy) is enabled and ACLs are disabled,
+the upstreams will be configured automatically across Consul namespaces.
+When ACLs are enabled, you must configure it by specifying an [intention](/docs/connect/intentions),
+allowing services across Consul namespaces to talk to each other.
+
+If you wish to specify an upstream explicitly via the `consul.hashicorp.com/connect-service-upstreams` annotation,
 use the format `[service-name].[namespace]:[port]:[optional datacenter]`:
 
 ```yaml
@@ -524,6 +541,10 @@ annotations:
 ```
 
 See [consul.hashicorp.com/connect-service-upstreams](#consul-hashicorp-com-connect-service-upstreams) for more details.
+
+-> **Note:** When you specify upstreams via an upstreams annotation, you will need to use
+`localhost:<port>` with the port from the upstreams annotation instead of KubeDNS to connect to your upstream
+application.
 
 ### Verifying the Installation
 
