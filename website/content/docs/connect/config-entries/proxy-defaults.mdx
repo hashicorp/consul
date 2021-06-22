@@ -213,11 +213,11 @@ spec:
     {
       name: 'Mode',
       type: `string: ""`,
-      description: `One of \`direct\` or \`transparent\`. 
-                    \`transparent\` represents that inbound and outbound application traffic is being 
+      description: `One of \`direct\` or \`transparent\`.
+                    \`transparent\` represents that inbound and outbound application traffic is being
                     captured and redirected through the proxy. This mode does not enable the traffic redirection
                      itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
-                    \`direct\` represents that the proxy's listeners must be dialed directly by the local 
+                    \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
       yaml: false,
@@ -230,19 +230,19 @@ spec:
         {
           name: 'OutboundListenerPort',
           type: 'int: "15001"',
-          description: `The port the proxy should listen on for outbound traffic. This must be the port where 
+          description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is captured and redirected to.`,
+          yaml: false,
         },
         {
           name: 'DialedDirectly',
           type: 'bool: false',
-          description: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies. 
-                        Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances 
-                        across instances. Dialing individual instances can be helpful in cases like stateful services such 
+          description: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies.
+                        Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances
+                        across instances. Dialing individual instances can be helpful in cases like stateful services such
                         as a database cluster with a leader. `,
         },
       ],
-      yaml: false,
     },
     {
       name: 'MeshGateway',
@@ -275,8 +275,7 @@ spec:
         Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
         [advertise address](/docs/agent/options#advertise). The port for these listeners are dynamically allocated from
         [expose_min_port](/docs/agent/options#expose_min_port) to [expose_max_port](/docs/agent/options#expose_max_port).
-        This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
-        Consul on Kubernetes, and Consul agents run in their own pods.`,
+        This flag is useful when a Consul client cannot reach registered services over localhost.`,
         },
         {
           name: 'Paths',

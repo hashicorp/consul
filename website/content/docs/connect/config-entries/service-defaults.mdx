@@ -51,10 +51,12 @@ spec:
 
 <Tabs>
 <Tab heading="HCL">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Set default connection limits and mesh gateway mode across all upstreams
 of "counting" and also override the mesh gateway mode used when dialing
-the "dashboard" service in the "frontend" namespace.
+the "dashboard" service.
 
 ```hcl
 Kind = "service-defaults"
@@ -84,7 +86,7 @@ UpstreamConfig = {
 ```
 
 </Tab>
-<Tab heading="HCL (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Set default connection limits and mesh gateway mode across all upstreams
 of "counting" and also override the mesh gateway mode used when dialing
@@ -119,6 +121,70 @@ UpstreamConfig = {
 }
 ```
 
+</Tab>
+</Tabs>
+</Tab>
+
+<Tab heading="Kubernetes YAML">
+
+<Tabs>
+<Tab heading="Consul OSS">
+
+Set default connection limits and mesh gateway mode across all upstreams
+of "counting" and also override the mesh gateway mode used when dialing
+the "dashboard" service.
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: counting
+spec:
+  upstreamConfig:
+    defaults:
+      meshGateway:
+        mode: local
+      limits:
+        maxConnections: 512
+        maxPendingRequests: 512
+        maxConcurrentRequests: 512
+    overrides:
+      - name: dashboard
+        meshGateway:
+          mode: remote
+```
+
+</Tab>
+<Tab heading="Consul Enterprise">
+
+Set default connection limits and mesh gateway mode across all upstreams
+of "counting" and also override the mesh gateway mode used when dialing
+the "dashboard" service in the "frontend" namespace.
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: counting
+  namespace: product
+spec:
+  upstreamConfig:
+    defaults:
+      meshGateway:
+        mode: local
+      limits:
+        maxConnections: 512
+        maxPendingRequests: 512
+        maxConcurrentRequests: 512
+    overrides:
+      - name: dashboard
+        namespace: frontend
+        meshGateway:
+          mode: remote
+```
+
+</Tab>
+</Tabs>
 </Tab>
 </Tabs>
 
@@ -187,11 +253,11 @@ UpstreamConfig = {
     {
       name: 'Mode',
       type: `string: ""`,
-      description: `One of \`direct\` or \`transparent\`. 
-                    \`transparent\` represents that inbound and outbound application traffic is being 
+      description: `One of \`direct\` or \`transparent\`.
+                    \`transparent\` represents that inbound and outbound application traffic is being
                     captured and redirected through the proxy. This mode does not enable the traffic redirection
                      itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
-                    \`direct\` represents that the proxy's listeners must be dialed directly by the local 
+                    \`direct\` represents that the proxy's listeners must be dialed directly by the local
                     application and other proxies.
                     Added in v1.10.0.`,
       yaml: false,
@@ -201,7 +267,7 @@ UpstreamConfig = {
       type: 'UpstreamConfiguration: <optional>',
       description: `Controls default configuration settings that apply across all upstreams, and per-upstream
                     configuration overrides. Note that per-upstream configuration applies across all federated datacenters
-                    to the pairing of source and upstream destination services. 
+                    to the pairing of source and upstream destination services.
                     Added in v1.10.0.`,
       children: [
         {
@@ -237,89 +303,106 @@ UpstreamConfig = {
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                   `,
               },
-              {
-                name: 'ConnectTimeoutMs',
-                type: 'int: 5000',
-                description:
-                  `The number of milliseconds to allow when making upstream connections before timing out.
-                  
-                  NOTE: The connect timeout of a service should ideally be configured via the
-                    [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
-                    field of a
-                    [\`service-resolver\`](/docs/connect/config-entries/service-resolver)
-                    config entry for the upstream destination service. 
-                    Configuring it in a proxy upstream config will not fully enable some 
-                    [L7 features](/docs/connect/l7-traffic-management).
-                    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                  `,
+            },
+            {
+              name: 'ConnectTimeoutMs',
+              type: 'int: 5000',
+              description: {
+                hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`service-resolver\`](/docs/connect/config-entries/service-resolver)
+                      config entry for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/docs/connect/l7-traffic-management).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+                yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connectTimeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`ServiceResolver\`](/docs/connect/config-entries/service-resolver)
+                      CRD for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/docs/connect/l7-traffic-management).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
               },
-              {
-                name: 'MeshGateway',
-                type: 'MeshGatewayConfig: <optional>',
-                description: `Controls the default
+            },
+            {
+              name: 'MeshGateway',
+              type: 'MeshGatewayConfig: <optional>',
+              description: `Controls the default
                   [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
                   for this upstream.`,
-                children: [
-                  {
-                    name: 'Mode',
-                    type: 'string: ""',
-                    description: 'One of `none`, `local`, or `remote`.',
-                  },
-                ],
-              },
-              {
-                name: 'Limits',
-                type: 'Limits: <optional>',
-                description: `A set of limits to apply when connecting to the upstream service.
-                  These limits are applied on a per-service-instance basis. 
+              children: [
+                {
+                  name: 'Mode',
+                  type: 'string: ""',
+                  description: 'One of `none`, `local`, or `remote`.',
+                },
+              ],
+            },
+            {
+              name: 'Limits',
+              type: 'Limits: <optional>',
+              description: `A set of limits to apply when connecting to the upstream service.
+                  These limits are applied on a per-service-instance basis.
                   The following limits are respected.`,
-                children: [
-                  {
-                    name: 'MaxConnections',
-                    type: 'int: 0',
-                    description: `The maximum number of connections a service instance
+              children: [
+                {
+                  name: 'MaxConnections',
+                  type: 'int: 0',
+                  description: `The maximum number of connections a service instance
                       will be allowed to establish against the given upstream. Use this to limit
                       HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.`,
-                  },
-                  {
-                    name: 'MaxPendingRequests',
-                    type: 'int: 0',
-                    description: `The maximum number of requests that will be queued
+                },
+                {
+                  name: 'MaxPendingRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of requests that will be queued
                       while waiting for a connection to be established. For this configuration to
                       be respected, a L7 protocol must be defined in the \`protocol\` field.`,
-                  },
-                  {
-                    name: 'MaxConcurrentRequests',
-                    type: 'int: 0',
-                    description: `The maximum number of concurrent requests that
+                },
+                {
+                  name: 'MaxConcurrentRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of concurrent requests that
                       will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
                       since HTTP/2 has many requests per connection. For this configuration to be
                       respected, a L7 protocol must be defined in the \`protocol\` field.`,
-                  },
-                ],
-              },
-              {
-                name: 'PassiveHealthCheck',
-                type: 'PassiveHealthCheck: <optional>',
-                description: `Passive health checks are used to remove hosts from
+                },
+              ],
+            },
+            {
+              name: 'PassiveHealthCheck',
+              type: 'PassiveHealthCheck: <optional>',
+              description: `Passive health checks are used to remove hosts from
                     the upstream cluster which are unreachable or are returning errors..`,
-                children: [
-                  {
-                    name: 'Interval',
-                    type: 'duration: 0s',
-                    description: `The time between checks. Each check will cause hosts which
-                    have exceeded \`max_failures\` to be removed from the load balancer, and
-                    any hosts which have passed their ejection time to be returned to the
-                    load balancer.`,
+              children: [
+                {
+                  name: 'Interval',
+                  type: 'duration: 0s',
+                  description: {
+                    hcl: `The time between checks. Each check will cause hosts which
+                        have exceeded \`max_failures\` to be removed from the load balancer, and
+                        any hosts which have passed their ejection time to be returned to the
+                        load balancer.`,
+                    yaml: `The time between checks. Each check will cause hosts which
+                        have exceeded \`maxFailures\` to be removed from the load balancer, and
+                        any hosts which have passed their ejection time to be returned to the
+                        load balancer.`,
                   },
-                  {
-                    name: 'MaxFailures',
-                    type: 'int: 0',
-                    description: `The number of consecutive failures which cause a host to be
+                },
+                {
+                  name: 'MaxFailures',
+                  type: 'int: 0',
+                  description: `The number of consecutive failures which cause a host to be
                     removed from the load balancer.`,
-                  },
-                ],
-              },
+                },
+              ],
+            },
           ],
         },
         {
@@ -327,107 +410,143 @@ UpstreamConfig = {
           type: 'UpstreamConfig: <optional>',
           description: `Default configuration that applies to all upstreams of the given service.`,
           children: [
-              {
-                name: 'Protocol',
-                type: 'string: ""',
-                description:
-                  `The protocol for the upstream listener.
-                  
-                  NOTE: The protocol of a service should ideally be configured via the
-                    [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
-                    field of a
-                    [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
-                    config entry for the upstream destination service. Configuring it in a
-                    proxy upstream config will not fully enable some 
-                    [L7 features](/docs/connect/l7-traffic-management).
-                    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                  `,
+            {
+              name: 'Name',
+              type: 'string: ""',
+              description: 'The upstream name to apply the configuration to.',
+            },
+            {
+              name: 'Namespace',
+              type: 'string: ""',
+              description: 'The namespace of the upstream.',
+            },
+            {
+              name: 'Protocol',
+              type: 'string: ""',
+              description: {
+                hcl: `The protocol for the upstream listener.<br><br>
+                    NOTE: The protocol of a service should ideally be configured via the
+                      [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
+                      field of a
+                      [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
+                      config entry for the upstream destination service. Configuring it in a
+                      proxy upstream config will not fully enable some
+                      [L7 features](/docs/connect/l7-traffic-management).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+                yaml: `The protocol for the upstream listener.<br><br>
+                    NOTE: The protocol of a service should ideally be configured via the
+                      [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
+                      field of a
+                      [\`ServiceDefaults\`](/docs/connect/config-entries/service-defaults)
+                      CRD for the upstream destination service. Configuring it in a
+                      proxy upstream config will not fully enable some
+                      [L7 features](/docs/connect/l7-traffic-management).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
               },
-              {
-                name: 'ConnectTimeoutMs',
-                type: 'int: 5000',
-                description:
-                  `The number of milliseconds to allow when making upstream connections before timing out.
-                  
-                  NOTE: The connect timeout of a service should ideally be configured via the
-                    [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
-                    field of a
-                    [\`service-resolver\`](/docs/connect/config-entries/service-resolver)
-                    config entry for the upstream destination service. 
-                    Configuring it in a proxy upstream config will not fully enable some 
-                    [L7 features](/docs/connect/l7-traffic-management).
-                    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
-                  `,
+            },
+            {
+              name: 'ConnectTimeoutMs',
+              type: 'int: 5000',
+              description: {
+                hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connect_timeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`service-resolver\`](/docs/connect/config-entries/service-resolver)
+                      config entry for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/docs/connect/l7-traffic-management).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+                yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connectTimeout\`](/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`ServiceResolver\`](/docs/connect/config-entries/service-resolver)
+                      CRD for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/docs/connect/l7-traffic-management).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
               },
-              {
-                name: 'MeshGateway',
-                type: 'MeshGatewayConfig: <optional>',
-                description: `Controls the default
+            },
+            {
+              name: 'MeshGateway',
+              type: 'MeshGatewayConfig: <optional>',
+              description: `Controls the default
                   [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
                   for this upstream.`,
-                children: [
-                  {
-                    name: 'Mode',
-                    type: 'string: ""',
-                    description: 'One of `none`, `local`, or `remote`.',
-                  },
-                ],
-              },
-              {
-                name: 'Limits',
-                type: 'Limits: <optional>',
-                description: `A set of limits to apply when connecting to the upstream service.
-                  These limits are applied on a per-service-instance basis. 
+              children: [
+                {
+                  name: 'Mode',
+                  type: 'string: ""',
+                  description: 'One of `none`, `local`, or `remote`.',
+                },
+              ],
+            },
+            {
+              name: 'Limits',
+              type: 'Limits: <optional>',
+              description: `A set of limits to apply when connecting to the upstream service.
+                  These limits are applied on a per-service-instance basis.
                   The following limits are respected.`,
-                children: [
-                  {
-                    name: 'MaxConnections',
-                    type: 'int: 0',
-                    description: `The maximum number of connections a service instance
+              children: [
+                {
+                  name: 'MaxConnections',
+                  type: 'int: 0',
+                  description: `The maximum number of connections a service instance
                       will be allowed to establish against the given upstream. Use this to limit
                       HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.`,
-                  },
-                  {
-                    name: 'MaxPendingRequests',
-                    type: 'int: 0',
-                    description: `The maximum number of requests that will be queued
+                },
+                {
+                  name: 'MaxPendingRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of requests that will be queued
                       while waiting for a connection to be established. For this configuration to
                       be respected, a L7 protocol must be defined in the \`protocol\` field.`,
-                  },
-                  {
-                    name: 'MaxConcurrentRequests',
-                    type: 'int: 0',
-                    description: `The maximum number of concurrent requests that
+                },
+                {
+                  name: 'MaxConcurrentRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of concurrent requests that
                       will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
                       since HTTP/2 has many requests per connection. For this configuration to be
                       respected, a L7 protocol must be defined in the \`protocol\` field.`,
-                  },
-                ],
-              },
-              {
-                name: 'PassiveHealthCheck',
-                type: 'PassiveHealthCheck: <optional>',
-                description: `Passive health checks are used to remove hosts from
+                },
+              ],
+            },
+            {
+              name: 'PassiveHealthCheck',
+              type: 'PassiveHealthCheck: <optional>',
+              description: `Passive health checks are used to remove hosts from
                     the upstream cluster which are unreachable or are returning errors..`,
-                children: [
-                  {
-                    name: 'Interval',
-                    type: 'duration: 0s',
-                    description: `The time between checks. Each check will cause hosts which
-                    have exceeded \`max_failures\` to be removed from the load balancer, and
-                    any hosts which have passed their ejection time to be returned to the
-                    load balancer.`,
+              children: [
+                {
+                  name: 'Interval',
+                  type: 'duration: 0s',
+                  description: {
+                    hcl: `The time between checks. Each check will cause hosts which
+                        have exceeded \`max_failures\` to be removed from the load balancer, and
+                        any hosts which have passed their ejection time to be returned to the
+                        load balancer.`,
+                    yaml: `The time between checks. Each check will cause hosts which
+                        have exceeded \`maxFailures\` to be removed from the load balancer, and
+                        any hosts which have passed their ejection time to be returned to the
+                        load balancer.`,
                   },
-                  {
-                    name: 'MaxFailures',
-                    type: 'int: 0',
-                    description: `The number of consecutive failures which cause a host to be
+                },
+                {
+                  name: 'MaxFailures',
+                  type: 'int: 0',
+                  description: `The number of consecutive failures which cause a host to be
                     removed from the load balancer.`,
-                  },
-                ],
-              },
+                },
+              ],
+            },
           ],
-        },        
+        },
       ],
     },
     {
@@ -438,19 +557,24 @@ UpstreamConfig = {
         {
           name: 'OutboundListenerPort',
           type: 'int: "15001"',
-          description: `The port the proxy should listen on for outbound traffic. This must be the port where 
+          description: `The port the proxy should listen on for outbound traffic. This must be the port where
                         outbound application traffic is redirected to.`,
+          yaml: false,
         },
         {
           name: 'DialedDirectly',
           type: 'bool: false',
-          description: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies. 
-                        Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances 
-                        across instances. Dialing individual instances can be helpful in cases like stateful services such 
-                        as a database cluster with a leader. `,
+          description: {
+            hcl: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies.
+              Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances
+              across instances. Dialing individual instances can be helpful in cases like stateful services such
+              as a database cluster with a leader.`,
+            yaml: `Determines whether the Pod IPs can be dialed directly (versus the Cluster IP).
+              Dialing Pod IPs can be helpful in cases like stateful services such
+              as a database cluster with a leader or with an ingress controller that dials Pod IPs instead of Cluster IPs.`,
+          },
         },
       ],
-      yaml: false,
     },
     {
       name: 'MeshGateway',
