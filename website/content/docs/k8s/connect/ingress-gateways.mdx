@@ -199,7 +199,6 @@ spec:
         'consul.hashicorp.com/connect-inject': 'true'
     spec:
       containers:
-        # This name will be the service name in Consul.
         - name: static-server
           image: hashicorp/http-echo:latest
           args:
@@ -208,7 +207,6 @@ spec:
           ports:
             - containerPort: 8080
               name: http
-        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
       serviceAccountName: static-server
 ```
 
