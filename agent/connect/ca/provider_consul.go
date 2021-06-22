@@ -113,23 +113,15 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return nil
 	}
 
-	// Write the provider state to the state store.
-	newState := structs.CAConsulProviderState{
-		ID: c.id,
-	}
-
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
-		ProviderState: &newState,
+		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
-	c.Logger.Debug("consul CA provider configured",
-		"id", c.id,
-		"is_primary", c.isPrimary,
-	)
+	c.Logger.Debug("consul CA provider configured", "id", c.id, "is_primary", c.isPrimary)
 
 	return nil
 }

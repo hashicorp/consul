@@ -23,10 +23,10 @@ type caState string
 
 const (
 	caStateUninitialized     caState = "UNINITIALIZED"
-	caStateInitializing              = "INITIALIZING"
-	caStateInitialized               = "INITIALIZED"
-	caStateRenewIntermediate         = "RENEWING"
-	caStateReconfig                  = "RECONFIGURING"
+	caStateInitializing      caState = "INITIALIZING"
+	caStateInitialized       caState = "INITIALIZED"
+	caStateRenewIntermediate caState = "RENEWING"
+	caStateReconfig          caState = "RECONFIGURING"
 )
 
 // caServerDelegate is an interface for server operations for facilitating

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -61,15 +62,57 @@ func (m *mockCAServerDelegate) CheckServers(datacenter string, fn func(*metadata
 	})
 }
 
+// ApplyCARequest mirrors FSM.applyConnectCAOperation because that functionality
+// is not exported.
 func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	return ca.ApplyCARequestToStore(m.store, req)
-}
+	idx, _, err := m.store.CAConfig(nil)
+	if err != nil {
+		return nil, err
+	}
 
-func (m *mockCAServerDelegate) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
-	return &mockCAProvider{
-		callbackCh: m.callbackCh,
-		rootPEM:    m.primaryRoot.RootCert,
-	}, nil
+	m.callbackCh <- fmt.Sprintf("raftApply/ConnectCA")
+
+	switch req.Op {
+	case structs.CAOpSetConfig:
+		if req.Config.ModifyIndex != 0 {
+			act, err := m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
+			if err != nil {
+				return nil, err
+			}
+
+			return act, nil
+		}
+
+		return nil, m.store.CASetConfig(idx+1, req.Config)
+	case structs.CAOpSetRootsAndConfig:
+		act, err := m.store.CARootSetCAS(idx, req.Index, req.Roots)
+		if err != nil || !act {
+			return act, err
+		}
+
+		act, err = m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
+		if err != nil {
+			return nil, err
+		}
+		return act, nil
+	case structs.CAOpSetProviderState:
+		_, err := m.store.CASetProviderState(idx+1, req.ProviderState)
+		if err != nil {
+			return nil, err
+		}
+
+		return true, nil
+	case structs.CAOpDeleteProviderState:
+		if err := m.store.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
+			return nil, err
+		}
+
+		return true, nil
+	case structs.CAOpIncrementProviderSerialNumber:
+		return uint64(2), nil
+	default:
+		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	}
 }
 
 func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, reply interface{}) error {
@@ -96,23 +139,6 @@ func (m *mockCAServerDelegate) generateCASignRequest(csr string) *structs.CASign
 		Datacenter: m.config.PrimaryDatacenter,
 		CSR:        csr,
 	}
-}
-
-func (m *mockCAServerDelegate) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
-	if t == structs.ConnectCARequestType {
-		req := msg.(*structs.CARequest)
-		act, err := m.store.CARootSetCAS(1, req.Index, req.Roots)
-		require.NoError(m.t, err)
-		require.True(m.t, act)
-
-		act, err = m.store.CACheckAndSetConfig(1, req.Config.ModifyIndex, req.Config)
-		require.NoError(m.t, err)
-		require.True(m.t, act)
-	} else {
-		return nil, fmt.Errorf("got invalid MessageType %v", t)
-	}
-	m.callbackCh <- fmt.Sprintf("raftApply/%s", t)
-	return nil, nil
 }
 
 // mockCAProvider mocks an empty provider implementation with a channel in order to coordinate
@@ -147,6 +173,7 @@ func (m *mockCAProvider) SupportsCrossSigning() (bool, error)                   
 func (m *mockCAProvider) Cleanup(_ bool, _ map[string]interface{}) error            { return nil }
 
 func waitForCh(t *testing.T, ch chan string, expected string) {
+	t.Helper()
 	select {
 	case op := <-ch:
 		if op != expected {
@@ -179,6 +206,7 @@ func testCAConfig() *structs.CAConfiguration {
 // initTestManager initializes a CAManager with a mockCAServerDelegate, consuming
 // the ops that come through the channels and returning when initialization has finished.
 func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDelegate) {
+	t.Helper()
 	initCh := make(chan struct{})
 	go func() {
 		require.NoError(t, manager.InitializeCA())
@@ -209,13 +237,19 @@ func TestCAManager_Initialize(t *testing.T) {
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+	manager.providerShim = &mockCAProvider{
+		callbackCh: delegate.callbackCh,
+		rootPEM:    delegate.primaryRoot.RootCert,
+	}
 
 	// Call InitializeCA and then confirm the RPCs and provider calls
 	// happen in the expected order.
-	require.EqualValues(t, caStateUninitialized, manager.state)
+	require.Equal(t, caStateUninitialized, manager.state)
 	errCh := make(chan error)
 	go func() {
-		errCh <- manager.InitializeCA()
+		err := manager.InitializeCA()
+		assert.NoError(t, err)
+		errCh <- err
 	}()
 
 	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.Roots")
@@ -234,7 +268,7 @@ func TestCAManager_Initialize(t *testing.T) {
 		t.Fatal("never got result from errCh")
 	}
 
-	require.EqualValues(t, caStateInitialized, manager.state)
+	require.Equal(t, caStateInitialized, manager.state)
 }
 
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
@@ -259,6 +293,10 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+	manager.providerShim = &mockCAProvider{
+		callbackCh: delegate.callbackCh,
+		rootPEM:    delegate.primaryRoot.RootCert,
+	}
 	initTestManager(t, manager, delegate)
 
 	// Wait half the TTL for the cert to need renewing.
