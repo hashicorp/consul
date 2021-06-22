@@ -267,12 +267,10 @@ spec:
         'consul.hashicorp.com/connect-service-upstreams': 'example-https:1234'
     spec:
       containers:
-        # This name will be the service name in Consul.
         - name: static-client
           image: tutum/curl:latest
           command: ['/bin/sh', '-c', '--']
           args: ['while true; do sleep 30; done;']
-        # If ACLs are enabled, the serviceAccountName must match the Consul service name.
       serviceAccountName: static-client
 ```
 
