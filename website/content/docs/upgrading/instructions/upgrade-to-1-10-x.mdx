@@ -66,17 +66,30 @@ for more information.
 consul license get -signed > consul.hclic
 ```
 
+  Note that the command can be run on anywhere that is running Consul already or from some other location
+  that has network access to the cluster. If run elsewhere than other options to the command may be neede
+  to direct the request to the right Consul API.
+
+
   This will save the license to a file in the local directory named `consul.hclic`. Having this 
   will be useful when preparing the license for the 1.10 upgrades later on in the process.
 
-**2.** Take a snapshot of the cluster by running:
+**2.** Take a snapshot of the cluster by running the following command:
 
 ```shell
 consul snapshot save original.snap
 ```
 
+  Note that the command can be run on anywhere that is running Consul already or from some other location
+  that has network access to the cluster. If run elsewhere than other options to the command may be neede
+  to direct the request to the right Consul API.
+
+  Note that you will need to ensure there is enough disk space in the current directory
+  to store the snapshot. In the worst case, the snapshot size could be close to the amount
+  of RAM the Consul server processes are consuming. 
+
   This snapshot should not be needed but if something were to go wrong, having
-  the snapshot would make it possible to restore the previous state.
+  the snapshot would make it possible to restore the previous state. 
 
 **3.** Determine if ACLs are enabled by running the following CLI command.
 
@@ -107,11 +120,19 @@ Error querying agent: Unexpected response code: 403 (Permission denied)
 
 **6.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
-**7.** Take a snapshot of the upgraded cluster by running:
+**7.** Take a snapshot of the upgraded cluster by running the following command:
 
 ```shell
 consul snapshot save intermediate.snap
 ```
+
+  Note that the command can be run on anywhere that is running Consul already or from some other location
+  that has network access to the cluster. If run elsewhere than [other options](/docs/commands/snapshot/save#api-options)
+  to the command may be needed to direct the request to the right Consul API.
+
+  Note that you will need to ensure there is enough disk space in the current directory
+  to store the snapshot. In the worst case, the snapshot size could be close to the amount
+  of RAM the Consul server processes are consuming. 
 
   This snapshot should not be needed but if something were to go wrong, having
   the snapshot would make it possible to restore the previous state.
@@ -156,11 +177,19 @@ consul snapshot save intermediate.snap
 
 **8.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
-**9.** Take a snapshot of the upgraded cluster by running:
+**9.** Take a snapshot of the upgraded cluster by running the following command:
 
 ```shell
 consul snapshot save intermediate.snap
 ```
+
+  Note that the command can be run on anywhere that is running Consul already or from some other location
+  that has network access to the cluster. If run elsewhere than other options to the command may be neede
+  to direct the request to the right Consul API.
+
+  Note that you will need to ensure there is enough disk space in the current directory
+  to store the snapshot. In the worst case, the snapshot size could be close to the amount
+  of RAM the Consul server processes are consuming. 
 
   This snapshot should not be needed but if something were to go wrong, having
   the snapshot would make it possible to restore the previous state.
