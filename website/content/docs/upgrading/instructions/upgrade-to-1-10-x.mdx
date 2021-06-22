@@ -175,6 +175,35 @@ was executed for the servers in step 5.
 **11.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0.
 
 </Tab>
+<Tab heading="Kubernetes">
+
+**3.** If the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
+to the latest 1.8.x or 1.9.x before the next steps.
+
+**4.** Upgrade to the latest Consul helm chart v0.32.0+.
+
+**5.** Update the value of `global.image` in the values file to the latest 1.8.x or 1.9.x image.
+Additionally, ensure that the Kuberenetes secret with the license is correctly specified in the
+values `server.enterpriseLicense.secretName` and `server.enterpriseLicense.secretKey`.
+
+**6.** Upgrade the cluster.
+
+Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
+to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
+
+**7.** If the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
+  to 1.10.0 before the next steps.
+
+**8.** Update the value of `global.image` in the values file to the 1.10.0 image.
+
+**9.** Upgrade the cluster.
+
+Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
+to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
+
+</Tab>
 </Tabs>
 
 ## Post-Upgrade Configuration Changes
