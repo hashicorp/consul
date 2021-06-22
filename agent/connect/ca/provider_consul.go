@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -439,10 +438,8 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("error encoding certificate: %s", err)
 	}
 
-	cert := strings.TrimSuffix(buf.String(), "\n")
-
 	// Set the response
-	return fmt.Sprintf("%s\n", cert), nil
+	return AddSingleNewline(buf.String()), nil
 }
 
 // SignIntermediate will validate the CSR to ensure the trust domain in the

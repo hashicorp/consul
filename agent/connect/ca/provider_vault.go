@@ -437,9 +437,8 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("issuing_ca was not a string")
 	}
-	ca = strings.TrimSuffix(ca, "\n")
-	cert = strings.TrimSuffix(cert, "\n")
-	return fmt.Sprintf("%s\n%s\n", cert, ca), nil
+
+	return fmt.Sprintf("%s\n%s\n", AddSingleNewline(cert), AddSingleNewline(ca)), nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint

@@ -92,5 +92,8 @@ func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.Sp
 }
 
 func AddSingleNewline(cert string) string {
-	return fmt.Sprintf("%s\n", strings.TrimSuffix(cert, "\n"))
+	if strings.HasSuffix(cert, "\n") {
+		return cert
+	}
+	return fmt.Sprintf("%s\n", cert)
 }
