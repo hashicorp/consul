@@ -1,0 +1,14 @@
+[id^='docfy-demo-preview-inline-alert'] {
+  strong.info {
+    @extend %inline-alert-info;
+  }
+  strong.success {
+    @extend %inline-alert-success;
+  }
+  strong.warning {
+    @extend %inline-alert-warning;
+  }
+  strong.error {
+    @extend %inline-alert-error;
+  }
+}

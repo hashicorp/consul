@@ -11,9 +11,9 @@ The page will cover the main components for configuring your Network Infrastruct
 
 ## Tasks
 
-A task captures a network automation process by defining which network resources to update for a set of services as those services change over time. Configure Consul-Terraform-Sync with one or more tasks that contain a list of Consul services, a Terraform module, and various Terraform providers.
+A task captures a network automation process by defining which network resources to update on a given condition. Configure Consul-Terraform-Sync with one or more tasks that contain a list of Consul services, a Terraform module, and various Terraform providers.
 
-Within the [`task` block](/docs/nia/configuration#task), the list of services for a task represents the service layer that drives network automation. The `source` is the discovery location of the Terraform module that defines the network automation process for the task.
+Within the [`task` block](/docs/nia/configuration#task), the list of services for a task represents the service layer that drives network automation. The `source` is the discovery location of the Terraform module that defines the network automation process for the task. The `condition`, not shown below, defaults to the services condition when unconfigured such that network resources are updated on changes to the list of services over time.
 
 Review the Terraform module to be used for network automation and identify the Terraform providers required by the module. If the module depends on a set of providers, include the list of provider names in the `providers` field to associate the corresponding provider configuration with the task. These providers will need to be configured later in a separate block.
 
@@ -57,7 +57,7 @@ terraform_provider "myprovider" {
 
 Piecing it all together, the configuration file for Consul-Terraform-Sync will have several HCL blocks in addition to other options for configuring the Consul-Terraform-Sync daemon: `task`, `driver.terraform`, and `terraform_provider` blocks.
 
-An example HCL configuration file is shown below to automate one task to execute a Terraform module for 2 services.
+An example HCL configuration file is shown below to automate one task to execute a Terraform module on the condition when there are changes to two services.
 
 ```hcl
 log_level = "info"

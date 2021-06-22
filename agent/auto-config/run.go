@@ -116,14 +116,17 @@ func (ac *AutoConfig) run(ctx context.Context, exit chan struct{}) {
 	// expires. The agent cache should be handling the expiration
 	// and renew it before then.
 	//
-	// If there is no cert, AutoEncryptCertNotAfter returns
-	// a value in the past which immediately triggers the
+	// If there is no cert, use a value which immediately triggers the
 	// renew, but this case shouldn't happen because at
 	// this point, auto_encrypt was just being setup
 	// successfully.
 	calcFallbackInterval := func() time.Duration {
-		certExpiry := ac.acConfig.TLSConfigurator.AutoEncryptCertNotAfter()
-		return certExpiry.Add(ac.acConfig.FallbackLeeway).Sub(time.Now())
+		cert := ac.acConfig.TLSConfigurator.AutoEncryptCert()
+		if cert == nil {
+			return -1
+		}
+		expiry := cert.NotAfter.Add(ac.acConfig.FallbackLeeway)
+		return expiry.Sub(time.Now())
 	}
 	fallbackTimer := time.NewTimer(calcFallbackInterval())
 
@@ -174,7 +177,8 @@ func (ac *AutoConfig) run(ctx context.Context, exit chan struct{}) {
 			// never use the AutoEncrypt.Sign endpoint.
 
 			// check auto encrypt client cert expiration
-			if ac.acConfig.TLSConfigurator.AutoEncryptCertExpired() {
+			cert := ac.acConfig.TLSConfigurator.AutoEncryptCert()
+			if cert == nil || cert.NotAfter.Before(time.Now()) {
 				if err := ac.handleFallback(ctx); err != nil {
 					ac.logger.Error("error when handling a certificate expiry event", "error", err)
 					fallbackTimer = time.NewTimer(ac.acConfig.FallbackRetry)

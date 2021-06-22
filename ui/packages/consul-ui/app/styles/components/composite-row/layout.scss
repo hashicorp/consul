@@ -20,6 +20,9 @@
   grid-area: detail;
   align-self: end;
 }
+%composite-row-detail * {
+  flex-wrap: nowrap !important;
+}
 %composite-row-actions {
   grid-area: actions;
   justify-self: center;

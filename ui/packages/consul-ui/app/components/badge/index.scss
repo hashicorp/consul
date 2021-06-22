@@ -1,0 +1,76 @@
+%badge {
+  @extend %horizontal-kv-list;
+  padding-left: 8px;
+  padding-right: 4px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+%badge,
+%badge + dd {
+  @extend %pill;
+  background-color: var(--gray-100);
+  color: var(--gray-500);
+}
+%badge::after,
+%badge-reversed::after,
+%badge-reversed::before {
+  display: inline;
+}
+%badge::after {
+  content: var(--horizontal-kv-list-key-separator);
+}
+%badge-reversed::after {
+  content: var(--horizontal-kv-list-key-wrapper-end);
+}
+%badge-reversed::before {
+  content: var(--horizontal-kv-list-key-wrapper-start);
+  margin-right: 0;
+  font-size: inherit;
+}
+%badge-radius-reset + dd {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+%badge + dd {
+  padding-right: 8px;
+  margin-left: 0 !important;
+}
+%badge-reversed {
+  margin-left: 0;
+  padding-left: 0;
+}
+%badge-reversed + dd {
+  padding-left: 8px;
+  margin-left: 0 !important;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+%badge-with-icon::after {
+  display: none;
+}
+%badge-with-icon {
+  position: absolute;
+  max-width: 0;
+  padding-left: 28px;
+}
+%badge-with-icon::before {
+  position: absolute;
+  left: 8px;
+}
+%badge-with-icon-reversed::before {
+  left: 0px;
+  font-size: 0.8em;
+}
+%badge-with-icon + dd {
+  margin-left: 24px !important;
+}
+%badge-with-icon-reversed {
+  @extend %horizontal-kv-list-reversed, %badge-reversed;
+  flex-direction: row;
+  padding-left: 22px;
+  padding-right: 0 !important;
+  z-index: 1;
+}
+%badge-with-icon-reversed + dd {
+  margin-right: 18px;
+}

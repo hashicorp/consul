@@ -1,4 +1,5 @@
-@import './flash-message/index';
+@import './skin';
+@import './layout';
 .flash-message {
   @extend %flash-message;
 }
@@ -10,7 +11,8 @@
 /* once we have refactored app-view with data-source with nicer */
 /* flash message usage we should be able to remove this */
 %flash-message p.exists strong::before {
-  @extend %with-cancel-square-fill-color-icon;
+  @extend %with-cancel-square-fill-mask;
+  color: $red-500;
 }
 %flash-message p.exists {
   @extend %frame-red-500;

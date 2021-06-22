@@ -24,7 +24,7 @@
   @extend %frame-gray-900;
 }
 %pill-allow::before {
-  @extend %with-arrow-right-color-mask;
+  @extend %with-arrow-right-mask;
 }
 %pill-deny::before {
   @extend %with-deny-color-mask;
