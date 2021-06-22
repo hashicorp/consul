@@ -49,8 +49,15 @@ connectInject:
     defaultEnabled: true
 ```
 
+It can also be enabled on a per namespace basis by setting the label `consul.hashicorp.com/transparent-proxy=true` on the
+Kubernetes namespace. This will override the Helm value `connectInject.transparentProxy.defaultEnabled` and define the
+default behaviour of Pods in the namespace. For example:
+```bash
+kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
+```
+
 It can also be enabled on a per service basis via the annotation `consul.hashicorp.com/transparent-proxy=true` on the
-Pod for each service:
+Pod for each service, which will override both the Helm value and the namespace label:
 
 ```yaml
 apiVersion: v1
@@ -125,8 +132,9 @@ configure exceptions on a per-Pod basis. The following Pod annotations allow you
 transparent proxy's datacenter. Cross-datacenter transparent proxying is only possible using
 [service-resolver configuration entries that resolve to remote datacenters](/docs/connect/config-entries/service-resolver#other-datacenters).
 Services can also dial explicit upstreams in other datacenters without transparent proxy, for example, by adding an
-annotation such as `"[consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams)": "my-service:1234:dc2"` to reach an upstream
-service called `my-service` in the datacenter `dc2`.
+[annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) such as
+`"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
+in the datacenter `dc2`.
 * When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
 Currently the upstream's protocol and connection timeout are not considered.
 
