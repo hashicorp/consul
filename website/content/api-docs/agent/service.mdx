@@ -42,6 +42,12 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which
+  to list services. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -63,13 +69,14 @@ $ curl \
         "port": 8000
       },
       "wan": {
-        "address": "198.18.0.53",
+        "address": "198.51.100.53",
         "port": 80
       }
     },
     "Meta": {
       "redis_version": "4.0"
     },
+    "Namespace": "default",
     "Port": 8000,
     "Address": "",
     "EnableTagOverride": false,
@@ -158,6 +165,12 @@ The table below shows this endpoint's support for
 - `service_id` `(string: <required>)` - Specifies the ID of the service to
   fetch. This is specified as part of the URL.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
+  the service's configuration. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -174,6 +187,7 @@ $ curl \
   "Service": "web-sidecar-proxy",
   "Tags": null,
   "Meta": null,
+  "Namespace": "default",
   "Port": 18080,
   "Address": "",
   "TaggedAddresses": {
@@ -182,7 +196,7 @@ $ curl \
       "port": 8000
     },
     "wan": {
-      "address": "198.18.0.53",
+      "address": "198.51.100.53",
       "port": 80
     }
   },
@@ -245,6 +259,17 @@ The table below shows this endpoint's support for
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
+
+### Parameters
+
+- `service_name` `(string: <required>)` - Specifies the name of the service to
+  retrieve. This is specified as part of the URL.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
+  the service's health data. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 Those endpoints return the aggregated values of all health checks for the
 service instance(s) and will return the corresponding HTTP codes:
@@ -523,6 +548,12 @@ service definition keys for compatibility with the config file format.
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to register the service. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 - `Port` `(int: 0)` - Specifies the port of the service.
 
 - `Kind` `(string: "")` - The kind of service. Defaults to "" which is a
@@ -660,7 +691,13 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `service_id` `(string: <required>)` - Specifies the ID of the service to
-  deregister. This is specified as part of the URL.
+  deregister. This is specifi### Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which
+  to deregister the service. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -699,6 +736,12 @@ The table below shows this endpoint's support for
 - `enable` `(bool: <required>)` - Specifies whether to enable or disable
   maintenance mode. This is specified as part of the URL as a query string
   parameter.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace
+  of the service to place into maintenance mode. This value can be specified as
+  the `ns` URL query parameter or the `X-Consul-Namespace` header. If not provided
+  by either, the namespace will be inherited from the request's ACL token or will
+  default to the `default` namespace. Added in Consul 1.7.0.
 
 - `reason` `(string: "")` - Specifies a text string explaining the reason for
   placing the node into maintenance mode. This is simply to aid human operators.
