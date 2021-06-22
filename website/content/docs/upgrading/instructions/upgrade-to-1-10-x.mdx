@@ -14,8 +14,7 @@ description: >-
 
 This guide explains how to best upgrade a single Consul Enterprise datacenter to v1.10.0
 from a version of Consul that is forwards compatible with v1.10. If you are on a major 
-version of Consul prior to 1.8, please follow the link for the version you are on from 
-[here](/docs/upgrading/instructions). If you are already on major versions 1.8 or 1.9
+version of Consul prior to 1.8, you will need to complete and [upgrade to 1.8.13](/docs/upgrading/instructions) or higher before continuing with this guide. If you are already on major versions 1.8 or 1.9
 this guide will go over the procedures required for upgrading to v1.10. If you have
 multiple Consul datacenters then they are upgraded in the normal order with each
 upgrade taking into account the instructions below.
@@ -44,7 +43,7 @@ This guides makes the following assumptions:
 
 The main breaking changes in Consul Enterprise 1.10 that needs special handling during upgrading are
 the licensing changes outlined on the [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-10-0)
-page. There are notes on that paged about other changes that might cause issues during an upgrade as well.
+page. There are notes on that page about other changes that might cause issues during an upgrade as well.
 You can find more granular details in [FAQ](/docs/enterprise/license/faq) as well as the full 
 [changelog](https://github.com/hashicorp/consul/blob/release/release/1.10.0/CHANGELOG.md#1100-june-22-2021).
 Looking through these changes prior to upgrading is highly recommended.
