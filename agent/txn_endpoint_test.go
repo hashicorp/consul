@@ -22,7 +22,6 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -45,7 +44,6 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	testIt := func(t *testing.T, agent *TestAgent, wantPass bool) {
 		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
 		value = base64.StdEncoding.EncodeToString([]byte(value))
@@ -106,8 +104,6 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	testIt := func(agent *TestAgent, wantPass bool) {
 		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
@@ -190,7 +186,6 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -221,7 +216,6 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -506,7 +500,6 @@ func TestTxnEndpoint_UpdateCheck(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")

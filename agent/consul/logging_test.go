@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoggerStore_Named(t *testing.T) {
-	t.Parallel()
+
 	require := require.New(t)
 
 	logger := testutil.Logger(t)
@@ -26,7 +26,7 @@ func TestLoggerStore_Named(t *testing.T) {
 }
 
 func TestLoggerStore_NamedCache(t *testing.T) {
-	t.Parallel()
+
 	require := require.New(t)
 
 	logger := testutil.Logger(t)

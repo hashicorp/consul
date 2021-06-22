@@ -17,7 +17,6 @@ func TestSnapshot(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	var snap io.Reader
 	t.Run("create snapshot", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -64,7 +63,6 @@ func TestSnapshot_Options(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	for _, method := range []string{"GET", "PUT"} {
 		t.Run(method, func(t *testing.T) {
 			a := NewTestAgent(t, TestACLConfig())

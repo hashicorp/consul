@@ -64,7 +64,6 @@ func requireNotEncoded(t *testing.T, v []byte) {
 }
 
 func TestConsulCAProvider_Bootstrap(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 	conf := testConsulCAConfig()
@@ -91,7 +90,6 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 }
 
 func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
-	t.Parallel()
 
 	// Make sure setting a custom private key/root cert works.
 	require := require.New(t)
@@ -116,8 +114,6 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	for _, tc := range KeyTestCases {
 		tc := tc
@@ -228,8 +224,6 @@ func TestConsulCAProvider_CrossSignCA(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	tests := CASigningKeyTypeCases()
 
@@ -351,8 +345,6 @@ func TestConsulProvider_SignIntermediate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	tests := CASigningKeyTypeCases()
 
 	for _, tc := range tests {
@@ -438,7 +430,6 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 }
 
 func TestConsulCAProvider_MigrateOldID(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 	conf := testConsulCAConfig()

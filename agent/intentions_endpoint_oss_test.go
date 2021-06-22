@@ -16,8 +16,6 @@ func TestOSS_IntentionsCreate_failure(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 

@@ -168,7 +168,6 @@ func (a *TestACLAgent) ReloadConfig(_ consul.ReloadableConfig) error {
 }
 
 func TestACL_Version8EnabledByDefault(t *testing.T) {
-	t.Parallel()
 
 	called := false
 	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
@@ -264,7 +263,7 @@ func catalogIdent(token string) (structs.ACLIdentity, error) {
 }
 
 func TestACL_vetServiceRegister(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Register a new service, with permission.
@@ -295,7 +294,7 @@ func TestACL_vetServiceRegister(t *testing.T) {
 }
 
 func TestACL_vetServiceUpdate(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Update a service that doesn't exist.
@@ -318,7 +317,7 @@ func TestACL_vetServiceUpdate(t *testing.T) {
 }
 
 func TestACL_vetCheckRegister(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Register a new service check with write privs.
@@ -384,7 +383,7 @@ func TestACL_vetCheckRegister(t *testing.T) {
 }
 
 func TestACL_vetCheckUpdate(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	// Update a check that doesn't exist.
@@ -424,7 +423,7 @@ func TestACL_vetCheckUpdate(t *testing.T) {
 }
 
 func TestACL_filterMembers(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	var members []serf.Member
@@ -443,7 +442,7 @@ func TestACL_filterMembers(t *testing.T) {
 }
 
 func TestACL_filterServices(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	services := make(map[structs.ServiceID]*structs.NodeService)
@@ -457,7 +456,7 @@ func TestACL_filterServices(t *testing.T) {
 }
 
 func TestACL_filterChecks(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), catalogPolicy, catalogIdent)
 
 	checks := make(map[structs.CheckID]*structs.HealthCheck)
@@ -488,7 +487,7 @@ func TestACL_filterChecks(t *testing.T) {
 
 // TODO: remove?
 func TestACL_ResolveIdentity(t *testing.T) {
-	t.Parallel()
+
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, catalogIdent)
 
 	// this test is meant to ensure we are calling the correct function

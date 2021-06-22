@@ -19,7 +19,6 @@ import (
 )
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
-	t.Parallel()
 
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
@@ -735,7 +734,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 }
 
 func TestFSM_BadRestore_OSS(t *testing.T) {
-	t.Parallel()
+
 	// Create an FSM with some state.
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
@@ -765,7 +764,6 @@ func TestFSM_BadRestore_OSS(t *testing.T) {
 }
 
 func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
-	t.Parallel()
 
 	// Create an FSM with no config entry.
 	logger := testutil.Logger(t)

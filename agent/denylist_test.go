@@ -5,7 +5,6 @@ import (
 )
 
 func TestDenylist(t *testing.T) {
-	t.Parallel()
 
 	complex := []string{
 		"/a",

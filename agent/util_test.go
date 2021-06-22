@@ -15,7 +15,7 @@ import (
 )
 
 func TestStringHash(t *testing.T) {
-	t.Parallel()
+
 	in := "hello world"
 	expected := "5eb63bbbe01eeed093cb22bb8f5acdc3"
 
@@ -25,7 +25,7 @@ func TestStringHash(t *testing.T) {
 }
 
 func TestSetFilePermissions(t *testing.T) {
-	t.Parallel()
+
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}

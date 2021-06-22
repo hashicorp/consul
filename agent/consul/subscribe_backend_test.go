@@ -23,7 +23,6 @@ import (
 )
 
 func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
-	t.Parallel()
 
 	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
@@ -143,7 +142,6 @@ func receiveSubscribeEvents(t *testing.T, ch chan *pbsubscribe.Event, handle pbs
 }
 
 func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
-	t.Parallel()
 
 	// Set up a server with initially bad certificates.
 	_, conf1 := testServerConfig(t)

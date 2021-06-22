@@ -21,7 +21,6 @@ type compileTestCase struct {
 }
 
 func TestCompile(t *testing.T) {
-	t.Parallel()
 
 	cases := map[string]compileTestCase{
 		"router with defaults":                             testcase_JustRouterWithDefaults(),
@@ -83,7 +82,6 @@ func TestCompile(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 
 			// sanity check entries are normalized and valid
 			for _, entry := range tc.entries.Routers {

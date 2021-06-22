@@ -34,7 +34,6 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -258,8 +257,6 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	assert := assert.New(t)
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -426,7 +423,6 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -514,7 +510,6 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -649,7 +644,6 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -783,7 +777,6 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
@@ -934,7 +927,6 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1130,7 +1122,6 @@ func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1209,7 +1200,6 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dc := "dc1"
 	a := &agent.TestAgent{HCL: `
 		acl_datacenter = "` + dc + `"
@@ -1432,7 +1422,6 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		discard_check_output = true
 		check_update_interval = "0s" # set to "0s" since otherwise output checks are deferred
@@ -1487,7 +1476,6 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := &agent.TestAgent{HCL: `
 		check_update_interval = "500ms"
 	`}
@@ -1695,7 +1683,6 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	nodeID := types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
 	nodeMeta := map[string]string{
 		"somekey": "somevalue",
@@ -1845,7 +1832,7 @@ func TestState_CheckTokens(t *testing.T) {
 }
 
 func TestAgent_CheckCriticalTime(t *testing.T) {
-	t.Parallel()
+
 	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
@@ -1909,7 +1896,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 }
 
 func TestAgent_AddCheckFailure(t *testing.T) {
-	t.Parallel()
+
 	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
 	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
 	l.TriggerSyncChanges = func() {}
@@ -1930,7 +1917,6 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 }
 
 func TestAgent_AliasCheck(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
@@ -1981,7 +1967,6 @@ func TestAgent_AliasCheck(t *testing.T) {
 }
 
 func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 	cfg := loadRuntimeConfig(t, `bind_addr = "127.0.0.1" data_dir = "dummy" node_name = "dummy"`)
@@ -2038,7 +2023,6 @@ func TestAgent_sendCoordinate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0
@@ -2104,7 +2088,7 @@ func checksInSync(state *local.State, wantChecks int, entMeta *structs.Enterpris
 }
 
 func TestState_Notify(t *testing.T) {
-	t.Parallel()
+
 	logger := hclog.New(&hclog.LoggerOptions{
 		Output: os.Stderr,
 	})
@@ -2172,8 +2156,6 @@ func TestAliasNotifications_local(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()

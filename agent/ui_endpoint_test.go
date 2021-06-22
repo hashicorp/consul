@@ -28,7 +28,6 @@ func TestUiIndex(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir := testutil.TempDir(t, "consul")
 
@@ -78,7 +77,6 @@ func TestUiNodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -120,7 +118,6 @@ func TestUiNodes_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -166,7 +163,6 @@ func TestUiNodeInfo(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -218,7 +214,6 @@ func TestUiServices(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -383,7 +378,7 @@ func TestUiServices(t *testing.T) {
 	}
 
 	t.Run("No Filter", func(t *testing.T) {
-		t.Parallel()
+
 		req, _ := http.NewRequest("GET", "/v1/internal/ui/services/dc1", nil)
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.UIServices(resp, req)
@@ -571,8 +566,6 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -708,8 +701,6 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := NewTestAgent(t, `alt_domain = "alt.consul."`)
 	defer a.Shutdown()
@@ -886,8 +877,6 @@ func TestUIGatewayIntentions(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForServiceIntentions(t, a.RPC, "dc1")
@@ -998,8 +987,6 @@ func TestUIServiceTopology(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1660,8 +1647,6 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	var lastHeadersSent atomic.Value
 

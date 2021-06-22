@@ -105,7 +105,6 @@ func TestCheck(t *testing.T) {
 }
 
 func TestGRPC_Proxied(t *testing.T) {
-	t.Parallel()
 
 	notif := mock.NewNotify()
 	logger := hclog.New(&hclog.LoggerOptions{
@@ -139,7 +138,6 @@ func TestGRPC_Proxied(t *testing.T) {
 }
 
 func TestGRPC_NotProxied(t *testing.T) {
-	t.Parallel()
 
 	notif := mock.NewNotify()
 	logger := hclog.New(&hclog.LoggerOptions{

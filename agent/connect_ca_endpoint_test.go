@@ -22,8 +22,6 @@ func TestConnectCARoots_empty(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 	a := NewTestAgent(t, "connect { enabled = false }")
 	defer a.Shutdown()
@@ -40,8 +38,6 @@ func TestConnectCARoots_list(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	assert := assert.New(t)
 	a := NewTestAgent(t, "")
@@ -73,8 +69,6 @@ func TestConnectCAConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	tests := []struct {
 		name         string

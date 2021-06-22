@@ -19,8 +19,6 @@ func TestConfig_Get(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -147,8 +145,6 @@ func TestConfig_Delete(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -201,8 +197,6 @@ func TestConfig_Apply(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -243,8 +237,6 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -307,8 +299,6 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -377,8 +367,6 @@ func TestConfig_Apply_ProxyDefaultsMeshGateway(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -418,8 +406,6 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	require := require.New(t)
 	a := NewTestAgent(t, "")
@@ -505,8 +491,6 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -580,8 +564,6 @@ func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()

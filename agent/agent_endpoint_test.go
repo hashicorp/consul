@@ -399,7 +399,7 @@ func TestAgent_Service(t *testing.T) {
 		Service:     "web-sidecar-proxy",
 		Port:        8000,
 		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "854327a458fe02a6",
+		ContentHash: "518ece989813bc13",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -413,7 +413,7 @@ func TestAgent_Service(t *testing.T) {
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "b80a4d9370ed1104"
+	updatedResponse.ContentHash = "6cc7a4afb000afb1"
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{

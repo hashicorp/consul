@@ -64,7 +64,6 @@ func TestStatusLeader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -95,7 +94,6 @@ func TestStatusLeader_ForwardDC(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerDC(t, "primary")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -121,7 +119,7 @@ func TestStatusLeader_ForwardDC(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
-	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -143,7 +141,6 @@ func TestStatusPeers_ForwardDC(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerDC(t, "primary")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

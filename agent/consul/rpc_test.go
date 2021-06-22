@@ -34,7 +34,6 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 1 * time.Millisecond
 	})
@@ -70,7 +69,6 @@ func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 1 * time.Millisecond
 	})
@@ -116,7 +114,6 @@ func TestRPC_NoLeader_Retry(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 10 * time.Second
 	})
@@ -213,7 +210,7 @@ func (m *MockSink) Close() error {
 }
 
 func TestRPC_blockingQuery(t *testing.T) {
-	t.Parallel()
+
 	dir, s := testServer(t)
 	defer os.RemoveAll(dir)
 	defer s.Shutdown()
@@ -362,7 +359,6 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir, s := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 2 * time.Millisecond
 	})
@@ -398,7 +394,6 @@ func TestRPC_MagicByteTimeout(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
 	})
@@ -437,8 +432,6 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
@@ -490,8 +483,6 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	cases := []struct {
 		name      string
@@ -676,8 +667,6 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	cases := []struct {
 		name       string
 		magicByte  pool.RPCType
@@ -828,7 +817,6 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true

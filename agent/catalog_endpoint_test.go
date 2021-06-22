@@ -22,7 +22,6 @@ func TestCatalogRegister_Service_InvalidAddress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -51,7 +50,6 @@ func TestCatalogDeregister(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -74,7 +72,6 @@ func TestCatalogDatacenters(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -97,7 +94,6 @@ func TestCatalogNodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -135,7 +131,6 @@ func TestCatalogNodes_MetaFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -180,7 +175,6 @@ func TestCatalogNodes_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -220,7 +214,6 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
@@ -322,7 +315,6 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WaitForAntiEntropySync())
@@ -400,7 +392,6 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -489,7 +480,6 @@ func TestCatalogServices(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -529,7 +519,6 @@ func TestCatalogServices_NodeMetaFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -574,7 +563,6 @@ func TestCatalogRegister_checkRegistration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -631,7 +619,6 @@ func TestCatalogServiceNodes(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -748,7 +735,6 @@ func TestCatalogServiceNodes_NodeMetaFilter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -807,7 +793,6 @@ func TestCatalogServiceNodes_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -874,7 +859,6 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
@@ -960,7 +944,6 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -1055,8 +1038,6 @@ func TestCatalogServiceNodes_ConnectProxy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1087,8 +1068,6 @@ func TestCatalogConnectServiceNodes_good(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1118,8 +1097,6 @@ func TestCatalogConnectServiceNodes_Filter(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1161,7 +1138,6 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1208,7 +1184,6 @@ func TestCatalogNodeServiceList(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1262,7 +1237,6 @@ func TestCatalogNodeServices_Filter(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -1305,8 +1279,6 @@ func TestCatalogNodeServices_ConnectProxy(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1335,7 +1307,6 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
 		translate_wan_addrs = true
@@ -1427,7 +1398,6 @@ func TestCatalog_GatewayServices_Terminating(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1520,7 +1490,6 @@ func TestCatalog_GatewayServices_Ingress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 

@@ -15,7 +15,6 @@ func TestStatusLeader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -36,7 +35,6 @@ func TestStatusLeaderSecondary(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a1 := NewTestAgent(t, "datacenter = \"primary\"")
 	defer a1.Shutdown()
 	a2 := NewTestAgent(t, "datacenter = \"secondary\"")
@@ -79,7 +77,6 @@ func TestStatusPeers(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -100,7 +97,6 @@ func TestStatusPeersSecondary(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	a1 := NewTestAgent(t, "datacenter = \"primary\"")
 	defer a1.Shutdown()
 	a2 := NewTestAgent(t, "datacenter = \"secondary\"")

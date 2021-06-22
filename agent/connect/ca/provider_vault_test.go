@@ -36,7 +36,6 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 }
 
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -50,7 +49,7 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 }
 
 func TestVaultCAProvider_RenewToken(t *testing.T) {
-	t.Parallel()
+
 	SkipIfVaultNotPresent(t)
 
 	testVault, err := runTestVault(t)
@@ -86,7 +85,6 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -147,7 +145,6 @@ func assertCorrectKeyType(t *testing.T, want, certPEM string) {
 }
 
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -231,7 +228,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -286,7 +282,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 }
 
 func TestVaultProvider_SignIntermediate(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -315,7 +310,6 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 }
 
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -360,7 +354,6 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 }
 
 func TestVaultProvider_Cleanup(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 

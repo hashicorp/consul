@@ -34,8 +34,6 @@ func TestConnectCARoots(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	assert := assert.New(t)
 	require := require.New(t)
 	dir1, s1 := testServer(t)
@@ -81,8 +79,6 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	assert := assert.New(t)
 	dir1, s1 := testServer(t)
@@ -156,8 +152,6 @@ func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -250,8 +244,6 @@ func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	require := require.New(t)
 	// Setup a server with a built-in CA that as artificially disabled cross
@@ -357,8 +349,6 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	assert := assert.New(t)
 	require := require.New(t)
@@ -516,8 +506,6 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	assert := assert.New(t)
 	require := require.New(t)
@@ -677,8 +665,6 @@ func TestConnectCASign(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	tests := []struct {
 		caKeyType string
 		caKeyBits int
@@ -783,8 +769,6 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -847,8 +831,6 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -955,8 +937,6 @@ func TestConnectCASignValidation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

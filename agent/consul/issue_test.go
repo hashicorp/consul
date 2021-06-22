@@ -24,7 +24,7 @@ func makeLog(buf []byte) *raft.Log {
 
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
-	t.Parallel()
+
 	fsm := consulfsm.NewFromDeps(consulfsm.Deps{
 		Logger: hclog.New(nil),
 		NewStateStore: func() *state.Store {

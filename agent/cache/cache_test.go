@@ -22,7 +22,6 @@ import (
 
 // Test a basic Get with no indexes (and therefore no blocking queries).
 func TestCacheGet_noIndex(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -55,7 +54,6 @@ func TestCacheGet_noIndex(t *testing.T) {
 
 // Test a basic Get with no index and a failed fetch.
 func TestCacheGet_initError(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -93,8 +91,6 @@ func TestCacheGet_cachedErrorsDontStick(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -155,7 +151,6 @@ func TestCacheGet_cachedErrorsDontStick(t *testing.T) {
 // Test a Get with a request that returns a blank cache key. This should
 // force a backend request and skip the cache entirely.
 func TestCacheGet_blankCacheKey(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -188,7 +183,6 @@ func TestCacheGet_blankCacheKey(t *testing.T) {
 
 // Test that Get blocks on the initial value
 func TestCacheGet_blockingInitSameKey(t *testing.T) {
-	t.Parallel()
 
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
@@ -223,7 +217,6 @@ func TestCacheGet_blockingInitSameKey(t *testing.T) {
 // Test that Get with different cache keys both block on initial value
 // but that the fetches were both properly called.
 func TestCacheGet_blockingInitDiffKeys(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -275,7 +268,6 @@ func TestCacheGet_blockingInitDiffKeys(t *testing.T) {
 // Test a get with an index set will wait until an index that is higher
 // is set in the cache.
 func TestCacheGet_blockingIndex(t *testing.T) {
-	t.Parallel()
 
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
@@ -333,8 +325,6 @@ func TestCacheGet_blockingIndexTimeout(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := New(Options{})
@@ -373,8 +363,6 @@ func TestCacheGet_blockingIndexError(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	typ := TestType(t)
 	defer typ.AssertExpectations(t)
 	c := New(Options{})
@@ -411,8 +399,6 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -484,8 +470,6 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:      true,
@@ -527,8 +511,6 @@ func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
@@ -581,8 +563,6 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
 		Refresh:      true,
@@ -626,8 +606,6 @@ func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
@@ -674,8 +652,6 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	typ := &MockType{}
 	typ.On("RegisterOptions").Return(RegisterOptions{
@@ -735,7 +711,6 @@ func TestCacheGet_noIndexSetsOne(t *testing.T) {
 
 // Test that the backend fetch sets the proper timeout.
 func TestCacheGet_fetchTimeout(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -774,8 +749,6 @@ func TestCacheGet_expire(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -835,7 +808,6 @@ func TestCacheGet_expire(t *testing.T) {
 // keeping explicitly anyway to make sure this behavior is supported and
 // doesn't introduce any different races.
 func TestCacheGet_expireBackgroudRefreshCancel(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -913,7 +885,6 @@ func TestCacheGet_expireBackgroudRefreshCancel(t *testing.T) {
 // Test that entries expire for background refresh types that return before any
 // watcher re-fetches.
 func TestCacheGet_expireBackgroudRefresh(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -989,8 +960,6 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 
 	typ := &MockType{}
@@ -1044,7 +1013,6 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 
 // Test that entries reset their TTL on Get even when the value isn't changing
 func TestCacheGet_expireResetGetNoChange(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -1114,8 +1082,6 @@ func TestCacheGet_expireClose(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 
 	typ := &MockType{}
@@ -1169,7 +1135,6 @@ func (t *testCloser) isClosed() bool {
 // Test a Get with a request that returns the same cache key across
 // two different "types" returns two separate results.
 func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -1218,7 +1183,6 @@ func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {
 // to different datacenters are automatically cached even if their keys are
 // the same.
 func TestCacheGet_partitionDC(t *testing.T) {
-	t.Parallel()
 
 	c := New(Options{})
 	c.RegisterType("t", &testPartitionType{})
@@ -1237,7 +1201,6 @@ func TestCacheGet_partitionDC(t *testing.T) {
 // Test that Get partitions the caches based on token so two equivalent requests
 // with different ACL tokens do not return the same result.
 func TestCacheGet_partitionToken(t *testing.T) {
-	t.Parallel()
 
 	c := New(Options{})
 	c.RegisterType("t", &testPartitionType{})
@@ -1281,7 +1244,6 @@ func TestCacheGet_refreshAge(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for -short run")
 	}
-	t.Parallel()
 
 	require := require.New(t)
 
@@ -1403,8 +1365,6 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	require := require.New(t)
 
 	typ := &MockType{}
@@ -1490,7 +1450,6 @@ func TestCacheGet_nonRefreshAge(t *testing.T) {
 }
 
 func TestCacheGet_nonBlockingType(t *testing.T) {
-	t.Parallel()
 
 	typ := TestTypeNonBlocking(t)
 	c := New(Options{})
@@ -1560,7 +1519,6 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 // Test a get with an index set will wait until an index that is higher
 // is set in the cache.
 func TestCacheReload(t *testing.T) {
-	t.Parallel()
 
 	typ1 := TestType(t)
 	defer typ1.AssertExpectations(t)
@@ -1636,8 +1594,6 @@ func TestCacheThrottle(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	typ1 := TestType(t)
 	typ2 := TestType(t)

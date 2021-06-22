@@ -15,7 +15,7 @@ import (
 )
 
 func TestAE_scaleFactor(t *testing.T) {
-	t.Parallel()
+
 	tests := []struct {
 		nodes int
 		scale int
@@ -35,7 +35,7 @@ func TestAE_scaleFactor(t *testing.T) {
 }
 
 func TestAE_Pause_nestedPauseResume(t *testing.T) {
-	t.Parallel()
+
 	l := NewStateSyncer(nil, 0, nil, nil)
 	if l.Paused() != false {
 		t.Fatal("syncer should be unPaused after init")

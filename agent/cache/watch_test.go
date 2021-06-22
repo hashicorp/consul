@@ -14,7 +14,6 @@ import (
 
 // Test that a type registered with a periodic refresh can be watched.
 func TestCacheNotify(t *testing.T) {
-	t.Parallel()
 
 	typ := TestType(t)
 	typ.On("RegisterOptions").Return(RegisterOptions{})
@@ -165,8 +164,6 @@ func TestCacheNotifyPolling(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	typ := TestTypeNonBlocking(t)
 	defer typ.AssertExpectations(t)
 	c := New(Options{})
@@ -282,8 +279,6 @@ func TestCacheWatch_ErrorBackoff(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
-
 	typ := TestType(t)
 	typ.On("RegisterOptions").Return(RegisterOptions{})
 	defer typ.AssertExpectations(t)
@@ -347,8 +342,6 @@ func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	typ := TestTypeNonBlocking(t)
 	defer typ.AssertExpectations(t)

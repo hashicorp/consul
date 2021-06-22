@@ -302,7 +302,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 }
 
 func TestServer_StartStop(t *testing.T) {
-	t.Parallel()
+
 	// Start up a server and then stop it.
 	_, s1 := testServer(t)
 	if err := s1.Shutdown(); err != nil {
@@ -319,8 +319,6 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "aye"
@@ -360,7 +358,7 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 }
 
 func TestServer_JoinLAN(t *testing.T) {
-	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -389,7 +387,7 @@ func TestServer_JoinLAN(t *testing.T) {
 // To run it on Mac OS, please run this commandd first, otherwise the
 // test will be skipped: `sudo ifconfig lo0 alias 127.0.1.1 up`
 func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
-	t.Parallel()
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.BootstrapExpect = 1
 		lan, err := memberlist.ParseCIDRs([]string{"127.0.0.1/32"})
@@ -447,8 +445,6 @@ func TestServer_LANReap(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	configureServer := func(c *Config) {
 		c.SerfFloodInterval = 100 * time.Millisecond
@@ -513,7 +509,7 @@ func TestServer_LANReap(t *testing.T) {
 }
 
 func TestServer_JoinWAN(t *testing.T) {
-	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -549,7 +545,6 @@ func TestServer_WANReap(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
@@ -594,7 +589,6 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	// Set up two servers in a WAN.
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
@@ -636,8 +630,6 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
-	t.Parallel()
 
 	gwPort := freeport.MustTake(1)
 	defer freeport.Return(gwPort)
@@ -873,7 +865,6 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = t.Name() + "-s1"
 		c.Datacenter = "dc1"
@@ -971,7 +962,6 @@ func TestServer_LeaveLeader(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1021,7 +1011,6 @@ func TestServer_Leave(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1059,7 +1048,7 @@ func TestServer_Leave(t *testing.T) {
 }
 
 func TestServer_RPC(t *testing.T) {
-	t.Parallel()
+
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1075,7 +1064,6 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
@@ -1206,7 +1194,6 @@ func TestServer_Expect_NonVoters(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 2)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1246,7 +1233,7 @@ func TestServer_Expect_NonVoters(t *testing.T) {
 }
 
 func TestServer_BadExpect(t *testing.T) {
-	t.Parallel()
+
 	// this one is in expect=3 mode
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
@@ -1292,7 +1279,7 @@ func (r *fakeGlobalResp) New() interface{} {
 }
 
 func TestServer_keyringRPCs(t *testing.T) {
-	t.Parallel()
+
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1336,7 +1323,6 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	// Set up a server with no TLS configured
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1368,7 +1354,6 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	// Set up a server with no TLS configured
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1398,7 +1383,6 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.CAFile = "../../test/client_certs/rootca.crt"
@@ -1435,7 +1419,6 @@ func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1450,7 +1433,6 @@ func TestServer_ReloadConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-	t.Parallel()
 
 	entryInit := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -1607,7 +1589,6 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.RPCRateLimit = 2
 	conf1.RPCMaxBurst = 2
@@ -1631,7 +1612,6 @@ func TestServer_CALogging(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	_, conf1 := testServerConfig(t)
 
 	// Setup dummy logger to catch output

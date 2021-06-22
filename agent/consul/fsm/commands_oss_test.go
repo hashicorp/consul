@@ -44,7 +44,7 @@ func generateRandomCoordinate() *coordinate.Coordinate {
 }
 
 func TestFSM_RegisterNode(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -89,7 +89,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 }
 
 func TestFSM_RegisterNode_Service(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -153,7 +153,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 }
 
 func TestFSM_DeregisterService(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -216,7 +216,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 }
 
 func TestFSM_DeregisterCheck(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -279,7 +279,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 }
 
 func TestFSM_DeregisterNode(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -357,7 +357,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 }
 
 func TestFSM_KVSDelete(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -404,7 +404,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 }
 
 func TestFSM_KVSDeleteTree(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -452,7 +452,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 }
 
 func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -509,7 +509,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 }
 
 func TestFSM_KVSCheckAndSet(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -567,7 +567,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 }
 
 func TestFSM_KVSLock(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -620,7 +620,7 @@ func TestFSM_KVSLock(t *testing.T) {
 }
 
 func TestFSM_KVSUnlock(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -691,7 +691,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 }
 
 func TestFSM_CoordinateUpdate(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -739,7 +739,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -827,7 +827,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 }
 
 func TestFSM_ACL_CRUD(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -946,7 +946,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -1052,7 +1052,7 @@ func TestFSM_PreparedQuery_CRUD(t *testing.T) {
 }
 
 func TestFSM_TombstoneReap(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -1109,7 +1109,7 @@ func TestFSM_TombstoneReap(t *testing.T) {
 }
 
 func TestFSM_Txn(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -1152,7 +1152,7 @@ func TestFSM_Txn(t *testing.T) {
 }
 
 func TestFSM_Autopilot(t *testing.T) {
-	t.Parallel()
+
 	logger := testutil.Logger(t)
 	fsm, err := New(nil, logger)
 	if err != nil {
@@ -1215,7 +1215,6 @@ func TestFSM_Autopilot(t *testing.T) {
 }
 
 func TestFSM_Intention_CRUD(t *testing.T) {
-	t.Parallel()
 
 	assert := assert.New(t)
 	logger := testutil.Logger(t)
@@ -1286,7 +1285,6 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 }
 
 func TestFSM_CAConfig(t *testing.T) {
-	t.Parallel()
 
 	assert := assert.New(t)
 	logger := testutil.Logger(t)
@@ -1358,7 +1356,6 @@ func TestFSM_CAConfig(t *testing.T) {
 }
 
 func TestFSM_CARoots(t *testing.T) {
-	t.Parallel()
 
 	assert := assert.New(t)
 	logger := testutil.Logger(t)
@@ -1391,7 +1388,6 @@ func TestFSM_CARoots(t *testing.T) {
 }
 
 func TestFSM_CABuiltinProvider(t *testing.T) {
-	t.Parallel()
 
 	assert := assert.New(t)
 	logger := testutil.Logger(t)
@@ -1430,7 +1426,6 @@ func TestFSM_CABuiltinProvider(t *testing.T) {
 }
 
 func TestFSM_ConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	require := require.New(t)
 	logger := testutil.Logger(t)
@@ -1481,7 +1476,6 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
 	require := require.New(t)
 	assert := assert.New(t)
 
@@ -1613,7 +1607,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 }
 
 func TestFSM_Chunking_TermChange(t *testing.T) {
-	t.Parallel()
+
 	assert := assert.New(t)
 	require := require.New(t)
 
