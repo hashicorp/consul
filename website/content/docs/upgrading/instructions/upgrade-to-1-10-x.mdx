@@ -88,27 +88,45 @@ Error querying agent: Unexpected response code: 403 (Permission denied)
 
 Select the correct tab below based on whether ACLs are enabled or disabled.
 
+**3.** Take a snapshot of the cluster by running:
+
+```shell
+consul snapshot save original.snap
+```
+
+This snapshot should not be needed but if something were to go wrong, having
+the snapshot would make it possible to restore the previous state.
+
 <Tabs>
 <Tab heading="ACLs Enabled">
 
-**3.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
+**4.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
 
-**4.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
+**5.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
-**5.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+**6.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
-**6.** Pre-configure the server agents with a license.
+**7.** Take a snapshot of the upgraded cluster by running:
+
+```shell
+consul snapshot save intermediate.snap
+```
+
+This snapshot should not be needed but if something were to go wrong, having
+the snapshot would make it possible to restore the previous state.
+
+**8.** Pre-configure the server agents with a license.
 
 This can either be set with the `license_path` configuration item, the 
 `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
 environment variable. See the [licensing documentation](/docs/enterprise#licensing) 
 for more information about how to configure the license.
 
-**7.** Upgrade all server agents to v1.10.0
+**9.** Upgrade all server agents to v1.10.0
 
-**8.** Upgrade all client agents to v1.10.0
+**10.** Upgrade all client agents to v1.10.0
 
-**9.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0
+**11.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0
 
 </Tab>
 <Tab heading="ACLs Disabled">
@@ -117,9 +135,9 @@ for more information about how to configure the license.
 path involves first enabling ACLs by following [this tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
 and then proceeding with the instructions within the "ACLs Enabled" tab.
 
-**3.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
+**4.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
 
-**4.** Pre-configure the client agents with a license.
+**5.** Pre-configure the client agents with a license.
 
 This can either be set with the `license_path` configuration item, the 
 `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
@@ -130,15 +148,24 @@ from these configurations, it is intended to only be used during upgrades.
 Licenses loaded this way are not online reloadable. It is therefore important
 to promptly proceed with the upgrade and not leave agents in the intermediate state.
 
-**5.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
+**6.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
-**6.** Pre-configure the snapshot agents with a license. This is the same process that
-was executed for the servers in step 4.
+**7.** Pre-configure the snapshot agents with a license. This is the same process that
+was executed for the servers in step 5.
 
-**7.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+**8.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
+
+**9.** Take a snapshot of the upgraded cluster by running:
+
+```shell
+consul snapshot save intermediate.snap
+```
+
+This snapshot should not be needed but if something were to go wrong, having
+the snapshot would make it possible to restore the previous state.
 
 **8.** Pre-configure the server agents with a license. This is the same process that
-was executed for the servers in step 4.
+was executed for the servers in step 5.
 
 **9.** Upgrade all server agents to v1.10.0.
 
