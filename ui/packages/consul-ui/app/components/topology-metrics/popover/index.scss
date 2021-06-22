@@ -20,7 +20,7 @@
   }
   &.deny > button::before,
   &.deny .tippy-arrow::after {
-    @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+    @extend %with-cancel-square-fill-mask, %as-pseudo;
     background-color: $red-500;
   }
   &.l7 > button::before,

@@ -17,23 +17,26 @@
 %inline-alert::before {
   font-size: 14px;
 }
-%inline-alert-success::before {
-  @extend %with-check-circle-fill-color-icon;
+%inline-alert::before {
   @extend %as-pseudo;
+}
+%inline-alert-success::before {
+  @extend %with-check-circle-fill-mask;
+  color: $green-500;
 }
 %inline-alert-error::before {
-  @extend %with-cancel-square-fill-color-icon;
-  @extend %as-pseudo;
+  @extend %with-cancel-square-fill-mask;
+  color: $red-500;
 }
 %inline-alert-warning::before {
-  @extend %with-alert-triangle-color-icon;
-  @extend %as-pseudo;
+  @extend %with-alert-triangle-mask;
+  color: $orange-500;
   /* the warning triangle always looks */
   /* too low just because its a triangle */
   /* this tweak make it look better */
   margin-top: -9px;
 }
 %inline-alert-info::before {
-  @extend %with-info-circle-fill-color-icon;
-  @extend %as-pseudo;
+  @extend %with-info-circle-fill-mask;
+  color: $blue-500;
 }
