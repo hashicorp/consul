@@ -206,29 +206,29 @@ consul snapshot save intermediate.snap
 </Tab>
 <Tab heading="Kubernetes">
 
-**4.** If the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
-to the latest 1.8.x or 1.9.x before the next steps.
+**4.** **If** the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
+to the latest 1.8.x or 1.9.x before the next steps. Otherwise, this step can be skipped.
 
 **5.** Upgrade to the latest Consul helm chart v0.32.0+.
 
 **6.** Update the value of `global.image` in the values file to the latest 1.8.x or 1.9.x image.
 
-  Additionally, ensure that the Kuberenetes secret with the license is correctly specified in the
+  Additionally, ensure that the Kuberenetes secret with the license is specified in the
   values `server.enterpriseLicense.secretName` and `server.enterpriseLicense.secretKey`.
 
 **7.** Upgrade the cluster.
 
   Follow the steps in the [Kubernetes Upgrade Guide](/docs/k8s/upgrade#upgrade-consul-on-kubernetes)
-  to then upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
+  to upgrade the cluster. Ensure you check the steps to upgrade the [servers](/docs/k8s/upgrade#upgrading-consul-servers)
   and the [clients](/docs/k8s/upgrade#upgrading-consul-clients).
 
-**8.** If the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
-  to 1.10.0 before the next steps. 
-  
+**8.** **If** the Consul servers are running outside the Kubernetes cluster, ensure they are upgraded
+  to 1.10.0 before the next steps. Otherwise, this step can be skipped.
+
   This will require pre-configuring the servers with a license
-  before running 1.10. This can either be set with the `license_path` configuration item, the 
-  `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
-  environment variable. See the [licensing documentation](/docs/enterprise/license/overview) 
+  before running 1.10. This can either be set with the `license_path` configuration item, the
+  `CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE`
+  environment variable. See the [licensing documentation](/docs/enterprise/license/overview)
   for more information about how to configure the license. Note that while
   Consul Enterprise 1.8.13 and 1.9.7 have the ability to load the license
   from these configurations, it is intended to only be used during upgrades.
