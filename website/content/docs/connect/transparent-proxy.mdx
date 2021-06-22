@@ -37,6 +37,9 @@ Otherwise, all Connect services can talk to all other services.
 The Kubernetes integration takes care of registering Kubernetes services with Consul, injecting a sidecar proxy, and
 enabling traffic redirection.
 
+## Upgrading to Transparent Proxy
+
+~> When upgrading from older versions (i.e Consul-k8s < `0.26.0` or Consul-helm < `0.32.0`) to Consul-k8s >= `0.26.0` and Consul-helm >= `0.32.0`, please make sure to follow the upgrade steps [here](/docs/upgrading/upgrade-specific/#transparent-proxy-on-kubernetes).
 
 ## Configuration
 
@@ -112,8 +115,8 @@ Traffic redirection interferes with [Kubernetes HTTP health
 probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) since the
 probes expect that kubelet can directly reach the application container on the probe's endpoint, but that traffic will
 be redirected through the sidecar proxy, causing errors because kubelet itself is not encrypting that traffic using a
-mesh proxy. For this reason, Consul allows you to overwrite Kubernetes HTTP health probes to point to the proxy instead,
-to pass that traffic through via the proxy using the Helm value `connectInject.transparentProxy.defaultOverwriteProbes`
+mesh proxy. For this reason, Consul allows you to (overwrite Kubernetes HTTP health probes)[/docs/k8s/connect/health] to point to the proxy instead.
+This can be done using the Helm value `connectInject.transparentProxy.defaultOverwriteProbes`
 or the Pod annotation `consul.hashicorp.com/transparent-proxy-overwrite-probes`.
 
 ### Traffic Redirection Configuration

@@ -30,8 +30,8 @@ have a license loaded from a configuration file or from their environment the sa
 agents must have the license specified. Both agents can still perform automatic retrieval of their
 license but with a few extra stipulations. First, license auto-retrieval now requires that ACLs
 are on and that the client or snapshot agent is configured with a valid ACL token. Secondly, client
-agents require that either the [`start_join`](/docs/agent/opts#start_join) or 
-[`retry_join`](/docs/agent/opts#retry_join) configurations are set and that they resolve to server
+agents require that either the [`start_join`](/docs/agent/options#start_join) or
+[`retry_join`](/docs/agent/options#retry_join) configurations are set and that they resolve to server
 agents. If those stipulations are not met, attempting to start the client or snapshot agent will
 result in it immediately shutting down.
 
@@ -100,6 +100,17 @@ and [after](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c
    followed by running Envoy directly).
 
 1. (Optionally) upgrade Envoy to the latest version supported in Consul 1.10.0.
+
+### Transparent Proxy on Kubernetes
+
+When upgrading to Consul >= 1.10.0, Consul-helm >= 0.32.0, and Consul-k8s >= 0.26.0, a Kubernetes Service must be added for every service registered to Consul. This Service should be added before
+performing the upgrade. This will allow services to be managed by a central component, called `endpoints-controller`, which will enable features like
+transparent proxy.
+
+After the upgrade is performed, all Pods of a service will need to be restarted. The service will be up and health
+checks will continue to work without restarting the service, but a restart is required so the Pods can be re-injected with the latest
+container configuration.
+
 
 ## Consul 1.9.0
 
