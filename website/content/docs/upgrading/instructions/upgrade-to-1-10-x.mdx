@@ -69,7 +69,16 @@ consul license get -signed > consul.hclic
 This will save the license to a file in the local directory named `consul.hclic`. Having this 
 will be useful when preparing the license for the 1.10 upgrades later on in the process.
 
-**2.** Determine if ACLs are enabled by running the following CLI command.
+**2.** Take a snapshot of the cluster by running:
+
+```shell
+consul snapshot save original.snap
+```
+
+This snapshot should not be needed but if something were to go wrong, having
+the snapshot would make it possible to restore the previous state.
+
+**3.** Determine if ACLs are enabled by running the following CLI command.
 
 ```shell
 consul info | grep "acl ="
@@ -87,15 +96,6 @@ Error querying agent: Unexpected response code: 403 (Permission denied)
 ```
 
 Select the correct tab below based on whether ACLs are enabled or disabled.
-
-**3.** Take a snapshot of the cluster by running:
-
-```shell
-consul snapshot save original.snap
-```
-
-This snapshot should not be needed but if something were to go wrong, having
-the snapshot would make it possible to restore the previous state.
 
 <Tabs>
 <Tab heading="ACLs Enabled">
