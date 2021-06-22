@@ -14,10 +14,12 @@ description: >-
 
 This guide explains how to best upgrade a single Consul Enterprise datacenter to v1.10.0
 from a version of Consul that is forwards compatible with v1.10. If you are on a major 
-version of Consul prior to 1.8, you will need to complete and [upgrade to 1.8.13](/docs/upgrading/instructions) or higher before continuing with this guide. If you are already on major versions 1.8 or 1.9
-this guide will go over the procedures required for upgrading to v1.10. If you have
-multiple Consul datacenters then they are upgraded in the normal order with each
-upgrade taking into account the instructions below.
+version of Consul prior to 1.8, you will need to complete and [upgrade to 1.8.13](/docs/upgrading/instructions) 
+or higher before continuing with this guide. If you are already on major versions 1.8 or 1.9
+this guide will go over the procedures required for upgrading to v1.10. This process
+will require intermediate version upgrades to a forwards compatible release of v1.8 or v1.9
+as well as other licensing related configuration changes. If you have multiple Consul datacenters
+then they are upgraded in the normal order with each upgrade taking into account the instructions below.
 
 For the open source version of Consul please follow the 
 [General Upgrade Process](/docs/upgrading/instructions/general-process).
@@ -29,7 +31,8 @@ agents failing to start due to [changes in the way we manage licenses](/docs/ent
 
 ## Requirements
 
-- All Consul servers, clients and snapshot agents should be on a version of Consul >= 1.8.0 and < 1.10.0.
+- All Consul servers, clients and snapshot agents should be on a version of Consul >= 1.8.0 and < 1.10.0. If
+  they are not at the minimum version or higher, follow [normal upgrade procedures](/docs/upgrading) to get them there.
 
 ## Assumptions
 
