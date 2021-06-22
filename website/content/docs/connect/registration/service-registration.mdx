@@ -122,7 +122,7 @@ registering a proxy instance.
   instance. This is created by the application. This conflicts with `local_service_address`
   and `local_service_port`.  This is only supported when using Envoy for the proxy.
 
-- `mode` `(string: "")` <sup>Beta</sup> - One of \`direct\` or \`transparent\`. Added in v1.10.0.
+- `mode` `(string: "")` - One of \`direct\` or \`transparent\`. Added in v1.10.0.
   - `"transparent"` - represents that inbound and outbound application traffic is being
     captured and redirected through the proxy. This mode does not enable the traffic redirection
     itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
@@ -134,7 +134,7 @@ registering a proxy instance.
     2.  The `service-defaults` configuration for the service.
     3.  The `global` `proxy-defaults`.
 
-- `transparent_proxy` `(object: {})` <sup>Beta</sup> - Specifies the configuration specific to proxies in `transparent` mode.
+- `transparent_proxy` `(object: {})` - Specifies the configuration specific to proxies in `transparent` mode.
   The format is defined in the [Transparent Proxy Configuration Reference](#transparent-proxy-configuration-reference).
   Added in v1.10.0.
 
@@ -225,7 +225,7 @@ followed by documentation for each attribute.
 - `mesh_gateway` `(object: {})` - Specifies the mesh gateway configuration
   for this proxy. The format is defined in the [Mesh Gateway Configuration Reference](#mesh-gateway-configuration-reference).
 
-### Transparent Proxy Configuration Reference <sup>Beta</sup>
+### Transparent Proxy Configuration Reference
 
 The following examples show additional configuration for transparent proxies.
 
@@ -375,7 +375,7 @@ registrations](/docs/agent/services#service-definition-parameter-case).
     but the proxy registration will not fail.
   - `protocol` `(string: "http")` - Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.
 
-### Unix Domain Sockets <sup>Beta</sup>
+### Unix Domain Sockets
 
 The following examples show additional configuration for Unix domain sockets.
 
