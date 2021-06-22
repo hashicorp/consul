@@ -87,12 +87,16 @@ export default class HttpService extends Service {
 
   sanitize(obj) {
     if (!this.env.var('CONSUL_NSPACES_ENABLED')) {
-      if (typeof obj.ns !== 'undefined') {
+      delete obj.ns;
+    } else {
+      if (typeof obj.ns === 'undefined' || obj.ns === null || obj.ns === '') {
         delete obj.ns;
       }
     }
     if (!this.env.var('CONSUL_PARTITIONS_ENABLED')) {
-      if (typeof obj.partition !== 'undefined') {
+      delete obj.partition;
+    } else {
+      if (typeof obj.partition === 'undefined' || obj.partition === null || obj.partition === '') {
         delete obj.partition;
       }
     }
