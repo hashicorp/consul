@@ -32,7 +32,7 @@ export default class NspaceAdapter extends Adapter {
   requestForCreateRecord(request, serialized, data) {
     return request`
       PUT /v1/namespace/${data[SLUG_KEY]}?${{
-      partition: data.partition,
+      partition: data.Partition,
     }}
 
       ${{
@@ -49,7 +49,7 @@ export default class NspaceAdapter extends Adapter {
   requestForUpdateRecord(request, serialized, data) {
     return request`
       PUT /v1/namespace/${data[SLUG_KEY]}?${{
-      partition: data.partition,
+      partition: data.Partition,
     }}
 
       ${{
@@ -65,7 +65,7 @@ export default class NspaceAdapter extends Adapter {
   requestForDeleteRecord(request, serialized, data) {
     return request`
       DELETE /v1/namespace/${data[SLUG_KEY]}?${{
-      partition: data.partition,
+      partition: data.Partition,
     }}
     `;
   }

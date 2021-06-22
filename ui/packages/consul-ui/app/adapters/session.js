@@ -1,8 +1,6 @@
 import Adapter from './application';
 
 import { SLUG_KEY } from 'consul-ui/models/session';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
 // TODO: Update to use this.formatDatacenter()
 export default class SessionAdapter extends Adapter {
@@ -39,9 +37,9 @@ export default class SessionAdapter extends Adapter {
 
   requestForDeleteRecord(request, serialized, data) {
     const params = {
-      dc: data.dc,
-      ns: data.ns,
-      partition: data.partition,
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/session/destroy/${data[SLUG_KEY]}?${params}

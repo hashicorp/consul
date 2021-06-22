@@ -1,14 +1,5 @@
 import Adapter from './application';
 import { inject as service } from '@ember/service';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
-
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
 
 export default class OidcProviderAdapter extends Adapter {
   @service('env') env;

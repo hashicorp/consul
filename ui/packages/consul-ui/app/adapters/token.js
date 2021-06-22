@@ -1,17 +1,6 @@
 import Adapter from './application';
 import { inject as service } from '@ember/service';
 import { SLUG_KEY } from 'consul-ui/models/token';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
-
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
 
 export default class TokenAdapter extends Adapter {
   @service('store') store;
@@ -45,7 +34,7 @@ export default class TokenAdapter extends Adapter {
 
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
       ns: serialized.Namespace,
       partition: serialized.Partition,
     };
@@ -73,13 +62,13 @@ export default class TokenAdapter extends Adapter {
       // https://www.consul.io/api/acl/legacy.html#update-acl-token
       // as we are using the old API we don't need to specify a nspace
       return request`
-        PUT /v1/acl/update?${this.formatDatacenter(data[DATACENTER_KEY])}
+        PUT /v1/acl/update?${this.formatDatacenter(data.Datacenter)}
 
         ${serialized}
       `;
     }
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
       ns: serialized.Namespace,
       partition: serialized.Partition,
     };
@@ -99,9 +88,9 @@ export default class TokenAdapter extends Adapter {
 
   requestForDeleteRecord(request, serialized, data) {
     const params = {
-      dc: data.dc,
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${params}
@@ -127,9 +116,9 @@ export default class TokenAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     const params = {
-      dc: data.dc,
-      ns: data.ns,
-      partition: data.partition,
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/token/${id}/clone?${params}
@@ -163,9 +152,9 @@ export default class TokenAdapter extends Adapter {
         // eventually the id is created with this dc value and the id taken from the
         // json response of `acls/token/*/clone`
         const params = {
-          dc: data.dc,
-          ns: data.ns,
-          partition: data.partition,
+          dc: data.Datacenter,
+          ns: data.Namespace,
+          partition: data.Partition,
         };
         return serializer.respondForQueryRecord(respond, params);
       },

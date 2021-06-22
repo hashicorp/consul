@@ -1,6 +1,5 @@
 import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/policy';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
 // TODO: Update to use this.formatDatacenter()
 export default class PolicyAdapter extends Adapter {
@@ -33,9 +32,9 @@ export default class PolicyAdapter extends Adapter {
 
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/policy?${params}
@@ -51,7 +50,7 @@ export default class PolicyAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
       ns: serialized.Namespace,
       partition: serialized.Partition,
     };
@@ -69,9 +68,9 @@ export default class PolicyAdapter extends Adapter {
 
   requestForDeleteRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       DELETE /v1/acl/policy/${data[SLUG_KEY]}?${params}

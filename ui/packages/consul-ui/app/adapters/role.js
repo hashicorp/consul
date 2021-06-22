@@ -1,16 +1,5 @@
 import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/role';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
-
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
 
 export default class RoleAdapter extends Adapter {
   requestForQuery(request, { dc, ns, partition, index, id }) {
@@ -42,9 +31,9 @@ export default class RoleAdapter extends Adapter {
 
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/role?${params}
@@ -61,9 +50,9 @@ export default class RoleAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/role/${data[SLUG_KEY]}?${params}
@@ -80,9 +69,9 @@ export default class RoleAdapter extends Adapter {
 
   requestForDeleteRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       DELETE /v1/acl/role/${data[SLUG_KEY]}?${params}
