@@ -26,7 +26,7 @@ For the open source version of Consul please follow the
 ~> You can only upgrade to Consul Enterprise 1.10 from a version of Consul Enterprise 
 1.8 >= 1.8.13 or 1.9 >= 1.9.7. Other versions of Consul Enterprise are not forwards
 compatible with v1.10 and will cause issues during the upgrade that could result in
-agents failing to start.
+agents failing to start due to [changes in the way we manage licenses](/docs/enterprise/license/faq).
 
 ## Requirements
 
@@ -38,25 +38,33 @@ This guides makes the following assumptions:
 
 - You are familiar with the [General Upgrade Process](/docs/upgrading/instructions/general-process).
 - You have the ability to run Consul CLI commands. 
+- If ACLs are in use then you possess a token with at least `operator:read` permissions.
 
 ## Considerations
 
 The main breaking changes in Consul Enterprise 1.10 that needs special handling during upgrading are
 the licensing changes outlined on the [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-10-0)
 page. There are notes on that paged about other changes that might cause issues during an upgrade as well.
-You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/release/release/1.10.0/CHANGELOG.md#1100-june-22-2021).
+You can find more granular details in [FAQ](/docs/enterprise/license/faq) as well as the full 
+[changelog](https://github.com/hashicorp/consul/blob/release/release/1.10.0/CHANGELOG.md#1100-june-22-2021).
 Looking through these changes prior to upgrading is highly recommended.
 
 ## Procedures
 
+~> When any of the steps below call for upgrading components, we assume you follow
+the normal safe upgrade procedure you normally use for upgrades. The basic server
+upgrade procedure is documented [here](/docs/upgrading/instructions/general-process).
+The process for using autopilot assisted automated upgrades is documented 
+[here](https://learn.hashicorp.com/tutorials/consul/upgrade-automation).
+
 **1.** Retrieve the datacenter's current license by executing the following CLI command:
 
 ```shell
-consul license get -signed
+consul license get -signed > consul.hclic
 ```
 
-This will be useful to have on hand when preparing the license for the 1.10 upgrades later
-on in the process.
+This will save the license to a file in the local directory named `consul.hclic`. Having this 
+will be useful when preparing the license for the 1.10 upgrades later on in the process.
 
 **2.** Determine if ACLs are enabled by running the following CLI command.
 
@@ -75,6 +83,8 @@ Error querying agent: Unexpected response code: 403 (Permission denied)
 
 ```
 
+Select the correct tab below based on whether ACLs are enabled or disabled.
+
 <Tabs>
 <Tab heading="ACLs Enabled">
 
@@ -82,7 +92,7 @@ Error querying agent: Unexpected response code: 403 (Permission denied)
 
 **4.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
-**5.** Upgrade all snapshot agents to the latest 1.8.x or 1.9.x release.
+**5.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
 **6.** Pre-configure the server agents with a license.
 
@@ -95,10 +105,14 @@ for more information about how to configure the license.
 
 **8.** Upgrade all client agents to v1.10.0
 
-**9.** Upgrade all snapshot agents to v1.10.0
+**9.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0
 
 </Tab>
 <Tab heading="ACLs Disabled">
+
+~> We do not recommend running in production with ACLs disabled. An alternative upgrade
+path involves first enabling ACLs by following [this tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
+and then proceeding with the instructions within the "ACLs Enabled" tab.
 
 **3.** Upgrade all server agents to the latest 1.8.x or 1.9.x release.
 
@@ -111,27 +125,20 @@ for more information about how to configure the license.
 
 **5.** Upgrade all client agents to the latest 1.8.x or 1.9.x release.
 
-**6.** Pre-configure the client agents with a license.
+**6.** Pre-configure the snapshot agents with a license. This is the same process that
+was executed for the servers in step 4.
 
-This can either be set with the `license_path` configuration item, the 
-`CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
-environment variable. See the [licensing documentation](/docs/enterprise#licensing) 
-for more information about how to configure the license.
+**7.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to the latest 1.8.x or 1.9.x release.
 
-**7.** Upgrade all snapshot agents to the latest 1.8.x or 1.9.x release.
+**8.** Pre-configure the server agents with a license. This is the same process that
+was executed for the servers in step 4.
 
-**8.** Pre-configure the server agents with a license.
+**9.** Upgrade all server agents to v1.10.0.
 
-This can either be set with the `license_path` configuration item, the 
-`CONSUL_LICENSE_PATH` environment variable or the `CONSUL_LICENSE` 
-environment variable. See the [licensing documentation](/docs/enterprise#licensing) 
-for more information about how to configure the license.
+**10.** Upgrade all client agents to v1.10.0.
 
-**9.** Upgrade all server agents to v1.10.0
+**11.** Upgrade all [snapshot agents](/docs/commands/snapshot/agent) to v1.10.0.
 
-**10.** Upgrade all client agents to v1.10.0
-
-**11.** Upgrade all snapshot agents to v1.10.0
 </Tab>
 </Tabs>
 
