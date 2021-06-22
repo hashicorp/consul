@@ -37,9 +37,9 @@ The list below is a great starting point for learning more about the license cha
 
 - [Consul Enterprise Upgrade Documentation](https://www.consul.io/docs/enterprise/upgrades)
 
-- [Consul License Documentation](http://localhost:3000/docs/enterprise/license)
+- [Consul License Documentation](/docs/enterprise/license)
 
-- [License configuration values documentation](http://localhost:3000/docs/enterprise/license/overview#binaries-without-built-in-licenses)
+- [License configuration values documentation](/docs/enterprise/license/overview#binaries-without-built-in-licenses)
 
 - [Install a HashiCorp Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise)
 
@@ -68,7 +68,8 @@ As Consul Enterprise approaches the expiration date, warnings will be issued in 
 
 ## Q: Does this affect client agents?
 
-For existing clusters, if the clients agents are using ACLs and have a valid token, then they will be able to retrieve the license from the server if the upgrade requirements have been met. Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
+There are upgrade requirements that affect Consul Enterprise clients.
+Please review the [upgrade requirements](faq#q-what-are-the-upgrade-requirements) documentation.
 
 If the client agents are not using ACLs, then the client agents will be need to have the license on-disk (auto-loading) or as an environment variable.
 For new Consul clusters using Consul 1.10.0+ent, customers must ensure that there is a valid license on-disk (auto-loaded) or as an environment variable.
