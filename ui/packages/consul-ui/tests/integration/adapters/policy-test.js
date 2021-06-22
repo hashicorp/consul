@@ -49,7 +49,9 @@ module('Integration | Adapter | policy', function(hooks) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `PUT /v1/acl/policy?dc=${dc}`;
+      const expected = `PUT /v1/acl/policy?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForCreateRecord(
           request,
@@ -67,7 +69,9 @@ module('Integration | Adapter | policy', function(hooks) {
       const adapter = this.owner.lookup('adapter:policy');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `PUT /v1/acl/policy/${id}?dc=${dc}`;
+      const expected = `PUT /v1/acl/policy/${id}?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForUpdateRecord(
           request,

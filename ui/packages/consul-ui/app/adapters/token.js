@@ -35,8 +35,8 @@ export default class TokenAdapter extends Adapter {
   requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data.Datacenter),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/token?${params}
@@ -69,8 +69,8 @@ export default class TokenAdapter extends Adapter {
     }
     const params = {
       ...this.formatDatacenter(data.Datacenter),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${params}

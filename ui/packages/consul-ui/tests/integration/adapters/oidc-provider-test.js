@@ -28,7 +28,9 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `POST /v1/acl/oidc/auth-url?dc=${dc}`;
+      const expected = `POST /v1/acl/oidc/auth-url?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForQueryRecord(request, {
           dc: dc,
@@ -53,7 +55,9 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `POST /v1/acl/oidc/callback?dc=${dc}`;
+      const expected = `POST /v1/acl/oidc/callback?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForAuthorize(request, {
           dc: dc,

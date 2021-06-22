@@ -65,9 +65,9 @@ module('Integration | Adapter | kv', function(hooks) {
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
       const flags = 12;
-      const expected = `PUT /v1/kv/${id}?dc=${dc}&flags=${flags}${
+      const expected = `PUT /v1/kv/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
-      }`;
+      }&flags=${flags}`;
       let actual = adapter
         .requestForUpdateRecord(
           request,

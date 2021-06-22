@@ -69,7 +69,9 @@ module('Integration | Adapter | token', function(hooks) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `PUT /v1/acl/token?dc=${dc}`;
+      const expected = `PUT /v1/acl/token?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForCreateRecord(
           request,
@@ -87,7 +89,9 @@ module('Integration | Adapter | token', function(hooks) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `PUT /v1/acl/token/${id}?dc=${dc}`;
+      const expected = `PUT /v1/acl/token/${id}?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForUpdateRecord(
           request,
@@ -106,6 +110,8 @@ module('Integration | Adapter | token', function(hooks) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
+      // As the title of the test says, this one uses the ACL legacy APIs and
+      // therefore does not expect a nspace
       const expected = `PUT /v1/acl/update?dc=${dc}`;
       const actual = adapter
         .requestForUpdateRecord(

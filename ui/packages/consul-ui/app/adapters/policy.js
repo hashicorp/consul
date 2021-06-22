@@ -51,8 +51,8 @@ export default class PolicyAdapter extends Adapter {
   requestForUpdateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data.Datacenter),
-      ns: serialized.Namespace,
-      partition: serialized.Partition,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/policy/${data[SLUG_KEY]}?${params}

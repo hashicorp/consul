@@ -41,7 +41,9 @@ module('Integration | Adapter | role', function(hooks) {
       const adapter = this.owner.lookup('adapter:role');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `PUT /v1/acl/role?dc=${dc}`;
+      const expected = `PUT /v1/acl/role?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForCreateRecord(
           request,
@@ -59,7 +61,9 @@ module('Integration | Adapter | role', function(hooks) {
       const adapter = this.owner.lookup('adapter:role');
       const client = this.owner.lookup('service:client/http');
       const request = client.url.bind(client);
-      const expected = `PUT /v1/acl/role/${id}?dc=${dc}`;
+      const expected = `PUT /v1/acl/role/${id}?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
       const actual = adapter
         .requestForUpdateRecord(
           request,

@@ -66,6 +66,7 @@ export default function(scenario, assert, lastNthRequest) {
         return method === item.method && url === item.url;
       });
       let data = yaml.body || {};
+      console.log(request.requestBody);
       const body = JSON.parse(request.requestBody);
       Object.keys(data).forEach(function(key, i, arr) {
         assert.deepEqual(
