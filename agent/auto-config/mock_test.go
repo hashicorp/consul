@@ -2,10 +2,12 @@ package autoconf
 
 import (
 	"context"
+	"crypto/x509"
 	"net"
 	"sync"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -15,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/mock"
 )
 
 type mockDirectRPC struct {
@@ -72,6 +73,7 @@ func (m *mockTLSConfigurator) UpdateAutoTLSCA(pems []string) error {
 	ret := m.Called(pems)
 	return ret.Error(0)
 }
+
 func (m *mockTLSConfigurator) UpdateAutoTLSCert(pub, priv string) error {
 	if priv != "" {
 		priv = "redacted"
@@ -79,15 +81,11 @@ func (m *mockTLSConfigurator) UpdateAutoTLSCert(pub, priv string) error {
 	ret := m.Called(pub, priv)
 	return ret.Error(0)
 }
-func (m *mockTLSConfigurator) AutoEncryptCertNotAfter() time.Time {
-	ret := m.Called()
-	ts, _ := ret.Get(0).(time.Time)
 
-	return ts
-}
-func (m *mockTLSConfigurator) AutoEncryptCertExpired() bool {
+func (m *mockTLSConfigurator) AutoEncryptCert() *x509.Certificate {
 	ret := m.Called()
-	return ret.Bool(0)
+	cert, _ := ret.Get(0).(*x509.Certificate)
+	return cert
 }
 
 type mockServerProvider struct {
