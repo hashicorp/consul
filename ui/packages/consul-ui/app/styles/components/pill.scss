@@ -19,16 +19,16 @@ span.policy-service-identity::before {
   content: 'Service Identity: ';
 }
 %pill.kubernetes::before {
-  @extend %with-kubernetes-logo-color-icon, %as-pseudo;
+  @extend %with-logo-kubernetes-color-icon, %as-pseudo;
 }
 %pill.terraform::before {
-  @extend %with-terraform-logo-color-icon, %as-pseudo;
+  @extend %with-logo-terraform-color-icon, %as-pseudo;
 }
 %pill.nomad::before {
-  @extend %with-nomad-logo-color-icon, %as-pseudo;
+  @extend %with-logo-nomad-color-icon, %as-pseudo;
 }
 %pill.consul::before {
-  @extend %with-consul-logo-color-icon, %as-pseudo;
+  @extend %with-logo-consul-color-icon, %as-pseudo;
 }
 %pill.aws::before {
   @extend %with-logo-aws-color-icon, %as-pseudo;
@@ -37,8 +37,8 @@ span.policy-service-identity::before {
   @extend %with-star-outline-mask, %as-pseudo;
 }
 %pill.jwt::before {
-  @extend %with-jwt-logo-icon, %as-pseudo;
+  @extend %with-logo-jwt-color-icon, %as-pseudo;
 }
 %pill.oidc::before {
-  @extend %with-oidc-logo-icon, %as-pseudo;
+  @extend %with-logo-oidc-color-icon, %as-pseudo;
 }

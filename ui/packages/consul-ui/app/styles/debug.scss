@@ -7,6 +7,7 @@
 @import 'consul-ui/components/csv-list/debug';
 @import 'consul-ui/components/horizontal-kv-list/debug';
 @import 'consul-ui/components/icon-definition/debug';
+@import 'consul-ui/components/inline-alert/debug';
 
 html.is-debug body > .brand-loader {
   display: none !important;
@@ -28,16 +29,16 @@ html.is-debug body > .brand-loader {
     }
     li.consul-components a::before,
     li.components a::before {
-      @extend %with-glimmer-logo-color-icon, %as-pseudo;
+      @extend %with-logo-glimmer-color-icon, %as-pseudo;
       margin-right: 5px;
     }
     li.consul-components.css-component a::before,
     li.components.css-component a::before {
-      @extend %with-glimmer-logo-color-icon, %as-pseudo;
+      @extend %with-logo-glimmer-color-icon, %as-pseudo;
     }
     li.consul-components.ember-component a::before,
     li.components.ember-component a::before {
-      @extend %with-ember-circle-logo-color-icon, %as-pseudo;
+      @extend %with-logo-ember-circle-color-icon, %as-pseudo;
     }
   }
   main {

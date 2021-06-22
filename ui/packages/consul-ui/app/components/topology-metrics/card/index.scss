@@ -56,15 +56,15 @@
       background-color: $gray-500;
     }
     .passing::before {
-      @extend %with-check-circle-fill-color-mask, %as-pseudo;
+      @extend %with-check-circle-fill-mask, %as-pseudo;
       background-color: $green-500;
     }
     .warning::before {
-      @extend %with-alert-triangle-color-mask, %as-pseudo;
+      @extend %with-alert-triangle-mask, %as-pseudo;
       background-color: $orange-500;
     }
     .critical::before {
-      @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+      @extend %with-cancel-square-fill-mask, %as-pseudo;
       background-color: $red-500;
     }
     .empty::before {

@@ -27,13 +27,16 @@
   margin-left: 0.5em;
 }
 %healthcheck-output.passing::before {
-  @extend %with-check-circle-fill-color-icon;
+  @extend %with-check-circle-fill-mask;
+  color: $green-500;
 }
 %healthcheck-output.warning::before {
-  @extend %with-alert-triangle-color-icon;
+  @extend %with-alert-triangle-mask;
+  color: $orange-500;
 }
 %healthcheck-output.critical::before {
-  @extend %with-cancel-square-fill-color-icon;
+  @extend %with-cancel-square-fill-mask;
+  color: $red-500;
 }
 %healthcheck-output,
 %healthcheck-output pre {
