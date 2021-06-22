@@ -34,17 +34,14 @@ type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
 // a constant value. This is usually done by currying DCWrapper.
 type Wrapper func(conn net.Conn) (net.Conn, error)
 
-// TLSLookup maps the tls_min_version configuration to the internal value
-var TLSLookup = map[string]uint16{
+// tlsLookup maps the tls_min_version configuration to the internal value
+var tlsLookup = map[string]uint16{
 	"":      tls.VersionTLS10, // default in golang
 	"tls10": tls.VersionTLS10,
 	"tls11": tls.VersionTLS11,
 	"tls12": tls.VersionTLS12,
 	"tls13": tls.VersionTLS13,
 }
-
-// TLSVersions has all the keys from the map above.
-var TLSVersions = strings.Join(tlsVersions(), ", ")
 
 // Config used to create tls.Config
 type Config struct {
@@ -133,18 +130,13 @@ type Config struct {
 
 func tlsVersions() []string {
 	versions := []string{}
-	for v := range TLSLookup {
+	for v := range tlsLookup {
 		if v != "" {
 			versions = append(versions, v)
 		}
 	}
 	sort.Strings(versions)
 	return versions
-}
-
-// KeyPair is used to open and parse a certificate and key file
-func (c *Config) KeyPair() (*tls.Certificate, error) {
-	return loadKeyPair(c.CertFile, c.KeyFile)
 }
 
 // SpecificDC is used to invoke a static datacenter
@@ -158,6 +150,8 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 	}
 }
 
+// autoTLS stores configuration that is received from the auto-encrypt or
+// auto-config features.
 type autoTLS struct {
 	manualCAPems         []string
 	connectCAPems        []string
@@ -165,25 +159,31 @@ type autoTLS struct {
 	verifyServerHostname bool
 }
 
-func (a *autoTLS) caPems() []string {
+func (a autoTLS) caPems() []string {
 	return append(a.manualCAPems, a.connectCAPems...)
 }
 
+// manual stores the TLS CA and cert received from Configurator.Update which
+// generally comes from the agent configuration.
 type manual struct {
 	caPems []string
 	cert   *tls.Certificate
 }
 
-// Configurator holds a Config and is responsible for generating all the
-// *tls.Config necessary for Consul. Except the one in the api package.
+// Configurator provides tls.Config and net.Dial wrappers to enable TLS for
+// clients and servers, for both HTTPS and RPC requests.
+// Configurator receives an initial TLS configuration from agent configuration,
+// and receives updates from config reloads, auto-encrypt, and auto-config.
 type Configurator struct {
 	// lock synchronizes access to all fields on this struct except for logger and version.
-	lock                 sync.RWMutex
-	base                 *Config
-	autoTLS              *autoTLS
-	manual               *manual
+	lock    sync.RWMutex
+	base    *Config
+	autoTLS autoTLS
+	manual  manual
+	caPool  *x509.CertPool
+	// peerDatacenterUseTLS is a map of DC name to a bool indicating if the DC
+	// uses TLS for RPC requests.
 	peerDatacenterUseTLS map[string]bool
-	caPool               *x509.CertPool
 
 	// logger is not protected by a lock. It must never be changed after
 	// Configurator is created.
@@ -204,8 +204,6 @@ func NewConfigurator(config Config, logger hclog.Logger) (*Configurator, error) 
 
 	c := &Configurator{
 		logger:               logger.Named(logging.TLSUtil),
-		manual:               &manual{},
-		autoTLS:              &autoTLS{},
 		peerDatacenterUseTLS: map[string]bool{},
 	}
 	err := c.Update(config)
@@ -282,7 +280,7 @@ func (c *Configurator) UpdateAutoTLSCA(connectCAPems []string) error {
 	return nil
 }
 
-// UpdateAutoTLSCert
+// UpdateAutoTLSCert receives the updated Auto-Encrypt certificate.
 func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
@@ -298,8 +296,8 @@ func (c *Configurator) UpdateAutoTLSCert(pub, priv string) error {
 	return nil
 }
 
-// UpdateAutoTLS sets everything under autoEncrypt. This is being called on the
-// client when it received its cert from AutoEncrypt/AutoConfig endpoints.
+// UpdateAutoTLS receives updates from Auto-Config, only expected to be called on
+// client agents.
 func (c *Configurator) UpdateAutoTLS(manualCAPems, connectCAPems []string, pub, priv string, verifyServerHostname bool) error {
 	cert, err := tls.X509KeyPair([]byte(pub), []byte(priv))
 	if err != nil {
@@ -364,8 +362,9 @@ func pool(pems []string) (*x509.CertPool, error) {
 func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) error {
 	// Check if a minimum TLS version was set
 	if config.TLSMinVersion != "" {
-		if _, ok := TLSLookup[config.TLSMinVersion]; !ok {
-			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, TLSVersions)
+		if _, ok := tlsLookup[config.TLSMinVersion]; !ok {
+			versions := strings.Join(tlsVersions(), ", ")
+			return fmt.Errorf("TLSMinVersion: value %s not supported, please specify one of [%s]", config.TLSMinVersion, versions)
 		}
 	}
 
@@ -517,10 +516,10 @@ func (c *Configurator) commonTLSConfig(verifyIncoming bool) *tls.Config {
 	tlsConfig.ClientCAs = c.caPool
 	tlsConfig.RootCAs = c.caPool
 
-	// This is possible because TLSLookup also contains "" with golang's
+	// This is possible because tlsLookup also contains "" with golang's
 	// default (tls10). And because the initial check makes sure the
 	// version correctly matches.
-	tlsConfig.MinVersion = TLSLookup[c.base.TLSMinVersion]
+	tlsConfig.MinVersion = tlsLookup[c.base.TLSMinVersion]
 
 	// Set ClientAuth if necessary
 	if verifyIncoming {
@@ -794,9 +793,7 @@ func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 		return nil
 	}
 
-	return func(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, error) {
-		return c.wrapALPNTLSClient(dc, nodeName, alpnProto, conn)
-	}
+	return c.wrapALPNTLSClient
 }
 
 // AutoEncryptCertNotAfter returns NotAfter from the auto_encrypt cert. In case
