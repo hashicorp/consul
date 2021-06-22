@@ -22,8 +22,8 @@ This will no longer work since each server must be able to find a valid license 
 
 ## Q: What are the upgrade requirements?
 
-All customers on Consul Enterprise 1.8/1.9 must first upgrade their agents to the latest patch release.
-The license file must also be set in an environment variable or file path, otherwise the Consul agents will fail to retrieve the license with a valid agent token.
+All customers on Consul Enterprise 1.8/1.9 must first upgrade their client and server agents to the latest patch release.
+During the upgrade the license file must also be configured on client agents in an environment variable or file path, otherwise the Consul agents will fail to retrieve the license with a valid agent token.
 The upgrade process varies if ACLs are enabled or disabled in the cluster.
 Refer to the instructions on [upgrading to 1.10.x](/docs/upgrading/instructions/upgrade-to-1-10-x) for details.
 
@@ -114,7 +114,7 @@ When a customer deploys new clusters to a 1.10.0+ent release, they need to have 
 
 ## Q: What are the scenarios that a customer must plan for because of these changes?
 
-New Consul cluster deployments using 1.10.0+ent will need to have a valid license to successfully deploy.
+New Consul cluster deployments using 1.10.0+ent will need to have a valid license on servers to successfully deploy.
 This valid license must be on-disk (auto-loaded) or as an environment variable.
 Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 
