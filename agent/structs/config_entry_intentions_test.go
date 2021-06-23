@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func generateUUID() (ret string) {

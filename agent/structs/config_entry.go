@@ -169,6 +169,10 @@ func (e *ServiceConfigEntry) Validate() error {
 			if err != nil {
 				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
 			}
+
+			if err := validateInnerEnterpriseMeta(&override.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
+				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
+			}
 		}
 
 		if e.UpstreamConfig.Defaults != nil {
@@ -801,6 +805,9 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		}
 		if cfg.EnterpriseMeta.NamespaceOrEmpty() != "" {
 			return fmt.Errorf("Namespace must be empty")
+		}
+		if cfg.EnterpriseMeta.PartitionOrEmpty() != "" {
+			return fmt.Errorf("Partition must be empty")
 		}
 	}
 

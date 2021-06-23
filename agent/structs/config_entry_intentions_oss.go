@@ -2,6 +2,6 @@
 
 package structs
 
-func validateSourceIntentionEnterpriseMeta(_ *EnterpriseMeta) error {
+func validateSourceIntentionEnterpriseMeta(_, _ *EnterpriseMeta) error {
 	return nil
 }

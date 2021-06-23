@@ -30,3 +30,7 @@ func validateUnusedKeys(unused []string) error {
 	}
 	return err
 }
+
+func validateInnerEnterpriseMeta(_, _ *EnterpriseMeta) error {
+	return nil
+}
