@@ -567,7 +567,7 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			return fmt.Errorf("Sources[%d].%v", i, err)
 		}
 
-		if err := validateSourceIntentionEnterpriseMeta(&src.EnterpriseMeta); err != nil {
+		if err := validateSourceIntentionEnterpriseMeta(&src.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
 			return fmt.Errorf("Sources[%d].%v", i, err)
 		}
 

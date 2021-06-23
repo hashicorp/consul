@@ -164,7 +164,11 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 
 		declaredHosts := make(map[string]bool)
-		for _, s := range listener.Services {
+		for i, s := range listener.Services {
+			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
+				return fmt.Errorf("Services[%d].%v", i, err)
+			}
+
 			if listener.Protocol == "tcp" {
 				if s.Name == WildcardSpecifier {
 					return fmt.Errorf("Wildcard service name is only valid for protocol = 'http' (listener on port %d)", listener.Port)
@@ -377,8 +381,13 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 			return fmt.Errorf("Wildcard namespace is not supported for terminating gateway services")
 		}
 
-		// Check for duplicates within the entry
 		cid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
+
+		if err := validateInnerEnterpriseMeta(&svc.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
+			return fmt.Errorf("Service %q: %v", cid.String(), err)
+		}
+
+		// Check for duplicates within the entry
 		if ok := seen[cid]; ok {
 			return fmt.Errorf("Service %q was specified more than once within a namespace", cid.String())
 		}

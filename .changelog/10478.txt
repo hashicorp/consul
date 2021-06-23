@@ -1,0 +1,3 @@
+```release-note:improvement
+structs: prohibit config entries from referencing more than one partition at a time
+```
