@@ -14,9 +14,9 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
     <div className="p-home">
       <HomepageHero
         alert={{
-          url: 'https://www.consul.io/docs/ecs',
-          text: 'Consul service mesh now available on ECS',
-          tag: 'Tech Preview',
+          url: 'https://www.hashicorp.com/blog/announcing-consul-1-10',
+          text: 'Consul 1.10 Is Now Generally Available',
+          tag: 'Blog',
         }}
         title="Service Mesh for any runtime or cloud"
         description="Consul automates networking for simple and secure application delivery."
