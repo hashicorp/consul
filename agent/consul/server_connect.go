@@ -11,12 +11,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// GetCARoots will retrieve CARoots
-// TODO: move to autoConfigBackend
-func (s *Server) GetCARoots() (*structs.IndexedCARoots, error) {
-	return s.getCARoots(nil, s.fsm.State())
-}
-
 func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.IndexedCARoots, error) {
 	index, roots, config, err := state.CARootsAndConfig(ws)
 	if err != nil {

@@ -113,14 +113,6 @@ type AutoConfigBackend interface {
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
 }
 
-type autoConfigBackend struct {
-	*Server
-}
-
-func (b autoConfigBackend) SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error) {
-	return b.Server.caManager.SignCertificate(csr, id)
-}
-
 // AutoConfig endpoint is used for cluster auto configuration operations
 type AutoConfig struct {
 	// currently AutoConfig does not support pushing down any configuration that would be reloadable on the servers

@@ -1025,7 +1025,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 // getIntermediateCAPrimary regenerates the intermediate cert in the primary datacenter.
 // This is only run for CAs that require an intermediary in the primary DC, such as Vault.
-//  It should only be called while the state lock is held by setting the state to non-ready.
+// It should only be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	// Generate and sign an intermediate cert using the root CA.
 	intermediatePEM, err := provider.GenerateIntermediate()
