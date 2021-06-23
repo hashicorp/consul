@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.auth-form {
+  @extend %auth-form;
+}

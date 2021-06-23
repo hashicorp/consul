@@ -1,0 +1,11 @@
+@import './skin';
+@import './layout';
+.oidc-select {
+  @extend %oidc-select;
+}
+%oidc-select label {
+  @extend %form-element;
+}
+%oidc-select button {
+  @extend %secondary-button;
+}
