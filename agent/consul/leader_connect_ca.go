@@ -34,6 +34,7 @@ const (
 type caServerDelegate interface {
 	ca.ConsulProviderStateDelegate
 	IsLeader() bool
+	ApplyCALeafRequest() (uint64, error)
 
 	forwardDC(method, dc string, args interface{}, reply interface{}) error
 	generateCASignRequest(csr string) *structs.CASignRequest
@@ -48,6 +49,8 @@ type CAManager struct {
 	delegate   caServerDelegate
 	serverConf *Config
 	logger     hclog.Logger
+	// rate limiter to use when signing leaf certificates
+	caLeafLimiter connectSignRateLimiter
 
 	providerLock sync.RWMutex
 	// provider is the current CA provider in use for Connect. This is
@@ -80,6 +83,29 @@ func (c *caDelegateWithState) State() *state.Store {
 
 func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
 	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
+}
+
+func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
+	// TODO(banks): when we implement IssuedCerts table we can use the insert to
+	// that as the raft index to return in response.
+	//
+	// UPDATE(mkeeler): The original implementation relied on updating the CAConfig
+	// and using its index as the ModifyIndex for certs. This was buggy. The long
+	// term goal is still to insert some metadata into raft about the certificates
+	// and use that raft index for the ModifyIndex. This is a partial step in that
+	// direction except that we only are setting an index and not storing the
+	// metadata.
+	req := structs.CALeafRequest{
+		Op:         structs.CALeafOpIncrementIndex,
+		Datacenter: c.Server.config.Datacenter,
+	}
+	resp, err := c.Server.raftApplyMsgpack(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
+
+	modIdx, ok := resp.(uint64)
+	if !ok {
+		return 0, fmt.Errorf("Invalid response from updating the leaf cert index")
+	}
+	return modIdx, err
 }
 
 func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignRequest {

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/lib/semaphore"
 )
 
+// TODO: move to leader_connect_ca.go
 type connectSignRateLimiter struct {
 	// csrRateLimiter limits the rate of signing new certs if configured. Lazily
 	// initialized from current config to support dynamic changes.
@@ -70,7 +71,8 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 	return l.csrRateLimiter
 }
 
-// GetCARoots will retrieve
+// GetCARoots will retrieve CARoots
+// TODO: move to autoConfigBackend
 func (s *Server) GetCARoots() (*structs.IndexedCARoots, error) {
 	return s.getCARoots(nil, s.fsm.State())
 }
@@ -138,9 +140,9 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	return indexedRoots, nil
 }
 
-// TODO: Move this off Server. This is only called by RPC endpoints.
-func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
-	provider, caRoot := s.caManager.getCAProvider()
+// TODO: Move this to leader_connect_ca.go
+func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
+	provider, caRoot := c.getCAProvider()
 	if provider == nil {
 		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: provider is nil")
 	} else if caRoot == nil {
@@ -148,7 +150,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	}
 
 	// Verify that the CSR entity is in the cluster's trust domain
-	state := s.fsm.State()
+	state := c.delegate.State()
 	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return nil, err
@@ -198,7 +200,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 		return nil, err
 	}
 	if commonCfg.CSRMaxPerSecond > 0 {
-		lim := s.caLeafLimiter.getCSRRateLimiterWithLimit(rate.Limit(commonCfg.CSRMaxPerSecond))
+		lim := c.caLeafLimiter.getCSRRateLimiterWithLimit(rate.Limit(commonCfg.CSRMaxPerSecond))
 		// Wait up to the small threshold we allow for a token.
 		ctx, cancel := context.WithTimeout(context.Background(), csrLimitWait)
 		defer cancel()
@@ -206,13 +208,13 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 			return nil, ErrRateLimited
 		}
 	} else if commonCfg.CSRMaxConcurrent > 0 {
-		s.caLeafLimiter.csrConcurrencyLimiter.SetSize(int64(commonCfg.CSRMaxConcurrent))
+		c.caLeafLimiter.csrConcurrencyLimiter.SetSize(int64(commonCfg.CSRMaxConcurrent))
 		ctx, cancel := context.WithTimeout(context.Background(), csrLimitWait)
 		defer cancel()
-		if err := s.caLeafLimiter.csrConcurrencyLimiter.Acquire(ctx); err != nil {
+		if err := c.caLeafLimiter.csrConcurrencyLimiter.Acquire(ctx); err != nil {
 			return nil, ErrRateLimited
 		}
-		defer s.caLeafLimiter.csrConcurrencyLimiter.Release()
+		defer c.caLeafLimiter.csrConcurrencyLimiter.Release()
 	}
 
 	connect.HackSANExtensionForCSR(csr)
@@ -245,28 +247,9 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
 
-	// TODO(banks): when we implement IssuedCerts table we can use the insert to
-	// that as the raft index to return in response.
-	//
-	// UPDATE(mkeeler): The original implementation relied on updating the CAConfig
-	// and using its index as the ModifyIndex for certs. This was buggy. The long
-	// term goal is still to insert some metadata into raft about the certificates
-	// and use that raft index for the ModifyIndex. This is a partial step in that
-	// direction except that we only are setting an index and not storing the
-	// metadata.
-	req := structs.CALeafRequest{
-		Op:         structs.CALeafOpIncrementIndex,
-		Datacenter: s.config.Datacenter,
-	}
-
-	resp, err := s.raftApply(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
+	modIdx, err := c.delegate.ApplyCALeafRequest()
 	if err != nil {
 		return nil, err
-	}
-
-	modIdx, ok := resp.(uint64)
-	if !ok {
-		return nil, fmt.Errorf("Invalid response from updating the leaf cert index")
 	}
 
 	cert, err := connect.ParseCert(pem)
