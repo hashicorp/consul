@@ -6052,23 +6052,13 @@ func TestDNS_AddressLookup(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
+		require.Len(t, in.Answer, 1)
 
-		if in.Answer[0].Header().Rrtype != dns.TypeA {
-			t.Fatalf("Invalid type: %#v", in.Answer[0])
-		}
+		require.Equal(t, dns.TypeA, in.Answer[0].Header().Rrtype)
 		aRec, ok := in.Answer[0].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-		if aRec.A.To4().String() != answer {
-			t.Fatalf("Bad: %#v", aRec)
-		}
-		if aRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
+		require.True(t, ok)
+		require.Equal(t, aRec.A.To4().String(), answer)
+		require.Zero(t, aRec.Hdr.Ttl)
 	}
 }
 
@@ -6092,27 +6082,15 @@ func TestDNS_AddressLookupANY(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
 
-		if len(in.Answer) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
-
-		if in.Answer[0].Header().Rrtype != dns.TypeA {
-			t.Fatalf("Invalid type: %#v", in.Answer[0])
-		}
+		require.NoError(t, err)
+		require.Len(t, in.Answer, 1)
+		require.Equal(t, in.Answer[0].Header().Rrtype, dns.TypeA)
 		aRec, ok := in.Answer[0].(*dns.A)
-		if !ok {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
-		if aRec.A.To4().String() != answer {
-			t.Fatalf("Bad: %#v", aRec)
-		}
-		if aRec.Hdr.Ttl != 0 {
-			t.Fatalf("Bad: %#v", in.Answer[0])
-		}
+		require.True(t, ok)
+		require.Equal(t, aRec.A.To4().String(), answer)
+		require.Zero(t, aRec.Hdr.Ttl)
+
 	}
 }
 
@@ -6136,20 +6114,10 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if in.Rcode != 0 {
-			t.Fatalf("Bad Rcode: %#v", in)
-		}
-
-		if in.Answer != nil {
-			t.Fatalf("Bad: %#v", in)
-		}
-		if in.Extra == nil {
-			t.Fatalf("Bad: %#v", in)
-		}
+		require.NoError(t, err)
+		require.Zero(t, in.Rcode)
+		require.Nil(t, in.Answer)
+		require.Nil(t, in.Extra)
 		require.Len(t, in.Extra, 1)
 	}
 }
