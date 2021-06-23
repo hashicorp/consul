@@ -40,11 +40,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 	resp.Header().Set("Content-Type", "application/pem-certificate-chain")
 
 	err := writeCA(resp, reply.Roots)
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
+	return nil, err
 }
 
 func writeCA(resp io.Writer, roots []*structs.CARoot) error {
