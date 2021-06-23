@@ -1,0 +1,31 @@
+---
+class: ember
+state: needs-love
+---
+# radio-group
+
+A component for creating horizontally laid out radio groups. It seems like we
+do not use the Ember component at all, but we do use the CSS component here,
+so we should look at this and decide exactly what to use, and whether it needs
+refactoring/deprecating.
+
+```hbs preview-template
+<RadioGroup @items={{
+  array
+  (hash
+    key="value-1"
+    value="Value 1"
+  )
+  (hash
+    key="value-2"
+    value="Value 2"
+  )
+}} />
+```
+
+
+```css
+[role="radio-group"] {
+  @extend %radio-group;
+}
+```

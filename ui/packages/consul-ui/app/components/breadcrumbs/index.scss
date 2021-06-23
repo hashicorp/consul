@@ -1,5 +1,12 @@
 @import './skin';
 @import './layout';
+main header nav:first-child {
+  position: absolute;
+  top: 12px;
+}
+main header nav:first-child ol {
+  @extend %breadcrumbs;
+}
 %breadcrumbs li a {
   @extend %crumbs;
 }

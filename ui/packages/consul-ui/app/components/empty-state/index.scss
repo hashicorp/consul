@@ -1,5 +1,8 @@
 @import './layout';
 @import './skin';
+.empty-state {
+  @extend %empty-state;
+}
 %empty-state header :first-child {
   @extend %empty-state-header;
 }
