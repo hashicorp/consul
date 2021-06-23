@@ -795,26 +795,20 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				return invalid()
 			}
 			//check if the query type is  A for IPv4 or ANY
+			ARecord := &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   qName + d.domain,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(cfg.NodeTTL / time.Second),
+				},
+				A: ip,
+			}
 			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
-				resp.Extra = append(resp.Answer, &dns.A{
-					Hdr: dns.RR_Header{
-						Name:   qName + d.domain,
-						Rrtype: dns.TypeA,
-						Class:  dns.ClassINET,
-						Ttl:    uint32(cfg.NodeTTL / time.Second),
-					},
-					A: ip,
-				})
+				//resp.SetRcode(req, dns.RcodeSuccess)
+				resp.Extra = append(resp.Answer, ARecord)
 			} else {
-				resp.Answer = append(resp.Answer, &dns.A{
-					Hdr: dns.RR_Header{
-						Name:   qName + d.domain,
-						Rrtype: dns.TypeA,
-						Class:  dns.ClassINET,
-						Ttl:    uint32(cfg.NodeTTL / time.Second),
-					},
-					A: ip,
-				})
+				resp.Answer = append(resp.Answer, ARecord)
 			}
 		// IPv6
 		case 16:
@@ -823,27 +817,20 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				return invalid()
 			}
 			//check if the query type is  AAAA for IPv6 or ANY
+			AAAARecord := &dns.AAAA{
+				Hdr: dns.RR_Header{
+					Name:   qName + d.domain,
+					Rrtype: dns.TypeAAAA,
+					Class:  dns.ClassINET,
+					Ttl:    uint32(cfg.NodeTTL / time.Second),
+				},
+				AAAA: ip,
+			}
 			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
 				//resp.SetRcode(req, dns.RcodeSuccess)
-				resp.Extra = append(resp.Extra, &dns.AAAA{
-					Hdr: dns.RR_Header{
-						Name:   qName + d.domain,
-						Rrtype: dns.TypeAAAA,
-						Class:  dns.ClassINET,
-						Ttl:    uint32(cfg.NodeTTL / time.Second),
-					},
-					AAAA: ip,
-				})
+				resp.Extra = append(resp.Extra, AAAARecord)
 			} else {
-				resp.Answer = append(resp.Answer, &dns.AAAA{
-					Hdr: dns.RR_Header{
-						Name:   qName + d.domain,
-						Rrtype: dns.TypeAAAA,
-						Class:  dns.ClassINET,
-						Ttl:    uint32(cfg.NodeTTL / time.Second),
-					},
-					AAAA: ip,
-				})
+				resp.Answer = append(resp.Answer, AAAARecord)
 			}
 		}
 	}
