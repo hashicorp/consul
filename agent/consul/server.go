@@ -878,7 +878,7 @@ func (s *Server) setupRPC() error {
 		authz = &disabledAuthorizer{}
 	}
 	// now register with the insecure RPC server
-	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, s, authz))
+	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, autoConfigBackend{Server: s}, authz))
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -1456,6 +1456,7 @@ func (s *Server) isReadyForConsistentReads() bool {
 }
 
 // CreateACLToken will create an ACL token from the given template
+// TODO: move to autoConfigBackend
 func (s *Server) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error) {
 	// we have to require local tokens or else it would require having these servers use a token with acl:write to make a
 	// token create RPC to the servers in the primary DC.
@@ -1504,6 +1505,7 @@ func (s *Server) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, 
 
 // DatacenterJoinAddresses will return all the strings suitable for usage in
 // retry join operations to connect to the the LAN or LAN segment gossip pool.
+// TODO: move to autoConfigBackend
 func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
 	members, err := s.LANSegmentMembers(segment)
 	if err != nil {

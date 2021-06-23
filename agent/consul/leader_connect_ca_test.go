@@ -62,6 +62,10 @@ func (m *mockCAServerDelegate) CheckServers(datacenter string, fn func(*metadata
 	})
 }
 
+func (m *mockCAServerDelegate) ApplyCALeafRequest() (uint64, error) {
+	return 3, nil
+}
+
 // ApplyCARequest mirrors FSM.applyConnectCAOperation because that functionality
 // is not exported.
 func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {

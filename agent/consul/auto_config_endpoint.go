@@ -109,9 +109,16 @@ type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
 	DatacenterJoinAddresses(segment string) ([]string, error)
 	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
-
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
+}
+
+type autoConfigBackend struct {
+	*Server
+}
+
+func (b autoConfigBackend) SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error) {
+	return b.Server.caManager.SignCertificate(csr, id)
 }
 
 // AutoConfig endpoint is used for cluster auto configuration operations

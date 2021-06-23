@@ -192,7 +192,7 @@ func (s *ConnectCA) Sign(
 		}
 	}
 
-	cert, err := s.srv.SignCertificate(csr, spiffeID)
+	cert, err := s.srv.caManager.SignCertificate(csr, spiffeID)
 	if err != nil {
 		return err
 	}
