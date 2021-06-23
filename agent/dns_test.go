@@ -6117,7 +6117,7 @@ func TestDNS_AddressLookupInvalidType(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, in.Rcode)
 		require.Nil(t, in.Answer)
-		require.Nil(t, in.Extra)
+		require.NotNil(t, in.Extra)
 		require.Len(t, in.Extra, 1)
 	}
 }
