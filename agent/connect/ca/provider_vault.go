@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 )
 
 const VaultCALeafCertRole = "leaf-cert"
@@ -518,7 +519,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 }
 
 // SupportsCrossSigning implements Provider
-func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
+func (v *VaultProvider) SupportsCrossSigning() (bool, error) {
 	return true, nil
 }
 
@@ -556,6 +557,8 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 func (v *VaultProvider) Stop() {
 	v.shutdown()
 }
+
+func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{

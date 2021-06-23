@@ -9,13 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 type caState string
@@ -1070,12 +1071,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	// If this is the primary, check if this is a provider that uses an intermediate cert. If
 	// it isn't, we don't need to check for a renewal.
 	if isPrimary {
-		_, config, err := state.CAConfig(nil)
-		if err != nil {
-			return err
-		}
-
-		if _, ok := ca.PrimaryIntermediateProviders[config.Provider]; !ok {
+		if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
 			return nil
 		}
 	}
