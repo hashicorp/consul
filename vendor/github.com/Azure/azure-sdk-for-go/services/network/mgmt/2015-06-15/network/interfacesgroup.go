@@ -112,7 +112,6 @@ func (client InterfacesClient) CreateOrUpdateSender(req *http.Request) (future I
 func (client InterfacesClient) CreateOrUpdateResponder(resp *http.Response) (result Interface, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -188,7 +187,6 @@ func (client InterfacesClient) DeleteSender(req *http.Request) (future Interface
 func (client InterfacesClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent),
 		autorest.ByClosing())
 	result.Response = resp
@@ -267,7 +265,6 @@ func (client InterfacesClient) GetSender(req *http.Request) (*http.Response, err
 func (client InterfacesClient) GetResponder(resp *http.Response) (result Interface, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -351,7 +348,6 @@ func (client InterfacesClient) GetVirtualMachineScaleSetNetworkInterfaceSender(r
 func (client InterfacesClient) GetVirtualMachineScaleSetNetworkInterfaceResponder(resp *http.Response) (result Interface, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -426,7 +422,6 @@ func (client InterfacesClient) ListSender(req *http.Request) (*http.Response, er
 func (client InterfacesClient) ListResponder(resp *http.Response) (result InterfaceListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -535,7 +530,6 @@ func (client InterfacesClient) ListAllSender(req *http.Request) (*http.Response,
 func (client InterfacesClient) ListAllResponder(resp *http.Response) (result InterfaceListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -649,7 +643,6 @@ func (client InterfacesClient) ListVirtualMachineScaleSetNetworkInterfacesSender
 func (client InterfacesClient) ListVirtualMachineScaleSetNetworkInterfacesResponder(resp *http.Response) (result InterfaceListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
@@ -766,7 +759,6 @@ func (client InterfacesClient) ListVirtualMachineScaleSetVMNetworkInterfacesSend
 func (client InterfacesClient) ListVirtualMachineScaleSetVMNetworkInterfacesResponder(resp *http.Response) (result InterfaceListResult, err error) {
 	err = autorest.Respond(
 		resp,
-		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusOK),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())

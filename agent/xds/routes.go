@@ -42,7 +42,7 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
 func (s *ResourceGenerator) routesForConnectProxy(chains map[string]*structs.CompiledDiscoveryChain) ([]proto.Message, error) {
-	var resources []proto.Message
+	resources := make([]proto.Message, 0)
 	for id, chain := range chains {
 		if chain.IsDefault() {
 			continue

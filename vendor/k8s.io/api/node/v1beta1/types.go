@@ -24,6 +24,8 @@ import (
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:prerelease-lifecycle-gen:introduced=1.13
+// +k8s:prerelease-lifecycle-gen:deprecated=1.22
 
 // RuntimeClass defines a class of container runtime supported in the cluster.
 // The RuntimeClass is used to determine which container runtime is used to run
@@ -46,8 +48,8 @@ type RuntimeClass struct {
 	// For example, a handler called "runc" might specify that the runc OCI
 	// runtime (using native Linux containers) will be used to run the containers
 	// in a pod.
-	// The Handler must conform to the DNS Label (RFC 1123) requirements, and is
-	// immutable.
+	// The Handler must be lowercase, conform to the DNS Label (RFC 1123) requirements,
+	// and is immutable.
 	Handler string `json:"handler" protobuf:"bytes,2,opt,name=handler"`
 
 	// Overhead represents the resource overhead associated with running a pod for a
@@ -92,6 +94,8 @@ type Scheduling struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:prerelease-lifecycle-gen:introduced=1.13
+// +k8s:prerelease-lifecycle-gen:deprecated=1.22
 
 // RuntimeClassList is a list of RuntimeClass objects.
 type RuntimeClassList struct {

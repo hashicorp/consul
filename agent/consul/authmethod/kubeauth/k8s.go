@@ -132,11 +132,11 @@ func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*auth
 	}
 
 	// Check TokenReview for the bulk of the work.
-	trResp, err := v.trGetter.TokenReviews().Create(&authv1.TokenReview{
+	trResp, err := v.trGetter.TokenReviews().Create(ctx, &authv1.TokenReview{
 		Spec: authv1.TokenReviewSpec{
 			Token: loginToken,
 		},
-	})
+	}, client_metav1.CreateOptions{})
 
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*auth
 	)
 
 	// Check to see  if there is an override name on the ServiceAccount object.
-	sa, err := v.saGetter.ServiceAccounts(saNamespace).Get(saName, client_metav1.GetOptions{})
+	sa, err := v.saGetter.ServiceAccounts(saNamespace).Get(ctx, saName, client_metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("annotation lookup failed: %v", err)
 	}

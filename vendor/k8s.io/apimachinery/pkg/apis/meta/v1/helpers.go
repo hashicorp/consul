@@ -201,6 +201,20 @@ func SetMetaDataAnnotation(obj *ObjectMeta, ann string, value string) {
 	obj.Annotations[ann] = value
 }
 
+// HasLabel returns a bool if passed in label exists
+func HasLabel(obj ObjectMeta, label string) bool {
+	_, found := obj.Labels[label]
+	return found
+}
+
+// SetMetaDataLabel sets the label and value
+func SetMetaDataLabel(obj *ObjectMeta, label string, value string) {
+	if obj.Labels == nil {
+		obj.Labels = make(map[string]string)
+	}
+	obj.Labels[label] = value
+}
+
 // SingleObject returns a ListOptions for watching a single object.
 func SingleObject(meta ObjectMeta) ListOptions {
 	return ListOptions{
@@ -252,7 +266,9 @@ func ResetObjectMetaForStatus(meta, existingMeta Object) {
 	meta.SetAnnotations(existingMeta.GetAnnotations())
 	meta.SetFinalizers(existingMeta.GetFinalizers())
 	meta.SetOwnerReferences(existingMeta.GetOwnerReferences())
-	meta.SetManagedFields(existingMeta.GetManagedFields())
+	// managedFields must be preserved since it's been modified to
+	// track changed fields in the status update.
+	//meta.SetManagedFields(existingMeta.GetManagedFields())
 }
 
 // MarshalJSON implements json.Marshaler

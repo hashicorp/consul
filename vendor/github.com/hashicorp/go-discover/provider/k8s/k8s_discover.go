@@ -2,6 +2,7 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -105,10 +106,12 @@ func (p *Provider) Addrs(args map[string]string, l *log.Logger) ([]string, error
 	}
 
 	// List all the pods based on the filters we requested
-	pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{
-		LabelSelector: args["label_selector"],
-		FieldSelector: args["field_selector"],
-	})
+	pods, err := clientset.CoreV1().Pods(namespace).List(
+		context.Background(),
+		metav1.ListOptions{
+			LabelSelector: args["label_selector"],
+			FieldSelector: args["field_selector"],
+		})
 	if err != nil {
 		return nil, fmt.Errorf("discover-k8s: error listing pods: %s", err)
 	}
