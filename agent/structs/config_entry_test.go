@@ -1646,16 +1646,11 @@ func TestUpstreamLimits_Validate(t *testing.T) {
 	}
 }
 
-func TestServiceConfigEntry_Normalize(t *testing.T) {
-	tt := []struct {
-		name   string
-		input  ServiceConfigEntry
-		expect ServiceConfigEntry
-	}{
-		{
+func TestServiceConfigEntry(t *testing.T) {
+	cases := map[string]configEntryTestcase{
+		"normalize: upstream config override no name": {
 			// This will do nothing to normalization, but it will fail at validation later
-			name: "upstream config override no name",
-			input: ServiceConfigEntry{
+			entry: &ServiceConfigEntry{
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
@@ -1673,7 +1668,7 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					},
 				},
 			},
-			expect: ServiceConfigEntry{
+			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
@@ -1696,11 +1691,11 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					},
 				},
 			},
+			normalizeOnly: true,
 		},
-		{
+		"normalize: upstream config defaults with name": {
 			// This will do nothing to normalization, but it will fail at validation later
-			name: "upstream config defaults with name",
-			input: ServiceConfigEntry{
+			entry: &ServiceConfigEntry{
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
 					Defaults: &UpstreamConfig{
@@ -1709,7 +1704,7 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					},
 				},
 			},
-			expect: ServiceConfigEntry{
+			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
@@ -1720,35 +1715,35 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 					},
 				},
 			},
+			normalizeOnly: true,
 		},
-		{
-			name: "fill-in-kind",
-			input: ServiceConfigEntry{
+		"normalize: fill-in-kind": {
+			entry: &ServiceConfigEntry{
 				Name: "web",
 			},
-			expect: ServiceConfigEntry{
+			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
+			normalizeOnly: true,
 		},
-		{
-			name: "lowercase-protocol",
-			input: ServiceConfigEntry{
+		"normalize: lowercase-protocol": {
+			entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "web",
 				Protocol: "PrOtoCoL",
 			},
-			expect: ServiceConfigEntry{
+			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
 				Protocol:       "protocol",
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
+			normalizeOnly: true,
 		},
-		{
-			name: "connect-kitchen-sink",
-			input: ServiceConfigEntry{
+		"normalize: connect-kitchen-sink": {
+			entry: &ServiceConfigEntry{
 				Kind: ServiceDefaults,
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
@@ -1766,7 +1761,7 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 				},
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
-			expect: ServiceConfigEntry{
+			expected: &ServiceConfigEntry{
 				Kind: ServiceDefaults,
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
@@ -1789,35 +1784,16 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 				},
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
+			normalizeOnly: true,
 		},
-	}
-
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.input.Normalize()
-			require.NoError(t, err)
-			require.Equal(t, tc.expect, tc.input)
-		})
-	}
-}
-
-func TestServiceConfigEntry_Validate(t *testing.T) {
-	tt := []struct {
-		name      string
-		input     *ServiceConfigEntry
-		expect    *ServiceConfigEntry
-		expectErr string
-	}{
-		{
-			name: "wildcard name is not allowed",
-			input: &ServiceConfigEntry{
+		"wildcard name is not allowed": {
+			entry: &ServiceConfigEntry{
 				Name: WildcardSpecifier,
 			},
-			expectErr: `must be the name of a service, and not a wildcard`,
+			validateErr: `must be the name of a service, and not a wildcard`,
 		},
-		{
-			name: "upstream config override no name",
-			input: &ServiceConfigEntry{
+		"upstream config override no name": {
+			entry: &ServiceConfigEntry{
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
@@ -1835,11 +1811,10 @@ func TestServiceConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `Name is required`,
+			validateErr: `Name is required`,
 		},
-		{
-			name: "upstream config defaults with name",
-			input: &ServiceConfigEntry{
+		"upstream config defaults with name": {
+			entry: &ServiceConfigEntry{
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
 					Defaults: &UpstreamConfig{
@@ -1848,11 +1823,10 @@ func TestServiceConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: `error in upstream defaults: Name must be empty`,
+			validateErr: `error in upstream defaults: Name must be empty`,
 		},
-		{
-			name: "connect-kitchen-sink",
-			input: &ServiceConfigEntry{
+		"connect-kitchen-sink": {
+			entry: &ServiceConfigEntry{
 				Kind: ServiceDefaults,
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
@@ -1870,7 +1844,7 @@ func TestServiceConfigEntry_Validate(t *testing.T) {
 				},
 				EnterpriseMeta: *DefaultEnterpriseMeta(),
 			},
-			expect: &ServiceConfigEntry{
+			expected: &ServiceConfigEntry{
 				Kind: ServiceDefaults,
 				Name: "web",
 				UpstreamConfig: &UpstreamConfiguration{
@@ -1893,21 +1867,7 @@ func TestServiceConfigEntry_Validate(t *testing.T) {
 			},
 		},
 	}
-
-	for _, tc := range tt {
-		t.Run(tc.name, func(t *testing.T) {
-			// normalize before validate since they always happen in that order
-			require.NoError(t, tc.input.Normalize())
-
-			err := tc.input.Validate()
-			if tc.expectErr != "" {
-				testutil.RequireErrorContains(t, err, tc.expectErr)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.expect, tc.input)
-			}
-		})
-	}
+	testConfigEntryNormalizeAndValidate(t, cases)
 }
 
 func TestUpstreamConfig_MergeInto(t *testing.T) {
@@ -2227,4 +2187,58 @@ func TestServiceConfigRequest_CacheInfoKey(t *testing.T) {
 
 func TestDiscoveryChainRequest_CacheInfoKey(t *testing.T) {
 	assertCacheInfoKeyIsComplete(t, &DiscoveryChainRequest{})
+}
+
+type configEntryTestcase struct {
+	entry         ConfigEntry
+	normalizeOnly bool
+
+	normalizeErr string
+	validateErr  string
+
+	// Only one of either expected or check can be set.
+	expected ConfigEntry
+	// check is called between normalize and validate
+	check func(t *testing.T, entry ConfigEntry)
+}
+
+func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEntryTestcase) {
+	t.Helper()
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			err := tc.entry.Normalize()
+			if tc.normalizeErr != "" {
+				testutil.RequireErrorContains(t, err, tc.normalizeErr)
+				return
+			}
+			require.NoError(t, err)
+
+			if tc.expected != nil && tc.check != nil {
+				t.Fatal("cannot set both 'expected' and 'check' test case fields")
+			}
+
+			if tc.expected != nil {
+				require.Equal(t, tc.expected, tc.entry)
+			}
+
+			if tc.check != nil {
+				tc.check(t, tc.entry)
+			}
+
+			if tc.normalizeOnly {
+				return
+			}
+
+			err = tc.entry.Validate()
+			if tc.validateErr != "" {
+				// require.Error(t, err)
+				// require.Contains(t, err.Error(), tc.validateErr)
+				testutil.RequireErrorContains(t, err, tc.validateErr)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
 }
