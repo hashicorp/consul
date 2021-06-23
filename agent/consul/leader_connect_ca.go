@@ -25,6 +25,7 @@ const (
 	caStateInitializing              = "INITIALIZING"
 	caStateInitialized               = "INITIALIZED"
 	caStateRenewIntermediate         = "RENEWING"
+	caStateRenewRoot                 = "RENEWING ROOT"
 	caStateReconfig                  = "RECONFIGURING"
 )
 
@@ -279,6 +280,7 @@ func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
 	}
 
 	c.leaderRoutineManager.Start(ctx, intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
+	c.leaderRoutineManager.Start(ctx, rootCertRenewWatchRoutineName, c.rootCertRenewalWatch)
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
@@ -309,7 +311,7 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	}
 
 	// Update the state before doing anything else.
-	oldState, err := c.setState(caStateInitializing, true)
+	oldState, err := c.setState(caStateInitializing, false)
 	// if we were already in the initialized state then there is nothing to be done.
 	if oldState == caStateInitialized {
 		return nil
@@ -1039,6 +1041,27 @@ func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
 	}
 }
 
+// intermediateCertRenewalWatch periodically attempts to renew the intermediate cert.
+func (c *CAManager) rootCertRenewalWatch(ctx context.Context) error {
+	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(structs.RootCertRenewInterval):
+			retryLoopBackoffAbortOnSuccess(ctx, func() error {
+				return c.RenewRoot(ctx, isPrimary)
+			}, func(err error) {
+				c.logger.Error("error renewing intermediate certs",
+					"routine", rootCertRenewWatchRoutineName,
+					"error", err,
+				)
+			})
+		}
+	}
+}
+
 // RenewIntermediate checks the intermediate cert for
 // expiration. If more than half the time a cert is valid has passed,
 // it will try to renew it.
@@ -1260,4 +1283,27 @@ func (c *CAManager) configuredSecondaryCA() bool {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.actingSecondaryCA
+}
+
+func (c *CAManager) RenewRoot(ctx context.Context, primary bool) error {
+	if primary {
+		if _, err := c.setState(caStateRenewRoot, true); err != nil {
+			return err
+		}
+		defer c.setState(caStateInitialized, false)
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- c.InitializeCA()
+		}()
+		// Wait for the renewal func to return or for the context to be canceled.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errCh:
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
