@@ -789,6 +789,12 @@ func (cfg UpstreamConfig) validate(named bool) error {
 		if cfg.Name == "" {
 			return fmt.Errorf("Name is required")
 		}
+		if cfg.Name == WildcardSpecifier {
+			return fmt.Errorf("Wildcard name is not supported")
+		}
+		if cfg.EnterpriseMeta.NamespaceOrDefault() == WildcardSpecifier {
+			return fmt.Errorf("Wildcard namespace is not supported")
+		}
 	} else {
 		if cfg.Name != "" {
 			return fmt.Errorf("Name must be empty")
