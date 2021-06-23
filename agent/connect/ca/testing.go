@@ -2,6 +2,7 @@ package ca
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -262,4 +263,7 @@ func ApplyCARequestToStore(store *state.Store, req *structs.CARequest) (interfac
 	default:
 		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
+}
+func requireTrailingNewline(t testing.T, leafPEM string) {
+	require.Equal(t, '\n', rune(leafPEM[len(leafPEM)-1]))
 }

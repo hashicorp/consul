@@ -197,7 +197,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 				// Make sure we can validate the cert as expected.
 				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
-				require.Equal('\n', rune(cert[len(cert)-1]))
+				requireTrailingNewline(t, cert)
 			}
 
 			// Generate a new cert for another service and make sure
