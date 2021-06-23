@@ -23,6 +23,7 @@ const VaultCALeafCertRole = "leaf-cert"
 
 var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
 var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
+var ErrCertExpired = fmt.Errorf("certificate is expired")
 
 type VaultProvider struct {
 	config *structs.VaultCAProviderConfig
@@ -168,7 +169,19 @@ func (v *VaultProvider) GenerateRoot() error {
 	}
 
 	// Set up the root PKI backend if necessary.
-	_, err := v.ActiveRoot()
+	root, err := v.ActiveRoot()
+
+	// try to parse and check the validity of the root cert
+	// if any error or expired regenerate it
+	if err == nil {
+		rootCert, err2 := connect.ParseCert(root)
+		// if parsing fail we assume it's not initialized and regenerate
+		if err2 != nil {
+			err = ErrBackendNotInitialized
+		} else if rootCert.NotAfter.Before(time.Now()) {
+			err = ErrCertExpired
+		}
+	}
 	switch err {
 	case ErrBackendNotMounted:
 		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
@@ -184,7 +197,7 @@ func (v *VaultProvider) GenerateRoot() error {
 		}
 
 		fallthrough
-	case ErrBackendNotInitialized:
+	case ErrBackendNotInitialized, ErrCertExpired:
 		uid, err := connect.CompactUID()
 		if err != nil {
 			return err

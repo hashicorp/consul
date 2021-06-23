@@ -164,8 +164,17 @@ func (c *ConsulProvider) GenerateRoot() error {
 	if !c.isPrimary {
 		return fmt.Errorf("provider is not the root certificate authority")
 	}
+
+	// try to parse and check the validity of the root cert
+	// if any error or expired regenerate it
 	if providerState.RootCert != "" {
-		return nil
+		rootCert, err2 := connect.ParseCert(providerState.RootCert)
+		if err2 == nil {
+			// cert is still valid
+			if rootCert.NotAfter.After(time.Now()) {
+				return nil
+			}
+		}
 	}
 
 	// Generate a private key if needed
