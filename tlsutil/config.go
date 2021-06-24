@@ -397,10 +397,6 @@ func (c Config) anyVerifyIncoming() bool {
 	return c.VerifyIncoming || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
 }
 
-func (c Config) verifyIncomingRPC() bool {
-	return c.VerifyIncoming || c.VerifyIncomingRPC
-}
-
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
 	if certFile == "" || keyFile == "" {
 		return nil, nil
@@ -532,11 +528,12 @@ func (c *Configurator) Cert() *tls.Certificate {
 	return cert
 }
 
-// This function acquires a read lock because it reads from the config.
+// VerifyIncomingRPC returns true if the configuration has enabled either
+// VerifyIncoming, or VerifyIncomingRPC
 func (c *Configurator) VerifyIncomingRPC() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.base.verifyIncomingRPC()
+	return c.base.VerifyIncoming || c.base.VerifyIncomingRPC
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -598,13 +595,6 @@ func (c *Configurator) domain() string {
 }
 
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) verifyIncomingRPC() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.base.verifyIncomingRPC()
-}
-
-// This function acquires a read lock because it reads from the config.
 func (c *Configurator) verifyIncomingHTTPS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -647,7 +637,7 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
-	config := c.commonTLSConfig(c.verifyIncomingRPC())
+	config := c.commonTLSConfig(c.VerifyIncomingRPC())
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingRPCConfig(), nil
 	}

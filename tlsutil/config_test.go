@@ -846,7 +846,7 @@ func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
 	c := Configurator{base: &Config{
 		VerifyIncomingRPC: true,
 	}}
-	verify := c.verifyIncomingRPC()
+	verify := c.VerifyIncomingRPC()
 	require.Equal(t, c.base.VerifyIncomingRPC, verify)
 }
 
