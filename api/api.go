@@ -1069,7 +1069,7 @@ func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *h
 // is necessary to ensure that the http.Client's underlying RoundTripper is able
 // to re-use the TCP connection. See godoc on net/http.Client.Do.
 func closeResponseBody(resp *http.Response) error {
-	_, _ = io.Copy(io.Discard, resp.Body)
+	_, _ = io.Copy(ioutil.Discard, resp.Body)
 	return resp.Body.Close()
 }
 
