@@ -185,7 +185,7 @@ task {
   // services but does not execute task. refer to module docs on how to configure.
   services = ["web-api"]
 
-  condition "catalog-service" {
+  condition "catalog-services" {
     datacenter          = "dc1"
     namespace           = "default"
     regexp              = "web.*"
