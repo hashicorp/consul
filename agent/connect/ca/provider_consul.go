@@ -429,8 +429,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // are met. It should return a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	connect.HackSANExtensionForCSR(csr)
-
 	providerState, err := c.getState()
 	if err != nil {
 		return "", err

@@ -446,8 +446,6 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 // SignIntermediate returns a signed CA certificate with a path length constraint
 // of 0 to ensure that the certificate cannot be used to generate further CA certs.
 func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
-	connect.HackSANExtensionForCSR(csr)
-
 	err := validateSignIntermediate(csr, v.spiffeID)
 	if err != nil {
 		return "", err
