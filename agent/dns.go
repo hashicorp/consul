@@ -805,9 +805,9 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				A: ip,
 			}
 			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
-				resp.Extra = append(resp.Answer, ARecord)
+				resp.Extra = append(resp.Answer, aRecord)
 			} else {
-				resp.Answer = append(resp.Answer, ARecord)
+				resp.Answer = append(resp.Answer, aRecord)
 			}
 		// IPv6
 		case 16:
@@ -826,9 +826,9 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				AAAA: ip,
 			}
 			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
-				resp.Extra = append(resp.Extra, AAAARecord)
+				resp.Extra = append(resp.Extra, aaaaRecord)
 			} else {
-				resp.Answer = append(resp.Answer, AAAARecord)
+				resp.Answer = append(resp.Answer, aaaaRecord)
 			}
 		}
 	}
