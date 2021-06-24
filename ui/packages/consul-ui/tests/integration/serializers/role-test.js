@@ -53,7 +53,7 @@ module('Integration | Serializer | role', function(hooks) {
           Policies: createPolicies(payload),
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: payload.Namespace || undefinedNspace,
+            [NSPACE.toLowerCase()]: nspace || '',
           },
           Namespace: payload.Namespace || undefinedNspace,
           uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,

@@ -44,7 +44,9 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
       const dc = 'dc-1';
       const id = 'slug';
       const request = {
-        url: `/v1/acl/oidc/auth-url?dc=${dc}`,
+        url: `/v1/acl/oidc/auth-url?dc=${dc}${
+          typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+        }`,
       };
       return get(request.url).then(function(payload) {
         const expected = Object.assign({}, payload, {
@@ -52,7 +54,7 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
           Datacenter: dc,
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: payload.Namespace || undefinedNspace,
+            [NSPACE.toLowerCase()]: nspace || '',
           },
           Namespace: payload.Namespace || undefinedNspace,
           uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
@@ -66,6 +68,7 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
           {
             dc: dc,
             id: id,
+            ns: nspace,
           }
         );
         assert.deepEqual(actual, expected);
