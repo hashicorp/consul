@@ -30,8 +30,7 @@ will expect to make API calls to the Kubernetes service for service/endpoint man
 Kubernetes service is common.
 
 ```yaml
-# An Example from a Traefik helm chart
-# Annotations to add to the deployed services
+# An Example configuration showing some typical podAnnotations settings
 deployment:
   podAnnotations:
     consul.hashicorp.com/connect-inject: "true"
