@@ -14,10 +14,6 @@
             "path": "intro/vs"
           },
           {
-            "title": "ZooKeeper, doozerd, etcd",
-            "path": "intro/vs/zookeeper"
-          },
-          {
             "title": "Chef, Puppet, etc.",
             "path": "intro/vs/chef-puppet"
           },
