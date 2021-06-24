@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServiceManager_RegisterService(t *testing.T) {
@@ -330,26 +331,27 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Now register a sidecar proxy via the API.
-	svc := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "web",
-			DestinationServiceID:   "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8000,
-			Upstreams: structs.Upstreams{
-				{
-					DestinationName:      "redis",
-					DestinationNamespace: "default",
-					LocalBindPort:        5000,
+	newNodeService := func() *structs.NodeService {
+		return &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-sidecar-proxy",
+			Service: "web-sidecar-proxy",
+			Port:    21000,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+				DestinationServiceID:   "web",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       8000,
+				Upstreams: structs.Upstreams{
+					{
+						DestinationName:      "redis",
+						DestinationNamespace: "default",
+						LocalBindPort:        5000,
+					},
 				},
 			},
-		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		}
 	}
 
 	expectState := &structs.NodeService{
@@ -385,6 +387,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
+	svc := newNodeService()
 	svcID := svc.CompoundServiceID()
 
 	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHash())
@@ -443,8 +446,15 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	}
 
 	// Updates service definition on disk
+	svc = newNodeService()
 	svc.Proxy.LocalServicePort = 8001
-	require.NoError(a.addServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
+	err = a.AddService(AddServiceRequest{
+		Service: svc,
+		persist: true,
+		token:   "mytoken",
+		Source:  ConfigSourceRemote,
+	})
+	require.NoError(err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 

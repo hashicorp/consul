@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -37,7 +36,7 @@ func (c *Client) monitorACLMode() {
 		foundServers, mode, _ := ServersGetACLMode(c, "", c.config.Datacenter)
 		if foundServers && mode == structs.ACLModeEnabled {
 			c.logger.Debug("transitioned out of legacy ACL mode")
-			c.updateSerfTags("acls", string(structs.ACLModeEnabled))
+			updateTag(c.serf, "acls", string(structs.ACLModeEnabled))
 			atomic.StoreInt32(&c.useNewACLs, 1)
 			return
 		}
@@ -115,5 +114,5 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 
 func (c *Client) updateSerfTags(key, value string) {
 	// Update the LAN serf
-	serf.UpdateTag(c.serf, key, value)
+
 }

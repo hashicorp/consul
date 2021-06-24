@@ -55,7 +55,7 @@ require (
 	github.com/hashicorp/raft v1.3.1
 	github.com/hashicorp/raft-autopilot v0.1.5
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
-	github.com/hashicorp/serf v0.9.5
+	github.com/hashicorp/serf v0.9.6-0.20210609195804-2b5dd0cd2de9
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce
 	github.com/imdario/mergo v0.3.6

@@ -1,12 +1,14 @@
 package consul
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -86,13 +88,28 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 
 func (s *Server) updateSerfTags(key, value string) {
 	// Update the LAN serf
-	serf.UpdateTag(s.serfLAN, key, value)
+	updateTag(s.serfLAN, key, value)
 
 	if s.serfWAN != nil {
-		serf.UpdateTag(s.serfWAN, key, value)
+		updateTag(s.serfWAN, key, value)
 	}
 
 	s.updateEnterpriseSerfTags(key, value)
+}
+
+var serfTagLock sync.Mutex
+
+func updateTag(serf *serf.Serf, tag, value string) {
+	serfTagLock.Lock()
+	defer serfTagLock.Unlock()
+	tags := make(map[string]string)
+	for tag, value := range serf.LocalMember().Tags {
+		tags[tag] = value
+	}
+	tags[tag] = value
+
+	// TODO: why is the error ignored?
+	serf.SetTags(tags)
 }
 
 func (s *Server) updateACLAdvertisement() {

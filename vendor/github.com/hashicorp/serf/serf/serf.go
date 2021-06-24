@@ -958,7 +958,7 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 
 		member.Status = StatusAlive
 		member.leaveTime = time.Time{}
-		member.Addr = net.IP(n.Addr)
+		member.Addr = n.Addr
 		member.Port = n.Port
 		member.Tags = s.decodeTags(n.Meta)
 	}
@@ -1088,6 +1088,7 @@ func (s *Serf) handleNodeUpdate(n *memberlist.Node) {
 
 // handleNodeLeaveIntent is called when an intent to leave is received.
 func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
+	state := s.State()
 
 	// Witness a potentially newer time
 	s.clock.Witness(leaveMsg.LTime)
@@ -1108,7 +1109,7 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 
 	// Refute us leaving if we are in the alive state
 	// Must be done in another goroutine since we have the memberLock
-	if leaveMsg.Node == s.config.NodeName && s.state == SerfAlive {
+	if leaveMsg.Node == s.config.NodeName && state == SerfAlive {
 		s.logger.Printf("[DEBUG] serf: Refuting an older leave intent")
 		go s.broadcastJoin(s.clock.Time())
 		return false
@@ -1639,7 +1640,6 @@ func (s *Serf) reconnect() {
 	// Select a random member to try and join
 	idx := rand.Int31n(int32(n))
 	mem := s.failedMembers[idx]
-	s.memberLock.RUnlock()
 
 	// Format the addr
 	addr := net.UDPAddr{IP: mem.Addr, Port: int(mem.Port)}
@@ -1649,6 +1649,7 @@ func (s *Serf) reconnect() {
 	if mem.Name != "" {
 		joinAddr = mem.Name + "/" + addr.String()
 	}
+	s.memberLock.RUnlock()
 
 	// Attempt to join at the memberlist level
 	s.memberlist.Join([]string{joinAddr})

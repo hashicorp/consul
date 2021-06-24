@@ -24,6 +24,10 @@ func (r *routineTracker) running() bool {
 	}
 }
 
+func (r *routineTracker) wait() {
+	<-r.stoppedCh
+}
+
 type Manager struct {
 	lock   sync.RWMutex
 	logger hclog.Logger
@@ -131,6 +135,8 @@ func (m *Manager) stopInstance(name string) *routineTracker {
 	return instance
 }
 
+// StopAll goroutines. Once StopAll is called, it is no longer safe to add no
+// goroutines to the Manager.
 func (m *Manager) StopAll() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -142,7 +148,14 @@ func (m *Manager) StopAll() {
 		m.logger.Debug("stopping routine", "routine", name)
 		routine.cancel()
 	}
+}
 
-	// just wipe out the entire map
-	m.routines = make(map[string]*routineTracker)
+// Wait for all goroutines to stop after StopAll is called.
+func (m *Manager) Wait() {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	for _, routine := range m.routines {
+		routine.wait()
+	}
 }
