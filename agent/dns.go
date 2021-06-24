@@ -826,7 +826,6 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				AAAA: ip,
 			}
 			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
-				//resp.SetRcode(req, dns.RcodeSuccess)
 				resp.Extra = append(resp.Extra, AAAARecord)
 			} else {
 				resp.Answer = append(resp.Answer, AAAARecord)
