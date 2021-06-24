@@ -1,33 +1,11 @@
 package testutil
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 )
-
-// tmpdir is the base directory for all temporary directories
-// and files created with TempDir and TempFile. This could be
-// achieved by setting a system environment variable but then
-// the test execution would depend on whether or not the
-// environment variable is set.
-//
-// On macOS the temp base directory is quite long and that
-// triggers a problem with some tests that bind to UNIX sockets
-// where the filename seems to be too long. Using a shorter name
-// fixes this and makes the paths more readable.
-//
-// It also provides a single base directory for cleanup.
-var tmpdir = "/tmp/consul-test"
-
-func init() {
-	if err := os.MkdirAll(tmpdir, 0755); err != nil {
-		fmt.Printf("Cannot create %s. Reverting to /tmp\n", tmpdir)
-		tmpdir = "/tmp"
-	}
-}
 
 var noCleanup = strings.ToLower(os.Getenv("TEST_NOCLEANUP")) == "true"
 
@@ -41,7 +19,7 @@ func TempDir(t testing.TB, name string) string {
 	}
 	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
-	d, err := ioutil.TempDir(tmpdir, name)
+	d, err := ioutil.TempDir("", name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -67,7 +45,7 @@ func TempFile(t testing.TB, name string) *os.File {
 	}
 	name = t.Name() + "-" + name
 	name = strings.Replace(name, "/", "_", -1)
-	f, err := ioutil.TempFile(tmpdir, name)
+	f, err := ioutil.TempFile("", name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
