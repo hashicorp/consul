@@ -18,13 +18,11 @@ export default class DcService extends RepositoryService {
     return this.store.query(this.getModelName(), {});
   }
 
-  async findBySlug(name, items) {
+  async findBySlug(name) {
+    const items = this.store.peekAll('dc');
     if (name != null) {
       const item = await items.findBy('Name', name);
-      if (typeof item !== 'undefined') {
-        await this.settings.persist({ dc: get(item, 'Name') });
-        return item;
-      }
+      return item;
     }
     const e = new Error('Page not found');
     e.status = '404';
@@ -32,17 +30,13 @@ export default class DcService extends RepositoryService {
   }
 
   async getActive(name, items) {
-    return Promise.all([name || this.settings.findBySlug('dc'), items || this.findAll()]).then(
-      ([name, items]) => {
-        return this.findBySlug(name, items).catch(async e => {
-          const item =
-            items.findBy('Name', this.env.var('CONSUL_DATACENTER_LOCAL')) ||
-            get(items, 'firstObject');
-          await this.settings.persist({ dc: get(item, 'Name') });
-          return item;
-        });
-      }
-    );
+    return Promise.all([name, items || this.findAll()]).then(([name, items]) => {
+      return this.findBySlug(name, items).catch(async e => {
+        return (
+          items.findBy('Name', this.env.var('CONSUL_DATACENTER_LOCAL')) || get(items, 'firstObject')
+        );
+      });
+    });
   }
 
   async clearActive() {
