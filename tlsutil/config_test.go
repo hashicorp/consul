@@ -949,6 +949,34 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			expected:   &tls.Config{InsecureSkipVerify: true},
 		},
 		{
+			name: "default tls, skip verify, default server name",
+			conf: func() (*Configurator, error) {
+				return NewConfigurator(Config{
+					TLSMinVersion:           "tls12",
+					EnableAgentTLSForChecks: false,
+					ServerName:              "servername",
+				}, nil)
+			},
+			skipVerify: true,
+			expected:   &tls.Config{InsecureSkipVerify: true},
+		},
+		{
+			name: "default tls, skip verify, check server name",
+			conf: func() (*Configurator, error) {
+				return NewConfigurator(Config{
+					TLSMinVersion:           "tls12",
+					EnableAgentTLSForChecks: false,
+					ServerName:              "servername",
+				}, nil)
+			},
+			skipVerify: true,
+			serverName: "check-server-name",
+			expected: &tls.Config{
+				InsecureSkipVerify: true,
+				ServerName:         "check-server-name",
+			},
+		},
+		{
 			name: "agent tls, skip verify, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
