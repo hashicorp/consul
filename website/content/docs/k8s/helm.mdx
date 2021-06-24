@@ -18,6 +18,8 @@ and consider if they're appropriate for your deployment.
                   the consul-helm repo's values.yaml file -->
 <!-- codegen: start -->
 
+### global
+
 - `global` ((#v-global)) - Holds values that affect multiple components of the chart.
 
   - `enabled` ((#v-global-enabled)) (`boolean: true`) - The main enabled/disabled setting. If true, servers,
@@ -251,6 +253,8 @@ and consider if they're appropriate for your deployment.
 
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
+
+## server
 
 - `server` ((#v-server)) - Server, when enabled, configures a server cluster to run. This should
   be disabled if you plan on connecting to a Consul cluster external to
@@ -519,6 +523,8 @@ and consider if they're appropriate for your deployment.
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
 
+### externalServers
+
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
   When running external servers, configuring these values is recommended
   if setting `global.tls.enableAutoEncrypt` to true (requires consul-k8s >= 0.13.0)
@@ -560,6 +566,8 @@ and consider if they're appropriate for your deployment.
     kubectl config view \
       -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
+
+### client
 
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -791,6 +799,7 @@ and consider if they're appropriate for your deployment.
         MIIC7jCCApSgAwIBAgIRAIq2zQEVexqxvtxP6J0bXAwwCgYIKoZIzj0EAwIwgbkx
         ...
       ```
+### dns
 
 - `dns` ((#v-dns)) - Configuration for DNS configuration within the Kubernetes cluster.
   This creates a service that routes to all agents (client or server)
@@ -816,6 +825,8 @@ and consider if they're appropriate for your deployment.
   - `additionalSpec` ((#v-dns-additionalspec)) (`string: null`) - Additional ServiceSpec values
     This should be a multi-line string mapping directly to a Kubernetes
     ServiceSpec object.
+
+### ui
 
 - `ui` ((#v-ui)) - Values that configure the Consul UI.
 
@@ -902,6 +913,8 @@ and consider if they're appropriate for your deployment.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
+
+### syncCatalog
 
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
@@ -1075,6 +1088,8 @@ and consider if they're appropriate for your deployment.
       labelKey: label-value
       anotherLabelKey: another-label-value
     ```
+
+### connectInject
 
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
@@ -1293,6 +1308,8 @@ and consider if they're appropriate for your deployment.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - Resource settings for the Connect injected init container.
 
+### controller
+
 - `controller` ((#v-controller)) - Controller handles config entry custom resources.
   Requires consul >= 1.8.4.
   ServiceIntentions require consul 1.9+.
@@ -1343,6 +1360,8 @@ and consider if they're appropriate for your deployment.
     - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
 
     - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+
+### meshGateway
 
 - `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
 
@@ -1469,6 +1488,8 @@ and consider if they're appropriate for your deployment.
       'annotation-key': annotation-value
     ```
 
+### ingressGateways
+
 - `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all
   ingress gateways are defined in `ingressGateways.defaults`. Any of
   these values may be overridden in `ingressGateways.gateways` for a
@@ -1562,6 +1583,8 @@ and consider if they're appropriate for your deployment.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
+### terminatingGateways
+
 - `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all
   terminating gateways are defined in `terminatingGateways.defaults`. Any of
   these values may be overridden in `terminatingGateways.gateways` for a
@@ -1642,6 +1665,8 @@ and consider if they're appropriate for your deployment.
     case of annotations where both will be applied.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
+
+### prometheus
 
 - `prometheus` ((#v-prometheus)) - Configures a demo Prometheus installation.
 
