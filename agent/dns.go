@@ -816,7 +816,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				return invalid()
 			}
 			//check if the query type is  AAAA for IPv6 or ANY
-			AAAARecord := &dns.AAAA{
+			aaaaRecord := &dns.AAAA{
 				Hdr: dns.RR_Header{
 					Name:   qName + d.domain,
 					Rrtype: dns.TypeAAAA,
