@@ -938,6 +938,13 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 
 	testCases := []testCase{
 		{
+			name: "default tls",
+			conf: func() (*Configurator, error) {
+				return NewConfigurator(Config{}, nil)
+			},
+			expected: &tls.Config{},
+		},
+		{
 			name: "default tls, skip verify, no server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
@@ -955,6 +962,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 					TLSMinVersion:           "tls12",
 					EnableAgentTLSForChecks: false,
 					ServerName:              "servername",
+					NodeName:                "nodename",
 				}, nil)
 			},
 			skipVerify: true,
@@ -977,19 +985,34 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 		},
 		{
-			name: "agent tls, skip verify, default server name",
+			name: "agent tls, default server name",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					TLSMinVersion:           "tls12",
 					EnableAgentTLSForChecks: true,
+					NodeName:                "nodename",
 					ServerName:              "servername",
+				}, nil)
+			},
+			expected: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+				ServerName: "servername",
+			},
+		},
+		{
+			name: "agent tls, skip verify, node name for server name",
+			conf: func() (*Configurator, error) {
+				return NewConfigurator(Config{
+					TLSMinVersion:           "tls12",
+					EnableAgentTLSForChecks: true,
+					NodeName:                "nodename",
 				}, nil)
 			},
 			skipVerify: true,
 			expected: &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS12,
-				ServerName:         "servername",
+				ServerName:         "nodename",
 			},
 		},
 		{
