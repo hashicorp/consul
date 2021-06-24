@@ -394,19 +394,11 @@ func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) e
 }
 
 func (c Config) anyVerifyIncoming() bool {
-	return c.baseVerifyIncoming() || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
+	return c.VerifyIncoming || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
 }
 
 func (c Config) verifyIncomingRPC() bool {
-	return c.baseVerifyIncoming() || c.VerifyIncomingRPC
-}
-
-func (c Config) verifyIncomingHTTPS() bool {
-	return c.baseVerifyIncoming() || c.VerifyIncomingHTTPS
-}
-
-func (c *Config) baseVerifyIncoming() bool {
-	return c.VerifyIncoming
+	return c.VerifyIncoming || c.VerifyIncomingRPC
 }
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
@@ -616,7 +608,7 @@ func (c *Configurator) verifyIncomingRPC() bool {
 func (c *Configurator) verifyIncomingHTTPS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.base.verifyIncomingHTTPS()
+	return c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS
 }
 
 // This function acquires a read lock because it reads from the config.
