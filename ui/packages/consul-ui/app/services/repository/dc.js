@@ -22,7 +22,9 @@ export default class DcService extends RepositoryService {
     const items = this.store.peekAll('dc');
     if (name != null) {
       const item = await items.findBy('Name', name);
-      return item;
+      if (typeof item !== 'undefined') {
+        return item;
+      }
     }
     const e = new Error('Page not found');
     e.status = '404';
