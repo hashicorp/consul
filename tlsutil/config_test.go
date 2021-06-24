@@ -741,22 +741,21 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		expected       bool
 	}
 	variants := []variant{
-		{false, false, nil, true},
-		{true, false, nil, false},
-		{false, true, nil, false},
-		{true, true, nil, false},
+		{false, false, nil, false},
+		{true, false, nil, true},
+		{false, true, nil, true},
+		{true, true, nil, true},
 
-		// {false, false, &x509.CertPool{}, false},
-		{true, false, &x509.CertPool{}, false},
-		{false, true, &x509.CertPool{}, false},
-		{true, true, &x509.CertPool{}, false},
+		{true, false, &x509.CertPool{}, true},
+		{false, true, &x509.CertPool{}, true},
+		{true, true, &x509.CertPool{}, true},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
 		c.caPool = v.pool
 		c.base.VerifyOutgoing = v.verify
 		c.base.AutoTLS = v.autoEncryptTLS
-		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
+		require.Equal(t, v.expected, c.outgoingRPCTLSEnabled(), info)
 	}
 }
 
