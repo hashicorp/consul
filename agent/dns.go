@@ -795,7 +795,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 				return invalid()
 			}
 			//check if the query type is  A for IPv4 or ANY
-			ARecord := &dns.A{
+			aRecord := &dns.A{
 				Hdr: dns.RR_Header{
 					Name:   qName + d.domain,
 					Rrtype: dns.TypeA,
