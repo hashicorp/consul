@@ -850,14 +850,6 @@ func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
 	require.Equal(t, c.base.VerifyIncomingRPC, verify)
 }
 
-func TestConfigurator_VerifyIncomingHTTPS(t *testing.T) {
-	c := Configurator{base: &Config{
-		VerifyIncomingHTTPS: true,
-	}}
-	verify := c.verifyIncomingHTTPS()
-	require.Equal(t, c.base.VerifyIncomingHTTPS, verify)
-}
-
 func TestConfigurator_IncomingRPCConfig(t *testing.T) {
 	c, err := NewConfigurator(Config{
 		VerifyIncomingRPC: true,
@@ -903,8 +895,52 @@ func TestConfigurator_IncomingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}}
-	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
+
+	// compare tls.Config.GetConfigForClient by nil/not-nil, since Go can not compare
+	// functions any other way.
+	cmpClientFunc := cmp.Comparer(func(x, y func(*tls.ClientHelloInfo) (*tls.Config, error)) bool {
+		return (x == nil && y == nil) || (x != nil && y != nil)
+	})
+
+	t.Run("default", func(t *testing.T) {
+		c, err := NewConfigurator(Config{}, nil)
+		require.NoError(t, err)
+
+		cfg := c.IncomingHTTPSConfig()
+
+		expected := &tls.Config{
+			NextProtos:         []string{"h2", "http/1.1"},
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+			GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+				return nil, nil
+			},
+		}
+		assertDeepEqual(t, expected, cfg, cmpTLSConfig, cmpClientFunc)
+	})
+
+	t.Run("verify incoming", func(t *testing.T) {
+		c := Configurator{base: &Config{VerifyIncoming: true}}
+
+		cfg := c.IncomingHTTPSConfig()
+
+		expected := &tls.Config{
+			NextProtos:         []string{"h2", "http/1.1"},
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+			GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+				return nil, nil
+			},
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		}
+		assertDeepEqual(t, expected, cfg, cmpTLSConfig, cmpClientFunc)
+	})
+
+}
+
+var cmpTLSConfig = cmp.Options{
+	cmpopts.IgnoreFields(tls.Config{}, "GetCertificate", "GetClientCertificate"),
+	cmpopts.IgnoreUnexported(tls.Config{}),
 }
 
 func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
@@ -914,11 +950,6 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 		skipVerify bool
 		serverName string
 		expected   *tls.Config
-	}
-
-	cmpTLSConfig := cmp.Options{
-		cmpopts.IgnoreFields(tls.Config{}, "GetCertificate", "GetClientCertificate"),
-		cmpopts.IgnoreUnexported(tls.Config{}),
 	}
 
 	run := func(t *testing.T, tc testCase) {

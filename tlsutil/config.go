@@ -595,13 +595,6 @@ func (c *Configurator) domain() string {
 }
 
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) verifyIncomingHTTPS() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS
-}
-
-// This function acquires a read lock because it reads from the config.
 func (c *Configurator) serverNameOrNodeName() string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -677,7 +670,12 @@ func (c *Configurator) IncomingInsecureRPCConfig() *tls.Config {
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	c.log("IncomingHTTPSConfig")
-	config := c.commonTLSConfig(c.verifyIncomingHTTPS())
+
+	c.lock.RLock()
+	verifyIncoming := c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS
+	c.lock.RUnlock()
+
+	config := c.commonTLSConfig(verifyIncoming)
 	config.NextProtos = []string{"h2", "http/1.1"}
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingHTTPSConfig(), nil
