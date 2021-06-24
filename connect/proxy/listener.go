@@ -45,7 +45,10 @@ type Listener struct {
 	// `connection refused`. Retry loops and sleeps are unpleasant workarounds and
 	// this is cheap and correct.
 	listeningChan chan struct{}
-	listener      net.Listener
+
+	// listenerLock guards access to the listener field
+	listenerLock sync.Mutex
+	listener     net.Listener
 
 	logger hclog.Logger
 
@@ -138,15 +141,17 @@ func (l *Listener) Serve() error {
 		return errors.New("serve called on a closed listener")
 	}
 
-	var err error
-	l.listener, err = l.listenFunc()
+	listener, err := l.listenFunc()
 	if err != nil {
 		return err
 	}
+
+	l.setListener(listener)
+
 	close(l.listeningChan)
 
 	for {
-		conn, err := l.listener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			if atomic.LoadInt32(&l.stopFlag) == 1 {
 				return nil
@@ -242,16 +247,23 @@ func (l *Listener) trackConn() func() {
 
 // Close terminates the listener and all active connections.
 func (l *Listener) Close() error {
+	// Prevent the listener from being started.
 	oldFlag := atomic.SwapInt32(&l.stopFlag, 1)
-	if oldFlag == 0 {
-		close(l.stopChan)
-		// Wait for all conns to close
-		l.connWG.Wait()
-
-		if l.listener != nil {
-			l.listener.Close()
-		}
+	if oldFlag != 0 {
+		return nil
 	}
+
+	// Stop the current listener and stop accepting new requests.
+	if listener := l.getListener(); listener != nil {
+		listener.Close()
+	}
+
+	// Stop outstanding requests.
+	close(l.stopChan)
+
+	// Wait for all conns to close
+	l.connWG.Wait()
+
 	return nil
 }
 
@@ -263,4 +275,16 @@ func (l *Listener) Wait() {
 // BindAddr returns the address the listen is bound to.
 func (l *Listener) BindAddr() string {
 	return l.bindAddr
+}
+
+func (l *Listener) setListener(listener net.Listener) {
+	l.listenerLock.Lock()
+	l.listener = listener
+	l.listenerLock.Unlock()
+}
+
+func (l *Listener) getListener() net.Listener {
+	l.listenerLock.Lock()
+	defer l.listenerLock.Unlock()
+	return l.listener
 }

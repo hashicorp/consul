@@ -1,0 +1,3 @@
+```release-note:bug
+connect/proxy: fixes logic bug preventing builtin/native proxy from starting upstream listeners
+```
