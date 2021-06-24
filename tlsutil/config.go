@@ -720,10 +720,6 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
 
-	if serverName == "" {
-		serverName = c.serverNameOrNodeName()
-	}
-
 	if !c.enableAgentTLSForChecks() {
 		return &tls.Config{
 			InsecureSkipVerify: skipVerify,
@@ -731,6 +727,9 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName str
 		}
 	}
 
+	if serverName == "" {
+		serverName = c.serverNameOrNodeName()
+	}
 	config := c.commonTLSConfig(false)
 	config.InsecureSkipVerify = skipVerify
 	config.ServerName = serverName
