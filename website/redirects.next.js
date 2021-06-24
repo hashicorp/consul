@@ -256,11 +256,6 @@ module.exports = [
   { source: '/intro', destination: '/docs/intro', permanent: true },
   { source: '/intro/vs', destination: '/docs/intro/vs', permanent: true },
   {
-    source: '/intro/vs/zookeeper',
-    destination: '/docs/intro/vs/zookeeper',
-    permanent: true,
-  },
-  {
     source: '/intro/vs/chef-puppet',
     destination: '/docs/intro/vs/chef-puppet',
     permanent: true,
