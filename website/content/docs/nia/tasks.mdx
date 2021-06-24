@@ -72,11 +72,11 @@ Below is an example configuration for a task that will execute when a service wi
 ```hcl
 task {
   name = "catalog_service_condition_task"
-  source = "path/to/catalog-service-module"
+  source = "path/to/catalog-services-module"
   providers = ["my-provider"]
   services = ["web-api"]
 
-  condition "catalog-service" {
+  condition "catalog-services" {
     datacenter          = "dc1"
     regexp              = "web.*"
     source_includes_var = false
