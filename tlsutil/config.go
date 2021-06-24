@@ -565,12 +565,9 @@ func (c *Configurator) outgoingRPCTLSDisabled() bool {
 	return true
 }
 
+// MutualTLSCapable returns true if Configurator has a CA and a local TLS
+// certificate configured.
 func (c *Configurator) MutualTLSCapable() bool {
-	return c.mutualTLSCapable()
-}
-
-// This function acquires a read lock because it reads from the config.
-func (c *Configurator) mutualTLSCapable() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.caPool != nil && (c.autoTLS.cert != nil || c.manual.cert != nil)
@@ -620,13 +617,6 @@ func (c *Configurator) verifyIncomingHTTPS() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.base.verifyIncomingHTTPS()
-}
-
-// This function acquires a read lock because it reads from the config.
-func (c *Configurator) enableAgentTLSForChecks() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.base.EnableAgentTLSForChecks
 }
 
 // This function acquires a read lock because it reads from the config.
@@ -720,7 +710,11 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
 
-	if !c.enableAgentTLSForChecks() {
+	c.lock.RLock()
+	useAgentTLS := c.base.EnableAgentTLSForChecks
+	c.lock.RUnlock()
+
+	if !useAgentTLS {
 		return &tls.Config{
 			InsecureSkipVerify: skipVerify,
 			ServerName:         serverName,
@@ -748,14 +742,14 @@ func (c *Configurator) OutgoingRPCConfig() *tls.Config {
 	return c.commonTLSConfig(false)
 }
 
-// OutgoingALPNRPCConfig generates a *tls.Config for outgoing RPC connections
+// outgoingALPNRPCConfig generates a *tls.Config for outgoing RPC connections
 // directly using TLS with ALPN instead of the older byte-prefixed protocol.
 // If there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
 // otherwise we assume that no TLS should be used which completely disables the
 // ALPN variation.
-func (c *Configurator) OutgoingALPNRPCConfig() *tls.Config {
-	c.log("OutgoingALPNRPCConfig")
-	if !c.mutualTLSCapable() {
+func (c *Configurator) outgoingALPNRPCConfig() *tls.Config {
+	c.log("outgoingALPNRPCConfig")
+	if !c.MutualTLSCapable() {
 		return nil // ultimately this will hard-fail as TLS is required
 	}
 
@@ -784,11 +778,11 @@ func (c *Configurator) UseTLS(dc string) bool {
 	return !c.outgoingRPCTLSDisabled() && c.getAreaForPeerDatacenterUseTLS(dc)
 }
 
-// OutgoingALPNRPCWrapper wraps the result of OutgoingALPNRPCConfig in an
+// OutgoingALPNRPCWrapper wraps the result of outgoingALPNRPCConfig in an
 // ALPNWrapper. It configures all of the negotiation plumbing.
 func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 	c.log("OutgoingALPNRPCWrapper")
-	if !c.mutualTLSCapable() {
+	if !c.MutualTLSCapable() {
 		return nil
 	}
 
@@ -893,7 +887,7 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 		return nil, fmt.Errorf("cannot dial using ALPN-RPC without a target alpn protocol")
 	}
 
-	config := c.OutgoingALPNRPCConfig()
+	config := c.outgoingALPNRPCConfig()
 	if config == nil {
 		return nil, fmt.Errorf("cannot dial via a mesh gateway when outgoing TLS is disabled")
 	}
