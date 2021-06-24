@@ -21,7 +21,7 @@ export default function ConsulSubnav() {
         {
           text: 'Try Cloud',
           url:
-            'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav',
+            'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav_consul',
         },
       ]}
       currentPath={router.asPath}
