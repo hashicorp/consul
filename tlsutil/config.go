@@ -394,19 +394,7 @@ func validateConfig(config Config, pool *x509.CertPool, cert *tls.Certificate) e
 }
 
 func (c Config) anyVerifyIncoming() bool {
-	return c.baseVerifyIncoming() || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
-}
-
-func (c Config) verifyIncomingRPC() bool {
-	return c.baseVerifyIncoming() || c.VerifyIncomingRPC
-}
-
-func (c Config) verifyIncomingHTTPS() bool {
-	return c.baseVerifyIncoming() || c.VerifyIncomingHTTPS
-}
-
-func (c *Config) baseVerifyIncoming() bool {
-	return c.VerifyIncoming
+	return c.VerifyIncoming || c.VerifyIncomingRPC || c.VerifyIncomingHTTPS
 }
 
 func loadKeyPair(certFile, keyFile string) (*tls.Certificate, error) {
@@ -540,37 +528,26 @@ func (c *Configurator) Cert() *tls.Certificate {
 	return cert
 }
 
-// This function acquires a read lock because it reads from the config.
+// VerifyIncomingRPC returns true if the configuration has enabled either
+// VerifyIncoming, or VerifyIncomingRPC
 func (c *Configurator) VerifyIncomingRPC() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	return c.base.verifyIncomingRPC()
+	return c.base.VerifyIncoming || c.base.VerifyIncomingRPC
 }
 
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) outgoingRPCTLSDisabled() bool {
+func (c *Configurator) outgoingRPCTLSEnabled() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	// if AutoEncrypt enabled, always use TLS
-	if c.base.AutoTLS {
-		return false
-	}
-
-	// if CAs are provided or VerifyOutgoing is set, use TLS
-	if c.base.VerifyOutgoing {
-		return false
-	}
-
-	return true
+	// use TLS if AutoEncrypt or VerifyOutgoing are enabled.
+	return c.base.AutoTLS || c.base.VerifyOutgoing
 }
 
+// MutualTLSCapable returns true if Configurator has a CA and a local TLS
+// certificate configured.
 func (c *Configurator) MutualTLSCapable() bool {
-	return c.mutualTLSCapable()
-}
-
-// This function acquires a read lock because it reads from the config.
-func (c *Configurator) mutualTLSCapable() bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.caPool != nil && (c.autoTLS.cert != nil || c.manual.cert != nil)
@@ -609,27 +586,6 @@ func (c *Configurator) domain() string {
 }
 
 // This function acquires a read lock because it reads from the config.
-func (c *Configurator) verifyIncomingRPC() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.base.verifyIncomingRPC()
-}
-
-// This function acquires a read lock because it reads from the config.
-func (c *Configurator) verifyIncomingHTTPS() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.base.verifyIncomingHTTPS()
-}
-
-// This function acquires a read lock because it reads from the config.
-func (c *Configurator) enableAgentTLSForChecks() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.base.EnableAgentTLSForChecks
-}
-
-// This function acquires a read lock because it reads from the config.
 func (c *Configurator) serverNameOrNodeName() string {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -665,7 +621,7 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 // IncomingRPCConfig generates a *tls.Config for incoming RPC connections.
 func (c *Configurator) IncomingRPCConfig() *tls.Config {
 	c.log("IncomingRPCConfig")
-	config := c.commonTLSConfig(c.verifyIncomingRPC())
+	config := c.commonTLSConfig(c.VerifyIncomingRPC())
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingRPCConfig(), nil
 	}
@@ -705,7 +661,12 @@ func (c *Configurator) IncomingInsecureRPCConfig() *tls.Config {
 // IncomingHTTPSConfig generates a *tls.Config for incoming HTTPS connections.
 func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 	c.log("IncomingHTTPSConfig")
-	config := c.commonTLSConfig(c.verifyIncomingHTTPS())
+
+	c.lock.RLock()
+	verifyIncoming := c.base.VerifyIncoming || c.base.VerifyIncomingHTTPS
+	c.lock.RUnlock()
+
+	config := c.commonTLSConfig(verifyIncoming)
 	config.NextProtos = []string{"h2", "http/1.1"}
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
 		return c.IncomingHTTPSConfig(), nil
@@ -720,7 +681,11 @@ func (c *Configurator) IncomingHTTPSConfig() *tls.Config {
 func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName string) *tls.Config {
 	c.log("OutgoingTLSConfigForCheck")
 
-	if !c.enableAgentTLSForChecks() {
+	c.lock.RLock()
+	useAgentTLS := c.base.EnableAgentTLSForChecks
+	c.lock.RUnlock()
+
+	if !useAgentTLS {
 		return &tls.Config{
 			InsecureSkipVerify: skipVerify,
 			ServerName:         serverName,
@@ -742,20 +707,20 @@ func (c *Configurator) OutgoingTLSConfigForCheck(skipVerify bool, serverName str
 // otherwise we assume that no TLS should be used.
 func (c *Configurator) OutgoingRPCConfig() *tls.Config {
 	c.log("OutgoingRPCConfig")
-	if c.outgoingRPCTLSDisabled() {
+	if !c.outgoingRPCTLSEnabled() {
 		return nil
 	}
 	return c.commonTLSConfig(false)
 }
 
-// OutgoingALPNRPCConfig generates a *tls.Config for outgoing RPC connections
+// outgoingALPNRPCConfig generates a *tls.Config for outgoing RPC connections
 // directly using TLS with ALPN instead of the older byte-prefixed protocol.
 // If there is a CA or VerifyOutgoing is set, a *tls.Config will be provided,
 // otherwise we assume that no TLS should be used which completely disables the
 // ALPN variation.
-func (c *Configurator) OutgoingALPNRPCConfig() *tls.Config {
-	c.log("OutgoingALPNRPCConfig")
-	if !c.mutualTLSCapable() {
+func (c *Configurator) outgoingALPNRPCConfig() *tls.Config {
+	c.log("outgoingALPNRPCConfig")
+	if !c.MutualTLSCapable() {
 		return nil // ultimately this will hard-fail as TLS is required
 	}
 
@@ -780,15 +745,17 @@ func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	}
 }
 
+// UseTLS returns true if the outgoing RPC requests have been explicitly configured
+// to use TLS (via VerifyOutgoing or AutoTLS, and the target DC supports TLS.
 func (c *Configurator) UseTLS(dc string) bool {
-	return !c.outgoingRPCTLSDisabled() && c.getAreaForPeerDatacenterUseTLS(dc)
+	return c.outgoingRPCTLSEnabled() && c.getAreaForPeerDatacenterUseTLS(dc)
 }
 
-// OutgoingALPNRPCWrapper wraps the result of OutgoingALPNRPCConfig in an
+// OutgoingALPNRPCWrapper wraps the result of outgoingALPNRPCConfig in an
 // ALPNWrapper. It configures all of the negotiation plumbing.
 func (c *Configurator) OutgoingALPNRPCWrapper() ALPNWrapper {
 	c.log("OutgoingALPNRPCWrapper")
-	if !c.mutualTLSCapable() {
+	if !c.MutualTLSCapable() {
 		return nil
 	}
 
@@ -893,7 +860,7 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 		return nil, fmt.Errorf("cannot dial using ALPN-RPC without a target alpn protocol")
 	}
 
-	config := c.OutgoingALPNRPCConfig()
+	config := c.outgoingALPNRPCConfig()
 	if config == nil {
 		return nil, fmt.Errorf("cannot dial via a mesh gateway when outgoing TLS is disabled")
 	}

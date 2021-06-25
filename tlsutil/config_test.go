@@ -741,22 +741,21 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 		expected       bool
 	}
 	variants := []variant{
-		{false, false, nil, true},
-		{true, false, nil, false},
-		{false, true, nil, false},
-		{true, true, nil, false},
+		{false, false, nil, false},
+		{true, false, nil, true},
+		{false, true, nil, true},
+		{true, true, nil, true},
 
-		// {false, false, &x509.CertPool{}, false},
-		{true, false, &x509.CertPool{}, false},
-		{false, true, &x509.CertPool{}, false},
-		{true, true, &x509.CertPool{}, false},
+		{true, false, &x509.CertPool{}, true},
+		{false, true, &x509.CertPool{}, true},
+		{true, true, &x509.CertPool{}, true},
 	}
 	for i, v := range variants {
 		info := fmt.Sprintf("case %d", i)
 		c.caPool = v.pool
 		c.base.VerifyOutgoing = v.verify
 		c.base.AutoTLS = v.autoEncryptTLS
-		require.Equal(t, v.expected, c.outgoingRPCTLSDisabled(), info)
+		require.Equal(t, v.expected, c.outgoingRPCTLSEnabled(), info)
 	}
 }
 
@@ -768,7 +767,7 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		c, err := NewConfigurator(config, nil)
 		require.NoError(t, err)
 
-		require.False(t, c.mutualTLSCapable())
+		require.False(t, c.MutualTLSCapable())
 	})
 
 	t.Run("ca and no keys", func(t *testing.T) {
@@ -779,7 +778,7 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		c, err := NewConfigurator(config, nil)
 		require.NoError(t, err)
 
-		require.False(t, c.mutualTLSCapable())
+		require.False(t, c.MutualTLSCapable())
 	})
 
 	t.Run("ca and manual key", func(t *testing.T) {
@@ -792,7 +791,7 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		c, err := NewConfigurator(config, nil)
 		require.NoError(t, err)
 
-		require.True(t, c.mutualTLSCapable())
+		require.True(t, c.MutualTLSCapable())
 	})
 
 	loadFile := func(t *testing.T, path string) string {
@@ -811,7 +810,7 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		caPEM := loadFile(t, "../test/hostname/CertAuth.crt")
 		require.NoError(t, c.UpdateAutoTLSCA([]string{caPEM}))
 
-		require.False(t, c.mutualTLSCapable())
+		require.False(t, c.MutualTLSCapable())
 	})
 
 	t.Run("autoencrypt ca and autoencrypt key", func(t *testing.T) {
@@ -827,7 +826,7 @@ func TestConfigurator_MutualTLSCapable(t *testing.T) {
 		require.NoError(t, c.UpdateAutoTLSCA([]string{caPEM}))
 		require.NoError(t, c.UpdateAutoTLSCert(certPEM, keyPEM))
 
-		require.True(t, c.mutualTLSCapable())
+		require.True(t, c.MutualTLSCapable())
 	})
 }
 
@@ -846,24 +845,8 @@ func TestConfigurator_VerifyIncomingRPC(t *testing.T) {
 	c := Configurator{base: &Config{
 		VerifyIncomingRPC: true,
 	}}
-	verify := c.verifyIncomingRPC()
+	verify := c.VerifyIncomingRPC()
 	require.Equal(t, c.base.VerifyIncomingRPC, verify)
-}
-
-func TestConfigurator_VerifyIncomingHTTPS(t *testing.T) {
-	c := Configurator{base: &Config{
-		VerifyIncomingHTTPS: true,
-	}}
-	verify := c.verifyIncomingHTTPS()
-	require.Equal(t, c.base.VerifyIncomingHTTPS, verify)
-}
-
-func TestConfigurator_EnableAgentTLSForChecks(t *testing.T) {
-	c := Configurator{base: &Config{
-		EnableAgentTLSForChecks: true,
-	}}
-	enabled := c.enableAgentTLSForChecks()
-	require.Equal(t, c.base.EnableAgentTLSForChecks, enabled)
 }
 
 func TestConfigurator_IncomingRPCConfig(t *testing.T) {
@@ -911,8 +894,52 @@ func TestConfigurator_IncomingALPNRPCConfig(t *testing.T) {
 }
 
 func TestConfigurator_IncomingHTTPSConfig(t *testing.T) {
-	c := Configurator{base: &Config{}}
-	require.Equal(t, []string{"h2", "http/1.1"}, c.IncomingHTTPSConfig().NextProtos)
+
+	// compare tls.Config.GetConfigForClient by nil/not-nil, since Go can not compare
+	// functions any other way.
+	cmpClientFunc := cmp.Comparer(func(x, y func(*tls.ClientHelloInfo) (*tls.Config, error)) bool {
+		return (x == nil && y == nil) || (x != nil && y != nil)
+	})
+
+	t.Run("default", func(t *testing.T) {
+		c, err := NewConfigurator(Config{}, nil)
+		require.NoError(t, err)
+
+		cfg := c.IncomingHTTPSConfig()
+
+		expected := &tls.Config{
+			NextProtos:         []string{"h2", "http/1.1"},
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+			GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+				return nil, nil
+			},
+		}
+		assertDeepEqual(t, expected, cfg, cmpTLSConfig, cmpClientFunc)
+	})
+
+	t.Run("verify incoming", func(t *testing.T) {
+		c := Configurator{base: &Config{VerifyIncoming: true}}
+
+		cfg := c.IncomingHTTPSConfig()
+
+		expected := &tls.Config{
+			NextProtos:         []string{"h2", "http/1.1"},
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS10,
+			GetConfigForClient: func(info *tls.ClientHelloInfo) (*tls.Config, error) {
+				return nil, nil
+			},
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		}
+		assertDeepEqual(t, expected, cfg, cmpTLSConfig, cmpClientFunc)
+	})
+
+}
+
+var cmpTLSConfig = cmp.Options{
+	cmpopts.IgnoreFields(tls.Config{}, "GetCertificate", "GetClientCertificate"),
+	cmpopts.IgnoreUnexported(tls.Config{}),
 }
 
 func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
@@ -922,11 +949,6 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 		skipVerify bool
 		serverName string
 		expected   *tls.Config
-	}
-
-	cmpTLSConfig := cmp.Options{
-		cmpopts.IgnoreFields(tls.Config{}, "GetCertificate", "GetClientCertificate"),
-		cmpopts.IgnoreUnexported(tls.Config{}),
 	}
 
 	run := func(t *testing.T, tc testCase) {
@@ -1068,7 +1090,7 @@ func TestConfigurator_OutgoingRPCConfig(t *testing.T) {
 
 func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
 	c := &Configurator{base: &Config{}}
-	require.Nil(t, c.OutgoingALPNRPCConfig())
+	require.Nil(t, c.outgoingALPNRPCConfig())
 
 	c, err := NewConfigurator(Config{
 		VerifyOutgoing: false, // ignored, assumed true
@@ -1078,7 +1100,7 @@ func TestConfigurator_OutgoingALPNRPCConfig(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
-	tlsConf := c.OutgoingALPNRPCConfig()
+	tlsConf := c.outgoingALPNRPCConfig()
 	require.NotNil(t, tlsConf)
 	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 	require.False(t, tlsConf.InsecureSkipVerify)
