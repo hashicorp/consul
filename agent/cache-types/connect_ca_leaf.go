@@ -524,6 +524,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
+			Partition:  req.TargetPartition(),
 			Namespace:  req.TargetNamespace(),
 			Service:    req.Service,
 		}
@@ -532,6 +533,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
 			Datacenter: req.Datacenter,
+			Partition:  req.TargetPartition(),
 			Agent:      req.Agent,
 		}
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
@@ -674,6 +676,10 @@ func (r *ConnectCALeafRequest) Key() string {
 	// no cache for this request so the request is forwarded directly
 	// to the server.
 	return ""
+}
+
+func (req *ConnectCALeafRequest) TargetPartition() string {
+	return req.PartitionOrDefault()
 }
 
 func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {

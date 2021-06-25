@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -66,6 +67,13 @@ func (a *Agent) ConnectAuthorize(token string,
 
 	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
+	}
+
+	if !uriService.MatchesPartition(req.TargetPartition()) {
+		reason = fmt.Sprintf("Mismatched partitions: %q != %q",
+			uriService.PartitionOrDefault(),
+			structs.PartitionOrDefault(req.TargetPartition()))
+		return false, reason, nil, nil
 	}
 
 	// Note that we DON'T explicitly validate the trust-domain matches ours. See
