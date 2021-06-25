@@ -45,10 +45,14 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
       const id = 'slug';
       const request = {
         url: `/v1/acl/oidc/auth-url?dc=${dc}${
-          typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``
+          typeof nspace !== 'undefined' ? `&ns=${nspace || undefinedNspace}` : ``
         }`,
       };
       return get(request.url).then(function(payload) {
+        // The response here never has a Namespace property so its ok to just
+        // use the query parameter as the expected nspace value. See
+        // implementation of this method for info on why this is slightly
+        // different to other tests
         const expected = Object.assign({}, payload, {
           Name: id,
           Datacenter: dc,
@@ -56,8 +60,8 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
             [DC.toLowerCase()]: dc,
             [NSPACE.toLowerCase()]: nspace || '',
           },
-          Namespace: payload.Namespace || undefinedNspace,
-          uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
+          Namespace: nspace || undefinedNspace,
+          uid: `["${nspace || undefinedNspace}","${dc}","${id}"]`,
         });
         const actual = serializer.respondForQueryRecord(
           function(cb) {
