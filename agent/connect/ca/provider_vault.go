@@ -178,7 +178,7 @@ func (v *VaultProvider) GenerateRoot() error {
 		// if parsing fail we assume it's not initialized and regenerate
 		if err2 != nil {
 			err = ErrBackendNotInitialized
-		} else if rootCert.NotAfter.Before(time.Now()) {
+		} else if isExpired(rootCert) {
 			err = ErrCertExpired
 		}
 	}

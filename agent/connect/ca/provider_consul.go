@@ -171,7 +171,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 		rootCert, err2 := connect.ParseCert(providerState.RootCert)
 		if err2 == nil {
 			// cert is still valid
-			if rootCert.NotAfter.After(time.Now()) {
+			if !isExpired(rootCert) {
 				return nil
 			}
 		}

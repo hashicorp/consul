@@ -189,7 +189,7 @@ func (a *AWSProvider) ensureCA() error {
 			rootCert, err2 := connect.ParseCert(a.rootPEM)
 			if err2 == nil {
 				// cert is still valid
-				if rootCert.NotAfter.After(time.Now()) {
+				if !isExpired(rootCert) {
 					// Load the certs
 					if err := a.loadCACerts(); err != nil {
 						return err
