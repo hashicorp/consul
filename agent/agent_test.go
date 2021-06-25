@@ -5118,10 +5118,9 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 		Datacenter: "dc1",
 		Agent:      "test-client",
 	}
-	expectedCN := connect.AgentCN("test-client", connect.TestClusterID)
 	x509Cert, err := x509.ParseCertificate(aeCert.Certificate[0])
 	require.NoError(t, err)
-	require.Equal(t, expectedCN, x509Cert.Subject.CommonName)
+	require.Empty(t, x509Cert.Subject.CommonName)
 	require.Len(t, x509Cert.URIs, 1)
 	require.Equal(t, id.URI(), x509Cert.URIs[0])
 }

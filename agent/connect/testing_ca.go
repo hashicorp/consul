@@ -13,9 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // TestClusterID is the Consul cluster ID for testing.
@@ -182,16 +183,7 @@ func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits 
 	return testCA(t, xc, keyType, keyBits, 0)
 }
 
-// testCertID is an interface to be implemented the various spiffe ID / CertURI types
-// It adds an addition CommonName method to the CertURI interface to prevent the need
-// for any type switching on the actual CertURI's concrete type in order to figure
-// out its common name
-type testCertID interface {
-	CommonName() string
-	CertURI
-}
-
-func testLeafWithID(t testing.T, spiffeId testCertID, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
+func testLeafWithID(t testing.T, spiffeId CertURI, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
 
 	if expiration == 0 {
 		// this is 10 years
@@ -231,7 +223,6 @@ func testLeafWithID(t testing.T, spiffeId testCertID, root *structs.CARoot, keyT
 	// Cert template for generation
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: spiffeId.CommonName()},
 		URIs:                  []*url.URL{spiffeId.URI()},
 		SignatureAlgorithm:    SigAlgoForKeyType(rootKeyType),
 		BasicConstraintsValid: true,
@@ -309,15 +300,12 @@ func TestLeafWithNamespace(t testing.T, service, namespace string, root *structs
 // TestCSR returns a CSR to sign the given service along with the PEM-encoded
 // private key for this certificate.
 func TestCSR(t testing.T, uri CertURI) (string, string) {
-	cn, err := CNForCertURI(uri)
-	if err != nil {
-		t.Fatalf("TestCSR failed to get Common Name: %s", err)
-	}
 	template := &x509.CertificateRequest{
-		Subject:            pkix.Name{CommonName: cn},
 		URIs:               []*url.URL{uri.URI()},
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 	}
+
+	HackSANExtensionForCSR(template)
 
 	// Create the private key we'll use
 	signer, pkPEM := testPrivateKey(t, DefaultPrivateKeyType, DefaultPrivateKeyBits)

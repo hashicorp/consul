@@ -22,7 +22,3 @@ func (id *SpiffeIDService) URI() *url.URL {
 		id.Namespace, id.Datacenter, id.Service)
 	return &result
 }
-
-func (id *SpiffeIDService) CommonName() string {
-	return ServiceCN(id.Service, id.Namespace, id.Host)
-}

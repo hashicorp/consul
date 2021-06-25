@@ -14,10 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/mitchellh/mapstructure"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -594,6 +595,8 @@ func (a *AWSProvider) GenerateIntermediate() (string, error) {
 
 // Sign implements Provider
 func (a *AWSProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	if a.rootPEM == "" {
 		return "", fmt.Errorf("AWS CA provider not fully Initialized")
 	}

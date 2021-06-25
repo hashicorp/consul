@@ -14,11 +14,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -227,13 +228,7 @@ func (c *ConsulProvider) GenerateIntermediateCSR() (string, error) {
 		return "", err
 	}
 
-	uid, err := connect.CompactUID()
-	if err != nil {
-		return "", err
-	}
-	cn := connect.CACN("consul", uid, c.clusterID, c.isPrimary)
-
-	csr, err := connect.CreateCACSR(c.spiffeID, cn, signer)
+	csr, err := connect.CreateCACSR(c.spiffeID, signer)
 	if err != nil {
 		return "", err
 	}
@@ -329,6 +324,8 @@ func (c *ConsulProvider) Cleanup(_ bool, _ map[string]interface{}) error {
 // Sign returns a new certificate valid for the given SpiffeIDService
 // using the current CA.
 func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	// Lock during the signing so we don't use the same index twice
 	// for different cert serial numbers.
 	c.Lock()
@@ -362,20 +359,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", err
 	}
 
-	// Parse the SPIFFE ID
-	spiffeId, err := connect.ParseCertURI(csr.URIs[0])
-	if err != nil {
-		return "", err
-	}
-
-	// Even though leafs should be from our own CSRs which should have the same CN
-	// logic as here, override anyway to account for older version clients that
-	// didn't include the Common Name in the CSR.
-	subject, err := connect.CNForCertURI(spiffeId)
-	if err != nil {
-		return "", err
-	}
-
 	// Parse the CA cert
 	certPEM, err := c.ActiveIntermediate()
 	if err != nil {
@@ -400,7 +383,6 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	effectiveNow := time.Now().Add(-1 * time.Minute)
 	template := x509.Certificate{
 		SerialNumber: sn,
-		Subject:      pkix.Name{CommonName: subject},
 		URIs:         csr.URIs,
 		Signature:    csr.Signature,
 		// We use the correct signature algorithm for the CA key we are signing with
@@ -487,8 +469,12 @@ func (c *ConsulProvider) SignIntermediate(csr *x509.CertificateRequest) (string,
 	effectiveNow := time.Now().Add(-1 * CertificateTimeDriftBuffer)
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               csr.Subject,
+		DNSNames:              csr.DNSNames,
+		EmailAddresses:        csr.EmailAddresses,
+		IPAddresses:           csr.IPAddresses,
 		URIs:                  csr.URIs,
+		ExtraExtensions:       csr.ExtraExtensions,
+		Subject:               csr.Subject,
 		Signature:             csr.Signature,
 		SignatureAlgorithm:    connect.SigAlgoForKey(signer),
 		PublicKeyAlgorithm:    csr.PublicKeyAlgorithm,

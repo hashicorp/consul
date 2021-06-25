@@ -412,6 +412,8 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 // a new leaf certificate based on the provided CSR, with the issuing
 // intermediate CA cert attached.
 func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
+	connect.HackSANExtensionForCSR(csr)
+
 	var pemBuf bytes.Buffer
 	if err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw}); err != nil {
 		return "", err

@@ -15,8 +15,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
 	"net/url"
+
+	"github.com/hashicorp/consul/agent/connect"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand

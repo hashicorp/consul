@@ -8,13 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAutoEncryptSign(t *testing.T) {
@@ -80,11 +81,9 @@ func TestAutoEncryptSign(t *testing.T) {
 			require.NoError(t, err, info)
 
 			// Create a CSR.
-			cn, err := connect.CNForCertURI(id)
-			require.NoError(t, err)
 			dnsNames := []string{"localhost"}
 			ipAddresses := []net.IP{net.ParseIP("127.0.0.1")}
-			csr, err := connect.CreateCSR(id, cn, pk, dnsNames, ipAddresses)
+			csr, err := connect.CreateCSR(id, pk, dnsNames, ipAddresses)
 			require.NoError(t, err, info)
 			require.NotEmpty(t, csr, info)
 			args := &structs.CASignRequest{

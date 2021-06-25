@@ -518,7 +518,6 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 
 	// Build the cert uri
 	var id connect.CertURI
-	var commonName string
 	var dnsNames []string
 	var ipAddresses []net.IP
 	if req.Service != "" {
@@ -528,7 +527,6 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Namespace:  req.TargetNamespace(),
 			Service:    req.Service,
 		}
-		commonName = connect.ServiceCN(req.Service, req.TargetNamespace(), roots.TrustDomain)
 		dnsNames = append(dnsNames, req.DNSSAN...)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
@@ -536,7 +534,6 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Datacenter: req.Datacenter,
 			Agent:      req.Agent,
 		}
-		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
 		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
 	} else {
@@ -561,7 +558,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 	}
 
 	// Create a CSR.
-	csr, err := connect.CreateCSR(id, commonName, pk, dnsNames, ipAddresses)
+	csr, err := connect.CreateCSR(id, pk, dnsNames, ipAddresses)
 	if err != nil {
 		return result, err
 	}
