@@ -47,6 +47,8 @@ func (s *Server) stopConnectLeader() {
 	s.caManager.Stop()
 	s.leaderRoutineManager.Stop(intentionMigrationRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
+	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
+	s.leaderRoutineManager.Stop(caIntermediateMetricRoutineName)
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
 	provider, _ := s.caManager.getCAProvider()
