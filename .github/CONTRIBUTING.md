@@ -60,7 +60,7 @@ issue. Stale issues will be closed.
 ## Building Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.14 is _required_).
+installed (The version of Go should match the one of our [CI config's](https://github.com/hashicorp/consul/blob/master/.circleci/config.yml) Go image).
 
 
 Next, clone this repository and then run `make dev`. In a few moments, you'll have a working
