@@ -1,10 +1,16 @@
 package consul
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
@@ -336,6 +342,97 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	}
 
 	require.EqualValues(t, caStateInitialized, manager.state)
+}
+
+func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
+
+	args := []struct {
+		testName  string
+		notBefore time.Time
+		notAfter  time.Time
+		isError   bool
+		errorMsg  string
+	}{
+		{"intermediate in the future", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"intermediate expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "certificate expired end date"},
+		{"intermediate in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), true, "certificate start date is in the future"},
+	}
+
+	for _, arg := range args {
+
+		t.Run(arg.testName, func(t *testing.T) {
+			// No parallel execution because we change globals
+			// Set the interval and drift buffer low for renewing the cert.
+			origInterval := structs.IntermediateCertRenewInterval
+			origDriftBuffer := ca.CertificateTimeDriftBuffer
+			defer func() {
+				structs.IntermediateCertRenewInterval = origInterval
+				ca.CertificateTimeDriftBuffer = origDriftBuffer
+			}()
+			structs.IntermediateCertRenewInterval = time.Millisecond
+			ca.CertificateTimeDriftBuffer = 0
+
+			conf := DefaultConfig()
+			conf.ConnectEnabled = true
+			conf.PrimaryDatacenter = "dc1"
+			conf.Datacenter = "dc2"
+			delegate := NewMockCAServerDelegate(t, conf)
+			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+
+			ca := &x509.Certificate{
+				SerialNumber: big.NewInt(2019),
+				Subject: pkix.Name{
+					Organization:  []string{"Company, INC."},
+					Country:       []string{"US"},
+					Province:      []string{""},
+					Locality:      []string{"San Francisco"},
+					StreetAddress: []string{"Golden Gate Bridge"},
+					PostalCode:    []string{"94016"},
+				},
+				NotBefore:             arg.notBefore,
+				NotAfter:              arg.notAfter,
+				IsCA:                  true,
+				ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+				KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+				BasicConstraintsValid: true,
+			}
+			caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+			require.NoError(t, err)
+			caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+			require.NoError(t, err)
+			caPEM := new(bytes.Buffer)
+			pem.Encode(caPEM, &pem.Block{
+				Type:  "CERTIFICATE",
+				Bytes: caBytes,
+			})
+
+			caPrivKeyPEM := new(bytes.Buffer)
+			pem.Encode(caPrivKeyPEM, &pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+			})
+			manager.providerShim = &mockCAProvider{
+				callbackCh: delegate.callbackCh,
+				rootPEM:    caPEM.String(),
+			}
+			initTestManager(t, manager, delegate)
+
+			// Wait half the TTL for the cert to need renewing.
+			time.Sleep(1000 * time.Millisecond)
+
+			// Call RenewIntermediate and then confirm the RPCs and provider calls
+			// happen in the expected order.
+
+			_, err = manager.SignCertificate(&x509.CertificateRequest{}, &connect.SpiffeIDAgent{})
+
+			if arg.isError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), arg.errorMsg)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {

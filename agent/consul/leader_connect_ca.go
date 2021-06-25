@@ -1462,6 +1462,22 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 	connect.HackSANExtensionForCSR(csr)
 
+	// Append our local CA's intermediate if there is one.
+	inter, err := provider.ActiveIntermediate()
+	if err != nil {
+		return nil, err
+	}
+	root, err := provider.ActiveRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	//check if the intermediate expired before using it to sign
+	err = checkExpired(inter)
+	if err != nil {
+		return nil, err
+	}
+
 	// All seems to be in order, actually sign it.
 
 	pem, err := provider.Sign(csr)
@@ -1477,15 +1493,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		pem = pem + ca.EnsureTrailingNewline(p)
 	}
 
-	// Append our local CA's intermediate if there is one.
-	inter, err := provider.ActiveIntermediate()
-	if err != nil {
-		return nil, err
-	}
-	root, err := provider.ActiveRoot()
-	if err != nil {
-		return nil, err
-	}
 	if inter != root {
 		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
@@ -1521,4 +1528,18 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	}
 
 	return &reply, nil
+}
+
+func checkExpired(pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return err
+	}
+	if cert.NotBefore.After(time.Now()) {
+		return fmt.Errorf("certificate start date is in the future %s", cert.NotBefore.String())
+	}
+	if cert.NotAfter.Before(time.Now()) {
+		return fmt.Errorf("certificate expired end date %s ", cert.NotAfter.String())
+	}
+	return nil
 }
