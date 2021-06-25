@@ -155,6 +155,7 @@ func (cr *ConsulResolver) resolveServiceEntry(entry *api.ServiceEntry) (string, 
 		Namespace:  "default",
 		Datacenter: entry.Node.Datacenter,
 		Service:    service,
+		// NOTE: this only handles the default implicit partition currently.
 	}
 
 	return ipaddr.FormatAddressPort(addr, port), certURI, nil

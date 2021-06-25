@@ -79,25 +79,25 @@ func TestSpiffeIDSigning_CanSign(t *testing.T) {
 		{
 			name:  "service - good",
 			id:    testSigning,
-			input: &SpiffeIDService{TestClusterID + ".consul", "default", "dc1", "web"},
+			input: &SpiffeIDService{Host: TestClusterID + ".consul", Namespace: "default", Datacenter: "dc1", Service: "web"},
 			want:  true,
 		},
 		{
 			name:  "service - good midex case",
 			id:    testSigning,
-			input: &SpiffeIDService{strings.ToUpper(TestClusterID) + ".CONsuL", "defAUlt", "dc1", "WEB"},
+			input: &SpiffeIDService{Host: strings.ToUpper(TestClusterID) + ".CONsuL", Namespace: "defAUlt", Datacenter: "dc1", Service: "WEB"},
 			want:  true,
 		},
 		{
 			name:  "service - different cluster",
 			id:    testSigning,
-			input: &SpiffeIDService{"55555555-4444-3333-2222-111111111111.consul", "default", "dc1", "web"},
+			input: &SpiffeIDService{Host: "55555555-4444-3333-2222-111111111111.consul", Namespace: "default", Datacenter: "dc1", Service: "web"},
 			want:  false,
 		},
 		{
 			name:  "service - different TLD",
 			id:    testSigning,
-			input: &SpiffeIDService{TestClusterID + ".fake", "default", "dc1", "web"},
+			input: &SpiffeIDService{Host: TestClusterID + ".fake", Namespace: "default", Datacenter: "dc1", Service: "web"},
 			want:  false,
 		},
 	}

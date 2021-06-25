@@ -16,7 +16,7 @@ type SpiffeIDSigning struct {
 }
 
 // URI returns the *url.URL for this SPIFFE ID.
-func (id *SpiffeIDSigning) URI() *url.URL {
+func (id SpiffeIDSigning) URI() *url.URL {
 	var result url.URL
 	result.Scheme = "spiffe"
 	result.Host = id.Host()
@@ -24,7 +24,7 @@ func (id *SpiffeIDSigning) URI() *url.URL {
 }
 
 // Host is the canonical representation as a DNS-compatible hostname.
-func (id *SpiffeIDSigning) Host() string {
+func (id SpiffeIDSigning) Host() string {
 	return strings.ToLower(fmt.Sprintf("%s.%s", id.ClusterID, id.Domain))
 }
 
@@ -36,7 +36,7 @@ func (id *SpiffeIDSigning) Host() string {
 // method on CertURI interface since we don't intend this to be extensible
 // outside and it's easier to reason about the security properties when they are
 // all in one place with "allowlist" semantics.
-func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
+func (id SpiffeIDSigning) CanSign(cu CertURI) bool {
 	switch other := cu.(type) {
 	case *SpiffeIDSigning:
 		// We can only sign other CA certificates for the same trust domain. Note

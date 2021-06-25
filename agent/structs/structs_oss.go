@@ -46,11 +46,19 @@ func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return IntentionDefaultNamespace
 }
 
+func NamespaceOrDefault(_ string) string {
+	return IntentionDefaultNamespace
+}
+
 func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 	return ""
 }
 
 func (m *EnterpriseMeta) PartitionOrDefault() string {
+	return ""
+}
+
+func PartitionOrDefault(_ string) string {
 	return ""
 }
 

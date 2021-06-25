@@ -1,0 +1,3 @@
+```release-note:feature
+connect: include optional partition prefixes in SPIFFE identifiers
+```
