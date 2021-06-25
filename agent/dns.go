@@ -782,6 +782,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 	case "addr":
 		// <address>.addr.<suffixes>.<domain> - addr must be the second label, datacenter is optional
+
 		if len(queryParts) != 1 {
 			return invalid()
 		}
@@ -793,8 +794,8 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 			if err != nil {
 				return invalid()
 			}
-
-			resp.Answer = append(resp.Answer, &dns.A{
+			//check if the query type is  A for IPv4 or ANY
+			aRecord := &dns.A{
 				Hdr: dns.RR_Header{
 					Name:   qName + d.domain,
 					Rrtype: dns.TypeA,
@@ -802,15 +803,20 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
 				},
 				A: ip,
-			})
+			}
+			if req.Question[0].Qtype != dns.TypeA && req.Question[0].Qtype != dns.TypeANY {
+				resp.Extra = append(resp.Answer, aRecord)
+			} else {
+				resp.Answer = append(resp.Answer, aRecord)
+			}
 		// IPv6
 		case 16:
 			ip, err := hex.DecodeString(queryParts[0])
 			if err != nil {
 				return invalid()
 			}
-
-			resp.Answer = append(resp.Answer, &dns.AAAA{
+			//check if the query type is  AAAA for IPv6 or ANY
+			aaaaRecord := &dns.AAAA{
 				Hdr: dns.RR_Header{
 					Name:   qName + d.domain,
 					Rrtype: dns.TypeAAAA,
@@ -818,7 +824,12 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
 				},
 				AAAA: ip,
-			})
+			}
+			if req.Question[0].Qtype != dns.TypeAAAA && req.Question[0].Qtype != dns.TypeANY {
+				resp.Extra = append(resp.Extra, aaaaRecord)
+			} else {
+				resp.Answer = append(resp.Answer, aaaaRecord)
+			}
 		}
 	}
 	return true

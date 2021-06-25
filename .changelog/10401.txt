@@ -1,0 +1,3 @@
+```release-note:bug
+dns: return an empty answer when asked for an addr dns with type other then A and AAAA.
+```
