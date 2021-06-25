@@ -13,18 +13,25 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+var metricsKeyMeshCAExpiry = map[string][]string{
+	"root-cert":         {"mesh", "active-root-ca", "expiry"},
+	"intermediate-cert": {"mesh", "active-intermediate-ca", "expiry"},
+}
+
 var CertExpirationGauges = []prometheus.GaugeDefinition{
 	{
-		Name: metricsKeyMeshRootCAExpiry,
+		Name: metricsKeyMeshCAExpiry["root-cert"],
 		Help: "Seconds until the service mesh root certificate expires.",
+	},
+	{
+		Name: metricsKeyMeshCAExpiry["intermediate-cert"],
+		Help: "Seconds until the service mesh intermediate certificate expires.",
 	},
 }
 
-var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
-
 func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 	return certExpirationMonitor{
-		Key: metricsKeyMeshRootCAExpiry,
+		Key: metricsKeyMeshCAExpiry["root-cert"],
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: s.config.Datacenter},
 		},
@@ -46,7 +53,7 @@ func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 
 func intermediateCAExpiryMonitor(s *Server) certExpirationMonitor {
 	return certExpirationMonitor{
-		Key: metricsKeyMeshRootCAExpiry,
+		Key: metricsKeyMeshCAExpiry["intermediate-cert"],
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: s.config.Datacenter},
 		},
