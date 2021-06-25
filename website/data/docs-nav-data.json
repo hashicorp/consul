@@ -407,6 +407,10 @@
                 "path": "k8s/installation/deployment-configurations/servers-outside-kubernetes"
               },
               {
+                "title": "Single Consul Datacenter in Multiple Kubernetes Clusters",
+                "path": "k8s/installation/deployment-configurations/single-dc-multi-k8s"
+              },
+              {
                 "title": "Consul Enterprise",
                 "path": "k8s/installation/deployment-configurations/consul-enterprise"
               }
