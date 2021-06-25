@@ -37,6 +37,7 @@ func (s *Server) startConnectLeader(ctx context.Context) error {
 	s.caManager.Start(ctx)
 	s.leaderRoutineManager.Start(ctx, caRootPruningRoutineName, s.runCARootPruning)
 	s.leaderRoutineManager.Start(ctx, caRootMetricRoutineName, rootCAExpiryMonitor(s).monitor)
+	s.leaderRoutineManager.Start(ctx, caIntermediateMetricRoutineName, intermediateCAExpiryMonitor(s).monitor)
 
 	return s.startIntentionConfigEntryMigration(ctx)
 }

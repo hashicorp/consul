@@ -3,6 +3,7 @@ package consul
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -39,6 +40,28 @@ func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 			}
 
 			return time.Until(root.NotAfter), nil
+		},
+	}
+}
+
+func intermediateCAExpiryMonitor(s *Server) certExpirationMonitor {
+	return certExpirationMonitor{
+		Key: metricsKeyMeshRootCAExpiry,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: s.config.Datacenter},
+		},
+		Logger: s.logger.Named(logging.Connect),
+		Query: func() (time.Duration, error) {
+			provider, _ := s.caManager.getCAProvider()
+			certPem, err := provider.ActiveIntermediate()
+			if err != nil {
+				return time.Duration(0), err
+			}
+			cert, err := connect.ParseCert(certPem)
+			if err != nil {
+				return time.Duration(0), err
+			}
+			return time.Until(cert.NotAfter), nil
 		},
 	}
 }
