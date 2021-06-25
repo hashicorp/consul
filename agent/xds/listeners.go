@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"net"
 	"net/url"
 	"regexp"
@@ -1740,7 +1741,7 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
-		rootPEMS += root.RootCert
+		rootPEMS += ca.AddSingleNewline(root.RootCert)
 	}
 
 	return &envoy_tls_v3.CommonTlsContext{
