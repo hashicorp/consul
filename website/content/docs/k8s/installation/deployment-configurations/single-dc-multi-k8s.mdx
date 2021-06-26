@@ -76,7 +76,7 @@ kubectl get secret  consul-gossip-encryption-key cluster1-consul-ca-cert cluster
 ```
 
 ## Deploying Consul clients in the second cluster
-
+~> Note that if multiple Kubernetes clusters will be joined to the Consul Datacenter, then this step will need to be repeated for each additional Kubernetes cluster. 
 Now we can switch to the second Kubernetes cluster where we will deploy only the Consul clients
 that will join the servers and clients in the first cluster.
 
