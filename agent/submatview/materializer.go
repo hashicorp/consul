@@ -215,9 +215,13 @@ func (m *Materializer) notifyUpdateLocked(err error) {
 	m.updateCh = make(chan struct{})
 }
 
+// Result returned from the View.
 type Result struct {
 	Index uint64
 	Value interface{}
+	// Cached is true if the requested value was already available locally. If
+	// the value is false, it indicates that getFromView had to wait for an update,
+	Cached bool
 }
 
 // getFromView blocks until the index of the View is greater than opts.MinIndex,
@@ -237,6 +241,7 @@ func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result
 	// haven't loaded a snapshot at all yet which means we should wait for one on
 	// the update chan.
 	if result.Index > 0 && result.Index > minIndex {
+		result.Cached = true
 		return result, nil
 	}
 
