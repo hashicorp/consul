@@ -171,7 +171,8 @@ func (s *healthView) Result(index uint64) interface{} {
 	result := structs.IndexedCheckServiceNodes{
 		Nodes: make(structs.CheckServiceNodes, 0, len(s.state)),
 		QueryMeta: structs.QueryMeta{
-			Index: index,
+			Index:   index,
+			Backend: structs.QueryBackendStreaming,
 		},
 	}
 	for _, node := range s.state {
