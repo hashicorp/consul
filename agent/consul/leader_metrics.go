@@ -13,25 +13,23 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
-var metricsKeyMeshCAExpiry = map[string][]string{
-	"root-cert":         {"mesh", "active-root-ca", "expiry"},
-	"intermediate-cert": {"mesh", "active-intermediate-ca", "expiry"},
-}
+var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
+var metricsKeyMeshIntermediateCAExpiry = []string{"mesh", "active-intermediate-ca", "expiry"}
 
 var CertExpirationGauges = []prometheus.GaugeDefinition{
 	{
-		Name: metricsKeyMeshCAExpiry["root-cert"],
+		Name: metricsKeyMeshRootCAExpiry,
 		Help: "Seconds until the service mesh root certificate expires.",
 	},
 	{
-		Name: metricsKeyMeshCAExpiry["intermediate-cert"],
+		Name: metricsKeyMeshIntermediateCAExpiry,
 		Help: "Seconds until the service mesh intermediate certificate expires.",
 	},
 }
 
 func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 	return certExpirationMonitor{
-		Key: metricsKeyMeshCAExpiry["root-cert"],
+		Key: metricsKeyMeshRootCAExpiry,
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: s.config.Datacenter},
 		},
@@ -53,7 +51,7 @@ func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 
 func intermediateCAExpiryMonitor(s *Server) certExpirationMonitor {
 	return certExpirationMonitor{
-		Key: metricsKeyMeshCAExpiry["intermediate-cert"],
+		Key: metricsKeyMeshIntermediateCAExpiry,
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: s.config.Datacenter},
 		},
