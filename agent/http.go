@@ -723,6 +723,13 @@ func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setLastContact(resp, m.GetLastContact())
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
+	setQueryBackend(resp, m.GetBackend())
+}
+
+func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {
+	if b := backend.String(); b != "" {
+		resp.Header().Set("X-Consul-Query-Backend", b)
+	}
 }
 
 // setCacheMeta sets http response headers to indicate cache status.

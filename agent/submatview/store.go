@@ -171,7 +171,7 @@ func (s *Store) Notify(
 			u := cache.UpdateEvent{
 				CorrelationID: correlationID,
 				Result:        result.Value,
-				Meta:          cache.ResultMeta{Index: result.Index},
+				Meta:          cache.ResultMeta{Index: result.Index, Hit: result.Cached},
 			}
 			select {
 			case updateCh <- u:

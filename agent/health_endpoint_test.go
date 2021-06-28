@@ -739,11 +739,16 @@ func TestHealthServiceNodes(t *testing.T) {
 
 func TestHealthServiceNodes_Blocking(t *testing.T) {
 	cases := []struct {
-		name        string
-		hcl         string
-		grpcMetrics bool
+		name         string
+		hcl          string
+		grpcMetrics  bool
+		queryBackend string
 	}{
-		{name: "no streaming"},
+		{
+			name:         "no streaming",
+			queryBackend: "blocking-query",
+			hcl:          `use_streaming_backend = false`,
+		},
 		{
 			name:        "streaming",
 			grpcMetrics: true,
@@ -751,6 +756,7 @@ func TestHealthServiceNodes_Blocking(t *testing.T) {
 rpc { enable_streaming = true }
 use_streaming_backend = true
 `,
+			queryBackend: "streaming",
 		},
 	}
 
@@ -856,6 +862,8 @@ use_streaming_backend = true
 				require.True(t, idx < newIdx, "index should have increased."+
 					"idx=%d, newIdx=%d", idx, newIdx)
 
+				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
+
 				idx = newIdx
 
 				checkErrs()
@@ -882,6 +890,7 @@ use_streaming_backend = true
 
 				newIdx := getIndex(t, resp)
 				require.Equal(t, idx, newIdx)
+				require.Equal(t, tc.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
 			}
 
 			if tc.grpcMetrics {
@@ -905,16 +914,25 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		config string
+		name         string
+		config       string
+		queryBackend string
 	}{
-		{"normal", ""},
-		{"cache-with-streaming", `
+		{
+			name:         "blocking-query",
+			config:       `use_streaming_backend=false`,
+			queryBackend: "blocking-query",
+		},
+		{
+			name: "cache-with-streaming",
+			config: `
 			rpc{
 				enable_streaming=true
 			}
 			use_streaming_backend=true
-		    `},
+		    `,
+			queryBackend: "streaming",
+		},
 	}
 	for _, tst := range tests {
 		t.Run(tst.name, func(t *testing.T) {
@@ -986,6 +1004,8 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 			if len(nodes) != 1 || nodes[0].Checks == nil || len(nodes[0].Checks) != 0 {
 				t.Fatalf("bad: %v", obj)
 			}
+
+			require.Equal(t, tst.queryBackend, resp.Header().Get("X-Consul-Query-Backend"))
 		})
 	}
 }
@@ -1511,6 +1531,8 @@ func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 
 		// Should be a cache miss
 		require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+		// always a blocking query, because the ingress endpoint does not yet support streaming.
+		require.Equal(t, "blocking-query", resp.Header().Get("X-Consul-Query-Backend"))
 	}))
 
 	require.True(t, t.Run("test caching hit", func(t *testing.T) {
@@ -1525,6 +1547,8 @@ func testHealthIngressServiceNodes(t *testing.T, agentHCL string) {
 
 		// Should be a cache HIT now!
 		require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+		// always a blocking query, because the ingress endpoint does not yet support streaming.
+		require.Equal(t, "blocking-query", resp.Header().Get("X-Consul-Query-Backend"))
 	}))
 }
 
