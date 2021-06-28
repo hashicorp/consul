@@ -3,14 +3,13 @@ package consul
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-hclog"
-
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
