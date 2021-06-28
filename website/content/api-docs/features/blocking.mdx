@@ -99,6 +99,9 @@ While streaming is a significant optimization over long polling, it will not pop
 `X-Consul-LastContact` or `X-Consul-KnownLeader` response headers, because the required
 data is not available to the client.
 
+When the streaming backend is used, API responses will include the `X-Consul-Query-Backend`
+header with a value of `streaming`.
+
 
 ## Hash-based Blocking Queries
 
