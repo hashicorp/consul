@@ -5473,7 +5473,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPSPort:                              15127,
 		HTTPUseCache:                           false,
 		KeyFile:                                "IEkkwgIA",
-		KVMaxValueSize:                         1234567800000000,
+		KVMaxValueSize:                         1234567800,
 		LeaveDrainTime:                         8265 * time.Second,
 		LeaveOnTerm:                            true,
 		Logging: logging.Config{
@@ -5868,7 +5868,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			"wan_ipv4": "78.63.37.19",
 		},
 		TranslateWANAddrs: true,
-		TxnMaxReqLen:      5678000000000000,
+		TxnMaxReqLen:      567800000,
 		UIConfig: UIConfig{
 			Dir:                        "pVncV4Ey",
 			ContentPath:                "/qp1WRhYH/", // slashes are added in parsing
