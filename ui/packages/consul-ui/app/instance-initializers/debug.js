@@ -32,25 +32,37 @@ const DebugRoute = class extends ApplicationRoute {
 class DebugI18nService extends I18nService {
   formatMessage(value, formatOptions) {
     const text = super.formatMessage(...arguments);
-    switch (this.env.var('CONSUL_INTL_LOCALE')) {
-      case 'la-fk':
-        return text
-          .split(' ')
-          .map(item => {
-            const word = faker.lorem.word();
-            return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
-          })
-          .join(' ');
-      case '-':
-        return text
-          .split(' ')
-          .map(item =>
-            item
-              .split('')
-              .map(item => '-')
-              .join('')
-          )
-          .join(' ');
+    const locale = this.env.var('CONSUL_INTL_LOCALE');
+    if (locale) {
+      switch (this.env.var('CONSUL_INTL_LOCALE')) {
+        case 'la-fk':
+          return text
+            .split(' ')
+            .map(item => {
+              const word = faker.lorem.word();
+              return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
+            })
+            .join(' ');
+        case '-':
+          return text
+            .split(' ')
+            .map(item =>
+              item
+                .split('')
+                .map(item => '-')
+                .join('')
+            )
+            .join(' ');
+        default:
+          faker.locale = locale;
+          return text
+            .split(' ')
+            .map(item => {
+              const word = faker.lorem.word();
+              return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
+            })
+            .join(' ');
+      }
     }
     return text;
   }
