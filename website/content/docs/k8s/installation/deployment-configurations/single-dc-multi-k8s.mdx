@@ -6,13 +6,13 @@ description: Single Consul Datacenter deployed in multiple Kubernetes clusters
 
 # Single Consul Datacenter in Multiple Kubernetes Clusters
 
-~> Requires consul-helm v0.33.0 or higher.
+-> Requires consul-helm v0.33.0 or higher.
 
 This page describes how to deploy a single Consul datacenter in multiple Kubernetes clusters,
 with both servers and clients running in one cluster, and only clients running in the rest of the clusters.
 In this example, we will use two Kubernetes clusters, but this approach could be extended to using more than two.
 
-~> This deployment topology requires that your Kubernetes clusters have a flat network
+~> *Note:* This deployment topology requires that your Kubernetes clusters have a flat network
 for both pods and nodes, so that pods or nodes from one cluster can connect
 to pods or nodes in another.
 
@@ -42,15 +42,15 @@ ui:
     type: NodePort
 ```
 
-Note that we are deploying with a secure configuration, with gossip encryption,
-TLS for all components and ACLs. We are enabling the Consul Service Mesh and the controller for CRDs
-so that we can use them to verify that our services can connect with each other across clusters.
+Note that we are deploying in a secure configuration, with gossip encryption,
+TLS for all components, and ACLs. We are enabling the Consul Service Mesh and the controller for CRDs
+so that we can use them to later verify that our services can connect with each other across clusters.
 
 We're also setting UI's service type to be `NodePort`.
 This is needed so that we can connect to servers from another cluster without using the pod IPs of the servers,
 which are likely going to change.
 
-To deploy this, first we need to generate the Gossip encryption key and save it as a Kubernetes secret.
+To deploy, first we need to generate the Gossip encryption key and save it as a Kubernetes secret.
 
 ```shell
 $ kubectl create secret generic consul-gossip-encryption-key --from-literal=key=$(consul keygen)
@@ -61,12 +61,12 @@ Now we can install our Consul cluster with Helm:
 $ helm install cluster1 -f cluster1-config.yaml hashicorp/consul
 ```
 
-~> Note that the Helm release name must be unique for each Kubernetes cluster.
+~> *Note:* The Helm release name must be unique for each Kubernetes cluster.
 That is because the Helm chart will use the Helm release name as a prefix for the
-ACL resources that it creates, such as tokens and auth methods, and if the names of the Helm releases
+ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
 are the same, the Helm installation in subsequent clusters will clobber existing ACL resources.
 
-Once installation finishes and all components are running and ready,
+Once the installation finishes and all components are running and ready,
 we need to extract the gossip encryption key we've created, the CA certificate
 and the ACL bootstrap token generated during installation,
 so that we can apply them to our second Kubernetes cluster.
@@ -76,17 +76,17 @@ kubectl get secret consul-gossip-encryption-key cluster1-consul-ca-cert cluster1
 ```
 
 ## Deploying Consul clients in the second cluster
-~> Note that if multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions below will need to be repeated for each additional Kubernetes cluster. 
+~> *Note:* If multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions below will need to be repeated for each additional Kubernetes cluster.
 
 Now we can switch to the second Kubernetes cluster where we will deploy only the Consul clients
-that will join the servers and clients in the first cluster.
+that will join the first Consul cluster.
 
 First, we need to apply credentials we've extracted from the first cluster to the second cluster:
 
 ```shell
 $ kubectl apply -f cluster1-credentials.yaml
 ```
-To deploy clients, we will use the following Helm configuration:
+To deploy in the second cluster, we will use the following Helm configuration:
 
 ```yaml
 # cluster2-config.yaml
@@ -114,7 +114,7 @@ externalServers:
   # The node port of the UI's NodePort service
   httpsPort: 31557
   tlsServerName: server.dc1.consul
-  # The address of the kube API server of the this Kubernetes cluster
+  # The address of the kube API server of this Kubernetes cluster
   k8sAuthMethodHost: https://kubernetes.example.com:443
 client:
   enabled: true
@@ -129,13 +129,14 @@ connectInject:
 
 Note that we're referencing secrets from the first cluster in ACL, gossip, and TLS configuration.
 
-Next, you need to set up the `externalServers` configuration.
+Next, we need to set up the `externalServers` configuration.
 
 The `externalServers.hosts` and `externalServers.httpsPort`
 refer to the IP and port of the UI's NodePort service deployed in the first cluster.
 Set the `externalServers.hosts` to any Node IP of the first cluster,
-which you can see by running `kubectl get nodes -owide`.
-Set `externalServers.httpsPort` to the `nodePort` of the `cluster1-consul-ui` service:
+which you can see by running `kubectl get nodes -o wide`.
+Set `externalServers.httpsPort` to the `nodePort` of the `cluster1-consul-ui` service.
+In our example, the port is `31557`.
 
 ```shell
 $ kubectl get service cluster1-consul-ui --context cluster1
@@ -143,34 +144,33 @@ NAME                 TYPE       CLUSTER-IP    EXTERNAL-IP   PORT(S)         AGE
 cluster1-consul-ui   NodePort   10.0.240.80   <none>        443:31557/TCP   40h
 ```
 
-In our example, the port is `31557`.
-
 We set the `externalServer.tlsServerName` to `server.dc1.consul`. This the DNS SAN
-that is present in the Consul server's certificate. We need to set it because we're
-connecting to the Consul servers over the node IP, but that IP isn't present in the server's certificate.
-To make sure that the hostname verification succeeds during the TLS handshake, we need to pass set the TLS
+(Subject Alternative Name) that is present in the Consul server's certificate.
+We need to set it because we're connecting to the Consul servers over the node IP,
+but that IP isn't present in the server's certificate.
+To make sure that the hostname verification succeeds during the TLS handshake, we need to set the TLS
 server name to a DNS name that *is* present in the certificate.
 
-Next, we need to set `externalServers.k8sAuthMethodHost` to the address of the Kubernetes API server.
+Next, we need to set `externalServers.k8sAuthMethodHost` to the address of the second Kubernetes API server.
 This should be the address that is reachable from the first cluster, and so it cannot be the internal DNS
-available in each Kubernetes cluster. That is needed so that `consul login` via auth method will work
+available in each Kubernetes cluster. Consul needs it so that `consul login` with the Kubernetes auth method will work
 from the second cluster.
 More specifically, the Consul server will need to perform the verification of the Kubernetes service account
-whenever `consul login` is called, and to verify service accounts from the second cluster it needs to be able to
-reach Kube API in that cluster.
+whenever `consul login` is called, and to verify service accounts from the second cluster it needs to
+reach the Kubernetes API in that cluster.
 The easiest way to get it is to set it from your `kubeconfig` by running `kubectl config view` and grabbing
 the value of `cluster.server` for the second cluster.
 
 Lastly, we need to set up the clients so that they can discover the servers in the first cluster.
 For this, we will use Consul's cloud auto-join feature
 for the [Kubernetes provider](https://www.consul.io/docs/install/cloud-auto-join#kubernetes-k8s).
-In order to use it, we need to provide a way for Consul to reach the first Kubernetes cluster.
-To do that, we save `kubeconfig` for the first cluster as a Kubernetes secret in the second cluster
+To use it we need to provide a way for the Consul clients to reach the first Kubernetes cluster.
+To do that, we need to save the `kubeconfig` for the first cluster as a Kubernetes secret in the second cluster
 and reference it in the `clients.join` value. Note that we're making that secret available to the client pods
 by setting it in `client.extraVolumes`.
 
-~> Note that the kubeconfig you're providing to the client should have minimal permissions.
-The cloud auto-join provider will only need to list pods.
+~> *Note:* The kubeconfig you're providing to the client should have minimal permissions.
+The cloud auto-join provider will only need permission to read pods.
 Please see [Kubernetes Cloud auto-join](https://www.consul.io/docs/install/cloud-auto-join#kubernetes-k8s)
 for more details.
 
@@ -181,9 +181,8 @@ helm install cluster2 -f cluster2-config.yaml hashicorp/consul
 ```
 
 ## Verifying the Consul Service Mesh works
-~> Note that if multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions below will need to be repeated for each additional Kubernetes cluster. 
 
-Now that we have our Consul cluster in multiple k8s cluster up and running, we will
+Now that we have our Consul cluster in multiple k8s clusters up and running, we will
 deploy two services and verify that they can connect to each other.
 
 First, we'll deploy `static-server` service in the first cluster:
@@ -250,7 +249,7 @@ spec:
 
 Note that we're defining a Service intention so that our services are allowed to talk to each other.
 
-Then deploy `static-client` in the second cluster with the following configuration:
+Then we'll deploy `static-client` in the second cluster with the following configuration:
 
 ```yaml
 apiVersion: v1
