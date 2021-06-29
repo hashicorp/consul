@@ -743,7 +743,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 					"healthyPanicThreshold": {}
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul", "db") + `
 			}`,
 		"prepared_query:geo-cache": `
 			{
@@ -764,7 +764,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
+				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul", "geo-cache") + `
 			}`,
 	}
 }
