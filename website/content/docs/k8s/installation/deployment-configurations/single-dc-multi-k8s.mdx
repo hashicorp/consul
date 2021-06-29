@@ -12,7 +12,7 @@ This page describes how to deploy a single Consul datacenter in multiple Kuberne
 with both servers and clients running in one cluster, and only clients running in the rest of the clusters.
 In this example, we will use two Kubernetes clusters, but this approach could be extended to using more than two.
 
-~> We assume here that your Kubernetes clusters have a flat network
+~> This deployment topology requires that your Kubernetes clusters have a flat network
 for both pods and nodes, so that pods or nodes from one cluster can connect
 to pods or nodes in another.
 
@@ -72,7 +72,7 @@ and the ACL bootstrap token generated during installation,
 so that we can apply them to our second Kubernetes cluster.
 
 ```shell
-kubectl get secret  consul-gossip-encryption-key cluster1-consul-ca-cert cluster1-consul-bootstrap-acl-token -o yaml > cluster1-credentials.yaml
+kubectl get secret consul-gossip-encryption-key cluster1-consul-ca-cert cluster1-consul-bootstrap-acl-token -o yaml > cluster1-credentials.yaml
 ```
 
 ## Deploying Consul clients in the second cluster
