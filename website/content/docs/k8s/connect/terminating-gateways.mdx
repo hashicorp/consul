@@ -268,7 +268,7 @@ spec:
     spec:
       containers:
         - name: static-client
-          image: tutum/curl:latest
+          image: curlimages/curl:latest
           command: ['/bin/sh', '-c', '--']
           args: ['while true; do sleep 30; done;']
       serviceAccountName: static-client
