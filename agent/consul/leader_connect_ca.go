@@ -905,6 +905,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 			if err != nil {
 				return err
 			}
+			xcCert = ca.AddSingleNewline(xcCert)
 
 			// Add the cross signed cert to the new CA's intermediates (to be attached
 			// to leaf certs).

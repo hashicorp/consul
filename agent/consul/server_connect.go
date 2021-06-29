@@ -216,10 +216,11 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	if err != nil {
 		return nil, err
 	}
+	pem = ca.AddSingleNewline(pem)
 
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
-		pem = strings.TrimSpace(pem) + "\n" + p
+		pem = strings.TrimSpace(pem) + p
 	}
 
 	// Append our local CA's intermediate if there is one.
