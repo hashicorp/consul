@@ -181,6 +181,7 @@ helm install cluster2 -f cluster2-config.yaml hashicorp/consul
 ```
 
 ## Verifying the Consul Service Mesh works
+~> Note that if multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions below will need to be repeated for each additional Kubernetes cluster. 
 
 Now that we have our Consul cluster in multiple k8s cluster up and running, we will
 deploy two services and verify that they can connect to each other.
