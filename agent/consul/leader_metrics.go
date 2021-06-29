@@ -2,18 +2,24 @@ package consul
 
 import (
 	"context"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/consul/agent/connect/ca"
+
+	"github.com/hashicorp/consul/agent/connect"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 )
 
 var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
-var metricsKeyMeshIntermediateCAExpiry = []string{"mesh", "active-intermediate-ca", "expiry"}
+var metricsKeyMeshPrimaryCAExpiry = []string{"mesh", "active-primary-dc-ca", "expiry"}
+var metricsKeyMeshSecondaryCAExpiry = []string{"mesh", "active-secondary-dc-ca", "expiry"}
 
 var CertExpirationGauges = []prometheus.GaugeDefinition{
 	{
@@ -21,8 +27,12 @@ var CertExpirationGauges = []prometheus.GaugeDefinition{
 		Help: "Seconds until the service mesh root certificate expires.",
 	},
 	{
-		Name: metricsKeyMeshIntermediateCAExpiry,
-		Help: "Seconds until the service mesh intermediate certificate expires.",
+		Name: metricsKeyMeshPrimaryCAExpiry,
+		Help: "Seconds until the service mesh primary DC certificate expires.",
+	},
+	{
+		Name: metricsKeyMeshSecondaryCAExpiry,
+		Help: "Seconds until the service mesh secondary DC certificate expires.",
 	},
 }
 
@@ -48,26 +58,81 @@ func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 	}
 }
 
-func intermediateCAExpiryMonitor(s *Server) certExpirationMonitor {
+func primaryCAExpiryMonitor(s *Server) certExpirationMonitor {
 	return certExpirationMonitor{
-		Key: metricsKeyMeshIntermediateCAExpiry,
+		Key: metricsKeyMeshPrimaryCAExpiry,
 		Labels: []metrics.Label{
 			{Name: "datacenter", Value: s.config.Datacenter},
 		},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
-			provider, _ := s.caManager.getCAProvider()
-			certPem, err := provider.ActiveIntermediate()
-			if err != nil {
-				return time.Duration(0), err
+
+			isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
+			if isPrimary {
+				provider, _ := s.caManager.getCAProvider()
+
+				if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
+					cert, err := getActiveIntermediate(s)
+					if err != nil {
+						return 0, err
+					}
+					return time.Until(cert.NotAfter), nil
+				}
+
+				state := s.fsm.State()
+				_, root, err := state.CARootActive(nil)
+				switch {
+				case err != nil:
+					return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+				case root == nil:
+					return 0, fmt.Errorf("no active root CA")
+				}
+
+				return time.Until(root.NotAfter), nil
 			}
-			cert, err := connect.ParseCert(certPem)
-			if err != nil {
-				return time.Duration(0), err
-			}
-			return time.Until(cert.NotAfter), nil
+			return 0, nil
 		},
 	}
+}
+
+func secondaryCAExpiryMonitor(s *Server) certExpirationMonitor {
+	return certExpirationMonitor{
+		Key: metricsKeyMeshSecondaryCAExpiry,
+		Labels: []metrics.Label{
+			{Name: "datacenter", Value: s.config.Datacenter},
+		},
+		Logger: s.logger.Named(logging.Connect),
+		Query: func() (time.Duration, error) {
+			isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
+			if !isPrimary {
+				cert, err := getActiveIntermediate(s)
+				if err != nil {
+					return 0, err
+				}
+				return time.Until(cert.NotAfter), nil
+			}
+			return 0, nil
+		},
+	}
+}
+
+func getActiveIntermediate(s *Server) (*x509.Certificate, error) {
+	state := s.fsm.State()
+	_, root, err := state.CARootActive(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// the CA used in a secondary DC is the active intermediate,
+	// which is the last in the IntermediateCerts stack
+	if len(root.IntermediateCerts) == 0 {
+		return nil, errors.New("no intermediate available")
+	}
+	cert, err := connect.ParseCert(root.IntermediateCerts[len(root.IntermediateCerts)-1])
+	if err != nil {
+		return nil, err
+	}
+	return cert, nil
 }
 
 type certExpirationMonitor struct {
