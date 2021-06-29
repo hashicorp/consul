@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -234,7 +233,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	}
 	root = ca.AddSingleNewline(root)
 	if inter != root {
-		pem = strings.TrimSpace(pem) + inter
+		pem = ca.AddSingleNewline(pem) + inter
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to
