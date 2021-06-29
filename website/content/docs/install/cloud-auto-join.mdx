@@ -33,6 +33,63 @@ or via a configuration file:
 }
 ```
 
+## Auto-join with Network Segments <EnterpriseAlert inline />
+
+In order to use cloud auto-join with [Network Segments](/docs/enterprise/network-segments),
+you must reconfigure the Consul agent's Serf LAN port to match that of the
+segment you wish to join.
+
+For example, given the following segment configuration on the server agents:
+
+```hcl
+# server-config.hcl
+segments = [
+  {
+    name = "alpha"
+    bind = "{{GetPrivateIP}}"
+    advertise = "{{GetPrivateIP}}"
+    port = 8303
+  },
+  {
+    name = "beta"
+    bind = "{{GetPrivateIP}}"
+    advertise = "{{GetPrivateIP}}"
+    port = 8304
+  }
+]
+```
+
+A Consul client agent wishing to join the "alpha" segment would need to be configured
+to use port `8303` as its Serf LAN port prior to attempting to join the cluster.
+
+<Tabs>
+<Tab heading="Agent configuration">
+
+The following example configuration overrides the default Serf LAN port using the
+[`ports.serf_lan`](/docs/agent/options#serf_lan_port) configuration option.
+
+```hcl
+# client-config.hcl
+ports {
+  serf_lan = 8303
+}
+```
+
+</Tab>
+<Tab heading="Command-line flag">
+
+The following example overrides the default Serf LAN port using the
+[`-serf-lan-port`](/docs/agent/options#_serf_lan_port) command line flag.
+
+```shell
+$ consul agent -serf-lan-port=8303 -retry-join "provider=..."
+```
+
+</Tab>
+</Tabs>
+
+## Provider-specific configurations
+
 The cloud provider-specific configurations are detailed below. This can be
 combined with static IP or DNS addresses or even multiple configurations
 for different providers.
