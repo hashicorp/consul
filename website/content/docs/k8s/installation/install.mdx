@@ -54,9 +54,8 @@ manual configuration.
 
 ### Prerequisites
 
-The Consul Helm chart works with Helm 2 and Helm 3. If using Helm 2, you will
-need to install Tiller by following the
-[Helm 2 Installation Guide](https://v2.helm.sh/docs/using_helm/#quickstart-guide).
+The Consul Helm chart works only with Helm 3. Install the latest version of the Helm CLI here
+[Installing Helm](https://helm.sh/docs/intro/install/).
 
 ### Installing Consul
 
@@ -72,7 +71,7 @@ Ensure you have access to the consul chart:
 ```shell-session
 $ helm search repo hashicorp/consul
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-hashicorp/consul	0.20.1       	1.7.2      	Official HashiCorp Consul Chart
+hashicorp/consul	0.32.0       	1.10.0      Official HashiCorp Consul Chart
 ```
 
 Now you're ready to install Consul! To install Consul with the default
@@ -83,8 +82,6 @@ $ helm install consul hashicorp/consul --set global.name=consul
 NAME: consul
 ...
 ```
-
--> If using Helm 2, run: `helm install --name consul hashicorp/consul --set global.name=consul`
 
 _That's it._ The Helm chart does everything to set up a recommended
 Consul-on-Kubernetes deployment.
