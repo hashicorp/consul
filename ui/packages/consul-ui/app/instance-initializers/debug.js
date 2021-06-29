@@ -53,7 +53,7 @@ class DebugI18nService extends I18nService {
             .join(' ');
         case 'la-fk':
           locale = 'en';
-        // passthrough
+        // fallsthrough
         default:
           faker.locale = locale;
           return text
