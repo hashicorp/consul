@@ -22,9 +22,9 @@ A few steps are generally required to enable an Ingress controller to join the m
   * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
 inbound traffic that the service exposes from redirection. Typical configurations would require all inbound service ports
 for the controller to be included in this list.
-  * `consul.hashicorp.com/transparent-proxy-exclude-outbound-ports` - Provides the ability to exclude a list of ports for
+  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
 outbound traffic that the service exposes from redirection.
-  * `consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs` - Provides the ability to exclude a list of CIDRs that
+  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
 the service communicates with for outbound requests from redirection. It is somewhat common that an Ingress controller
 will expect to make API calls to the Kubernetes service for service/endpoint management. As such including the ClusterIP of the
 Kubernetes service is common.
