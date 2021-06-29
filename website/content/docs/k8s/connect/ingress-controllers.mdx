@@ -19,7 +19,7 @@ A few steps are generally required to enable an Ingress controller to join the m
 * Enable connect-injection via an annotation on the Ingress Controller's deployment: `consul.hashicorp.com/connect-inject` is `true`.
 
 * Using the following annotations on the Ingress controller's deployment, setup exclusion rules for it's ports.
-  * `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports` - Provides the ability to exclude a list of ports for
+  * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
 inbound traffic that the service exposes from redirection. Typical configurations would require all inbound service ports
 for the controller to be included in this list.
   * `consul.hashicorp.com/transparent-proxy-exclude-outbound-ports` - Provides the ability to exclude a list of ports for
@@ -39,8 +39,9 @@ deployment:
     consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
 ```
 
-* If the Ingress controller acts as a LoadBalancer and routes directly to Pod IPs instead of KubeDNS a `ServiceDefault` CRD
+* If the Ingress controller acts as a LoadBalancer and routes directly to Pod IPs instead of Kubernetes Services a `ServiceDefault` CRD
 must be applied to each backend service allowing it to use the `dialedDirectly` features:
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
@@ -52,6 +53,7 @@ spec:
 ```
 
 * An intention from the Ingress Controller to the backend application must also be applied:
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
@@ -71,4 +73,3 @@ ServiceAccount and Service to have the same name.
 
 - If the Ingress Controller does not have the correct inbound ports excluded it will fail to start and the Ingress'
 service will not get created, causing the controller to hang in the init container.
-
