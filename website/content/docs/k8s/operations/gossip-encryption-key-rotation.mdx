@@ -22,6 +22,8 @@ The following instructions provides a step-by-step manual process for rotating g
 
   `kubectl exec` into a Consul Server pod and add the new key to the Consul Keyring. This can be performed by running the following command:
 
+  **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations.
+
   ```shell-session
   consul keyring -install="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
   ==> Installing new gossip encryption key...
@@ -49,7 +51,7 @@ The following instructions provides a step-by-step manual process for rotating g
 3. Use the new key as the gossip encryption key.
 
   Once the new key has been added to the keychain, you can install it as the new gossip encryption key. In order to do so
-  run the following while remaining `kubectl exec`-d in the Consul server pod.
+  run the following while remaining `kubectl exec`'d in the Consul server pod.
 
   ```shell-session
   consul keyring -use="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
@@ -78,7 +80,7 @@ The following instructions provides a step-by-step manual process for rotating g
   kubectl patch secret consul-gossip-encryption-key -p '{"data":{"key": "V2E2L1hGQW5ZeTBmOWlxVkgyaWlHK3lvcmUzQ3FIU2VtVXk0QUlWVGEvdz0K"}}'
   ```
 
-  **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. This name of the secret and key can be found in the values file of the secondary datacenter.
+  **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. The name of the secret and key can be found in the values file of the secondary datacenter.
   ```yaml
   global:
      gossipEncryption:
