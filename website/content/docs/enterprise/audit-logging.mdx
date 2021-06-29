@@ -13,8 +13,191 @@ description: >-
   with the Governance and Policy module.
 </EnterpriseAlert>
 
-Consul Enterprise v1.8.0 adds audit logging as a feature that captures a clear and actionable log of authenticated events (both attempted and committed) that Consul processes and compiles them into a JSON format for easy export. These events contain a timestamp, the operation performed, and the user who initiated the action.
+Consul Enterprise v1.8.0 adds audit logging as a feature that captures a clear and
+actionable log of authenticated events (both attempted and committed) that Consul
+processes via its HTTP API and compiles them into a JSON format for easy export.
+These events contain a timestamp, the operation performed, and the user who initiated the action.
 
-Audit logging enables security and compliance teams within an organization to get greater insight into Consul access and usage patterns.
+Audit logging enables security and compliance teams within an organization to get
+greater insight into Consul access and usage patterns.
 
-For more experience leveraging Consul's audit logging functionality, we suggest you explore our HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging). For detailed configuration information on configuring the Consul Enterprise's snapshot agent, review the Consul [Audit Log](https://www.consul.io/docs/agent/options#audit) documentation.
+For more experience leveraging Consul's audit logging functionality, explore our
+HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging).
+
+For detailed configuration information on configuring the Consul Enterprise's audit
+logging, review the Consul [Audit Log](https://www.consul.io/docs/agent/options#audit)
+documentation.
+
+## Example Configuration
+
+Audit logging must be enabled on every agent in order to accurately capture all
+operations performed through the HTTP API. To enable logging, add
+the [`audit`](/docs/agent/options#audit) stanza to the agent's configuration.
+
+-> **Note**: Consul only logs operations which are initiated via the HTTP API.
+The audit log does not record operations that take place over the internal RPC
+communication channel used for agent communication.
+
+<Tabs>
+<Tab heading="Log to file">
+
+The following example configures a destination called "My Sink" which stores audit
+events at the file `/tmp/audit.json`. The log file will be rotated either every
+24 hours, or when the log file size is greater than 25165824 bytes (24 megabytes).
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "/tmp/audit.json"
+    delivery_guarantee = "best-effort"
+    rotate_duration = "24h"
+    rotate_max_files = 15
+    rotate_bytes = 25165824
+  }
+}
+```
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "/tmp/audit.json",
+        "delivery_guarantee": "best-effort",
+        "rotate_duration": "24h",
+        "rotate_max_files": 15,
+        "rotate_bytes": 25165824
+      }
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+</Tab>
+
+<Tab heading="Log to standard out">
+
+
+The following example configures a destination called "My Sink" which emits audit
+logs to standard out.
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "/dev/stdout"
+    delivery_guarantee = "best-effort"
+  }
+}
+```
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "/dev/stdout",
+        "delivery_guarantee": "best-effort"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+</Tab>
+</Tabs>
+
+## Example Audit Log
+
+In this example a client has issued an HTTP GET request to look up the `ssh`
+service in the `/v1/catalog/service/` endpoint.
+
+Details from the HTTP request are recorded in the audit log. The `stage` field
+is set to `OperationStart` which indicates the agent has begun processing the
+request.
+
+The value of the `payload.auth.accessor_id` field is the accessor ID of the
+[ACL token](/docs/security/acl/acl-system#acl-tokens) which issued the request.
+
+```json
+{
+  "created_at": "2020-12-08T12:30:29.196365-05:00",
+  "event_type": "audit",
+  "payload": {
+    "id": "e4a20aec-d250-72c4-2aea-454fe8ae8051",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2020-12-08T12:30:29.196206-05:00",
+    "auth": {
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
+      "host": "127.0.0.1:8500"
+    },
+    "stage": "OperationStart"
+  }
+}
+```
+
+After the request is processed, a corresponding log entry is written for the HTTP
+response. The `stage` field is set to `OperationComplete` which indicates the agent
+has completed processing the request.
+
+```json
+{
+  "created_at": "2020-12-08T12:30:29.202935-05:00",
+  "event_type": "audit",
+  "payload": {
+    "id": "1f85053f-badb-4567-d239-abc0ecee1570",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2020-12-08T12:30:29.202863-05:00",
+    "auth": {
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
+      "host": "127.0.0.1:8500"
+    },
+    "response": {
+      "status": "200"
+    },
+    "stage": "OperationComplete"
+  }
+}
+```
