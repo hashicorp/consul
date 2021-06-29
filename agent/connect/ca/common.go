@@ -91,6 +91,8 @@ func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.Sp
 	return nil
 }
 
+// AddSingleNewline this is used to fix a case where the provider do not return a new line after
+// the certificate as per the specification see GH-8178 for more context
 func AddSingleNewline(cert string) string {
 	if cert == "" {
 		return cert
