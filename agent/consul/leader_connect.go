@@ -37,8 +37,12 @@ func (s *Server) startConnectLeader(ctx context.Context) error {
 	s.caManager.Start(ctx)
 	s.leaderRoutineManager.Start(ctx, caRootPruningRoutineName, s.runCARootPruning)
 	s.leaderRoutineManager.Start(ctx, caRootMetricRoutineName, rootCAExpiryMonitor(s).monitor)
-	s.leaderRoutineManager.Start(ctx, caPrimaryMetricRoutineName, primaryCAExpiryMonitor(s).monitor)
-	s.leaderRoutineManager.Start(ctx, caSecondaryMetricRoutineName, secondaryCAExpiryMonitor(s).monitor)
+	isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
+	if isPrimary {
+		s.leaderRoutineManager.Start(ctx, caPrimaryMetricRoutineName, primaryCAExpiryMonitor(s).monitor)
+	} else {
+		s.leaderRoutineManager.Start(ctx, caSecondaryMetricRoutineName, secondaryCAExpiryMonitor(s).monitor)
+	}
 
 	return s.startIntentionConfigEntryMigration(ctx)
 }
@@ -49,8 +53,12 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(intentionMigrationRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
-	s.leaderRoutineManager.Stop(caPrimaryMetricRoutineName)
-	s.leaderRoutineManager.Stop(caSecondaryMetricRoutineName)
+	isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
+	if isPrimary {
+		s.leaderRoutineManager.Stop(caPrimaryMetricRoutineName)
+	} else {
+		s.leaderRoutineManager.Stop(caSecondaryMetricRoutineName)
+	}
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
 	provider, _ := s.caManager.getCAProvider()

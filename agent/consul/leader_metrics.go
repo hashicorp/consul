@@ -24,15 +24,15 @@ var metricsKeyMeshSecondaryCAExpiry = []string{"mesh", "active-secondary-dc-ca",
 var CertExpirationGauges = []prometheus.GaugeDefinition{
 	{
 		Name: metricsKeyMeshRootCAExpiry,
-		Help: "Seconds until the service mesh root certificate expires.",
+		Help: "Seconds until the service mesh root certificate expires. Updated every hour",
 	},
 	{
 		Name: metricsKeyMeshPrimaryCAExpiry,
-		Help: "Seconds until the service mesh primary DC certificate expires.",
+		Help: "Seconds until the service mesh primary DC certificate expires. Updated every hour",
 	},
 	{
 		Name: metricsKeyMeshSecondaryCAExpiry,
-		Help: "Seconds until the service mesh secondary DC certificate expires.",
+		Help: "Seconds until the service mesh secondary DC certificate expires. Updated every hour",
 	},
 }
 
@@ -67,30 +67,27 @@ func primaryCAExpiryMonitor(s *Server) certExpirationMonitor {
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
 
-			isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
-			if isPrimary {
-				provider, _ := s.caManager.getCAProvider()
+			provider, _ := s.caManager.getCAProvider()
 
-				if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
-					cert, err := getActiveIntermediate(s)
-					if err != nil {
-						return 0, err
-					}
-					return time.Until(cert.NotAfter), nil
+			if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
+				cert, err := getActiveIntermediate(s)
+				if err != nil {
+					return 0, err
 				}
-
-				state := s.fsm.State()
-				_, root, err := state.CARootActive(nil)
-				switch {
-				case err != nil:
-					return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
-				case root == nil:
-					return 0, fmt.Errorf("no active root CA")
-				}
-
-				return time.Until(root.NotAfter), nil
+				return time.Until(cert.NotAfter), nil
 			}
-			return 0, nil
+
+			state := s.fsm.State()
+			_, root, err := state.CARootActive(nil)
+			switch {
+			case err != nil:
+				return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+			case root == nil:
+				return 0, fmt.Errorf("no active root CA")
+			}
+
+			return time.Until(root.NotAfter), nil
+
 		},
 	}
 }
@@ -103,15 +100,12 @@ func secondaryCAExpiryMonitor(s *Server) certExpirationMonitor {
 		},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
-			isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
-			if !isPrimary {
-				cert, err := getActiveIntermediate(s)
-				if err != nil {
-					return 0, err
-				}
-				return time.Until(cert.NotAfter), nil
+
+			cert, err := getActiveIntermediate(s)
+			if err != nil {
+				return 0, err
 			}
-			return 0, nil
+			return time.Until(cert.NotAfter), nil
 		},
 	}
 }
