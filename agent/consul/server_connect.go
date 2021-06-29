@@ -227,13 +227,14 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	if err != nil {
 		return nil, err
 	}
+	inter = ca.AddSingleNewline(inter)
 	root, err := provider.ActiveRoot()
 	if err != nil {
 		return nil, err
 	}
-
+	root = ca.AddSingleNewline(root)
 	if inter != root {
-		pem = strings.TrimSpace(pem) + "\n" + inter
+		pem = strings.TrimSpace(pem) + inter
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to

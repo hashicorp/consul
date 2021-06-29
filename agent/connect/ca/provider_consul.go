@@ -150,7 +150,7 @@ func (c *ConsulProvider) ActiveRoot() (string, error) {
 		return "", err
 	}
 
-	return AddSingleNewline(providerState.RootCert), nil
+	return providerState.RootCert, nil
 }
 
 // GenerateRoot initializes a new root certificate and private key
@@ -193,9 +193,9 @@ func (c *ConsulProvider) GenerateRoot() error {
 		}
 		// Adding the single new line here is not necessary because `generateCA` will add it but we do it to be extra
 		// cautious and harmonize with other provider (ex:Vault)
-		newState.RootCert = AddSingleNewline(ca)
+		newState.RootCert = ca
 	} else {
-		newState.RootCert = AddSingleNewline(c.config.RootCert)
+		newState.RootCert = c.config.RootCert
 	}
 
 	// Write the provider state
@@ -277,8 +277,8 @@ func (c *ConsulProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 
 	// Update the state
 	newState := *providerState
-	newState.IntermediateCert = AddSingleNewline(intermediatePEM)
-	newState.RootCert = AddSingleNewline(rootPEM)
+	newState.IntermediateCert = intermediatePEM
+	newState.RootCert = rootPEM
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
 		ProviderState: &newState,
@@ -441,7 +441,7 @@ func (c *ConsulProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 
 	// Set the response
-	return AddSingleNewline(buf.String()), nil
+	return buf.String(), nil
 }
 
 // SignIntermediate will validate the CSR to ensure the trust domain in the
@@ -588,7 +588,7 @@ func (c *ConsulProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	return AddSingleNewline(buf.String()), nil
+	return buf.String(), nil
 }
 
 // SupportsCrossSigning implements Provider

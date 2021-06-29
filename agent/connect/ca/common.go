@@ -92,6 +92,9 @@ func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.Sp
 }
 
 func AddSingleNewline(cert string) string {
+	if cert == "" {
+		return cert
+	}
 	if strings.HasSuffix(cert, "\n") {
 		return cert
 	}

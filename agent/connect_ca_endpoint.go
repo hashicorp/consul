@@ -2,12 +2,11 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/structs"
-	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // GET /v1/connect/ca/roots
@@ -39,22 +38,17 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 	// defined in RFC 8555 and registered with the IANA
 	resp.Header().Set("Content-Type", "application/pem-certificate-chain")
 
-	err := writeCA(resp, reply.Roots)
-	return nil, err
-}
-
-func writeCA(resp io.Writer, roots []*structs.CARoot) error {
-	for _, root := range roots {
-		if _, err := resp.Write([]byte(ca.AddSingleNewline(root.RootCert))); err != nil {
-			return err
+	for _, root := range reply.Roots {
+		if _, err := resp.Write([]byte(root.RootCert)); err != nil {
+			return nil, err
 		}
 		for _, intermediate := range root.IntermediateCerts {
-			if _, err := resp.Write([]byte(ca.AddSingleNewline(intermediate))); err != nil {
-				return err
+			if _, err := resp.Write([]byte(intermediate)); err != nil {
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // /v1/connect/ca/configuration

@@ -231,7 +231,7 @@ func (a *AWSProvider) ensureCA() error {
 		return err
 	}
 
-	a.rootPEM = AddSingleNewline(certPEM)
+	a.rootPEM = certPEM
 	return nil
 }
 
@@ -362,15 +362,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = AddSingleNewline(*output.Certificate)
+		a.rootPEM = *output.Certificate
 	} else {
-		a.intermediatePEM = AddSingleNewline(*output.Certificate)
+		a.intermediatePEM = *output.Certificate
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = AddSingleNewline(*output.Certificate)
+		a.rootPEM = *output.Certificate
 	}
 	return nil
 }
@@ -488,7 +488,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 			}
 
 			if certOutput.Certificate != nil {
-				return true, AddSingleNewline(*certOutput.Certificate), nil
+				return true, *certOutput.Certificate, nil
 			}
 
 			return false, "", nil
@@ -544,8 +544,8 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 	}
 
 	// We succsefully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = AddSingleNewline(rootPEM)
-	a.intermediatePEM = AddSingleNewline(intermediatePEM)
+	a.rootPEM = rootPEM
+	a.intermediatePEM = intermediatePEM
 
 	return nil
 }
