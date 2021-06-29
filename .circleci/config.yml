@@ -60,7 +60,7 @@ steps:
     name: notify-slack-failure
     when: on_fail
     command: |
-      if [[ $CIRCLE_BRANCH == "master" ]]; then
+      if [[ $CIRCLE_BRANCH == "main" ]]; then
         CIRCLE_ENDPOINT="https://app.circleci.com/pipelines/github/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}?branch=${CIRCLE_BRANCH}"
         GITHUB_ENDPOINT="https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commit/${CIRCLE_SHA1}"
         COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
@@ -79,7 +79,7 @@ steps:
         ] \
         }" "${FEED_CONSUL_GH_URL}"
       else
-        echo "Not posting slack failure notifications for non-master branch"
+        echo "Not posting slack failure notifications for non-main branch"
       fi
 
 commands:
@@ -386,7 +386,7 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in master branch after rebuilding UI
+      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
           at: .
       - run:
           command: make dev
@@ -486,7 +486,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # run integration tests on nomad/master
+  # run integration tests on nomad/main
   nomad-integration-main:
     docker:
       - image: *GOLANG_IMAGE
@@ -648,7 +648,7 @@ jobs:
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin master
+              git push origin main
             else
               echo "no UI changes so no static assets to publish"
             fi
@@ -833,7 +833,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
+  # only runs on main: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
   cherry-picker:
     docker:
       - image: docker.mirror.hashicorp.services/alpine:3.12
@@ -993,12 +993,12 @@ workflows:
             - check-vendor
       - build-amd64: *require-check-vendor
       - build-arm: *require-check-vendor
-      # every commit on master will have a rebuilt UI
+      # every commit on main will have a rebuilt UI
       - frontend-cache:
           filters:
             branches:
               only:
-                - master
+                - main
       - ember-build-prod:
           requires:
             - frontend-cache
@@ -1009,7 +1009,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
           requires:
             - build-static-assets
@@ -1034,7 +1034,7 @@ workflows:
             branches:
               ignore:
                 - /^pull\/.*$/ # only push dev builds from non forks
-                - master # all master dev uploads will include a UI rebuild in build-distros
+                - main # all main dev uploads will include a UI rebuild in build-distros
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
@@ -1071,7 +1071,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
       - algolia-index:
           context: consul-docs
           filters:
@@ -1085,7 +1085,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /^ui\/.*/
       - workspace-tests:
           requires:
@@ -1118,14 +1118,14 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
       - cherry-picker:
           context: team-consul
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
@@ -1139,6 +1139,6 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - load-test

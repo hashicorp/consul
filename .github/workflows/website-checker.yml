@@ -13,9 +13,9 @@
 on:
   pull_request_target:
     types: [opened]
-    # Runs on PRs to master and all release branches
+    # Runs on PRs to main and all release branches
     branches:
-      - master
+      - main
       - release/*
 
 jobs:

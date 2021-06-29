@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# This script is meant to run on every new commit to master in CircleCI. If the commit comes from a PR, it will
+# This script is meant to run on every new commit to main in CircleCI. If the commit comes from a PR, it will
 # check the PR associated with the commit for labels. If the label matches `docs*` it will be cherry-picked
 # to stable-website. If the label matches `backport/*`, it will be cherry-picked to the appropriate `release/*`
 # branch.
