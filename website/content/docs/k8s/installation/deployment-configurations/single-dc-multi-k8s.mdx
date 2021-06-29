@@ -6,13 +6,13 @@ description: Single Consul Datacenter deployed in multiple Kubernetes clusters
 
 # Single Consul Datacenter in Multiple Kubernetes Clusters
 
--> Requires consul-helm v0.33.0 or higher.
+-> Requires consul-helm v0.32.1 or higher.
 
 This page describes how to deploy a single Consul datacenter in multiple Kubernetes clusters,
 with both servers and clients running in one cluster, and only clients running in the rest of the clusters.
 In this example, we will use two Kubernetes clusters, but this approach could be extended to using more than two.
 
-~> *Note:* This deployment topology requires that your Kubernetes clusters have a flat network
+~> **Note:** This deployment topology requires that your Kubernetes clusters have a flat network
 for both pods and nodes, so that pods or nodes from one cluster can connect
 to pods or nodes in another.
 
@@ -61,7 +61,7 @@ Now we can install our Consul cluster with Helm:
 $ helm install cluster1 -f cluster1-config.yaml hashicorp/consul
 ```
 
-~> *Note:* The Helm release name must be unique for each Kubernetes cluster.
+~> **Note:** The Helm release name must be unique for each Kubernetes cluster.
 That is because the Helm chart will use the Helm release name as a prefix for the
 ACL resources that it creates, such as tokens and auth methods. If the names of the Helm releases
 are the same, the Helm installation in subsequent clusters will clobber existing ACL resources.
@@ -76,7 +76,7 @@ kubectl get secret consul-gossip-encryption-key cluster1-consul-ca-cert cluster1
 ```
 
 ## Deploying Consul clients in the second cluster
-~> *Note:* If multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions below will need to be repeated for each additional Kubernetes cluster.
+~> **Note:** If multiple Kubernetes clusters will be joined to the Consul Datacenter, then the following instructions below will need to be repeated for each additional Kubernetes cluster.
 
 Now we can switch to the second Kubernetes cluster where we will deploy only the Consul clients
 that will join the first Consul cluster.
@@ -169,7 +169,7 @@ To do that, we need to save the `kubeconfig` for the first cluster as a Kubernet
 and reference it in the `clients.join` value. Note that we're making that secret available to the client pods
 by setting it in `client.extraVolumes`.
 
-~> *Note:* The kubeconfig you're providing to the client should have minimal permissions.
+~> **Note:** The kubeconfig you're providing to the client should have minimal permissions.
 The cloud auto-join provider will only need permission to read pods.
 Please see [Kubernetes Cloud auto-join](https://www.consul.io/docs/install/cloud-auto-join#kubernetes-k8s)
 for more details.
