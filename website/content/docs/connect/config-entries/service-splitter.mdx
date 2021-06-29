@@ -100,7 +100,7 @@ Splits = [
     # will default to service with same name as config entry ("web")
   },
   {
-    Weight  = 10
+    Weight  = 50
     Service = "web-rewrite"
   },
 ]
@@ -120,7 +120,7 @@ spec:
   splits:
     - weight: 50
       # will default to service with same name as config entry ("web")
-    - weight: 10
+    - weight: 50
       service: web-rewrite
 ```
 
