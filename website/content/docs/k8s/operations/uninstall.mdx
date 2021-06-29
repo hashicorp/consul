@@ -16,8 +16,6 @@ up some resources that Helm does not delete.
    release "hashicorp" uninstalled
    ```
 
-   -> If using Helm 2, run `helm delete --purge hashicorp`
-
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
    for the persistent volumes that store Consul's data. These are not deleted by Helm due to a [bug](https://github.com/helm/helm/issues/5156).
    To delete, run:
