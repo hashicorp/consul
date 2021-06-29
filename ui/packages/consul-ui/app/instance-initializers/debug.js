@@ -29,38 +29,41 @@ const DebugRoute = class extends ApplicationRoute {
   }
 };
 
+// we currently use HTML in translations, so anything 'word-like' with these
+// chars won't get translated
+const translator = cb => item => (!['<', '>', '='].includes(item) ? cb(item) : item);
+
 class DebugI18nService extends I18nService {
   formatMessage(value, formatOptions) {
     const text = super.formatMessage(...arguments);
-    const locale = this.env.var('CONSUL_INTL_LOCALE');
+    let locale = this.env.var('CONSUL_INTL_LOCALE');
     if (locale) {
       switch (this.env.var('CONSUL_INTL_LOCALE')) {
-        case 'la-fk':
-          return text
-            .split(' ')
-            .map(item => {
-              const word = faker.lorem.word();
-              return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
-            })
-            .join(' ');
         case '-':
           return text
             .split(' ')
-            .map(item =>
-              item
-                .split('')
-                .map(item => '-')
-                .join('')
+            .map(
+              translator(item =>
+                item
+                  .split('')
+                  .map(item => '-')
+                  .join('')
+              )
             )
             .join(' ');
+        case 'la-fk':
+          locale = 'en';
+        // passthrough
         default:
           faker.locale = locale;
           return text
             .split(' ')
-            .map(item => {
-              const word = faker.lorem.word();
-              return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
-            })
+            .map(
+              translator(item => {
+                const word = faker.lorem.word();
+                return item.charAt(0) === item.charAt(0).toUpperCase() ? ucfirst(word) : word;
+              })
+            )
             .join(' ');
       }
     }
@@ -70,7 +73,10 @@ class DebugI18nService extends I18nService {
     const formatOptions = super[formatOptionsSymbol](...arguments);
     if (this.env.var('CONSUL_INTL_DEBUG')) {
       return Object.fromEntries(
-        Object.entries(formatOptions).map(([key, value]) => [key, `{${key}}`])
+        // skip ember-intl special props like htmlSafe and default
+        Object.entries(formatOptions).map(([key, value]) =>
+          !['htmlSafe', 'default'].includes(key) ? [key, `{${key}}`] : [key, value]
+        )
       );
     }
     return formatOptions;

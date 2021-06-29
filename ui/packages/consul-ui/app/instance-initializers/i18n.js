@@ -25,7 +25,7 @@ export class I18nService extends IntlService {
       return prev;
     }, {});
     return {
-      options,
+      ...options,
       ...env,
     };
   }
