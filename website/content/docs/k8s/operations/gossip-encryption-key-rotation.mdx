@@ -6,7 +6,7 @@ description: Rotate the Gossip Encryption Key on Kubernetes Cluster safely
 
 # Rotating Gossip Encryption Key
 
-Follow these steps update the gossip encryption key on the Consul cluster.
+The following instructions provides a step-by-step manual process for rotating gossip encryption keys on Consul Servers that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
 
   **Note:** In case of federated Consul clusters, perform the following steps in the primary datacenter.
 
@@ -20,7 +20,7 @@ Follow these steps update the gossip encryption key on the Consul cluster.
 
 2. Add new key to consul keyring.
 
-  `kubectl exec` into a Consul Server pod and add the new key to the consul keyring. This can be performed by runnig the following command:
+  `kubectl exec` into a Consul Server pod and add the new key to the Consul Keyring. This can be performed by running the following command:
 
   ```shell-session
   consul keyring -install="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
@@ -56,12 +56,12 @@ Follow these steps update the gossip encryption key on the Consul cluster.
   ==> Changing primary gossip encryption key...
   ```
 
-4. Update the kubernetes secrets with the latest encryption key.
+4. Update the Kubernetes secrets with the latest gossip encryption key.
 
-  In order for subsequent `helm upgrades` to occur without unexpected behavior, it is important to update the secrets with
+  In order for subsequent `helm upgrades` commands to be successfully executed without unexpected behavior, it is important to update the secrets with
   the value of the new gossip encryption key.
 
-  The name of the secret which stores the value of the gossip encryption key can be found in the helm values file.
+  The name of the secret which stores the value of the gossip encryption key can be found in the Helm values file.
   ```yaml
   global:
     gossipEncryption:
@@ -69,7 +69,7 @@ Follow these steps update the gossip encryption key on the Consul cluster.
        secretKey: key
   ```
 
-  As the values of kubernetes secrets are `base64` encoded, encode the gossip encryption key to base 64.
+  As the values of Kubernetes secrets are `base64` encoded, encode the gossip encryption key to base 64.
 
   ```shell-session
   echo "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w=" | base64 -i -
@@ -78,7 +78,7 @@ Follow these steps update the gossip encryption key on the Consul cluster.
   kubectl patch secret consul-gossip-encryption-key -p '{"data":{"key": "V2E2L1hGQW5ZeTBmOWlxVkgyaWlHK3lvcmUzQ3FIU2VtVXk0QUlWVGEvdz0K"}}'
   ```
 
-  **Note:** In case of federated Consul clusters, update the federation-secret value for the gossip encryption key. This name of the secret and key can be found in the values file of the secondary datacenter.
+  **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. This name of the secret and key can be found in the values file of the secondary datacenter.
   ```yaml
   global:
      gossipEncryption:
