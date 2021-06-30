@@ -23,7 +23,8 @@ A few steps are generally required to enable an Ingress controller to join the m
 inbound traffic that the service exposes from redirection. Typical configurations would require all inbound service ports
 for the controller to be included in this list.
   * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
-outbound traffic that the service exposes from redirection.
+outbound traffic that the service exposes from redirection. These would be outbound ports used by your ingress controller
+  which expect to skip the mesh and talk to non-mesh services.
   * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
 the service communicates with for outbound requests from redirection. It is somewhat common that an Ingress controller
 will expect to make API calls to the Kubernetes service for service/endpoint management. As such including the ClusterIP of the
@@ -33,11 +34,12 @@ Kubernetes service is common.
 these annotations to the *pods* of your *ingress controller*.
 
 ```yaml
-# An example list of pod annotations for an ingress controller.
+# An example list of pod annotations for an ingress controller, which need be applied to PODS for the controller, not the deployment itself.
   podAnnotations:
     consul.hashicorp.com/connect-inject: "true"
+    # Add the container ports used by your ingress controller
     consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "80,8000,9000,8443"
-    # And the CIDR of your Kubernetes API svc
+    # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
     consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
 ```
 
@@ -73,7 +75,11 @@ spec:
 
 ### Common Configuration Problems:
 - The Ingress Controller's ServiceAccount name and Service name differ by default in some platforms. Consul on Kubernetes requires the
-ServiceAccount and Service to have the same name.
+ServiceAccount and Service to have the same name. To resolve this be sure to explicitly set ServiceAccount name the same as the ingress
+controller service name using it's respective helm configurations.
 
 - If the Ingress Controller does not have the correct inbound ports excluded it will fail to start and the Ingress'
-service will not get created, causing the controller to hang in the init container.
+service will not get created, causing the controller to hang in the init container. The required container ports are not
+always readily available in the helm charts, so in order to resolve this examine the ingress controller's
+underlying pod spec and look for the required container ports, adding these to the `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`
+annotation on the ingress controller deployment.
