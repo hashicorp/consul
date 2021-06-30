@@ -983,9 +983,17 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshot)
 					snap.Datacenter,
 					snap.Roots.TrustDomain)
 
+				spiffeID := connect.SpiffeIDService{
+					Host:       snap.Roots.TrustDomain,
+					Namespace:  svc.NamespaceOrDefault(),
+					Datacenter: snap.Datacenter,
+					Service:    svc.Name,
+				}
+
 				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svc.String()]; !ok {
 					upstreamsSnapshot.PassthroughUpstreams[svc.String()] = ServicePassthroughAddrs{
-						SNI: sni,
+						SNI:      sni,
+						SpiffeID: spiffeID,
 
 						// Stored in a set because it's possible for these to be duplicated
 						// when the upstream-target is targeted by multiple discovery chains.

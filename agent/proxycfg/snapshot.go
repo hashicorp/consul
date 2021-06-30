@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
 	"github.com/mitchellh/copystructure"
@@ -56,6 +57,9 @@ type ConfigSnapshotUpstreams struct {
 type ServicePassthroughAddrs struct {
 	// SNI is the Service SNI of the upstream.
 	SNI string
+
+	// SpiffeID is the SPIFFE ID to use for upstream SAN validation.
+	SpiffeID connect.SpiffeIDService
 
 	// Addrs is a set of the best LAN addresses for the instances of the upstream.
 	Addrs map[string]struct{}
