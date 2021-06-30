@@ -341,7 +341,6 @@ func (v *VaultProvider) ActiveIntermediate() (string, error) {
 		return "", nil
 	}
 	return cert, err
-
 }
 
 // getCA returns the raw CA cert for the given endpoint if there is one.
