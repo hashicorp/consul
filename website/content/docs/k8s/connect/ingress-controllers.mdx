@@ -83,3 +83,13 @@ service will not get created, causing the controller to hang in the init contain
 always readily available in the helm charts, so in order to resolve this examine the ingress controller's
 underlying pod spec and look for the required container ports, adding these to the `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`
 annotation on the ingress controller deployment.
+
+### Examples:
+Here are a couple example configurations which can be used as reference points in setting up your own ingress controller configuration!
+These were used in dev environments and are not intended to be fully supported but should provide some idea how to extend the information
+above to your own uses cases.
+
+~> https://github.com/kschoche/traefik-consul
+
+~> https://github.com/joatmon08/consul-k8s-ingress-controllers
+
