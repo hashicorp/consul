@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: fix a bug that was preventing streaming from being enabled.
+```
