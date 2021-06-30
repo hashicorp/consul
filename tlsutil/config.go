@@ -175,6 +175,11 @@ type manual struct {
 // Configurator receives an initial TLS configuration from agent configuration,
 // and receives updates from config reloads, auto-encrypt, and auto-config.
 type Configurator struct {
+	// version is increased each time the Configurator is updated. Must be accessed
+	// using sync/atomic. Also MUST be the first field in this struct to ensure
+	// 64-bit alignment. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+	version uint64
+
 	// lock synchronizes access to all fields on this struct except for logger and version.
 	lock    sync.RWMutex
 	base    *Config
@@ -188,9 +193,6 @@ type Configurator struct {
 	// logger is not protected by a lock. It must never be changed after
 	// Configurator is created.
 	logger hclog.Logger
-	// version is increased each time the Configurator is updated. Must be accessed
-	// using sync/atomic.
-	version uint64
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
