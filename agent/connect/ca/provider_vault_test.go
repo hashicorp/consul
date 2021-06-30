@@ -117,7 +117,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		require.NoError(err)
 		bytes, err := ioutil.ReadAll(resp.Body)
 		require.NoError(err)
-		require.Equal(cert, string(bytes))
+		require.Equal(cert, string(bytes)+"\n")
 
 		// Should be a valid CA cert
 		parsed, err := connect.ParseCert(cert)
