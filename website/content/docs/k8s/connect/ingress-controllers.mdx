@@ -18,13 +18,13 @@ A few steps are generally required to enable an Ingress controller to join the m
 
 * Enable connect-injection via an annotation on the Ingress Controller's deployment: `consul.hashicorp.com/connect-inject` is `true`.
 
-* Using the following annotations on the Ingress controller's deployment, setup exclusion rules for it's ports.
-  * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
+* Using the following annotations on the Ingress controller's deployment, set up exclusion rules for its ports.
+  * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
 inbound traffic that the service exposes from redirection. Typical configurations would require all inbound service ports
 for the controller to be included in this list.
-  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
+  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
 outbound traffic that the service exposes from redirection.
-  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
+  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
 the service communicates with for outbound requests from redirection. It is somewhat common that an Ingress controller
 will expect to make API calls to the Kubernetes service for service/endpoint management. As such including the ClusterIP of the
 Kubernetes service is common.
@@ -58,7 +58,7 @@ spec:
 * An intention from the Ingress Controller to the backend application must also be applied, this could be an L4 or L7 intention:
 
 ```yaml
-# example L4 intention, but an L7 intention can also be used to enforce traffic to specific routes.
+# example L4 intention, but an L7 intention can also be used to control access to specific routes.
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
 metadata:
