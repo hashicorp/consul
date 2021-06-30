@@ -1528,7 +1528,7 @@ SECURITY:
 IMPROVEMENTS:
 
 * build: Bumped Go version to 1.10 [[GH-3988](https://github.com/hashicorp/consul/pull/3988)]
-* agent: Blocking queries on service-specific health and catalog endpoints now return a per-service `X-Consul-Index` improving watch performance on very busy clusters. [[GH-3890](https://github.com/hashicorp/consul/issues/3890)]. **Note this may break blocking clients that relied on undocumented implementation details** as noted in the [upgrade docs](https://github.com/hashicorp/consul/blob/master/website/source/docs/upgrading.html.md#upgrade-from-version-106-to-higher).
+* agent: Blocking queries on service-specific health and catalog endpoints now return a per-service `X-Consul-Index` improving watch performance on very busy clusters. [[GH-3890](https://github.com/hashicorp/consul/issues/3890)]. **Note this may break blocking clients that relied on undocumented implementation details** as noted in the [upgrade docs](https://github.com/hashicorp/consul/blob/main/website/source/docs/upgrading.html.md#upgrade-from-version-106-to-higher).
 * agent: All endpoints now respond to OPTIONS requests. [[GH-3885](https://github.com/hashicorp/consul/issues/3885)]
 * agent: List of supported TLS cipher suites updated to include newer options, [[GH-3962](https://github.com/hashicorp/consul/pull/3962)]
 * agent: WAN federation can now be disabled by setting the serf WAN port to -1. [[GH-3984](https://github.com/hashicorp/consul/issues/3984)]
@@ -1710,12 +1710,12 @@ BREAKING CHANGES:
     | `dogstatsd_tags` | [`telemetry.dogstatsd_tags`](https://www.consul.io/docs/agent/options.html#telemetry-dogstatsd_tags) |
     | `http_api_response_headers` | [`http_config.response_headers`](https://www.consul.io/docs/agent/options.html#response_headers) |
     | `ports.rpc` | None, the RPC server for CLI commands is no longer supported. |
-    | `recursor` | [`recursors`](https://github.com/hashicorp/consul/blob/master/website/source/docs/agent/options.html.md#recursors) |
+    | `recursor` | [`recursors`](https://github.com/hashicorp/consul/blob/main/website/source/docs/agent/options.html.md#recursors) |
     | `retry_join_azure` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#microsoft-azure) |
     | `retry_join_ec2` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#amazon-ec2) |
     | `retry_join_gce` | [`-retry-join`](https://www.consul.io/docs/agent/options.html#google-compute-engine) |
-    | `statsd_addr` | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/master/website/source/docs/agent/options.html.md#telemetry-statsd_address) |
-    | `statsite_addr` | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/master/website/source/docs/agent/options.html.md#telemetry-statsite_address) |
+    | `statsd_addr` | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/main/website/source/docs/agent/options.html.md#telemetry-statsd_address) |
+    | `statsite_addr` | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/main/website/source/docs/agent/options.html.md#telemetry-statsite_address) |
     | `statsite_prefix` | [`telemetry.metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix) |
     | `telemetry.statsite_prefix` | [`telemetry.metrics_prefix`](https://www.consul.io/docs/agent/options.html#telemetry-metrics_prefix) |
     | (service definitions) `serviceid` | [`service_id`](https://www.consul.io/docs/agent/services.html) |

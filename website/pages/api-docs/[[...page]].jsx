@@ -10,7 +10,7 @@ import {
 const baseRoute = 'api-docs'
 const navDataFile = `data/${baseRoute}-nav-data.json`
 const localContentDir = `content/${baseRoute}`
-const mainBranch = 'master'
+const mainBranch = 'main'
 const product = { name: productName, slug: productSlug }
 
 export default function ApiDocsLayout(props) {

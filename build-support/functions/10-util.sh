@@ -555,7 +555,7 @@ function git_push_ref {
       local upstream=$(git_upstream "${sdir}") || return 1
 
       # upstream branch for this branch does not track the remote we need to push to
-      # basically this checks that the upstream (could be something like origin/master) references the correct remote
+      # basically this checks that the upstream (could be something like origin/main) references the correct remote
       # if it doesn't then the string modification wont apply and the var will reamin unchanged and equal to itself.
       if test "${upstream#${remote}/}" == "${upstream}"
       then
