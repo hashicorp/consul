@@ -370,7 +370,7 @@ func (a *AWSProvider) loadCACerts() error {
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = *output.Certificate
+		a.rootPEM = *output.CertificateChain
 	}
 	return nil
 }
