@@ -22,13 +22,13 @@ The components in this section are shared between Consul agents in client and se
 
 | Directory | Contents |
 | --------- | -------- |
-| [command/agent](https://github.com/hashicorp/consul/tree/master/command/agent) | This contains the actual CLI command implementation for the `consul agent` command, which mostly just invokes an agent object from the `agent` package. |
-| [agent](https://github.com/hashicorp/consul/tree/master/agent) | This is where the agent object is defined, and the top level `agent` package has all of the functionality that's common to both client and server agents. This includes things like service registration, the HTTP and DNS endpoints, watches, and top-level glue for health checks. |
-| [agent/config](https://github.com/hashicorp/consul/tree/master/agent/config) | This has all the user-facing [configuration](https://www.consul.io/docs/agent/options.html) processing code, as well as the internal configuration structure that's used by the agent. |
-| [agent/checks](https://github.com/hashicorp/consul/tree/master/agent/checks) | This has implementations for the different [health check types](https://www.consul.io/docs/agent/checks.html). |
-| [agent/ae](https://github.com/hashicorp/consul/tree/master/agent/ae), [agent/local](https://github.com/hashicorp/consul/tree/master/agent/local) | These are used together to power the agent's [Anti-Entropy Sync Back](https://www.consul.io/docs/internals/anti-entropy.html) process to the Consul servers. |
-| [agent/router](https://github.com/hashicorp/consul/tree/master/agent/router), [agent/pool](https://github.com/hashicorp/consul/tree/master/agent/pool) | These are used for routing RPC queries to Consul servers and for connection pooling. |
-| [agent/structs](https://github.com/hashicorp/consul/tree/master/agent/structs) | This has definitions of all the internal RPC protocol request and response structures. |
+| [command/agent](https://github.com/hashicorp/consul/tree/main/command/agent) | This contains the actual CLI command implementation for the `consul agent` command, which mostly just invokes an agent object from the `agent` package. |
+| [agent](https://github.com/hashicorp/consul/tree/main/agent) | This is where the agent object is defined, and the top level `agent` package has all of the functionality that's common to both client and server agents. This includes things like service registration, the HTTP and DNS endpoints, watches, and top-level glue for health checks. |
+| [agent/config](https://github.com/hashicorp/consul/tree/main/agent/config) | This has all the user-facing [configuration](https://www.consul.io/docs/agent/options.html) processing code, as well as the internal configuration structure that's used by the agent. |
+| [agent/checks](https://github.com/hashicorp/consul/tree/main/agent/checks) | This has implementations for the different [health check types](https://www.consul.io/docs/agent/checks.html). |
+| [agent/ae](https://github.com/hashicorp/consul/tree/main/agent/ae), [agent/local](https://github.com/hashicorp/consul/tree/main/agent/local) | These are used together to power the agent's [Anti-Entropy Sync Back](https://www.consul.io/docs/internals/anti-entropy.html) process to the Consul servers. |
+| [agent/router](https://github.com/hashicorp/consul/tree/main/agent/router), [agent/pool](https://github.com/hashicorp/consul/tree/main/agent/pool) | These are used for routing RPC queries to Consul servers and for connection pooling. |
+| [agent/structs](https://github.com/hashicorp/consul/tree/main/agent/structs) | This has definitions of all the internal RPC protocol request and response structures. |
 
 ### Server Components
 
@@ -36,9 +36,9 @@ The components in this section are only used by Consul servers.
 
 | Directory | Contents |
 | --------- | -------- |
-| [agent/consul](https://github.com/hashicorp/consul/tree/master/agent/consul) | This is where the Consul server object is defined, and the top-level `consul` package has all of the functionality that's used by server agents. This includes things like the internal RPC endpoints. |
-| [agent/consul/fsm](https://github.com/hashicorp/consul/tree/master/agent/consul/fsm), [agent/consul/state](https://github.com/hashicorp/consul/tree/master/agent/consul/state) | These components make up Consul's finite state machine (updated by the Raft consensus algorithm) and backed by the state store (based on immutable radix trees). All updates of Consul's consistent state is handled by the finite state machine, and all read queries to the Consul servers are serviced by the state store's data structures. |
-| [agent/consul/autopilot](https://github.com/hashicorp/consul/tree/master/agent/consul/autopilot) | This contains a package of functions that provide Consul's [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features. |
+| [agent/consul](https://github.com/hashicorp/consul/tree/main/agent/consul) | This is where the Consul server object is defined, and the top-level `consul` package has all of the functionality that's used by server agents. This includes things like the internal RPC endpoints. |
+| [agent/consul/fsm](https://github.com/hashicorp/consul/tree/main/agent/consul/fsm), [agent/consul/state](https://github.com/hashicorp/consul/tree/main/agent/consul/state) | These components make up Consul's finite state machine (updated by the Raft consensus algorithm) and backed by the state store (based on immutable radix trees). All updates of Consul's consistent state is handled by the finite state machine, and all read queries to the Consul servers are serviced by the state store's data structures. |
+| [agent/consul/autopilot](https://github.com/hashicorp/consul/tree/main/agent/consul/autopilot) | This contains a package of functions that provide Consul's [Autopilot](https://www.consul.io/docs/guides/autopilot.html) features. |
 
 ### Other Components
 
@@ -46,12 +46,12 @@ There are several other top-level packages used internally by Consul as well as 
 
 | Directory | Contents |
 | --------- | -------- |
-| [acl](https://github.com/hashicorp/consul/tree/master/api) | This supports the underlying policy engine for Consul's [ACL](https://www.consul.io/docs/guides/acl.html) system. |
-| [api](https://github.com/hashicorp/consul/tree/master/api) | This `api` package provides an official Go API client for Consul, which is also used by Consul's [CLI](https://www.consul.io/docs/commands/index.html) commands to communicate with the local Consul agent. |
-| [command](https://github.com/hashicorp/consul/tree/master/command) | This contains a sub-package for each of Consul's [CLI](https://www.consul.io/docs/commands/index.html) command implementations. |
-| [snapshot](https://github.com/hashicorp/consul/tree/master/snapshot) | This has implementation details for Consul's [snapshot archives](https://www.consul.io/api/snapshot.html). |
-| [api/watch](https://github.com/hashicorp/consul/tree/master/api/watch) | This has implementation details for Consul's [watches](https://www.consul.io/docs/agent/watches.html), used both internally to Consul and by the [watch CLI command](https://www.consul.io/docs/commands/watch.html). |
-| [website](https://github.com/hashicorp/consul/tree/master/website) | This has the full source code for [consul.io](https://www.consul.io/). Pull requests can update the source code and Consul's documentation all together. |
+| [acl](https://github.com/hashicorp/consul/tree/main/api) | This supports the underlying policy engine for Consul's [ACL](https://www.consul.io/docs/guides/acl.html) system. |
+| [api](https://github.com/hashicorp/consul/tree/main/api) | This `api` package provides an official Go API client for Consul, which is also used by Consul's [CLI](https://www.consul.io/docs/commands/index.html) commands to communicate with the local Consul agent. |
+| [command](https://github.com/hashicorp/consul/tree/main/command) | This contains a sub-package for each of Consul's [CLI](https://www.consul.io/docs/commands/index.html) command implementations. |
+| [snapshot](https://github.com/hashicorp/consul/tree/main/snapshot) | This has implementation details for Consul's [snapshot archives](https://www.consul.io/api/snapshot.html). |
+| [api/watch](https://github.com/hashicorp/consul/tree/main/api/watch) | This has implementation details for Consul's [watches](https://www.consul.io/docs/agent/watches.html), used both internally to Consul and by the [watch CLI command](https://www.consul.io/docs/commands/watch.html). |
+| [website](https://github.com/hashicorp/consul/tree/main/website) | This has the full source code for [consul.io](https://www.consul.io/). Pull requests can update the source code and Consul's documentation all together. |
 
 ## FAQ
 
