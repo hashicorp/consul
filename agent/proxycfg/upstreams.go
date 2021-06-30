@@ -96,7 +96,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 
 				spiffeID := connect.SpiffeIDService{
 					Host:       snap.Roots.TrustDomain,
-					Partition:  "",
+					Partition:  svc.PartitionOrDefault(),
 					Namespace:  svc.NamespaceOrDefault(),
 					Datacenter: snap.Datacenter,
 					Service:    svc.Name,

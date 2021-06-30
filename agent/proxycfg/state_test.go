@@ -1870,7 +1870,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, snap.Datacenter, snap.Roots.TrustDomain),
 								SpiffeID: connect.SpiffeIDService{
 									Host:       snap.Roots.TrustDomain,
-									Namespace:  structs.IntentionDefaultNamespace,
+									Namespace:  db.NamespaceOrDefault(),
+									Partition:  db.PartitionOrDefault(),
 									Datacenter: snap.Datacenter,
 									Service:    "db",
 								},

@@ -540,6 +540,8 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		Namespace:  upstream.DestinationNamespace,
 		Datacenter: dc,
 		Service:    upstream.DestinationName,
+
+		// TODO(partitions) Store partition
 	}
 
 	// Enable TLS upstream with the configured client certificate.
@@ -623,6 +625,8 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			Namespace:  target.Namespace,
 			Datacenter: target.Datacenter,
 			Service:    target.Service,
+
+			// TODO(partitions) Store partition
 		}
 
 		if failoverThroughMeshGateway {
@@ -658,6 +662,8 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 					Namespace:  target.Namespace,
 					Datacenter: target.Datacenter,
 					Service:    target.Service,
+
+					// TODO(partitions) Store partition
 				}
 
 				// Failover targets might be subsets of the same service, so these are deduplicated.
