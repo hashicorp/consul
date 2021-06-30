@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
@@ -508,6 +509,114 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 		// Verify other fields
 		assert.Equal("web", reply.Service)
 		assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
+	}
+}
+
+func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	ca.SkipIfVaultNotPresent(t)
+
+	t.Parallel()
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             testVault.Addr,
+				"Token":               testVault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Capture the current root.
+	// var originalRoot *structs.CARoot
+	{
+		rootList, _, err := getTestRoots(s1, "dc1")
+		require.NoError(t, err)
+		require.Len(t, rootList.Roots, 1)
+		// originalRoot = activeRoot
+	}
+
+	cases := []struct {
+		name      string
+		configFn  func() (*structs.CAConfiguration, error)
+		expectErr string
+	}{
+		{
+			name: "cannot edit key bits",
+			configFn: func() (*structs.CAConfiguration, error) {
+				return &structs.CAConfiguration{
+					Provider: "vault",
+					Config: map[string]interface{}{
+						"Address":             testVault.Addr,
+						"Token":               testVault.RootToken,
+						"RootPKIPath":         "pki-root/",
+						"IntermediatePKIPath": "pki-intermediate/",
+						//
+						"PrivateKeyType": "ec",
+						"PrivateKeyBits": 384,
+					},
+					ForceWithoutCrossSigning: true,
+				}, nil
+			},
+			expectErr: `error generating CA root certificate: cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA`,
+		},
+		{
+			name: "cannot edit key type",
+			configFn: func() (*structs.CAConfiguration, error) {
+				return &structs.CAConfiguration{
+					Provider: "vault",
+					Config: map[string]interface{}{
+						"Address":             testVault.Addr,
+						"Token":               testVault.RootToken,
+						"RootPKIPath":         "pki-root/",
+						"IntermediatePKIPath": "pki-intermediate/",
+						//
+						"PrivateKeyType": "rsa",
+						"PrivateKeyBits": 4096,
+					},
+					ForceWithoutCrossSigning: true,
+				}, nil
+			},
+			expectErr: `error generating CA root certificate: cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			newConfig, err := tc.configFn()
+			require.NoError(t, err)
+
+			args := &structs.CARequest{
+				Datacenter: "dc1",
+				Config:     newConfig,
+			}
+			var reply interface{}
+
+			err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply)
+			if tc.expectErr == "" {
+				require.NoError(t, err)
+			} else {
+				testutil.RequireErrorContains(t, err, tc.expectErr)
+			}
+		})
 	}
 }
 
