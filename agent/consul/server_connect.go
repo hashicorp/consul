@@ -103,6 +103,13 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	// data such as key material stored within the struct. So here we
 	// pull out some of the fields and copy them into
 	for i, r := range indexedRoots.Roots {
+		var intermediates []string
+		if r.IntermediateCerts != nil {
+			intermediates = make([]string, 0)
+			for _, intermediate := range r.IntermediateCerts {
+				intermediates = append(intermediates, intermediate)
+			}
+		}
 		// IMPORTANT: r must NEVER be modified, since it is a pointer
 		// directly to the structure in the memdb store.
 
@@ -114,8 +121,8 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 			ExternalTrustDomain: r.ExternalTrustDomain,
 			NotBefore:           r.NotBefore,
 			NotAfter:            r.NotAfter,
-			RootCert:            r.RootCert,
-			IntermediateCerts:   r.IntermediateCerts,
+			RootCert:            ca.EnsureTrailingNewline(r.RootCert),
+			IntermediateCerts:   intermediates,
 			RaftIndex:           r.RaftIndex,
 			Active:              r.Active,
 			PrivateKeyType:      r.PrivateKeyType,
@@ -218,7 +225,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
-		pem = ca.AddSingleNewline(pem) + p
+		pem = ca.EnsureTrailingNewline(pem) + p
 	}
 
 	// Append our local CA's intermediate if there is one.
@@ -226,14 +233,12 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	if err != nil {
 		return nil, err
 	}
-	inter = ca.AddSingleNewline(inter)
 	root, err := provider.ActiveRoot()
 	if err != nil {
 		return nil, err
 	}
-	root = ca.AddSingleNewline(root)
 	if inter != root {
-		pem = ca.AddSingleNewline(pem) + inter
+		pem = ca.EnsureTrailingNewline(pem) + inter
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to

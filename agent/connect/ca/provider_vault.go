@@ -366,7 +366,7 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 		return "", err
 	}
 
-	root := string(bytes)
+	root := EnsureTrailingNewline(string(bytes))
 	if root == "" {
 		return "", ErrBackendNotInitialized
 	}
@@ -438,7 +438,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("issuing_ca was not a string")
 	}
 
-	return fmt.Sprintf("%s%s", AddSingleNewline(cert), AddSingleNewline(ca)), nil
+	return fmt.Sprintf("%s%s", EnsureTrailingNewline(cert), EnsureTrailingNewline(ca)), nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint

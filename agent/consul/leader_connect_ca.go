@@ -407,7 +407,6 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	if err != nil {
 		return fmt.Errorf("error getting root cert: %v", err)
 	}
-	rootPEM = ca.AddSingleNewline(rootPEM)
 	rootCA, err := parseCARoot(rootPEM, conf.Provider, conf.ClusterID)
 	if err != nil {
 		return err
@@ -418,7 +417,6 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
 	}
-	interPEM = ca.AddSingleNewline(interPEM)
 	intermediateCert, err := connect.ParseCert(interPEM)
 	if err != nil {
 		return fmt.Errorf("error getting intermediate cert: %v", err)
@@ -512,7 +510,6 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 // to non-ready.
 func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.CAConfiguration) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
-	activeIntermediate = ca.AddSingleNewline(activeIntermediate)
 	if err != nil {
 		return err
 	}
@@ -537,7 +534,6 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 		if err != nil {
 			return err
 		}
-		storedRoot = ca.AddSingleNewline(storedRoot)
 
 		storedRootID, err = connect.CalculateCertFingerprint(storedRoot)
 		if err != nil {
@@ -813,7 +809,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	if err != nil {
 		return err
 	}
-	newRootPEM = ca.AddSingleNewline(newRootPEM)
 
 	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
 	if err != nil {
@@ -905,7 +900,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 			if err != nil {
 				return err
 			}
-			xcCert = ca.AddSingleNewline(xcCert)
 
 			// Add the cross signed cert to the new CA's intermediates (to be attached
 			// to leaf certs).
@@ -917,7 +911,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	if err != nil {
 		return err
 	}
-	intermediate = ca.AddSingleNewline(intermediate)
 	if intermediate != newRootPEM {
 		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediate)
 	}
@@ -977,7 +970,6 @@ func (c *CAManager) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot
 	if err != nil {
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}
-	intermediatePEM = ca.AddSingleNewline(intermediatePEM)
 
 	intermediateCert, err := connect.ParseCert(intermediatePEM)
 	if err != nil {
@@ -1092,7 +1084,6 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	if err != nil {
 		return err
 	}
-	activeIntermediate = ca.AddSingleNewline(activeIntermediate)
 
 	if activeIntermediate == "" {
 		return fmt.Errorf("datacenter doesn't have an active intermediate.")

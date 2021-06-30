@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 
@@ -244,7 +242,7 @@ func (s *ConnectCA) SignIntermediate(
 		return err
 	}
 
-	*reply = ca.AddSingleNewline(cert)
+	*reply = cert
 
 	return nil
 }
