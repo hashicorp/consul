@@ -110,6 +110,7 @@ const (
 	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
+	rootCertRenewWatchRoutineName         = "root cert renew watch"
 	backgroundCAInitializationRoutineName = "CA initialization"
 )
 

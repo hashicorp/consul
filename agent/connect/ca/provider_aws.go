@@ -186,12 +186,20 @@ func (a *AWSProvider) ensureCA() error {
 				*output.CertificateAuthority.Status)
 		}
 
-		// Load the certs
-		if err := a.loadCACerts(); err != nil {
-			return err
+		if a.rootPEM != "" {
+			rootCert, err2 := connect.ParseCert(a.rootPEM)
+			if err2 == nil {
+				// cert is still valid
+				if !isExpired(rootCert) {
+					// Load the certs
+					if err := a.loadCACerts(); err != nil {
+						return err
+					}
+					a.arnChecked = true
+					return nil
+				}
+			}
 		}
-		a.arnChecked = true
-		return nil
 	}
 
 	// Need to create a Private CA resource.

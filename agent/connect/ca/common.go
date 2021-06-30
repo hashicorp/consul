@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 )
@@ -88,4 +89,10 @@ func validateSignIntermediate(csr *x509.CertificateRequest, spiffeID *connect.Sp
 		}
 	}
 	return nil
+}
+
+const rootExpiryGracePeriod = -1
+
+func isExpired(rootCert *x509.Certificate) bool {
+	return rootCert.NotAfter.Before(time.Now().AddDate(0, 0, rootExpiryGracePeriod))
 }

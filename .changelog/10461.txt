@@ -1,0 +1,3 @@
+```release-note:enhancement
+added a check to the intermediate certificate expiration time before it's used to sign a leaf certificate.
+```

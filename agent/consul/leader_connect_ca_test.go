@@ -289,3 +289,54 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 
 	require.EqualValues(t, caStateInitialized, manager.state)
 }
+
+func TestCAManager_UpdateConfigWhileRenewRoot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// No parallel execution because we change globals
+	// Set the interval and drift buffer low for renewing the cert.
+	origInterval := structs.RootCertRenewInterval
+	origDriftBuffer := ca.CertificateTimeDriftBuffer
+	defer func() {
+		structs.RootCertRenewInterval = origInterval
+		ca.CertificateTimeDriftBuffer = origDriftBuffer
+	}()
+	structs.RootCertRenewInterval = time.Millisecond
+	ca.CertificateTimeDriftBuffer = 0
+
+	conf := DefaultConfig()
+	conf.ConnectEnabled = true
+	conf.PrimaryDatacenter = "dc1"
+	conf.Datacenter = "dc2"
+	delegate := NewMockCAServerDelegate(t, conf)
+	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+	initTestManager(t, manager, delegate)
+
+	// Wait half the TTL for the cert to need renewing.
+	time.Sleep(500 * time.Millisecond)
+
+	// Call RenewIntermediate and then confirm the RPCs and provider calls
+	// happen in the expected order.
+	errCh := make(chan error)
+	go func() {
+		err := manager.RenewRoot(context.TODO(), true)
+		errCh <- err
+	}()
+
+	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.Roots")
+
+	waitForCh(t, delegate.callbackCh, "raftApply/ConnectCA")
+	waitForEmptyCh(t, delegate.callbackCh)
+
+	// Make sure the RenewIntermediate call returned successfully.
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(CATestTimeout):
+		t.Fatal("never got result from errCh")
+	}
+
+	require.EqualValues(t, caStateInitialized, manager.state)
+}

@@ -375,6 +375,10 @@ var MaxLeafCertTTL = 365 * 24 * time.Hour
 // of the intermediate cert is checked and renewed if necessary.
 var IntermediateCertRenewInterval = time.Hour
 
+// RootCertRenewInterval is the interval at which the expiration
+// of the root cert is checked and renewed if necessary.
+var RootCertRenewInterval = time.Hour
+
 func (c CommonCAProviderConfig) Validate() error {
 	if c.SkipValidate {
 		return nil
