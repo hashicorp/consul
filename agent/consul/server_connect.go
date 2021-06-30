@@ -225,7 +225,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
-		pem = ca.EnsureTrailingNewline(pem) + p
+		pem = pem + ca.EnsureTrailingNewline(p)
 	}
 
 	// Append our local CA's intermediate if there is one.
@@ -238,7 +238,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 		return nil, err
 	}
 	if inter != root {
-		pem = ca.EnsureTrailingNewline(pem) + inter
+		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to
