@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 	"sync"
 	"testing"
@@ -242,14 +243,14 @@ func xdsNewPublicTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, true, true, "", "")
+	return xdsNewTransportSocket(t, snap, true, true, "", connect.SpiffeIDService{})
 }
 
 func xdsNewUpstreamTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 	sni string,
-	uri string,
+	uri connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
 	return xdsNewTransportSocket(t, snap, false, false, sni, uri)
 }
@@ -260,7 +261,7 @@ func xdsNewTransportSocket(
 	downstream bool,
 	requireClientCert bool,
 	sni string,
-	uri string,
+	uri connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
@@ -277,7 +278,7 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
-	if uri != "" {
+	if uri.Service != "" {
 		require.NoError(t, injectSANMatcher(commonTLSContext, uri))
 	}
 
@@ -363,10 +364,20 @@ func makeTestResource(t *testing.T, raw interface{}) *envoy_discovery_v3.Resourc
 func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_cluster_v3.Cluster {
 	var (
 		dbSNI = "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-		dbURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/db"
+		dbURI = connect.SpiffeIDService{
+			Host:       "11111111-2222-3333-4444-555555555555.consul",
+			Namespace:  "default",
+			Datacenter: "dc1",
+			Service:    "db",
+		}
 
 		geocacheSNI = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-		geocacheURI = "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/geo-cache"
+		geocacheURI = connect.SpiffeIDService{
+			Host:       "11111111-2222-3333-4444-555555555555.consul",
+			Namespace:  "default",
+			Datacenter: "dc1",
+			Service:    "geo-cache",
+		}
 	)
 
 	switch fixtureName {
