@@ -32,46 +32,45 @@ Kubernetes service is common.
 
 ~> Note: Depending on which ingress controller you use, these stanzas may differ in name and layout, but it is important to apply
 these annotations to the *pods* of your *ingress controller*.
-
-```yaml
-# An example list of pod annotations for an ingress controller, which need be applied to PODS for the controller, not the deployment itself.
-  podAnnotations:
-    consul.hashicorp.com/connect-inject: "true"
-    # Add the container ports used by your ingress controller
-    consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "80,8000,9000,8443"
-    # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
-    consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
-```
+   ```yaml
+   # An example list of pod annotations for an ingress controller, which need be applied to PODS for the controller, not the deployment itself.
+     podAnnotations:
+       consul.hashicorp.com/connect-inject: "true"
+       # Add the container ports used by your ingress controller
+       consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "80,8000,9000,8443"
+       # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
+       consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
+   ```
 
 * If the Ingress controller acts as a LoadBalancer and routes directly to Pod IPs instead of the ClusterIP of your Kubernetes Services
 a `ServiceDefault` CRD must be applied to *each backend service* allowing it to use the `dialedDirectly` features. By default this is disabled.
 
-```yaml
-# Example Service defaults config entry
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceDefaults
-metadata:
-  name: backend
-spec:
-  transparentProxy:
-    dialedDirectly: true
-```
+   ```yaml
+   # Example Service defaults config entry
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: backend
+   spec:
+     transparentProxy:
+       dialedDirectly: true
+   ```
 
 * An intention from the Ingress Controller to the backend application must also be applied, this could be an L4 or L7 intention:
 
-```yaml
-# example L4 intention, but an L7 intention can also be used to control access to specific routes.
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceIntentions
-metadata:
-  name: ingress-backend
-spec:
-  destination:
-    name: backend
-  sources:
-    - name: ingress
-      action: allow
-```
+   ```yaml
+   # example L4 intention, but an L7 intention can also be used to control access to specific routes.
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceIntentions
+   metadata:
+     name: ingress-backend
+   spec:
+     destination:
+       name: backend
+     sources:
+       - name: ingress
+         action: allow
+   ```
 
 ### Common Configuration Problems:
 - The Ingress Controller's ServiceAccount name and Service name differ by default in some platforms. Consul on Kubernetes requires the
