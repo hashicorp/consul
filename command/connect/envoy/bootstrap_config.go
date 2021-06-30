@@ -86,7 +86,7 @@ type BootstrapConfig struct {
 	// configure the aspects that Connect relies upon to work. It's recommended
 	// that this only be used if necessary, and that it be based on the default
 	// template in
-	// https://github.com/hashicorp/consul/blob/master/command/connect/envoy/bootstrap_tpl.go
+	// https://github.com/hashicorp/consul/blob/main/command/connect/envoy/bootstrap_tpl.go
 	// for the correct version of Consul and Envoy being used.
 	OverrideJSONTpl string `mapstructure:"envoy_bootstrap_json_tpl"`
 
