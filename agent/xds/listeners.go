@@ -1751,12 +1751,12 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 			{
 				CertificateChain: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: leaf.CertPEM,
+						InlineString: ca.EnsureTrailingNewline(leaf.CertPEM),
 					},
 				},
 				PrivateKey: &envoy_core_v3.DataSource{
 					Specifier: &envoy_core_v3.DataSource_InlineString{
-						InlineString: leaf.PrivateKeyPEM,
+						InlineString: ca.EnsureTrailingNewline(leaf.PrivateKeyPEM),
 					},
 				},
 			},
