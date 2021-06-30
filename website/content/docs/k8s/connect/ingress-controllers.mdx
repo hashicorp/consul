@@ -19,13 +19,13 @@ A few steps are generally required to enable an Ingress controller to join the m
 * Enable connect-injection via an annotation on the Ingress Controller's deployment: `consul.hashicorp.com/connect-inject` is `true`.
 
 * Using the following annotations on the Ingress controller's deployment, set up exclusion rules for its ports.
-  * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
+   * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
 inbound traffic that the service exposes from redirection. Typical configurations would require all inbound service ports
 for the controller to be included in this list.
-  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
+   * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
 outbound traffic that the service exposes from redirection. These would be outbound ports used by your ingress controller
   which expect to skip the mesh and talk to non-mesh services.
-  * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
+   * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
 the service communicates with for outbound requests from redirection. It is somewhat common that an Ingress controller
 will expect to make API calls to the Kubernetes service for service/endpoint management. As such including the ClusterIP of the
 Kubernetes service is common.
