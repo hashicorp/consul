@@ -24,7 +24,6 @@ func TestConnectCARoots_empty(t *testing.T) {
 
 	t.Parallel()
 
-	r := require.New(t)
 	a := NewTestAgent(t, "connect { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -32,8 +31,8 @@ func TestConnectCARoots_empty(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.ConnectCARoots(resp, req)
-	r.Error(err)
-	r.Contains(err.Error(), "Connect must be enabled")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Connect must be enabled")
 }
 
 func TestConnectCARoots_list(t *testing.T) {
@@ -225,7 +224,6 @@ func TestConnectCAConfig(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			r := require.New(t)
 			hcl := ""
 			if tc.initialState != "" {
 				hcl = `
@@ -251,23 +249,23 @@ func TestConnectCAConfig(t *testing.T) {
 				resp := httptest.NewRecorder()
 				_, err := a.srv.ConnectCAConfiguration(resp, req)
 				if tc.wantErr {
-					r.Error(err)
+					require.Error(t, err)
 					return
 				}
-				r.NoError(err)
+				require.NoError(t, err)
 			}
 			// The config should be updated now.
 			{
 				req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
 				resp := httptest.NewRecorder()
 				obj, err := a.srv.ConnectCAConfiguration(resp, req)
-				r.NoError(err)
+				require.NoError(t, err)
 
 				got := obj.(structs.CAConfiguration)
 				// Reset Raft indexes to make it non flaky
 				got.CreateIndex = 0
 				got.ModifyIndex = 0
-				r.Equal(tc.wantCfg, got)
+				require.Equal(t, tc.wantCfg, got)
 			}
 		})
 	}
