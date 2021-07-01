@@ -263,3 +263,12 @@ func ApplyCARequestToStore(store *state.Store, req *structs.CARequest) (interfac
 		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
 	}
 }
+func requireTrailingNewline(t testing.T, leafPEM string) {
+	t.Helper()
+	if len(leafPEM) == 0 {
+		t.Fatalf("cert is empty")
+	}
+	if '\n' != rune(leafPEM[len(leafPEM)-1]) {
+		t.Fatalf("cert do not end with a new line")
+	}
+}
