@@ -58,6 +58,7 @@ type ACLTokenListEntry struct {
 	CreateIndex       uint64
 	ModifyIndex       uint64
 	AccessorID        string
+	SecretID          string
 	Description       string
 	Policies          []*ACLTokenPolicyLink `json:",omitempty"`
 	Roles             []*ACLTokenRoleLink   `json:",omitempty"`

@@ -2066,6 +2066,36 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		}
 		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
 	})
+
+	t.Run("filter filter SecretID for acl:read", func(t *testing.T) {
+		rules := `
+			acl = "read"
+		`
+		readOnlyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", rules)
+		require.NoError(t, err)
+
+		req := structs.ACLTokenListRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: readOnlyToken.SecretID},
+		}
+
+		resp := structs.ACLTokenListResponse{}
+
+		err = acl.TokenList(&req, &resp)
+		require.NoError(t, err)
+
+		tokens := []string{
+			masterTokenAccessorID,
+			structs.ACLTokenAnonymousID,
+			readOnlyToken.AccessorID,
+			t1.AccessorID,
+			t2.AccessorID,
+		}
+		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
+		for _, token := range resp.Tokens {
+			require.Equal(t, redactedToken, token.SecretID)
+		}
+	})
 }
 
 func TestACLEndpoint_TokenBatchRead(t *testing.T) {
