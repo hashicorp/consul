@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: Return secret ID when listing tokens if accessor has `acl:write`
+```
