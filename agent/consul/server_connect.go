@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
-	"strings"
 	"sync"
 
 	memdb "github.com/hashicorp/go-memdb"
@@ -105,6 +104,13 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	// data such as key material stored within the struct. So here we
 	// pull out some of the fields and copy them into
 	for i, r := range indexedRoots.Roots {
+		var intermediates []string
+		if r.IntermediateCerts != nil {
+			intermediates = make([]string, len(r.IntermediateCerts))
+			for i, intermediate := range r.IntermediateCerts {
+				intermediates[i] = intermediate
+			}
+		}
 		// IMPORTANT: r must NEVER be modified, since it is a pointer
 		// directly to the structure in the memdb store.
 
@@ -116,8 +122,8 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 			ExternalTrustDomain: r.ExternalTrustDomain,
 			NotBefore:           r.NotBefore,
 			NotAfter:            r.NotAfter,
-			RootCert:            r.RootCert,
-			IntermediateCerts:   r.IntermediateCerts,
+			RootCert:            ca.EnsureTrailingNewline(r.RootCert),
+			IntermediateCerts:   intermediates,
 			RaftIndex:           r.RaftIndex,
 			Active:              r.Active,
 			PrivateKeyType:      r.PrivateKeyType,
@@ -222,7 +228,7 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 
 	// Append any intermediates needed by this root.
 	for _, p := range caRoot.IntermediateCerts {
-		pem = strings.TrimSpace(pem) + "\n" + p
+		pem = pem + ca.EnsureTrailingNewline(p)
 	}
 
 	// Append our local CA's intermediate if there is one.
@@ -234,9 +240,8 @@ func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.
 	if err != nil {
 		return nil, err
 	}
-
 	if inter != root {
-		pem = strings.TrimSpace(pem) + "\n" + inter
+		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
 
 	// TODO(banks): when we implement IssuedCerts table we can use the insert to

@@ -366,7 +366,7 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 		return "", err
 	}
 
-	root := string(bytes)
+	root := EnsureTrailingNewline(string(bytes))
 	if root == "" {
 		return "", ErrBackendNotInitialized
 	}
@@ -440,7 +440,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("issuing_ca was not a string")
 	}
 
-	return fmt.Sprintf("%s\n%s", cert, ca), nil
+	return EnsureTrailingNewline(cert) + EnsureTrailingNewline(ca), nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint
@@ -477,7 +477,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		return "", fmt.Errorf("signed intermediate result is not a string")
 	}
 
-	return intermediate, nil
+	return EnsureTrailingNewline(intermediate), nil
 }
 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
@@ -517,7 +517,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("certificate was not a string")
 	}
 
-	return xcCert, nil
+	return EnsureTrailingNewline(xcCert), nil
 }
 
 // SupportsCrossSigning implements Provider
