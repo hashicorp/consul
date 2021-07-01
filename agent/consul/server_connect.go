@@ -105,9 +105,9 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	for i, r := range indexedRoots.Roots {
 		var intermediates []string
 		if r.IntermediateCerts != nil {
-			intermediates = make([]string, 0)
-			for _, intermediate := range r.IntermediateCerts {
-				intermediates = append(intermediates, intermediate)
+			intermediates = make([]string, len(r.IntermediateCerts))
+			for i, intermediate := range r.IntermediateCerts {
+				intermediates[i] = intermediate
 			}
 		}
 		// IMPORTANT: r must NEVER be modified, since it is a pointer

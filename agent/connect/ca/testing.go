@@ -264,6 +264,7 @@ func ApplyCARequestToStore(store *state.Store, req *structs.CARequest) (interfac
 	}
 }
 func requireTrailingNewline(t testing.T, leafPEM string) {
+	t.Helper()
 	if len(leafPEM) == 0 {
 		t.Fatalf("cert is empty")
 	}

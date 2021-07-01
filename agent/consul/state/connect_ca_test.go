@@ -216,7 +216,6 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.Nil(err)
 	assert.Len(roots, 1)
 	actual := roots[0]
-	assert.Equal(&expected, actual)
 	assertDeepEqual(t, expected, *actual)
 }
 
