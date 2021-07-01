@@ -1,0 +1,3 @@
+```release-note:bug
+ca: Fixed a bug that returned a malformed certificate chain when the certificate did not having a trailing newline.
+```
