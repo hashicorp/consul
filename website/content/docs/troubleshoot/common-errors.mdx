@@ -202,7 +202,7 @@ and switching back to `hostPort` eventually.
 If you've installed [Consul via helm chart](https://github.com/hashicorp/consul-helm) and are standing up and removing resources in the cluster, you _may_ run into an issue with persistant volumes claims (pvc) and secrets from previous deployments.  The Consul Helm chart creates secrets and persistent volume claims but does not remove the data if you uninstall the release.  This can create a problem if you try to redeploy to the same cluster with the certificates:
 
 ```text
-x509: certificate signed by unknown authority (possibly because of "x509: ECDSA verification failure" while trying to verify candidate authority certificate "Consul Webhook Certificates CA")
+Internal error occurred: failed calling webhook "mutate-servicedefaults.consul.hashicorp.com": Post "https://consul-controller-webhook.default.svc:443/mutate-v1alpha1-servicedefaults?timeout=10s": x509: certificate signed by unknown authority (possibly because of "x509: ECDSA verification failure" while trying to verify candidate authority certificate "Consul Webhook Certificates CA")
 ```
 
 If you see this error, manually clear out your `pvc` and `secrets`:
