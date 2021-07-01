@@ -197,6 +197,26 @@ as doing so gives the Consul client unnecessary access to all network traffic on
 We recommend raising an issue with the CNI you're using to add support for `hostPort`
 and switching back to `hostPort` eventually.
 
+### Consul via Helm - Certificate Signed by Unknown Authority
+
+If you've installed [Consul via helm chart](https://github.com/hashicorp/consul-helm) and are standing up and removing resources in the cluster, you _may_ run into an issue with persistant volumes claims (pvc) and secrets from previous deployments.  The Consul Helm chart creates secrets and persistent volume claims but does not remove the data if you uninstall the release.  This can create a problem if you try to redeploy to the same cluster with the certificates:
+
+```text
+x509: certificate signed by unknown authority (possibly because of "x509: ECDSA verification failure" while trying to verify candidate authority certificate "Consul Webhook Certificates CA")
+```
+
+If you see this error, manually clear out your `pvc` and `secrets`:
+
+```sh
+# clear pvc
+kubectl get pvc | grep consul | cut -f 1 -d ' ' | xargs kubectl delete pvc
+
+# clear secrets
+kubectl get secrets | grep consul | cut -f 1 -d ' ' | xargs kubectl delete secrets
+```
+
+-> **Note:** If you happen to be on Docker for Desktop, resetting your Kubernetes cluster and cleaning / purging your Docker for Desktop data will solve the problem as well.
+
 [troubleshooting]: https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/troubleshooting
 [node_name]: /docs/agent/options#node_name
 [retry_join]: /docs/agent/options#retry-join
