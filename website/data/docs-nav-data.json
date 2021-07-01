@@ -455,6 +455,10 @@
             "path": "k8s/connect/terminating-gateways"
           },
           {
+            "title": "Ingress Controllers",
+            "path": "k8s/connect/ingress-controllers"
+          },
+          {
             "title": "Configuring a Connect CA Provider",
             "path": "k8s/connect/connect-ca-provider"
           },
