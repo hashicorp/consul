@@ -1,5 +1,18 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* structs: prevent service-defaults upstream configs from using wildcard names or namespaces [[GH-10475](https://github.com/hashicorp/consul/issues/10475)]
+* ui: Move all CSS icons to use standard CSS custom properties rather than SASS variables [[GH-10298](https://github.com/hashicorp/consul/issues/10298)]
+
+BUG FIXES:
+
+* ca: Fixed a bug that returned a malformed certificate chain when the certificate did not having a trailing newline. [[GH-10411](https://github.com/hashicorp/consul/issues/10411)]
+* checks: fixes the default ServerName used with TLS health checks. [[GH-10490](https://github.com/hashicorp/consul/issues/10490)]
+* connect/proxy: fixes logic bug preventing builtin/native proxy from starting upstream listeners [[GH-10486](https://github.com/hashicorp/consul/issues/10486)]
+* streaming: fix a bug that was preventing streaming from being enabled. [[GH-10514](https://github.com/hashicorp/consul/issues/10514)]
+* ui: Send service name down to Stats to properly call endpoint for Upstreams and Downstreams metrics [[GH-10535](https://github.com/hashicorp/consul/issues/10535)]
+
 ## 1.10.0 (June 22, 2021)
 
 BREAKING CHANGES:
