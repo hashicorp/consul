@@ -36,7 +36,6 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 }
 
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -50,7 +49,7 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 }
 
 func TestVaultCAProvider_RenewToken(t *testing.T) {
-	t.Parallel()
+
 	SkipIfVaultNotPresent(t)
 
 	testVault, err := runTestVault(t)
@@ -86,7 +85,6 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 }
 
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -119,7 +117,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		require.NoError(err)
 		bytes, err := ioutil.ReadAll(resp.Body)
 		require.NoError(err)
-		require.Equal(cert, string(bytes))
+		require.Equal(cert, string(bytes)+"\n")
 
 		// Should be a valid CA cert
 		parsed, err := connect.ParseCert(cert)
@@ -147,7 +145,6 @@ func assertCorrectKeyType(t *testing.T, want, certPEM string) {
 }
 
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -200,6 +197,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 
 				// Make sure we can validate the cert as expected.
 				require.NoError(connect.ValidateLeaf(rootPEM, cert, []string{intPEM}))
+				requireTrailingNewline(t, cert)
 			}
 
 			// Generate a new cert for another service and make sure
@@ -231,7 +229,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -286,7 +283,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 }
 
 func TestVaultProvider_SignIntermediate(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -315,7 +311,6 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 }
 
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
@@ -360,7 +355,6 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 }
 
 func TestVaultProvider_Cleanup(t *testing.T) {
-	t.Parallel()
 
 	SkipIfVaultNotPresent(t)
 
