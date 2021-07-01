@@ -474,7 +474,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		return "", fmt.Errorf("signed intermediate result is not a string")
 	}
 
-	return intermediate, nil
+	return EnsureTrailingNewline(intermediate), nil
 }
 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
@@ -514,7 +514,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("certificate was not a string")
 	}
 
-	return xcCert, nil
+	return EnsureTrailingNewline(xcCert), nil
 }
 
 // SupportsCrossSigning implements Provider
