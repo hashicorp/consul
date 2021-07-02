@@ -1673,7 +1673,7 @@ BUG FIXES:
 * dns: Ensure that only 1 CNAME is returned when querying for services that have non-IP service addresses. [[PR-4328](https://github.com/hashicorp/consul/pull/4328)]
 * api: Fixed issue where `Lock` and `Semaphore` would return earlier than their requested timeout when unable to acquire the lock. [[GH-4003](https://github.com/hashicorp/consul/issues/4003)], [[GH-3262](https://github.com/hashicorp/consul/issues/3262)], [[GH-2399](https://github.com/hashicorp/consul/issues/2399)]
 * watch: Fix issue with HTTPs only agents not executing watches properly [[GH-4358](https://github.com/hashicorp/consul/issues/4358)]
-* agent: Managed proxies that bind to 0.0.0.0 now get a health check on a sane IP [[GH-4301](https://github.com/hashicorp/consul/issues/4301)]
+* agent: Managed proxies that bind to 0.0.0.0 now get a health check on a reasonable IP [[GH-4301](https://github.com/hashicorp/consul/issues/4301)]
 * server: (Consul Enterprise) Fixed an issue causing Consul to panic when network areas were used
 * license: (Consul Enterprise) Fixed an issue causing the snapshot agent to log erroneous licensing errors
 

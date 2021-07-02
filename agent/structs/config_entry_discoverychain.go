@@ -398,7 +398,7 @@ type ServiceRouteDestination struct {
 	RetryOnConnectFailure bool `json:",omitempty" alias:"retry_on_connect_failure"`
 
 	// RetryOnStatusCodes is a flat list of http response status codes that are
-	// eligible for retry. This again should be feasible in any sane proxy.
+	// eligible for retry. This again should be feasible in any reasonable proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
 }
 
