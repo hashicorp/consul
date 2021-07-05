@@ -7,9 +7,10 @@ erDiagram
     NodeIdentity
     AuthMethod
     BindingRule
-    Rule
-    // TODO: rules are made up of resources and x (enforcement decision or permission?)
-    // TODO: add Authorizer and Enforcement Decision
+    Rule {
+        string Resource
+        enum AccessLevel
+    }
 
     Policy ||--|{ Rule: grants
     Role ||--|{ Policy: includes
@@ -26,3 +27,7 @@ erDiagram
 
     ServiceIdentity ||--|{ Rule: implies
     NodeIdentity ||--|{ Rule: implies
+
+    Token ||--|| Authorizer: "resolves to"
+    Authorizer ||--|{ EnforcementDecision: produces
+

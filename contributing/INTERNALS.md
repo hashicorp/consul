@@ -36,7 +36,6 @@ There are several other top-level packages used internally by Consul as well as 
 
 | Directory | Contents |
 | --------- | -------- |
-| [acl](https://github.com/hashicorp/consul/tree/main/api) | This supports the underlying policy engine for Consul's [ACL](https://www.consul.io/docs/guides/acl.html) system. |
 | [api](https://github.com/hashicorp/consul/tree/main/api) | This `api` package provides an official Go API client for Consul, which is also used by Consul's [CLI](https://www.consul.io/docs/commands/index.html) commands to communicate with the local Consul agent. |
 | [api/watch](https://github.com/hashicorp/consul/tree/main/api/watch) | This has implementation details for Consul's [watches](https://www.consul.io/docs/agent/watches.html), used both internally to Consul and by the [watch CLI command](https://www.consul.io/docs/commands/watch.html). |
 | [website](https://github.com/hashicorp/consul/tree/main/website) | This has the full source code for [consul.io](https://www.consul.io/). Pull requests can update the source code and Consul's documentation all together. |
