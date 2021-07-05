@@ -1475,7 +1475,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	// Check if the intermediate expired before using it to sign.
 	err = checkExpired(inter)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("intermediate expired: %w", err)
 	}
 
 	// All seems to be in order, actually sign it.
@@ -1493,6 +1493,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		pem = pem + ca.EnsureTrailingNewline(p)
 	}
 
+	// Append our local CA's intermediate if there is one.
 	if inter != root {
 		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
