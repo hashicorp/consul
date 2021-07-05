@@ -353,7 +353,7 @@ func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
 		isError   bool
 		errorMsg  string
 	}{
-		{"intermediate in the future", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"intermediate valid", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
 		{"intermediate expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "certificate expired end date"},
 		{"intermediate in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), true, "certificate start date is in the future"},
 	}
