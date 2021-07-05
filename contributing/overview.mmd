@@ -11,6 +11,12 @@ graph TD
     ClientAgent[Client Agent]
     RPC
     ClusterPersistence[Cluster Persistence]
+    CLI
+    HTTPAPI[HTTP API]
+
+    CLI --> HTTPAPI
+    HTTPAPI --> ClientAgent
+    HTTPAPI --> ACL
 
     AgentConfiguration --> ClientAgent
     ClientAgent --> RPC
