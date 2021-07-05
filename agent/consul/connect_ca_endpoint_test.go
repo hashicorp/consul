@@ -9,15 +9,16 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func testParseCert(t *testing.T, pemValue string) *x509.Certificate {
@@ -115,9 +116,8 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     "",
-			"RootCert":       "",
-			"RotationPeriod": 180 * 24 * time.Hour,
+			"PrivateKey": "",
+			"RootCert":   "",
 			// This verifies the state persistence for providers although Consul
 			// provider doesn't actually use that mechanism outside of tests.
 			"test_state": testState,
@@ -386,9 +386,8 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": newKey,
+			"RootCert":   "",
 		},
 	}
 	{
@@ -568,9 +567,8 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": newKey,
+			"RootCert":   "",
 		},
 	}
 	{
@@ -654,9 +652,8 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 		newConfig := &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"PrivateKey":     newKey,
-				"RootCert":       "",
-				"RotationPeriod": 180 * 24 * time.Hour,
+				"PrivateKey": newKey,
+				"RootCert":   "",
 			},
 		}
 		{

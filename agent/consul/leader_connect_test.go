@@ -318,10 +318,9 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"PrivateKey":     "",
-				"RootCert":       "",
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "5s",
+				"PrivateKey":  "",
+				"RootCert":    "",
+				"LeafCertTTL": "5s",
 				// The retry loop only retries for 7sec max and
 				// the ttl needs to be below so that it
 				// triggers definitely.
@@ -486,7 +485,6 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		Config: map[string]interface{}{
 			"PrivateKey":          newKey,
 			"RootCert":            "",
-			"RotationPeriod":      90 * 24 * time.Hour,
 			"IntermediateCertTTL": 72 * 24 * time.Hour,
 		},
 	}
@@ -1051,11 +1049,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    "500ms",
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"SkipValidate":   true,
+			"LeafCertTTL":  "500ms",
+			"PrivateKey":   newKey,
+			"RootCert":     "",
+			"SkipValidate": true,
 		},
 	}
 	{
@@ -1125,9 +1122,8 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": newKey,
+			"RootCert":   "",
 		},
 	}
 	{
@@ -1431,11 +1427,10 @@ func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    "500ms",
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"SkipValidate":   true,
+			"LeafCertTTL":  "500ms",
+			"PrivateKey":   newKey,
+			"RootCert":     "",
+			"SkipValidate": true,
 		},
 		ForceWithoutCrossSigning: true,
 	}
