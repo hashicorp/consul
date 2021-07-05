@@ -8,7 +8,11 @@ understanding, and contributing changes to, the Consul codebase.
 ## Overview
 
 This documentation is organized into the following categories. Each category is 
-either a significant architectural layer, or major functional area of Consul.
+either a significant architectural layer, or major functional area of Consul. 
+These documents assume a basic understanding of Consul's feature set, which can
+found in the public [user documentation].
+
+[user documentation]: https://www.consul.io/docs
 
 ![Overview](./overview.svg)
 
@@ -27,3 +31,5 @@ either a significant architectural layer, or major functional area of Consul.
 1. [Key/Value Store](./kv)
 1. [ACL](./acl)
 1. [Multi-Cluster Federation](./cluster-federation)
+
+Also see the [FAQ](./faq.md).
