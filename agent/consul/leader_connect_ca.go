@@ -1535,9 +1535,6 @@ func checkExpired(pem string) error {
 	if err != nil {
 		return err
 	}
-	if cert.NotBefore.After(time.Now()) {
-		return fmt.Errorf("certificate start date is in the future %s", cert.NotBefore.String())
-	}
 	if cert.NotAfter.Before(time.Now()) {
 		return fmt.Errorf("certificate expired end date %s ", cert.NotAfter.String())
 	}
