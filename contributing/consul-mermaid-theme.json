@@ -1,4 +1,4 @@
 {
   "theme": "default",
-  "themeCSS": ".node rect { fill: rgb(220, 71, 125); stroke-width: 1; stroke: black; } .node .label { color: white; } "
+  "themeCSS": ".node rect { fill: rgb(220, 71, 125); stroke-width: 1; stroke: black; } .node .label { color: white; }; .cluster rect { fill: #f0f0f0; stroke-width: 1px; stroke: #333}; .edgeLabel { background-color: #f0f0f0; }"
 }
