@@ -1,0 +1,3 @@
+```release-note:bug
+agent: fix a panic on 32-bit platforms caused by misaligned struct fields used with sync/atomic.
+```
