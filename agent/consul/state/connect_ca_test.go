@@ -194,7 +194,7 @@ func TestStore_CARootSetList(t *testing.T) {
 
 	// Build a valid value
 	ca1 := connect.TestCA(t, nil)
-
+	expected := *ca1
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1})
 	assert.Nil(err)
@@ -205,12 +205,11 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
-	expected := *ca1
+
 	expected.RaftIndex = structs.RaftIndex{
 		CreateIndex: 1,
 		ModifyIndex: 1,
 	}
-
 	ws = memdb.NewWatchSet()
 	_, roots, err := s.CARoots(ws)
 	assert.Nil(err)

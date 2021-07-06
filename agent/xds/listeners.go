@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/connect/ca"
+
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -1090,7 +1092,7 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		return nil
 	}
 	for _, root := range cfgSnap.Roots.Roots {
-		rootPEMS += root.RootCert
+		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
 	}
 
 	return &envoyauth.CommonTlsContext{
@@ -1099,12 +1101,12 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 			&envoyauth.TlsCertificate{
 				CertificateChain: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
-						InlineString: leaf.CertPEM,
+						InlineString: ca.EnsureTrailingNewline(leaf.CertPEM),
 					},
 				},
 				PrivateKey: &envoycore.DataSource{
 					Specifier: &envoycore.DataSource_InlineString{
-						InlineString: leaf.PrivateKeyPEM,
+						InlineString: ca.EnsureTrailingNewline(leaf.PrivateKeyPEM),
 					},
 				},
 			},
