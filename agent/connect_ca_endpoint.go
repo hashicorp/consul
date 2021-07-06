@@ -83,7 +83,7 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 }
 
 // PUT /v1/connect/ca/configuration
-func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}, error) {
+func (s *HTTPServer) ConnectCAConfigurationSet(req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 
 	var args structs.CARequest
