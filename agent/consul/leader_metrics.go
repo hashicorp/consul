@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"time"
@@ -44,18 +43,22 @@ func rootCAExpiryMonitor(s *Server) certExpirationMonitor {
 		},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
-			state := s.fsm.State()
-			_, root, err := state.CARootActive(nil)
-			switch {
-			case err != nil:
-				return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
-			case root == nil:
-				return 0, fmt.Errorf("no active root CA")
-			}
-
-			return time.Until(root.NotAfter), nil
+			return getRootCAExpiry(s)
 		},
 	}
+}
+
+func getRootCAExpiry(s *Server) (time.Duration, error) {
+	state := s.fsm.State()
+	_, root, err := state.CARootActive(nil)
+	switch {
+	case err != nil:
+		return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+	case root == nil:
+		return 0, fmt.Errorf("no active root CA")
+	}
+
+	return time.Until(root.NotAfter), nil
 }
 
 func primaryCAExpiryMonitor(s *Server) certExpirationMonitor {
@@ -66,27 +69,13 @@ func primaryCAExpiryMonitor(s *Server) certExpirationMonitor {
 		},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
-
 			provider, _ := s.caManager.getCAProvider()
 
 			if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
-				cert, err := getActiveIntermediate(s)
-				if err != nil {
-					return 0, err
-				}
-				return time.Until(cert.NotAfter), nil
+				return getActiveIntermediateExpiry(s)
 			}
 
-			state := s.fsm.State()
-			_, root, err := state.CARootActive(nil)
-			switch {
-			case err != nil:
-				return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
-			case root == nil:
-				return 0, fmt.Errorf("no active root CA")
-			}
-
-			return time.Until(root.NotAfter), nil
+			return getRootCAExpiry(s)
 
 		},
 	}
@@ -100,33 +89,28 @@ func secondaryCAExpiryMonitor(s *Server) certExpirationMonitor {
 		},
 		Logger: s.logger.Named(logging.Connect),
 		Query: func() (time.Duration, error) {
-
-			cert, err := getActiveIntermediate(s)
-			if err != nil {
-				return 0, err
-			}
-			return time.Until(cert.NotAfter), nil
+			return getActiveIntermediateExpiry(s)
 		},
 	}
 }
 
-func getActiveIntermediate(s *Server) (*x509.Certificate, error) {
+func getActiveIntermediateExpiry(s *Server) (time.Duration, error) {
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// the CA used in a secondary DC is the active intermediate,
 	// which is the last in the IntermediateCerts stack
 	if len(root.IntermediateCerts) == 0 {
-		return nil, errors.New("no intermediate available")
+		return 0, errors.New("no intermediate available")
 	}
 	cert, err := connect.ParseCert(root.IntermediateCerts[len(root.IntermediateCerts)-1])
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return cert, nil
+	return time.Until(cert.NotAfter), nil
 }
 
 type certExpirationMonitor struct {
