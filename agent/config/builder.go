@@ -704,7 +704,6 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 			// Consul CA config
 			"private_key":           "PrivateKey",
 			"root_cert":             "RootCert",
-			"rotation_period":       "RotationPeriod",
 			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config

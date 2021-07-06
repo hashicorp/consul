@@ -9,11 +9,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-raftchunking"
 	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/go-uuid"
@@ -22,6 +17,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func generateUUID() (ret string) {
@@ -1301,7 +1302,6 @@ func TestFSM_CAConfig(t *testing.T) {
 			Config: map[string]interface{}{
 				"PrivateKey":          "asdf",
 				"RootCert":            "qwer",
-				"RotationPeriod":      90 * 24 * time.Hour,
 				"IntermediateCertTTL": 365 * 24 * time.Hour,
 			},
 		},
@@ -1329,9 +1329,6 @@ func TestFSM_CAConfig(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 	if got, want := conf.RootCert, "qwer"; got != want {
-		t.Fatalf("got %v, want %v", got, want)
-	}
-	if got, want := conf.RotationPeriod, 90*24*time.Hour; got != want {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 	if got, want := conf.IntermediateCertTTL, 365*24*time.Hour; got != want {

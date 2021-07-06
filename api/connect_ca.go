@@ -49,7 +49,6 @@ type ConsulCAProviderConfig struct {
 
 	PrivateKey          string
 	RootCert            string
-	RotationPeriod      time.Duration
 	IntermediateCertTTL time.Duration
 }
 
