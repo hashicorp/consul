@@ -3,7 +3,6 @@ package state
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
@@ -19,9 +18,8 @@ func TestStore_CAConfig(t *testing.T) {
 	expected := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     "asdf",
-			"RootCert":       "qwer",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": "asdf",
+			"RootCert":   "qwer",
 		},
 	}
 
@@ -104,9 +102,8 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 	before := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     "asdf",
-			"RootCert":       "qwer",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": "asdf",
+			"RootCert":   "qwer",
 		},
 	}
 	if err := s.CASetConfig(99, before); err != nil {

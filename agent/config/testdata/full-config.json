@@ -200,7 +200,6 @@
   "connect": {
     "ca_provider": "consul",
     "ca_config": {
-      "rotation_period": "90h",
       "intermediate_cert_ttl": "8760h",
       "leaf_cert_ttl": "1h",
       "csr_max_per_second": 100,

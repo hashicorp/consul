@@ -4909,7 +4909,6 @@ func TestAutoConfig_Integration(t *testing.T) {
 				"LeafCertTTL":         "1h",
 				"PrivateKey":          ca.SigningKey,
 				"RootCert":            ca.RootCert,
-				"RotationPeriod":      "6h",
 				"IntermediateCertTTL": "3h",
 			},
 		},
