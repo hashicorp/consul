@@ -1507,8 +1507,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"start_join":["a", "b"]
 					}`,
 		},
-		hcl: []string{
-			`
+		hcl: []string{`
 					advertise_addr = "1.2.3.4"
 					advertise_addr_wan = "5.6.7.8"
 					bootstrap = true
@@ -5098,27 +5097,22 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		}
 
 		opts := tc.opts
+
 		fs := flag.NewFlagSet("", flag.ContinueOnError)
 		AddFlags(fs, &opts)
 		require.NoError(t, fs.Parse(tc.args))
 		require.Len(t, fs.Args(), 0)
 
-		// Then create a builder with the flags.
-		patchLoadOptsShims(&opts)
-		b, err := newBuilder(opts)
-		require.NoError(t, err)
-
-		// read the source fragments
 		for i, data := range tc.source(format) {
-			b.Sources = append(b.Sources, FileSource{
+			opts.sources = append(opts.sources, FileSource{
 				Name:   fmt.Sprintf("src-%d.%s", i, format),
 				Format: format,
 				Data:   data,
 			})
 		}
 
-		// build/merge the config fragments
-		actual, err := b.BuildAndValidate()
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
 		switch {
 		case err == nil && tc.expectedErr != "":
 			t.Fatalf("got nil want error to contain %q", tc.expectedErr)
@@ -5130,7 +5124,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		if tc.expectedErr != "" {
 			return
 		}
-		require.Equal(t, tc.expectedWarnings, b.Warnings, "warnings")
+		require.Equal(t, tc.expectedWarnings, result.Warnings, "warnings")
 
 		// build a default configuration, then patch the fields we expect to change
 		// and compare it with the generated configuration. Since the expected
@@ -5140,12 +5134,13 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		x, err := newBuilder(expectedOpts)
 		require.NoError(t, err)
 
-		expected, err := x.Build()
+		expected, err := x.build()
 		require.NoError(t, err)
 		if tc.expected != nil {
 			tc.expected(&expected)
 		}
 
+		actual := *result.RuntimeConfig
 		// both DataDir fields should always be the same, so test for the
 		// invariant, and than updated the expected, so that every test
 		// case does not need to set this field.
