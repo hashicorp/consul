@@ -7,7 +7,7 @@ import { set } from '@ember/object';
  *
  * Each 'blocking action' (blocking in terms of showing some sort of blocking loader) is
  * wrapped in the functionality to signal that the page should be blocked
- * (currently via the 'feedback' service) as well as some sane default hooks for where the page
+ * (currently via the 'feedback' service) as well as some reasonable default hooks for where the page
  * should go when the action has finished.
  *
  * Hooks can and are being overwritten for custom redirects/error handling on a route by route basis.

@@ -407,14 +407,14 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
-	// Service definition file is sane.
+	// Service definition file is reasonable.
 	expectJSONFile(t, svcFile, persistedService{
 		Token:   "mytoken",
 		Service: svc,
 		Source:  "remote",
 	}, nil)
 
-	// Service config file is sane.
+	// Service config file is reasonable.
 	pcfg := persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
@@ -632,7 +632,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
-	// Service config file is sane.
+	// Service config file is reasonable.
 	expectJSONFile(t, configFile, persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{

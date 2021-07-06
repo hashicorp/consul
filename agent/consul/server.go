@@ -1002,7 +1002,7 @@ func (s *Server) Leave() error {
 	// If we are the current leader, and we have any other peers (cluster has multiple
 	// servers), we should do a RemoveServer/RemovePeer to safely reduce the quorum size.
 	// If we are not the leader, then we should issue our leave intention and wait to be
-	// removed for some sane period of time.
+	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
 		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
@@ -1265,7 +1265,7 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	// internal server API. It's odd that the same request directed to a server is
 	// recorded differently. On the other hand this possibly masks the different
 	// between regular client requests that traverse the network and these which
-	// don't (unless forwarded). This still seems most sane.
+	// don't (unless forwarded). This still seems most reasonable.
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
@@ -1288,7 +1288,7 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	// internal server API. It's odd that the same request directed to a server is
 	// recorded differently. On the other hand this possibly masks the different
 	// between regular client requests that traverse the network and these which
-	// don't (unless forwarded). This still seems most sane.
+	// don't (unless forwarded). This still seems most reasonable.
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
