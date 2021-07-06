@@ -15,6 +15,7 @@ Top level options are reserved for configuring Consul-Terraform-Sync.
 
 ```hcl
 log_level = "INFO"
+working_dir = "sync-tasks"
 port = 8558
 syslog {
   facility = "local2"
@@ -36,6 +37,7 @@ buffer_period {
   - `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
   - `facility` - (string: "local0") Name of the syslog facility to log to.
   - `name` - (string: "consul-terraform-sync") Name to use for the daemon process when logging to syslog.
+- `working_dir` - (string: "sync-tasks") The base working directory to manage generated artifacts by Consul-Terraform-Sync, including Terraform configuration files for each task. Each task will have a subdirectory used as the working directory, e.g. `./sync-tasks/task-name`. The working directory for tasks can be overridden using the [`task.working_dir`](#working_dir-1) option.
 
 ## Consul
 
@@ -137,6 +139,7 @@ task {
   ]
   ```
 - `version` - (string) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
+- `working_dir` - (string) The working directory to manage generated artifacts by Consul-Terraform-Sync for this task, including Terraform configuration files. The default working directory for each task is a subdirectory within the base [`working_dir`](#working_dir), e.g. `sync-tasks/task-name`.
 - `buffer_period` - Configures the buffer period for the task to dampen the affects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping.
   - `enabled` - (bool) Enable or disable buffer periods for this task. Specifying `min` will also enable it.
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
@@ -212,7 +215,6 @@ driver "terraform" {
   log = false
   persist_log = false
   path = ""
-  working_dir = ""
 
   backend "consul" {
     gzip = true
@@ -235,7 +237,7 @@ driver "terraform" {
 - `persist_log` - (bool) Enable trace logging for each Terraform client to disk per task. This is equivalent to setting `TF_LOG_PATH=<work_dir>/terraform.log`. Trace log level results in verbose logging and may be useful for debugging and development purposes. We do not recommend enabling this for production. There is no log rotation and may quickly result in large files.
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This is similar to the [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
 - `version` - (string) The Terraform version to install and run in automation for task execution. If omittied, the driver will install the latest official release of Terraform. To change versions, remove the existing binary or change the path to install the desired version. Verify that the desired Terraform version is compatible across all Terraform modules used for Consul-Terraform-Sync automation.
-- `working_dir` - (string: "sync-tasks") The base working directory to manage Terraform configurations all tasks. The full path of each working directory will have the task identifier appended to the end of the path, e.g. `./sync-tasks/task-name`.
+- `working_dir` - (string: "sync-tasks") **Deprecated in Consul-Terraform-Sync 0.3.0** use the global [`working_dir`](#working_dir) option instead. The base working directory to manage Terraform configurations for all tasks. The full path of each working directory will have the task identifier appended to the end of the path, e.g. `./sync-tasks/task-name`.
 
 ## Terraform Provider
 
