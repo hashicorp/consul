@@ -72,7 +72,7 @@ type PublicListenerConfig struct {
 	HandshakeTimeoutMs int `json:"handshake_timeout_ms" hcl:"handshake_timeout_ms" mapstructure:"handshake_timeout_ms"`
 }
 
-// applyDefaults sets zero-valued params to a sane default.
+// applyDefaults sets zero-valued params to a reasonable default.
 func (plc *PublicListenerConfig) applyDefaults() {
 	if plc.LocalConnectTimeoutMs == 0 {
 		plc.LocalConnectTimeoutMs = 1000
@@ -98,7 +98,7 @@ func (uc *UpstreamConfig) ConnectTimeout() time.Duration {
 	return 10000 * time.Millisecond
 }
 
-// applyDefaults sets zero-valued params to a sane default.
+// applyDefaults sets zero-valued params to a reasonable default.
 func (uc *UpstreamConfig) applyDefaults() {
 	if uc.DestinationType == "" {
 		uc.DestinationType = "service"

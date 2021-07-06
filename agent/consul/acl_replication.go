@@ -47,7 +47,7 @@ type aclTypeReplicator interface {
 	FetchLocal(srv *Server) (int, uint64, error)
 
 	// SortState sorts the internal working state output of FetchRemote and
-	// FetchLocal so that a sane diff can be performed.
+	// FetchLocal so that a reasonable diff can be performed.
 	SortState() (lenLocal, lenRemote int)
 
 	// LocalMeta allows for type-agnostic metadata from the sorted local state

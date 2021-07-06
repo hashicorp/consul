@@ -120,7 +120,7 @@ func (v *Validator) Name() string { return v.name }
 func (v *Validator) Stop() {}
 
 // ValidateLogin takes raw user-provided auth method metadata and ensures it is
-// sane, provably correct, and currently valid. Relevant identifying data is
+// reasonable, provably correct, and currently valid. Relevant identifying data is
 // extracted and returned for immediate use by the role binding process.
 //
 // Depending upon the method, it may make sense to use these calls to continue

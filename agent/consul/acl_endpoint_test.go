@@ -4401,7 +4401,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	})
 
 	// We delay until now to setup an auth method and binding rule in the
-	// primary so our earlier listing tests were sane. We need to be able to
+	// primary so our earlier listing tests were reasonable. We need to be able to
 	// use auth methods in both datacenters in order to verify Logout is
 	// properly scoped.
 	t.Run("initialize primary so we can test logout", func(t *testing.T) {

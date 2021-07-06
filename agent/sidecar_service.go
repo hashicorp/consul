@@ -80,7 +80,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		token = ns.Connect.SidecarService.Token
 	}
 
-	// Setup some sane connect proxy defaults.
+	// Setup some reasonable connect proxy defaults.
 	if sidecar.Kind == "" {
 		sidecar.Kind = structs.ServiceKindConnectProxy
 	}

@@ -705,7 +705,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	}
 
 	// If we record this exists before recursing down it will short-circuit
-	// sanely if there is some sort of graph loop below.
+	// reasonably if there is some sort of graph loop below.
 	c.recordNode(splitNode)
 
 	var hasLB bool
@@ -941,7 +941,7 @@ RESOLVE_AGAIN:
 	}
 
 	// If we record this exists before recursing down it will short-circuit
-	// sanely if there is some sort of graph loop below.
+	// reasonably if there is some sort of graph loop below.
 	c.recordNode(node)
 
 	if len(resolver.Failover) > 0 {

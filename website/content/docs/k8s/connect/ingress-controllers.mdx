@@ -1,0 +1,93 @@
+---
+layout: docs
+page_title: Ingress Controller Integrations
+description: Configuring Ingress Controllers With Consul On Kubernetes
+---
+
+# Configuring Ingress Controllers with Consul on Kubernetes
+
+-> This topic requires familiarity with [Ingress Controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)
+
+-> The following information requires Consul 1.10+, Consul-k8s 0.26+, Consul-helm 0.32+ configured with
+[Transparent Proxy](/docs/connect/transparent-proxy) mode enabled.
+
+This page describes a general approach for integrating Ingress Controllers with Consul on Kubernetes to secure traffic from the Controller
+to the backend services. This allows Consul to transparently secure traffic from the ingress point through the entire traffic flow of the service.
+
+A few steps are generally required to enable an Ingress controller to join the mesh and pass traffic through to a service:
+
+* Enable connect-injection via an annotation on the Ingress Controller's deployment: `consul.hashicorp.com/connect-inject` is `true`.
+
+* Using the following annotations on the Ingress controller's deployment, set up exclusion rules for its ports.
+   * [`consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-inbound-ports) - Provides the ability to exclude a list of ports for
+inbound traffic that the service exposes from redirection. Typical configurations would require all inbound service ports
+for the controller to be included in this list.
+   * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-ports`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-ports) - Provides the ability to exclude a list of ports for
+outbound traffic that the service exposes from redirection. These would be outbound ports used by your ingress controller
+  which expect to skip the mesh and talk to non-mesh services.
+   * [`consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs`](/docs/k8s/connect#consul-hashicorp-com-transparent-proxy-exclude-outbound-cidrs) - Provides the ability to exclude a list of CIDRs that
+the service communicates with for outbound requests from redirection. It is somewhat common that an Ingress controller
+will expect to make API calls to the Kubernetes service for service/endpoint management. As such including the ClusterIP of the
+Kubernetes service is common.
+
+~> Note: Depending on which ingress controller you use, these stanzas may differ in name and layout, but it is important to apply
+these annotations to the *pods* of your *ingress controller*.
+   ```yaml
+   # An example list of pod annotations for an ingress controller, which need be applied to PODS for the controller, not the deployment itself.
+     podAnnotations:
+       consul.hashicorp.com/connect-inject: "true"
+       # Add the container ports used by your ingress controller
+       consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "80,8000,9000,8443"
+       # And the CIDR of your Kubernetes API: `kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}'
+       consul.hashicorp.com/transparent-proxy-exclude-outbound-cidrs: "10.108.0.1/32"
+   ```
+
+* If the Ingress controller acts as a LoadBalancer and routes directly to Pod IPs instead of the ClusterIP of your Kubernetes Services
+a `ServiceDefault` CRD must be applied to *each backend service* allowing it to use the `dialedDirectly` features. By default this is disabled.
+
+   ```yaml
+   # Example Service defaults config entry
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: backend
+   spec:
+     transparentProxy:
+       dialedDirectly: true
+   ```
+
+* An intention from the Ingress Controller to the backend application must also be applied, this could be an L4 or L7 intention:
+
+   ```yaml
+   # example L4 intention, but an L7 intention can also be used to control access to specific routes.
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceIntentions
+   metadata:
+     name: ingress-backend
+   spec:
+     destination:
+       name: backend
+     sources:
+       - name: ingress
+         action: allow
+   ```
+
+### Common Configuration Problems:
+- The Ingress Controller's ServiceAccount name and Service name differ by default in some platforms. Consul on Kubernetes requires the
+ServiceAccount and Service to have the same name. To resolve this be sure to explicitly set ServiceAccount name the same as the ingress
+controller service name using it's respective helm configurations.
+
+- If the Ingress Controller does not have the correct inbound ports excluded it will fail to start and the Ingress'
+service will not get created, causing the controller to hang in the init container. The required container ports are not
+always readily available in the helm charts, so in order to resolve this examine the ingress controller's
+underlying pod spec and look for the required container ports, adding these to the `consul.hashicorp.com/transparent-proxy-exclude-inbound-ports`
+annotation on the ingress controller deployment.
+
+### Examples:
+Here are a couple example configurations which can be used as reference points in setting up your own ingress controller configuration!
+These were used in dev environments and are not intended to be fully supported but should provide some idea how to extend the information
+above to your own uses cases.
+
+- [Traefik Consul example - kschoche](https://github.com/kschoche/traefik-consul)
+- [Consul K8s Ingress Controllers examples - joatmon08](https://github.com/joatmon08/consul-k8s-ingress-controllers)
+
