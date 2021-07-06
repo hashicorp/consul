@@ -215,7 +215,7 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.Nil(err)
 	assert.Len(roots, 1)
 	actual := roots[0]
-	assertDeepEqual(t, expected, *actual)
+	assert.Equal(&expected, actual)
 }
 
 func TestStore_CARootSet_emptyID(t *testing.T) {
