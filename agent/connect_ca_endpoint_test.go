@@ -12,9 +12,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConnectCARoots_empty(t *testing.T) {
@@ -89,7 +90,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"Config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				}
 			}`,
@@ -99,7 +99,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 			},
@@ -111,7 +110,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"Config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				}
 			}`,
@@ -121,7 +119,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 			},
@@ -133,7 +130,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"Config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				},
 				"ForceWithoutCrossSigning": true
@@ -144,7 +140,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 				ForceWithoutCrossSigning: true,
@@ -162,7 +157,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"provider": "consul",
 				"config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				},
 				"force_without_cross_signing": true
@@ -173,7 +167,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 				ForceWithoutCrossSigning: true,
@@ -198,8 +191,7 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
-				        "IntermediateCertTTL": "288h"
+					"IntermediateCertTTL": "288h"
 				},
 				"State": {
 					"foo": "bar"
@@ -211,7 +203,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 				State: map[string]string{
