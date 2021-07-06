@@ -17,8 +17,7 @@ import (
 )
 
 var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
-var metricsKeyMeshPrimaryCAExpiry = []string{"mesh", "active-primary-dc-ca", "expiry"}
-var metricsKeyMeshSecondaryCAExpiry = []string{"mesh", "active-secondary-dc-ca", "expiry"}
+var metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
 
 var CertExpirationGauges = []prometheus.GaugeDefinition{
 	{
@@ -26,12 +25,8 @@ var CertExpirationGauges = []prometheus.GaugeDefinition{
 		Help: "Seconds until the service mesh root certificate expires. Updated every hour",
 	},
 	{
-		Name: metricsKeyMeshPrimaryCAExpiry,
-		Help: "Seconds until the service mesh primary DC certificate expires. Updated every hour",
-	},
-	{
-		Name: metricsKeyMeshSecondaryCAExpiry,
-		Help: "Seconds until the service mesh secondary DC certificate expires. Updated every hour",
+		Name: metricsKeyMeshActiveSigningCAExpiry,
+		Help: "Seconds until the service mesh signing certificate expires. Updated every hour",
 	},
 }
 
@@ -61,36 +56,37 @@ func getRootCAExpiry(s *Server) (time.Duration, error) {
 	return time.Until(root.NotAfter), nil
 }
 
-func primaryCAExpiryMonitor(s *Server) certExpirationMonitor {
-	return certExpirationMonitor{
-		Key: metricsKeyMeshPrimaryCAExpiry,
-		Labels: []metrics.Label{
-			{Name: "datacenter", Value: s.config.Datacenter},
-		},
-		Logger: s.logger.Named(logging.Connect),
-		Query: func() (time.Duration, error) {
-			provider, _ := s.caManager.getCAProvider()
+func signingCAExpiryMonitor(s *Server) certExpirationMonitor {
+	isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
+	if isPrimary {
+		return certExpirationMonitor{
+			Key: metricsKeyMeshActiveSigningCAExpiry,
+			Labels: []metrics.Label{
+				{Name: "datacenter", Value: s.config.Datacenter},
+			},
+			Logger: s.logger.Named(logging.Connect),
+			Query: func() (time.Duration, error) {
+				provider, _ := s.caManager.getCAProvider()
 
-			if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
+				if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
+					return getActiveIntermediateExpiry(s)
+				}
+
+				return getRootCAExpiry(s)
+
+			},
+		}
+	} else {
+		return certExpirationMonitor{
+			Key: metricsKeyMeshActiveSigningCAExpiry,
+			Labels: []metrics.Label{
+				{Name: "datacenter", Value: s.config.Datacenter},
+			},
+			Logger: s.logger.Named(logging.Connect),
+			Query: func() (time.Duration, error) {
 				return getActiveIntermediateExpiry(s)
-			}
-
-			return getRootCAExpiry(s)
-
-		},
-	}
-}
-
-func secondaryCAExpiryMonitor(s *Server) certExpirationMonitor {
-	return certExpirationMonitor{
-		Key: metricsKeyMeshSecondaryCAExpiry,
-		Labels: []metrics.Label{
-			{Name: "datacenter", Value: s.config.Datacenter},
-		},
-		Logger: s.logger.Named(logging.Connect),
-		Query: func() (time.Duration, error) {
-			return getActiveIntermediateExpiry(s)
-		},
+			},
+		}
 	}
 }
 
