@@ -16,6 +16,3 @@ button.type-cancel {
 %app-view-content form button[type='button'].type-delete {
   @extend %dangerous-button;
 }
-button.copy-btn {
-  @extend %copy-button;
-}

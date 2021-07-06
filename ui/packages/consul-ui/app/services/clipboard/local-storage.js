@@ -1,10 +1,9 @@
-import Service from '@ember/service';
-
+import Service, { inject as service } from '@ember/service';
 import Clipboard from 'clipboard';
 
 class ClipboardCallback extends Clipboard {
-  constructor(trigger, cb) {
-    super(trigger);
+  constructor(trigger, options, cb) {
+    super(trigger, options);
     this._cb = cb;
   }
   onClick(e) {
@@ -17,12 +16,12 @@ class ClipboardCallback extends Clipboard {
 }
 
 export default class LocalStorageService extends Service {
-  storage = window.localStorage;
+  @service('-document') doc;
   key = 'clipboard';
 
-  execute(trigger) {
-    return new ClipboardCallback(trigger, val => {
-      this.storage.setItem(this.key, val);
+  execute(trigger, options) {
+    return new ClipboardCallback(trigger, options, val => {
+      this.doc.defaultView.localStorage.setItem(this.key, val);
     });
   }
 }
