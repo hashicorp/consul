@@ -1,13 +1,18 @@
 import IntlService from 'ember-intl/services/intl';
 import { inject as service } from '@ember/service';
 
-class I18nService extends IntlService {
+export const formatOptionsSymbol = Symbol();
+export class I18nService extends IntlService {
   @service('env') env;
   /**
    * Additionally injects selected project level environment variables into the
    * message formatting context for usage within translated texts
    */
   formatMessage(value, formatOptions) {
+    formatOptions = this[formatOptionsSymbol](formatOptions);
+    return super.formatMessage(value, formatOptions);
+  }
+  [formatOptionsSymbol](options) {
     const env = [
       'CONSUL_HOME_URL',
       'CONSUL_REPO_ISSUES_URL',
@@ -19,12 +24,10 @@ class I18nService extends IntlService {
       prev[key] = this.env.var(key);
       return prev;
     }, {});
-
-    formatOptions = {
-      ...formatOptions,
+    return {
+      ...options,
       ...env,
     };
-    return super.formatMessage(value, formatOptions);
   }
 }
 export default {
