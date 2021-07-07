@@ -159,6 +159,12 @@ export default function(config = {}, win = window, doc = document) {
       case 'test':
         $ = dev().reduce(function(prev, [key, value]) {
           switch (key) {
+            case 'CONSUL_INTL_LOCALE':
+              prev['CONSUL_INTL_LOCALE'] = String(value).toLowerCase();
+              break;
+            case 'CONSUL_INTL_DEBUG':
+              prev['CONSUL_INTL_DEBUG'] = !!JSON.parse(String(value).toLowerCase());
+              break;
             case 'CONSUL_ACLS_ENABLE':
               prev['CONSUL_ACLS_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
