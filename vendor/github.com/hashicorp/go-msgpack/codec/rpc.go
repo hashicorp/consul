@@ -6,7 +6,7 @@ package codec
 import (
 	"bufio"
 	"io"
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"sync"
 )
 
