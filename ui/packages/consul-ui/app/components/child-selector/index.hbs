@@ -9,7 +9,7 @@
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
     {{#if isOpen}}
       <DataSource
-        @src={{concat '/' (or nspace 'default') '/' dc '/' (pluralize type)}}
+        @src={{concat '/' nspace '/' dc '/' (pluralize type)}}
         @onchange={{action (mut allOptions) value="data"}}
       />
     {{/if}}

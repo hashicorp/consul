@@ -75,8 +75,9 @@
       <em>Contact your administrator for login credentials.</em>
     </form>
 {{#if (env 'CONSUL_SSO_ENABLED')}}
+    {{!-- This `or` can be completely removed post 1.10 as 1.10 has optional params with default values --}}
     <DataSource
-      @src={{concat '/' (or nspace 'default') '/' dc '/oidc/providers'}}
+      @src={{concat '/' (or nspace '') '/' dc '/oidc/providers'}}
       @onchange={{queue (action (mut providers) value="data")}}
       @onerror={{queue (action (mut error) value="error.errors.firstObject")}}
       @loading="lazy"

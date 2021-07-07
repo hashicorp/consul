@@ -1,7 +1,27 @@
 import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
+import { runInDebug } from '@ember/debug';
 
+const findActiveNspace = function(nspaces, nspace) {
+  let found = nspaces.find(function(item) {
+    return item.Name === nspace.Name;
+  });
+  if (typeof found === 'undefined') {
+    runInDebug(_ =>
+      console.info(`${nspace.Name} not found in [${nspaces.map(item => item.Name).join(', ')}]`)
+    );
+    // if we can't find the nspace that was specified try default
+    found = nspaces.find(function(item) {
+      return item.Name === 'default';
+    });
+    // if there is no default just choose the first
+    if (typeof found === 'undefined') {
+      found = nspaces[0];
+    }
+  }
+  return found;
+};
 const modelName = 'nspace';
 export default class NspaceEnabledService extends RepositoryService {
   @service('router') router;
@@ -46,20 +66,14 @@ export default class NspaceEnabledService extends RepositoryService {
     });
   }
 
-  getActive(paramsNspace) {
-    return this.settings
-      .findBySlug('nspace')
-      .then(function(nspace) {
-        // If we can't figure out the nspace from the URL use
-        // the previously saved nspace and if thats not there
-        // then just use default
-        return paramsNspace || nspace || 'default';
-      })
-      .then(nspace => this.settings.persist({ nspace: nspace }))
-      .then(function(item) {
-        return {
-          Name: item.nspace,
-        };
-      });
+  async getActive(paramsNspace = '') {
+    const nspaces = this.store.peekAll('nspace').toArray();
+    if (paramsNspace.length === 0) {
+      const token = await this.settings.findBySlug('token');
+      paramsNspace = token.Namespace || 'default';
+    }
+    // if there is only 1 namespace then use that, otherwise find the
+    // namespace object that corresponds to the active one
+    return nspaces.length === 1 ? nspaces[0] : findActiveNspace(nspaces, { Name: paramsNspace });
   }
 }
