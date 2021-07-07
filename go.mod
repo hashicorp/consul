@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/go-discover v0.0.0-20200501174627-ad1e96bde088
 	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/go-memdb v1.3.1
-	github.com/hashicorp/go-msgpack v0.5.6-0.20210707190205-815e88f18cdf
+	github.com/hashicorp/go-msgpack v0.5.6-0.20210707211311-617cf4904e31
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-raftchunking v0.6.1
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect

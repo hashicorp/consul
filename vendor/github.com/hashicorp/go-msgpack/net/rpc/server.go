@@ -191,15 +191,39 @@ type Server struct {
 	freeReq    *Request
 	respLock   sync.Mutex // protects freeResp
 	freeResp   *Response
+
+	interceptor Interceptor
 }
 
 // NewServer returns a new Server.
-func NewServer() *Server {
-	return &Server{}
+func NewServer(interceptor Interceptor) *Server {
+	if interceptor == nil {
+		interceptor = noopInterceptor{}
+	}
+	return &Server{interceptor: interceptor}
+}
+
+// Interceptor is called by Server to allow the caller to intercept requests/
+type Interceptor interface {
+	// ServiceCall is call for each request. The fn function MUST be called
+	// by ServiceCall to perform the actual RPC. ServiceCall may optionally
+	// do something before and/or after calling fn.
+	// serviceMethod is the "Service.Method" string for the request, and argv and
+	// replyv are the request and response values.
+	//
+	// ServiceCall may be called concurrently by multiple requests, and so must
+	// be safe for concurrent use.
+	ServiceCall(fn func(), serviceMethod string, argv, replyv reflect.Value)
+}
+
+type noopInterceptor struct{}
+
+func (n noopInterceptor) ServiceCall(call func(), serviceMethod string, argv, replyv reflect.Value) {
+	call()
 }
 
 // DefaultServer is the default instance of *Server.
-var DefaultServer = NewServer()
+var DefaultServer = NewServer(noopInterceptor{})
 
 // Is this type exported or a builtin?
 func isExportedOrBuiltinType(t reflect.Type) bool {
@@ -471,7 +495,12 @@ func (server *Server) ServeCodec(codec ServerCodec) {
 			continue
 		}
 		wg.Add(1)
-		go service.call(server, sending, wg, mtype, req, argv, replyv, codec)
+		fn := func() {
+			service, mtype, req, argv, replyv := service, mtype, req, argv, replyv // capture
+			// TODO: remove wg arg to service.call, handle it here instead.
+			service.call(server, sending, wg, mtype, req, argv, replyv, codec)
+		}
+		go server.interceptor.ServiceCall(fn, req.ServiceMethod, argv, replyv)
 	}
 	// We've seen that there are no more requests.
 	// Wait for responses to be sent before closing codec.
@@ -495,7 +524,12 @@ func (server *Server) ServeRequest(codec ServerCodec) error {
 		}
 		return err
 	}
-	service.call(server, sending, nil, mtype, req, argv, replyv, codec)
+
+	fn := func() {
+		service.call(server, sending, nil, mtype, req, argv, replyv, codec)
+	}
+	server.interceptor.ServiceCall(fn, req.ServiceMethod, argv, replyv)
+
 	return nil
 }
 
