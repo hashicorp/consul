@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"github.com/hashicorp/go-msgpack/net/rpc"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -21,6 +20,7 @@ import (
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
@@ -369,8 +369,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
 		router:                  flat.Router,
-		rpcServer:               rpc.NewServer(),
-		insecureRPCServer:       rpc.NewServer(),
 		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
@@ -382,6 +380,10 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		aclAuthMethodValidators: authmethod.NewCache(),
 		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
+
+	rpcInterceptor := rpcMetricsInterceptor{srv: s}
+	s.rpcServer = rpc.NewServer(rpcInterceptor)
+	s.insecureRPCServer = rpc.NewServer(rpcInterceptor)
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
 		s.gatewayLocator = NewGatewayLocator(
