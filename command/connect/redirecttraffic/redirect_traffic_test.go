@@ -549,6 +549,12 @@ func TestGenerateConfigFromFlags(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			cmd := c.command()
 			if c.consulServices != nil {
+				// Skip test when -short flag provided; any tests that create a test server
+				// will take at least 100ms which is undesirable for -short
+				if testing.Short() {
+					t.Skip("too slow for testing.Short")
+				}
+
 				testServer, err := testutil.NewTestServerConfigT(t, nil)
 				require.NoError(t, err)
 				testServer.WaitForLeader(t)

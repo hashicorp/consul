@@ -61,6 +61,11 @@ func makeClientWithConfig(
 	var server *testutil.TestServer
 	var err error
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		// Skip test when -short flag provided; any tests that create a test
+		// server will take at least 100ms which is undesirable for -short
+		if testing.Short() {
+			t.Skip("too slow for testing.Short")
+		}
 		server, err = testutil.NewTestServerConfigT(t, cb2)
 		if err != nil {
 			r.Fatalf("Failed to start server: %v", err.Error())
