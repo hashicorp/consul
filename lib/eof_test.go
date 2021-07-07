@@ -3,9 +3,9 @@ package lib
 import (
 	"fmt"
 	"io"
-	"net/rpc"
 	"testing"
 
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
 )
