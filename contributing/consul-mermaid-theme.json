@@ -1,0 +1,4 @@
+{
+  "theme": "default",
+  "themeCSS": ".node rect, .er.entityBox { fill: rgb(220, 71, 125); stroke-width: 1; stroke: black; } .node .label { color: white; }; .cluster rect { fill: #f0f0f0; stroke-width: 1px; stroke: #333}; .edgeLabel { background-color: #f0f0f0; }; .er.entityBox + .er.entityLabel { fill: white }; .er.attributeBoxEven, .er.attributeBoxOdd { fill: #fff; stroke: #777 }"
+}
