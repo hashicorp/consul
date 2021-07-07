@@ -35,3 +35,18 @@ found in the public [user documentation].
 1. [Multi-Cluster Federation](./cluster-federation)
 
 Also see the [FAQ](./faq.md).
+
+## Contributing to these docs
+
+This section is meta documentation about contributing to these docs.
+
+### Diagrams
+
+The diagrams in these documents are created using the [mermaid-js live editor]. 
+The [mermaid-js docs] provide a complete reference for how to create and edit 
+the diagrams. Use the [consul-mermaid-theme.json] (paste it into the Config tab 
+in the editor) to maintain a consistent Consul style for the diagrams.
+
+[mermaid-js live editor]: https://mermaid-js.github.io/mermaid-live-editor/edit/
+[mermaid-js docs]: https://mermaid-js.github.io/mermaid/
+[consul-mermaid-theme.json]: ./consul-mermaid-theme.json
