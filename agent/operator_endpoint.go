@@ -217,7 +217,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 		s.parseDC(req, &args.Datacenter)
 		s.parseToken(req, &args.Token)
 
-		var conf api.AutopilotConfiguration
+		conf := api.NewAutopilotConfiguration()
 		if err := decodeBody(req.Body, &conf); err != nil {
 			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}
