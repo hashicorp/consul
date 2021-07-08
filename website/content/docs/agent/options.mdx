@@ -555,6 +555,8 @@ definitions support being updated during a reload.
 
 #### Example Configuration File, with TLS
 
+~> **Security Note:** three verify options must be set to `true` to enable TLS.
+
 ```javascript
 {
   "datacenter": "east-aws",
@@ -570,7 +572,10 @@ definitions support being updated during a reload.
   },
   "key_file": "/etc/pki/tls/private/my.key",
   "cert_file": "/etc/pki/tls/certs/my.crt",
-  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt"
+  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
+  "verify_incoming": true,
+  "verify_outgoing": true,
+  "verify_server_hostname": true
 }
 ```
 
