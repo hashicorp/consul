@@ -7,8 +7,14 @@ services and client agents (via auto-encrypt and auto-config).
 
 ### High level overview
 
-- we can start with the mind map
-- high level explaination of what are the features that are involved in CA (mesh/connect, auto encrypt)
+In Consul the leader is responsible for handling of the CA management. 
+When a leader election happen, and the elected leader do not have any root CA available it will start a process of creating a set of CA certificate.
+Those certificates will use to authenticate/encrypt communication between services (service mesh) or between `Consul client agent` (auto-encrypt/auto-config). This process is described in the following diagram:
+![CA creation](./hl-ca-overview.svg)
+
+<sup>[source](./hl-ca-overview.mmd)</sup>
+
+- high level explanation of what are the features that are involved in CA (mesh/connect, auto encrypt)
 - add all the func that are involved in the CA operations
 - relationship between the different certs
 
