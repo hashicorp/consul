@@ -60,6 +60,40 @@ Any secondary datacenters receive an intermediate certificate, signed by the Pri
 CA, which is used as the CA certificate to sign leaf certificates in the secondary
 datacenter.
 
+## Operations
+
+When trying to learn the CA subsystem it can be helpful to understand the operations that
+it can perform. The sections below are the complete set of read, write, and periodic
+operations that provide the full behaviour of the CA subsystem.
+
+### Periodic Operations
+
+Periodic (or background) opeartions are started automatically by the Consul leader. They run at some interval (often 1 hour).
+
+- `CAManager.InitializeCA` - attempts to initialize the CA when a leader is ellected. If the synchronous InitializeCA fails, `CAManager.backgroundCAInitialization` runs `InitializeCA` periodically in a goroutine until it succeeds.
+- `CAManager.RenewIntermediate` - (called by `CAManager.intermediateCertRenewalWatch`) runs in the primary if the provider uses a separate signing cert (the Vault provider). The operation always runs in the secondary. Renews the signing cert once half its lifetime has passed.
+- `CAManager.secondaryCARootWatch` - runs in secondary only. Performs a blocking query to the primary to retrieve any updates to the CA roots and stores them locally.
+- `Server.runCARootPruning` - removes non-active and expired roots from state.CARoots
+
+### Read Operations
+
+- `RPC.ConnectCA.ConfigurationGet` - returns the CA provider configuration. Only called by user, not by any internal subsystems.
+- `RPC.ConnectCA.Roots` - returns all the roots, the trust domain ID, and the ID of the active root. Each "root" also includes the signing key/cert, and any intermediate certs in the chain. It is used (via the cache) by all the connect proxy types.
+
+### Write Operations
+
+- `CAManager.UpdateConfiguration` - (via `RPC.ConnectCA.ConfigurationSet`) called by a user when they want to change the provider or provider configuration (ex: rotate root CA).
+- `CAManager.Provider.SignIntermediate` - (via `RPC.ConnectCA.SignIntermediate`) called from the secondary DC:
+    1. by `CAManager.RenewIntermediate` to sign the new intermediate when the old intermediate is about to expire
+    2. by `CAMananger.initializeSecondary` when setting up a new secondary, when the provider is changed in the secondary
+   by a user action, or when the primary roots changed and the secondary needs to generate a new intermediate for the new
+   primary roots.
+- `CAMananger.SignCertificate` - is used by:
+    1. (via `RPC.ConnectCA.Sign`) - called by client agents to sign a leaf cert for a connect proxy (via `agent/cache-types/connect_ca_leaf.go`)
+    2. (via in-process call to `RPC.ConnectCA.Sign`) - called by auto-encrypt to sign a leaf cert for a client agent
+    3. called by Auto-Config to sign a leaf cert for a client agent
+
+
 ### detailed call flow
 - sequence diagram for leader election
 - sequence diagram for leaf signing
