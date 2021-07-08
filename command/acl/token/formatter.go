@@ -125,6 +125,7 @@ func (f *prettyFormatter) formatTokenListEntry(token *api.ACLTokenListEntry) str
 	var buffer bytes.Buffer
 
 	buffer.WriteString(fmt.Sprintf("AccessorID:       %s\n", token.AccessorID))
+	buffer.WriteString(fmt.Sprintf("SecretID:         %s\n", token.SecretID))
 	if token.Namespace != "" {
 		buffer.WriteString(fmt.Sprintf("Namespace:        %s\n", token.Namespace))
 	}

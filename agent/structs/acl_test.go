@@ -265,6 +265,7 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 		stub := token.Stub()
 
 		require.Equal(t, token.AccessorID, stub.AccessorID)
+		require.Equal(t, token.SecretID, stub.SecretID)
 		require.Equal(t, token.Description, stub.Description)
 		require.Equal(t, token.Policies, stub.Policies)
 		require.Equal(t, token.Local, stub.Local)
@@ -286,6 +287,7 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 
 		stub := token.Stub()
 		require.Equal(t, token.AccessorID, stub.AccessorID)
+		require.Equal(t, token.SecretID, stub.SecretID)
 		require.Equal(t, token.Description, stub.Description)
 		require.Equal(t, token.Policies, stub.Policies)
 		require.Equal(t, token.Local, stub.Local)
