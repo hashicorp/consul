@@ -2067,7 +2067,7 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
 	})
 
-	t.Run("filter filter SecretID for acl:read", func(t *testing.T) {
+	t.Run("filter SecretID for acl:read", func(t *testing.T) {
 		rules := `
 			acl = "read"
 		`
