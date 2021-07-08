@@ -5413,7 +5413,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"RotationPeriod":      "90h",
 			"IntermediateCertTTL": "8760h",
 			"LeafCertTTL":         "1h",
 			"CSRMaxPerSecond":     float64(100),
@@ -6594,7 +6593,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "consul",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 				},
@@ -6611,7 +6609,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider:  "consul",
 				ClusterID: "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 					"cluster_id":          "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
@@ -6635,7 +6632,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "vault",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 				},
@@ -6651,7 +6647,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "consul",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 					"foo":                 "bar",

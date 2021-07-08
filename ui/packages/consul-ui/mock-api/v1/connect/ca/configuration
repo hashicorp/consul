@@ -3,7 +3,6 @@
   "Config": {
     "PrivateKey": null,
     "RootCert": null,
-    "RotationPeriod": 7776000000000000
   },
   "CreateIndex": 5,
   "ModifyIndex": 5

@@ -103,6 +103,7 @@ const (
 	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
+	caSigningMetricRoutineName            = "CA signing expiration metric"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"

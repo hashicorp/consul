@@ -198,7 +198,6 @@ auto_encrypt = {
 connect {
     ca_provider = "consul"
     ca_config {
-        rotation_period = "90h"
         intermediate_cert_ttl = "8760h"
         leaf_cert_ttl = "1h"
         # hack float since json parses numbers as float and we have to
@@ -298,6 +297,7 @@ node_meta {
 }
 node_name = "otlLxGaI"
 non_voting_server = true
+partition = ""
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5

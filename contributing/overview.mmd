@@ -1,0 +1,30 @@
+graph TD
+    
+    ServiceMesh[Service Mesh]
+    ServiceDiscovery[Service Discovery]
+    ClusterMembership[Cluster Membership]
+    KV[Key/Value Store]
+    MultiClusterFederation[Multi-Cluster Federation]
+
+    ACL
+    AgentConfiguration[Agent Configuration]
+    ClientAgent[Client Agent]
+    RPC
+    ClusterPersistence[Cluster Persistence]
+    CLI
+    HTTPAPI[HTTP API]
+
+    CLI --> HTTPAPI
+    HTTPAPI --> ClientAgent
+    HTTPAPI --> ACL
+
+    AgentConfiguration --> ClientAgent
+    ClientAgent --> RPC
+    ClientAgent --> ACL
+    RPC --> ClusterPersistence
+    RPC --> ACL
+
+    MultiClusterFederation --> ClusterMembership
+    MultiClusterFederation --> RPC
+    ServiceMesh --> ServiceDiscovery
+    

@@ -596,7 +596,6 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod":      structs.DefaultCARotationPeriod,
 				"LeafCertTTL":         structs.DefaultLeafCertTTL,
 				"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
 			},

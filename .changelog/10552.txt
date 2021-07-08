@@ -1,0 +1,3 @@
+```release-note:deprecation
+connect/ca: remove the `RotationPeriod` field from the Consul CA provider, it was not used for anything.
+```

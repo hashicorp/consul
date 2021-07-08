@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 const (
-	DefaultCARotationPeriod    = "2160h"
 	DefaultLeafCertTTL         = "72h"
 	DefaultIntermediateCertTTL = "8760h" // 365 * 24h
 )
@@ -434,9 +434,8 @@ func (c CommonCAProviderConfig) Validate() error {
 type ConsulCAProviderConfig struct {
 	CommonCAProviderConfig `mapstructure:",squash"`
 
-	PrivateKey     string
-	RootCert       string
-	RotationPeriod time.Duration
+	PrivateKey string
+	RootCert   string
 
 	// DisableCrossSigning is really only useful in test code to use the built in
 	// provider while exercising logic that depends on the CA provider ability to
