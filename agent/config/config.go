@@ -290,6 +290,8 @@ type Config struct {
 	SegmentName *string `mapstructure:"segment"`
 	// Enterprise Only
 	Segments []Segment `mapstructure:"segments"`
+	// Enterprise Only
+	Partition *string `mapstructure:"partition"`
 
 	// Enterprise Only - not user configurable
 	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time"`
