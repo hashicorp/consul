@@ -1767,6 +1767,11 @@ func (f *aclFilter) filterTokenStub(token **structs.ACLTokenListStub) {
 
 	if f.authorizer.ACLRead(&entCtx) != acl.Allow {
 		*token = nil
+	} else if f.authorizer.ACLWrite(&entCtx) != acl.Allow {
+		// no write permissions - redact secret
+		clone := *(*token)
+		clone.SecretID = redactedToken
+		*token = &clone
 	}
 }
 

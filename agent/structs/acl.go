@@ -557,6 +557,7 @@ type ACLTokens []*ACLToken
 
 type ACLTokenListStub struct {
 	AccessorID        string
+	SecretID          string
 	Description       string
 	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
 	Roles             []ACLTokenRoleLink    `json:",omitempty"`
@@ -578,6 +579,7 @@ type ACLTokenListStubs []*ACLTokenListStub
 func (token *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
 		AccessorID:        token.AccessorID,
+		SecretID:          token.SecretID,
 		Description:       token.Description,
 		Policies:          token.Policies,
 		Roles:             token.Roles,
