@@ -555,7 +555,9 @@ definitions support being updated during a reload.
 
 #### Example Configuration File, with TLS
 
-~> **Security Note:** three verify options must be set to `true` to enable TLS.
+See [TLS Configuration Reference](#tls-configuration-reference) for more information about Agent TLS settings.
+
+~> **Security Note:** the three verify options must be set to `true` to enable TLS.
 
 ```javascript
 {
@@ -1168,19 +1170,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
 
-- `ca_file` This provides a file path to a PEM-encoded certificate
-  authority. The certificate authority is used to check the authenticity of client
-  and server connections with the appropriate [`verify_incoming`](#verify_incoming)
-  or [`verify_outgoing`](#verify_outgoing) flags.
-
-- `ca_path` This provides a path to a directory of PEM-encoded
-  certificate authority files. These certificate authorities are used to check the
-  authenticity of client and server connections with the appropriate [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) flags.
-
-- `cert_file` This provides a file path to a PEM-encoded
-  certificate. The certificate is provided to clients or servers to verify the agent's
-  authenticity. It must be provided along with [`key_file`](#key_file).
-
 - `check_update_interval` ((#check_update_interval))
   This interval controls how often check output from checks in a steady state is
   synchronized with the server. By default, this is set to 5 minutes ("5m"). Many
@@ -1607,10 +1596,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     part of the cluster before declaring it dead, giving that suspect node more time
     to refute if it is indeed still alive. The default is 6.
 
-- `key_file` This provides a the file path to a PEM-encoded
-  private key. The key is used with the certificate to verify the agent's authenticity.
-  This must be provided along with [`cert_file`](#cert_file).
-
 - `http_config` This object allows setting options for the HTTP API and UI.
 
   The following sub-keys are available:
@@ -1900,10 +1885,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `read_replica` - Equivalent to the [`-read-replica` command-line flag](#_read_replica).
 
-- `server_name` When provided, this overrides the [`node_name`](#_node)
-  for the TLS certificate. It can be used to ensure that the certificate name matches
-  the hostname we declare.
-
 - `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTL's
   shorter than the specified limit. It is recommended to keep this limit at or above
   the default to encourage clients to send infrequent heartbeats. Defaults to 10s.
@@ -2062,19 +2043,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `syslog_facility` When [`enable_syslog`](#enable_syslog)
   is provided, this controls to which facility messages are sent. By default, `LOCAL0`
   will be used.
-
-- `tls_min_version` Added in Consul 0.7.4, this specifies
-  the minimum supported version of TLS. Accepted values are "tls10", "tls11", "tls12",
-  or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
-  considered less secure; avoid using these if possible.
-
-- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
-  supported ciphersuites as a comma-separated-list. The list of all supported
-  ciphersuites is available through
-  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
-
-- `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
-  will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
 
 - `translate_wan_addrs` If set to true, Consul
   will prefer a node's configured [WAN address](#_advertise-wan)
@@ -2250,6 +2218,51 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   streaming. All servers must have [`rpc.enable_streaming`](#rpc_enable_streaming)
   enabled before any client can enable `use_streaming_backend`.
 
+- `watches` - Watches is a list of watch specifications which
+  allow an external process to be automatically invoked when a particular data view
+  is updated. See the [watch documentation](/docs/agent/watches) for more detail.
+  Watches can be modified when the configuration is reloaded.
+
+### TLS Configuration Reference
+
+This section documents all of the configuration settings that apply to Agent TLS. Agent
+TLS is used by the HTTP API, server RPC, and xDS interfaces. Some of these settings may also be
+applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
+
+- `ca_file` This provides a file path to a PEM-encoded certificate
+  authority. The certificate authority is used to check the authenticity of client
+  and server connections with the appropriate [`verify_incoming`](#verify_incoming)
+  or [`verify_outgoing`](#verify_outgoing) flags.
+
+- `ca_path` This provides a path to a directory of PEM-encoded
+  certificate authority files. These certificate authorities are used to check the
+  authenticity of client and server connections with the appropriate [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) flags.
+
+- `cert_file` This provides a file path to a PEM-encoded
+  certificate. The certificate is provided to clients or servers to verify the agent's
+  authenticity. It must be provided along with [`key_file`](#key_file).
+
+- `key_file` This provides a the file path to a PEM-encoded
+  private key. The key is used with the certificate to verify the agent's authenticity.
+  This must be provided along with [`cert_file`](#cert_file).
+
+- `server_name` When provided, this overrides the [`node_name`](#_node)
+  for the TLS certificate. It can be used to ensure that the certificate name matches
+  the hostname we declare.
+
+- `tls_min_version` Added in Consul 0.7.4, this specifies
+  the minimum supported version of TLS. Accepted values are "tls10", "tls11", "tls12",
+  or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
+  considered less secure; avoid using these if possible.
+
+- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
+  supported ciphersuites as a comma-separated-list. The list of all supported
+  ciphersuites is available through
+  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+
+- `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
+  will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
+
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client
   provides a certificate signed by a Certificate Authority from the
@@ -2302,11 +2315,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   and server to server RPCs unencrypted despite the documentation stating otherwise. See
   [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
   for more details. For those versions you **must also set `verify_outgoing = true`** to ensure encrypted RPC connections.
-
-- `watches` - Watches is a list of watch specifications which
-  allow an external process to be automatically invoked when a particular data view
-  is updated. See the [watch documentation](/docs/agent/watches) for more detail.
-  Watches can be modified when the configuration is reloaded.
 
 ## Ports Used
 
