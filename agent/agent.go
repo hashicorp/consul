@@ -661,7 +661,7 @@ func (a *Agent) Failed() <-chan struct{} {
 }
 
 func (a *Agent) listenAndServeXDS() error {
-	if len(a.config.GRPCAddrs) < 1 {
+	if len(a.config.XDSAddrs) < 1 {
 		return nil
 	}
 
@@ -683,7 +683,7 @@ func (a *Agent) listenAndServeXDS() error {
 	}
 	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
 
-	ln, err := a.startListeners(a.config.GRPCAddrs)
+	ln, err := a.startListeners(a.config.XDSAddrs)
 	if err != nil {
 		return err
 	}

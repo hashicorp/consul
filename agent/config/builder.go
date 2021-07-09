@@ -428,7 +428,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	httpPort := b.portVal("ports.http", c.Ports.HTTP)
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
-	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
+	xdsPort := b.portVal("ports.xds", c.Ports.GRPC)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -555,7 +555,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
-	grpcAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc", c.Addresses.GRPC), clientAddrs, grpcPort)
+	xdsAddrs := b.makeAddrs(b.expandAddrs("addresses.xds", c.Addresses.GRPC), clientAddrs, xdsPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
@@ -1013,8 +1013,8 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		EncryptKey:                 stringVal(c.EncryptKey),
 		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                   grpcPort,
-		GRPCAddrs:                  grpcAddrs,
+		XDSPort:                    xdsPort,
+		XDSAddrs:                   xdsAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KeyFile:                    stringVal(c.KeyFile),
