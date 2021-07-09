@@ -442,7 +442,6 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
-		c.UseTLS = true
 		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
 		c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
@@ -539,7 +538,6 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
-				c.UseTLS = true
 				c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
 				c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
 				c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
@@ -695,7 +693,6 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
 				c.RPCMaxConnsPerClient = 2
 				if tc.tlsEnabled {
-					c.UseTLS = true
 					c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
 					c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
 					c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"

@@ -327,11 +327,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, err
 	}
 
-	// TODO: this is duplicated in newConsulConfig, do it in only on place
-	if config.TLSConfig.CAFile != "" || config.TLSConfig.CAPath != "" {
-		config.UseTLS = true
-	}
-
 	// Set the primary DC if it wasn't set.
 	if config.PrimaryDatacenter == "" {
 		if config.ACLDatacenter != "" {

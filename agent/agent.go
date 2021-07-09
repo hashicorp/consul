@@ -1200,10 +1200,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
 
-	// Copy the TLS configuration
-	if runtimeCfg.CAPath != "" || runtimeCfg.CAFile != "" {
-		cfg.UseTLS = true
-	}
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
 

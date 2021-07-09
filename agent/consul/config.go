@@ -160,10 +160,6 @@ type Config struct {
 
 	TLSConfig tlsutil.Config
 
-	// UseTLS is used to enable TLS for outgoing connections to other TLS-capable Consul
-	// servers. This doesn't imply any verification, it only enables TLS if possible.
-	UseTLS bool
-
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
 	// the cluster until an explicit join is received. If this is set to
