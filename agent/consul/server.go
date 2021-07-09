@@ -327,8 +327,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, err
 	}
 
-	// Check if TLS is enabled
-	if config.CAFile != "" || config.CAPath != "" {
+	// TODO: this is duplicated in newConsulConfig, do it in only on place
+	if config.TLSConfig.CAFile != "" || config.TLSConfig.CAPath != "" {
 		config.UseTLS = true
 	}
 

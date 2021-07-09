@@ -1198,22 +1198,12 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
+	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
+
 	// Copy the TLS configuration
-	cfg.VerifyIncoming = runtimeCfg.VerifyIncoming || runtimeCfg.VerifyIncomingRPC
 	if runtimeCfg.CAPath != "" || runtimeCfg.CAFile != "" {
 		cfg.UseTLS = true
 	}
-	cfg.VerifyOutgoing = runtimeCfg.VerifyOutgoing
-	cfg.VerifyServerHostname = runtimeCfg.VerifyServerHostname
-	cfg.CAFile = runtimeCfg.CAFile
-	cfg.CAPath = runtimeCfg.CAPath
-	cfg.CertFile = runtimeCfg.CertFile
-	cfg.KeyFile = runtimeCfg.KeyFile
-	cfg.ServerName = runtimeCfg.ServerName
-	cfg.Domain = runtimeCfg.DNSDomain
-	cfg.TLSMinVersion = runtimeCfg.TLSMinVersion
-	cfg.TLSCipherSuites = runtimeCfg.TLSCipherSuites
-	cfg.TLSPreferServerCipherSuites = runtimeCfg.TLSPreferServerCipherSuites
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
 

@@ -443,12 +443,12 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
 		c.UseTLS = true
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Alice.crt"
-		c.KeyFile = "../../test/hostname/Alice.key"
-		c.VerifyServerHostname = true
-		c.VerifyOutgoing = true
-		c.VerifyIncoming = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
+		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyIncoming = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -540,13 +540,13 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
 				c.UseTLS = true
-				c.CAFile = "../../test/hostname/CertAuth.crt"
-				c.CertFile = "../../test/hostname/Alice.crt"
-				c.KeyFile = "../../test/hostname/Alice.key"
-				c.VerifyServerHostname = true
-				c.VerifyOutgoing = true
-				c.VerifyIncoming = false // saves us getting client cert setup
-				c.Domain = "consul"
+				c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+				c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
+				c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
+				c.TLSConfig.VerifyServerHostname = true
+				c.TLSConfig.VerifyOutgoing = true
+				c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+				c.TLSConfig.Domain = "consul"
 			})
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
@@ -696,13 +696,13 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 				c.RPCMaxConnsPerClient = 2
 				if tc.tlsEnabled {
 					c.UseTLS = true
-					c.CAFile = "../../test/hostname/CertAuth.crt"
-					c.CertFile = "../../test/hostname/Alice.crt"
-					c.KeyFile = "../../test/hostname/Alice.key"
-					c.VerifyServerHostname = true
-					c.VerifyOutgoing = true
-					c.VerifyIncoming = false // saves us getting client cert setup
-					c.Domain = "consul"
+					c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+					c.TLSConfig.CertFile = "../../test/hostname/Alice.crt"
+					c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
+					c.TLSConfig.VerifyServerHostname = true
+					c.TLSConfig.VerifyOutgoing = true
+					c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+					c.TLSConfig.Domain = "consul"
 				}
 			})
 			defer os.RemoveAll(dir1)
