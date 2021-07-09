@@ -1,6 +1,6 @@
 # Certificate Authority (Connect CA)
 
-The Certificate Authority subsystem manages a CA trust chain for issuing certificates to
+The Certificate Authority Subsystem manages a CA trust chain for issuing certificates to
 services and client agents (via auto-encrypt and auto-config).
 
 The code for the Certificate Authority is in the following packages:
@@ -93,10 +93,11 @@ Periodic (or background) opeartions are started automatically by the Consul lead
     2. (via in-process call to `RPC.ConnectCA.Sign`) - called by auto-encrypt to sign a leaf cert for a client agent
     3. called by Auto-Config to sign a leaf cert for a client agent
 
-### detailed call flow
+## detailed call flow
 ![CA Leader Sequence](./ca-leader-sequence.svg)
 
 <sup>[source](./ca-leader-sequence.mmd)</sup>
 
-- sequence diagram for leaf signing
+####TODO:
+- sequence diagram for leaf signing 
 - sequence diagram for CA cert rotation
