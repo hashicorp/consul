@@ -11,4 +11,7 @@
   dl.nspace dt::before {
     @extend %with-folder-outline-mask, %as-pseudo;
   }
+  dl.local-bind-mode dd span {
+    font-weight: $typo-weight-semibold;
+  }
 }

@@ -40,19 +40,19 @@
       {{#if item.LocalBindSocketPath}}
 {{#let (if item.LocalBindSocketMode
           (hash
-            label=(concat '(Local bind mode)')
-            value=(concat '(Mode:' item.LocalBindSocketMode ')')
+            label='Local bind mode'
+            value='item.LocalBindSocketMode'
           )
           (hash
-            label=""
-            value=""
+            label='Local bind mode'
+            value="-"
           )
         )
 as |mode|}}
           <dl class="local-bind-socket">
             <dt>
               <span>
-                Local bind socket {{mode.label}}
+                Local bind socket
               </span>
             </dt>
             <dd>
@@ -61,6 +61,16 @@ as |mode|}}
                 @name="Socket path"
               />
               {{item.LocalBindSocketPath}}
+            </dd>
+          </dl>
+          <dl class="local-bind-mode">
+            <dt>
+              <span>
+                Local bind mode
+              </span>
+            </dt>
+            <dd>
+              <span>mode:</span> {{mode.value}}
             </dd>
           </dl>
 {{/let}}
