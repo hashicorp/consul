@@ -355,7 +355,7 @@ func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
 	}{
 		{"intermediate valid", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
 		{"intermediate expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "certificate expired end date"},
-		//we dont' case about a cert in the future
+		// a cert that is not yet valid is ok, assume it will be valid soon enough
 		{"intermediate in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), false, ""},
 	}
 
