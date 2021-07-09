@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Splitting up the socket mode and socket path in the Upstreams Instance List
+```
