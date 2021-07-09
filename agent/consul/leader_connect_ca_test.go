@@ -154,8 +154,9 @@ func (m *mockCAServerDelegate) generateCASignRequest(csr string) *structs.CASign
 // mockCAProvider mocks an empty provider implementation with a channel in order to coordinate
 // waiting for certain methods to be called.
 type mockCAProvider struct {
-	callbackCh chan string
-	rootPEM    string
+	callbackCh      chan string
+	rootPEM         string
+	intermediatePem string
 }
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
@@ -173,7 +174,10 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 	return nil
 }
 func (m *mockCAProvider) ActiveIntermediate() (string, error) {
-	return m.rootPEM, nil
+	if m.intermediatePem == "" {
+		return m.rootPEM, nil
+	}
+	return m.intermediatePem, nil
 }
 func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
@@ -343,16 +347,20 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
 
 	args := []struct {
-		testName  string
-		notBefore time.Time
-		notAfter  time.Time
-		isError   bool
-		errorMsg  string
+		testName              string
+		notBeforeRoot         time.Time
+		notAfterRoot          time.Time
+		notBeforeIntermediate time.Time
+		notAfterIntermediate  time.Time
+		isError               bool
+		errorMsg              string
 	}{
-		{"intermediate valid", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
-		{"intermediate expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "certificate expired end date"},
+		{"intermediate valid", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"intermediate expired", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "intermediate expired: certificate expired end date"},
+		{"root expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), true, "root expired: certificate expired end date"},
 		// a cert that is not yet valid is ok, assume it will be valid soon enough
-		{"intermediate in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"intermediate in the future", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"root in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
 	}
 
 	for _, arg := range args {
@@ -376,41 +384,14 @@ func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
 			delegate := NewMockCAServerDelegate(t, conf)
 			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
-			ca := &x509.Certificate{
-				SerialNumber: big.NewInt(2019),
-				Subject: pkix.Name{
-					Organization:  []string{"Company, INC."},
-					Country:       []string{"US"},
-					Province:      []string{""},
-					Locality:      []string{"San Francisco"},
-					StreetAddress: []string{"Golden Gate Bridge"},
-					PostalCode:    []string{"94016"},
-				},
-				NotBefore:             arg.notBefore,
-				NotAfter:              arg.notAfter,
-				IsCA:                  true,
-				ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-				KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-				BasicConstraintsValid: true,
-			}
-			caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+			err, rootPEM := generatePem(arg.notBeforeRoot, arg.notAfterRoot)
 			require.NoError(t, err)
-			caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+			err, intermediatePEM := generatePem(arg.notBeforeIntermediate, arg.notAfterIntermediate)
 			require.NoError(t, err)
-			caPEM := new(bytes.Buffer)
-			pem.Encode(caPEM, &pem.Block{
-				Type:  "CERTIFICATE",
-				Bytes: caBytes,
-			})
-
-			caPrivKeyPEM := new(bytes.Buffer)
-			pem.Encode(caPrivKeyPEM, &pem.Block{
-				Type:  "RSA PRIVATE KEY",
-				Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
-			})
 			manager.providerShim = &mockCAProvider{
-				callbackCh: delegate.callbackCh,
-				rootPEM:    caPEM.String(),
+				callbackCh:      delegate.callbackCh,
+				rootPEM:         rootPEM,
+				intermediatePem: intermediatePEM,
 			}
 			initTestManager(t, manager, delegate)
 
@@ -432,6 +413,46 @@ func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
 			}
 		})
 	}
+}
+
+func generatePem(notBefore time.Time, notAfter time.Time) (error, string) {
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Company, INC."},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{"Golden Gate Bridge"},
+			PostalCode:    []string{"94016"},
+		},
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return err, ""
+	}
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		return err, ""
+	}
+	caPEM := new(bytes.Buffer)
+	pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	caPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(caPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+	})
+	return err, caPEM.String()
 }
 
 func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {

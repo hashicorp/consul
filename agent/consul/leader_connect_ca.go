@@ -1466,16 +1466,20 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 	connect.HackSANExtensionForCSR(csr)
 
-	// Append our local CA's intermediate if there is one.
-	inter, err := provider.ActiveIntermediate()
-	if err != nil {
-		return nil, err
-	}
 	root, err := provider.ActiveRoot()
 	if err != nil {
 		return nil, err
 	}
+	// Check if the root expired before using it to sign.
+	err = c.checkExpired(root)
+	if err != nil {
+		return nil, fmt.Errorf("root expired: %w", err)
+	}
 
+	inter, err := provider.ActiveIntermediate()
+	if err != nil {
+		return nil, err
+	}
 	// Check if the intermediate expired before using it to sign.
 	err = c.checkExpired(inter)
 	if err != nil {
