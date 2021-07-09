@@ -268,7 +268,7 @@ func (a *Autopilot) pruneDeadServers() error {
 		if voters-1 < int(conf.MinQuorum) {
 			a.logger.Debug("will not remove server as it would leave less voters than the minimum number allowed", "id", srv.ID, "min", conf.MinQuorum)
 		} else if maxRemoval < 1 {
-			a.logger.Debug("will not remove server as its removal would be unsafe due to affecting as removal of a majority or servers is not safe", "id", srv.ID)
+			a.logger.Debug("will not remove server as a removal of a majority of servers is not safe", "id", srv.ID)
 		} else {
 			a.logger.Info("Attempting removal of failed server node", "id", srv.ID, "name", srv.Name, "address", srv.Address)
 			a.delegate.RemoveFailedServer(srv)
