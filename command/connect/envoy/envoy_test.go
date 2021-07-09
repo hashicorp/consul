@@ -112,7 +112,8 @@ type generateConfigTestCase struct {
 	Files             map[string]string
 	ProxyConfig       map[string]interface{}
 	NamespacesEnabled bool
-	GRPCPort          int // only used for testing custom-configured grpc port
+	XDSPort           int  // only used for testing custom-configured grpc port
+	AgentSelf110      bool // fake the agent API from versions v1.10 and earlier
 	WantArgs          BootstrapTplArgs
 	WantErr           string
 }
@@ -357,9 +358,35 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 		{
-			Name:     "grpc-addr-config",
-			Flags:    []string{"-proxy-id", "test-proxy"},
-			GRPCPort: 9999,
+			Name:    "xds-addr-config",
+			Flags:   []string{"-proxy-id", "test-proxy"},
+			XDSPort: 9999,
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "9999",
+				},
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+				PrometheusScrapePath:  "/metrics",
+			},
+		},
+		{
+			Name:         "deprecated-grpc-addr-config",
+			Flags:        []string{"-proxy-id", "test-proxy"},
+			XDSPort:      9999,
+			AgentSelf110: true,
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
@@ -1014,29 +1041,23 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 // testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
 // routing /agent/service/... requests to testMockAgentProxyConfig and
 // routing /agent/self requests to testMockAgentSelf.
-func testMockAgent(agentCfg map[string]interface{}, grpcPort int, namespacesEnabled bool) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/agent/services") {
-			testMockAgentGatewayConfig(namespacesEnabled)(w, r)
-			return
+func testMockAgent(tc generateConfigTestCase) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/agent/services"):
+			testMockAgentGatewayConfig(tc.NamespacesEnabled)(w, r)
+		case strings.Contains(r.URL.Path, "/agent/service"):
+			testMockAgentProxyConfig(tc.ProxyConfig, tc.NamespacesEnabled)(w, r)
+		case strings.Contains(r.URL.Path, "/agent/self"):
+			testMockAgentSelf(tc.XDSPort, tc.AgentSelf110)(w, r)
+		default:
+			http.NotFound(w, r)
 		}
-
-		if strings.Contains(r.URL.Path, "/agent/service") {
-			testMockAgentProxyConfig(agentCfg, namespacesEnabled)(w, r)
-			return
-		}
-
-		if strings.Contains(r.URL.Path, "/agent/self") {
-			testMockAgentSelf(grpcPort)(w, r)
-			return
-		}
-
-		http.NotFound(w, r)
-	})
+	}
 }
 
 func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
 		params := r.URL.Query()
@@ -1071,7 +1092,7 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 			return
 		}
 		w.Write(cfgJSON)
-	})
+	}
 }
 
 func namespaceFromQuery(r *http.Request) string {
@@ -1093,7 +1114,7 @@ func partitionFromQuery(r *http.Request) string {
 }
 
 func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
 		proxyID := strings.TrimPrefix(r.URL.Path, "/v1/agent/service/")
@@ -1123,7 +1144,7 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 			return
 		}
 		w.Write(cfgJSON)
-	})
+	}
 }
 
 func TestEnvoyCommand_canBindInternal(t *testing.T) {
@@ -1223,16 +1244,21 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 }
 
 // testMockAgentSelf returns an empty /v1/agent/self response except GRPC
-// port is filled in to match the given wantGRPCPort argument.
-func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// port is filled in to match the given wantXDSPort argument.
+func testMockAgentSelf(wantXDSPort int, agentSelf110 bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
 			Config: map[string]interface{}{
 				"Datacenter": "dc1",
 			},
-			DebugConfig: map[string]interface{}{
-				"GRPCPort": wantGRPCPort,
-			},
+		}
+
+		if agentSelf110 {
+			resp.DebugConfig = map[string]interface{}{
+				"GRPCPort": wantXDSPort,
+			}
+		} else {
+			resp.XDS = &agent.XDSSelf{Port: wantXDSPort}
 		}
 
 		selfJSON, err := json.Marshal(resp)
@@ -1242,5 +1268,5 @@ func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
 			return
 		}
 		w.Write(selfJSON)
-	})
+	}
 }

@@ -39,11 +39,12 @@ type Self struct {
 	Member      serf.Member
 	Stats       map[string]map[string]string
 	Meta        map[string]string
-	XDS         *xdsSelf `json:"xDS,omitempty"`
+	XDS         *XDSSelf `json:"xDS,omitempty"`
 }
 
-type xdsSelf struct {
+type XDSSelf struct {
 	SupportedProxies map[string][]string
+	Port             int
 }
 
 func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -66,12 +67,13 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
-	var xds *xdsSelf
+	var xds *XDSSelf
 	if s.agent.grpcServer != nil {
-		xds = &xdsSelf{
+		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
 			},
+			Port: s.agent.config.GRPCPort,
 		}
 	}
 

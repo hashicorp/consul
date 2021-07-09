@@ -692,10 +692,7 @@ func (a *Agent) listenAndServeGRPC() error {
 		tlsConfig = nil
 	}
 	var err error
-	a.grpcServer, err = xdsServer.GRPCServer(tlsConfig)
-	if err != nil {
-		return err
-	}
+	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
 
 	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {

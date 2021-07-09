@@ -426,7 +426,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		return nil, err
 	}
 
-	grpcAddr, err := c.grpcAddress(httpCfg)
+	xdsAddr, err := c.xdsAddress(httpCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +471,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
 
 	return &BootstrapTplArgs{
-		GRPC:                  grpcAddr,
+		GRPC:                  xdsAddr,
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
 		ProxySourceService:    proxySourceService,
@@ -557,13 +557,12 @@ func (c *cmd) generateConfig() ([]byte, error) {
 }
 
 // TODO: make method a function
-func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
+func (c *cmd) xdsAddress(httpCfg *api.Config) (GRPC, error) {
 	g := GRPC{}
 
 	addr := c.grpcAddr
-	// See if we need to lookup grpcAddr
 	if addr == "" {
-		port, err := c.lookupGRPCPort()
+		port, err := c.lookupXDSPort()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		}
@@ -621,11 +620,25 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 	return g, nil
 }
 
-func (c *cmd) lookupGRPCPort() (int, error) {
+func (c *cmd) lookupXDSPort() (int, error) {
 	self, err := c.client.Agent().Self()
 	if err != nil {
 		return 0, err
 	}
+
+	type response struct {
+		XDS struct {
+			Port int
+		}
+	}
+
+	var resp response
+	if err := mapstructure.Decode(self, &resp); err == nil && resp.XDS.Port != 0 {
+		return resp.XDS.Port, nil
+	}
+
+	// Fallback to old API for the case where a new consul CLI is being used with
+	// an older API version.
 	cfg, ok := self["DebugConfig"]
 	if !ok {
 		return 0, fmt.Errorf("unexpected agent response: no debug config")
