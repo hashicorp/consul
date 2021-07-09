@@ -428,7 +428,10 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	httpPort := b.portVal("ports.http", c.Ports.HTTP)
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
-	xdsPort := b.portVal("ports.xds", c.Ports.GRPC)
+	if c.Ports.XDS == nil {
+		c.Ports.XDS = c.Ports.GRPC
+	}
+	xdsPort := b.portVal("ports.xds", c.Ports.XDS)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -555,7 +558,10 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
-	xdsAddrs := b.makeAddrs(b.expandAddrs("addresses.xds", c.Addresses.GRPC), clientAddrs, xdsPort)
+	if c.Addresses.XDS == nil {
+		c.Addresses.XDS = c.Addresses.GRPC
+	}
+	xdsAddrs := b.makeAddrs(b.expandAddrs("addresses.xds", c.Addresses.XDS), clientAddrs, xdsPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
