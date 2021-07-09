@@ -94,6 +94,9 @@ Periodic (or background) opeartions are started automatically by the Consul lead
     3. called by Auto-Config to sign a leaf cert for a client agent
 
 ### detailed call flow
-- sequence diagram for leader election
+![CA Leader Sequence](./ca-leader-sequence.svg)
+
+<sup>[source](./ca-leader-sequence.mmd)</sup>
+
 - sequence diagram for leaf signing
 - sequence diagram for CA cert rotation
