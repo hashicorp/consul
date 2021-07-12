@@ -78,7 +78,7 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 // Logger so that logging calls don't panic. If logging output is important
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
 	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
-	provider := &ConsulProvider{Delegate: d, Logger: logger}
+	provider := &ConsulProvider{Delegate: d, logger: logger}
 	return provider
 }
 

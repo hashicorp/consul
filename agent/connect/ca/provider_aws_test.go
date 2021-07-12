@@ -376,7 +376,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 }
 
 func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
-	p := &AWSProvider{logger: testutil.Logger(t)}
+	p := NewAWSProvider(testutil.Logger(t))
 	require.NoError(t, p.Configure(cfg))
 	return p
 }

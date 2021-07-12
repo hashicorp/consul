@@ -37,7 +37,7 @@ type ConsulProvider struct {
 	clusterID string
 	isPrimary bool
 	spiffeID  *connect.SpiffeIDSigning
-	Logger    hclog.Logger
+	logger    hclog.Logger
 
 	// testState is only used to test Consul leader's handling of providers that
 	// need to persist state. Consul provider actually manages it's state directly
@@ -48,6 +48,11 @@ type ConsulProvider struct {
 	testState map[string]string
 
 	sync.RWMutex
+}
+
+// NewConsulProvider returns a new ConsulProvider that is ready to be used.
+func NewConsulProvider(delegate ConsulProviderStateDelegate, logger hclog.Logger) *ConsulProvider {
+	return &ConsulProvider{Delegate: delegate, logger: logger}
 }
 
 type ConsulProviderStateDelegate interface {
@@ -121,7 +126,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 
-	c.Logger.Debug("consul CA provider configured", "id", c.id, "is_primary", c.isPrimary)
+	c.logger.Debug("consul CA provider configured", "id", c.id, "is_primary", c.isPrimary)
 
 	return nil
 }

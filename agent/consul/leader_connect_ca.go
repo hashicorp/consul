@@ -403,7 +403,7 @@ func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, err
 	logger := c.logger.Named(conf.Provider)
 	switch conf.Provider {
 	case structs.ConsulCAProvider:
-		return &ca.ConsulProvider{Delegate: c.delegate, Logger: logger}, nil
+		return ca.NewConsulProvider(c.delegate, logger), nil
 	case structs.VaultCAProvider:
 		return ca.NewVaultProvider(logger), nil
 	case structs.AWSCAProvider:
