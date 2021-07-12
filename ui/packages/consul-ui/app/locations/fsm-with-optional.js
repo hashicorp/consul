@@ -162,14 +162,19 @@ export default class FSMWithOptionalLocation {
 
   optionalParams() {
     let optional = this.optional || {};
-    return Object.keys(OPTIONAL).reduce((prev, item) => {
-      let value = '';
-      if (typeof optional[item] !== 'undefined') {
-        value = optional[item].match;
+    return Object.keys(OPTIONAL).reduce(
+      (prev, item) => {
+        let value = '';
+        if (typeof optional[item] !== 'undefined') {
+          value = optional[item].match;
+        }
+        prev[item] = value;
+        return prev;
+      },
+      {
+        nspace: '',
       }
-      prev[item] = value;
-      return prev;
-    }, {});
+    );
   }
 
   // public entrypoints for app hrefs/URLs
