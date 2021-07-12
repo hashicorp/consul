@@ -1588,6 +1588,16 @@
   mask-image: var(--settings-svg);
 }
 
+%with-socket-icon {
+  @extend %with-icon, %socket-svg-prop;
+  background-image: var(--socket-svg);
+}
+%with-socket-mask {
+  @extend %with-mask, %socket-svg-prop;
+  -webkit-mask-image: var(--socket-svg);
+  mask-image: var(--socket-svg);
+}
+
 %with-sort-icon {
   @extend %with-icon, %sort-svg-prop;
   background-image: var(--sort-svg);
