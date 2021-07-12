@@ -93,9 +93,14 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Server:            s.agent.config.ServerMode,
 		Version:           s.agent.config.Version,
 	}
+	debugConfig := s.agent.config.Sanitized()
+	// Backwards compat for the envoy command. Never use DebugConfig for
+	// programmatic access to data.
+	debugConfig["GRPCPort"] = s.agent.config.XDSPort
+
 	return Self{
 		Config:      config,
-		DebugConfig: s.agent.config.Sanitized(),
+		DebugConfig: debugConfig,
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
 		Stats:       s.agent.Stats(),
