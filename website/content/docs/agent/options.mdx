@@ -557,7 +557,7 @@ definitions support being updated during a reload.
 
 See [TLS Configuration Reference](#tls-configuration-reference) for more information about Agent TLS settings.
 
-~> **Security Note:** the three verify options must be set to `true` to enable TLS.
+~> **Security Note:** all three verify options should be set as `true` to enable secure mTLS communication, enabling both encryption and authentication. Failing to set [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) can result in TLS not being enabled at all, even when specifying a [`ca_file`](#ca_file), [`cert_file`](#cert_file), and [`key_file`](#key_file).
 
 ```javascript
 {
