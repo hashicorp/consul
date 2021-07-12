@@ -553,46 +553,6 @@ definitions support being updated during a reload.
 }
 ```
 
-#### Example Configuration File, with TLS
-
-See [TLS Configuration Reference](#tls-configuration-reference) for more information about Agent TLS settings.
-
-~> **Security Note:** all three verify options should be set as `true` to enable secure mTLS communication, enabling both encryption and authentication. Failing to set [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) can result in TLS not being enabled at all, even when specifying a [`ca_file`](#ca_file), [`cert_file`](#cert_file), and [`key_file`](#key_file).
-
-```javascript
-{
-  "datacenter": "east-aws",
-  "data_dir": "/opt/consul",
-  "log_level": "INFO",
-  "node_name": "foobar",
-  "server": true,
-  "addresses": {
-    "https": "0.0.0.0"
-  },
-  "ports": {
-    "https": 8501
-  },
-  "key_file": "/etc/pki/tls/private/my.key",
-  "cert_file": "/etc/pki/tls/certs/my.crt",
-  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
-  "verify_incoming": true,
-  "verify_outgoing": true,
-  "verify_server_hostname": true
-}
-```
-
-See, especially, the use of the `ports` setting:
-
-```javascript
-"ports": {
-  "https": 8501
-}
-```
-
-Consul will not enable TLS for the HTTP API unless the `https` port has been
-assigned a port number `> 0`. We recommend using `8501` for `https` as this
-default will automatically work with some tooling.
-
 #### Configuration Key Reference
 
 -> **Note:** All the TTL values described below are parsed by Go's `time` package, and have the following
@@ -2223,7 +2183,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   is updated. See the [watch documentation](/docs/agent/watches) for more detail.
   Watches can be modified when the configuration is reloaded.
 
-### TLS Configuration Reference
+## TLS Configuration Reference
 
 This section documents all of the configuration settings that apply to Agent TLS. Agent
 TLS is used by the HTTP API, server RPC, and xDS interfaces. Some of these settings may also be
@@ -2315,6 +2275,46 @@ applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_enc
   and server to server RPCs unencrypted despite the documentation stating otherwise. See
   [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
   for more details. For those versions you **must also set `verify_outgoing = true`** to ensure encrypted RPC connections.
+
+### Example Configuration File, with TLS
+
+~> **Security Note:** all three verify options should be set as `true` to enable secure mTLS communication, enabling both
+encryption and authentication. Failing to set [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing)
+will result in TLS not being enabled at all, even when specifying a [`ca_file`](#ca_file), [`cert_file`](#cert_file), and [`key_file`](#key_file).
+
+```javascript
+{
+  "datacenter": "east-aws",
+  "data_dir": "/opt/consul",
+  "log_level": "INFO",
+  "node_name": "foobar",
+  "server": true,
+  "addresses": {
+    "https": "0.0.0.0"
+  },
+  "ports": {
+    "https": 8501
+  },
+  "key_file": "/etc/pki/tls/private/my.key",
+  "cert_file": "/etc/pki/tls/certs/my.crt",
+  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
+  "verify_incoming": true,
+  "verify_outgoing": true,
+  "verify_server_hostname": true
+}
+```
+
+See, especially, the use of the `ports` setting:
+
+```javascript
+"ports": {
+  "https": 8501
+}
+```
+
+Consul will not enable TLS for the HTTP API unless the `https` port has been
+assigned a port number `> 0`. We recommend using `8501` for `https` as this
+default will automatically work with some tooling.
 
 ## Ports Used
 
