@@ -133,7 +133,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 	altCSR, _ := connect.TestCSR(t, &altCSRID)
 
 	_, s, _ := testACLServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.AutoConfigAuthzEnabled = true
 		c.AutoConfigAuthzAuthMethod = structs.ACLAuthMethod{
 			Name:           "Auth Config Authorizer",
@@ -165,14 +165,14 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		err = ioutil.WriteFile(keyfile, []byte(key), 0600)
 		require.NoError(t, err)
 
-		c.CAFile = cafile
-		c.CertFile = certfile
-		c.KeyFile = keyfile
-		c.VerifyOutgoing = true
-		c.VerifyIncoming = true
-		c.VerifyServerHostname = true
-		c.TLSMinVersion = "tls12"
-		c.TLSPreferServerCipherSuites = true
+		c.TLSConfig.CAFile = cafile
+		c.TLSConfig.CertFile = certfile
+		c.TLSConfig.KeyFile = keyfile
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyServerHostname = true
+		c.TLSConfig.TLSMinVersion = "tls12"
+		c.TLSConfig.PreferServerCipherSuites = true
 
 		c.ConnectEnabled = true
 		c.AutoEncryptAllowTLS = true
@@ -184,11 +184,12 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.SerfLANConfig.MemberlistConfig.Keyring = keyring
 	}, false)
 
+	// TODO: use s.config.TLSConfig directly instead of creating a new one?
 	conf := tlsutil.Config{
-		CAFile:               s.config.CAFile,
-		VerifyServerHostname: s.config.VerifyServerHostname,
-		VerifyOutgoing:       s.config.VerifyOutgoing,
-		Domain:               s.config.Domain,
+		CAFile:               s.config.TLSConfig.CAFile,
+		VerifyServerHostname: s.config.TLSConfig.VerifyServerHostname,
+		VerifyOutgoing:       s.config.TLSConfig.VerifyOutgoing,
+		Domain:               s.config.TLSConfig.Domain,
 	}
 	codec, err := insecureRPCClient(s, conf)
 	require.NoError(t, err)

@@ -58,10 +58,10 @@ func TestAutoEncryptSign(t *testing.T) {
 			dir, s := testServerWithConfig(t, func(c *Config) {
 				c.AutoEncryptAllowTLS = true
 				c.Bootstrap = true
-				c.CAFile = root
-				c.VerifyOutgoing = true
-				c.CertFile = cert
-				c.KeyFile = key
+				c.TLSConfig.CAFile = root
+				c.TLSConfig.VerifyOutgoing = true
+				c.TLSConfig.CertFile = cert
+				c.TLSConfig.KeyFile = key
 			})
 			defer os.RemoveAll(dir)
 			defer s.Shutdown()
