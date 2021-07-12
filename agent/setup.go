@@ -62,20 +62,20 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
-	d.Logger, err = logging.Setup(logConf, logOut)
+	d.Deps.Logger, err = logging.Setup(logConf, logOut)
 	if err != nil {
 		return d, err
 	}
 
 	grpcLogInitOnce.Do(func() {
-		grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
+		grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Deps.Logger))
 	})
 
 	for _, w := range result.Warnings {
-		d.Logger.Warn(w)
+		d.Deps.Logger.Warn(w)
 	}
 
-	cfg.NodeID, err = newNodeIDFromConfig(cfg, d.Logger)
+	cfg.NodeID, err = newNodeIDFromConfig(cfg, d.Deps.Logger)
 	if err != nil {
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
@@ -89,25 +89,25 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
-	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.ToTLSUtilConfig(), d.Logger)
+	d.Deps.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.ToTLSUtilConfig(), d.Deps.Logger)
 	if err != nil {
 		return d, err
 	}
 
 	d.RuntimeConfig = cfg
-	d.Tokens = new(token.Store)
+	d.Deps.Tokens = new(token.Store)
 
-	cfg.Cache.Logger = d.Logger.Named("cache")
+	cfg.Cache.Logger = d.Deps.Logger.Named("cache")
 	// cache-types are not registered yet, but they won't be used until the components are started.
 	d.Cache = cache.New(cfg.Cache)
-	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
-	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
+	d.ViewStore = submatview.NewStore(d.Deps.Logger.Named("viewstore"))
+	d.Deps.ConnPool = newConnPool(cfg, d.Deps.Logger, d.Deps.TLSConfigurator)
 
 	builder := resolver.NewServerResolverBuilder(resolver.Config{})
 	resolver.Register(builder)
-	d.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()), d.TLSConfigurator.UseTLS)
+	d.Deps.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.Deps.TLSConfigurator.OutgoingRPCWrapper()), d.Deps.TLSConfigurator.UseTLS)
 
-	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
+	d.Deps.Router = router.NewRouter(d.Deps.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
 
 	// this needs to happen prior to creating auto-config as some of the dependencies
 	// must also be passed to auto-config
@@ -117,14 +117,14 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	}
 
 	acConf := autoconf.Config{
-		DirectRPC:        d.ConnPool,
-		Logger:           d.Logger,
+		DirectRPC:        d.Deps.ConnPool,
+		Logger:           d.Deps.Logger,
 		Loader:           configLoader,
-		ServerProvider:   d.Router,
-		TLSConfigurator:  d.TLSConfigurator,
+		ServerProvider:   d.Deps.Router,
+		TLSConfigurator:  d.Deps.TLSConfigurator,
 		Cache:            d.Cache,
-		Tokens:           d.Tokens,
-		EnterpriseConfig: initEnterpriseAutoConfig(d.EnterpriseDeps, cfg),
+		Tokens:           d.Deps.Tokens,
+		EnterpriseConfig: initEnterpriseAutoConfig(d.Deps.EnterpriseDeps, cfg),
 	}
 
 	d.AutoConfig, err = autoconf.New(acConf)

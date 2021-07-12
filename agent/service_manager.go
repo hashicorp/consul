@@ -344,7 +344,7 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 		EnterpriseMeta: ns.EnterpriseMeta,
 	}
 	if req.QueryOptions.Token == "" {
-		req.QueryOptions.Token = bd.Tokens.AgentToken()
+		req.QueryOptions.Token = bd.Deps.Tokens.AgentToken()
 	}
 	return req
 }

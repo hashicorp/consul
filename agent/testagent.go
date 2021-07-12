@@ -192,7 +192,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 		return fmt.Errorf("failed to create base deps: %w", err)
 	}
 
-	bd.Logger = logger
+	bd.Deps.Logger = logger
 	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
 	a.Config = bd.RuntimeConfig
 
