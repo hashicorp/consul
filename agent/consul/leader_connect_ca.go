@@ -105,6 +105,9 @@ func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
 		Datacenter: c.Server.config.Datacenter,
 	}
 	resp, err := c.Server.raftApplyMsgpack(structs.ConnectCALeafRequestType|structs.IgnoreUnknownTypeFlag, &req)
+	if err != nil {
+		return 0, err
+	}
 
 	modIdx, ok := resp.(uint64)
 	if !ok {
