@@ -68,7 +68,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["nonvoter"] = "1"
 		conf.Tags["read_replica"] = "1"
 	}
-	if s.config.UseTLS {
+	if s.config.TLSConfig.CAPath != "" || s.config.TLSConfig.CAFile != "" {
 		conf.Tags["use_tls"] = "1"
 	}
 

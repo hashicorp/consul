@@ -87,9 +87,9 @@ func testServerACLConfig(cb func(*Config)) func(*Config) {
 }
 
 func configureTLS(config *Config) {
-	config.CAFile = "../../test/ca/root.cer"
-	config.CertFile = "../../test/key/ourdomain.cer"
-	config.KeyFile = "../../test/key/ourdomain.key"
+	config.TLSConfig.CAFile = "../../test/ca/root.cer"
+	config.TLSConfig.CertFile = "../../test/key/ourdomain.cer"
+	config.TLSConfig.KeyFile = "../../test/key/ourdomain.key"
 }
 
 var id int64
@@ -643,18 +643,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.NodeName = "bob"
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Bob.crt"
-		c.KeyFile = "../../test/hostname/Bob.key"
-		c.VerifyIncoming = true
-		c.VerifyOutgoing = true
-		c.VerifyServerHostname = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Bob.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Bob.key"
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -662,18 +662,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.NodeName = "betty"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Betty.crt"
-		c.KeyFile = "../../test/hostname/Betty.key"
-		c.VerifyIncoming = true
-		c.VerifyOutgoing = true
-		c.VerifyServerHostname = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Betty.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Betty.key"
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -681,18 +681,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.NodeName = "bonnie"
 		c.Datacenter = "dc3"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Bonnie.crt"
-		c.KeyFile = "../../test/hostname/Bonnie.key"
-		c.VerifyIncoming = true
-		c.VerifyOutgoing = true
-		c.VerifyServerHostname = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Bonnie.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Bonnie.key"
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -1076,8 +1076,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.VerifyIncoming = true
-	conf1.VerifyOutgoing = true
+	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -1088,8 +1088,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
-	conf2.VerifyIncoming = true
-	conf2.VerifyOutgoing = true
+	conf2.TLSConfig.VerifyIncoming = true
+	conf2.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf2)
 	s2, err := newServer(t, conf2)
 	if err != nil {
@@ -1346,9 +1346,9 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1378,10 +1378,10 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 	// Add a second server with TLS and VerifyOutgoing set
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
-		c.VerifyOutgoing = true
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1400,10 +1400,10 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
-		c.VerifyOutgoing = true
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1413,9 +1413,9 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

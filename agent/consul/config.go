@@ -104,9 +104,6 @@ type Config struct {
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
 
-	// Domain is the DNS domain for the records. Defaults to "consul."
-	Domain string
-
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
@@ -161,57 +158,7 @@ type Config struct {
 	// ProtocolVersionMin and ProtocolVersionMax.
 	ProtocolVersion uint8
 
-	// VerifyIncoming is used to verify the authenticity of incoming connections.
-	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
-	// must match a provided certificate authority. This can be used to force client auth.
-	VerifyIncoming bool
-
-	// VerifyOutgoing is used to force verification of the authenticity of outgoing connections.
-	// This means that TLS requests are used, and TCP requests are not made. TLS connections
-	// must match a provided certificate authority.
-	VerifyOutgoing bool
-
-	// UseTLS is used to enable TLS for outgoing connections to other TLS-capable Consul
-	// servers. This doesn't imply any verification, it only enables TLS if possible.
-	UseTLS bool
-
-	// VerifyServerHostname is used to enable hostname verification of servers. This
-	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
-	// This prevents a compromised client from being restarted as a server, and then
-	// intercepting request traffic as well as being added as a raft peer. This should be
-	// enabled by default with VerifyOutgoing, but for legacy reasons we cannot break
-	// existing clients.
-	VerifyServerHostname bool
-
-	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
-	// or VerifyOutgoing to verify the TLS connection.
-	CAFile string
-
-	// CAPath is a path to a directory of certificate authority files. This is used with
-	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
-	CAPath string
-
-	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
-	// Must be provided to serve TLS connections.
-	CertFile string
-
-	// KeyFile is used to provide a TLS key that is used for serving TLS connections.
-	// Must be provided to serve TLS connections.
-	KeyFile string
-
-	// ServerName is used with the TLS certificate to ensure the name we
-	// provide matches the certificate
-	ServerName string
-
-	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
-	TLSMinVersion string
-
-	// TLSCipherSuites is used to specify the list of supported ciphersuites.
-	TLSCipherSuites []uint16
-
-	// TLSPreferServerCipherSuites specifies whether to prefer the server's ciphersuite
-	// over the client ciphersuites.
-	TLSPreferServerCipherSuites bool
+	TLSConfig tlsutil.Config
 
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
@@ -483,26 +430,6 @@ type Config struct {
 	*EnterpriseConfig
 }
 
-// ToTLSUtilConfig is only used by tests, usually the config is being passed
-// down from the agent.
-func (c *Config) ToTLSUtilConfig() tlsutil.Config {
-	return tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		VerifyServerHostname:     c.VerifyServerHostname,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		Domain:                   c.Domain,
-		ServerName:               c.ServerName,
-		TLSMinVersion:            c.TLSMinVersion,
-		CipherSuites:             c.TLSCipherSuites,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-}
-
 // CheckProtocolVersion validates the protocol version.
 func (c *Config) CheckProtocolVersion() error {
 	if c.ProtocolVersion < ProtocolVersionMin {
@@ -581,8 +508,6 @@ func DefaultConfig() *Config {
 
 		RPCRateLimit: rate.Inf,
 		RPCMaxBurst:  1000,
-
-		TLSMinVersion: "tls10",
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/config/default.go.

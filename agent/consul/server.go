@@ -327,11 +327,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, err
 	}
 
-	// Check if TLS is enabled
-	if config.CAFile != "" || config.CAPath != "" {
-		config.UseTLS = true
-	}
-
 	// Set the primary DC if it wasn't set.
 	if config.PrimaryDatacenter == "" {
 		if config.ACLDatacenter != "" {
