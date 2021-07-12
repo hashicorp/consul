@@ -352,7 +352,6 @@ type Agent struct {
 //   * create the AutoConfig object for future use in fully
 //     resolving the configuration
 func New(bd BaseDeps) (*Agent, error) {
-
 	a := Agent{
 		checkReapAfter:  make(map[structs.CheckID]time.Duration),
 		checkMonitors:   make(map[structs.CheckID]*checks.CheckMonitor),
@@ -372,16 +371,16 @@ func New(bd BaseDeps) (*Agent, error) {
 		stateLock:       mutex.New(),
 
 		baseDeps:        bd,
-		tokens:          bd.Deps.Tokens,
-		logger:          bd.Deps.Logger,
-		tlsConfigurator: bd.Deps.TLSConfigurator,
+		tokens:          bd.Tokens,
+		logger:          bd.Logger,
+		tlsConfigurator: bd.TLSConfigurator,
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
-		routineManager:  routine.NewManager(bd.Deps.Logger),
+		routineManager:  routine.NewManager(bd.Logger),
 	}
 
 	// TODO: create rpcClientHealth in BaseDeps once NetRPC is available without Agent
-	conn, err := bd.Deps.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
+	conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +392,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		ViewStore: bd.ViewStore,
 		MaterializerDeps: health.MaterializerDeps{
 			Conn:   conn,
-			Logger: bd.Deps.Logger.Named("rpcclient.health"),
+			Logger: bd.Logger.Named("rpcclient.health"),
 		},
 		UseStreamingBackend: a.config.UseStreamingBackend,
 	}

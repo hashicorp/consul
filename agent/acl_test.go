@@ -58,7 +58,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	bd, err := NewBaseDeps(loader, logBuffer)
 	require.NoError(t, err)
 
-	bd.Deps.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
+	bd.Logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:       name,
 		Level:      hclog.Debug,
 		Output:     logBuffer,
@@ -70,7 +70,7 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	require.NoError(t, err)
 
 	agent.delegate = a
-	agent.State = local.NewState(LocalConfig(bd.RuntimeConfig), bd.Deps.Logger, bd.Deps.Tokens)
+	agent.State = local.NewState(LocalConfig(bd.RuntimeConfig), bd.Logger, bd.Tokens)
 	agent.State.TriggerSyncChanges = func() {}
 	a.Agent = agent
 	return a

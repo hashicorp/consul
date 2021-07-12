@@ -187,8 +187,7 @@ func (c *CAManager) getPrimaryRoots() structs.IndexedCARoots {
 // when setting up the CA during establishLeadership. The state should be set to
 // non-ready before calling this.
 func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
-	st := delegate.State()
+	st := c.delegate.State()
 	_, config, err := st.CAConfig(nil)
 	if err != nil {
 		return nil, err
@@ -219,7 +218,7 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if resp, err := delegate.ApplyCARequest(&req); err != nil {
+	if resp, err := c.delegate.ApplyCARequest(&req); err != nil {
 		return nil, err
 	} else if respErr, ok := resp.(error); ok {
 		return nil, respErr
@@ -458,7 +457,6 @@ func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, err
 // initializeRootCA runs the initialization logic for a root CA. It should only
 // be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
 		Datacenter: c.serverConf.Datacenter,
@@ -506,7 +504,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 			Op:     structs.CAOpSetConfig,
 			Config: conf,
 		}
-		if _, err = delegate.ApplyCARequest(&req); err != nil {
+		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
 			return fmt.Errorf("error persisting provider state: %v", err)
 		}
 	}
@@ -523,7 +521,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	// tied to the provider.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
-	state := delegate.State()
+	state := c.delegate.State()
 	_, activeRoot, err := state.CARootActive(nil)
 	if err != nil {
 		return err
@@ -555,7 +553,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	}
 
 	// Store the root cert in raft
-	resp, err := delegate.ApplyCARequest(&structs.CARequest{
+	resp, err := c.delegate.ApplyCARequest(&structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: []*structs.CARoot{rootCA},
@@ -581,7 +579,6 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 // to non-ready.
 func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.CAConfiguration) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
 	if err != nil {
 		return err
 	}
@@ -621,8 +618,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 		// This will fetch the secondary's exact current representation of the
 		// active root. Note that this data should only be used if the IDs
 		// match, otherwise it's out of date and should be regenerated.
-
-		_, activeSecondaryRoot, err = delegate.State().CARootActive(nil)
+		_, activeSecondaryRoot, err = c.delegate.State().CARootActive(nil)
 		if err != nil {
 			return err
 		}
@@ -672,7 +668,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 	}
 
 	// Update the roots list in the state store if there's a new active root.
-	state := delegate.State()
+	state := c.delegate.State()
 	_, activeRoot, err := state.CARootActive(nil)
 	if err != nil {
 		return err
@@ -696,8 +692,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 // If newActiveRoot is non-nil, it will be appended to the current roots list.
 // If config is non-nil, it will be used to overwrite the existing config.
 func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot *structs.CARoot, config *structs.CAConfiguration) error {
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
-	state := delegate.State()
+	state := c.delegate.State()
 	idx, oldRoots, err := state.CARoots(nil)
 	if err != nil {
 		return err
@@ -766,7 +761,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Roots:  newRoots,
 		Config: &newConf,
 	}
-	resp, err := delegate.ApplyCARequest(args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
 	}
@@ -782,7 +777,6 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 }
 
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
 	// Attempt to update the state first.
 	oldState, err := c.setState(caStateReconfig, true)
 	if err != nil {
@@ -807,7 +801,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}
 
 	// Exit early if it's a no-op change
-	state := delegate.State()
+	state := c.delegate.State()
 	confIdx, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
@@ -908,7 +902,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
-		resp, err := delegate.ApplyCARequest(args)
+		resp, err := c.delegate.ApplyCARequest(args)
 		if err != nil {
 			return err
 		}
@@ -1011,7 +1005,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	args.Index = idx
 	args.Config.ModifyIndex = confIdx
 	args.Roots = newRoots
-	resp, err := delegate.ApplyCARequest(args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
 	}
@@ -1118,7 +1112,6 @@ func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
 // expiration. If more than half the time a cert is valid has passed,
 // it will try to renew it.
 func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error {
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
 	// Grab the 'lock' right away so the provider/config can't be changed out while we check
 	// the intermediate.
 	if _, err := c.setState(caStateRenewIntermediate, true); err != nil {
@@ -1136,7 +1129,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("secondary CA is not yet configured.")
 	}
 
-	state := delegate.State()
+	state := c.delegate.State()
 	_, root, err := state.CARootActive(nil)
 	if err != nil {
 		return err
@@ -1288,13 +1281,12 @@ func (c *CAManager) UpdateRoots(roots structs.IndexedCARoots) error {
 
 // initializeSecondaryProvider configures the given provider for a secondary, non-root datacenter.
 func (c *CAManager) initializeSecondaryProvider(provider ca.Provider, roots structs.IndexedCARoots) error {
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
 	if roots.TrustDomain == "" {
 		return fmt.Errorf("trust domain from primary datacenter is not initialized")
 	}
 
 	clusterID := strings.Split(roots.TrustDomain, ".")[0]
-	_, conf, err := delegate.State().CAConfig(nil)
+	_, conf, err := c.delegate.State().CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -1389,7 +1381,6 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()
-	delegate := c.delegate.(ca.ConsulProviderStateDelegate)
 	if provider == nil {
 		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: provider is nil")
 	} else if caRoot == nil {
@@ -1397,7 +1388,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	}
 
 	// Verify that the CSR entity is in the cluster's trust domain
-	state := delegate.State()
+	state := c.delegate.State()
 	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return nil, err

@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
+
+	"github.com/hashicorp/consul/agent/connect"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
