@@ -52,6 +52,10 @@ type ACLToken struct {
 	// Namespace is the namespace the ACLToken is associated with.
 	// Namespaces are a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// AuthMethodNamespace is the namespace the token's AuthMethod is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	AuthMethodNamespace string `json:",omitempty"`
 }
 
 type ACLTokenListEntry struct {
@@ -74,6 +78,10 @@ type ACLTokenListEntry struct {
 	// Namespace is the namespace the ACLTokenListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// AuthMethodNamespace is the namespace the token's AuthMethod is associated with.
+	// Namespacing is a Consul Enterprise feature.
+	AuthMethodNamespace string `json:",omitempty"`
 }
 
 // ACLEntry is used to represent a legacy ACL token
