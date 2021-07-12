@@ -718,8 +718,8 @@ type RuntimeConfig struct {
 	// XDSPort is the port the xDS gRPC server listens on. This port only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
-	// hcl: ports { grpc = int }
-	// flags: -grpc-port int
+	// hcl: ports { xds = int }
+	// flags: -xds-port int
 	XDSPort int
 
 	// XDSAddrs contains the list of TCP addresses and UNIX sockets the xDS gRPC
@@ -734,7 +734,7 @@ type RuntimeConfig struct {
 	// If 'addresses.xds' was not provided the 'client_addr' addresses are
 	// used.
 	//
-	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
+	// hcl: client_addr = string addresses { xds = string } ports { xds = int }
 	XDSAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
