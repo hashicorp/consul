@@ -492,7 +492,6 @@ func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} 
 	switch req.Op {
 	case structs.CALeafOpIncrementIndex:
 		// Use current index as the new value as well as the value to write at.
-		// TODO(banks) do we even use this op any more?
 		if err := c.state.CALeafSetIndex(index, index); err != nil {
 			return err
 		}
