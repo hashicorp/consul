@@ -278,8 +278,11 @@ func (c *CAManager) Stop() {
 			needsStop.Stop()
 		}
 	}
-	c.setCAProvider(nil, nil)
+
 	c.setState(caStateUninitialized, false)
+	c.primaryRoots = structs.IndexedCARoots{}
+	c.actingSecondaryCA = false
+	c.setCAProvider(nil, nil)
 }
 
 func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
