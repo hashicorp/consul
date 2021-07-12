@@ -14,7 +14,6 @@ import (
 
 	uuid "github.com/hashicorp/go-uuid"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -1007,13 +1006,6 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 	}
 
 	return &rootList, active, nil
-}
-
-func TestLeader_GenerateCASignRequest(t *testing.T) {
-	csr := "A"
-	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
-	req := s.generateCASignRequest(csr)
-	assert.Equal(t, "east", req.RequestDatacenter())
 }
 
 func TestLeader_CARootPruning(t *testing.T) {

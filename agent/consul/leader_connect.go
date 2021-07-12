@@ -2,12 +2,10 @@ package consul
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
 )
@@ -49,36 +47,6 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 	s.leaderRoutineManager.Stop(caRootMetricRoutineName)
 	s.leaderRoutineManager.Stop(caSigningMetricRoutineName)
-
-	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
-	provider, _ := s.caManager.getCAProvider()
-	if provider != nil {
-		if needsStop, ok := provider.(ca.NeedsStop); ok {
-			needsStop.Stop()
-		}
-	}
-}
-
-// createProvider returns a connect CA provider from the given config.
-func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
-	var p ca.Provider
-	switch conf.Provider {
-	case structs.ConsulCAProvider:
-		p = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
-	case structs.VaultCAProvider:
-		p = ca.NewVaultProvider()
-	case structs.AWSCAProvider:
-		p = &ca.AWSProvider{}
-	default:
-		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
-	}
-
-	// If the provider implements NeedsLogger, we give it our logger.
-	if needsLogger, ok := p.(ca.NeedsLogger); ok {
-		needsLogger.SetLogger(s.logger)
-	}
-
-	return p, nil
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {
@@ -212,12 +180,4 @@ func halfTime(notBefore, notAfter time.Time) time.Duration {
 func lessThanHalfTimePassed(now, notBefore, notAfter time.Time) bool {
 	t := notBefore.Add(halfTime(notBefore, notAfter))
 	return t.Sub(now) > 0
-}
-
-func (s *Server) generateCASignRequest(csr string) *structs.CASignRequest {
-	return &structs.CASignRequest{
-		Datacenter:   s.config.PrimaryDatacenter,
-		CSR:          csr,
-		WriteRequest: structs.WriteRequest{Token: s.tokens.ReplicationToken()},
-	}
 }

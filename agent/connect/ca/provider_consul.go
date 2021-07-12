@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 var (
@@ -49,6 +48,11 @@ type ConsulProvider struct {
 	testState map[string]string
 
 	sync.RWMutex
+}
+
+// NewConsulProvider returns a new ConsulProvider that is ready to be used.
+func NewConsulProvider(delegate ConsulProviderStateDelegate, logger hclog.Logger) *ConsulProvider {
+	return &ConsulProvider{Delegate: delegate, logger: logger}
 }
 
 type ConsulProviderStateDelegate interface {
@@ -114,23 +118,15 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return nil
 	}
 
-	// Write the provider state to the state store.
-	newState := structs.CAConsulProviderState{
-		ID: c.id,
-	}
-
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
-		ProviderState: &newState,
+		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
-	c.logger.Debug("consul CA provider configured",
-		"id", c.id,
-		"is_primary", c.isPrimary,
-	)
+	c.logger.Debug("consul CA provider configured", "id", c.id, "is_primary", c.isPrimary)
 
 	return nil
 }
@@ -665,14 +661,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
-}
-
-// SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (c *ConsulProvider) SetLogger(logger hclog.Logger) {
-	c.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.Consul)
 }
 
 func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {

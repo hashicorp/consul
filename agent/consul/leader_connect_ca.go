@@ -23,22 +23,20 @@ type caState string
 
 const (
 	caStateUninitialized     caState = "UNINITIALIZED"
-	caStateInitializing              = "INITIALIZING"
-	caStateInitialized               = "INITIALIZED"
-	caStateRenewIntermediate         = "RENEWING"
-	caStateReconfig                  = "RECONFIGURING"
+	caStateInitializing      caState = "INITIALIZING"
+	caStateInitialized       caState = "INITIALIZED"
+	caStateRenewIntermediate caState = "RENEWING"
+	caStateReconfig          caState = "RECONFIGURING"
 )
 
 // caServerDelegate is an interface for server operations for facilitating
 // easier testing.
 type caServerDelegate interface {
-	State() *state.Store
+	ca.ConsulProviderStateDelegate
 	IsLeader() bool
 
-	createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error)
 	forwardDC(method, dc string, args interface{}, reply interface{}) error
 	generateCASignRequest(csr string) *structs.CASignRequest
-	raftApply(t structs.MessageType, msg interface{}) (interface{}, error)
 
 	checkServersProvider
 }
@@ -68,6 +66,8 @@ type CAManager struct {
 	actingSecondaryCA bool                   // True if this datacenter has been initialized as a secondary CA.
 
 	leaderRoutineManager *routine.Manager
+	// providerShim is used to test CAManager with a fake provider.
+	providerShim ca.Provider
 }
 
 type caDelegateWithState struct {
@@ -78,6 +78,18 @@ func (c *caDelegateWithState) State() *state.Store {
 	return c.fsm.State()
 }
 
+func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
+	return c.Server.raftApplyMsgpack(structs.ConnectCARequestType, req)
+}
+
+func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignRequest {
+	return &structs.CASignRequest{
+		Datacenter:   c.Server.config.PrimaryDatacenter,
+		CSR:          csr,
+		WriteRequest: structs.WriteRequest{Token: c.Server.tokens.ReplicationToken()},
+	}
+}
+
 func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
 		delegate:             delegate,
@@ -86,13 +98,6 @@ func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manag
 		state:                caStateUninitialized,
 		leaderRoutineManager: leaderRoutineManager,
 	}
-}
-
-func (c *CAManager) reset() {
-	c.state = caStateUninitialized
-	c.primaryRoots = structs.IndexedCARoots{}
-	c.actingSecondaryCA = false
-	c.setCAProvider(nil, nil)
 }
 
 // setState attempts to update the CA state to the given state.
@@ -175,7 +180,7 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if resp, err := c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
+	if resp, err := c.delegate.ApplyCARequest(&req); err != nil {
 		return nil, err
 	} else if respErr, ok := resp.(error); ok {
 		return nil, respErr
@@ -217,12 +222,10 @@ func parseCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) 
 // as well as the active root.
 func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 	retries := 0
-	var result ca.Provider
-	var resultRoot *structs.CARoot
-	for result == nil {
+	for {
 		c.providerLock.RLock()
-		result = c.provider
-		resultRoot = c.providerRoot
+		result := c.provider
+		resultRoot := c.providerRoot
 		c.providerLock.RUnlock()
 
 		// In cases where an agent is started with managed proxies, we may ask
@@ -234,10 +237,8 @@ func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 			continue
 		}
 
-		break
+		return result, resultRoot
 	}
-
-	return result, resultRoot
 }
 
 // setCAProvider is being called while holding the stateLock
@@ -271,6 +272,17 @@ func (c *CAManager) Stop() {
 	c.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
 	c.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
 	c.leaderRoutineManager.Stop(backgroundCAInitializationRoutineName)
+
+	if provider, _ := c.getCAProvider(); provider != nil {
+		if needsStop, ok := provider.(ca.NeedsStop); ok {
+			needsStop.Stop()
+		}
+	}
+
+	c.setState(caStateUninitialized, false)
+	c.primaryRoots = structs.IndexedCARoots{}
+	c.actingSecondaryCA = false
+	c.setCAProvider(nil, nil)
 }
 
 func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
@@ -336,7 +348,7 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	if err != nil {
 		return err
 	}
-	provider, err := c.delegate.createCAProvider(conf)
+	provider, err := c.newProvider(conf)
 	if err != nil {
 		return err
 	}
@@ -384,6 +396,24 @@ func (c *CAManager) InitializeCA() (reterr error) {
 
 	c.logger.Info("initialized secondary datacenter CA with provider", "provider", conf.Provider)
 	return nil
+}
+
+// createProvider returns a connect CA provider from the given config.
+func (c *CAManager) newProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
+	logger := c.logger.Named(conf.Provider)
+	switch conf.Provider {
+	case structs.ConsulCAProvider:
+		return ca.NewConsulProvider(c.delegate, logger), nil
+	case structs.VaultCAProvider:
+		return ca.NewVaultProvider(logger), nil
+	case structs.AWSCAProvider:
+		return ca.NewAWSProvider(logger), nil
+	default:
+		if c.providerShim != nil {
+			return c.providerShim, nil
+		}
+		return nil, fmt.Errorf("unknown CA provider %q", conf.Provider)
+	}
 }
 
 // initializeRootCA runs the initialization logic for a root CA. It should only
@@ -436,7 +466,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 			Op:     structs.CAOpSetConfig,
 			Config: conf,
 		}
-		if _, err = c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
+		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
 			return fmt.Errorf("error persisting provider state: %v", err)
 		}
 	}
@@ -485,7 +515,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	}
 
 	// Store the root cert in raft
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+	resp, err := c.delegate.ApplyCARequest(&structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: []*structs.CARoot{rootCA},
@@ -693,7 +723,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Roots:  newRoots,
 		Config: &newConf,
 	}
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
 	}
@@ -766,7 +796,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
 	// before we commit any changes to Raft.
-	newProvider, err := c.delegate.createCAProvider(args.Config)
+	newProvider, err := c.newProvider(args.Config)
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
@@ -834,7 +864,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
-		resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+		resp, err := c.delegate.ApplyCARequest(args)
 		if err != nil {
 			return err
 		}
@@ -937,7 +967,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	args.Index = idx
 	args.Config.ModifyIndex = confIdx
 	args.Roots = newRoots
-	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
 	}

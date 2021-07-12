@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 const VaultCALeafCertRole = "leaf-cert"
@@ -38,8 +37,11 @@ type VaultProvider struct {
 	logger                       hclog.Logger
 }
 
-func NewVaultProvider() *VaultProvider {
-	return &VaultProvider{shutdown: func() {}}
+func NewVaultProvider(logger hclog.Logger) *VaultProvider {
+	return &VaultProvider{
+		shutdown: func() {},
+		logger:   logger,
+	}
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -141,14 +143,6 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
-}
-
-// SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (v *VaultProvider) SetLogger(logger hclog.Logger) {
-	v.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.Vault)
 }
 
 // State implements Provider. Vault provider needs no state other than the
