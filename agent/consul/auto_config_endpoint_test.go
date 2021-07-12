@@ -196,7 +196,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s)
 
-	roots, err := s.GetCARoots()
+	roots, err := s.getCARoots(nil, s.fsm.State())
 	require.NoError(t, err)
 
 	pbroots, err := translateCARootsToProtobuf(roots)
