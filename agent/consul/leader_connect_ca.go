@@ -76,6 +76,9 @@ type CAManager struct {
 	leaderRoutineManager *routine.Manager
 	// providerShim is used to test CAManager with a fake provider.
 	providerShim ca.Provider
+
+	// shim time.Now for testing
+	timeNow func() time.Time
 }
 
 type caDelegateWithState struct {
@@ -131,6 +134,7 @@ func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manag
 		serverConf:           config,
 		state:                caStateUninitialized,
 		leaderRoutineManager: leaderRoutineManager,
+		timeNow:              time.Now,
 	}
 }
 
@@ -740,7 +744,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		newRoot := *r
 		if newRoot.Active && newActiveRoot != nil {
 			newRoot.Active = false
-			newRoot.RotatedOutAt = time.Now()
+			newRoot.RotatedOutAt = c.timeNow()
 		}
 		if newRoot.ExternalTrustDomain == "" {
 			newRoot.ExternalTrustDomain = newConf.ClusterID
@@ -991,7 +995,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		newRoot := *r
 		if newRoot.Active {
 			newRoot.Active = false
-			newRoot.RotatedOutAt = time.Now()
+			newRoot.RotatedOutAt = c.timeNow()
 		}
 		newRoots = append(newRoots, &newRoot)
 	}
@@ -1154,7 +1158,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 		return fmt.Errorf("error parsing active intermediate cert: %v", err)
 	}
 
-	if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
+	if lessThanHalfTimePassed(c.timeNow(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
 		intermediateCert.NotAfter) {
 		return nil
 	}
@@ -1453,6 +1457,26 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 	connect.HackSANExtensionForCSR(csr)
 
+	root, err := provider.ActiveRoot()
+	if err != nil {
+		return nil, err
+	}
+	// Check if the root expired before using it to sign.
+	err = c.checkExpired(root)
+	if err != nil {
+		return nil, fmt.Errorf("root expired: %w", err)
+	}
+
+	inter, err := provider.ActiveIntermediate()
+	if err != nil {
+		return nil, err
+	}
+	// Check if the intermediate expired before using it to sign.
+	err = c.checkExpired(inter)
+	if err != nil {
+		return nil, fmt.Errorf("intermediate expired: %w", err)
+	}
+
 	// All seems to be in order, actually sign it.
 
 	pem, err := provider.Sign(csr)
@@ -1469,14 +1493,6 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	}
 
 	// Append our local CA's intermediate if there is one.
-	inter, err := provider.ActiveIntermediate()
-	if err != nil {
-		return nil, err
-	}
-	root, err := provider.ActiveRoot()
-	if err != nil {
-		return nil, err
-	}
 	if inter != root {
 		pem = pem + ca.EnsureTrailingNewline(inter)
 	}
@@ -1512,4 +1528,15 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	}
 
 	return &reply, nil
+}
+
+func (ca *CAManager) checkExpired(pem string) error {
+	cert, err := connect.ParseCert(pem)
+	if err != nil {
+		return err
+	}
+	if cert.NotAfter.Before(ca.timeNow()) {
+		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
+	}
+	return nil
 }
