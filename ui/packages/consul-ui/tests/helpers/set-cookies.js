@@ -1,8 +1,10 @@
-export default function(type, value) {
+export default function(type, value, doc = document) {
   const obj = {};
   if (type !== '*') {
     let key = '';
-    obj['CONSUL_ACLS_ENABLE'] = 1;
+    if (!doc.cookie.includes('CONSUL_ACLS_ENABLE=0')) {
+      obj['CONSUL_ACLS_ENABLE'] = 1;
+    }
     switch (type) {
       case 'dc':
         key = 'CONSUL_DATACENTER_COUNT';
@@ -22,7 +24,6 @@ export default function(type, value) {
         break;
       case 'acl':
         key = 'CONSUL_ACL_COUNT';
-        obj['CONSUL_ACLS_ENABLE'] = 1;
         break;
       case 'session':
         key = 'CONSUL_SESSION_COUNT';
@@ -32,19 +33,15 @@ export default function(type, value) {
         break;
       case 'policy':
         key = 'CONSUL_POLICY_COUNT';
-        obj['CONSUL_ACLS_ENABLE'] = 1;
         break;
       case 'role':
         key = 'CONSUL_ROLE_COUNT';
-        obj['CONSUL_ACLS_ENABLE'] = 1;
         break;
       case 'token':
         key = 'CONSUL_TOKEN_COUNT';
-        obj['CONSUL_ACLS_ENABLE'] = 1;
         break;
       case 'authMethod':
         key = 'CONSUL_AUTH_METHOD_COUNT';
-        obj['CONSUL_ACLS_ENABLE'] = 1;
         break;
       case 'nspace':
         key = 'CONSUL_NSPACE_COUNT';
