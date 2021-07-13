@@ -53,6 +53,9 @@ Usage: `consul connect redirect-traffic [options]`
 
 - `exclude-uid` - Additional user ID to exclude from traffic redirection. May be provided multiple times.
 
+- `netns` - The Linux network namespace where traffic redirection rules should apply.
+  This must be a path to the network namespace, e.g. /var/run/netns/foo.
+
 #### Enterprise Options
 
 @include 'http_api_namespace_options.mdx'

@@ -44,6 +44,7 @@ type cmd struct {
 	excludeOutboundPorts []string
 	excludeOutboundCIDRs []string
 	excludeUIDs          []string
+	netNS                string
 }
 
 func (c *cmd) init() {
@@ -62,6 +63,8 @@ func (c *cmd) init() {
 		"Outbound CIDR to exclude from traffic redirection. May be provided multiple times.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.excludeUIDs), "exclude-uid",
 		"Additional user ID to exclude from traffic redirection. May be provided multiple times.")
+	c.flags.StringVar(&c.netNS, "netns", "", "The network namespace where traffic redirection rules should apply."+
+		"This must be a path to the network namespace, e.g. /var/run/netns/foo.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -130,6 +133,7 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		ProxyUserID:       c.proxyUID,
 		ProxyInboundPort:  c.proxyInboundPort,
 		ProxyOutboundPort: c.proxyOutboundPort,
+		NetNS:             c.netNS,
 	}
 
 	// When proxyID is provided, we set up cfg with values
