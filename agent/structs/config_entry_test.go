@@ -463,6 +463,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  num_retries            = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
+							request_headers {
+								add {
+									foo = "bar"
+								}
+								set {
+									bar = "baz"
+								}
+								remove = ["qux"]
+							}
+							response_headers {
+								add {
+									foo = "bar"
+								}
+								set {
+									bar = "baz"
+								}
+								remove = ["qux"]
+							}
 						}
 					},
 					{
@@ -546,6 +564,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
+							RequestHeaders {
+								Add {
+									foo = "bar"
+								}
+								Set {
+									bar = "baz"
+								}
+								Remove = ["qux"]
+							}
+							ResponseHeaders {
+								Add {
+									foo = "bar"
+								}
+								Set {
+									bar = "baz"
+								}
+								Remove = ["qux"]
+							}
 						}
 					},
 					{
@@ -629,6 +665,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
+							RequestHeaders: &HTTPHeaderModifiers{
+								Add:    map[string]string{"foo": "bar"},
+								Set:    map[string]string{"bar": "baz"},
+								Remove: []string{"qux"},
+							},
+							ResponseHeaders: &HTTPHeaderModifiers{
+								Add:    map[string]string{"foo": "bar"},
+								Set:    map[string]string{"bar": "baz"},
+								Remove: []string{"qux"},
+							},
 						},
 					},
 					{
@@ -674,13 +720,31 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				splits = [
 				  {
-					weight        = 99.1
-					service_subset = "v1"
+						weight        = 99.1
+						service_subset = "v1"
+						request_headers {
+							add {
+								foo = "bar"
+							}
+							set {
+								bar = "baz"
+							}
+							remove = ["qux"]
+						}
+						response_headers {
+							add {
+								foo = "bar"
+							}
+							set {
+								bar = "baz"
+							}
+							remove = ["qux"]
+						}
 				  },
 				  {
-					weight    = 0.9
-					service   = "other"
-					namespace = "alt"
+						weight    = 0.9
+						service   = "other"
+						namespace = "alt"
 				  },
 				]
 			`,
@@ -693,13 +757,31 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				Splits = [
 				  {
-					Weight        = 99.1
-					ServiceSubset = "v1"
+						Weight        = 99.1
+						ServiceSubset = "v1"
+						RequestHeaders {
+							Add {
+								foo = "bar"
+							}
+							Set {
+								bar = "baz"
+							}
+							Remove = ["qux"]
+						}
+						ResponseHeaders {
+							Add {
+								foo = "bar"
+							}
+							Set {
+								bar = "baz"
+							}
+							Remove = ["qux"]
+						}
 				  },
 				  {
-					Weight    = 0.9
-					Service   = "other"
-					Namespace = "alt"
+						Weight    = 0.9
+						Service   = "other"
+						Namespace = "alt"
 				  },
 				]
 			`,
@@ -714,6 +796,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 					{
 						Weight:        99.1,
 						ServiceSubset: "v1",
+						RequestHeaders: &HTTPHeaderModifiers{
+							Add:    map[string]string{"foo": "bar"},
+							Set:    map[string]string{"bar": "baz"},
+							Remove: []string{"qux"},
+						},
+						ResponseHeaders: &HTTPHeaderModifiers{
+							Add:    map[string]string{"foo": "bar"},
+							Set:    map[string]string{"bar": "baz"},
+							Remove: []string{"qux"},
+						},
 					},
 					{
 						Weight:    0.9,
