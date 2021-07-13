@@ -355,24 +355,23 @@ func makeUpstreamRouteForDiscoveryChain(
 					return nil, err
 				}
 
-				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-				}
-
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
-
-				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-				}
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
+			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+			}
+
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
 
 			destination := discoveryRoute.Definition.Destination
+
+			route := &envoy_route_v3.Route{}
+
 			if destination != nil {
 				if destination.PrefixRewrite != "" {
 					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
@@ -403,12 +402,16 @@ func makeUpstreamRouteForDiscoveryChain(
 
 					routeAction.Route.RetryPolicy = retryPolicy
 				}
+
+				if err := injectHeaderManipToRoute(destination, route); err != nil {
+					return nil, fmt.Errorf("failed to apply header manipulation configuration to route: %v", err)
+				}
 			}
 
-			routes = append(routes, &envoy_route_v3.Route{
-				Match:  routeMatch,
-				Action: routeAction,
-			})
+			route.Match = routeMatch
+			route.Action = routeAction
+
+			routes = append(routes, route)
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
@@ -712,5 +715,37 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 		}
 	}
 	action.HashPolicy = result
+	return nil
+}
+
+func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_route_v3.Route) error {
+	if dest.RequestHeaders != nil {
+		r.RequestHeadersToAdd = append(
+			r.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Add, true)...,
+		)
+		r.RequestHeadersToAdd = append(
+			r.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Set, false)...,
+		)
+		r.RequestHeadersToRemove = append(
+			r.RequestHeadersToRemove,
+			dest.RequestHeaders.Remove...,
+		)
+	}
+	if dest.ResponseHeaders != nil {
+		r.ResponseHeadersToAdd = append(
+			r.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Add, true)...,
+		)
+		r.ResponseHeadersToAdd = append(
+			r.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Set, false)...,
+		)
+		r.ResponseHeadersToRemove = append(
+			r.ResponseHeadersToRemove,
+			dest.ResponseHeaders.Remove...,
+		)
+	}
 	return nil
 }

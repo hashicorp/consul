@@ -1281,6 +1281,32 @@ func setupTestVariationConfigEntriesAndSnapshot(
 						}),
 						Destination: toService("split-3-ways"),
 					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathExact: "/header-manip",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service: "header-manip",
+							RequestHeaders: &structs.HTTPHeaderModifiers{
+								Add: map[string]string{
+									"request": "bar",
+								},
+								Set: map[string]string{
+									"bar": "baz",
+								},
+								Remove: []string{"qux"},
+							},
+							ResponseHeaders: &structs.HTTPHeaderModifiers{
+								Add: map[string]string{
+									"response": "bar",
+								},
+								Set: map[string]string{
+									"bar": "baz",
+								},
+								Remove: []string{"qux"},
+							},
+						},
+					},
 				},
 			},
 		)
