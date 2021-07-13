@@ -1540,4 +1540,3 @@ func (ca *CAManager) checkExpired(pem string) error {
 	}
 	return nil
 }
-
