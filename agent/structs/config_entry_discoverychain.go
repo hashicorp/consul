@@ -1461,3 +1461,36 @@ func IsProtocolHTTPLike(protocol string) bool {
 		return false
 	}
 }
+
+// HTTPHeaderModifiers is a set of rules for HTTP header modification that
+// should be performed by proxies as the request passes through them. It can
+// operate on either request or response headers depending on the context in
+// which it is used.
+type HTTPHeaderModifiers struct {
+	// Add is a set of name -> value pairs that should be appended to the request
+	// or response (i.e. allowing duplicates if the same header already exists).
+	Add map[string]string `json:",omitempty"`
+
+	// Set is a set of name -> value pairs that should be added to the request or
+	// response, overwriting any existing header values of the same name.
+	Set map[string]string `json:",omitempty"`
+
+	// Remove is the set of header names that should be stripped from the request
+	// or response.
+	Remove []string `json:",omitempty"`
+}
+
+func (m *HTTPHeaderModifiers) Validate(protocol string) error {
+	if m == nil {
+		// Empty is always valid
+		return nil
+	}
+	if len(m.Add) == 0 && len(m.Set) == 0 && len(m.Remove) == 0 {
+		return nil
+	}
+	if !IsProtocolHTTPLike(protocol) {
+		// Non nil but context is not an httpish protocol
+		return fmt.Errorf("only valid for http, http2 and grpc protocols")
+	}
+	return nil
+}

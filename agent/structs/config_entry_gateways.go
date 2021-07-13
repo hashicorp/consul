@@ -75,6 +75,10 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
@@ -167,6 +171,13 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		for i, s := range listener.Services {
 			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
 				return fmt.Errorf("Services[%d].%v", i, err)
+			}
+
+			if err := s.RequestHeaders.Validate(listener.Protocol); err != nil {
+				return fmt.Errorf("request headers %s (service %q on listener on port %d)", err, s.Name, listener.Port)
+			}
+			if err := s.ResponseHeaders.Validate(listener.Protocol); err != nil {
+				return fmt.Errorf("response headers %s (service %q on listener on port %d)", err, s.Name, listener.Port)
 			}
 
 			if listener.Protocol == "tcp" {

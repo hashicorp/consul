@@ -394,6 +394,135 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 			},
 			validateErr: `Host '*' is not allowed when TLS is enabled, all hosts must be valid DNS records to add as a DNSSAN`,
 		},
+		"request header manip allowed for http(ish) protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "web",
+								RequestHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "http2",
+						Services: []IngressService{
+							{
+								Name: "web2",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+					{
+						Port:     3333,
+						Protocol: "grpc",
+						Services: []IngressService{
+							{
+								Name: "api",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Remove: []string{"x-grpc-internal"},
+								},
+							},
+						},
+					},
+				},
+			},
+			// Unchanged
+			expected: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "web",
+								RequestHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "http2",
+						Services: []IngressService{
+							{
+								Name: "web2",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+					{
+						Port:     3333,
+						Protocol: "grpc",
+						Services: []IngressService{
+							{
+								Name: "api",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Remove: []string{"x-grpc-internal"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"request header manip not allowed for non-http protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+								RequestHeaders: &HTTPHeaderModifiers{
+									Set: map[string]string{"x-foo": "bar"},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "request headers only valid for http",
+		},
+		"response header manip not allowed for non-http protocol": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Remove: []string{"x-foo"},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "response headers only valid for http",
+		},
 	}
 
 	testConfigEntryNormalizeAndValidate(t, cases)
