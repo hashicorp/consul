@@ -550,7 +550,6 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 		rootList, _, err := getTestRoots(s1, "dc1")
 		require.NoError(t, err)
 		require.Len(t, rootList.Roots, 1)
-		// originalRoot = activeRoot
 	}
 
 	cases := []struct {
