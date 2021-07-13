@@ -6,16 +6,16 @@ import (
 )
 
 const (
-	// Chain to intercept inbound traffic
+	// ProxyInboundChain is the chain to intercept inbound traffic.
 	ProxyInboundChain = "CONSUL_PROXY_INBOUND"
 
-	// Chain to redirect inbound traffic to the proxy
+	// ProxyInboundRedirectChain is the chain to redirect inbound traffic to the proxy.
 	ProxyInboundRedirectChain = "CONSUL_PROXY_IN_REDIRECT"
 
-	// Chain to intercept outbound traffic
+	// ProxyOutputChain is the chain to intercept outbound traffic.
 	ProxyOutputChain = "CONSUL_PROXY_OUTPUT"
 
-	// Chain to redirect outbound traffic to the proxy
+	// ProxyOutputRedirectChain is the chain to redirect outbound traffic to the proxy
 	ProxyOutputRedirectChain = "CONSUL_PROXY_REDIRECT"
 
 	DefaultTProxyOutboundPort = 15001
@@ -49,6 +49,11 @@ type Config struct {
 	// from traffic redirection.
 	ExcludeUIDs []string
 
+	// NetNS is the network namespace where the traffic redirection rules
+	// should be applied. This must be a path to the network namespace,
+	// e.g. /var/run/netns/foo.
+	NetNS string
+
 	// IptablesProvider is the Provider that will apply iptables rules.
 	IptablesProvider Provider
 }
@@ -71,7 +76,7 @@ type Provider interface {
 // https://github.com/openservicemesh/osm/blob/650a1a1dcf081ae90825f3b5dba6f30a0e532725/pkg/injector/iptables.go
 func Setup(cfg Config) error {
 	if cfg.IptablesProvider == nil {
-		cfg.IptablesProvider = &iptablesExecutor{}
+		cfg.IptablesProvider = &iptablesExecutor{cfg: cfg}
 	}
 
 	err := validateConfig(cfg)

@@ -5,7 +5,9 @@ package iptables
 import "errors"
 
 // iptablesExecutor implements IptablesProvider and errors out on any non-linux OS.
-type iptablesExecutor struct{}
+type iptablesExecutor struct {
+	cfg Config
+}
 
 func (i *iptablesExecutor) AddRule(_ string, _ ...string) {}
 

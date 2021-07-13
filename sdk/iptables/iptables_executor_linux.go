@@ -11,10 +11,19 @@ import (
 // iptablesExecutor implements IptablesProvider using exec.Cmd.
 type iptablesExecutor struct {
 	commands []*exec.Cmd
+	cfg      Config
 }
 
 func (i *iptablesExecutor) AddRule(name string, args ...string) {
-	i.commands = append(i.commands, exec.Command(name, args...))
+	if i.cfg.NetNS != "" {
+		// If network namespace is provided, then we need to execute the command in the given network namespace.
+		nsenterArgs := []string{fmt.Sprintf("--net=%s", i.cfg.NetNS), "--", name}
+		nsenterArgs = append(nsenterArgs, args...)
+		cmd := exec.Command("nsenter", nsenterArgs...)
+		i.commands = append(i.commands, cmd)
+	} else {
+		i.commands = append(i.commands, exec.Command(name, args...))
+	}
 }
 
 func (i *iptablesExecutor) ApplyRules() error {
