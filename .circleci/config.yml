@@ -392,7 +392,7 @@ jobs:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
-      CGO_ENABLED: 1
+      CGO_ENABLED: 0
       GOOS: linux
     steps:
       - checkout
