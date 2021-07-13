@@ -168,6 +168,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		}
 
 		declaredHosts := make(map[string]bool)
+		serviceNames := make(map[ServiceID]struct{})
 		for i, s := range listener.Services {
 			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
 				return fmt.Errorf("Services[%d].%v", i, err)
@@ -197,6 +198,11 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 			if s.NamespaceOrDefault() == WildcardSpecifier {
 				return fmt.Errorf("Wildcard namespace is not supported for ingress services (listener on port %d)", listener.Port)
 			}
+			sid := NewServiceID(s.Name, &s.EnterpriseMeta)
+			if _, ok := serviceNames[sid]; ok {
+				return fmt.Errorf("Service %s cannot be added multiple times (listener on port %d)", sid, listener.Port)
+			}
+			serviceNames[sid] = struct{}{}
 
 			for _, h := range s.Hosts {
 				if declaredHosts[h] {

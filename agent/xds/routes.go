@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
@@ -29,7 +30,11 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindConnectProxy:
 		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return s.routesForIngressGateway(cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+		return s.routesForIngressGateway(
+			cfgSnap.IngressGateway.Listeners,
+			cfgSnap.IngressGateway.Upstreams,
+			cfgSnap.IngressGateway.DiscoveryChain,
+		)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesFromSnapshotTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -160,6 +165,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 // routesForIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
 func (s *ResourceGenerator) routesForIngressGateway(
+	listeners map[proxycfg.IngressListenerKey]structs.IngressListener,
 	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
 	chains map[string]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {
@@ -190,6 +196,42 @@ func (s *ResourceGenerator) routesForIngressGateway(
 			if err != nil {
 				return nil, err
 			}
+
+			// See if we need to configure any special settings on this route config
+			if lCfg, ok := listeners[listenerKey]; ok {
+				if is := findIngressServiceMatchingUpstream(lCfg, u); is != nil {
+					// Set up any header manipulation we need
+					if is.RequestHeaders != nil {
+						virtualHost.RequestHeadersToAdd = append(
+							virtualHost.RequestHeadersToAdd,
+							makeHeadersValueOptions(is.RequestHeaders.Add, true)...,
+						)
+						virtualHost.RequestHeadersToAdd = append(
+							virtualHost.RequestHeadersToAdd,
+							makeHeadersValueOptions(is.RequestHeaders.Set, false)...,
+						)
+						virtualHost.RequestHeadersToRemove = append(
+							virtualHost.RequestHeadersToRemove,
+							is.RequestHeaders.Remove...,
+						)
+					}
+					if is.ResponseHeaders != nil {
+						virtualHost.ResponseHeadersToAdd = append(
+							virtualHost.ResponseHeadersToAdd,
+							makeHeadersValueOptions(is.ResponseHeaders.Add, true)...,
+						)
+						virtualHost.ResponseHeadersToAdd = append(
+							virtualHost.ResponseHeadersToAdd,
+							makeHeadersValueOptions(is.ResponseHeaders.Set, false)...,
+						)
+						virtualHost.ResponseHeadersToRemove = append(
+							virtualHost.ResponseHeadersToRemove,
+							is.ResponseHeaders.Remove...,
+						)
+					}
+				}
+			}
+
 			upstreamRoute.VirtualHosts = append(upstreamRoute.VirtualHosts, virtualHost)
 		}
 
@@ -197,6 +239,36 @@ func (s *ResourceGenerator) routesForIngressGateway(
 	}
 
 	return result, nil
+}
+
+func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
+	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
+	for k, v := range vals {
+		o := &envoy_core_v3.HeaderValueOption{
+			Header: &envoy_core_v3.HeaderValue{
+				Key:   k,
+				Value: v,
+			},
+			Append: makeBoolValue(add),
+		}
+		opts = append(opts, o)
+	}
+	return opts
+}
+
+func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Upstream) *structs.IngressService {
+	// Hunt through for the matching service. We validate now that there is
+	// only one IngressService for each unique name although originally that
+	// wasn't checked as it didn't matter. Assume there is only one now
+	// though!
+	wantSID := u.DestinationID()
+	for _, s := range l.Services {
+		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)
+		if wantSID.Matches(sid) {
+			return &s
+		}
+	}
+	return nil
 }
 
 func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {

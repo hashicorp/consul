@@ -54,6 +54,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	snap.IngressGateway.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 	snap.IngressGateway.WatchedGateways = make(map[string]map[string]context.CancelFunc)
 	snap.IngressGateway.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+	snap.IngressGateway.Listeners = make(map[IngressListenerKey]structs.IngressListener)
 	return snap, nil
 }
 
@@ -81,6 +82,13 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 		snap.IngressGateway.TLSEnabled = gatewayConf.TLS.Enabled
 		snap.IngressGateway.TLSSet = true
+
+		// Load each listener's config from the config entry so we don't have to
+		// pass listener config through "upstreams" types as that grows.
+		for _, l := range gatewayConf.Listeners {
+			key := IngressListenerKey{Protocol: l.Protocol, Port: l.Port}
+			snap.IngressGateway.Listeners[key] = l
+		}
 
 		if err := s.watchIngressLeafCert(ctx, snap); err != nil {
 			return err

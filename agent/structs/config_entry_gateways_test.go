@@ -523,6 +523,27 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 			},
 			validateErr: "response headers only valid for http",
 		},
+		"duplicate services not allowed": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "web",
+							},
+							{
+								Name: "web",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "Service web cannot be added multiple times (listener on port 1111)",
+		},
 	}
 
 	testConfigEntryNormalizeAndValidate(t, cases)
