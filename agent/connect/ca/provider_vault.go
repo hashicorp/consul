@@ -163,7 +163,7 @@ func (v *VaultProvider) GenerateRoot() error {
 	}
 
 	// Set up the root PKI backend if necessary.
-	_, err := v.ActiveRoot()
+	rootPEM, err := v.ActiveRoot()
 	switch err {
 	case ErrBackendNotMounted:
 		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
@@ -196,6 +196,31 @@ func (v *VaultProvider) GenerateRoot() error {
 	default:
 		if err != nil {
 			return err
+		}
+
+		if rootPEM != "" {
+			rootCert, err := connect.ParseCert(rootPEM)
+			if err != nil {
+				return err
+			}
+
+			// Vault PKI doesn't allow in-place cert/key regeneration. That
+			// means if you need to change either the key type or key bits then
+			// you also need to provide new mount points.
+			// https://www.vaultproject.io/api-docs/secret/pki#generate-root
+			//
+			// A separate bug in vault likely also requires that you use the
+			// ForceWithoutCrossSigning option when changing key types.
+			foundKeyType, foundKeyBits, err := connect.KeyInfoFromCert(rootCert)
+			if err != nil {
+				return err
+			}
+			if v.config.PrivateKeyType != foundKeyType {
+				return fmt.Errorf("cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA")
+			}
+			if v.config.PrivateKeyBits != foundKeyBits {
+				return fmt.Errorf("cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA")
+			}
 		}
 	}
 
