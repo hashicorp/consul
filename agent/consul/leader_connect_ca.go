@@ -1536,7 +1536,7 @@ func (ca *CAManager) checkExpired(pem string) error {
 		return err
 	}
 	if cert.NotAfter.Before(ca.timeNow()) {
-		return fmt.Errorf("certificate expired end date %s ", cert.NotAfter.String())
+		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
 	}
 	return nil
 }
