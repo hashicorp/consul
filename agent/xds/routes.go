@@ -633,6 +633,9 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
+		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
+			return nil, err
+		}
 
 		clusters = append(clusters, cw)
 	}
@@ -719,7 +722,7 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 }
 
 func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_route_v3.Route) error {
-	if dest.RequestHeaders != nil {
+	if !dest.RequestHeaders.IsZero() {
 		r.RequestHeadersToAdd = append(
 			r.RequestHeadersToAdd,
 			makeHeadersValueOptions(dest.RequestHeaders.Add, true)...,
@@ -733,7 +736,7 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 			dest.RequestHeaders.Remove...,
 		)
 	}
-	if dest.ResponseHeaders != nil {
+	if !dest.ResponseHeaders.IsZero() {
 		r.ResponseHeadersToAdd = append(
 			r.ResponseHeadersToAdd,
 			makeHeadersValueOptions(dest.ResponseHeaders.Add, true)...,
@@ -745,6 +748,38 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 		r.ResponseHeadersToRemove = append(
 			r.ResponseHeadersToRemove,
 			dest.ResponseHeaders.Remove...,
+		)
+	}
+	return nil
+}
+
+func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_route_v3.WeightedCluster_ClusterWeight) error {
+	if !split.RequestHeaders.IsZero() {
+		c.RequestHeadersToAdd = append(
+			c.RequestHeadersToAdd,
+			makeHeadersValueOptions(split.RequestHeaders.Add, true)...,
+		)
+		c.RequestHeadersToAdd = append(
+			c.RequestHeadersToAdd,
+			makeHeadersValueOptions(split.RequestHeaders.Set, false)...,
+		)
+		c.RequestHeadersToRemove = append(
+			c.RequestHeadersToRemove,
+			split.RequestHeaders.Remove...,
+		)
+	}
+	if !split.ResponseHeaders.IsZero() {
+		c.ResponseHeadersToAdd = append(
+			c.ResponseHeadersToAdd,
+			makeHeadersValueOptions(split.ResponseHeaders.Add, true)...,
+		)
+		c.ResponseHeadersToAdd = append(
+			c.ResponseHeadersToAdd,
+			makeHeadersValueOptions(split.ResponseHeaders.Set, false)...,
+		)
+		c.ResponseHeadersToRemove = append(
+			c.ResponseHeadersToRemove,
+			split.ResponseHeaders.Remove...,
 		)
 	}
 	return nil

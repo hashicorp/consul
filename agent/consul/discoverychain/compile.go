@@ -417,8 +417,12 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 					effectiveWeight := split.Weight * innerSplit.Weight / 100
 
 					newDiscoverySplit := &structs.DiscoverySplit{
-						Weight:   structs.NormalizeServiceSplitWeight(effectiveWeight),
-						NextNode: innerSplit.NextNode,
+						// Copy the definition from the inner node so any extra config (e.g.
+						// header manipulation) will be applied to requests taking this
+						// path.
+						Definition: innerSplit.Definition,
+						Weight:     structs.NormalizeServiceSplitWeight(effectiveWeight),
+						NextNode:   innerSplit.NextNode,
 					}
 
 					fixedSplits = append(fixedSplits, newDiscoverySplit)
@@ -723,9 +727,16 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	c.recordNode(splitNode)
 
 	var hasLB bool
-	for _, split := range splitter.Splits {
+	for i := range splitter.Splits {
+		// We don't use range variables here because we'll take the address of
+		// this split and store that in a DiscoveryGraphNode and the range
+		// variables share memory addresses between iterations which is exactly
+		// wrong for us here.
+		split := splitter.Splits[i]
+
 		compiledSplit := &structs.DiscoverySplit{
-			Weight: split.Weight,
+			Definition: &split,
+			Weight:     split.Weight,
 		}
 		splitNode.Splits = append(splitNode.Splits, compiledSplit)
 

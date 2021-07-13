@@ -1040,9 +1040,36 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Kind: structs.ServiceSplitter,
 				Name: "db",
 				Splits: []structs.ServiceSplit{
-					{Weight: 95.5, Service: "big-side"},
-					{Weight: 4, Service: "goldilocks-side"},
-					{Weight: 0.5, Service: "lil-bit-side"},
+					{
+						Weight:  95.5,
+						Service: "big-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "big"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "big"},
+						},
+					},
+					{
+						Weight:  4,
+						Service: "goldilocks-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "goldilocks"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "goldilocks"},
+						},
+					},
+					{
+						Weight:  0.5,
+						Service: "lil-bit-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "small"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "small"},
+						},
+					},
 				},
 			},
 		)

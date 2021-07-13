@@ -1490,12 +1490,19 @@ type HTTPHeaderModifiers struct {
 	Remove []string `json:",omitempty"`
 }
 
+func (m *HTTPHeaderModifiers) IsZero() bool {
+	if m == nil {
+		return true
+	}
+	return len(m.Add) == 0 && len(m.Set) == 0 && len(m.Remove) == 0
+}
+
 func (m *HTTPHeaderModifiers) Validate(protocol string) error {
 	if m == nil {
 		// Empty is always valid
 		return nil
 	}
-	if len(m.Add) == 0 && len(m.Set) == 0 && len(m.Remove) == 0 {
+	if m.IsZero() {
 		return nil
 	}
 	if !IsProtocolHTTPLike(protocol) {
