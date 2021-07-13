@@ -537,7 +537,6 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 			},
 		}
 	})
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	codec := rpcClient(t, s1)
