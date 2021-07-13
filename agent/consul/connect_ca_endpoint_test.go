@@ -546,7 +546,6 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	// Capture the current root.
-	// var originalRoot *structs.CARoot
 	{
 		rootList, _, err := getTestRoots(s1, "dc1")
 		require.NoError(t, err)
