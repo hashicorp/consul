@@ -604,9 +604,9 @@ func (c *Configurator) VerifyServerHostname() bool {
 	return c.base.VerifyServerHostname || c.autoTLS.verifyServerHostname
 }
 
-// IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
-func (c *Configurator) IncomingGRPCConfig() *tls.Config {
-	c.log("IncomingGRPCConfig")
+// IncomingXDSConfig generates a *tls.Config for incoming xDS connections.
+func (c *Configurator) IncomingXDSConfig() *tls.Config {
+	c.log("IncomingXDSConfig")
 
 	// false has the effect that this config doesn't require a client cert
 	// verification. This is because there is no verify_incoming_grpc
@@ -615,7 +615,7 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 	// effect on the grpc server.
 	config := c.commonTLSConfig(false)
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingGRPCConfig(), nil
+		return c.IncomingXDSConfig(), nil
 	}
 	return config
 }

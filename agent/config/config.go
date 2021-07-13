@@ -340,7 +340,10 @@ type Addresses struct {
 	DNS   *string `mapstructure:"dns"`
 	HTTP  *string `mapstructure:"http"`
 	HTTPS *string `mapstructure:"https"`
-	GRPC  *string `mapstructure:"grpc"`
+	XDS   *string `mapstructure:"xds"`
+
+	// Deprecated: replaced by XDS
+	GRPC *string `mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -690,13 +693,16 @@ type Ports struct {
 	SerfLAN        *int `mapstructure:"serf_lan"`
 	SerfWAN        *int `mapstructure:"serf_wan"`
 	Server         *int `mapstructure:"server"`
-	GRPC           *int `mapstructure:"grpc"`
+	XDS            *int `mapstructure:"xds"`
 	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `mapstructure:"sidecar_min_port"`
 	SidecarMaxPort *int `mapstructure:"sidecar_max_port"`
 	ExposeMinPort  *int `mapstructure:"expose_min_port"`
 	ExposeMaxPort  *int `mapstructure:"expose_max_port"`
+
+	// Deprecated: replaced by XDS
+	GRPC *int `mapstructure:"grpc"`
 }
 
 type UnixSocket struct {
