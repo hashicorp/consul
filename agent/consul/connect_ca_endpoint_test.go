@@ -524,7 +524,7 @@ func TestConnectCAConfig_Vault_TriggerRotation_Fails(t *testing.T) {
 	testVault := ca.NewTestVaultServer(t)
 	defer testVault.Stop()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
 		c.PrimaryDatacenter = "dc1"
 		c.CAConfig = &structs.CAConfiguration{
