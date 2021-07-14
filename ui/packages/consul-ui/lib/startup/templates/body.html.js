@@ -34,7 +34,7 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
   <script type="application/json" data-consul-ui-fs>
   {
     "text-encoding/encoding-indexes.js": "${rootURL}assets/encoding-indexes.js",
-    "text-encoding/encoding.js": "${rootURL}assets/encoding-indexes.js",
+    "text-encoding/encoding.js": "${rootURL}assets/encoding.js",
     "css.escape/css.escape.js": "${rootURL}assets/css.escape.js",
     "codemirror/mode/javascript/javascript.js": "${rootURL}assets/codemirror/mode/javascript/javascript.js",
     "codemirror/mode/ruby/ruby.js": "${rootURL}assets/codemirror/mode/ruby/ruby.js",
