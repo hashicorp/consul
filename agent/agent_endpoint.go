@@ -181,7 +181,7 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 
 	flusher, ok := resp.(http.Flusher)
 	if !ok {
-		return nil, fmt.Errorf("Streaming not supported")
+		return nil, fmt.Errorf("streaming not supported")
 	}
 
 	resp.WriteHeader(http.StatusOK)
@@ -196,6 +196,7 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 		encoder: json.NewEncoder(resp),
 		flusher: flusher,
 	}
+	enc.encoder.SetIndent("", "    ")
 	s.agent.baseDeps.MetricsHandler.Stream(req.Context(), enc)
 	return nil, nil
 }

@@ -2,6 +2,7 @@ package debug
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"context"
 	"encoding/json"
@@ -529,17 +530,10 @@ func (c *cmd) captureMetrics(ctx context.Context, timestampDir string) error {
 	}
 	defer fh.Close()
 
-	decoder := json.NewDecoder(stream)
-	encoder := json.NewEncoder(fh)
-	// TODO: is More() correct here?
-	for decoder.More() {
-		var raw interface{}
-		if err := decoder.Decode(&raw); err != nil {
-			return fmt.Errorf("failed to decode metrics: %w", err)
-		}
-		if err := encoder.Encode(raw); err != nil {
-			return fmt.Errorf("failed to write metrics to file: %w", err)
-		}
+	b := bufio.NewReader(stream)
+	_, err = b.WriteTo(fh)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("failed to copy metrics to file: %w", err)
 	}
 	return nil
 }
