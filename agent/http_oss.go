@@ -73,3 +73,8 @@ func (s *HTTPHandlers) enterpriseHandler(next http.Handler) http.Handler {
 func (s *HTTPHandlers) uiTemplateDataTransform(data map[string]interface{}) error {
 	return nil
 }
+
+// parseEntMetaPartition is a noop for the enterprise implementation.
+func parseEntMetaPartition(req *http.Request, meta *structs.EnterpriseMeta) error {
+	return nil
+}

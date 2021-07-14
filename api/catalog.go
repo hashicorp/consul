@@ -47,6 +47,7 @@ type CatalogService struct {
 	Checks                   HealthChecks
 	ModifyIndex              uint64
 	Namespace                string `json:",omitempty"`
+	Partition                string `json:",omitempty"`
 }
 
 type CatalogNode struct {
