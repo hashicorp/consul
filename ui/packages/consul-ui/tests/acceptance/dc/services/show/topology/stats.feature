@@ -15,7 +15,7 @@ Feature: dc / services / show / topology / stats
       service: service-0
     ---
     And I see topology on the tabs
-    And I don't see the "[data-test-stats]" element
+    And I don't see the "[data-test-topology-metrics-stats]" element
   Scenario: Given metrics is enabled, the Topology tab should display metrics
     Given 1 datacenter model with the value "dc1"
     Given a "prometheus" metrics provider
@@ -32,5 +32,5 @@ Feature: dc / services / show / topology / stats
       service: service-0
     ---
     And I see topology on the tabs
-    And I see the "[data-test-stats]" element
+    And I see the "[data-test-topology-metrics-stats]" element
 
