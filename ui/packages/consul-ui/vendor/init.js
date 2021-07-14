@@ -1,5 +1,7 @@
 (function(doc, appName) {
-  const fs = JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent);
+  const fs = new Map(
+    Object.entries(JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent))
+  );
   const appendScript = function(src) {
     var $script = doc.createElement('script');
     $script.src = src;
@@ -8,11 +10,11 @@
 
   // polyfills
   if (!('TextDecoder' in window)) {
-    appendScript(fs['text-encoding/encoding-indexes.js']);
-    appendScript(fs['text-encoding/encoding.js']);
+    appendScript(fs.get(`${['text-encoding', 'encoding-indexes'].join('/')}.js`));
+    appendScript(fs.get(`${['text-encoding', 'encoding'].join('/')}.js`));
   }
   if (!(window.CSS && window.CSS.escape)) {
-    appendScript(fs['css.escape/css.escape.js']);
+    appendScript(fs.get(`${['css.escape', 'css.escape'].join('/')}.js`));
   }
 
   try {
