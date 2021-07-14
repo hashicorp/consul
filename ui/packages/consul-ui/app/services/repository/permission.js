@@ -112,11 +112,6 @@ export default class PermissionService extends RepositoryService {
     } else {
       let resources = [];
       try {
-        const { nspace, ...rest } = params;
-        params = {
-          ...rest,
-          ns: nspace,
-        };
         resources = await this.store.authorize('permission', params);
       } catch (e) {
         runInDebug(() => console.error(e));

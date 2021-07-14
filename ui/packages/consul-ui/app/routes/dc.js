@@ -21,7 +21,7 @@ export default class DcRoute extends Route {
     // When disabled nspaces is [], so nspace is undefined
     const permissions = await this.permissionsRepo.findAll({
       dc: params.dc,
-      nspace: get(nspace || {}, 'Name'),
+      ns: get(nspace || {}, 'Name'),
     });
     // the model here is actually required for the entire application
     // but we need to wait until we are in this route so we know what the dc
