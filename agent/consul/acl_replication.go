@@ -484,11 +484,12 @@ func (s *Server) IsACLReplicationEnabled() bool {
 		s.config.ACLTokenReplication
 }
 
-func (s *Server) updateACLReplicationStatusError() {
+func (s *Server) updateACLReplicationStatusError(errorMsg error) {
 	s.aclReplicationStatusLock.Lock()
 	defer s.aclReplicationStatusLock.Unlock()
 
 	s.aclReplicationStatus.LastError = time.Now().Round(time.Second).UTC()
+	s.aclReplicationStatus.LastErrorMessage = errorMsg
 }
 
 func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLReplicationType, index uint64) {

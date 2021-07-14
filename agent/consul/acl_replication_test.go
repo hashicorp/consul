@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -780,6 +781,7 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 		require.True(r, status.ReplicatedTokenIndex < token2.CreateIndex, "ReplicatedTokenIndex is not less than the token2s create index")
 		// ensures that token replication is erroring
 		require.True(r, status.LastError.After(minErrorTime), "Replication LastError not after the minErrorTime")
+		require.Equal(r, status.LastErrorMessage, errors.New("failed to retrieve unredacted tokens - replication token in use does not grant acl:write"))
 	})
 }
 
