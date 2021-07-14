@@ -465,7 +465,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  retry_on_status_codes    = [401, 209]
 							request_headers {
 								add {
-									foo = "bar"
+									x-foo = "bar"
 								}
 								set {
 									bar = "baz"
@@ -474,7 +474,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							}
 							response_headers {
 								add {
-									foo = "bar"
+									x-foo = "bar"
 								}
 								set {
 									bar = "baz"
@@ -566,7 +566,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  RetryOnStatusCodes    = [401, 209]
 							RequestHeaders {
 								Add {
-									foo = "bar"
+									x-foo = "bar"
 								}
 								Set {
 									bar = "baz"
@@ -575,7 +575,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 							}
 							ResponseHeaders {
 								Add {
-									foo = "bar"
+									x-foo = "bar"
 								}
 								Set {
 									bar = "baz"
@@ -666,12 +666,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
 							RequestHeaders: &HTTPHeaderModifiers{
-								Add:    map[string]string{"foo": "bar"},
+								Add:    map[string]string{"x-foo": "bar"},
 								Set:    map[string]string{"bar": "baz"},
 								Remove: []string{"qux"},
 							},
 							ResponseHeaders: &HTTPHeaderModifiers{
-								Add:    map[string]string{"foo": "bar"},
+								Add:    map[string]string{"x-foo": "bar"},
 								Set:    map[string]string{"bar": "baz"},
 								Remove: []string{"qux"},
 							},
