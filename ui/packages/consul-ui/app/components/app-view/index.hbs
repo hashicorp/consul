@@ -54,7 +54,7 @@
       <div>
           <div>
     {{#if authorized}}
-              <nav aria-label="Breadcrumb">
+              <nav aria-label="Breadcrumb" data-test-breadcrumbs>
                   <YieldSlot @name="breadcrumbs">
                     {{document-attrs class="with-breadcrumbs"}}
                     {{yield}}

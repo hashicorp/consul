@@ -48,3 +48,4 @@ Feature: dc / kvs / create
     And I click kv on the kvs
     And I click create
     And I see the text "New Key / Value" in "h1"
+    And I see the text "key-value" in "[data-test-breadcrumbs] li:nth-child(2) a"
