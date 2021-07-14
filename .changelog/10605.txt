@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fix KV editor syntax highlighting
+```
