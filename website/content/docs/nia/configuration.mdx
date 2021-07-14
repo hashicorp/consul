@@ -145,6 +145,7 @@ task {
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `condition` - (obj) The requirement that, when met, triggers Consul-Terraform-Sync to execute the task. When unconfigured, the default condition is to trigger the task on changes in the services configured in [`services`](#services). Only one `condition` may be configured per task. Consul-Terraform-Sync supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
+- `terraform_version` - (string) <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Enterprise workspace. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
 
 ### Task Condition
 
@@ -206,9 +207,15 @@ task {
 - `regexp` - (string) Optional if [`task.services`](/docs/nia/configuration#services) is configured. Either `regexp` or `task.services` or both must be configured. Only services that have a name which matches the regular expression are used by the task. If not provided, `regexp` will default to an exact match on `task.services` list. For example, if `task.services = ["api", "web"]`, then `regexp` will default to `^api$|^web$`. See [Task Execution: Catalog Services Condition](/docs/nia/tasks#catalog-services-condition) for more details on the relationship between `task.services` and `regexp`. Some resources for more information on regular expressions: [regular expression syntax](https://github.com/google/re2/wiki/Syntax), [try out regular expression string matching](https://golang.org/pkg/regexp/#Regexp.MatchString).
 - `source_includes_var` - (bool: false) Whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable). Please refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
 
+# Network Drivers
+
+A driver is required for Consul-Terraform-Sync to propagate network infrastructure change. The `driver` block configures the subprocess that Consul-Terraform-Sync runs in automation. The default driver is the [Terraform driver](#terraform-driver) which automates Terraform as a local installation of the Terraform CLI.
+
+Only one network driver can be configured per deployment of Consul-Terraform-Sync.
+
 ## Terraform Driver
 
-The `driver` block configures the subprocess for Consul-Terraform-Sync to propagate infrastructure change. The Terraform driver is a required configuration for Consul-Terraform-Sync to relay provider discovery and installation information to Terraform, specifically the `required_providers` stanza. Other driver options do not need to be explicitly configured and has reasonable default values.
+The Terraform driver is a required configuration for Consul-Terraform-Sync to relay provider discovery and installation information to Terraform, specifically the `required_providers` stanza. Other driver options do not need to be explicitly configured and has reasonable default values.
 
 ```hcl
 driver "terraform" {
@@ -236,8 +243,45 @@ driver "terraform" {
 - `path` - (string) The file path to install Terraform or discover an existing Terraform binary. If omitted, Terraform will be installed in the same directory as the Consul-Terraform-Sync daemon. To resolve an incompatible Terraform version or to change versions will require removing the existing binary or change to a different path.
 - `persist_log` - (bool) Enable trace logging for each Terraform client to disk per task. This is equivalent to setting `TF_LOG_PATH=<work_dir>/terraform.log`. Trace log level results in verbose logging and may be useful for debugging and development purposes. We do not recommend enabling this for production. There is no log rotation and may quickly result in large files.
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This is similar to the [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
-- `version` - (string) The Terraform version to install and run in automation for task execution. If omittied, the driver will install the latest official release of Terraform. To change versions, remove the existing binary or change the path to install the desired version. Verify that the desired Terraform version is compatible across all Terraform modules used for Consul-Terraform-Sync automation.
-- `working_dir` - (string: "sync-tasks") **Deprecated in Consul-Terraform-Sync 0.3.0** use the global [`working_dir`](#working_dir) option instead. The base working directory to manage Terraform configurations for all tasks. The full path of each working directory will have the task identifier appended to the end of the path, e.g. `./sync-tasks/task-name`.
+- `version` - (string) The Terraform version to install and run in automation for task execution. If omittied, the driver will install the latest [compatible release of Terraform](/docs/nia/compatibility#terraform). To change versions, remove the existing binary or change the path to install the desired version. Verify that the desired Terraform version is compatible across all Terraform modules used for Consul-Terraform-Sync automation.
+- `working_dir` - (string: "sync-tasks") **Deprecated in Consul-Terraform-Sync 0.3.0**, use the global [`working_dir`](#working_dir) option instead. The base working directory to manage Terraform configurations for all tasks. The full path of each working directory will have the task identifier appended to the end of the path, e.g. `./sync-tasks/task-name`.
+
+## Terraform Cloud Driver
+
+<EnterpriseAlert>
+  This feature requires{' '}
+  <a href="https://www.hashicorp.com/products/consul/features">Consul-Terraform-Sync Enterprise</a>{' '}
+  which is availabe with <strong>Consul Enterprise</strong>.
+</EnterpriseAlert>
+
+The Terraform Cloud driver enables Consul-Terraform-Sync Enterprise to integrate with **Terraform Enterprise**, the self-hosted distribution of Terraform Cloud. With this driver, Consul-Terraform-Sync automates Terraform runs and remote operations for workspaces.
+
+An overview of features enabled with Terraform Enterprise can be viewed within the [Network Drivers](/docs/nia/network-drivers) documentation.
+
+~> The Terraform Cloud driver is introduced in Consul-Terraform-Sync v0.3.0 and only supports [Terraform Enterprise](https://www.terraform.io/docs/cloud/index.html). The upcoming v0.4.0 release will support integration with Terraform Cloud, the hosted service at https://app.terraform.io.
+
+```hcl
+driver "terraform-cloud" {
+  hostname     = "my.tfe.hostname.io"
+  organization = "my-org"
+  token        = "<TEAM_TOKEN>"
+
+  required_providers {
+    myprovider = {
+      source = "namespace/myprovider"
+      version = "1.3.0"
+    }
+  }
+}
+```
+
+- `hostname` - (string) The Terraform Enterprise hostname to connect to. Can be overridden with the `TFC_HOSTNAME` environment variable.
+- `organization` - (string) The Terraform Enterprise organization that hosts the managed workspaces by Consul-Terraform-Sync. Can be overridden with the `TFC_ORGANIZATION` environment variable.
+- `token` - (string) Required [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Enterprise and workspace management. Only workspace permissions are needed for Consul-Terraform-Sync. The token can also be provided using the `TFC_TOKEN` environment variable.
+  * We recommend creating a dedicated team and team API token to isolate automation by Consul-Terraform-Sync from other Terraform Enterprise operations.
+- `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This is similar to the [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
+
+Consul-Terraform-Sync generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/docs/nia/configuration#working_dir) option or configured per task. The version of Terraform to use for each workspace can also be set within the [task](#task) configuration. 
 
 ## Terraform Provider
 
