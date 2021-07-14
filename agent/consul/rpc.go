@@ -979,8 +979,15 @@ func (r rpcMetricsInterceptor) ServiceCall(fn func(), serviceMethod string, argv
 
 	argvi := argv.Interface()
 	if rq, ok := argvi.(readQuery); ok {
-		blocking := strconv.FormatBool(rq.GetMinQueryIndex() > 0)
-		labels = append(labels, metrics.Label{Name: "blocking", Value: blocking})
+		labels = append(labels,
+			metrics.Label{
+				Name:  "allow-stale",
+				Value: strconv.FormatBool(rq.AllowStaleRead()),
+			},
+			metrics.Label{
+				Name:  "blocking",
+				Value: strconv.FormatBool(rq.GetMinQueryIndex() > 0),
+			})
 	}
 	if td, ok := argvi.(targetDC); ok {
 		labels = append(labels, metrics.Label{Name: "target-datacenter", Value: td.RequestDatacenter()})
@@ -994,6 +1001,7 @@ var _ rpc.Interceptor = rpcMetricsInterceptor{}
 
 type readQuery interface {
 	GetMinQueryIndex() uint64
+	AllowStaleRead() bool
 }
 
 type targetDC interface {
