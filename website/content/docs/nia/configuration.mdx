@@ -254,11 +254,11 @@ driver "terraform" {
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
 
-The Terraform Cloud driver enables Consul-Terraform-Sync Enterprise to integrate with **Terraform Enterprise**, the self-hosted distribution of Terraform Cloud. With this driver, Consul-Terraform-Sync automates Terraform runs and remote operations for workspaces.
+The Terraform Cloud driver enables Consul-Terraform-Sync Enterprise to integrate with [**Terraform Enterprise**](https://www.hashicorp.com/products/terraform/editions/enterprise)<sup>1</sup>, the self-hosted distribution of Terraform Cloud. With this driver, Consul-Terraform-Sync automates Terraform runs and remote operations for workspaces.
 
 An overview of features enabled with Terraform Enterprise can be viewed within the [Network Drivers](/docs/nia/network-drivers) documentation.
 
-~> The Terraform Cloud driver is introduced in Consul-Terraform-Sync v0.3.0 and only supports [Terraform Enterprise](https://www.terraform.io/docs/cloud/index.html). The upcoming v0.4.0 release will support integration with Terraform Cloud, the hosted service at https://app.terraform.io.
+-> <sup>1</sup> **Upcoming**: The Terraform Cloud driver is introduced in Consul-Terraform-Sync v0.3.0 and only supports [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise), the self-hosted distribution. The upcoming v0.4.0 release will support integration with [Terraform Cloud](https://www.terraform.io/cloud), the HashiCorp managed service.
 
 ```hcl
 driver "terraform-cloud" {
