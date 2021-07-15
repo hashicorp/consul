@@ -17,6 +17,14 @@ export OLD_XDSV2_AWARE_CONSUL_VERSION
 TEST_V2_XDS=${TEST_V2_XDS:-}
 export TEST_V2_XDS
 
+# DEBUG_ENVOY=1 causes this to run the non-stripped envoy binary under a parent
+# process called stack_decode.py straight out of the envoy repository. We do
+# this so that WHEN envoy crashes with a backtrace the process is still live to
+# be interrogated by the backtrace decoder to work around fun things related to
+# ASLR: https://github.com/envoyproxy/envoy/issues/13574
+DEBUG_ENVOY=${DEBUG_ENVOY:-}
+export DEBUG_ENVOY
+
 # ENVOY_VERSION to run each test against
 ENVOY_VERSION=${ENVOY_VERSION:-"1.18.3"}
 export ENVOY_VERSION
@@ -31,6 +39,17 @@ if [[ -n "$TEST_V2_XDS" ]] ; then
         exit 1
     fi
 fi
+
+ENVOY_IMAGE="${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}"
+ORIGINAL_ENVOY_IMAGE="${ENVOY_IMAGE}"
+if [[ -n "${DEBUG_ENVOY}" ]]; then
+    if [[ "${ENVOY_VERSION}" =~ ^1\.15\. ]]; then
+        echo "Envoy version ${ENVOY_VERSION} does not have a debug build at envoyproxy/envoy-debug on docker hub" >&2
+        exit 1
+    fi
+    ENVOY_IMAGE="consul-dev-envoy-sidecar:${ENVOY_VERSION}"
+fi
+
 
 source helpers.bash
 
@@ -361,10 +380,16 @@ function suite_setup {
     echo "Rebuilding 'bats-verify' image..."
     docker build -t bats-verify -f Dockerfile-bats .
 
+    if [[ -n "$DEBUG_ENVOY" ]] ; then
+        docker build -t "${ENVOY_IMAGE}" \
+            --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+            -f Dockerfile-envoy-debug .
+    fi
+
     # pre-build the consul+envoy container
     echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
     docker build -t consul-dev-envoy:${ENVOY_VERSION} \
-        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+        --build-arg ENVOY_IMAGE="${ENVOY_IMAGE}" \
         -f Dockerfile-consul-envoy .
 }
 
@@ -463,7 +488,7 @@ function common_run_container_sidecar_proxy {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${ENVOY_IMAGE}" \
     envoy \
     -c /workdir/${DC}/envoy/${service}-bootstrap.json \
     -l debug \
@@ -526,7 +551,7 @@ function common_run_container_gateway {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${ENVOY_IMAGE}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l debug \
