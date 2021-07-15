@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"net"
 	"regexp"
 	"strings"
@@ -79,7 +78,7 @@ type dnsConfig struct {
 	NodeName         string
 	NodeTTL          time.Duration
 	OnlyPassing      bool
-	RecursorStrategy string
+	RecursorStrategy agentdns.RecursorStrategy
 	RecursorTimeout  time.Duration
 	Recursors        []string
 	SegmentName      string
@@ -1847,11 +1846,8 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for idx, random_idx := range rand.Perm(len(cfg.Recursors)) {
+	for _, idx := range cfg.RecursorStrategy.Indexes(len(cfg.Recursors)) {
 		recursor := cfg.Recursors[idx]
-		if cfg.RecursorStrategy == "random" {
-			recursor = cfg.Recursors[random_idx]
-		}
 		r, rtt, err = c.Exchange(req, recursor)
 		// Check if the response is valid and has the desired Response code
 		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
@@ -1935,11 +1931,8 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for idx, random_idx := range rand.Perm(len(cfg.Recursors)) {
+	for _, idx := range cfg.RecursorStrategy.Indexes(len(cfg.Recursors)) {
 		recursor := cfg.Recursors[idx]
-		if cfg.RecursorStrategy == "random" {
-			recursor = cfg.Recursors[random_idx]
-		}
 		r, rtt, err = c.Exchange(m, recursor)
 		if err == nil {
 			d.logger.Debug("cname recurse RTT for name",

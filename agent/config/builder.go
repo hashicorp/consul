@@ -910,7 +910,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
 		DNSOnlyPassing:        boolVal(c.DNS.OnlyPassing),
 		DNSPort:               dnsPort,
-		DNSRecursorStrategy:   stringValWithDefault(c.DNS.RecursorStrategy, "sequential"),
+		DNSRecursorStrategy:   b.dnsRecursorStrategyVal(stringVal(c.DNS.RecursorStrategy)),
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
@@ -1285,9 +1285,6 @@ func (b *builder) Validate(rt RuntimeConfig) error {
 		if ipaddr.IsAny(a) {
 			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
 		}
-	}
-	if !isValidRecursorStrategy(rt.DNSRecursorStrategy) {
-		return fmt.Errorf("dns_config.recursor_strategy must be either %q or %q", "random", "sequential")
 	}
 	if !isValidAltDomain(rt.DNSAltDomain, rt.Datacenter) {
 		return fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", rt.Datacenter)
@@ -1749,6 +1746,20 @@ func (b *builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 
 	cfg.Mode = mode
 	return cfg
+}
+
+func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
+	var out dns.RecursorStrategy
+
+	switch dns.RecursorStrategy(v) {
+	case dns.RecursorStrategyRandom:
+		out = dns.RecursorStrategyRandom
+	case dns.RecursorStrategySequential, "":
+		out = dns.RecursorStrategySequential
+	default:
+		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
+	}
+	return out
 }
 
 func (b *builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
@@ -2407,18 +2418,6 @@ func isValidAltDomain(domain, datacenter string) bool {
 		),
 	)
 	return !reAltDomain.MatchString(domain)
-}
-
-// isValidRecursorStrategy returns true if the given resolution strategy matches
-// one of the supported modes
-func isValidRecursorStrategy(strategy string) bool {
-	for _, s := range []string{"random", "sequential"} {
-		if strategy == s {
-			return true
-		}
-	}
-
-	return false
 }
 
 // UIPathBuilder checks to see if there was a path set
