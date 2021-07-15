@@ -1,0 +1,33 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "config": {
+      "rules": {
+            "policies": {
+                  "consul-intentions-layer7-0": {
+                        "permissions": [
+                              {
+                                    "url_path": {
+                                          "path": {
+                                                "prefix": "/"
+                                              }
+                                        }
+                                  }
+                            ],
+                        "principals": [
+                              {
+                                    "authenticated": {
+                                          "principal_name": {
+                                                "safe_regex": {
+                                                      "google_re2": {
+                                                          },
+                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                                                    }
+                                              }
+                                        }
+                                  }
+                            ]
+                      }
+                }
+          }
+    }
+}

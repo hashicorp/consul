@@ -12,6 +12,7 @@ import (
 	envoynetrbac "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2"
 	envoyrbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2"
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -109,13 +110,34 @@ func removeIntentionPrecedence(rbacIxns []*rbacIntention, intentionDefaultAction
 	// between any two intentions.
 	rbacIxns = removeSourcePrecedence(rbacIxns, intentionDefaultAction)
 
+	numRetained := 0
 	for _, rbacIxn := range rbacIxns {
 		// Remove permission precedence. After this completes precedence
 		// doesn't matter between any two permissions on this intention.
 		rbacIxn.Permissions = removePermissionPrecedence(rbacIxn.Permissions, intentionDefaultAction)
+		if rbacIxn.Action == intentionActionLayer7 && len(rbacIxn.Permissions) == 0 {
+			// All of the permissions must have had the default action type and
+			// were removed. Mark this for removal below.
+			rbacIxn.Skip = true
+		} else {
+			numRetained++
+		}
 	}
 
-	return rbacIxns
+	if numRetained == len(rbacIxns) {
+		return rbacIxns
+	}
+
+	// We previously used the absence of permissions (above) as a signal to
+	// mark the entire intention for removal. Now do the deletions.
+	out := make([]*rbacIntention, 0, numRetained)
+	for _, rixn := range rbacIxns {
+		if !rixn.Skip {
+			out = append(out, rixn)
+		}
+	}
+
+	return out
 }
 
 func removePermissionPrecedence(perms []*rbacPermission, intentionDefaultAction intentionAction) []*rbacPermission {
@@ -400,10 +422,14 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 
 	var principalsL4 []*envoyrbac.Principal
 	for i, rbacIxn := range rbacIxns {
-		if len(rbacIxn.Permissions) > 0 {
+		if rbacIxn.Action == intentionActionLayer7 {
+			if len(rbacIxn.Permissions) == 0 {
+				panic("invalid state: L7 intention has no permissions")
+			}
 			if !isHTTP {
 				panic("invalid state: L7 permissions present for TCP service")
 			}
+
 			// For L7: we should generate one Policy per Principal and list all of the Permissions
 			policy := &envoyrbac.Policy{
 				Principals:  []*envoyrbac.Principal{rbacIxn.ComputedPrincipal},

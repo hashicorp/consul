@@ -1,0 +1,8 @@
+{
+  "name": "envoy.filters.network.rbac",
+  "config": {
+      "rules": {
+          },
+      "stat_prefix": "connect_authz"
+    }
+}
