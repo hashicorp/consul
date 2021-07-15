@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,18 @@ func TestStatusLeader(t *testing.T) {
 	if val == "" {
 		t.Fatalf("bad addr: %v", obj)
 	}
+}
+
+func TestStatusLeaderNoLeaderReturnsStatus500(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "bootstrap_expect=2 bootstrap=false")
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/status/leader", nil)
+	_, err := a.srv.StatusLeader(nil, req)
+
+	require.Error(t, err)
+	require.Equal(t, structs.ErrNoLeader, err)
 }
 
 func TestStatusLeaderSecondary(t *testing.T) {
