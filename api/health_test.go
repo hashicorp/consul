@@ -213,6 +213,16 @@ func TestAPI_HealthChecks(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Services(nil)
+		if err != nil {
+			r.Fatal(err)
+		}
+		if _, ok := services["foo"]; !ok {
+			r.Fatal("service foo not synced")
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
 		checks := HealthChecks{
 			&HealthCheck{
 				Node:        "node123",
@@ -234,6 +244,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 		if meta.LastIndex == 0 {
 			r.Fatalf("bad: %v", meta)
 		}
+		require.NotEmpty(r, out)
 		checks[0].CreateIndex = out[0].CreateIndex
 		checks[0].ModifyIndex = out[0].ModifyIndex
 		require.Equal(r, checks, out)

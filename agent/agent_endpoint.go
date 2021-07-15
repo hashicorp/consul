@@ -523,15 +523,6 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	return nil, s.agent.ForceLeave(addr, prune)
 }
 
-// syncChanges is a helper function which wraps a blocking call to sync
-// services and checks to the server. If the operation fails, we only
-// only warn because the write did succeed and anti-entropy will sync later.
-func (s *HTTPHandlers) syncChanges() {
-	if err := s.agent.State.SyncChanges(); err != nil {
-		s.agent.logger.Error("failed to sync changes", "error", err)
-	}
-}
-
 func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var token string
 	s.parseToken(req, &token)
@@ -597,7 +588,8 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	if err := s.agent.AddCheck(health, chkType, true, token, ConfigSourceRemote); err != nil {
 		return nil, err
 	}
-	s.syncChanges()
+
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 
@@ -626,7 +618,8 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
 		return nil, err
 	}
-	s.syncChanges()
+
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 
@@ -714,7 +707,8 @@ func (s *HTTPHandlers) agentCheckUpdate(_resp http.ResponseWriter, req *http.Req
 	if err := s.agent.updateTTLCheck(cid, status, output); err != nil {
 		return nil, err
 	}
-	s.syncChanges()
+
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 
@@ -1027,7 +1021,8 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 			return nil, err
 		}
 	}
-	s.syncChanges()
+
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 
@@ -1057,7 +1052,7 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 
-	s.syncChanges()
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 
@@ -1120,7 +1115,8 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 			return nil, nil
 		}
 	}
-	s.syncChanges()
+
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 
@@ -1157,7 +1153,8 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	} else {
 		s.agent.DisableNodeMaintenance()
 	}
-	s.syncChanges()
+
+	s.agent.State.TriggerSyncChanges()
 	return nil, nil
 }
 

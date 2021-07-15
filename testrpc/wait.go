@@ -64,6 +64,7 @@ func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption
 type waitOption struct {
 	Token                  string
 	WaitForAntiEntropySync bool
+	WaitForService         string
 }
 
 func WithToken(token string) waitOption {
@@ -74,6 +75,10 @@ func WaitForAntiEntropySync() waitOption {
 	return waitOption{WaitForAntiEntropySync: true}
 }
 
+func WaitForService(service string) waitOption {
+	return waitOption{WaitForService: service}
+}
+
 func flattenOptions(options []waitOption) waitOption {
 	var flat waitOption
 	for _, opt := range options {
@@ -82,6 +87,9 @@ func flattenOptions(options []waitOption) waitOption {
 		}
 		if opt.WaitForAntiEntropySync {
 			flat.WaitForAntiEntropySync = true
+		}
+		if opt.WaitForService != "" {
+			flat.WaitForService = opt.WaitForService
 		}
 	}
 	return flat
@@ -95,6 +103,7 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 
 	var nodes structs.IndexedNodes
 	var checks structs.IndexedHealthChecks
+	var services structs.IndexedServices
 
 	retry.Run(t, func(r *retry.R) {
 		dcReq := &structs.DCSpecificRequest{
@@ -134,6 +143,23 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 		if !found {
 			r.Fatalf("serfHealth check not found")
 		}
+
+		if flat.WaitForService != "" {
+			servicesReq := &structs.DCSpecificRequest{
+				Datacenter:   dc,
+				QueryOptions: structs.QueryOptions{Token: flat.Token},
+			}
+			if err := rpc("Catalog.ListServices", servicesReq, &services); err != nil {
+				r.Fatalf("Catalog.ListServices failed: %v", err)
+			}
+			if len(services.Services) == 0 {
+				r.Fatalf("No registered services")
+			}
+			if _, ok := services.Services[flat.WaitForService]; !ok {
+				r.Fatalf("service not found")
+			}
+		}
+
 	})
 }
 
