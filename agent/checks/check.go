@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	http2 "golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
 	"net"
@@ -15,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	http2 "golang.org/x/net/http2"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
@@ -917,9 +918,9 @@ func NewStatusHandler(inner CheckNotifier, logger hclog.Logger, successBeforePas
 		logger:                 logger,
 		inner:                  inner,
 		successBeforePassing:   successBeforePassing,
-		successCounter:         successBeforePassing,
+		successCounter:         0,
 		failuresBeforeCritical: failuresBeforeCritical,
-		failuresCounter:        failuresBeforeCritical,
+		failuresCounter:        0,
 	}
 }
 

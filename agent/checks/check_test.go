@@ -855,30 +855,35 @@ func TestStatusHandlerUpdateStatusAfterConsecutiveChecksThresholdIsReached(t *te
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
+	// should not call an update on initial check as
+	// requires 2 success or 3 failure
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, 1, notif.Updates(cid))
-		require.Equal(r, api.HealthPassing, notif.State(cid))
+		require.Equal(r, 0, notif.Updates(cid))
+		require.Equal(r, "", notif.State(cid)) // no state as update has not been called
 	})
 
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 
+	// should now report critical as 3 failures have occurred
 	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, 2, notif.Updates(cid))
+		require.Equal(r, 1, notif.Updates(cid))
 		require.Equal(r, api.HealthCritical, notif.State(cid))
 	})
 
-	// Status should be passing after 2 passing check
+	// Status should only be passing after 2 passing checks
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
+
+	// should still be critical until one more passing is received
+	retry.Run(t, func(r *retry.R) {
+		require.Equal(r, 1, notif.Updates(cid))
+		require.Equal(r, api.HealthCritical, notif.State(cid))
+	})
+
+	// Status should now move to passing
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, 2, notif.Updates(cid))
-		require.Equal(r, api.HealthCritical, notif.State(cid))
-	})
-
-	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
-
-	retry.Run(t, func(r *retry.R) {
-		require.Equal(r, 3, notif.Updates(cid))
 		require.Equal(r, api.HealthPassing, notif.State(cid))
 	})
 }
@@ -890,12 +895,12 @@ func TestStatusHandlerResetCountersOnNonIdenticalsConsecutiveChecks(t *testing.T
 	logger := testutil.Logger(t)
 	statusHandler := NewStatusHandler(notif, logger, 2, 3)
 
-	// Set the initial status to passing after a single success
+	// Set the initial status to passing after a two successes
+	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 
 	// Status should remain passing after FAIL PASS FAIL FAIL sequence
 	// Although we have 3 FAILS, they are not consecutive
-
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
 	statusHandler.updateCheck(cid, api.HealthPassing, "bar")
 	statusHandler.updateCheck(cid, api.HealthCritical, "bar")
