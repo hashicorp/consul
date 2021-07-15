@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.10.1 (July 15, 2021)
 
 SECURITY:
 
