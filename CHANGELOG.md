@@ -1,5 +1,13 @@
 ## UNRELEASED
 
+SECURITY:
+
+* xds: ensure envoy verifies the subject alternative name for upstreams [CVE-2021-32574](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-32574) [[GH-10621](https://github.com/hashicorp/consul/issues/10621)]
+
+BUG FIXES:
+
+* ca: Fixed a bug that returned a malformed certificate chain when the certificate did not having a trailing newline. [[GH-10411](https://github.com/hashicorp/consul/issues/10411)]
+
 ## 1.8.13 (June 21, 2021)
 
 IMPROVEMENTS:
