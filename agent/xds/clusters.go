@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -12,6 +13,8 @@ import (
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
+	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -417,9 +420,27 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 		}
 	}
 
+	ns := upstream.DestinationNamespace
+	if ns == "" {
+		ns = structs.IntentionDefaultNamespace
+	}
+
+	spiffeID := connect.SpiffeIDService{
+		Host:       cfgSnap.Roots.TrustDomain,
+		Namespace:  ns,
+		Datacenter: dc,
+		Service:    upstream.DestinationName,
+	}
+
 	// Enable TLS upstream with the configured client certificate.
+	commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
+	err = injectSANMatcher(commonTLSContext, spiffeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+	}
+
 	c.TlsContext = &envoyauth.UpstreamTlsContext{
-		CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
+		CommonTlsContext: commonTLSContext,
 		Sni:              sni,
 	}
 
@@ -476,6 +497,13 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		sni := target.SNI
 		clusterName := CustomizeClusterName(target.Name, chain)
 
+		targetSpiffeID := connect.SpiffeIDService{
+			Host:       cfgSnap.Roots.TrustDomain,
+			Namespace:  target.Namespace,
+			Datacenter: target.Datacenter,
+			Service:    target.Service,
+		}
+
 		if failoverThroughMeshGateway {
 			actualTargetID := firstHealthyTarget(
 				chain.Targets,
@@ -489,6 +517,40 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 				sni = actualTarget.SNI
 			}
 		}
+
+		spiffeIDs := []connect.SpiffeIDService{targetSpiffeID}
+		seenIDs := map[string]struct{}{
+			targetSpiffeID.URI().String(): {},
+		}
+
+		if failover != nil {
+			// When failovers are present we need to add them as valid SANs to validate against.
+			// Envoy makes the failover decision independently based on the endpoint health it has available.
+			for _, tid := range failover.Targets {
+				target, ok := chain.Targets[tid]
+				if !ok {
+					continue
+				}
+
+				id := connect.SpiffeIDService{
+					Host:       cfgSnap.Roots.TrustDomain,
+					Namespace:  target.Namespace,
+					Datacenter: target.Datacenter,
+					Service:    target.Service,
+				}
+
+				// Failover targets might be subsets of the same service, so these are deduplicated.
+				if _, ok := seenIDs[id.URI().String()]; ok {
+					continue
+				}
+				seenIDs[id.URI().String()] = struct{}{}
+
+				spiffeIDs = append(spiffeIDs, id)
+			}
+		}
+		sort.Slice(spiffeIDs, func(i, j int) bool {
+			return spiffeIDs[i].URI().String() < spiffeIDs[j].URI().String()
+		})
 
 		s.Logger.Debug("generating cluster for", "cluster", clusterName)
 		c := &envoy.Cluster{
@@ -535,9 +597,14 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			c.Http2ProtocolOptions = &envoycore.Http2ProtocolOptions{}
 		}
 
-		// Enable TLS upstream with the configured client certificate.
+		commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
+		err = injectSANMatcher(commonTLSContext, spiffeIDs...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
+		}
+
 		c.TlsContext = &envoyauth.UpstreamTlsContext{
-			CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
+			CommonTlsContext: commonTLSContext,
 			Sni:              sni,
 		}
 
@@ -557,6 +624,27 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	}
 
 	return out, nil
+}
+
+// injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
+func injectSANMatcher(tlsContext *envoyauth.CommonTlsContext, spiffeIDs ...connect.SpiffeIDService) error {
+	validationCtx, ok := tlsContext.ValidationContextType.(*envoyauth.CommonTlsContext_ValidationContext)
+	if !ok {
+		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",
+			tlsContext.ValidationContextType)
+	}
+
+	var matchers []*envoymatcher.StringMatcher
+	for _, id := range spiffeIDs {
+		matchers = append(matchers, &envoymatcher.StringMatcher{
+			MatchPattern: &envoymatcher.StringMatcher_Exact{
+				Exact: id.URI().String(),
+			},
+		})
+	}
+	validationCtx.ValidationContext.MatchSubjectAltNames = matchers
+
+	return nil
 }
 
 // makeClusterFromUserConfig returns the listener config decoded from an

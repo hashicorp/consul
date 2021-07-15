@@ -293,15 +293,15 @@ func expectEndpointsJSON(v, n uint64) string {
 	}`
 }
 
-func expectedUpstreamTLSContextJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTLSContextJSON(snap, false, sni)
+func expectedUpstreamTLSContextJSON(snap *proxycfg.ConfigSnapshot, sni, svc string) string {
+	return expectedTLSContextJSON(snap, false, sni, svc)
 }
 
 func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	return expectedTLSContextJSON(snap, true, "")
+	return expectedTLSContextJSON(snap, true, "", "")
 }
 
-func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
+func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni, svc string) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 	reqClient := ""
@@ -314,6 +314,16 @@ func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert boo
 	if sni != "" {
 		upstreamSNI = `,
 		"sni": "` + sni + `"`
+	}
+
+	matchSANs := ""
+	if svc != "" {
+		matchSANs = `,
+		"matchSubjectAltNames": [
+			{
+				"exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/` + svc + `"
+            }
+		]`
 	}
 
 	return `{
@@ -333,6 +343,7 @@ func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert boo
 				"trustedCa": {
 					"inlineString": "` + strings.Replace(caPEM, "\n", "\\n", -1) + `"
 				}
+				` + matchSANs + `
 			}
 		}
 		` + reqClient + `
