@@ -1,0 +1,20 @@
+# mirrors main to consul-enterprise:oss-mirror
+name: "ent-mirror"
+
+# Runs on pushes to main
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ent-mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: git-sync
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "https://github.com/hashicorp/consul"
+          source_branch: "main"
+          destination_repo: "https://hc-github-team-consul-core:${{ secrets.PUSH_ENT_TOKEN }}@github.com/hashicorp/consul-enterprise.git"
+          destination_branch: "oss-mirror"
