@@ -535,9 +535,14 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		}
 	}
 
+	ns := upstream.DestinationNamespace
+	if ns == "" {
+		ns = structs.IntentionDefaultNamespace
+	}
+
 	spiffeID := connect.SpiffeIDService{
 		Host:       cfgSnap.Roots.TrustDomain,
-		Namespace:  upstream.DestinationNamespace,
+		Namespace:  ns,
 		Datacenter: dc,
 		Service:    upstream.DestinationName,
 	}
