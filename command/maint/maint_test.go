@@ -256,7 +256,7 @@ func TestMaintCommand_ServiceMaintenance_NoService(t *testing.T) {
 		t.Fatalf("expected response code 1, got %d", code)
 	}
 
-	if !strings.Contains(ui.ErrorWriter.String(), "No service registered") {
+	if !strings.Contains(ui.ErrorWriter.String(), "Unknown service") {
 		t.Fatalf("bad: %#v", ui.ErrorWriter.String())
 	}
 }
