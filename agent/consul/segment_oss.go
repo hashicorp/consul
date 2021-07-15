@@ -8,8 +8,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var SegmentOSSSummaries = []prometheus.SummaryDefinition{

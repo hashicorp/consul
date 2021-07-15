@@ -56,6 +56,7 @@ func init() {
 	registerEndpoint("/v1/agent/connect/authorize", []string{"POST"}, (*HTTPHandlers).AgentConnectAuthorize)
 	registerEndpoint("/v1/agent/connect/ca/roots", []string{"GET"}, (*HTTPHandlers).AgentConnectCARoots)
 	registerEndpoint("/v1/agent/connect/ca/leaf/", []string{"GET"}, (*HTTPHandlers).AgentConnectCALeafCert)
+	registerEndpoint("/v1/agent/reachability", []string{"PUT"}, (*HTTPHandlers).AgentReachability)
 	registerEndpoint("/v1/agent/service/register", []string{"PUT"}, (*HTTPHandlers).AgentRegisterService)
 	registerEndpoint("/v1/agent/service/deregister/", []string{"PUT"}, (*HTTPHandlers).AgentDeregisterService)
 	registerEndpoint("/v1/agent/service/maintenance/", []string{"PUT"}, (*HTTPHandlers).AgentServiceMaintenance)
