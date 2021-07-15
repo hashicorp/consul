@@ -1868,6 +1868,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[string]ServicePassthroughAddrs{
 							db.String(): {
 								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, snap.Datacenter, snap.Roots.TrustDomain),
+								SpiffeID: connect.SpiffeIDService{
+									Host:       snap.Roots.TrustDomain,
+									Namespace:  db.NamespaceOrDefault(),
+									Partition:  db.PartitionOrDefault(),
+									Datacenter: snap.Datacenter,
+									Service:    "db",
+								},
 								Addrs: map[string]struct{}{
 									"10.10.10.10": {},
 									"10.0.0.2":    {},
