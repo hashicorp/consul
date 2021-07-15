@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.14 (July 15, 2021)
 
 SECURITY:
 
