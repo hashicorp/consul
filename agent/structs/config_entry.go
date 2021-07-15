@@ -85,12 +85,12 @@ type ServiceConfigEntry struct {
 	Kind             string
 	Name             string
 	Protocol         string
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
-	ExternalSNI      string                 `json:",omitempty" alias:"external_sni"`
-	UpstreamConfig   *UpstreamConfiguration `json:",omitempty" alias:"upstream_config"`
+	Mode             ProxyMode               `json:",omitempty"`
+	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig            `json:",omitempty"`
+	ExternalSNI      string                  `json:",omitempty" alias:"external_sni"`
+	UpstreamConfig   *UpstreamConfiguration  `json:",omitempty" alias:"upstream_config"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -250,10 +250,10 @@ type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
 	Config           map[string]interface{}
-	Mode             ProxyMode              `json:",omitempty"`
-	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig           `json:",omitempty"`
+	Mode             ProxyMode               `json:",omitempty"`
+	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig            `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
