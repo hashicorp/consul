@@ -63,7 +63,7 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -109,7 +109,7 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -150,7 +150,7 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

@@ -583,12 +583,12 @@ func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.Co
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+		if rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	default:

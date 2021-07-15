@@ -4522,12 +4522,9 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	t.Run("bad service id", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/_nope_?enable=true", nil)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.AgentServiceMaintenance(resp, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if resp.Code != 404 {
-			t.Fatalf("expected 404, got %d", resp.Code)
-		}
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, 404, resp.Code)
+		require.Contains(t, resp.Body.String(), `Unknown service "_nope_"`)
 	})
 }
 

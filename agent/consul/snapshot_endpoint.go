@@ -16,11 +16,12 @@ import (
 	"net"
 	"time"
 
+	"github.com/hashicorp/go-msgpack/codec"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/hashicorp/go-msgpack/codec"
 )
 
 // dispatchSnapshotRequest takes an incoming request structure with possibly some
@@ -61,7 +62,7 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 	// all the ACLs and you could escalate from there.
 	if rule, err := s.ResolveToken(args.Token); err != nil {
 		return nil, err
-	} else if rule != nil && rule.Snapshot(nil) != acl.Allow {
+	} else if rule.Snapshot(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
