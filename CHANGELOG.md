@@ -1,5 +1,15 @@
 ## UNRELEASED
 
+SECURITY:
+
+* xds: ensure envoy verifies the subject alternative name for upstreams [CVE-2021-32574](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-32574) [[GH-10621](https://github.com/hashicorp/consul/issues/10621)]
+* xds: ensure single L7 deny intention with default deny policy does not result in allow action [CVE-2021-36213](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-36213) [[GH-10619](https://github.com/hashicorp/consul/issues/10619)]
+
+BUG FIXES:
+
+* ca: Fixed a bug that returned a malformed certificate chain when the certificate did not having a trailing newline. [[GH-10411](https://github.com/hashicorp/consul/issues/10411)]
+* ui: Send service name down to Stats to properly call endpoint for Upstreams and Downstreams metrics [[GH-10535](https://github.com/hashicorp/consul/issues/10535)]
+
 ## 1.9.7 (June 21, 2021)
 
 IMPROVEMENTS:
