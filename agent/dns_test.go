@@ -4428,6 +4428,7 @@ func TestBinarySearch(t *testing.T) {
 				msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
 				msg.Answer = msgSrc.Answer
 				msg.Extra = msgSrc.Extra
+				msg.Ns = msgSrc.Ns
 				index := make(map[string]dns.RR, len(msg.Extra))
 				indexRRs(msg.Extra, index)
 				blen := dnsBinaryTruncate(msg, maxSize, index, true)
@@ -6886,6 +6887,103 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	if !reflect.DeepEqual(resp, expected) {
 		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
 	}
+}
+
+func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
+	t.Parallel()
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
+
+	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+		ns := &dns.SOA{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeSOA,
+				Class:  dns.ClassINET,
+			},
+			Ns: fmt.Sprintf("soa-%d", i),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+		resp.Ns = append(resp.Ns, ns)
+		if i < cfg.DNSUDPAnswerLimit {
+			expected.Answer = append(expected.Answer, srv)
+			expected.Extra = append(expected.Extra, a)
+		}
+	}
+
+	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	require.LessOrEqual(t, resp.Len(), defaultMaxUDPSize)
+	require.Len(t, resp.Ns, 0)
+}
+
+func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
+	t.Parallel()
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
+
+	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < 5000; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+		ns := &dns.SOA{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeSOA,
+				Class:  dns.ClassINET,
+			},
+			Ns: fmt.Sprintf("soa-%d", i),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+		resp.Ns = append(resp.Ns, ns)
+		if i < cfg.DNSUDPAnswerLimit {
+			expected.Answer = append(expected.Answer, srv)
+			expected.Extra = append(expected.Extra, a)
+		}
+	}
+	req.Question = append(req.Question, dns.Question{Qtype: dns.TypeSRV})
+
+	if trimmed := trimTCPResponse(req, resp); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	require.LessOrEqual(t, resp.Len(), 65523)
+	require.Len(t, resp.Ns, 0)
 }
 
 func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
