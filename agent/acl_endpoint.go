@@ -161,7 +161,7 @@ func (s *HTTPHandlers) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, re
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		return nil, NotFoundError{Reason: "No such token exists"}
 	}
 
 	if out.Token.Rules == "" {
@@ -262,8 +262,7 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 	}
 
 	if out.Policy == nil {
-		// TODO(rb): should this return a normal 404?
-		return nil, acl.ErrNotFound
+		return nil, NotFoundError{Reason: "No such Policy exists"}
 	}
 
 	return out.Policy, nil
@@ -448,7 +447,7 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		return nil, NotFoundError{Reason: "No such token exists"}
 	}
 
 	return out.Token, nil
@@ -488,7 +487,7 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Token == nil {
-		return nil, acl.ErrNotFound
+		return nil, NotFoundError{Reason: "No such token exists"}
 	}
 
 	return out.Token, nil
@@ -677,8 +676,8 @@ func (s *HTTPHandlers) ACLRoleRead(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Role == nil {
-		resp.WriteHeader(http.StatusNotFound)
-		return nil, nil
+		// resp.WriteHeader(http.StatusNotFound)
+		return nil, NotFoundError{Reason: "No such Role exists"}
 	}
 
 	return out.Role, nil
@@ -1069,7 +1068,7 @@ func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	if args.Token == "" {
-		return nil, acl.ErrNotFound
+		return nil, BadRequestError{Reason: "Missing token in the request"}
 	}
 
 	var ignored bool
