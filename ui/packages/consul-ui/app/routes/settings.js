@@ -28,7 +28,7 @@ export default class SettingsRoute extends Route {
       typeof app.permissions === 'undefined'
         ? await this.permissionsRepo.findAll({
             dc: dc.Name,
-            nspace: nspace.Name,
+            ns: nspace.Name,
           })
         : app.permissions;
 
