@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestAE_scaleFactor(t *testing.T) {
-	t.Parallel()
+func TestScaleFactor(t *testing.T) {
 	tests := []struct {
 		nodes int
 		scale int
@@ -25,50 +25,57 @@ func TestAE_scaleFactor(t *testing.T) {
 		{1000, 4},
 		{10000, 8},
 	}
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d nodes", tt.nodes), func(t *testing.T) {
-			if got, want := scaleFactor(tt.nodes), tt.scale; got != want {
-				t.Fatalf("got scale factor %d want %d", got, want)
-			}
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%d nodes", tc.nodes), func(t *testing.T) {
+			require.Equal(t, tc.scale, scaleFactor(tc.nodes))
 		})
 	}
 }
 
-func TestAE_Pause_nestedPauseResume(t *testing.T) {
-	t.Parallel()
-	l := NewStateSyncer(nil, 0, nil, nil)
-	if l.Paused() != false {
-		t.Fatal("syncer should be unPaused after init")
-	}
-	l.Pause()
-	if l.Paused() != true {
-		t.Fatal("syncer should be Paused after first call to Pause()")
-	}
-	l.Pause()
-	if l.Paused() != true {
-		t.Fatal("syncer should STILL be Paused after second call to Pause()")
-	}
-	gotR := l.Resume()
-	if l.Paused() != true {
-		t.Fatal("syncer should STILL be Paused after FIRST call to Resume()")
-	}
-	assert.False(t, gotR)
-	gotR = l.Resume()
-	if l.Paused() != false {
-		t.Fatal("syncer should NOT be Paused after SECOND call to Resume()")
-	}
-	assert.True(t, gotR)
+func TestStateSyncer_Pause_nestedPauseResume(t *testing.T) {
+	sync := NewStateSyncer(nil, 0, nil, nil)
 
-	defer func() {
-		err := recover()
-		if err == nil {
-			t.Fatal("unbalanced Resume() should panic")
-		}
-	}()
-	l.Resume()
+	require.False(t, sync.isPaused(), "syncer should be unPaused after init")
+	require.Nil(t, sync.WaitResume())
+
+	sync.Pause()
+	require.True(t, sync.isPaused(), "syncer should be Paused after first call to Pause()")
+	isBlocked(t, sync.WaitResume())
+
+	sync.Pause()
+	require.True(t, sync.isPaused(), "syncer should STILL be Paused after second call to Pause()")
+	isBlocked(t, sync.WaitResume())
+
+	resumed := sync.Resume()
+	require.False(t, resumed)
+	require.True(t, sync.isPaused(), "syncer should STILL be Paused after FIRST call to Resume()")
+	chWaitResume := sync.WaitResume()
+	isBlocked(t, chWaitResume)
+
+	resumed = sync.Resume()
+	require.True(t, resumed)
+	require.False(t, sync.isPaused(), "syncer should NOT be Paused after SECOND call to Resume()")
+	require.Nil(t, sync.WaitResume())
+
+	select {
+	case <-chWaitResume:
+	case <-time.After(20 * time.Millisecond):
+		t.Fatal("expected WaitResume to unblock when sync is resumed")
+	}
+
+	require.Panics(t, func() { sync.Resume() }, "unbalanced Resume() should panic")
 }
 
-func TestAE_Pause_ResumeTriggersSyncChanges(t *testing.T) {
+func isBlocked(t *testing.T, ch <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-ch:
+		t.Fatal("expected channel to be blocked")
+	case <-time.After(20 * time.Millisecond):
+	}
+}
+
+func TestStateSyncer_Resume_TriggersSyncChanges(t *testing.T) {
 	l := NewStateSyncer(nil, 0, nil, nil)
 	l.Pause()
 	l.Resume()
@@ -82,18 +89,22 @@ func TestAE_Pause_ResumeTriggersSyncChanges(t *testing.T) {
 	}
 }
 
-func TestAE_staggerDependsOnClusterSize(t *testing.T) {
+func TestDelayer_Jitter(t *testing.T) {
 	libRandomStagger = func(d time.Duration) time.Duration { return d }
 	defer func() { libRandomStagger = lib.RandomStagger }()
 
-	l := testSyncer(t)
-	if got, want := l.staggerFn(10*time.Millisecond), 10*time.Millisecond; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	l.ClusterSize = func() int { return 256 }
-	if got, want := l.staggerFn(10*time.Millisecond), 20*time.Millisecond; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
+	t.Run("cluster size 1", func(t *testing.T) {
+
+		delayer := NewClusterSizeDelayer(func() int { return 1 })
+		actual := delayer.Jitter(10 * time.Millisecond)
+		require.Equal(t, 10*time.Millisecond, actual)
+	})
+
+	t.Run("cluster size 256", func(t *testing.T) {
+		delayer := NewClusterSizeDelayer(func() int { return 256 })
+		actual := delayer.Jitter(10 * time.Millisecond)
+		require.Equal(t, 20*time.Millisecond, actual)
+	})
 }
 
 func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
@@ -125,17 +136,6 @@ func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
 }
 
 func TestAE_Run_Quit(t *testing.T) {
-	t.Run("Run panics without ClusterSize", func(t *testing.T) {
-		defer func() {
-			err := recover()
-			if err == nil {
-				t.Fatal("Run should panic")
-			}
-		}()
-		l := testSyncer(t)
-		l.ClusterSize = nil
-		l.Run()
-	})
 	t.Run("runFSM quits", func(t *testing.T) {
 		// start timer which explodes if runFSM does not quit
 		tm := time.AfterFunc(time.Second, func() { panic("timeout") })
@@ -406,8 +406,13 @@ func testSyncer(t *testing.T) *StateSyncer {
 	})
 
 	l := NewStateSyncer(nil, time.Second, nil, logger)
-	l.stagger = func(d time.Duration) time.Duration { return d }
-	l.ClusterSize = func() int { return 1 }
+	l.Delayer = constDelayer{}
 	l.resetNextFullSyncCh()
 	return l
+}
+
+type constDelayer struct{}
+
+func (constDelayer) Jitter(d time.Duration) time.Duration {
+	return d
 }
