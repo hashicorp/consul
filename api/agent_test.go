@@ -618,7 +618,11 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
-	if err := agent.ServiceDeregister("foo"); err != nil {
+	if err := agent.ServiceDeregister("foo1"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := agent.ServiceDeregister("foo2"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
