@@ -11,7 +11,8 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForQuery returns the correct url', function(assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
-        return adapter.requestForQuery(client.body, {
+        const request = client.body.bind(client);
+        return adapter.requestForQuery(request, {
           dc: dc,
           ns: 'team-1',
           filter: '*',
@@ -34,9 +35,10 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `GET /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
-      .requestForQueryRecord(client.url, {
+      .requestForQueryRecord(request, {
         dc: dc,
         id: id,
       })
@@ -46,8 +48,9 @@ module('Integration | Adapter | intention', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });
@@ -55,10 +58,11 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForCreateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `PUT /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForCreateRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,
@@ -74,10 +78,11 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForUpdateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `PUT /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForUpdateRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,
@@ -93,10 +98,11 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForDeleteRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `DELETE /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForDeleteRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,

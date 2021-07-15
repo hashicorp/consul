@@ -26,8 +26,9 @@ export const restartWhenAvailable = function(client) {
     throw e;
   };
 };
-const stringifyQueryParams = createQueryParams(encodeURIComponent);
-const parseURL = createURL(encodeURIComponent, stringifyQueryParams);
+const QueryParams = {
+  stringify: createQueryParams(encodeURIComponent),
+};
 const parseHeaders = createHeaders();
 
 const parseBody = function(strs, ...values) {
@@ -72,21 +73,34 @@ const parseBody = function(strs, ...values) {
 
 const CLIENT_HEADERS = [CACHE_CONTROL, 'X-Request-ID', 'X-Range', 'Refresh'];
 export default class HttpService extends Service {
-  @service('dom')
-  dom;
-
-  @service('client/connections')
-  connections;
-
-  @service('client/transports/xhr')
-  transport;
-
-  @service('settings')
-  settings;
+  @service('dom') dom;
+  @service('env') env;
+  @service('client/connections') connections;
+  @service('client/transports/xhr') transport;
+  @service('settings') settings;
 
   init() {
     super.init(...arguments);
     this._listeners = this.dom.listeners();
+    this.parseURL = createURL(encodeURIComponent, obj => QueryParams.stringify(this.sanitize(obj)));
+  }
+
+  sanitize(obj) {
+    if (!this.env.var('CONSUL_NSPACES_ENABLED')) {
+      delete obj.ns;
+    } else {
+      if (typeof obj.ns === 'undefined' || obj.ns === null || obj.ns === '') {
+        delete obj.ns;
+      }
+    }
+    if (!this.env.var('CONSUL_PARTITIONS_ENABLED')) {
+      delete obj.partition;
+    } else {
+      if (typeof obj.partition === 'undefined' || obj.partition === null || obj.partition === '') {
+        delete obj.partition;
+      }
+    }
+    return obj;
   }
 
   willDestroy() {
@@ -95,11 +109,13 @@ export default class HttpService extends Service {
   }
 
   url() {
-    return parseURL(...arguments);
+    return this.parseURL(...arguments);
   }
 
   body() {
-    return parseBody(...arguments);
+    const res = parseBody(...arguments);
+    this.sanitize(res[0]);
+    return res;
   }
 
   requestParams(strs, ...values) {
@@ -146,7 +162,7 @@ export default class HttpService extends Service {
           }
         }
       } else {
-        const str = stringifyQueryParams(params.data);
+        const str = QueryParams.stringify(params.data);
         if (str.length > 0) {
           if (params.url.indexOf('?') !== -1) {
             params.url = `${params.url}&${str}`;

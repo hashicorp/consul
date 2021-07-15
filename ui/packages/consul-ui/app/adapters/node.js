@@ -10,19 +10,20 @@ import Adapter from './application';
 // to the node.
 
 export default class NodeAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, id, uri }) {
     return request`
       GET /v1/internal/ui/nodes?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id, uri }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -31,7 +32,8 @@ export default class NodeAdapter extends Adapter {
       X-Request-ID: ${uri}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;

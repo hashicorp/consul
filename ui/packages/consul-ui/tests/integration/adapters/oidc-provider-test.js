@@ -14,10 +14,11 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
     test('requestForQuery returns the correct url/method', function(assert) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/internal/ui/oidc-auth-methods?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         ns: nspace,
       });
@@ -26,9 +27,10 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
     test('requestForQueryRecord returns the correct url/method', function(assert) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `POST /v1/acl/oidc/auth-url?dc=${dc}`;
       const actual = adapter
-        .requestForQueryRecord(client.url, {
+        .requestForQueryRecord(request, {
           dc: dc,
           id: id,
           ns: nspace,
@@ -40,8 +42,9 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
     test("requestForQueryRecord throws if you don't specify an id", function(assert) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       assert.throws(function() {
-        adapter.requestForQueryRecord(client.url, {
+        adapter.requestForQueryRecord(request, {
           dc: dc,
         });
       });
@@ -49,9 +52,10 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
     test('requestForAuthorize returns the correct url/method', function(assert) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `POST /v1/acl/oidc/callback?dc=${dc}`;
       const actual = adapter
-        .requestForAuthorize(client.url, {
+        .requestForAuthorize(request, {
           dc: dc,
           id: id,
           code: 'code',
@@ -65,9 +69,10 @@ module('Integration | Adapter | oidc-provider', function(hooks) {
     test('requestForLogout returns the correct url/method', function(assert) {
       const adapter = this.owner.lookup('adapter:oidc-provider');
       const client = this.owner.lookup('service:client/http');
+      const request = client.url.bind(client);
       const expected = `POST /v1/acl/logout`;
       const actual = adapter
-        .requestForLogout(client.url, {
+        .requestForLogout(request, {
           id: id,
         })
         .split('\n')

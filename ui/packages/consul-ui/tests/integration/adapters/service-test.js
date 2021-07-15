@@ -13,10 +13,11 @@ module('Integration | Adapter | service', function(hooks) {
     test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:service');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/internal/ui/services?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         ns: nspace,
       });
@@ -25,11 +26,12 @@ module('Integration | Adapter | service', function(hooks) {
     test(`requestForQuery returns the correct url/method when called with gateway when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:service');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const gateway = 'gateway';
       const expected = `GET /v1/internal/ui/gateway-services-nodes/${gateway}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
+      let actual = adapter.requestForQuery(request, {
         dc: dc,
         ns: nspace,
         gateway: gateway,
@@ -39,10 +41,11 @@ module('Integration | Adapter | service', function(hooks) {
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:service');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       const expected = `GET /v1/health/service/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
+      let actual = adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
@@ -53,8 +56,9 @@ module('Integration | Adapter | service', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:service');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });

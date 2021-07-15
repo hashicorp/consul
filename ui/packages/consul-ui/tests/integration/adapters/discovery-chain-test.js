@@ -10,8 +10,9 @@ module('Integration | Adapter | discovery-chain', function(hooks) {
   test('requestForQueryRecord returns the correct url/method', function(assert) {
     const adapter = this.owner.lookup('adapter:discovery-chain');
     const client = this.owner.lookup('service:client/http');
+    const request = client.requestParams.bind(client);
     const expected = `GET /v1/discovery-chain/${id}?dc=${dc}`;
-    const actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
+    const actual = adapter.requestForQueryRecord(request, {
       dc: dc,
       id: id,
     });
@@ -20,8 +21,9 @@ module('Integration | Adapter | discovery-chain', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:discovery-chain');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });
@@ -29,7 +31,8 @@ module('Integration | Adapter | discovery-chain', function(hooks) {
   test('requestForQueryRecord returns the correct body', function(assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
-        return adapter.requestForQueryRecord(client.body, {
+        const request = client.body.bind(client);
+        return adapter.requestForQueryRecord(request, {
           id: id,
           dc: dc,
           ns: 'team-1',

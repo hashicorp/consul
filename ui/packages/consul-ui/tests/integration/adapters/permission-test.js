@@ -13,11 +13,12 @@ module('Integration | Adapter | permission', function(hooks) {
     test('requestForAuthorize returns the correct url/method', function(assert) {
       const adapter = this.owner.lookup('adapter:permission');
       const client = this.owner.lookup('service:client/http');
+      const request = client.requestParams.bind(client);
       // authorize endpoint doesn't need an ns sending on the query param
       const expected = `POST /v1/internal/acl/authorize?dc=${dc}${
         shouldHaveNspace(nspace) ? `` : ``
       }`;
-      const actual = adapter.requestForAuthorize(client.requestParams.bind(client), {
+      const actual = adapter.requestForAuthorize(request, {
         dc: dc,
         ns: nspace,
       });

@@ -3,29 +3,37 @@ import { SLUG_KEY } from 'consul-ui/models/nspace';
 
 // namespaces aren't categorized by datacenter, therefore no dc
 export default class NspaceAdapter extends Adapter {
-  requestForQuery(request, { index, uri }) {
+  requestForQuery(request, { partition, index, uri }) {
     return request`
       GET /v1/namespaces
       X-Request-ID: ${uri}
 
-      ${{ index }}
+      ${{
+        partition,
+        index,
+      }}
     `;
   }
 
-  requestForQueryRecord(request, { index, id }) {
+  requestForQueryRecord(request, { partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an name');
     }
     return request`
       GET /v1/namespace/${id}
 
-      ${{ index }}
+      ${{
+        partition,
+        index,
+      }}
     `;
   }
 
   requestForCreateRecord(request, serialized, data) {
     return request`
-      PUT /v1/namespace/${data[SLUG_KEY]}
+      PUT /v1/namespace/${data[SLUG_KEY]}?${{
+      partition: data.Partition,
+    }}
 
       ${{
         Name: serialized.Name,
@@ -40,7 +48,9 @@ export default class NspaceAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     return request`
-      PUT /v1/namespace/${data[SLUG_KEY]}
+      PUT /v1/namespace/${data[SLUG_KEY]}?${{
+      partition: data.Partition,
+    }}
 
       ${{
         Description: serialized.Description,
@@ -54,7 +64,9 @@ export default class NspaceAdapter extends Adapter {
 
   requestForDeleteRecord(request, serialized, data) {
     return request`
-      DELETE /v1/namespace/${data[SLUG_KEY]}
+      DELETE /v1/namespace/${data[SLUG_KEY]}?${{
+      partition: data.Partition,
+    }}
     `;
   }
 }

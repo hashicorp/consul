@@ -7,8 +7,9 @@ module('Integration | Adapter | acl', function(hooks) {
   test('requestForQuery returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `GET /v1/acl/list?dc=${dc}`;
-    const actual = adapter.requestForQuery(client.url, {
+    const actual = adapter.requestForQuery(request, {
       dc: dc,
     });
     assert.equal(actual, expected);
@@ -16,8 +17,9 @@ module('Integration | Adapter | acl', function(hooks) {
   test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `GET /v1/acl/info/${id}?dc=${dc}`;
-    const actual = adapter.requestForQueryRecord(client.url, {
+    const actual = adapter.requestForQueryRecord(request, {
       dc: dc,
       id: id,
     });
@@ -26,8 +28,9 @@ module('Integration | Adapter | acl', function(hooks) {
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     assert.throws(function() {
-      adapter.requestForQueryRecord(client.url, {
+      adapter.requestForQueryRecord(request, {
         dc: dc,
       });
     });
@@ -35,10 +38,11 @@ module('Integration | Adapter | acl', function(hooks) {
   test('requestForCreateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `PUT /v1/acl/create?dc=${dc}`;
     const actual = adapter
       .requestForCreateRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,
@@ -51,10 +55,11 @@ module('Integration | Adapter | acl', function(hooks) {
   test('requestForUpdateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `PUT /v1/acl/update?dc=${dc}`;
     const actual = adapter
       .requestForUpdateRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,
@@ -67,10 +72,11 @@ module('Integration | Adapter | acl', function(hooks) {
   test('requestForDeleteRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `PUT /v1/acl/destroy/${id}?dc=${dc}`;
     const actual = adapter
       .requestForDeleteRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,
@@ -83,10 +89,11 @@ module('Integration | Adapter | acl', function(hooks) {
   test('requestForCloneRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:acl');
     const client = this.owner.lookup('service:client/http');
+    const request = client.url.bind(client);
     const expected = `PUT /v1/acl/clone/${id}?dc=${dc}`;
     const actual = adapter
       .requestForCloneRecord(
-        client.url,
+        request,
         {},
         {
           Datacenter: dc,
