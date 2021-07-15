@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
+	gogo_jsonpb "github.com/gogo/protobuf/jsonpb"
 	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/coordinate"
@@ -4926,7 +4926,7 @@ func TestAutoConfig_Integration(t *testing.T) {
 		rdr := strings.NewReader(string(data))
 
 		var resp pbautoconf.AutoConfigResponse
-		pbUnmarshaler := &jsonpb.Unmarshaler{
+		pbUnmarshaler := &gogo_jsonpb.Unmarshaler{
 			AllowUnknownFields: false,
 		}
 		require.NoError(r, pbUnmarshaler.Unmarshal(rdr, &resp), "data: %s", data)
