@@ -366,7 +366,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(cfg, m)
+		d.addSOA(cfg, m, q.Name)
 	}
 
 	datacenter := d.agent.config.Datacenter
@@ -479,7 +479,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
 		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
-		m.Answer = append(m.Answer, d.soa(cfg))
+		m.Answer = append(m.Answer, d.soa(cfg, q.Name))
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
 		m.SetRcode(req, dns.RcodeSuccess)
@@ -505,18 +505,23 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-func (d *DNSServer) soa(cfg *dnsConfig) *dns.SOA {
+func (d *DNSServer) soa(cfg *dnsConfig, questionName string) *dns.SOA {
+	domain := d.domain
+	if strings.HasSuffix(questionName, d.altDomain) {
+		domain = d.altDomain
+	}
+
 	return &dns.SOA{
 		Hdr: dns.RR_Header{
-			Name:   d.domain,
+			Name:   domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			// Has to be consistent with MinTTL to avoid invalidation
 			Ttl: cfg.SOAConfig.Minttl,
 		},
-		Ns:      "ns." + d.domain,
+		Ns:      "ns." + domain,
 		Serial:  uint32(time.Now().Unix()),
-		Mbox:    "hostmaster." + d.domain,
+		Mbox:    "hostmaster." + domain,
 		Refresh: cfg.SOAConfig.Refresh,
 		Retry:   cfg.SOAConfig.Retry,
 		Expire:  cfg.SOAConfig.Expire,
@@ -525,8 +530,8 @@ func (d *DNSServer) soa(cfg *dnsConfig) *dns.SOA {
 }
 
 // addSOA is used to add an SOA record to a message for the given domain
-func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
-	msg.Ns = append(msg.Ns, d.soa(cfg))
+func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg, questionName string) {
+	msg.Ns = append(msg.Ns, d.soa(cfg, questionName))
 }
 
 // nameservers returns the names and ip addresses of up to three random servers
@@ -594,7 +599,7 @@ func (d *DNSServer) dispatch(network string, remoteAddr net.Addr, req, resp *dns
 
 func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
 	d.logger.Warn("QName invalid", "qname", qName)
-	d.addSOA(cfg, resp)
+	d.addSOA(cfg, resp, qName)
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
@@ -654,7 +659,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 	invalid := func() bool {
 		d.logger.Warn("QName invalid", "qname", qName)
-		d.addSOA(cfg, resp)
+		d.addSOA(cfg, resp, req.Question[0].Name)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return true
 	}
@@ -882,7 +887,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, res
 		d.logger.Error("rpc error", "error", err)
 		rCode := d.computeRCode(err)
 		if rCode == dns.RcodeNameError {
-			d.addSOA(cfg, resp)
+			d.addSOA(cfg, resp, req.Question[0].Name)
 		}
 		resp.SetRcode(req, rCode)
 		return
@@ -890,7 +895,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, res
 
 	// If we have no out.NodeServices.Nodeaddress, return not found!
 	if out.NodeServices == nil {
-		d.addSOA(cfg, resp)
+		d.addSOA(cfg, resp, req.Question[0].Name)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -1223,7 +1228,7 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 		d.logger.Error("rpc error", "error", err)
 		rCode := d.computeRCode(err)
 		if rCode == dns.RcodeNameError {
-			d.addSOA(cfg, resp)
+			d.addSOA(cfg, resp, req.Question[0].Name)
 		}
 		resp.SetRcode(req, rCode)
 		return
@@ -1231,7 +1236,7 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		d.addSOA(cfg, resp)
+		d.addSOA(cfg, resp, req.Question[0].Name)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -1254,7 +1259,7 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
-		d.addSOA(cfg, resp)
+		d.addSOA(cfg, resp, req.Question[0].Name)
 		return
 	}
 }
@@ -1322,7 +1327,7 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 	if err != nil {
 		rCode := d.computeRCode(err)
 		if rCode == dns.RcodeNameError {
-			d.addSOA(cfg, resp)
+			d.addSOA(cfg, resp, req.Question[0].Name)
 		}
 		resp.SetRcode(req, rCode)
 		return
@@ -1356,7 +1361,7 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		d.addSOA(cfg, resp)
+		d.addSOA(cfg, resp, req.Question[0].Name)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -1373,7 +1378,7 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 
 	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 && !resp.Truncated {
-		d.addSOA(cfg, resp)
+		d.addSOA(cfg, resp, req.Question[0].Name)
 		return
 	}
 }
