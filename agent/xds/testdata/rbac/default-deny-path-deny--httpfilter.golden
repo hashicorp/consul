@@ -1,0 +1,7 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "config": {
+      "rules": {
+          }
+    }
+}
