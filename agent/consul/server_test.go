@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"os"
 	"strings"
 	"sync/atomic"

@@ -1,7 +1,7 @@
 package consul
 
 import (
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"os"
 	"testing"
 	"time"

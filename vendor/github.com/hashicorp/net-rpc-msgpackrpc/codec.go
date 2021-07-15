@@ -3,7 +3,7 @@ package msgpackrpc
 import (
 	"bufio"
 	"io"
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"sync"
 
 	"github.com/hashicorp/go-msgpack/codec"

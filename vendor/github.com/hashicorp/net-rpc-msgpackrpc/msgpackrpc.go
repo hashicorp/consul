@@ -6,7 +6,8 @@ package msgpackrpc
 import (
 	"io"
 	"net"
-	"net/rpc"
+
+	"github.com/hashicorp/go-msgpack/net/rpc"
 )
 
 // Dial connects to a MessagePack-RPC server at the specified network address.

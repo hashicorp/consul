@@ -23,7 +23,8 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net/rpc"
+
+	"github.com/hashicorp/go-msgpack/net/rpc"
 )
 
 const (

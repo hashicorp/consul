@@ -3,7 +3,7 @@ package consul
 import (
 	"fmt"
 	"io/ioutil"
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"os"
 	"path/filepath"
 	"strings"

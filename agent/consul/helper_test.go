@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"

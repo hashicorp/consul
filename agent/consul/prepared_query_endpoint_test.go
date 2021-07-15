@@ -3,7 +3,7 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"net/rpc"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"os"
 	"reflect"
 	"sort"

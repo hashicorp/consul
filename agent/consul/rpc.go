@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -17,6 +19,7 @@ import (
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-msgpack/net/rpc"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/memberlist"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -948,4 +951,59 @@ func (s *Server) consistentRead() error {
 	}
 
 	return structs.ErrNotReadyForConsistentReads
+}
+
+type rpcMetricsInterceptor struct {
+	// TODO: accept a smaller interface
+	srv *Server
+}
+
+func (r rpcMetricsInterceptor) ServiceCall(fn func(), serviceMethod string, argv, replyv reflect.Value) {
+	start := time.Now()
+	fn()
+
+	failed := "false"
+	if _, ok := replyv.Interface().(error); ok {
+		failed = "true"
+	}
+	role := "follower"
+	if r.srv.IsLeader() {
+		role = "leader"
+	}
+	labels := []metrics.Label{
+		{Name: "method", Value: serviceMethod},
+		{Name: "datacenter", Value: r.srv.config.Datacenter},
+		{Name: "server", Value: role},
+		{Name: "error", Value: failed},
+	}
+
+	argvi := argv.Interface()
+	if rq, ok := argvi.(readQuery); ok {
+		labels = append(labels,
+			metrics.Label{
+				Name:  "allow-stale",
+				Value: strconv.FormatBool(rq.AllowStaleRead()),
+			},
+			metrics.Label{
+				Name:  "blocking",
+				Value: strconv.FormatBool(rq.GetMinQueryIndex() > 0),
+			})
+	}
+	if td, ok := argvi.(targetDC); ok {
+		labels = append(labels, metrics.Label{Name: "target-datacenter", Value: td.RequestDatacenter()})
+	}
+	metrics.MeasureSinceWithLabels(metricRPCRequest, start, labels)
+}
+
+var metricRPCRequest = []string{"rpc", "call"}
+
+var _ rpc.Interceptor = rpcMetricsInterceptor{}
+
+type readQuery interface {
+	GetMinQueryIndex() uint64
+	AllowStaleRead() bool
+}
+
+type targetDC interface {
+	RequestDatacenter() string
 }
