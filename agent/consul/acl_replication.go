@@ -489,7 +489,7 @@ func (s *Server) updateACLReplicationStatusError(errorMsg error) {
 	defer s.aclReplicationStatusLock.Unlock()
 
 	s.aclReplicationStatus.LastError = time.Now().Round(time.Second).UTC()
-	s.aclReplicationStatus.LastErrorMessage = errorMsg
+	s.aclReplicationStatus.LastErrorMessage = errorMsg.Error()
 }
 
 func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLReplicationType, index uint64) {

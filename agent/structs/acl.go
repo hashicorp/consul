@@ -1269,7 +1269,7 @@ type ACLReplicationStatus struct {
 	ReplicatedTokenIndex uint64
 	LastSuccess          time.Time
 	LastError            time.Time
-	LastErrorMessage     error
+	LastErrorMessage     string
 }
 
 // ACLTokenSetRequest is used for token creation and update operations
