@@ -128,7 +128,7 @@ func setupConfigFiles(t *testing.T) []string {
 	}
 }
 
-func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
+func TestLoad_NodeName(t *testing.T) {
 	type testCase struct {
 		name         string
 		nodeName     string
@@ -136,18 +136,17 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 
 	fn := func(t *testing.T, tc testCase) {
-		b, err := newBuilder(LoadOpts{
+		opts := LoadOpts{
 			FlagValues: Config{
 				NodeName: pString(tc.nodeName),
 				DataDir:  pString("dir"),
 			},
-		})
-		patchLoadOptsShims(&b.opts)
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
 		require.NoError(t, err)
-		_, err = b.BuildAndValidate()
-		require.NoError(t, err)
-		require.Len(t, b.Warnings, 1)
-		require.Contains(t, b.Warnings[0], tc.expectedWarn)
+		require.Len(t, result.Warnings, 1)
+		require.Contains(t, result.Warnings[0], tc.expectedWarn)
 	}
 
 	var testCases = []testCase{

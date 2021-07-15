@@ -81,6 +81,11 @@ type LoadOpts struct {
 	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
 	getPrivateIPv4 func() ([]*net.IPAddr, error)
 	getPublicIPv6  func() ([]*net.IPAddr, error)
+
+	// sources is a shim for testing. Many test cases used explicit sources instead
+	// paths to config files. This shim allows us to preserve those test cases
+	// while using Load as the entrypoint.
+	sources []Source
 }
 
 // Load will build the configuration including the config source injected
@@ -94,8 +99,11 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err != nil {
 		return r, err
 	}
-	cfg, err := b.BuildAndValidate()
+	cfg, err := b.build()
 	if err != nil {
+		return r, err
+	}
+	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
 	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
@@ -166,6 +174,7 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 		b.Head = append(b.Head, opts.DefaultConfig)
 	}
 
+	b.Sources = opts.sources
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
@@ -295,24 +304,13 @@ func (a byName) Len() int           { return len(a) }
 func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
-func (b *builder) BuildAndValidate() (RuntimeConfig, error) {
-	rt, err := b.Build()
-	if err != nil {
-		return RuntimeConfig{}, err
-	}
-	if err := b.Validate(rt); err != nil {
-		return RuntimeConfig{}, err
-	}
-	return rt, nil
-}
-
-// Build constructs the runtime configuration from the config sources
+// build constructs the runtime configuration from the config sources
 // and the command line flags. The config sources are processed in the
 // order they were added with the flags being processed last to give
 // precedence over the other sources. If the error is nil then
 // warnings can still contain deprecation or format warnings that should
 // be presented to the user.
-func (b *builder) Build() (rt RuntimeConfig, err error) {
+func (b *builder) build() (rt RuntimeConfig, err error) {
 	srcs := make([]Source, 0, len(b.Head)+len(b.Sources)+len(b.Tail))
 	srcs = append(srcs, b.Head...)
 	srcs = append(srcs, b.Sources...)
@@ -1175,8 +1173,8 @@ func validateBasicName(field, value string, allowEmpty bool) error {
 	return nil
 }
 
-// Validate performs semantic validation of the runtime configuration.
-func (b *builder) Validate(rt RuntimeConfig) error {
+// validate performs semantic validation of the runtime configuration.
+func (b *builder) validate(rt RuntimeConfig) error {
 
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
