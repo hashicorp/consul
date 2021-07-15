@@ -172,10 +172,10 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 	var token string
 	s.parseToken(req, &token)
 	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
+	switch {
+	case err != nil:
 		return nil, err
-	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	case rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow:
 		return nil, acl.ErrPermissionDenied
 	}
 

@@ -18,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/assert"
@@ -1404,6 +1406,91 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	})
+}
+
+func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
+	bd := BaseDeps{}
+	bd.Tokens = new(tokenStore.Store)
+	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
+	bd.MetricsHandler = sink
+	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
+	agent := &Agent{
+		baseDeps: bd,
+		delegate: d,
+		tokens:   bd.Tokens,
+		config:   &config.RuntimeConfig{NodeName: "the-node"},
+		logger:   hclog.NewInterceptLogger(nil),
+	}
+	h := HTTPHandlers{agent: agent, denylist: NewDenylist(nil)}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
+	require.NoError(t, err)
+	handle := h.handler(false)
+	handle.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusForbidden, resp.Code)
+	require.Contains(t, resp.Body.String(), "Permission denied")
+}
+
+func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
+	bd := BaseDeps{}
+	bd.Tokens = new(tokenStore.Store)
+	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
+	bd.MetricsHandler = sink
+	d := fakeResolveTokenDelegate{}
+	agent := &Agent{
+		baseDeps: bd,
+		delegate: d,
+		tokens:   bd.Tokens,
+		config:   &config.RuntimeConfig{NodeName: "the-node"},
+		logger:   hclog.NewInterceptLogger(nil),
+	}
+	h := HTTPHandlers{agent: agent, denylist: NewDenylist(nil)}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Millisecond)
+	defer cancel()
+
+	// produce some metrics
+	go func() {
+		for ctx.Err() == nil {
+			sink.SetGauge([]string{"the-key"}, 12)
+			time.Sleep(5 * time.Millisecond)
+		}
+	}()
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
+	require.NoError(t, err)
+	handle := h.handler(false)
+	handle.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	decoder := json.NewDecoder(resp.Body)
+	var summary metrics.MetricsSummary
+	err = decoder.Decode(&summary)
+	require.NoError(t, err)
+
+	expected := []metrics.GaugeValue{
+		{Name: "the-key", Value: 12, DisplayLabels: map[string]string{}},
+	}
+	require.Equal(t, expected, summary.Gauges)
+
+	// There should be at least two intervals worth of metrics
+	err = decoder.Decode(&summary)
+	require.NoError(t, err)
+	require.Equal(t, expected, summary.Gauges)
+}
+
+type fakeResolveTokenDelegate struct {
+	delegate
+	authorizer acl.Authorizer
+}
+
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *structs.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
+	return f.authorizer, nil
 }
 
 func TestAgent_Reload(t *testing.T) {
