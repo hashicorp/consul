@@ -361,7 +361,6 @@ func (c *CAManager) InitializeCA() (reterr error) {
 
 	// Update the state before doing anything else.
 	oldState, err := c.setState(caStateInitializing, true)
-	// if we were already in the initialized state then there is nothing to be done.
 	if err != nil {
 		return err
 	}
@@ -378,6 +377,7 @@ func (c *CAManager) InitializeCA() (reterr error) {
 		}
 	}()
 
+	// if we were already in the initialized state then there is nothing to be done.
 	if oldState == caStateInitialized {
 		return nil
 	}
