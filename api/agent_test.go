@@ -1642,7 +1642,7 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	auth, err := agent.ConnectAuthorize(params)
 	require.Nil(err)
 	require.True(auth.Authorized)
-	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+	require.Equal(auth.Reason, "Default behavior configured by ACLs")
 }
 
 func TestAPI_AgentHealthService(t *testing.T) {
