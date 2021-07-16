@@ -1,0 +1,3 @@
+```release-note:bug
+dns: fixes a bug with edns truncation where the response could exceed the size limit in some cases.
+```
