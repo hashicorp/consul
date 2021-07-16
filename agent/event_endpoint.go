@@ -118,14 +118,15 @@ func (s *HTTPHandlers) EventList(resp http.ResponseWriter, req *http.Request) (i
 	// Setup a notification channel for changes
 SETUP_NOTIFY:
 	if b.MinQueryIndex > 0 {
+		notifier := s.agent.userEventHandler.NotifyGroup()
 		notifyCh = make(chan struct{}, 1)
-		s.agent.eventNotify.Wait(notifyCh)
-		defer s.agent.eventNotify.Clear(notifyCh)
+		notifier.Wait(notifyCh)
+		defer notifier.Clear(notifyCh)
 	}
 
 RUN_QUERY:
 	// Get the recent events
-	events := s.agent.UserEvents()
+	events := s.agent.userEventHandler.UserEvents()
 
 	// Filter the events using the ACL, if present
 	if authz != nil {

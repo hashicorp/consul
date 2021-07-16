@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
+	"github.com/hashicorp/consul/agent/rpcclient/kv"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
@@ -232,17 +233,8 @@ type Agent struct {
 	// dockerClient is the client for performing docker health checks.
 	dockerClient *checks.DockerClient
 
-	// eventCh is used to receive user events
-	eventCh chan serf.UserEvent
-
-	// eventBuf stores the most recent events in a ring buffer
-	// using eventIndex as the next index to insert into. This
-	// is guarded by eventLock. When an insert happens, the
-	// eventNotify group is notified.
-	eventBuf    []*UserEvent
-	eventIndex  int
-	eventLock   sync.RWMutex
-	eventNotify NotifyGroup
+	// TODO: use an interface
+	userEventHandler *userEventHandler
 
 	shutdown     bool
 	shutdownCh   chan struct{}
@@ -362,8 +354,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		checkGRPCs:      make(map[structs.CheckID]*checks.CheckGRPC),
 		checkDockers:    make(map[structs.CheckID]*checks.CheckDocker),
 		checkAliases:    make(map[structs.CheckID]*checks.CheckAlias),
-		eventCh:         make(chan serf.UserEvent, 1024),
-		eventBuf:        make([]*UserEvent, 256),
 		joinLANNotifier: &systemd.Notifier{},
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
@@ -475,19 +465,28 @@ func (a *Agent) Start(ctx context.Context) error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
+	// TODO: move userEventHandler before Agent.New()
+	remoteExec := &remoteExecHandler{
+		Logger:       a.logger,
+		AgentTokener: a.tokens,
+		KV:           &kv.Client{NetRPC: a},
+	}
+	a.userEventHandler = newUserEventHandler(
+		UserEventHandlerDeps{
+			Services:         a.State,
+			HandleRemoteExec: remoteExec.handle,
+			Logger:           a.logger,
+		},
+		runtimeToUserEventHandlerConfig(a.config))
+
 	// create the config for the rpc server/client
 	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
 	}
 
-	// Setup the user event callback
-	consulCfg.UserEventHandler = func(e serf.UserEvent) {
-		select {
-		case a.eventCh <- e:
-		case <-a.shutdownCh:
-		}
-	}
+	consulCfg.UserEventHandler = a.userEventHandler.SubmitFunc(
+		&lib.StopChannelContext{StopCh: a.shutdownCh})
 
 	// ServerUp is used to inform that a new consul server is now
 	// up. This can be used to speed up the sync process if we are blocking
@@ -583,7 +582,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.reapServices()
 
 	// Start handling events.
-	go a.handleEvents()
+	go a.userEventHandler.Start(&lib.StopChannelContext{StopCh: a.ShutdownCh()})
 
 	// Start sending network coordinate to the server.
 	if !c.DisableCoordinates {
@@ -3640,6 +3639,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		}
 	}
 
+	a.userEventHandler.SetConfig(runtimeToUserEventHandlerConfig(newCfg))
+
 	err := a.reloadEnterprise(newCfg)
 	if err != nil {
 		return err
@@ -3677,6 +3678,14 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	return nil
+}
+
+func runtimeToUserEventHandlerConfig(rt *config.RuntimeConfig) UserEventHandlerConfig {
+	return UserEventHandlerConfig{
+		NodeName:          rt.NodeName,
+		Datacenter:        rt.Datacenter,
+		DisableRemoteExec: rt.DisableRemoteExec,
+	}
 }
 
 // LocalBlockingQuery performs a blocking query in a generic way against

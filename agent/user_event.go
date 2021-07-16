@@ -2,11 +2,16 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
+	"sync"
+	"sync/atomic"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -75,6 +80,7 @@ func validateUserEventParams(params *UserEvent) error {
 }
 
 // UserEvent is used to fire an event via the Serf layer on the LAN
+// TODO: move to another file.
 func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 	// Validate the params
 	if err := validateUserEventParams(params); err != nil {
@@ -108,38 +114,102 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 	return a.RPC("Internal.EventFire", &args, &out)
 }
 
-// handleEvents is used to process incoming user events
-func (a *Agent) handleEvents() {
+type userEventHandler struct {
+	deps     UserEventHandlerDeps
+	cfg      atomic.Value
+	notifier *NotifyGroup
+
+	// eventLock synchronizes access to eventBuf and eventIndex
+	eventLock sync.RWMutex
+
+	// eventBuf stores the most recent events in a ring buffer using eventIndex
+	// as the next index to insert into. This is guarded by eventLock. When an
+	// insert happens, the eventNotify group is notified.
+	eventBuf   []*UserEvent
+	eventIndex int
+	eventCh    chan serf.UserEvent
+}
+
+// UserEventHandlerDeps are dependencies required by a userEventHandler
+type UserEventHandlerDeps struct {
+	Services         ServiceLister
+	HandleRemoteExec func(event remoteExecEvent)
+	Logger           hclog.Logger
+}
+
+type UserEventHandlerConfig struct {
+	NodeName          string
+	Datacenter        string
+	DisableRemoteExec bool
+}
+
+type ServiceLister interface {
+	Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService
+}
+
+func newUserEventHandler(deps UserEventHandlerDeps, cfg UserEventHandlerConfig) *userEventHandler {
+	config := atomic.Value{}
+	config.Store(cfg)
+
+	return &userEventHandler{
+		deps:     deps,
+		cfg:      config,
+		notifier: new(NotifyGroup),
+		eventCh:  make(chan serf.UserEvent, 1024),
+		eventBuf: make([]*UserEvent, 256),
+	}
+}
+
+func (u *userEventHandler) config() UserEventHandlerConfig {
+	return u.cfg.Load().(UserEventHandlerConfig)
+}
+
+// SetConfig to the value of cfg.
+func (u *userEventHandler) SetConfig(cfg UserEventHandlerConfig) {
+	u.cfg.Store(cfg)
+}
+
+func (u *userEventHandler) SubmitFunc(ctx context.Context) func(e serf.UserEvent) {
+	return func(e serf.UserEvent) {
+		select {
+		case u.eventCh <- e:
+		case <-ctx.Done():
+		}
+	}
+}
+
+// Start is used to process incoming user events
+func (u *userEventHandler) Start(ctx context.Context) {
 	for {
 		select {
-		case e := <-a.eventCh:
+		case e := <-u.eventCh:
 			// Decode the event
 			msg := new(UserEvent)
 			if err := decodeMsgPackUserEvent(e.Payload, msg); err != nil {
-				a.logger.Error("Failed to decode event", "error", err)
+				u.deps.Logger.Error("Failed to decode event", "error", err)
 				continue
 			}
 			msg.LTime = uint64(e.LTime)
 
 			// Skip if we don't pass filtering
-			if !a.shouldProcessUserEvent(msg) {
+			if !u.shouldProcessUserEvent(msg) {
 				continue
 			}
 
 			// Ingest the event
-			a.ingestUserEvent(msg)
+			u.ingestUserEvent(msg)
 
-		case <-a.shutdownCh:
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
 // shouldProcessUserEvent checks if an event makes it through our filters
-func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
+func (u *userEventHandler) shouldProcessUserEvent(msg *UserEvent) bool {
 	// Check the version
 	if msg.Version > userEventMaxVersion {
-		a.logger.Warn("Event version may have unsupported features",
+		u.deps.Logger.Warn("Event version may have unsupported features",
 			"version", msg.Version,
 			"event", msg.Name,
 		)
@@ -149,14 +219,14 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	if msg.NodeFilter != "" {
 		re, err := regexp.Compile(msg.NodeFilter)
 		if err != nil {
-			a.logger.Error("Failed to parse node filter for event",
+			u.deps.Logger.Error("Failed to parse node filter for event",
 				"filter", msg.NodeFilter,
 				"event", msg.Name,
 				"error", err,
 			)
 			return false
 		}
-		if !re.MatchString(a.config.NodeName) {
+		if !re.MatchString(u.config().NodeName) {
 			return false
 		}
 	}
@@ -164,7 +234,7 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	if msg.ServiceFilter != "" {
 		re, err := regexp.Compile(msg.ServiceFilter)
 		if err != nil {
-			a.logger.Error("Failed to parse service filter for event",
+			u.deps.Logger.Error("Failed to parse service filter for event",
 				"filter", msg.ServiceFilter,
 				"event", msg.Name,
 				"error", err,
@@ -176,7 +246,7 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		if msg.TagFilter != "" {
 			re, err := regexp.Compile(msg.TagFilter)
 			if err != nil {
-				a.logger.Error("Failed to parse tag filter for event",
+				u.deps.Logger.Error("Failed to parse tag filter for event",
 					"filter", msg.TagFilter,
 					"event", msg.Name,
 					"error", err,
@@ -187,7 +257,7 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
-		services := a.State.Services(structs.DefaultEnterpriseMeta())
+		services := u.deps.Services.Services(structs.DefaultEnterpriseMeta())
 		found := false
 	OUTER:
 		for name, info := range services {
@@ -219,69 +289,76 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 }
 
 // ingestUserEvent is used to process an event that passes filtering
-func (a *Agent) ingestUserEvent(msg *UserEvent) {
+func (u *userEventHandler) ingestUserEvent(msg *UserEvent) {
 	// Special handling for internal events
-	switch msg.Name {
-	case remoteExecName:
-		if a.config.DisableRemoteExec {
-			a.logger.Info("ignoring remote exec event, disabled.",
+	if msg.Name == remoteExecName {
+		if u.config().DisableRemoteExec {
+			u.deps.Logger.Info("ignoring remote exec event, disabled.",
 				"event_name", msg.Name,
-				"event_id", msg.ID,
-			)
-		} else {
-			go a.handleRemoteExec(msg)
+				"event_id", msg.ID)
+			return
 		}
+
+		event, err := newRemoteExecEventFromUserEvent(*msg, u.config().NodeName, u.config().Datacenter)
+		if err != nil {
+			u.deps.Logger.Error(err.Error())
+		}
+		go u.deps.HandleRemoteExec(event)
 		return
-	default:
-		a.logger.Debug("new event",
-			"event_name", msg.Name,
-			"event_id", msg.ID,
-		)
 	}
 
-	a.eventLock.Lock()
+	u.deps.Logger.Debug("new event", "event_name", msg.Name, "event_id", msg.ID)
+	u.eventLock.Lock()
 	defer func() {
-		a.eventLock.Unlock()
-		a.eventNotify.Notify()
+		u.eventLock.Unlock()
+		u.notifier.Notify()
 	}()
 
-	idx := a.eventIndex
-	a.eventBuf[idx] = msg
-	a.eventIndex = (idx + 1) % len(a.eventBuf)
+	idx := u.eventIndex
+	u.eventBuf[idx] = msg
+	u.eventIndex = (idx + 1) % len(u.eventBuf)
 }
 
 // UserEvents is used to return a slice of the most recent
 // user events.
-func (a *Agent) UserEvents() []*UserEvent {
-	n := len(a.eventBuf)
+func (u *userEventHandler) UserEvents() []*UserEvent {
+	n := len(u.eventBuf)
 	out := make([]*UserEvent, n)
-	a.eventLock.RLock()
-	defer a.eventLock.RUnlock()
+	u.eventLock.RLock()
+	defer u.eventLock.RUnlock()
 
 	// Check if the buffer is full
-	if a.eventBuf[a.eventIndex] != nil {
-		if a.eventIndex == 0 {
-			copy(out, a.eventBuf)
+	if u.eventBuf[u.eventIndex] != nil {
+		if u.eventIndex == 0 {
+			copy(out, u.eventBuf)
 		} else {
-			copy(out, a.eventBuf[a.eventIndex:])
-			copy(out[n-a.eventIndex:], a.eventBuf[:a.eventIndex])
+			copy(out, u.eventBuf[u.eventIndex:])
+			copy(out[n-u.eventIndex:], u.eventBuf[:u.eventIndex])
 		}
 	} else {
 		// We haven't filled the buffer yet
-		copy(out, a.eventBuf[:a.eventIndex])
-		out = out[:a.eventIndex]
+		copy(out, u.eventBuf[:u.eventIndex])
+		out = out[:u.eventIndex]
 	}
 	return out
 }
 
 // LastUserEvent is used to return the last user event.
 // This will return nil if there is no recent event.
-func (a *Agent) LastUserEvent() *UserEvent {
-	a.eventLock.RLock()
-	defer a.eventLock.RUnlock()
-	n := len(a.eventBuf)
-	idx := (((a.eventIndex - 1) % n) + n) % n
-	return a.eventBuf[idx]
+// TODO: remove? not used
+func (u *userEventHandler) lastUserEvent() *UserEvent {
+	u.eventLock.RLock()
+	defer u.eventLock.RUnlock()
+	n := len(u.eventBuf)
+	idx := (((u.eventIndex - 1) % n) + n) % n
+	return u.eventBuf[idx]
+}
+
+// NotifyGroup returns the NotifyGroup that is used by callers to wait
+// for new events.
+// TODO: this could probably be exposed as part of the call to UserEvents().
+func (u *userEventHandler) NotifyGroup() *NotifyGroup {
+	return u.notifier
 }
 
 // msgpackHandleUserEvent is a shared handle for encoding/decoding of
