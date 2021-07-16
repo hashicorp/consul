@@ -104,3 +104,44 @@ load helpers
 @test "test method match" {
   assert_expected_fortio_name s2-v2 localhost 5000 /method-match
 }
+
+@test "test request header manipulation" {
+  run retry_default curl -s -f \
+    -H "X-Bad-Req: true" \
+    "localhost:5000/header-manip/debug?env=dump"
+
+  echo "GOT: $output"
+
+  [ "$status" == "0" ]
+
+  # Should have been routed to the right server
+  echo "$output" | grep -E "^FORTIO_NAME=s2-v2"
+
+  # Route should have added the right request header
+  echo "$output" | grep -E "^X-Foo: request-bar"
+
+  # Route should have removed the bad request header
+  if echo "$output" | grep -E "^X-Bad-Req: true"; then
+    echo "X-Bad-Req request header should have been stripped but was still present"
+    exit 1
+  fi
+}
+
+@test "test response header manipulation" {
+  # Add a response header that should be stripped by the route.
+  run retry_default curl -v -f -X PUT \
+    "localhost:5000/header-manip/echo?header=x-bad-resp:true"
+
+  echo "GOT: $output"
+
+  [ "$status" == "0" ]
+
+  # Route should have added the right response header (this is output by curl -v)
+  echo "$output" | grep -E "^< x-foo: response-bar"
+
+  # Route should have removed the bad response header
+  if echo "$output" | grep -E "^< x-bad-resp: true"; then
+    echo "X-Bad-Resp response header should have been stripped but was still present"
+    exit 1
+  fi
+}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
@@ -29,7 +30,11 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindConnectProxy:
 		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return s.routesForIngressGateway(cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+		return s.routesForIngressGateway(
+			cfgSnap.IngressGateway.Listeners,
+			cfgSnap.IngressGateway.Upstreams,
+			cfgSnap.IngressGateway.DiscoveryChain,
+		)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesFromSnapshotTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -160,6 +165,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 // routesForIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
 func (s *ResourceGenerator) routesForIngressGateway(
+	listeners map[proxycfg.IngressListenerKey]structs.IngressListener,
 	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
 	chains map[string]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {
@@ -190,6 +196,42 @@ func (s *ResourceGenerator) routesForIngressGateway(
 			if err != nil {
 				return nil, err
 			}
+
+			// See if we need to configure any special settings on this route config
+			if lCfg, ok := listeners[listenerKey]; ok {
+				if is := findIngressServiceMatchingUpstream(lCfg, u); is != nil {
+					// Set up any header manipulation we need
+					if is.RequestHeaders != nil {
+						virtualHost.RequestHeadersToAdd = append(
+							virtualHost.RequestHeadersToAdd,
+							makeHeadersValueOptions(is.RequestHeaders.Add, true)...,
+						)
+						virtualHost.RequestHeadersToAdd = append(
+							virtualHost.RequestHeadersToAdd,
+							makeHeadersValueOptions(is.RequestHeaders.Set, false)...,
+						)
+						virtualHost.RequestHeadersToRemove = append(
+							virtualHost.RequestHeadersToRemove,
+							is.RequestHeaders.Remove...,
+						)
+					}
+					if is.ResponseHeaders != nil {
+						virtualHost.ResponseHeadersToAdd = append(
+							virtualHost.ResponseHeadersToAdd,
+							makeHeadersValueOptions(is.ResponseHeaders.Add, true)...,
+						)
+						virtualHost.ResponseHeadersToAdd = append(
+							virtualHost.ResponseHeadersToAdd,
+							makeHeadersValueOptions(is.ResponseHeaders.Set, false)...,
+						)
+						virtualHost.ResponseHeadersToRemove = append(
+							virtualHost.ResponseHeadersToRemove,
+							is.ResponseHeaders.Remove...,
+						)
+					}
+				}
+			}
+
 			upstreamRoute.VirtualHosts = append(upstreamRoute.VirtualHosts, virtualHost)
 		}
 
@@ -197,6 +239,36 @@ func (s *ResourceGenerator) routesForIngressGateway(
 	}
 
 	return result, nil
+}
+
+func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
+	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
+	for k, v := range vals {
+		o := &envoy_core_v3.HeaderValueOption{
+			Header: &envoy_core_v3.HeaderValue{
+				Key:   k,
+				Value: v,
+			},
+			Append: makeBoolValue(add),
+		}
+		opts = append(opts, o)
+	}
+	return opts
+}
+
+func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Upstream) *structs.IngressService {
+	// Hunt through for the matching service. We validate now that there is
+	// only one IngressService for each unique name although originally that
+	// wasn't checked as it didn't matter. Assume there is only one now
+	// though!
+	wantSID := u.DestinationID()
+	for _, s := range l.Services {
+		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)
+		if wantSID.Matches(sid) {
+			return &s
+		}
+	}
+	return nil
 }
 
 func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {
@@ -283,24 +355,23 @@ func makeUpstreamRouteForDiscoveryChain(
 					return nil, err
 				}
 
-				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-				}
-
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
-
-				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-				}
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
+			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+			}
+
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
 
 			destination := discoveryRoute.Definition.Destination
+
+			route := &envoy_route_v3.Route{}
+
 			if destination != nil {
 				if destination.PrefixRewrite != "" {
 					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
@@ -331,12 +402,16 @@ func makeUpstreamRouteForDiscoveryChain(
 
 					routeAction.Route.RetryPolicy = retryPolicy
 				}
+
+				if err := injectHeaderManipToRoute(destination, route); err != nil {
+					return nil, fmt.Errorf("failed to apply header manipulation configuration to route: %v", err)
+				}
 			}
 
-			routes = append(routes, &envoy_route_v3.Route{
-				Match:  routeMatch,
-				Action: routeAction,
-			})
+			route.Match = routeMatch
+			route.Action = routeAction
+
+			routes = append(routes, route)
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
@@ -558,6 +633,9 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
+		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
+			return nil, err
+		}
 
 		clusters = append(clusters, cw)
 	}
@@ -640,5 +718,69 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 		}
 	}
 	action.HashPolicy = result
+	return nil
+}
+
+func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_route_v3.Route) error {
+	if !dest.RequestHeaders.IsZero() {
+		r.RequestHeadersToAdd = append(
+			r.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Add, true)...,
+		)
+		r.RequestHeadersToAdd = append(
+			r.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Set, false)...,
+		)
+		r.RequestHeadersToRemove = append(
+			r.RequestHeadersToRemove,
+			dest.RequestHeaders.Remove...,
+		)
+	}
+	if !dest.ResponseHeaders.IsZero() {
+		r.ResponseHeadersToAdd = append(
+			r.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Add, true)...,
+		)
+		r.ResponseHeadersToAdd = append(
+			r.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Set, false)...,
+		)
+		r.ResponseHeadersToRemove = append(
+			r.ResponseHeadersToRemove,
+			dest.ResponseHeaders.Remove...,
+		)
+	}
+	return nil
+}
+
+func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_route_v3.WeightedCluster_ClusterWeight) error {
+	if !split.RequestHeaders.IsZero() {
+		c.RequestHeadersToAdd = append(
+			c.RequestHeadersToAdd,
+			makeHeadersValueOptions(split.RequestHeaders.Add, true)...,
+		)
+		c.RequestHeadersToAdd = append(
+			c.RequestHeadersToAdd,
+			makeHeadersValueOptions(split.RequestHeaders.Set, false)...,
+		)
+		c.RequestHeadersToRemove = append(
+			c.RequestHeadersToRemove,
+			split.RequestHeaders.Remove...,
+		)
+	}
+	if !split.ResponseHeaders.IsZero() {
+		c.ResponseHeadersToAdd = append(
+			c.ResponseHeadersToAdd,
+			makeHeadersValueOptions(split.ResponseHeaders.Add, true)...,
+		)
+		c.ResponseHeadersToAdd = append(
+			c.ResponseHeadersToAdd,
+			makeHeadersValueOptions(split.ResponseHeaders.Set, false)...,
+		)
+		c.ResponseHeadersToRemove = append(
+			c.ResponseHeadersToRemove,
+			split.ResponseHeaders.Remove...,
+		)
+	}
 	return nil
 }

@@ -321,6 +321,10 @@ type configSnapshotIngressGateway struct {
 	// to. This is constructed from the ingress-gateway config entry, and uses
 	// the GatewayServices RPC to retrieve them.
 	Upstreams map[IngressListenerKey]structs.Upstreams
+
+	// Listeners is the original listener config from the ingress-gateway config
+	// entry to save us trying to pass fields through Upstreams
+	Listeners map[IngressListenerKey]structs.IngressListener
 }
 
 func (c *configSnapshotIngressGateway) IsEmpty() bool {

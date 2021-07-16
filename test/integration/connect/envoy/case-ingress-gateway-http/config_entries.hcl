@@ -18,6 +18,26 @@ config_entries {
           services = [
             {
               name = "router"
+              request_headers {
+                add {
+                  x-foo = "bar-req"
+                  x-existing-1 = "appended-req"
+                }
+                set {
+                  x-existing-2 = "replaced-req"
+                }
+                remove = ["x-bad-req"]
+              }
+              response_headers {
+                add {
+                  x-foo = "bar-resp"
+                  x-existing-1 = "appended-resp"
+                }
+                set {
+                  x-existing-2 = "replaced-resp"
+                }
+                remove = ["x-bad-resp"]
+              }
             }
           ]
         }

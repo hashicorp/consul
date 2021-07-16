@@ -1020,9 +1020,36 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Kind: structs.ServiceSplitter,
 				Name: "db",
 				Splits: []structs.ServiceSplit{
-					{Weight: 95.5, Service: "big-side"},
-					{Weight: 4, Service: "goldilocks-side"},
-					{Weight: 0.5, Service: "lil-bit-side"},
+					{
+						Weight:  95.5,
+						Service: "big-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "big"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "big"},
+						},
+					},
+					{
+						Weight:  4,
+						Service: "goldilocks-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "goldilocks"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "goldilocks"},
+						},
+					},
+					{
+						Weight:  0.5,
+						Service: "lil-bit-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "small"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "small"},
+						},
+					},
 				},
 			},
 		)
@@ -1260,6 +1287,32 @@ func setupTestVariationConfigEntriesAndSnapshot(
 							PathPrefix: "/split-3-ways",
 						}),
 						Destination: toService("split-3-ways"),
+					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathExact: "/header-manip",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service: "header-manip",
+							RequestHeaders: &structs.HTTPHeaderModifiers{
+								Add: map[string]string{
+									"request": "bar",
+								},
+								Set: map[string]string{
+									"bar": "baz",
+								},
+								Remove: []string{"qux"},
+							},
+							ResponseHeaders: &structs.HTTPHeaderModifiers{
+								Add: map[string]string{
+									"response": "bar",
+								},
+								Set: map[string]string{
+									"bar": "baz",
+								},
+								Remove: []string{"qux"},
+							},
+						},
 					},
 				},
 			},
@@ -1660,6 +1713,15 @@ func testConfigSnapshotIngressGateway(
 						DestinationName:  "db",
 						LocalBindPort:    9191,
 						LocalBindAddress: "2.3.4.5",
+					},
+				},
+			},
+			Listeners: map[IngressListenerKey]structs.IngressListener{
+				{protocol, 9191}: {
+					Port:     9191,
+					Protocol: protocol,
+					Services: []structs.IngressService{
+						{Name: "db"},
 					},
 				},
 			},
