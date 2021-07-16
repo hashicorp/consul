@@ -498,7 +498,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	default:
 		err = d.dispatch(resp.RemoteAddr(), req, m, maxRecursionLevelDefault)
 		rCode := rCodeFromError(err)
-		if rCode == dns.RcodeNameError || errors.Is(err, errNoAnswer) {
+		if rCode == dns.RcodeNameError || errors.Is(err, errNoData) {
 			d.addSOA(cfg, m)
 		}
 		m.SetRcode(req, rCode)
@@ -610,9 +610,11 @@ func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
 var errECSNotGlobal = fmt.Errorf("ECS response is not global")
 var errNameNotFound = fmt.Errorf("DNS name not found")
 
-// errNoAnswer is used to indicate that the response should set SOA, and the
-// success response code.
-var errNoAnswer = fmt.Errorf("no DNS Answer")
+// errNoData is used to indicate no resource records exist for the specified query type.
+// Per the recommendation from Section 2.2 of RFC 2308, the server will return a TYPE 2
+// NODATA response in which the RCODE is set to NOERROR (RcodeSuccess), the Answer
+// section is empty, and the Authority section contains the SOA record.
+var errNoData = fmt.Errorf("no DNS Answer")
 
 // ecsNotGlobalError may be used to wrap an error or nil, to indicate that the
 // EDNS client subnet source scope is not global.
@@ -869,12 +871,12 @@ func (d *DNSServer) trimDomain(query string) string {
 	return strings.TrimSuffix(query, shorter)
 }
 
-// rCodeFromError return the DNS Error code an error
+// rCodeFromError return the appropriate DNS response code for a given error
 func rCodeFromError(err error) int {
 	switch {
 	case err == nil:
 		return dns.RcodeSuccess
-	case errors.Is(err, errNoAnswer):
+	case errors.Is(err, errNoData):
 		return dns.RcodeSuccess
 	case errors.Is(err, errECSNotGlobal):
 		return rCodeFromError(errors.Unwrap(err))
@@ -1272,9 +1274,8 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 		d.serviceNodeRecords(cfg, lookup.Datacenter, out.Nodes, req, resp, ttl, lookup.MaxRecursionLevel)
 	}
 
-	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 {
-		return errNoAnswer
+		return errNoData
 	}
 	return nil
 }
@@ -1378,9 +1379,8 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, datacenter, query string
 		d.serviceNodeRecords(cfg, out.Datacenter, out.Nodes, req, resp, ttl, maxRecursionLevel)
 	}
 
-	// If the answer is empty and the response isn't truncated, return not found
 	if len(resp.Answer) == 0 {
-		return errNoAnswer
+		return errNoData
 	}
 	return nil
 }
