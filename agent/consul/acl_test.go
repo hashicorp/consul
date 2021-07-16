@@ -757,7 +757,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	r := newTestACLResolver(t, delegate, nil)
 
 	authz, err := r.ResolveToken("does not exist")
-	require.Nil(t, authz)
+	require.Equal(t, acl.ManageAll(), authz)
 	require.Nil(t, err)
 }
 

@@ -75,6 +75,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 
 // vetServiceUpdate makes sure the service update action is allowed by the given
 // token.
+// TODO: move to test package
 func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) error {
 	// Resolve the token and bail if ACLs aren't enabled.
 	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
@@ -86,10 +87,6 @@ func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) erro
 }
 
 func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID structs.ServiceID) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 
 	// Vet any changes based on the existing services's info.
@@ -100,7 +97,7 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 		}
 	} else {
-		return fmt.Errorf("Unknown service %q", serviceID)
+		return NotFoundError{Reason: fmt.Sprintf("Unknown service %q", serviceID)}
 	}
 
 	return nil

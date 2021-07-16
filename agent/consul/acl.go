@@ -1186,7 +1186,7 @@ func (r *ACLResolver) resolveLocallyManagedToken(token string) (structs.ACLIdent
 
 func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	if !r.ACLsEnabled() {
-		return nil, nil, nil
+		return nil, acl.ManageAll(), nil
 	}
 
 	if acl.RootAuthorizer(token) != nil {

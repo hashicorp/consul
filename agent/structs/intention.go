@@ -325,7 +325,7 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 }
 
 func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
-	if authz == nil {
+	if authz == nil || authz == acl.ManageAll() {
 		return true
 	}
 	var authzContext acl.AuthorizerContext

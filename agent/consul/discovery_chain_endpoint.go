@@ -35,7 +35,7 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.ServiceRead(args.Name, &authzContext) != acl.Allow {
+	if rule.ServiceRead(args.Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
