@@ -53,6 +53,8 @@ type TestAgent struct {
 	Config *config.RuntimeConfig
 
 	// LogOutput is the sink for the logs. If nil, logs are written to os.Stderr.
+	// The io.Writer must allow concurrent reads and writes. Note that
+	// bytes.Buffer is not safe for concurrent reads and writes.
 	LogOutput io.Writer
 
 	// DataDir may be set to a directory which exists. If is it not set,
@@ -343,8 +345,8 @@ func (a *TestAgent) Client() *api.Client {
 // DNSDisableCompression disables compression for all started DNS servers.
 func (a *TestAgent) DNSDisableCompression(b bool) {
 	for _, srv := range a.dnsServers {
-		cfg := srv.config.Load().(*dnsConfig)
-		cfg.DisableCompression = b
+		a.config.DNSDisableCompression = b
+		srv.ReloadConfig(a.config)
 	}
 }
 

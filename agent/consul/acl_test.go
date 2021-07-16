@@ -310,43 +310,51 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 	switch policyID {
 	case "acl-ro":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "acl-ro",
 			Name:        "acl-ro",
 			Description: "acl-ro",
 			Rules:       `acl = "read"`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "acl-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "acl-wr",
 			Name:        "acl-wr",
 			Description: "acl-wr",
 			Rules:       `acl = "write"`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "service-ro":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "service-ro",
 			Name:        "service-ro",
 			Description: "service-ro",
 			Rules:       `service_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "service-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "service-wr",
 			Name:        "service-wr",
 			Description: "service-wr",
 			Rules:       `service_prefix "" { policy = "write" }`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "node-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "node-wr",
 			Name:        "node-wr",
 			Description: "node-wr",
@@ -354,9 +362,11 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "dc2-key-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "dc2-key-wr",
 			Name:        "dc2-key-wr",
 			Description: "dc2-key-wr",
@@ -364,7 +374,9 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc2"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	default:
 		return testPolicyForIDEnterprise(policyID)
 	}
