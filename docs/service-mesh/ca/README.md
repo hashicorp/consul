@@ -101,3 +101,14 @@ Periodic (or background) opeartions are started automatically by the Consul lead
 ####TODO:
 - sequence diagram for leaf signing 
 - sequence diagram for CA cert rotation
+
+## CAManager states
+
+This section is a work in progress
+
+TODO: style the diagram to match the others, and add some narative text to describe the
+diagram.
+
+![CA Mananger states](./state-machine.svg)
+
+
