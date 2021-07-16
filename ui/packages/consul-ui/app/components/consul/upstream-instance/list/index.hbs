@@ -38,17 +38,6 @@
         </dl>
       {{/if}}
       {{#if item.LocalBindSocketPath}}
-{{#let (if item.LocalBindSocketMode
-          (hash
-            label='Local bind mode'
-            value=item.LocalBindSocketMode
-          )
-          (hash
-            label='Local bind mode'
-            value="-"
-          )
-        )
-as |mode|}}
           <dl class="local-bind-socket">
             <dt>
               <span>
@@ -63,6 +52,7 @@ as |mode|}}
               {{item.LocalBindSocketPath}}
             </dd>
           </dl>
+        {{#if item.LocalBindSocketMode}}
           <dl class="local-bind-mode">
             <dt>
               <span>
@@ -70,10 +60,10 @@ as |mode|}}
               </span>
             </dt>
             <dd>
-              <span>mode:</span> {{mode.value}}
+              <span>mode:</span>{{or item.LocalBindSocketMode '-'}}
             </dd>
           </dl>
-{{/let}}
+        {{/if}}
       {{else}}
         {{#if (gt item.LocalBindPort 0)}}
   {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
