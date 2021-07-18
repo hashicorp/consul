@@ -70,22 +70,23 @@ type dnsSOAConfig struct {
 }
 
 type dnsConfig struct {
-	AllowStale      bool
-	Datacenter      string
-	EnableTruncate  bool
-	MaxStale        time.Duration
-	UseCache        bool
-	CacheMaxAge     time.Duration
-	NodeName        string
-	NodeTTL         time.Duration
-	OnlyPassing     bool
-	RecursorTimeout time.Duration
-	Recursors       []string
-	SegmentName     string
-	UDPAnswerLimit  int
-	ARecordLimit    int
-	NodeMetaTXT     bool
-	SOAConfig       dnsSOAConfig
+	AllowStale       bool
+	Datacenter       string
+	EnableTruncate   bool
+	MaxStale         time.Duration
+	UseCache         bool
+	CacheMaxAge      time.Duration
+	NodeName         string
+	NodeTTL          time.Duration
+	OnlyPassing      bool
+	RecursorStrategy agentdns.RecursorStrategy
+	RecursorTimeout  time.Duration
+	Recursors        []string
+	SegmentName      string
+	UDPAnswerLimit   int
+	ARecordLimit     int
+	NodeMetaTXT      bool
+	SOAConfig        dnsSOAConfig
 	// TTLRadix sets service TTLs by prefix, eg: "database-*"
 	TTLRadix *radix.Tree
 	// TTLStict sets TTLs to service by full name match. It Has higher priority than TTLRadix
@@ -154,6 +155,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		NodeName:           conf.NodeName,
 		NodeTTL:            conf.DNSNodeTTL,
 		OnlyPassing:        conf.DNSOnlyPassing,
+		RecursorStrategy:   conf.DNSRecursorStrategy,
 		RecursorTimeout:    conf.DNSRecursorTimeout,
 		SegmentName:        conf.SegmentName,
 		UDPAnswerLimit:     conf.DNSUDPAnswerLimit,
@@ -1851,7 +1853,8 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for _, recursor := range cfg.Recursors {
+	for _, idx := range cfg.RecursorStrategy.Indexes(len(cfg.Recursors)) {
+		recursor := cfg.Recursors[idx]
 		r, rtt, err = c.Exchange(req, recursor)
 		// Check if the response is valid and has the desired Response code
 		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
@@ -1936,7 +1939,8 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for _, recursor := range cfg.Recursors {
+	for _, idx := range cfg.RecursorStrategy.Indexes(len(cfg.Recursors)) {
+		recursor := cfg.Recursors[idx]
 		r, rtt, err = c.Exchange(m, recursor)
 		if err == nil {
 			d.logger.Debug("cname recurse RTT for name",

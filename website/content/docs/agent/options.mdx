@@ -1357,6 +1357,11 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     then all services on that node will be excluded because they are also considered
     critical.
 
+  - `recursor_strategy` - If set to `sequential`, Consul will query recursors in the
+    order listed in the [`recursors`](#recursors) option. If set to `random`,
+    Consul will query an upstream DNS resolvers in a random order. Defaults to
+    `sequential`.
+
   - `recursor_timeout` - Timeout used by Consul when
     recursively querying an upstream DNS server. See [`recursors`](#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
 
