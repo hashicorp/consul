@@ -29,7 +29,7 @@ Consul provides several key features:
   dynamic configuration, feature flagging, coordination, leader election and
   more. The simple HTTP API makes it easy to use anywhere.
 
-Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
+Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows. A commercial
 version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
 is also available.
 
