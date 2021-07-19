@@ -930,6 +930,37 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 	return tlsConn, nil
 }
 
+// AuthorizeServerConn is used to validate that the connection is being established
+// by a Consul server in the same datacenter.
+//
+// The identity of the connection is checked by examining the VerifiedChains and
+// checking that the certificate presented by the "client" has both a
+// Subject.CommonName and a DNSName that matches the local ServerSNI.
+//
+// Note this check is only performed if VerifyServerHostname is enabled, otherwise
+// it does no authorization.
+func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
+	if !c.VerifyServerHostname() {
+		return nil
+	}
+
+	// TODO: also restrict the chains to only the agent TLS CA, not the connect CA
+
+	expected := c.ServerSNI(dc, "")
+	for _, chain := range conn.ConnectionState().VerifiedChains {
+		if len(chain) == 0 {
+			continue
+		}
+		for _, name := range chain[0].DNSNames {
+
+			if name == expected && chain[0].Subject.CommonName == expected {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("a TLS certificate with a CommonName of %v is required for this operation", expected)
+}
+
 // ParseCiphers parse ciphersuites from the comma-separated string into
 // recognized slice
 func ParseCiphers(cipherStr string) ([]uint16, error) {
