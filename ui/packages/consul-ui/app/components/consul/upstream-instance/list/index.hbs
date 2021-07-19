@@ -52,18 +52,22 @@
               {{item.LocalBindSocketPath}}
             </dd>
           </dl>
-        {{#if item.LocalBindSocketMode}}
           <dl class="local-bind-mode">
             <dt>
               <span>
-                Local bind mode
+                Mode
               </span>
             </dt>
+          {{#if item.LocalBindSocketMode}}
             <dd>
-              <span>mode:</span>{{or item.LocalBindSocketMode '-'}}
+              <span>mode:</span>{{item.LocalBindSocketMode}}
             </dd>
+          {{else}}
+            <dd>
+              <span>mode:</span>-
+            </dd>
+          {{/if}}
           </dl>
-        {{/if}}
       {{else}}
         {{#if (gt item.LocalBindPort 0)}}
   {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
