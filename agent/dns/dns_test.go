@@ -1,7 +1,6 @@
 package dns
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -21,11 +20,8 @@ func TestDNS_Recursor_StrategyRandom(t *testing.T) {
 		// Ensure the slices contain the same elements
 		require.ElementsMatch(t, configuredRecursors, recursorsToQuery)
 
-		if reflect.DeepEqual(configuredRecursors, recursorsToQuery) {
-			// Error if the elements are in the same order, and retry generating
-			// random recursor list
-			r.Fatal("dns recursor order is not randomized.")
-		}
+		// Ensure the elements are not in the same order
+		require.NotEqual(r, configuredRecursors, recursorsToQuery)
 	})
 }
 
