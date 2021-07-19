@@ -3832,45 +3832,6 @@ func TestDNS_Recurse_Truncation(t *testing.T) {
 	}
 }
 
-func TestDNS_Recursor_StrategyRandom(t *testing.T) {
-	configuredRecursors := []string{"1.1.1.1", "8.8.4.4", "8.8.8.8"}
-	recursorStrategy := agentdns.RecursorStrategy("random")
-
-	retries := func() *retry.Counter {
-		return &retry.Counter{Count: 5}
-	}
-
-	retry.RunWith(retries(), t, func(r *retry.R) {
-		recursorsToQuery := make([]string, 0)
-		for _, idx := range recursorStrategy.Indexes(len(configuredRecursors)) {
-			recursorsToQuery = append(recursorsToQuery, configuredRecursors[idx])
-		}
-
-		// Ensure the slices contain the same elements
-		require.ElementsMatch(t, configuredRecursors, recursorsToQuery)
-
-		if reflect.DeepEqual(configuredRecursors, recursorsToQuery) {
-			// Error if the elements are in the same order, and retry generating
-			// random recursor list
-			r.Fatal("dns recursor order is not randomized.")
-		}
-	})
-}
-
-func TestDNS_Recursor_StrategySequential(t *testing.T) {
-	expectedRecursors := []string{"1.1.1.1", "8.8.4.4", "8.8.8.8"}
-	recursorStrategy := agentdns.RecursorStrategy("sequential")
-
-	recursorsToQuery := make([]string, 0)
-	for _, idx := range recursorStrategy.Indexes(len(expectedRecursors)) {
-		recursorsToQuery = append(recursorsToQuery, expectedRecursors[idx])
-	}
-
-	// The list of recursors should match the order in which they were defined
-	// in the configuration
-	require.Equal(t, recursorsToQuery, expectedRecursors)
-}
-
 func TestDNS_RecursorTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
