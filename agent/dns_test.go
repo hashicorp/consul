@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -10,6 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/miekg/dns"
+	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,10 +23,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/miekg/dns"
-	"github.com/pascaldekloe/goe/verify"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -508,6 +510,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 
 	m := new(dns.Msg)
 	m.SetQuestion("google.node.consul.", dns.TypeANY)
+	m.SetEdns0(8192, true)
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, a.DNSAddr())
@@ -871,7 +874,6 @@ func TestDNS_EDNS0_ECS(t *testing.T) {
 			require.True(t, ok)
 			require.Equal(t, uint16(1), subnet.Family)
 			require.Equal(t, tc.SourceNetmask, subnet.SourceNetmask)
-			// scope set to 0 for a globally valid reply
 			require.Equal(t, tc.ExpectedScope, subnet.SourceScope)
 			require.Equal(t, net.ParseIP(tc.SubnetAddr), subnet.Address)
 		})
@@ -4180,6 +4182,7 @@ func TestBinarySearch(t *testing.T) {
 				msgSrc.SetQuestion("redis.service.consul.", dns.TypeSRV)
 				msg.Answer = msgSrc.Answer
 				msg.Extra = msgSrc.Extra
+				msg.Ns = msgSrc.Ns
 				index := make(map[string]dns.RR, len(msg.Extra))
 				indexRRs(msg.Extra, index)
 				blen := dnsBinaryTruncate(msg, maxSize, index, true)
@@ -5969,9 +5972,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Ns) != 1 {
-			t.Fatalf("Bad: %#v", in)
-		}
+		require.Len(t, in.Ns, 1)
 		soaRec, ok := in.Ns[0].(*dns.SOA)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Ns[0])
@@ -5980,10 +5981,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 
-		if in.Rcode != dns.RcodeSuccess {
-			t.Fatalf("Bad: %#v", in)
-		}
-
+		require.Equal(t, dns.RcodeSuccess, in.Rcode)
 	}
 
 	// Check for ipv4 records on ipv6-only service directly and via the
@@ -6303,6 +6301,51 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	}
 }
 
+func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		dns_config {
+			enable_truncate = true
+		}
+	`)
+	defer a.Shutdown()
+	a.DNSDisableCompression(true)
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	m := MockPreparedQuery{
+		executeFn: func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			// Check that the agent inserted its self-name and datacenter to
+			// the RPC request body.
+			if args.Agent.Datacenter != a.Config.Datacenter ||
+				args.Agent.Node != a.Config.NodeName {
+				t.Fatalf("bad: %#v", args.Agent)
+			}
+			for i := 0; i < 100; i++ {
+				reply.Nodes = append(reply.Nodes, structs.CheckServiceNode{Node: &structs.Node{Node: "apple", Address: fmt.Sprintf("node.address:%d", i)}, Service: &structs.NodeService{Service: "appleService", Address: fmt.Sprintf("service.address:%d", i)}})
+			}
+			return nil
+		},
+	}
+
+	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req := new(dns.Msg)
+	req.SetQuestion("foo.query.consul.", dns.TypeSRV)
+	req.SetEdns0(2048, true)
+	req.Compress = false
+
+	c := new(dns.Client)
+	resp, _, err := c.Exchange(req, a.DNSAddr())
+	require.NoError(t, err)
+	require.True(t, resp.Len() < 2048)
+}
+
 func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 	t.Parallel()
 	req := &dns.Msg{}
@@ -6399,6 +6442,111 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	if !reflect.DeepEqual(resp, expected) {
 		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
 	}
+}
+
+func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
+	t.Parallel()
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
+
+	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+		ns := &dns.SOA{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeSOA,
+				Class:  dns.ClassINET,
+			},
+			Ns: fmt.Sprintf("soa-%d", i),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+		resp.Ns = append(resp.Ns, ns)
+		if i < cfg.DNSUDPAnswerLimit {
+			expected.Answer = append(expected.Answer, srv)
+			expected.Extra = append(expected.Extra, a)
+		}
+	}
+
+	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	require.LessOrEqual(t, resp.Len(), defaultMaxUDPSize)
+	require.Len(t, resp.Ns, 0)
+}
+
+func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
+	t.Parallel()
+	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
+
+	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < 5000; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+		ns := &dns.SOA{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeSOA,
+				Class:  dns.ClassINET,
+			},
+			Ns: fmt.Sprintf("soa-%d", i),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+		resp.Ns = append(resp.Ns, ns)
+		if i < cfg.DNSUDPAnswerLimit {
+			expected.Answer = append(expected.Answer, srv)
+			expected.Extra = append(expected.Extra, a)
+		}
+	}
+	req.Question = append(req.Question, dns.Question{Qtype: dns.TypeSRV})
+
+	if trimmed := trimTCPResponse(req, resp); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	require.LessOrEqual(t, resp.Len(), 65523)
+	require.Len(t, resp.Ns, 0)
+}
+
+func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
+	t.Helper()
+	cfg, warns, err := config.Load(config.BuilderOpts{HCL: []string{hcl}}, nil)
+	require.NoError(t, err)
+	require.Len(t, warns, 0)
+	return cfg
 }
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
@@ -7150,4 +7298,20 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 			require.FailNow(t, "timeout")
 		}
 	}
+}
+
+func TestECSNotGlobalError(t *testing.T) {
+	t.Run("wrap nil", func(t *testing.T) {
+		e := ecsNotGlobalError{}
+		require.True(t, errors.Is(e, errECSNotGlobal))
+		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
+		require.Equal(t, nil, errors.Unwrap(e))
+	})
+
+	t.Run("wrap some error", func(t *testing.T) {
+		e := ecsNotGlobalError{error: errNameNotFound}
+		require.True(t, errors.Is(e, errECSNotGlobal))
+		require.False(t, errors.Is(e, fmt.Errorf("some other error")))
+		require.Equal(t, errNameNotFound, errors.Unwrap(e))
+	})
 }
