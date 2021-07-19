@@ -179,11 +179,6 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/docs/k8s/operations/tls-on-existing-cluster',
-    destination: '/docs/k8s/tls-on-existing-cluster',
-    permanent: true,
-  },
-  {
     source: '/docs/agent/services',
     destination: '/docs/discovery/services',
     permanent: true,
