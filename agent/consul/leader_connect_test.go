@@ -592,8 +592,6 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
 	})
@@ -618,15 +616,15 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	// Get the original intermediate
 	secondaryProvider, _ := getCAProviderWithLock(s2)
 	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
-	require.NoError(err)
-	require.NotEmpty(oldIntermediatePEM)
+	require.NoError(t, err)
+	require.NotEmpty(t, oldIntermediatePEM)
 
 	// Capture the current root
 	var originalRoot *structs.CARoot
 	{
 		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 1)
+		require.NoError(t, err)
+		require.Len(t, rootList.Roots, 1)
 		originalRoot = activeRoot
 	}
 
@@ -637,7 +635,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	// Update the provider config to use a new private key, which should
 	// cause a rotation.
 	_, newKey, err := connect.GeneratePrivateKey()
-	require.NoError(err)
+	require.NoError(t, err)
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
@@ -653,16 +651,16 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		}
 		var reply interface{}
 
-		require.NoError(s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+		require.NoError(t, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
 	}
 
 	var updatedRoot *structs.CARoot
-	{
+	retry.Run(t, func(r *retry.R) {
 		rootList, activeRoot, err := getTestRoots(s1, "dc1")
-		require.NoError(err)
-		require.Len(rootList.Roots, 2)
+		require.NoError(r, err)
+		require.Len(r, rootList.Roots, 2)
 		updatedRoot = activeRoot
-	}
+	})
 
 	testrpc.WaitForActiveCARoot(t, s1.RPC, "dc1", updatedRoot)
 	testrpc.WaitForActiveCARoot(t, s2.RPC, "dc2", updatedRoot)
@@ -676,17 +674,17 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 			r.Fatal("not a new intermediate")
 		}
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Verify the root lists have been rotated in each DC's state store.
 	state1 := s1.fsm.State()
 	_, primaryRoot, err := state1.CARootActive(nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	state2 := s2.fsm.State()
 	_, roots2, err := state2.CARoots(nil)
-	require.NoError(err)
-	require.Equal(2, len(roots2))
+	require.NoError(t, err)
+	require.Equal(t, 2, len(roots2))
 
 	newRoot := roots2[0]
 	oldRoot := roots2[1]
@@ -694,10 +692,10 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		newRoot = roots2[1]
 		oldRoot = roots2[0]
 	}
-	require.False(oldRoot.Active)
-	require.True(newRoot.Active)
-	require.Equal(primaryRoot.ID, newRoot.ID)
-	require.Equal(primaryRoot.RootCert, newRoot.RootCert)
+	require.False(t, oldRoot.Active)
+	require.True(t, newRoot.Active)
+	require.Equal(t, primaryRoot.ID, newRoot.ID)
+	require.Equal(t, primaryRoot.RootCert, newRoot.RootCert)
 
 	// Get the new root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
@@ -713,13 +711,13 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	raw, _ := connect.TestCSR(t, spiffeService)
 
 	leafCsr, err := connect.ParseCSR(raw)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	leafPEM, err := secondaryProvider.Sign(leafCsr)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	cert, err := connect.ParseCert(leafPEM)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Check that the leaf signed by the new intermediate can be verified using the
 	// returned cert chain (signed intermediate + remote root).
@@ -732,7 +730,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		Intermediates: intermediatePool,
 		Roots:         rootPool,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 }
 
 func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
