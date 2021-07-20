@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mitchellh/copystructure"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -1178,9 +1179,16 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
 			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
 		})
 	}
 }
@@ -1271,9 +1279,16 @@ func Test_mergeServiceConfig_TransparentProxy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
 			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
 		})
 	}
 }
