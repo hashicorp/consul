@@ -59,8 +59,8 @@ func TestStore_CAConfigCAS(t *testing.T) {
 	ok, err := s.CACheckAndSetConfig(2, 0, &structs.CAConfiguration{
 		Provider: "static",
 	})
-	if ok || err != nil {
-		t.Fatalf("expected (false, nil), got: (%v, %#v)", ok, err)
+	if ok || err == nil {
+		t.Fatalf("expected (false, \"invalid index\"), got: (%v, %#v)", ok, err)
 	}
 
 	// Check that the index is untouched and the entry

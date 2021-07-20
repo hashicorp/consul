@@ -2,7 +2,9 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/go-memdb"
+	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -157,7 +159,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	// return early here.
 	e, ok := existing.(*structs.CAConfiguration)
 	if (ok && e.ModifyIndex != cidx) || (!ok && cidx != 0) {
-		return false, nil
+		return false, errors.Errorf("invalid index")
 	}
 
 	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
