@@ -17,10 +17,25 @@ GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
 ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
-# Get the git commit
+
+# If running inside a git repository, store repo status info in environment variables
+IS_INSIDE_GIT_REPO="$(git rev-parse --is-inside-work-tree 2>/dev/null)"
+GIT_DIRTY_DEFAULT=true
+ifeq (${IS_INSIDE_GIT_REPO},1)
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
-GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || ${GIT_DIRTY_DEFAULT})
+else
+# In not running inside a git repository, define default repo status environment variables
+# This can happen if building a target inside a docker container in which this
+# GNUmakefile, but not the .git folder, are available. For example, "make ui"
+# will cause "make static-assets" to be built inside a docker container into
+# which only this file and pkg/web_ui have been copied.
+GIT_COMMIT?=
+GIT_COMMIT_YEAR?=
+GIT_DIRTY?=${GIT_DIRTY_DEFAULT}
+endif
+
 GIT_IMPORT=github.com/hashicorp/consul/version
 GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
