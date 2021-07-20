@@ -2,10 +2,12 @@ import Application from '../app';
 import config from '../config/environment';
 import { setApplication } from '@ember/test-helpers';
 import { registerWaiter } from '@ember/test';
+import { getOwner } from '@ember/application';
 import './helpers/flash-message';
 import start from 'ember-exam/test-support/start';
 
 import ClientConnections from 'consul-ui/services/client/connections';
+import LocalStorageClipboard from 'consul-ui/services/clipboard/local-storage';
 
 let activeRequests = 0;
 registerWaiter(function() {
@@ -32,7 +34,7 @@ ClientConnections.reopen({
   },
 });
 const application = Application.create(config.APP);
-application.inject('component:copy-button', 'clipboard', 'service:clipboard/local-storage');
+application.register('service:clipboard', LocalStorageClipboard);
 setApplication(application);
 
 start();

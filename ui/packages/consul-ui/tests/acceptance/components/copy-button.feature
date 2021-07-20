@@ -1,5 +1,4 @@
 @setupApplicationTest
-@ignore
 Feature: components / copy-button
   Background:
     Given 1 datacenter model with the value "dc-1"
@@ -22,5 +21,5 @@ Feature: components / copy-button
       node: node-0
     ---
     Then the url should be /dc-1/nodes/node-0/health-checks
-    When I click ".healthcheck-output:nth-child(1) .copy-button button"
+    When I click ".health-check-output:nth-child(1) .copy-button button"
     Then I copied "The output"
