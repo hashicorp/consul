@@ -143,7 +143,7 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 
 // CACheckAndSetConfig is used to try updating the CA configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
-// for the config, then the call is a noop,
+// for the config, then the call will return an error,
 func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
