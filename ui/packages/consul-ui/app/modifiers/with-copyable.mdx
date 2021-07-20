@@ -2,18 +2,20 @@
 
 Modifier for adding copy-to-clipboard functionality to any component to allow
 the user to easily copy specified text to their clipboard by clicking on
-something. Mainly an Ember flavoured wrapper for
-[Clipboard.js](https://clipboardjs.com/) which the modifier uses for all its
-functionality.
+something. Mainly an Ember flavoured wrapper for `window.navigator.clipboard`
+along with a polyfill using [Clipboard.js](https://clipboardjs.com/) if native
+clipboard access is not available. The ClipboardJS implementation came first,
+which is why the innards are this are shaped like ClipboardJS. As a todo, the
+innards should be reversed to use the native clipboard interface.
 
 You can either explicitly specify the content to be copied to the users
 clipboard using the first (and only) parameter but if this is omitted it will
 use the content (`innerText`) of the DOM element it is attached to.
 
 Usually you will want to provide a `success` and `error` callback which you
-can provide with named parameters. An escape hatch through to Clipboard.js
-options is also provided via the `options` named parameter.
+can provide with named parameters.
 
+Please note: The functionality is specifically modifier shaped to prevent folks trying to copy things on anything other than a click/enter keypress.
 
 ```hbs preview-template
 <figure>
@@ -44,11 +46,21 @@ options is also provided via the `options` named parameter.
 </figure>
 ```
 
-The Clipboard.js class is provided via a `clipboard/os` Service, also includes
-a `clipboard/local-storage` Service that automatically replaces the OS based
-clipboard during testing to enable you to assert for text that would be copied
-to the clipboard. During acceptance testing there is a specific step
-specifically for this so you don't have to think about it:
+During development the modifier automatically logs out what was copied to the
+clipboard (or the error if the copying wasn't successful), so you can see what
+is happening without having to check your clipboard. The code for this is
+removed during a production build.
+
+```sh
+with-copyable: Copied `26.140.249.222`
+```
+
+The clipboard class is provided via a `clipboard` Service (either native or
+polyfill functionality is injected here depending on support). During testing
+we also includes a `clipboard/local-storage` Service that automatically
+replaces the native based clipboard during testing to enable you to assert for
+text that would be copied to the clipboard. During acceptance testing there is
+a specific step specifically for this so you don't have to think about it:
 
 ```gherkin acceptance-test
 Scenario:
@@ -68,7 +80,6 @@ Scenario:
 | --- | --- | --- | --- |
 | `success` | `Function` | `(e) => {}` | A function to be called when the text has been successfully copied to the users clipboard |
 | `error` | `Function` | `(e) => {}` | A function to be called when there was an error copying text to the users clipboard |
-| `options` | `Object` | `{}` | An object containing any documented Clipboard.js options |
 
 
 
