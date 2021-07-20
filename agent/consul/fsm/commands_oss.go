@@ -424,12 +424,13 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 	switch req.Op {
 	case structs.CAOpSetConfig:
 		if req.Config.ModifyIndex != 0 {
-			act, err := c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
+			var emptyResp interface{}
+			err := c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
 			if err != nil {
 				return err
 			}
 
-			return act
+			return emptyResp
 		}
 
 		return c.state.CASetConfig(index, req.Config)
@@ -461,12 +462,12 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		if !act {
 			return act
 		}
-
-		act, err = c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
+		var emptyResp interface{}
+		err = c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
 		if err != nil {
 			return err
 		}
-		return act
+		return emptyResp
 	case structs.CAOpIncrementProviderSerialNumber:
 		sn, err := c.state.CAIncrementProviderSerialNumber(index)
 		if err != nil {

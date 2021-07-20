@@ -85,14 +85,14 @@ func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface
 	switch req.Op {
 	case structs.CAOpSetConfig:
 		if req.Config.ModifyIndex != 0 {
-			act, err := m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
+			var emptyResp interface{}
+			err := m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
 			if err != nil {
 				return nil, err
 			}
 
-			return act, nil
+			return emptyResp, nil
 		}
-
 		return nil, m.store.CASetConfig(idx+1, req.Config)
 	case structs.CAOpSetRootsAndConfig:
 		act, err := m.store.CARootSetCAS(idx, req.Index, req.Roots)
@@ -100,11 +100,12 @@ func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface
 			return act, err
 		}
 
-		act, err = m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
+		var emptyResp interface{}
+		err = m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
 		if err != nil {
 			return nil, err
 		}
-		return act, nil
+		return emptyResp, nil
 	case structs.CAOpSetProviderState:
 		_, err := m.store.CASetProviderState(idx+1, req.ProviderState)
 		if err != nil {

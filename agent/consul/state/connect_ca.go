@@ -144,14 +144,14 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 // CACheckAndSetConfig is used to try updating the CA configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
 // for the config, then the call will return an error,
-func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
+func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for an existing config
 	existing, err := tx.First(tableConnectCAConfig, "id")
 	if err != nil {
-		return false, fmt.Errorf("failed CA config lookup: %s", err)
+		return fmt.Errorf("failed CA config lookup: %s", err)
 	}
 
 	// If the existing index does not match the provided CAS
@@ -159,15 +159,15 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	// return early here.
 	e, ok := existing.(*structs.CAConfiguration)
 	if (ok && e.ModifyIndex != cidx) || (!ok && cidx != 0) {
-		return false, errors.Errorf("ModifyIndex did not match existing")
+		return errors.Errorf("ModifyIndex did not match existing")
 	}
 
 	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
-		return false, err
+		return err
 	}
 
 	err = tx.Commit()
-	return err == nil, err
+	return err
 }
 
 func (s *Store) caSetConfigTxn(idx uint64, tx WriteTxn, config *structs.CAConfiguration) error {
