@@ -909,9 +909,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		if respErr, ok := resp.(error); ok {
 			return respErr
 		}
-		if respOk, ok := resp.(bool); ok && !respOk {
-			return errors.New("configuration not applied")
-		}
 
 		// If the config has been committed, update the local provider instance
 		cleanupNewProvider = false
