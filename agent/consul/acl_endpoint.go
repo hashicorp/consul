@@ -178,7 +178,7 @@ func (a *ACL) aclPreCheck() error {
 	return nil
 }
 
-// Bootstrap is used to perform a one-time ACL bootstrap operation on
+// BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
 func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {

@@ -563,6 +563,7 @@ func fixupRolePolicyLinks(tx ReadTxn, original *structs.ACLRole) (*structs.ACLRo
 }
 
 // ACLTokenSet is used to insert an ACL rule into the state store.
+// Deprecated (ACL-Legacy-Compat)
 func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
@@ -959,6 +960,7 @@ func (s *Store) expiresIndexName(local bool) string {
 
 // ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
+// Deprecated (ACL-Legacy-Compat)
 func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string, entMeta *structs.EnterpriseMeta) error {
 	return s.aclTokenDelete(idx, secret, "id", entMeta)
 }
