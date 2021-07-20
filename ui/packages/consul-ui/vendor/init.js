@@ -16,6 +16,9 @@
   if (!(window.CSS && window.CSS.escape)) {
     appendScript(fs.get(`${['css.escape', 'css.escape'].join('/')}.js`));
   }
+  if (!window.navigator.clipboard) {
+    appendScript(fs.get(`${['clipboard', 'clipboard'].join('/')}.js`));
+  }
 
   try {
     const $appMeta = doc.querySelector(`[name="${appName}/config/environment"]`);

@@ -136,6 +136,11 @@ module.exports = function(defaults, $ = process.env) {
   // CSS.escape polyfill
   app.import('node_modules/css.escape/css.escape.js', { outputFile: 'assets/css.escape.js' });
 
+  // Clipboard ponyfill
+  app.import('node_modules/clipboard/dist/clipboard.js', {
+    outputFile: 'assets/clipboard/clipboard.js',
+  });
+
   // JSON linting support. Possibly dynamically loaded via CodeMirror linting. See components/code-editor.js
   app.import('node_modules/jsonlint/lib/jsonlint.js', {
     outputFile: 'assets/codemirror/mode/javascript/javascript.js',

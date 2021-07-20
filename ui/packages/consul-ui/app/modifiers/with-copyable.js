@@ -6,7 +6,7 @@ const typeAssertion = (type, value, withDefault) => {
   return typeof value === type ? value : withDefault;
 };
 export default class WithCopyableModifier extends Modifier {
-  @service('clipboard/os') clipboard;
+  @service('clipboard') clipboard;
 
   hash = null;
   source = null;
@@ -19,7 +19,9 @@ export default class WithCopyableModifier extends Modifier {
         return typeAssertion('function', _hash.success, () => {})(e);
       },
       error: e => {
-        runInDebug(_ => console.info(`with-copyable: Error copying \`${value}\``));
+        runInDebug(_ =>
+          console.info(`with-copyable: Error copying \`${value}\` - ${e.toString()}`)
+        );
         return typeAssertion('function', _hash.error, () => {})(e);
       },
     };

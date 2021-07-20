@@ -36,6 +36,7 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "text-encoding/encoding-indexes.js": "${rootURL}assets/encoding-indexes.js",
     "text-encoding/encoding.js": "${rootURL}assets/encoding.js",
     "css.escape/css.escape.js": "${rootURL}assets/css.escape.js",
+    "clipboard/clipboard.js": "${rootURL}assets/clipboard/clipboard.js",
     "codemirror/mode/javascript/javascript.js": "${rootURL}assets/codemirror/mode/javascript/javascript.js",
     "codemirror/mode/ruby/ruby.js": "${rootURL}assets/codemirror/mode/ruby/ruby.js",
     "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
