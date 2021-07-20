@@ -292,7 +292,7 @@ Those endpoints might be useful for the following use-cases:
 ##### Note
 
 If you know the ID of service you want to target, it is recommended to use
-[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-its-id)
+[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-id)
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
@@ -301,77 +301,214 @@ worst state of all services having the given name.
 
 Given 2 services with name `web`, with web2 critical and web1 passing:
 
-#### List worst statuses of all instances of web-demo services (HTTP 503)
+#### List the worst status across all instances of the `web` service (HTTP 503)
 
 ##### By Name, Text
 
 ```shell
-curl http://localhost:8500/v1/agent/health/service/name/web?format=text
+$ curl http://localhost:8500/v1/agent/health/service/name/web?format=text
 critical
 ```
 
 ##### By Name, JSON
 
-In JSON, the detail of passing/warning/critical services is present in output,
-in a array.
+For the JSON output, the response is an array containing the details of each
+passing, warning, or critical service.
 
 ```shell
 curl localhost:8500/v1/agent/health/service/name/web
 ```
 
 ```json
-{
-  "critical": [
-    {
-      "ID": "web2",
-      "Service": "web",
-      "Tags": ["rails"],
-      "Address": "",
-      "TaggedAddresses": {
-        "lan": {
-          "address": "127.0.0.1",
-          "port": 8000
-        },
-        "wan": {
-          "address": "198.18.0.53",
-          "port": 80
-        }
-      },
-      "Meta": null,
-      "Port": 80,
-      "EnableTagOverride": false,
-      "Datacenter": "dc1",
-      "Connect": {
-        "Native": false,
-        "Proxy": null
-      },
-      "CreateIndex": 0,
-      "ModifyIndex": 0
-    }
-  ],
-  "passing": [
-    {
+[
+  {
+    "AggregatedStatus": "passing",
+    "Service": {
       "ID": "web1",
       "Service": "web",
-      "Tags": ["rails"],
+      "Tags": [
+        "rails"
+      ],
+      "Meta": {},
+      "Port": 80,
       "Address": "",
+      "SocketPath": "",
       "TaggedAddresses": {
         "lan": {
-          "address": "127.0.0.1",
-          "port": 8000
+          "Address": "127.0.0.1",
+          "Port": 8000
         },
         "wan": {
-          "address": "198.18.0.53",
-          "port": 80
+          "Address": "198.51.100.53",
+          "Port": 80
         }
       },
-      "Meta": null,
-      "Port": 80,
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
       "EnableTagOverride": false,
-      "Datacenter": "dc1",
-      "Connect": {
-        "Native": false,
-        "Proxy": null
+      "Namespace": "default",
+      "Datacenter": "dc1"
+    },
+    "Checks": []
+  },
+  {
+    "AggregatedStatus": "critical",
+    "Service": {
+      "ID": "web2",
+      "Service": "web",
+      "Tags": [
+        "rails"
+      ],
+      "Meta": {},
+      "Port": 80,
+      "Address": "",
+      "SocketPath": "",
+      "TaggedAddresses": {
+        "lan": {
+          "Address": "127.0.0.1",
+          "Port": 8000
+        },
+        "wan": {
+          "Address": "198.51.100.54",
+          "Port": 80
+        }
+      },
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Namespace": "default",
+      "Datacenter": "dc1"
+    },
+    "Checks": [
+      {
+        "Node": "server1",
+        "CheckID": "service:web2",
+        "Name": "Service 'web' check",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "Get \"http://localhost/health\": dial tcp [::1]:80: connect: connection refused",
+        "ServiceID": "web2",
+        "ServiceName": "web",
+        "ServiceTags": [
+          "rails"
+        ],
+        "Type": "",
+        "Namespace": "default",
+        "Definition": {
+          "Interval": "0s",
+          "Timeout": "0s",
+          "DeregisterCriticalServiceAfter": "0s",
+          "HTTP": "",
+          "Header": null,
+          "Method": "",
+          "Body": "",
+          "TLSServerName": "",
+          "TLSSkipVerify": false,
+          "TCP": ""
+        },
+        "CreateIndex": 0,
+        "ModifyIndex": 0
+      }
+    ]
+  }
+]
+```
+
+## Get local service health by ID ((#get-local-service-health-by-its-id))
+
+Retrieve the health state of a specific service on the local agent by ID.
+
+| Method | Path                                               | Produces           |
+| ------ | -------------------------------------------------- | ------------------ |
+| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
+| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
+
+The supported request parameters are the same as
+[`/v1/agent/health/service/name/:service_name`](/api/agent/service#get-local-service-health).
+
+### Sample Requests
+
+Query the health status of the service with ID `web2`.
+
+#### List status of web2 (HTTP 503)
+
+##### Failure By ID, Text
+
+```shell
+$ curl http://localhost:8500/v1/agent/health/service/id/web2?format=text
+critical
+```
+
+##### Failure By ID, JSON
+
+In JSON, the output for a query by ID is an object containing only the details
+for that service.
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web2
+```
+
+```json
+{
+  "AggregatedStatus": "critical",
+  "Service": {
+    "ID": "web2",
+    "Service": "web",
+    "Tags": [
+      "rails"
+    ],
+    "Meta": {},
+    "Port": 80,
+    "Address": "",
+    "SocketPath": "",
+    "TaggedAddresses": {
+      "lan": {
+        "Address": "127.0.0.1",
+        "Port": 8000
+      },
+      "wan": {
+        "Address": "198.51.100.54",
+        "Port": 80
+      }
+    },
+    "Weights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "EnableTagOverride": false,
+    "Namespace": "default",
+    "Datacenter": "dc1"
+  },
+  "Checks": [
+    {
+      "Node": "server1",
+      "CheckID": "service:web2",
+      "Name": "Service 'web' check",
+      "Status": "critical",
+      "Notes": "",
+      "Output": "Get \"http://localhost/health\": dial tcp [::1]:80: connect: connection refused",
+      "ServiceID": "web2",
+      "ServiceName": "web",
+      "ServiceTags": [
+        "rails"
+      ],
+      "Type": "",
+      "Namespace": "default",
+      "Definition": {
+        "Interval": "0s",
+        "Timeout": "0s",
+        "DeregisterCriticalServiceAfter": "0s",
+        "HTTP": "",
+        "Header": null,
+        "Method": "",
+        "Body": "",
+        "TLSServerName": "",
+        "TLSSkipVerify": false,
+        "TCP": ""
       },
       "CreateIndex": 0,
       "ModifyIndex": 0
@@ -380,61 +517,12 @@ curl localhost:8500/v1/agent/health/service/name/web
 }
 ```
 
-#### List status of web2 (HTTP 503)
-
-##### Failure By ID, Text
-
-```shell
-curl http://localhost:8500/v1/agent/health/service/id/web2?format=text
-critical
-```
-
-##### Failure By ID, JSON
-
-In JSON, the output per ID is not an array, but only contains the value
-of service.
-
-```shell
-curl localhost:8500/v1/agent/health/service/id/web2
-```
-
-```json
-{
-  "critical": {
-    "ID": "web2",
-    "Service": "web",
-    "Tags": ["rails"],
-    "Address": "",
-    "TaggedAddresses": {
-      "lan": {
-        "address": "127.0.0.1",
-        "port": 8000
-      },
-      "wan": {
-        "address": "198.18.0.53",
-        "port": 80
-      }
-    },
-    "Meta": null,
-    "Port": 80,
-    "EnableTagOverride": false,
-    "Datacenter": "dc1",
-    "Connect": {
-      "Native": false,
-      "Proxy": null
-    },
-    "CreateIndex": 0,
-    "ModifyIndex": 0
-  }
-}
-```
-
-#### List status of web2 (HTTP 200)
+#### List status of web1 (HTTP 200)
 
 ##### Success By ID, Text
 
 ```shell
-curl localhost:8500/v1/agent/health/service/id/web1?format=text
+$ curl localhost:8500/v1/agent/health/service/id/web1?format=text
 passing
 ```
 
@@ -446,48 +534,38 @@ curl localhost:8500/v1/agent/health/service/id/web1
 
 ```json
 {
-  "passing": {
+  "AggregatedStatus": "passing",
+  "Service": {
     "ID": "web1",
     "Service": "web",
-    "Tags": ["rails"],
+    "Tags": [
+      "rails"
+    ],
+    "Meta": {},
+    "Port": 80,
     "Address": "",
+    "SocketPath": "",
     "TaggedAddresses": {
       "lan": {
-        "address": "127.0.0.1",
-        "port": 8000
+        "Address": "127.0.0.1",
+        "Port": 8000
       },
       "wan": {
-        "address": "198.18.0.53",
-        "port": 80
+        "Address": "198.51.100.53",
+        "Port": 80
       }
     },
-    "Meta": null,
-    "Port": 80,
-    "EnableTagOverride": false,
-    "Datacenter": "dc1",
-    "Connect": {
-      "Native": false,
-      "Proxy": null
+    "Weights": {
+      "Passing": 1,
+      "Warning": 1
     },
-    "CreateIndex": 0,
-    "ModifyIndex": 0
-  }
+    "EnableTagOverride": false,
+    "Namespace": "default",
+    "Datacenter": "dc1"
+  },
+  "Checks": []
 }
 ```
-
-## Get local service health by its ID
-
-Retrieve an aggregated state of service(s) on the local agent by ID.
-
-See:
-
-| Method | Path                                               | Produces           |
-| ------ | -------------------------------------------------- | ------------------ |
-| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
-| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
-
-Parameters and response format are the same as
-[`/v1/agent/health/service/name/:service_name`](/api/agent/service#get-local-service-health).
 
 ## Register Service
 
