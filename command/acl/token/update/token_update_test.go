@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestTokenUpdateCommand_noTabs(t *testing.T) {
@@ -53,17 +53,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
 		&api.ACLToken{Description: "test"},
-		&api.WriteOptions{Token: "root"},
-	)
-	require.NoError(t, err)
-
-	// create a legacy token
-	// nolint: staticcheck // we have to use the deprecated API to create a legacy token
-	legacyTokenSecretID, _, err := client.ACL().Create(&api.ACLEntry{
-		Name:  "Legacy token",
-		Type:  "client",
-		Rules: "service \"test\" { policy = \"write\" }",
-	},
 		&api.WriteOptions{Token: "root"},
 	)
 	require.NoError(t, err)
@@ -159,36 +148,6 @@ func TestTokenUpdateCommand(t *testing.T) {
 		})
 
 		require.Equal(t, "test token", token.Description)
-	})
-
-	// Need legacy token now, hopefully server had time to generate an accessor ID
-	// in the background but wait for it if not.
-	var legacyToken *api.ACLToken
-	retry.Run(t, func(r *retry.R) {
-		// Fetch the legacy token via new API so we can use it's accessor ID
-		legacyToken, _, err = client.ACL().TokenReadSelf(
-			&api.QueryOptions{Token: legacyTokenSecretID})
-		require.NoError(r, err)
-		require.NotEmpty(r, legacyToken.AccessorID)
-	})
-
-	// upgrade legacy token should replace rules and leave token in a "new" state!
-	t.Run("legacy-upgrade", func(t *testing.T) {
-		token := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-id=" + legacyToken.AccessorID,
-			"-token=root",
-			"-policy-name=" + policy.Name,
-			"-upgrade-legacy",
-		})
-
-		// Description shouldn't change
-		require.Equal(t, "Legacy token", token.Description)
-		require.Len(t, token.Policies, 1)
-		// Rules should now be empty meaning this is no longer a legacy token
-		require.Empty(t, token.Rules)
-		// Secret should not have changes
-		require.Equal(t, legacyToken.SecretID, token.SecretID)
 	})
 }
 
