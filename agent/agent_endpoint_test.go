@@ -45,20 +45,29 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
-	args := map[string]interface{}{
-		"Name":  "User Token",
-		"Type":  "client",
-		"Rules": `agent "" { policy = "read" }`,
+func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
+	policyReq := &structs.ACLPolicy{
+		Name:  "agent-read",
+		Rules: `agent_prefix "" { policy = "read" }`,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
 	resp := httptest.NewRecorder()
-	obj, err := srv.ACLCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	_, err := srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	tokenReq := &structs.ACLToken{
+		Description: "agent-read-token-for-test",
+		Policies:    []structs.ACLTokenPolicyLink{{Name: "agent-read"}},
 	}
-	aclResp := obj.(aclCreateResponse)
-	return aclResp.ID
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err := srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	svcToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	return svcToken.SecretID
 }
 
 func TestAgent_Services(t *testing.T) {
@@ -1386,7 +1395,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/self?token=%s", ro), nil)
 		if _, err := a.srv.AgentSelf(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1419,7 +1428,7 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/metrics?token=%s", ro), nil)
 		if _, err := a.srv.AgentMetrics(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1761,7 +1770,7 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/reload?token=%s", ro), nil)
 		if _, err := a.srv.AgentReload(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -1958,7 +1967,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a1.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a1.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=%s", addr, ro), nil)
 		if _, err := a1.srv.AgentJoin(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -2061,7 +2070,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
 		if _, err := a.srv.AgentLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -2167,7 +2176,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", ro), nil)
 		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -5599,23 +5608,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	// Create an ACL with service:write for our service
-	var token string
-	{
-		args := map[string]interface{}{
-			"Name":  "User Token",
-			"Type":  "client",
-			"Rules": `service "test" { policy = "write" }`,
-		}
-		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		token = aclResp.ID
-	}
+	token := createACLTokenWithServicePolicy(t, a.srv, "write")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
@@ -5625,6 +5618,31 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 	// Get the issued cert
 	_, ok := obj.(*structs.IssuedCert)
 	require.True(ok)
+}
+
+func createACLTokenWithServicePolicy(t *testing.T, srv *HTTPHandlers, policy string) string {
+	policyReq := &structs.ACLPolicy{
+		Name:  "service-test-write",
+		Rules: fmt.Sprintf(`service "test" { policy = "%v" }`, policy),
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	resp := httptest.NewRecorder()
+	_, err := srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	tokenReq := &structs.ACLToken{
+		Description: "token-for-test",
+		Policies:    []structs.ACLTokenPolicyLink{{Name: "service-test-write"}},
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err := srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	svcToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	return svcToken.SecretID
 }
 
 func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
@@ -5660,23 +5678,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	// Create an ACL with service:read for our service
-	var token string
-	{
-		args := map[string]interface{}{
-			"Name":  "User Token",
-			"Type":  "client",
-			"Rules": `service "test" { policy = "read" }`,
-		}
-		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		token = aclResp.ID
-	}
+	token := createACLTokenWithServicePolicy(t, a.srv, "read")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
@@ -6665,26 +6667,10 @@ func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Create an ACL
-	var token string
-	{
-		args := map[string]interface{}{
-			"Name":  "User Token",
-			"Type":  "client",
-			"Rules": `service "foo" { policy = "read" }`,
-		}
-		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		token = aclResp.ID
-	}
+	token := createACLTokenWithServicePolicy(t, a.srv, "read")
 
 	args := &structs.ConnectAuthorizeRequest{
-		Target:        "foo",
+		Target:        "test",
 		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST",

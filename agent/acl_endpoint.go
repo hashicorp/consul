@@ -459,7 +459,7 @@ func (s *HTTPHandlers) ACLTokenCreate(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	return s.aclTokenSetInternal(resp, req, "", true)
+	return s.aclTokenSetInternal(req, "", true)
 }
 
 func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -494,11 +494,11 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	return out.Token, nil
 }
 
-func (s *HTTPHandlers) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	return s.aclTokenSetInternal(resp, req, tokenID, false)
+func (s *HTTPHandlers) ACLTokenSet(_ http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+	return s.aclTokenSetInternal(req, tokenID, false)
 }
 
-func (s *HTTPHandlers) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
+func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Create:     create,
