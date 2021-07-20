@@ -2,12 +2,6 @@ package agent
 
 func init() {
 	registerEndpoint("/v1/acl/bootstrap", []string{"PUT"}, (*HTTPHandlers).ACLBootstrap)
-	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPHandlers).ACLCreate)
-	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPHandlers).ACLUpdate)
-	registerEndpoint("/v1/acl/destroy/", []string{"PUT"}, (*HTTPHandlers).ACLDestroy)
-	registerEndpoint("/v1/acl/info/", []string{"GET"}, (*HTTPHandlers).ACLGet)
-	registerEndpoint("/v1/acl/clone/", []string{"PUT"}, (*HTTPHandlers).ACLClone)
-	registerEndpoint("/v1/acl/list", []string{"GET"}, (*HTTPHandlers).ACLList)
 	registerEndpoint("/v1/acl/login", []string{"POST"}, (*HTTPHandlers).ACLLogin)
 	registerEndpoint("/v1/acl/logout", []string{"POST"}, (*HTTPHandlers).ACLLogout)
 	registerEndpoint("/v1/acl/replication", []string{"GET"}, (*HTTPHandlers).ACLReplicationStatus)
@@ -124,4 +118,12 @@ func init() {
 	registerEndpoint("/v1/status/peers", []string{"GET"}, (*HTTPHandlers).StatusPeers)
 	registerEndpoint("/v1/snapshot", []string{"GET", "PUT"}, (*HTTPHandlers).Snapshot)
 	registerEndpoint("/v1/txn", []string{"PUT"}, (*HTTPHandlers).Txn)
+
+	// Deprecated ACL endpoints, they do nothing but return an error
+	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPHandlers).ACLCreate)
+	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPHandlers).ACLUpdate)
+	registerEndpoint("/v1/acl/destroy/", []string{"PUT"}, (*HTTPHandlers).ACLDestroy)
+	registerEndpoint("/v1/acl/info/", []string{"GET"}, (*HTTPHandlers).ACLGet)
+	registerEndpoint("/v1/acl/clone/", []string{"PUT"}, (*HTTPHandlers).ACLClone)
+	registerEndpoint("/v1/acl/list", []string{"GET"}, (*HTTPHandlers).ACLList)
 }
