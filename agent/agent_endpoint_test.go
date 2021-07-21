@@ -380,7 +380,7 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Define an updated version. Be careful to copy it.
@@ -408,7 +408,7 @@ func TestAgent_Service(t *testing.T) {
 		Tags:       []string{},
 		Datacenter: "dc1",
 	}
-	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMeta())
+	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	// Copy and modify
 	updatedResponse := *expectedResponse
@@ -435,7 +435,7 @@ func TestAgent_Service(t *testing.T) {
 		Tags:       []string{},
 		Datacenter: "dc1",
 	}
-	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMeta())
+	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	tests := []struct {
 		name       string
@@ -2973,7 +2973,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	}
 
 	// Ensure we have a check mapping
-	checks := a.State.Checks(structs.WildcardEnterpriseMeta())
+	checks := a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 	if len(checks) != 3 {
 		t.Fatalf("bad: %v", checks)
 	}
@@ -3063,7 +3063,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Equal(t, 3, len(checks))
 
 	checkIDs := []string{}
@@ -3142,7 +3142,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Len(t, checks, 2)
 
 	checkIDs := []string{}
@@ -3319,7 +3319,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					// there worked by inspecting the registered sidecar below.
 					SidecarService: nil,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			got := a.State.Service(structs.NewServiceID("test", nil))
@@ -3356,7 +3356,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						},
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			gotSidecar := a.State.Service(structs.NewServiceID("test-sidecar-proxy", nil))
 			hasNoCorrectTCPCheck := true
@@ -3567,7 +3567,7 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 			LocalServiceAddress:    "127.0.0.1",
 			LocalServicePort:       port,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	for _, fn := range fns {
 		fn(ns)
@@ -3925,7 +3925,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// After we deregister the web service above, the fake sidecar with
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
@@ -3972,7 +3972,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1111,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		{

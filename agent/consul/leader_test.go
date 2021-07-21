@@ -1329,11 +1329,11 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	// Everybody has the management policy.
 	retry.Run(t, func(r *retry.R) {
-		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(r, err)
 		require.NotNil(r, policy1)
 
-		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(r, err)
 		require.NotNil(r, policy2)
 	})
@@ -1392,7 +1392,7 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	retry.Run(t, func(t *retry.R) {
-		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(t, err)
 		require.NotNil(t, entry)
 		global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1917,7 +1917,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		tags["ft_si"] = "0"
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	t.Run("one node primary with old version", func(t *testing.T) {
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {

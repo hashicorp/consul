@@ -887,7 +887,7 @@ func (l *State) updateSyncState() error {
 			AllowStale:       true,
 			MaxStaleDuration: fullSyncReadMaxStale,
 		},
-		EnterpriseMeta: *structs.WildcardEnterpriseMeta(),
+		EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
 	}
 
 	var out1 structs.IndexedNodeServiceList

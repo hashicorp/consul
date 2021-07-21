@@ -91,10 +91,10 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 		Services: []structs.LinkedService{
 			{
 				Name:           "web",
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	err = store.EnsureConfigEntry(counter.Next(), configEntry)
 	require.NoError(t, err)
@@ -1053,10 +1053,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
@@ -1071,14 +1071,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
@@ -1130,14 +1130,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1191,14 +1191,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
@@ -1224,10 +1224,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1243,14 +1243,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
@@ -1271,14 +1271,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1294,10 +1294,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
@@ -1317,10 +1317,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1337,10 +1337,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					{
 						Name:           "srv1",
 						CAFile:         "foo.crt",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 		},
@@ -1365,10 +1365,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1384,7 +1384,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceRegistration(t, "tgate1", regTerminatingGateway, regNode2), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return deleteConfigEntryTxn(tx, tx.Index, structs.TerminatingGateway, "tgate1", structs.DefaultEnterpriseMeta())
+			return deleteConfigEntryTxn(tx, tx.Index, structs.TerminatingGateway, "tgate1", structs.DefaultEnterpriseMetaInDefaultPartition())
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
@@ -1407,10 +1407,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1435,10 +1435,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1467,10 +1467,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1482,10 +1482,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err = ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1537,14 +1537,14 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				Services: []structs.LinkedService{
 					{
 						Name:           "srv1",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "srv2",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			if err != nil {
@@ -1554,7 +1554,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMeta())
+			return s.deleteServiceTxn(tx, tx.Index, "node1", "tgate1", structs.DefaultEnterpriseMetaInDefaultPartition())
 		},
 		WantEvents: []stream.Event{
 			testServiceHealthDeregistrationEvent(t,
@@ -2185,7 +2185,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 						CreateIndex: index,
 						ModifyIndex: index,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				Checks: []*structs.HealthCheck{
 					{
@@ -2197,7 +2197,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Node:        node,
@@ -2211,7 +2211,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 							CreateIndex: index,
 							ModifyIndex: index,
 						},
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2253,7 +2253,7 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 						CreateIndex: 10,
 						ModifyIndex: 10,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -2365,7 +2365,7 @@ func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServ
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
 				Service:        service,
-				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
 			},
 		},
 	}
@@ -2377,7 +2377,7 @@ func newPayloadCheckServiceNodeWithOverride(
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
 				Service:        service,
-				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
 			},
 		},
 		overrideKey:       overrideKey,

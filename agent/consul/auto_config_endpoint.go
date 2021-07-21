@@ -209,7 +209,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 					Datacenter: ac.config.Datacenter,
 				},
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		}
 
 		token, err := ac.backend.CreateACLToken(&template)

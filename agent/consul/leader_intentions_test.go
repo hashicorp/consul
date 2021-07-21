@@ -457,7 +457,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 
 	checkIntentions := func(t *testing.T, srv *Server, legacyOnly bool, expect map[string]*structs.Intention) {
 		t.Helper()
-		wildMeta := structs.WildcardEnterpriseMeta()
+		wildMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 		retry.Run(t, func(r *retry.R) {
 			var (
 				got structs.Intentions
@@ -556,7 +556,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	}
 
 	// also check config entries
-	_, gotConfigs, err := s1.fsm.State().ConfigEntriesByKind(nil, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
+	_, gotConfigs, err := s1.fsm.State().ConfigEntriesByKind(nil, structs.ServiceIntentions, structs.WildcardEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	gotConfigsM := mapifyConfigs(gotConfigs)
 

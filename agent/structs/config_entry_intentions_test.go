@@ -45,7 +45,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 		generateUUID(),
 	}
 
-	defaultMeta := DefaultEnterpriseMeta()
+	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
 
 	fooName := NewServiceName("foo", defaultMeta)
 

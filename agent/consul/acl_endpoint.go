@@ -244,7 +244,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 			Local:      false,
 			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
 			Type:           structs.ACLTokenTypeManagement,
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		ResetIndex: specifiedIndex,
 	}
@@ -256,7 +256,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		return err
 	}
 
-	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor, structs.DefaultEnterpriseMeta()); err == nil {
+	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor, structs.DefaultEnterpriseMetaInDefaultPartition()); err == nil {
 		*reply = *token
 	}
 

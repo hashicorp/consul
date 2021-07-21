@@ -9,5 +9,5 @@ import (
 )
 
 func parseEnterpriseMeta(node *envoy_core_v3.Node) *structs.EnterpriseMeta {
-	return structs.DefaultEnterpriseMeta()
+	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }

@@ -288,7 +288,7 @@ func TestStore_IntentionMutation(t *testing.T) {
 func testStore_IntentionMutation(t *testing.T, s *Store) {
 	lastIndex := uint64(1)
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	var (
 		id1 = testUUID()
@@ -1072,7 +1072,7 @@ func TestStore_IntentionsList(t *testing.T) {
 			lastIndex = 1 // minor state machine implementation difference
 		}
 
-		entMeta := structs.WildcardEnterpriseMeta()
+		entMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 
 		// Querying with no results returns nil.
 		ws := memdb.NewWatchSet()
@@ -1686,7 +1686,7 @@ func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
 		// Intentions are returned precedence sorted unlike the snapshot so we need
 		// to rearrange the expected slice some.
 		expected[0], expected[1], expected[2] = expected[1], expected[2], expected[0]
-		entMeta := structs.WildcardEnterpriseMeta()
+		entMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 		idx, actual, fromConfig, err := s.Intentions(nil, entMeta)
 		require.NoError(t, err)
 		require.Equal(t, idx, uint64(6))
@@ -1898,46 +1898,46 @@ func TestStore_IntentionTopology(t *testing.T) {
 		{
 			ID:             structs.ConsulServiceID,
 			Service:        structs.ConsulServiceName,
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			ID:             "api-1",
 			Service:        "api",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			ID:             "mysql-1",
 			Service:        "mysql",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			ID:             "web-1",
 			Service:        "web",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			Kind:           structs.ServiceKindConnectProxy,
 			ID:             "web-proxy-1",
 			Service:        "web-proxy",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			Kind:           structs.ServiceKindTerminatingGateway,
 			ID:             "terminating-gateway-1",
 			Service:        "terminating-gateway",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			Kind:           structs.ServiceKindIngressGateway,
 			ID:             "ingress-gateway-1",
 			Service:        "ingress-gateway",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			Kind:           structs.ServiceKindMeshGateway,
 			ID:             "mesh-gateway-1",
 			Service:        "mesh-gateway",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 
@@ -1975,7 +1975,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2002,7 +2002,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "api",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2029,11 +2029,11 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "ingress-gateway",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2060,7 +2060,7 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "web",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2087,11 +2087,11 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "api",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2140,11 +2140,11 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "api",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 					{
 						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
 			},
@@ -2190,7 +2190,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	}))
 	i++
 
-	target := structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
+	target := structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	ws := memdb.NewWatchSet()
 	index, got, err := s.IntentionTopology(ws, target, false, acl.Deny)
@@ -2246,7 +2246,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	require.NoError(t, s.EnsureService(i, "foo", &structs.NodeService{
 		ID:             "api-1",
 		Service:        "api",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}))
 
 	require.True(t, watchFired(ws))
@@ -2259,7 +2259,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	expect := structs.ServiceList{
 		{
 			Name:           "api",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	require.Equal(t, expect, got)

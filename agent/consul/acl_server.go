@@ -111,7 +111,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 	// Check to see if we already upgraded the last time we ran by seeing if we
 	// have a copy of any global management policy stored locally. This should
 	// always be true because policies always replicate.
-	_, mgmtPolicy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+	_, mgmtPolicy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		s.logger.Warn("Failed to get the builtin global-management policy to check for a completed ACL upgrade; skipping this optimization", "error", err)
 	} else if mgmtPolicy != nil {
@@ -252,7 +252,7 @@ func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *struc
 	if identity != nil {
 		entMeta.Merge(identity.EnterpriseMetadata())
 	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMeta())
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
 	// Use the meta to fill in the ACL authorization context

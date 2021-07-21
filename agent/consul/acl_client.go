@@ -104,7 +104,7 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 	if identity != nil {
 		entMeta.Merge(identity.EnterpriseMetadata())
 	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMeta())
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
 	// Use the meta to fill in the ACL authorization context

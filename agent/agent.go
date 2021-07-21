@@ -1684,7 +1684,7 @@ OUTER:
 // reapServicesInternal does a single pass, looking for services to reap.
 func (a *Agent) reapServicesInternal() {
 	reaped := make(map[structs.ServiceID]bool)
-	for checkID, cs := range a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()) {
+	for checkID, cs := range a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 		serviceID := cs.Check.CompoundServiceID()
 
 		// There's nothing to do if there's no service.
@@ -2014,7 +2014,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	// Agent.Start does not have a snapshot, and we don't want to query
 	// State.Checks each time.
 	if req.checkStateSnapshot == nil {
-		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMeta())
+		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 	}
 
 	// Create an associated health check
@@ -3307,7 +3307,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 // unloadServices will deregister all services.
 func (a *Agent) unloadServices() error {
-	for id := range a.State.Services(structs.WildcardEnterpriseMeta()) {
+	for id := range a.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 		if err := a.removeServiceLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering service '%s': %v", id, err)
 		}
@@ -3421,7 +3421,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 // unloadChecks will deregister all checks known to the local agent.
 func (a *Agent) unloadChecks() error {
-	for id := range a.State.Checks(structs.WildcardEnterpriseMeta()) {
+	for id := range a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 		if err := a.removeCheckLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering check '%s': %s", id, err)
 		}
@@ -3433,7 +3433,7 @@ func (a *Agent) unloadChecks() error {
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
 func (a *Agent) snapshotCheckState() map[structs.CheckID]*structs.HealthCheck {
-	return a.State.Checks(structs.WildcardEnterpriseMeta())
+	return a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 }
 
 // loadMetadata loads node metadata fields from the agent config and

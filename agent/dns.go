@@ -414,7 +414,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 				AllowStale: cfg.AllowStale,
 			},
 			ServiceAddress: serviceAddress,
-			EnterpriseMeta: *structs.WildcardEnterpriseMeta(),
+			EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
 		}
 
 		var sout structs.IndexedServiceNodes
@@ -548,7 +548,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 		Service:        structs.ConsulServiceName,
 		Connect:        false,
 		Ingress:        false,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	})
 	if err != nil {
 		d.logger.Warn("Unable to get list of servers", "error", err)

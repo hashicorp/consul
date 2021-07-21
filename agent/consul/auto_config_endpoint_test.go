@@ -138,7 +138,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.AutoConfigAuthzAuthMethod = structs.ACLAuthMethod{
 			Name:           "Auth Config Authorizer",
 			Type:           "jwt",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			Config: map[string]interface{}{
 				"BoundAudiences":       []string{"consul"},
 				"BoundIssuer":          "consul",
@@ -584,7 +584,7 @@ func TestAutoConfig_updateTLSCertificatesInConfig(t *testing.T) {
 		CertPEM:        "not-currently-decoded",
 		ValidAfter:     now,
 		ValidBefore:    later,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		RaftIndex: structs.RaftIndex{
 			ModifyIndex: 10,
 			CreateIndex: 10,
@@ -797,7 +797,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						Datacenter: testDC,
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			testToken := &structs.ACLToken{
@@ -811,7 +811,7 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 						Datacenter: testDC,
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			if tcase.expectACLToken {

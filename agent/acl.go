@@ -201,7 +201,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	}
 
 	var authzContext acl.AuthorizerContext
-	structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
 	for i := 0; i < len(m); i++ {
@@ -271,7 +271,7 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		} else {
-			structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+			structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 			if authz.NodeRead(a.config.NodeName, &authzContext) == acl.Allow {
 				continue
 			}

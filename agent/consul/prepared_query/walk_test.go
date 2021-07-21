@@ -26,7 +26,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		Near:           "_agent",
 		Tags:           []string{"tag1", "tag2", "tag3"},
 		NodeMeta:       map[string]string{"foo": "bar", "role": "server"},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	if err := walk(service, fn); err != nil {
 		t.Fatalf("err: %v", err)

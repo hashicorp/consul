@@ -885,7 +885,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -895,7 +895,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Status:         "passing",
 					ServiceID:      "db2",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -917,7 +917,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -927,7 +927,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Status:         "warning",
 					ServiceID:      "db",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -1225,7 +1225,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -1235,7 +1235,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Status:         "warning",
 					ServiceID:      "db",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -1259,7 +1259,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -1269,7 +1269,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Status:         "passing",
 					ServiceID:      "db2",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -1706,10 +1706,10 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	registerTestTopologyEntries(t, codec, "")
 
 	var (
-		ingress = structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
-		api     = structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
-		web     = structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
-		redis   = structs.NewServiceName("redis", structs.DefaultEnterpriseMeta())
+		ingress = structs.NewServiceName("ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
+		api     = structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition())
+		web     = structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+		redis   = structs.NewServiceName("redis", structs.DefaultEnterpriseMetaInDefaultPartition())
 	)
 
 	t.Run("ingress", func(t *testing.T) {
@@ -2027,7 +2027,7 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 			require.Len(r, out.Services, 1)
 
 			expectUp := structs.ServiceList{
-				structs.NewServiceName("api", structs.DefaultEnterpriseMeta()),
+				structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()),
 			}
 			require.Equal(r, expectUp, out.Services)
 		})
@@ -2083,7 +2083,7 @@ service_prefix "api" { policy = "read" }
 			require.Len(r, out.Services, 1)
 
 			expectUp := structs.ServiceList{
-				structs.NewServiceName("api", structs.DefaultEnterpriseMeta()),
+				structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()),
 			}
 			require.Equal(r, expectUp, out.Services)
 		})

@@ -141,7 +141,7 @@ func (m *Manager) syncState() {
 	defer m.mu.Unlock()
 
 	// Traverse the local state and ensure all proxy services are registered
-	services := m.State.Services(structs.WildcardEnterpriseMeta())
+	services := m.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition())
 	for sid, svc := range services {
 		if svc.Kind != structs.ServiceKindConnectProxy &&
 			svc.Kind != structs.ServiceKindTerminatingGateway &&

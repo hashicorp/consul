@@ -144,7 +144,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 	if authz != nil {
 		var authzContext acl.AuthorizerContext
-		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+		structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
@@ -227,7 +227,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	}
 	if authz != nil {
 		var authzContext acl.AuthorizerContext
-		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
