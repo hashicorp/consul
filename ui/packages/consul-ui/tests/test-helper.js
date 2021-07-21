@@ -2,7 +2,6 @@ import Application from '../app';
 import config from '../config/environment';
 import { setApplication } from '@ember/test-helpers';
 import { registerWaiter } from '@ember/test';
-import { getOwner } from '@ember/application';
 import './helpers/flash-message';
 import start from 'ember-exam/test-support/start';
 
