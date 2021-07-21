@@ -684,4 +684,8 @@ Usage: consul connect envoy [options]
 
     $ consul connect envoy -sidecar-for web
 
+  Additional arguments may be passed directly to Envoy by specifying a double
+  dash followed by a list of options.
+
+    $ consul connect envoy -sidecar-for web -- --log-level debug
 `
