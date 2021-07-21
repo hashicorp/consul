@@ -29,7 +29,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -69,8 +69,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "List centralized config entries of a given kind"
-const help = `
+const (
+	synopsis = "List centralized config entries of a given kind"
+	help     = `
 Usage: consul config list [options] -kind <config kind>
 
   Lists all of the config entries for a given kind. The -kind parameter
@@ -81,3 +82,4 @@ Usage: consul config list [options] -kind <config kind>
     $ consul config list -kind service-defaults
 
 `
+)

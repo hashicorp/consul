@@ -75,7 +75,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -182,8 +182,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create an ACL token"
-const help = `
+const (
+	synopsis = "Create an ACL token"
+	help     = `
 Usage: consul acl token create [options]
 
   When creating a new token policies may be linked using either the -policy-id
@@ -200,3 +201,4 @@ Usage: consul acl token create [options]
                                     -service-identity "web" \
                                     -service-identity "db:east,west"
 `
+)

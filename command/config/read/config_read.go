@@ -34,7 +34,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -83,8 +83,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read a centralized config entry"
-const help = `
+const (
+	synopsis = "Read a centralized config entry"
+	help     = `
 Usage: consul config read [options] -kind <config kind> -name <config name>
 
   Reads the config entry specified by the given kind and name and outputs its
@@ -94,3 +95,4 @@ Usage: consul config read [options] -kind <config kind> -name <config name>
 
     $ consul config read -kind proxy-defaults -name global
 `
+)

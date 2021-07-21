@@ -58,7 +58,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -119,8 +119,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL binding rule"
-const help = `
+const (
+	synopsis = "Read an ACL binding rule"
+	help     = `
 Usage: consul acl binding-rule read -id ID [options]
 
   This command will retrieve and print out the details of a single binding
@@ -130,3 +131,4 @@ Usage: consul acl binding-rule read -id ID [options]
 
     $ consul acl binding-rule read -id fdabbcb5-9de5-4b1a-961f-77214ae88cba
 `
+)

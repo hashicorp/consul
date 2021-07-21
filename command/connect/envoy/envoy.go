@@ -168,7 +168,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -660,8 +660,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Runs or Configures Envoy as a Connect proxy"
-const help = `
+const (
+	synopsis = "Runs or Configures Envoy as a Connect proxy"
+	help     = `
 Usage: consul connect envoy [options] [-- pass-through options]
 
   Generates the bootstrap configuration needed to start an Envoy proxy instance
@@ -689,3 +690,4 @@ Usage: consul connect envoy [options] [-- pass-through options]
 
     $ consul connect envoy -sidecar-for web -- --log-level debug
 `
+)

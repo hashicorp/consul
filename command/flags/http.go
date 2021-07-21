@@ -23,8 +23,9 @@ type HTTPFlags struct {
 	datacenter StringValue
 	stale      BoolValue
 
-	// namespace flags
+	// multi-tenancy flags
 	namespace StringValue
+	partition StringValue
 }
 
 func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
@@ -74,12 +75,16 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 	return fs
 }
 
-func (f *HTTPFlags) NamespaceFlags() *flag.FlagSet {
+func (f *HTTPFlags) MultiTenancyFlags() *flag.FlagSet {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	fs.Var(&f.namespace, "namespace",
 		"Specifies the namespace to query. If not provided, the namespace will be inferred "+
 			"from the request's ACL token, or will default to the `default` namespace. "+
 			"Namespaces are a Consul Enterprise feature.")
+	fs.Var(&f.partition, "partition",
+		"Specifies the admin partition to query. If not provided, the admin partition will be inferred "+
+			"from the request's ACL token, or will default to the `default` admin partition. "+
+			"Admin Partitions are a Consul Enterprise feature.")
 	return fs
 }
 

@@ -46,7 +46,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -134,8 +134,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Lists all registered services in a datacenter"
-const help = `
+const (
+	synopsis = "Lists all registered services in a datacenter"
+	help     = `
 Usage: consul catalog services [options]
 
   Retrieves the list services registered in a given datacenter. By default, the
@@ -159,3 +160,4 @@ Usage: consul catalog services [options]
 
   For a full list of options and examples, please see the Consul documentation.
 `
+)
