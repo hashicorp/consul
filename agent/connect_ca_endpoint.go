@@ -89,6 +89,15 @@ func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}
 	var args structs.CARequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
+	if casStr := req.URL.Query().Get("cas"); casStr != "" {
+		casVal, err := strconv.ParseUint(casStr, 10, 64)
+		if err != nil {
+			return nil, BadRequestError{
+				Reason: fmt.Sprintf("Request decode failed: %v", err),
+			}
+		}
+		args.Cas = casVal
+	}
 	if err := decodeBody(req.Body, &args.Config); err != nil {
 		return nil, BadRequestError{
 			Reason: fmt.Sprintf("Request decode failed: %v", err),
