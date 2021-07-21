@@ -147,6 +147,38 @@ You can view the latest service information in the Terraform UI by navigating to
 </Tab>
 </Tabs>
 
+### Setting Up Terraform Cloud Driver
+
+<EnterpriseAlert>
+   This feature requires{' '}
+   <a href="https://www.hashicorp.com/products/consul/features">Consul-Terraform-Sync Enterprise</a>{' '}
+   which is available with <strong>Consul Enterprise</strong>.
+ </EnterpriseAlert>
+
+#### Deployment
+
+Because a Consul-Terraform-Sync instance can only be configured with one driver, an instance can only be associated with either a Terraform driver or a Terraform Cloud driver. If there is a need to run both types of drivers, users will need to deploy a separate Consul-Terraform-Sync instance for each type of driver. Relatedly, if there is a need to run Consul-Terraform-Sync across multiple Terraform Cloud organizations, users will need to deploy a separate instance for each organization.
+
+#### Required Setup
+
+Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need to set up an account, organization, and token. We recommend that the token is a team-level token restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access) level permissions. Below are the steps for the recommended setup.
+
+The first step is to create an account with your Terraform Cloud service. After creating an account, create an [organization](https://www.terraform.io/docs/cloud/users-teams-organizations/organizations.html#creating-organizations). The address of your Terraform Cloud service will be used to configure the [`hostname`](/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/docs/nia/configuration#organization) on the Terraform Cloud driver.
+
+Once you have an account and organization, the next step is to [create a team](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html). We recommend using a dedicated team and team token to run and authenticate Consul-Terraform-Sync. Using a team token rather than a user token has the benefits of allowing cross-organization permissions as well as associating Consul-Terraform-Sync automated actions with the team rather than an individual.
+
+After creating a dedicated team, please configure the team's permissions with only the "Manage Workspaces" organization access-level. Consul-Terraform-Sync's main work revolves around creating and managing workspaces. Therefore restricting the dedicated team's permission to Manage Workspaces level is sufficient and reduces security risk.
+
+[![CTS Terraform Team Setup](/img/nia/cts-tfc-team-setup.png)](/img/nia/cts-tfc-team-setup.png)
+
+After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens), which can be done on the same team management page. This token will be used by Consul-Terraform-Sync for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token-1) on the Terraform Cloud driver.
+
+#### Additional Recommendations
+
+We recommend users to configure Consul-Terraform-Sync workspaces with [run notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) through the Terraform Cloud web application. Run notifications notify external systems about the progress of runs and could help notify users of Consul-Terraform-Sync events, particularly errored runs.
+
+In order to configure a run notification, users can [manually create a notification configuration](https://www.terraform.io/docs/cloud/workspaces/notifications.html#creating-a-notification-configuration) on an existing Consul-Terraform-Sync workspace. A workspace may already exist for a task if the workspace name is identical to the configured task's [`name`](/docs/nia/configuration#name-2). This may occur if Consul-Terraform-Sync has already already run and created the workspace for the task. This may also occur if the workspace is manually created for the task prior to Consul-Terraform-Sync running.
+
 ### Upgrading Terraform
 
 Upgrading the Terraform version used by Consul-Terraform-Sync may introduce breaking changes that can impact the Terraform modules. Refer to the Terraform [upgrade guides](https://www.terraform.io/upgrade-guides/index.html) for details before upgrading.
