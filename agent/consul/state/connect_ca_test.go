@@ -48,17 +48,15 @@ func TestStore_CAConfigCAS(t *testing.T) {
 		Provider: "consul",
 	}
 
-	if err := s.CASetConfig(0, expected); err != nil {
-		t.Fatal(err)
-	}
+	err := s.CASetConfig(0, expected)
+	require.NoError(t, err)
 	// Do an extra operation to move the index up by 1 for the
 	// check-and-set operation after this
-	if err := s.CASetConfig(1, expected); err != nil {
-		t.Fatal(err)
-	}
+	err = s.CASetConfig(1, expected)
+	require.NoError(t, err)
 
 	// Do a CAS with an index lower than the entry
-	err := s.CACheckAndSetConfig(2, 0, &structs.CAConfiguration{
+	err = s.CACheckAndSetConfig(2, 0, &structs.CAConfiguration{
 		Provider: "static",
 	})
 
@@ -67,35 +65,21 @@ func TestStore_CAConfigCAS(t *testing.T) {
 	// Check that the index is untouched and the entry
 	// has not been updated.
 	idx, config, err := s.CAConfig(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if idx != 1 {
-		t.Fatalf("bad: %d", idx)
-	}
-	if config.Provider != "consul" {
-		t.Fatalf("bad: %#v", config)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "consul", config.Provider)
 
 	// Do another CAS, this time with the correct index
 	err = s.CACheckAndSetConfig(2, 1, &structs.CAConfiguration{
 		Provider: "static",
 	})
-	if err != nil {
-		t.Fatalf("expected (true, nil), got: (%#v)", err)
-	}
+	require.NoError(t, err)
 
 	// Make sure the config was updated
 	idx, config, err = s.CAConfig(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if idx != 2 {
-		t.Fatalf("bad: %d", idx)
-	}
-	if config.Provider != "static" {
-		t.Fatalf("bad: %#v", config)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), idx)
+	require.Equal(t, "static", config.Provider)
 }
 
 func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
