@@ -78,6 +78,7 @@ spec:
       services:
         - name: static-server
 ```
+~> **Note:** The value in the 'name' field for ingressgateway must match the name used in the helm chart. For example, in the above YAML, the name ingress-gateway" is the same name used in the helm chart YAML configuration.
 
 Apply the `IngressGateway` resource with `kubectl apply`:
 
