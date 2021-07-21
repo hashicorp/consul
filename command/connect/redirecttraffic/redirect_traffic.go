@@ -68,7 +68,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -237,8 +237,9 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 	return cfg, nil
 }
 
-const synopsis = "Applies iptables rules for traffic redirection"
-const help = `
+const (
+	synopsis = "Applies iptables rules for traffic redirection"
+	help     = `
 Usage: consul connect redirect-traffic [options]
 
   Applies iptables rules for inbound and outbound traffic redirection.
@@ -251,3 +252,4 @@ Usage: consul connect redirect-traffic [options]
 
     $ consul connect redirect-traffic -proxy-uid 1234 -proxy-inbound-port 20000
 `
+)

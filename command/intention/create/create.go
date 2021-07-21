@@ -53,7 +53,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -224,8 +224,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Create intentions for service connections."
-const help = `
+const (
+	synopsis = "Create intentions for service connections."
+	help     = `
 Usage: consul intention create [options] SRC DST
 Usage: consul intention create [options] -file FILE...
 
@@ -254,3 +255,4 @@ Usage: consul intention create [options] -file FILE...
 
   Additional flags and more advanced use cases are detailed below.
 `
+)

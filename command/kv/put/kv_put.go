@@ -68,7 +68,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -198,8 +198,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Sets or updates data in the KV store"
-const help = `
+const (
+	synopsis = "Sets or updates data in the KV store"
+	help     = `
 Usage: consul kv put [options] KEY [DATA]
 
   Writes the data to the given path in the key-value store. The data can be of
@@ -232,3 +233,4 @@ Usage: consul kv put [options] KEY [DATA]
 
   Additional flags and more advanced use cases are detailed below.
 `
+)

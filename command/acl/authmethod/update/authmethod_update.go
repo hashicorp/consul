@@ -143,7 +143,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -320,8 +320,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL auth method"
-const help = `
+const (
+	synopsis = "Update an ACL auth method"
+	help     = `
 Usage: consul acl auth-method update -name NAME [options]
 
   Updates an auth method. By default it will merge the auth method
@@ -336,3 +337,4 @@ Usage: consul acl auth-method update -name NAME [options]
                             -kubernetes-ca-cert @/path/to/new-kube.ca.crt \
                             -kubernetes-service-account-jwt "NEW_JWT_CONTENTS"
 `
+)

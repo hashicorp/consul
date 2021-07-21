@@ -101,7 +101,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -217,8 +217,9 @@ func isFlagSet(flags *flag.FlagSet, name string) bool {
 	return found
 }
 
-const synopsis = "Update an ACL binding rule"
-const help = `
+const (
+	synopsis = "Update an ACL binding rule"
+	help     = `
 Usage: consul acl binding-rule update -id ID [options]
 
   Updates a binding rule. By default it will merge the binding rule
@@ -234,3 +235,4 @@ Usage: consul acl binding-rule update -id ID [options]
           -bind-name='k8s-${serviceaccount.name}' \
           -selector='serviceaccount.namespace==default and serviceaccount.name==web'
 `
+)

@@ -46,7 +46,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -108,8 +108,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL policy"
-const help = `
+const (
+	synopsis = "Read an ACL policy"
+	help     = `
 Usage: consul acl policy read [options] POLICY
 
     This command will retrieve and print out the details
@@ -124,3 +125,4 @@ Usage: consul acl policy read [options] POLICY
         $ consul acl policy read -name my-policy
 
 `
+)

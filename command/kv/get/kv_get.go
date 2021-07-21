@@ -54,7 +54,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -210,8 +210,9 @@ func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
 	return tw.Flush()
 }
 
-const synopsis = "Retrieves or lists data from the KV store"
-const help = `
+const (
+	synopsis = "Retrieves or lists data from the KV store"
+	help     = `
 Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   Retrieves the value from Consul's key-value store at the given key name. If no
@@ -242,3 +243,4 @@ Usage: consul kv get [options] [KEY_OR_PREFIX]
 
   For a full list of options and examples, please see the Consul documentation.
 `
+)
