@@ -1227,6 +1227,9 @@ func TestLeader_CARootPruning(t *testing.T) {
 	require.Len(roots, 1)
 	require.True(roots[0].Active)
 	require.NotEqual(roots[0].ID, oldRoot.ID)
+
+	// Reset the value of the global prune interval so that it doesn't affect other tests
+	caRootPruneInterval = 1 * time.Hour
 }
 
 func TestLeader_PersistIntermediateCAs(t *testing.T) {
