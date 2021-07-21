@@ -662,7 +662,7 @@ func (c *cmd) Help() string {
 
 const synopsis = "Runs or Configures Envoy as a Connect proxy"
 const help = `
-Usage: consul connect envoy [options]
+Usage: consul connect envoy [options] [-- pass-through options]
 
   Generates the bootstrap configuration needed to start an Envoy proxy instance
   for use as a Connect sidecar for a particular service instance. By default it
