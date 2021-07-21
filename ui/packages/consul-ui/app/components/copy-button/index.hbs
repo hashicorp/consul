@@ -7,12 +7,25 @@
     ...attributes
   >
 {{#let (fn dispatch 'SUCCESS') (fn dispatch 'ERROR') (fn dispatch 'RESET') as |success error reset|}}
+<State @matches="idle">
     <button
       {{with-copyable @value success=success error=error}}
       aria-label={{t 'components.copy-button.title' name=@name}}
       type="button"
       class="copy-btn"
-      ...attributes
+      {{tooltip
+        (t 'components.copy-button.idle')
+      }}
+    >
+      {{~yield~}}
+    </button>
+</State>
+<State @matches="success">
+    <button
+      {{with-copyable @value success=success error=error}}
+      aria-label={{t 'components.copy-button.title' name=@name}}
+      type="button"
+      class="copy-btn"
       {{tooltip
         (if (state-matches state 'success') (t 'components.copy-button.success' name=@name) (t 'components.copy-button.error'))
         options=(hash
@@ -25,6 +38,7 @@
     >
       {{~yield~}}
     </button>
+</State>
 {{/let}}
   </div>
 </StateChart>
