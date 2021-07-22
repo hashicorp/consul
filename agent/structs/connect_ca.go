@@ -192,6 +192,7 @@ type CAOp string
 const (
 	CAOpSetRoots                      CAOp = "set-roots"
 	CAOpSetConfig                     CAOp = "set-config"
+	CAOpSetConfigCAS                  CAOp = "set-config-cas"
 	CAOpSetProviderState              CAOp = "set-provider-state"
 	CAOpDeleteProviderState           CAOp = "delete-provider-state"
 	CAOpSetRootsAndConfig             CAOp = "set-roots-config"
@@ -220,11 +221,6 @@ type CARequest struct {
 
 	// ProviderState is the state for the builtin CA provider.
 	ProviderState *CAConsulProviderState
-
-	// Cas is an int,  Specifies to use a Check-And-Set operation.
-	// If the index is 0, Consul will only store the entry if it does not already exist.
-	// If the index is non-zero, the entry is only set if the current index matches the ModifyIndex of that entry
-	Cas uint64
 
 	// WriteRequest is a common struct containing ACL tokens and other
 	// write-related common elements for requests.

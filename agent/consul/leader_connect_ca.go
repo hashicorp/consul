@@ -217,7 +217,6 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	req := structs.CARequest{
 		Op:     structs.CAOpSetConfig,
 		Config: config,
-		Cas:    config.ModifyIndex,
 	}
 	if resp, err := c.delegate.ApplyCARequest(&req); err != nil {
 		return nil, err
@@ -504,7 +503,6 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 		req := structs.CARequest{
 			Op:     structs.CAOpSetConfig,
 			Config: conf,
-			Cas:    conf.ModifyIndex,
 		}
 		if _, err = c.delegate.ApplyCARequest(&req); err != nil {
 			return fmt.Errorf("error persisting provider state: %v", err)
@@ -762,7 +760,6 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Index:  idx,
 		Roots:  newRoots,
 		Config: &newConf,
-		Cas:    newConf.ModifyIndex,
 	}
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
@@ -904,7 +901,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
-		args.Op = structs.CAOpSetConfig
 		resp, err := c.delegate.ApplyCARequest(args)
 		if err != nil {
 			return err
@@ -1007,7 +1003,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
 	args.Config.ModifyIndex = confIdx
-	args.Cas = confIdx
 	args.Roots = newRoots
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
