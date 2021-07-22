@@ -1,6 +1,7 @@
 version: 2
 updates:
 - package-ecosystem: gomod
+  open-pull-requests-limit: 30
   directory: /
   schedule:
     interval: daily
@@ -9,10 +10,12 @@ updates:
   schedule:
     interval: daily
 - package-ecosystem: npm
+  open-pull-requests-limit: 30
   directory: /ui
   schedule:
     interval: daily
 - package-ecosystem: npm
+  open-pull-requests-limit: 30
   directory: /website
   schedule:
     interval: daily
