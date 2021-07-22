@@ -802,7 +802,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// Exit early if it's a no-op change
 	state := c.delegate.State()
-	confIdx, config, err := state.CAConfig(nil)
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -1002,7 +1002,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
-	args.Config.ModifyIndex = confIdx
 	args.Roots = newRoots
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
