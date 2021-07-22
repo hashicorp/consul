@@ -3,6 +3,8 @@ package state
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -148,7 +150,7 @@ func (s *Store) CASetConfig(idx uint64, config *structs.CAConfiguration) error {
 
 // CACheckAndSetConfig is used to try updating the CA configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
-// for the config, then the call is a noop,
+// for the config, then the call will return an error,
 func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfiguration) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
@@ -164,7 +166,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	// return early here.
 	e, ok := existing.(*structs.CAConfiguration)
 	if (ok && e.ModifyIndex != cidx) || (!ok && cidx != 0) {
-		return false, nil
+		return false, errors.Errorf("ModifyIndex did not match existing")
 	}
 
 	if err := s.caSetConfigTxn(idx, tx, config); err != nil {
