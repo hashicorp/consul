@@ -1,0 +1,3 @@
+```release-note:bug
+fix index passed to raft when applying `CAOpSetRootsAndConfig` operatio.
+```
