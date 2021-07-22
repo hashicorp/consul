@@ -81,10 +81,7 @@ func (f *HTTPFlags) MultiTenancyFlags() *flag.FlagSet {
 		"Specifies the namespace to query. If not provided, the namespace will be inferred "+
 			"from the request's ACL token, or will default to the `default` namespace. "+
 			"Namespaces are a Consul Enterprise feature.")
-	fs.Var(&f.partition, "partition",
-		"Specifies the admin partition to query. If not provided, the admin partition will be inferred "+
-			"from the request's ACL token, or will default to the `default` admin partition. "+
-			"Admin Partitions are a Consul Enterprise feature.")
+	f.AddPartitionFlag(fs)
 	return fs
 }
 
@@ -152,4 +149,12 @@ func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.tlsServerName.Merge(&c.TLSConfig.Address)
 	f.datacenter.Merge(&c.Datacenter)
 	f.namespace.Merge(&c.Namespace)
+	f.partition.Merge(&c.Partition)
+}
+
+func (f *HTTPFlags) AddPartitionFlag(fs *flag.FlagSet) {
+	fs.Var(&f.partition, "partition",
+		"Specifies the admin partition to query. If not provided, the admin partition will be inferred "+
+			"from the request's ACL token, or will default to the `default` admin partition. "+
+			"Admin Partitions are a Consul Enterprise feature.")
 }
