@@ -333,6 +333,10 @@ func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 }
 
 func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	ca.SkipIfVaultNotPresent(t)
 
 	// no parallel execution because we change globals

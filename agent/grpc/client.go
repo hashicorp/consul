@@ -50,15 +50,25 @@ func NewClientConnPool(servers ServerLocator, tls TLSWrapper, useTLSForDC func(d
 // existing connections in the pool, a new one will be created, stored in the pool,
 // then returned.
 func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error) {
+	return c.dial(datacenter, "server")
+}
+
+// TODO: godoc
+func (c *ClientConnPool) ClientConnLeader() (*grpc.ClientConn, error) {
+	return c.dial("local", "leader")
+}
+
+func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.ClientConn, error) {
 	c.connsLock.Lock()
 	defer c.connsLock.Unlock()
 
-	if conn, ok := c.conns[datacenter]; ok {
+	target := fmt.Sprintf("consul://%s/%s.%s", c.servers.Authority(), serverType, datacenter)
+	if conn, ok := c.conns[target]; ok {
 		return conn, nil
 	}
 
 	conn, err := grpc.Dial(
-		fmt.Sprintf("consul://%s/server.%s", c.servers.Authority(), datacenter),
+		target,
 		// use WithInsecure mode here because we handle the TLS wrapping in the
 		// custom dialer based on logic around whether the server has TLS enabled.
 		grpc.WithInsecure(),
@@ -86,7 +96,7 @@ func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error)
 		return nil, err
 	}
 
-	c.conns[datacenter] = conn
+	c.conns[target] = conn
 	return conn, nil
 }
 

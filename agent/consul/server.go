@@ -261,6 +261,10 @@ type Server struct {
 	// Used to do leader forwarding and provide fast lookup by server id and address
 	serverLookup *ServerLookup
 
+	// grpcLeaderForwarder is notified on leader change in order to keep the grpc
+	// resolver up to date.
+	grpcLeaderForwarder LeaderForwarder
+
 	// floodLock controls access to floodCh.
 	floodLock sync.RWMutex
 	floodCh   []chan struct{}
@@ -583,6 +587,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
+	s.grpcLeaderForwarder = flat.LeaderForwarder
+	go s.trackLeaderChanges()
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -627,15 +633,15 @@ func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
-	if !config.RPCConfig.EnableStreaming {
-		return agentgrpc.NoOpHandler{Logger: deps.Logger}
+	register := func(srv *grpc.Server) {
+		if config.RPCConfig.EnableStreaming {
+			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+				&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+				deps.Logger.Named("grpc-api.subscription")))
+		}
+		s.registerEnterpriseGRPCServices(deps, srv)
 	}
 
-	register := func(srv *grpc.Server) {
-		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
-			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
-			deps.Logger.Named("grpc-api.subscription")))
-	}
 	return agentgrpc.NewHandler(config.RPCAddr, register)
 }
 
@@ -1448,6 +1454,33 @@ func (s *Server) resetConsistentReadReady() {
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
+}
+
+// trackLeaderChanges registers an Observer with raft in order to receive updates
+// about leader changes, in order to keep the grpc resolver up to date for leader forwarding.
+func (s *Server) trackLeaderChanges() {
+	obsCh := make(chan raft.Observation, 16)
+	observer := raft.NewObserver(obsCh, false, func(o *raft.Observation) bool {
+		_, ok := o.Data.(raft.LeaderObservation)
+		return ok
+	})
+	s.raft.RegisterObserver(observer)
+
+	for {
+		select {
+		case obs := <-obsCh:
+			leaderObs, ok := obs.Data.(raft.LeaderObservation)
+			if !ok {
+				s.logger.Debug("got unknown observation type from raft", "type", reflect.TypeOf(obs.Data))
+				continue
+			}
+
+			s.grpcLeaderForwarder.UpdateLeaderAddr(string(leaderObs.Leader))
+		case <-s.shutdownCh:
+			s.raft.DeregisterObserver(observer)
+			return
+		}
+	}
 }
 
 // peersInfoContent is used to help operators understand what happened to the

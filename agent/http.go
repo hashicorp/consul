@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbcommon"
 )
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
@@ -899,6 +900,14 @@ func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Requ
 		return true
 	}
 	return false
+}
+
+// parseConsistencyReadRequest is used to parse the ?consistent query param.
+func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b *pbcommon.ReadRequest) {
+	query := req.URL.Query()
+	if _, ok := query["consistent"]; ok {
+		b.RequireConsistent = true
+	}
 }
 
 // parseDC is used to parse the ?dc query param

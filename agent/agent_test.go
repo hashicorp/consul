@@ -367,6 +367,10 @@ func (f fakeGRPCConnPool) ClientConn(_ string) (*grpc.ClientConn, error) {
 	return nil, nil
 }
 
+func (f fakeGRPCConnPool) ClientConnLeader() (*grpc.ClientConn, error) {
+	return nil, nil
+}
+
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

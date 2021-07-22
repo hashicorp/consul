@@ -17,9 +17,15 @@ type Deps struct {
 	Router          *router.Router
 	ConnPool        *pool.ConnPool
 	GRPCConnPool    GRPCClientConner
+	LeaderForwarder LeaderForwarder
 	EnterpriseDeps
 }
 
 type GRPCClientConner interface {
 	ClientConn(datacenter string) (*grpc.ClientConn, error)
+	ClientConnLeader() (*grpc.ClientConn, error)
+}
+
+type LeaderForwarder interface {
+	UpdateLeaderAddr(leaderAddr string)
 }

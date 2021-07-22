@@ -107,10 +107,12 @@ func (tc indexerTestCase) run(t *testing.T, indexer memdb.Indexer) {
 	}
 
 	if i, ok := indexer.(memdb.MultiIndexer); ok {
-		valid, actual, err := i.FromObject(tc.writeMulti.source)
-		require.NoError(t, err)
-		require.True(t, valid)
-		require.Equal(t, tc.writeMulti.expected, actual)
+		t.Run("writeIndexMulti", func(t *testing.T) {
+			valid, actual, err := i.FromObject(tc.writeMulti.source)
+			require.NoError(t, err)
+			require.True(t, valid)
+			require.Equal(t, tc.writeMulti.expected, actual)
+		})
 	}
 
 	for _, extra := range tc.extra {

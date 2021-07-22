@@ -277,16 +277,16 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 
 type testBackend struct {
 	store       *state.Store
-	authorizer  func(token string) acl.Authorizer
+	authorizer  func(token string, entMeta *structs.EnterpriseMeta) acl.Authorizer
 	forwardConn *gogrpc.ClientConn
 }
 
 func (b testBackend) ResolveTokenAndDefaultMeta(
 	token string,
-	_ *structs.EnterpriseMeta,
+	entMeta *structs.EnterpriseMeta,
 	_ *acl.AuthorizerContext,
 ) (acl.Authorizer, error) {
-	return b.authorizer(token), nil
+	return b.authorizer(token, entMeta), nil
 }
 
 func (b testBackend) Forward(_ string, fn func(*gogrpc.ClientConn) error) (handled bool, err error) {
@@ -306,7 +306,7 @@ func newTestBackend() (*testBackend, error) {
 		return nil, err
 	}
 	store := state.NewStateStoreWithEventPublisher(gc)
-	allowAll := func(_ string) acl.Authorizer {
+	allowAll := func(string, *structs.EnterpriseMeta) acl.Authorizer {
 		return acl.AllowAll()
 	}
 	return &testBackend{store: store, authorizer: allowAll}, nil
@@ -612,7 +612,7 @@ node "node1" {
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}
@@ -811,7 +811,7 @@ node "node1" {
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
 
 		// TODO: is there any easy way to do this with the acl package?
-		backend.authorizer = func(tok string) acl.Authorizer {
+		backend.authorizer = func(tok string, _ *structs.EnterpriseMeta) acl.Authorizer {
 			if tok == token {
 				return authorizer
 			}

@@ -21,6 +21,12 @@ func (q Query) NamespaceOrDefault() string {
 	return q.EnterpriseMeta.NamespaceOrDefault()
 }
 
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q Query) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
 // indexFromQuery builds an index key where Query.Value is lowercase, and is
 // a required value.
 func indexFromQuery(arg interface{}) ([]byte, error) {
