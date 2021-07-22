@@ -187,7 +187,7 @@ func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWi
 		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
 			// Look up the existing node's Serf health check to see if it's failed.
 			// If it is, the node can be renamed.
-			enodeCheck, err := tx.First(tableChecks, indexID, NodeCheckQuery{EnterpriseMeta: *structs.DefaultEnterpriseMeta(), Node: enode.Node, CheckID: string(structs.SerfCheckID)})
+			enodeCheck, err := tx.First(tableChecks, indexID, NodeCheckQuery{EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(), Node: enode.Node, CheckID: string(structs.SerfCheckID)})
 			if err != nil {
 				return fmt.Errorf("Cannot get status of node %s: %s", enode.Node, err)
 			}
@@ -902,7 +902,7 @@ func (s *Store) ConnectServiceNodes(ws memdb.WatchSet, serviceName string, entMe
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
 	return serviceNodesTxn(tx, ws, indexConnect, q)
@@ -915,7 +915,7 @@ func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *str
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
 	return serviceNodesTxn(tx, ws, indexService, q)
@@ -989,7 +989,7 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	q := Query{Value: service, EnterpriseMeta: *entMeta}
@@ -1150,7 +1150,7 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *structs.
 func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
 	// TODO: pass non-pointer type for ent meta
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Query the service
@@ -1324,7 +1324,7 @@ func (s *Store) deleteServiceCASTxn(tx WriteTxn, idx, cidx uint64, nodeName, ser
 func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
 	// TODO: pass non-pointer type for ent meta
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	service, err := tx.First(tableServices, indexID, NodeServiceQuery{EnterpriseMeta: *entMeta, Node: nodeName, Service: serviceID})
@@ -1337,7 +1337,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 	// TODO: accept a non-pointer value for EnterpriseMeta
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
@@ -1586,7 +1586,7 @@ func getNodeCheckTxn(tx ReadTxn, nodeName string, checkID types.CheckID, entMeta
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Return the check.
@@ -1608,7 +1608,7 @@ func (s *Store) NodeChecks(ws memdb.WatchSet, nodeName string, entMeta *structs.
 	defer tx.Abort()
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Get the table index.
@@ -1639,7 +1639,7 @@ func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string, entMeta *st
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
 	iter, err := tx.Get(tableChecks, indexService, q)
@@ -1668,7 +1668,7 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 	idx := maxIndexForService(tx, serviceName, true, true, entMeta)
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
 	iter, err := tx.Get(tableChecks, indexService, q)
@@ -1717,7 +1717,7 @@ func checksInStateTxn(tx ReadTxn, ws memdb.WatchSet, state string, entMeta *stru
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Query all checks if HealthAny is passed, otherwise use the index.
@@ -1830,7 +1830,7 @@ func (q NodeServiceQuery) NamespaceOrDefault() string {
 // check deletion within an existing transaction.
 func (s *Store) deleteCheckTxn(tx WriteTxn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// Try to retrieve the existing health check.
@@ -1984,7 +1984,7 @@ func checkServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, con
 
 	// TODO: accept non-pointer
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
@@ -2113,7 +2113,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	q := Query{Value: serviceName, EnterpriseMeta: *entMeta}
@@ -2214,7 +2214,7 @@ func parseCheckServiceNodes(
 		// First add the node-level checks. These always apply to any
 		// service on the node.
 		var checks structs.HealthChecks
-		q := NodeServiceQuery{Node: sn.Node, EnterpriseMeta: *structs.DefaultEnterpriseMeta()}
+		q := NodeServiceQuery{Node: sn.Node, EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()}
 		iter, err := tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {
 			return 0, nil, err
@@ -2319,7 +2319,7 @@ func serviceDumpKindTxn(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind,
 	idx := catalogServiceKindMaxIndex(tx, ws, kind, entMeta)
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: string(kind), EnterpriseMeta: *entMeta}
 	services, err := tx.Get(tableServices, indexKind, q)
@@ -2343,7 +2343,7 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator, entMeta *structs.EnterpriseMeta) (uint64, structs.NodeDump, error) {
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// We don't want to track an unlimited number of services, so we pull a
@@ -2566,7 +2566,7 @@ func terminatingConfigGatewayServices(
 // updateGatewayNamespace is used to target all services within a namespace
 func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: string(structs.ServiceKindTypical), EnterpriseMeta: *entMeta}
 	services, err := tx.Get(tableServices, indexKind, q)
@@ -2890,7 +2890,7 @@ func (s *Store) ServiceTopology(
 		// Fetch connect endpoints for the target service in order to learn if its proxies are configured as
 		// transparent proxies.
 		if entMeta == nil {
-			entMeta = structs.DefaultEnterpriseMeta()
+			entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 		}
 		q := Query{Value: service, EnterpriseMeta: *entMeta}
 
@@ -3250,7 +3250,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 	oldUpstreams := make(map[structs.ServiceName]bool)
 	if e, ok := existing.(*structs.ServiceNode); ok {
 		for _, u := range e.ServiceProxy.Upstreams {
-			upstreamMeta := structs.NewEnterpriseMeta(u.DestinationNamespace)
+			upstreamMeta := structs.NewEnterpriseMetaInDefaultPartition(u.DestinationNamespace)
 			sn := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
 			oldUpstreams[sn] = true
@@ -3266,7 +3266,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 		}
 
 		// TODO (freddy): Account for upstream datacenter
-		upstreamMeta := structs.NewEnterpriseMeta(u.DestinationNamespace)
+		upstreamMeta := structs.NewEnterpriseMetaInDefaultPartition(u.DestinationNamespace)
 		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
 		obj, err := tx.First(tableMeshTopology, indexID, upstream, downstream)

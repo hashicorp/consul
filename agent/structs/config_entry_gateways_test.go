@@ -7,7 +7,7 @@ import (
 )
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
-	defaultMeta := DefaultEnterpriseMeta()
+	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
 
 	cases := map[string]configEntryTestcase{
 		"normalize: empty protocol": {

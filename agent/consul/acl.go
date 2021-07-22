@@ -141,7 +141,7 @@ func (id *missingIdentity) IsLocal() bool {
 }
 
 func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
-	return structs.DefaultEnterpriseMeta()
+	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func minTTL(a time.Duration, b time.Duration) time.Duration {
@@ -1417,7 +1417,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 	}
 
 	var authzContext acl.AuthorizerContext
-	structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
 		return
@@ -1441,7 +1441,7 @@ func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
 	}
 
 	var authzContext acl.AuthorizerContext
-	structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
 		return
@@ -1538,7 +1538,7 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	c := *coords
 	var authzContext acl.AuthorizerContext
-	structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(c); i++ {
 		node := c[i].Node
@@ -1579,7 +1579,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info := nd[i]
 
 		// Filter nodes
-		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 		if node := info.Node; !f.allowNode(node, &authzContext) {
 			f.logger.Debug("dropping node from result due to ACLs", "node", node)
 			nd = append(nd[:i], nd[i+1:]...)
@@ -1647,7 +1647,7 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 	n := *nodes
 
 	var authzContext acl.AuthorizerContext
-	structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(n); i++ {
 		node := n[i].Node
@@ -1670,7 +1670,7 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 func (f *aclFilter) redactPreparedQueryTokens(query **structs.PreparedQuery) {
 	// Management tokens can see everything with no filtering.
 	var authzContext acl.AuthorizerContext
-	structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	if f.authorizer.ACLWrite(&authzContext) == acl.Allow {
 		return
 	}
@@ -1696,7 +1696,7 @@ func (f *aclFilter) redactPreparedQueryTokens(query **structs.PreparedQuery) {
 // if the user doesn't have a management token.
 func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 	var authzContext acl.AuthorizerContext
-	structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	// Management tokens can see everything with no filtering.
 	// TODO  is this check even necessary - this looks like a search replace from
 	// the 1.4 ACL rewrite. The global-management token will provide unrestricted query privileges

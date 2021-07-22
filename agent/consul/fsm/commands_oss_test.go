@@ -80,7 +80,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify service registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -135,7 +135,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify service registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -144,7 +144,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify check
-	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -207,7 +207,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify service not registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -270,7 +270,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify check not registered
-	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -339,7 +339,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify service not registered
-	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, services, err := fsm.state.NodeServices(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -348,7 +348,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify checks not registered
-	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMeta())
+	_, checks, err := fsm.state.NodeChecks(nil, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1441,7 +1441,7 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		Config: map[string]interface{}{
 			"foo": "bar",
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Create a new request.
@@ -1595,7 +1595,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 		assert.NotNil(node)
 
 		// Verify service registered
-		_, services, err := fsm2.state.NodeServices(nil, fmt.Sprintf("foo%d", i), structs.DefaultEnterpriseMeta())
+		_, services, err := fsm2.state.NodeServices(nil, fmt.Sprintf("foo%d", i), structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(err)
 		require.NotNil(services)
 		_, ok := services.Services["db"]

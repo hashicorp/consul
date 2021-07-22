@@ -4991,7 +4991,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	got.SecretID = ""
 	got.Hash = nil
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	expect := &structs.ACLToken{
 		AuthMethod:     method.Name,
 		Description:    `token created via login: {"pod":"pod1"}`,
@@ -5102,7 +5102,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 			got.SecretID = ""
 			got.Hash = nil
 
-			defaultEntMeta := structs.DefaultEnterpriseMeta()
+			defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 			expect := &structs.ACLToken{
 				AuthMethod:  method.Name,
 				Description: `token created via login: {"pod":"pod1"}`,

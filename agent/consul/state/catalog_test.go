@@ -230,7 +230,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Tags:           []string{"primary"},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 
@@ -268,7 +268,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Name:           "check",
 				Status:         "critical",
 				RaftIndex:      structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 
@@ -313,7 +313,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Name:           "check",
 				Status:         "critical",
 				RaftIndex:      structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			&structs.HealthCheck{
 				Node:           "node1",
@@ -324,7 +324,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				ServiceName:    "redis",
 				ServiceTags:    []string{"primary"},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 4, ModifyIndex: 4},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 
@@ -357,7 +357,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			Node:           "nope",
 			CheckID:        "check2",
 			Name:           "check",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	err = s.EnsureRegistration(6, req)
@@ -1395,7 +1395,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 		Address:        "1.1.1.1",
 		Port:           1111,
 		Weights:        &structs.Weights{Passing: 1, Warning: 0},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Creating a service without a node returns an error.
@@ -1531,7 +1531,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 			Warning: 1,
 		},
 		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "foo"},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Service successfully registers into the state store.
@@ -2259,7 +2259,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Address:        "1.1.1.1",
 			Port:           1111,
 			Weights:        &structs.Weights{Passing: 1, Warning: 0},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			ID:             "service2",
@@ -2268,7 +2268,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Address:        "1.1.1.2",
 			Port:           1112,
 			Weights:        &structs.Weights{Passing: 1, Warning: 1},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	for i, svc := range ns {
@@ -4248,7 +4248,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 6,
 						ModifyIndex: 6,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				&structs.HealthCheck{
 					Node:        "node1",
@@ -4260,7 +4260,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 8,
 						ModifyIndex: 8,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			Services: []*structs.NodeService{
@@ -4275,7 +4275,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 2,
 						ModifyIndex: 2,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				{
 					ID:      "service2",
@@ -4288,7 +4288,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 3,
 						ModifyIndex: 3,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -4305,7 +4305,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 7,
 						ModifyIndex: 7,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				&structs.HealthCheck{
 					Node:        "node2",
@@ -4317,7 +4317,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 9,
 						ModifyIndex: 9,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			Services: []*structs.NodeService{
@@ -4332,7 +4332,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 4,
 						ModifyIndex: 4,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				{
 					ID:      "service2",
@@ -4345,7 +4345,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 5,
 						ModifyIndex: 5,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -6151,7 +6151,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 		Node: "foo",
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	admin := structs.NewServiceName("admin", defaultMeta)
 	cache := structs.NewServiceName("cache", defaultMeta)
@@ -6261,7 +6261,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 }
 
 func TestCatalog_catalogDownstreams(t *testing.T) {
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -6377,7 +6377,7 @@ func TestCatalog_catalogDownstreams(t *testing.T) {
 			}
 
 			tx := s.db.ReadTxn()
-			idx, names, err := downstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("admin", structs.DefaultEnterpriseMeta()))
+			idx, names, err := downstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("admin", structs.DefaultEnterpriseMetaInDefaultPartition()))
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6387,7 +6387,7 @@ func TestCatalog_catalogDownstreams(t *testing.T) {
 }
 
 func TestCatalog_upstreamsFromRegistration(t *testing.T) {
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -6552,7 +6552,7 @@ func TestCatalog_upstreamsFromRegistration(t *testing.T) {
 			}
 
 			tx := s.db.ReadTxn()
-			idx, names, err := upstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("api", structs.DefaultEnterpriseMeta()))
+			idx, names, err := upstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()))
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6574,7 +6574,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 		Node: "foo",
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	web := structs.NewServiceName("web", defaultMeta)
 
 	ws := memdb.NewWatchSet()
@@ -6739,7 +6739,7 @@ func TestCatalog_topologyCleanupPanic(t *testing.T) {
 		Node: "foo",
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	web := structs.NewServiceName("web", defaultMeta)
 
 	ws := memdb.NewWatchSet()
@@ -6816,7 +6816,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 		},
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	ingress := structs.NewServiceName("ingress", defaultMeta)
 
 	ws := memdb.NewWatchSet()
@@ -7023,7 +7023,7 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 		},
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	// Register two different gateways that target services via wildcard
 	require.NoError(t, s.EnsureConfigEntry(2, &structs.TerminatingGatewayConfigEntry{
@@ -7078,7 +7078,7 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -7203,7 +7203,7 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 			defer tx.Abort()
 
 			ws := memdb.NewWatchSet()
-			sn := structs.NewServiceName("admin", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("admin", structs.DefaultEnterpriseMetaInDefaultPartition())
 			idx, names, err := s.downstreamsForServiceTxn(tx, ws, "dc1", sn)
 			require.NoError(t, err)
 
@@ -7215,7 +7215,7 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 
 func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 	var (
-		defaultMeta = structs.DefaultEnterpriseMeta()
+		defaultMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 		target      = structs.NewServiceName("admin", defaultMeta)
 	)
 
@@ -7509,7 +7509,7 @@ func TestProtocolForIngressGateway(t *testing.T) {
 			defer tx.Abort()
 
 			ws := memdb.NewWatchSet()
-			sn := structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 			idx, protocol, err := metricsProtocolForIngressGateway(tx, ws, sn)
 			require.NoError(t, err)

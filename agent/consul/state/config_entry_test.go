@@ -331,7 +331,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 					Kind:           structs.ServiceDefaults,
 					Name:           "main",
 					Protocol:       "http",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				&structs.ServiceResolverConfigEntry{
 					Kind: structs.ServiceResolver,
@@ -354,7 +354,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 						{Weight: 90, ServiceSubset: "v1"},
 						{Weight: 10, ServiceSubset: "v2"},
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 				return s.EnsureConfigEntry(0, entry)
 			},
@@ -1554,7 +1554,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 }
 
 func TestSourcesForTarget(t *testing.T) {
-	defaultMeta := *structs.DefaultEnterpriseMeta()
+	defaultMeta := *structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -1829,7 +1829,7 @@ func TestSourcesForTarget(t *testing.T) {
 			tx := s.db.ReadTxn()
 			defer tx.Abort()
 
-			sn := structs.NewServiceName("sink", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("sink", structs.DefaultEnterpriseMetaInDefaultPartition())
 			idx, names, err := s.discoveryChainSourcesTxn(tx, ws, "dc1", sn)
 			require.NoError(t, err)
 
@@ -1840,7 +1840,7 @@ func TestSourcesForTarget(t *testing.T) {
 }
 
 func TestTargetsForSource(t *testing.T) {
-	defaultMeta := *structs.DefaultEnterpriseMeta()
+	defaultMeta := *structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx uint64

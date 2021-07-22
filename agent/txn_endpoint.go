@@ -156,7 +156,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 						Value:          in.KV.Value,
 						Flags:          in.KV.Flags,
 						Session:        in.KV.Session,
-						EnterpriseMeta: structs.NewEnterpriseMeta(in.KV.Namespace),
+						EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(in.KV.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: in.KV.Index,
 						},
@@ -216,7 +216,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
-						EnterpriseMeta:    structs.NewEnterpriseMeta(svc.Namespace),
+						EnterpriseMeta:    structs.NewEnterpriseMetaInDefaultPartition(svc.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: svc.ModifyIndex,
 						},
@@ -274,7 +274,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
-						EnterpriseMeta: structs.NewEnterpriseMeta(check.Namespace),
+						EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(check.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
 						},

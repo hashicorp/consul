@@ -42,6 +42,31 @@ func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 	return false
 }
 
+func (m *EnterpriseMeta) WildcardEnterpriseMetaForPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func (m *EnterpriseMeta) DefaultEnterpriseMetaForPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func (m *EnterpriseMeta) NodeEnterpriseMetaForPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func (m *EnterpriseMeta) NewEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+// TODO(partition): stop using this
+func NewEnterpriseMetaInDefaultPartition(_ string) EnterpriseMeta {
+	return emptyEnterpriseMeta
+}
+
+func NewEnterpriseMetaWithPartition(_, _ string) EnterpriseMeta {
+	return emptyEnterpriseMeta
+}
+
 func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return IntentionDefaultNamespace
 }
@@ -66,22 +91,36 @@ func (m *EnterpriseMeta) PartitionOrEmpty() string {
 	return ""
 }
 
-func NewEnterpriseMeta(_ string) EnterpriseMeta {
-	return emptyEnterpriseMeta
-}
-
 // ReplicationEnterpriseMeta stub
 func ReplicationEnterpriseMeta() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
-// DefaultEnterpriseMeta stub
-func DefaultEnterpriseMeta() *EnterpriseMeta {
+// TODO(partition): stop using this
+func DefaultEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
-// WildcardEnterpriseMeta stub
-func WildcardEnterpriseMeta() *EnterpriseMeta {
+// DefaultEnterpriseMetaInPartition stub
+func DefaultEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func NodeEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+func NodeEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+// TODO(partition): stop using this
+func WildcardEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
+	return &emptyEnterpriseMeta
+}
+
+// WildcardEnterpriseMetaInPartition stub
+func WildcardEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
@@ -114,7 +153,7 @@ func ServiceIDString(id string, _ *EnterpriseMeta) string {
 }
 
 func ParseServiceIDString(input string) (string, *EnterpriseMeta) {
-	return input, DefaultEnterpriseMeta()
+	return input, DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (sid ServiceID) String() string {
@@ -127,7 +166,7 @@ func ServiceIDFromString(input string) ServiceID {
 }
 
 func ParseServiceNameString(input string) (string, *EnterpriseMeta) {
-	return input, DefaultEnterpriseMeta()
+	return input, DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (n ServiceName) String() string {

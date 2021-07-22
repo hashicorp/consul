@@ -229,7 +229,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
-	policy.EnterpriseMeta = *DefaultEnterpriseMeta()
+	policy.EnterpriseMeta = *DefaultEnterpriseMetaInDefaultPartition()
 	policy.SetHash(true)
 	return policy
 }

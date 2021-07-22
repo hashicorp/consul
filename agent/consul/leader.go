@@ -533,7 +533,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 		s.logger.Info("initializing acls")
 
 		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
@@ -544,7 +544,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 				Description:    "Builtin Policy that grants unlimited access",
 				Rules:          structs.ACLPolicyGlobalManagement,
 				Syntax:         acl.SyntaxCurrent,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			if policy != nil {
 				newPolicy.Name = policy.Name
@@ -595,7 +595,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
 					Type:           structs.ACLTokenTypeManagement,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 
 				token.SetHash(true)
@@ -654,7 +654,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 					SecretID:       anonymousToken,
 					Description:    "Anonymous Token",
 					CreateTime:     time.Now(),
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 				token.SetHash(true)
 
@@ -1112,7 +1112,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMeta())
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return err
 	}
@@ -1128,7 +1128,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMeta())
+		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err
 		}
@@ -1270,7 +1270,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMeta())
+			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMetaInDefaultPartition())
 			if err != nil {
 				return err
 			}
@@ -1288,7 +1288,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err
 		}
@@ -1342,7 +1342,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err
 		}

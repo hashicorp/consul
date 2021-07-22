@@ -74,7 +74,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		}
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	// ------------------------------------------------------------
 	// cmd line flags
@@ -5184,7 +5184,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		return n
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
 		ACLDisabledTTL:             120 * time.Second,
@@ -5378,7 +5378,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				AuthMethod: structs.ACLAuthMethod{
 					Name:           "Auto Config Authorizer",
 					Type:           "jwt",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					Config: map[string]interface{}{
 						"JWTValidationPubKeys": []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"},
 						"ClaimMappings": map[string]string{

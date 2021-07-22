@@ -57,7 +57,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	assert.False(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
 	a.State.AddService(srv1, "")
@@ -77,7 +77,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, "")
 
@@ -99,7 +99,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv3, "")
 
@@ -113,7 +113,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	args.Service = srv4
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -131,7 +131,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv5, "")
 
@@ -153,7 +153,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.SetServiceState(&local.ServiceState{
 		Service: srv6,
@@ -209,7 +209,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 	}
 
-	if err := servicesInSync(a.State, 5, structs.DefaultEnterpriseMeta()); err != nil {
+	if err := servicesInSync(a.State, 5, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -248,7 +248,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 	}
 
-	if err := servicesInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
+	if err := servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -284,7 +284,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, "")
 	args.Service = srv1
@@ -301,7 +301,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, "")
 
@@ -322,7 +322,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv3, "")
 
@@ -337,7 +337,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 0,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	args.Service = srv4
 	assert.Nil(a.RPC("Catalog.Register", args, &out))
@@ -353,7 +353,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.SetServiceState(&local.ServiceState{
 		Service: srv5,
@@ -391,7 +391,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
-	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMeta()))
+	assert.Nil(servicesInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()))
 
 	// Remove one of the services
 	a.State.RemoveService(structs.NewServiceID("cache-proxy", nil))
@@ -418,7 +418,7 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 		}
 	}
 
-	assert.Nil(servicesInSync(a.State, 3, structs.DefaultEnterpriseMeta()))
+	assert.Nil(servicesInSync(a.State, 3, structs.DefaultEnterpriseMetaInDefaultPartition()))
 }
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
@@ -625,7 +625,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 						Passing: 1,
 						Warning: 1,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 				assert.Equal(r, want, got)
 			case "svc_id2":
@@ -638,7 +638,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
+		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -873,7 +873,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
+		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -918,7 +918,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 1, structs.DefaultEnterpriseMeta()); err != nil {
+		if err := servicesInSync(a.State, 1, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -953,7 +953,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		CheckID:        "mysql",
 		Name:           "mysql",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddCheck(chk1, "")
 	args.Check = chk1
@@ -967,7 +967,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		CheckID:        "redis",
 		Name:           "redis",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddCheck(chk2, "")
 
@@ -985,7 +985,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		CheckID:        "web",
 		Name:           "web",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddCheck(chk3, "")
 
@@ -995,7 +995,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		CheckID:        "lb",
 		Name:           "lb",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	args.Check = chk4
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -1008,7 +1008,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		CheckID:        "cache",
 		Name:           "cache",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.SetCheckState(&local.CheckState{
 		Check:  chk5,
@@ -1056,7 +1056,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			}
 		}
 
-		if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
+		if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -1119,7 +1119,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			}
 		}
 
-		if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMeta()); err != nil {
+		if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -1165,7 +1165,7 @@ func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
 		Name:           "lb",
 		ServiceID:      svcID,
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	args.Check = chk
@@ -1250,7 +1250,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv1, "root")
 	srv2 := &structs.NodeService{
@@ -1262,7 +1262,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddService(srv2, "root")
 
@@ -1304,7 +1304,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 			}
 		}
 
-		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
+		if err := servicesInSync(a.State, 2, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1318,7 +1318,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		CheckID:        "mysql-check",
 		Name:           "mysql",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddCheck(chk1, token)
 
@@ -1331,7 +1331,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		CheckID:        "api-check",
 		Name:           "api",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	a.State.AddCheck(chk2, token)
 
@@ -1372,7 +1372,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		}
 	}
 
-	if err := checksInSync(a.State, 2, structs.DefaultEnterpriseMeta()); err != nil {
+	if err := checksInSync(a.State, 2, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1417,7 +1417,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		}
 	}
 
-	if err := checksInSync(a.State, 1, structs.DefaultEnterpriseMeta()); err != nil {
+	if err := checksInSync(a.State, 1, structs.DefaultEnterpriseMetaInDefaultPartition()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1863,19 +1863,19 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 		Status:    api.HealthPassing,
 	}
 	l.AddCheck(chk, "")
-	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMeta()); len(checks) > 0 {
+	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Set it to warning and make sure that doesn't show up as critical.
 	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthWarning, "")
-	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMeta()); len(checks) > 0 {
+	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks reasonable.
 	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthCritical, "")
-	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMeta())[structs.NewCheckID(checkID, nil)]; !ok {
+	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition())[structs.NewCheckID(checkID, nil)]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
 		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
@@ -1886,7 +1886,7 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 	// 50ms the check should not be any less than that.
 	time.Sleep(50 * time.Millisecond)
 	l.UpdateCheck(chk.CompoundCheckID(), api.HealthCritical, "")
-	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMeta())[structs.NewCheckID(checkID, nil)]; !ok {
+	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition())[structs.NewCheckID(checkID, nil)]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() < 50*time.Millisecond {
 		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
@@ -1894,14 +1894,14 @@ func TestAgent_CheckCriticalTime(t *testing.T) {
 
 	// Set it passing again.
 	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthPassing, "")
-	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMeta()); len(checks) > 0 {
+	if checks := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition()); len(checks) > 0 {
 		t.Fatalf("should not have any critical checks")
 	}
 
 	// Fail the check and make sure the time looks like it started again
 	// from the latest failure, not the original one.
 	l.UpdateCheck(structs.NewCheckID(checkID, nil), api.HealthCritical, "")
-	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMeta())[structs.NewCheckID(checkID, nil)]; !ok {
+	if c, ok := l.CriticalCheckStates(structs.DefaultEnterpriseMetaInDefaultPartition())[structs.NewCheckID(checkID, nil)]; !ok {
 		t.Fatalf("should have a critical check")
 	} else if c.CriticalFor() > time.Millisecond {
 		t.Fatalf("bad: %#v, check was critical for %v", c, c.CriticalFor())
@@ -2282,7 +2282,7 @@ func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
 		Kind:           structs.ServiceKindTypical,
 		ID:             "the-service-id",
 		Service:        "web",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	checks := []*structs.HealthCheck{
 		{Node: "this-node", CheckID: "the-id-1", Name: "check-healthy-1"},

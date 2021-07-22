@@ -1020,9 +1020,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	}
 	t.Parallel()
 
-	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMeta())
-	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMeta())
-	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMetaInDefaultPartition())
+	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMetaInDefaultPartition())
+	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
 
 	tt := []struct {
 		name     string
@@ -1117,7 +1117,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					{
 						Upstream: structs.ServiceID{
 							ID:             "mysql",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 						},
 						Config: map[string]interface{}{
 							"protocol": "http",

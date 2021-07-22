@@ -51,7 +51,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -111,7 +111,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:           structs.ServiceKindConnectProxy,
 				ID:             "web1-sidecar-proxy",
 				Service:        "motorbike1",
@@ -189,7 +189,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 				},
 			},
 			wantNS: &structs.NodeService{
-				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",
@@ -279,7 +279,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 			token: "foo",
 			wantNS: &structs.NodeService{
-				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta:             *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Kind:                       structs.ServiceKindConnectProxy,
 				ID:                         "web1-sidecar-proxy",
 				Service:                    "web-sidecar-proxy",

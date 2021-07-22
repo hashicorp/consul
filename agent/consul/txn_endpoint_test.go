@@ -754,14 +754,14 @@ func TestTxn_Read(t *testing.T) {
 		ID:             "svc-foo",
 		Service:        "svc-foo",
 		Address:        "127.0.0.1",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.NoError(state.EnsureService(3, "foo", &svc))
 
 	check := structs.HealthCheck{
 		Node:           "foo",
 		CheckID:        types.CheckID("check-foo"),
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	state.EnsureCheck(4, &check)
 

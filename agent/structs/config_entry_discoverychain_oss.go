@@ -5,31 +5,31 @@ package structs
 // GetEnterpriseMeta is used to synthesize the EnterpriseMeta struct from
 // fields in the ServiceRouteDestination
 func (dest *ServiceRouteDestination) GetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 // GetEnterpriseMeta is used to synthesize the EnterpriseMeta struct from
 // fields in the ServiceSplit
 func (split *ServiceSplit) GetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 // GetEnterpriseMeta is used to synthesize the EnterpriseMeta struct from
 // fields in the ServiceResolverRedirect
 func (redir *ServiceResolverRedirect) GetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 // GetEnterpriseMeta is used to synthesize the EnterpriseMeta struct from
 // fields in the ServiceResolverFailover
 func (failover *ServiceResolverFailover) GetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 // GetEnterpriseMeta is used to synthesize the EnterpriseMeta struct from
 // fields in the DiscoveryChainRequest
 func (req *DiscoveryChainRequest) GetEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 // WithEnterpriseMeta will populate the corresponding fields in the

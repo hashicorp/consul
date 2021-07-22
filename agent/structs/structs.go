@@ -1817,7 +1817,7 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	var cid CheckID
 	cid.ID = id
 	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
+		entMeta = DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	cid.EnterpriseMeta = *entMeta
@@ -1843,7 +1843,7 @@ func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
 	var sid ServiceID
 	sid.ID = id
 	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
+		entMeta = DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	sid.EnterpriseMeta = *entMeta
@@ -1886,7 +1886,7 @@ func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
 	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
+		entMeta = DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	ret.EnterpriseMeta = *entMeta

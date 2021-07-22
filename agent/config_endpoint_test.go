@@ -292,11 +292,11 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 				CAFile:         "/etc/web/ca.crt",
 				CertFile:       "/etc/web/client.crt",
 				KeyFile:        "/etc/web/tls.key",
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			{
 				Name:           "api",
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 		require.Equal(t, expect, got.Services)
@@ -361,12 +361,12 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 					Services: []structs.IngressService{
 						{
 							Name:           "web",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 						},
 					},
 				},
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		}
 		require.Equal(t, expect, got)
 	}
