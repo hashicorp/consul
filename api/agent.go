@@ -66,6 +66,7 @@ type AgentCheck struct {
 	ExposedPort int
 	Definition  HealthCheckDefinition
 	Namespace   string `json:",omitempty"`
+	Partition   string `json:",omitempty"`
 }
 
 // AgentWeights represent optional weights for a service
@@ -96,6 +97,7 @@ type AgentService struct {
 	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
 	// For now though, ignoring it works well enough.
 	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Partition string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	// Datacenter is only ever returned and is ignored if presented.
 	Datacenter string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
@@ -270,6 +272,7 @@ type AgentServiceRegistration struct {
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
@@ -299,6 +302,7 @@ type AgentCheckRegistration struct {
 	ServiceID string `json:",omitempty"`
 	AgentServiceCheck
 	Namespace string `json:",omitempty"`
+	Partition string `json:",omitempty"`
 }
 
 // AgentServiceCheck is used to define a node or service level check
@@ -404,8 +408,9 @@ type ConnectProxyConfig struct {
 
 // Upstream is the response structure for a proxy upstream configuration.
 type Upstream struct {
-	DestinationType      UpstreamDestType `json:",omitempty"`
-	DestinationNamespace string           `json:",omitempty"`
+	DestinationType UpstreamDestType `json:",omitempty"`
+	// DestinationPartition string `json:",omitempty"` // TODO(partitions)?
+	DestinationNamespace string `json:",omitempty"`
 	DestinationName      string
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`

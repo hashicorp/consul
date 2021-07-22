@@ -110,6 +110,7 @@ func NodeEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
+// TODO(partition): stop using this
 func NodeEnterpriseMetaInDefaultPartition() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
@@ -212,4 +213,8 @@ func (t *Intention) HasWildcardSource() bool {
 
 func (t *Intention) HasWildcardDestination() bool {
 	return t.DestinationName == WildcardSpecifier
+}
+
+func (s *ServiceNode) NodeIdentity() Identity {
+	return Identity{ID: s.Node}
 }
