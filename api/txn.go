@@ -82,6 +82,7 @@ type KVTxnOp struct {
 	Index     uint64
 	Session   string
 	Namespace string `json:",omitempty"`
+	Partition string `json:",omitempty"`
 }
 
 // KVTxnOps defines a set of operations to be performed inside a single
