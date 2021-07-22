@@ -14,9 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 	"github.com/pascaldekloe/goe/verify"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestStore_CAConfig(t *testing.T) {
