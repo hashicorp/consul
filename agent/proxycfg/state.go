@@ -638,7 +638,7 @@ func (s *state) run(snap *ConfigSnapshot) {
 		case <-s.ctx.Done():
 			return
 		case u := <-s.ch:
-			s.logger.Trace("A blocking query returned; handling snapshot update")
+			s.logger.Trace("A blocking query returned; handling snapshot update", "correlationID", u.CorrelationID)
 
 			if err := s.handleUpdate(u, snap); err != nil {
 				s.logger.Error("Failed to handle update from watch",

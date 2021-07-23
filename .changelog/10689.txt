@@ -1,0 +1,3 @@
+```release-note:improvement
+proxycfg: log correlation IDs for the proxy configuration snapshot's blocking queries.
+```
