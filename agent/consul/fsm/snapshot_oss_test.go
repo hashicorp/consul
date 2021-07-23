@@ -489,7 +489,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, fsm2.Restore(sink))
 
 	// Verify the contents
-	_, nodes, err := fsm2.state.Nodes(nil)
+	_, nodes, err := fsm2.state.Nodes(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, nodes, 2, "incorect number of nodes: %v", nodes)
 
@@ -625,7 +625,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}()
 
 	// Verify coordinates are restored
-	_, coords, err := fsm2.state.Coordinates(nil)
+	_, coords, err := fsm2.state.Coordinates(nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, updates, coords)
 
@@ -749,7 +749,7 @@ func TestFSM_BadRestore_OSS(t *testing.T) {
 	require.Error(t, fsm.Restore(sink))
 
 	// Verify the contents didn't get corrupted.
-	_, nodes, err := fsm.state.Nodes(nil)
+	_, nodes, err := fsm.state.Nodes(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, nodes, 1)
 	require.Equal(t, "foo", nodes[0].Node)

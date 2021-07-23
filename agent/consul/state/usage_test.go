@@ -3,9 +3,10 @@ package state
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestStateStore_Usage_NodeCount(t *testing.T) {
@@ -37,7 +38,7 @@ func TestStateStore_Usage_NodeCount_Delete(t *testing.T) {
 	require.Equal(t, idx, uint64(1))
 	require.Equal(t, count, 2)
 
-	require.NoError(t, s.DeleteNode(2, "node2"))
+	require.NoError(t, s.DeleteNode(2, "node2", nil))
 	idx, count, err = s.NodeCount()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(2))
@@ -83,7 +84,7 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	require.Equal(t, usage.Services, 1)
 	require.Equal(t, usage.ServiceInstances, 2)
 
-	require.NoError(t, s.DeleteNode(3, "node1"))
+	require.NoError(t, s.DeleteNode(3, "node1", nil))
 
 	idx, usage, err = s.ServiceUsage()
 	require.NoError(t, err)

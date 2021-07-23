@@ -199,7 +199,8 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, coords, err := state.Coordinates(ws)
+			// TODO(partitions)
+			index, coords, err := state.Coordinates(ws, nil)
 			if err != nil {
 				return err
 			}
@@ -236,7 +237,8 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodeCoords, err := state.Coordinate(args.Node, ws)
+			// TODO(partitions)
+			index, nodeCoords, err := state.Coordinate(ws, args.Node, nil)
 			if err != nil {
 				return err
 			}

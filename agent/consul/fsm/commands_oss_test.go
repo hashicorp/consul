@@ -68,7 +68,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -126,7 +126,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -198,7 +198,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -261,7 +261,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify we are registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -330,7 +330,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify we are not registered
-	_, node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -730,7 +730,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Read back the two coordinates to make sure they got updated.
-	_, coords, err := fsm.state.Coordinates(nil)
+	_, coords, err := fsm.state.Coordinates(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1543,7 +1543,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 
 	// Verify we are not registered
 	for i := 0; i < 10; i++ {
-		_, node, err := fsm.state.GetNode(fmt.Sprintf("foo%d", i))
+		_, node, err := fsm.state.GetNode(fmt.Sprintf("foo%d", i), nil)
 		require.NoError(err)
 		assert.Nil(node)
 	}
@@ -1566,7 +1566,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 
 	// Verify we are still not registered
 	for i := 0; i < 10; i++ {
-		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i))
+		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i), nil)
 		require.NoError(err)
 		assert.Nil(node)
 	}
@@ -1590,7 +1590,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 
 	// Verify we are registered
 	for i := 0; i < 10; i++ {
-		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i))
+		_, node, err := fsm2.state.GetNode(fmt.Sprintf("foo%d", i), nil)
 		require.NoError(err)
 		assert.NotNil(node)
 

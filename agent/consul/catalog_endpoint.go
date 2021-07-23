@@ -298,10 +298,11 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
+			// TODO(partitions)
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, nil)
 			} else {
-				reply.Index, reply.Nodes, err = state.Nodes(ws)
+				reply.Index, reply.Nodes, err = state.Nodes(ws, nil)
 			}
 			if err != nil {
 				return err

@@ -169,7 +169,7 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 			return err
 		}
 	} else {
-		if err := c.state.DeleteNode(index, req.Node); err != nil {
+		if err := c.state.DeleteNode(index, req.Node, &req.EnterpriseMeta); err != nil {
 			c.logger.Warn("DeleteNode failed", "error", err)
 			return err
 		}
