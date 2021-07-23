@@ -5,10 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 //nolint:staticcheck
@@ -195,7 +196,7 @@ func TestStateStore_Txn_Node(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.Nodes(nil)
+	idx, actual, err := s.Nodes(nil, nil)
 	require.NoError(t, err)
 	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)

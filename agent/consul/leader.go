@@ -1139,7 +1139,8 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	CHECKS:
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
-				_, node, err := state.GetNode(check.Node)
+				// TODO(partitions)
+				_, node, err := state.GetNode(check.Node, nil)
 				if err != nil {
 					s.logger.Error("Unable to look up node with name", "name", check.Node, "error", err)
 					continue CHECKS
@@ -1262,7 +1263,8 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	// TODO(partitions)
+	_, node, err := state.GetNode(member.Name, nil)
 	if err != nil {
 		return err
 	}
@@ -1330,7 +1332,8 @@ AFTER_CHECK:
 func (s *Server) handleFailedMember(member serf.Member) error {
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	// TODO(partitions)
+	_, node, err := state.GetNode(member.Name, nil)
 	if err != nil {
 		return err
 	}
@@ -1407,7 +1410,8 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 	// Check if the node does not exist
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	// TODO(partitions)
+	_, node, err := state.GetNode(member.Name, nil)
 	if err != nil {
 		return err
 	}

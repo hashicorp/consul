@@ -176,7 +176,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
 		}
 
-		_, out, err := s.GetNode("node1")
+		_, out, err := s.GetNode("node1", nil)
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
@@ -392,7 +392,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Retrieve the node and verify its contents.
 	verifyNode := func(nodeLookup string) {
-		_, out, err := s.GetNode(nodeLookup)
+		_, out, err := s.GetNode(nodeLookup, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -550,7 +550,7 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 	if err := s.EnsureNode(txIdx, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err := s.GetNode(nodeName)
+	idx, out, err := s.GetNode(nodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -580,7 +580,7 @@ func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Retrieve the node again
-	idx, out, err := s.GetNode(firstNodeName)
+	idx, out, err := s.GetNode(firstNodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -603,7 +603,7 @@ func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Retrieve the node again
-	idx, out, err = s.GetNode(firstNodeName)
+	idx, out, err = s.GetNode(firstNodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -725,7 +725,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	idx, out, err := s.GetNode("node2bis")
+	idx, out, err := s.GetNode("node2bis", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -749,7 +749,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching a non-existent node returns nil
-	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
+	if _, node, err := s.GetNode("node1", nil); node != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", node, err)
 	}
 
@@ -766,7 +766,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	idx, out, err := s.GetNode("node1")
+	idx, out, err := s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -795,7 +795,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	idx, out, err = s.GetNode("node1")
+	idx, out, err = s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -812,7 +812,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(3, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	_, out, err = s.GetNode("node1")
+	_, out, err = s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -829,7 +829,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(3, in3); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err = s.GetNode("node1")
+	idx, out, err = s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -856,13 +856,13 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	_, out, err = s.GetNode("node1")
+	_, out, err = s.GetNode("node1", nil)
 	require.NoError(t, err)
 	if out != nil {
 		t.Fatalf("Node should not exist anymore: %q", out)
 	}
 
-	idx, out, err = s.GetNode("node1-renamed")
+	idx, out, err = s.GetNode("node1-renamed", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -921,7 +921,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	_, out, err = s.GetNode("Node1bis")
+	_, out, err = s.GetNode("Node1bis", nil)
 	require.NoError(t, err)
 	if out == nil {
 		t.Fatalf("Node should exist, but was null")
@@ -937,7 +937,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	idx, out, err = s.GetNode("Node1bis")
+	idx, out, err = s.GetNode("Node1bis", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -980,7 +980,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(12, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err = s.GetNode("Node1-Renamed2")
+	idx, out, err = s.GetNode("Node1-Renamed2", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1010,7 +1010,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(15, in); err != nil {
 		t.Fatalf("[DEPRECATED] it should work, err:= %q", err)
 	}
-	_, out, err = s.GetNode("Node1-Renamed2")
+	_, out, err = s.GetNode("Node1-Renamed2", nil)
 	if err != nil {
 		t.Fatalf("[DEPRECATED] err: %s", err)
 	}
@@ -1027,7 +1027,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 
 	// Listing with no results returns nil.
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.Nodes(ws)
+	idx, res, err := s.Nodes(ws, nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -1042,7 +1042,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 
 	// Retrieve the nodes.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err := s.Nodes(ws)
+	idx, nodes, err := s.Nodes(ws, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1072,7 +1072,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
-	if err := s.DeleteNode(3, "node1"); err != nil {
+	if err := s.DeleteNode(3, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -1092,7 +1092,7 @@ func BenchmarkGetNodes(b *testing.B) {
 
 	ws := memdb.NewWatchSet()
 	for i := 0; i < b.N; i++ {
-		s.Nodes(ws)
+		s.Nodes(ws, nil)
 	}
 }
 
@@ -1101,7 +1101,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 
 	// Listing with no results returns nil
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.NodesByMeta(ws, map[string]string{"somekey": "somevalue"})
+	idx, res, err := s.NodesByMeta(ws, map[string]string{"somekey": "somevalue"}, nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -1141,7 +1141,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, result, err := s.NodesByMeta(nil, tc.filters)
+		_, result, err := s.NodesByMeta(nil, tc.filters, nil)
 		if err != nil {
 			t.Fatalf("bad: %v", err)
 		}
@@ -1159,7 +1159,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 
 	// Set up a watch.
 	ws = memdb.NewWatchSet()
-	_, _, err = s.NodesByMeta(ws, map[string]string{"role": "client"})
+	_, _, err = s.NodesByMeta(ws, map[string]string{"role": "client"}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1285,12 +1285,12 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	testRegisterCheck(t, s, 2, "node1", "", "check1", api.HealthPassing)
 
 	// Delete the node
-	if err := s.DeleteNode(3, "node1"); err != nil {
+	if err := s.DeleteNode(3, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// The node was removed
-	if idx, n, err := s.GetNode("node1"); err != nil || n != nil || idx != 3 {
+	if idx, n, err := s.GetNode("node1", nil); err != nil || n != nil || idx != 3 {
 		t.Fatalf("bad: %#v %d (err: %#v)", n, idx, err)
 	}
 
@@ -1324,7 +1324,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 
 	// Deleting a nonexistent node should be idempotent and not return
 	// an error
-	if err := s.DeleteNode(4, "node1"); err != nil {
+	if err := s.DeleteNode(4, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if idx := s.maxIndex("nodes"); idx != 3 {
@@ -1618,7 +1618,7 @@ func TestStateStore_Services(t *testing.T) {
 	}
 
 	// Deleting a node with a service should fire the watch.
-	if err := s.DeleteNode(6, "node1"); err != nil {
+	if err := s.DeleteNode(6, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -1868,7 +1868,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	}
 
 	// But removing a node with the "db" service should fire the watch.
-	if err := s.DeleteNode(18, "bar"); err != nil {
+	if err := s.DeleteNode(18, "bar", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -1972,7 +1972,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	}
 
 	// But removing a node with the "db:primary" service should fire the watch.
-	if err := s.DeleteNode(21, "foo"); err != nil {
+	if err := s.DeleteNode(21, "foo", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -2134,7 +2134,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.False(watchFired(ws))
 
 	// But removing a node with the "db" service should fire the watch.
-	assert.Nil(s.DeleteNode(18, "bar"))
+	assert.Nil(s.DeleteNode(18, "bar", nil))
 	assert.True(watchFired(ws))
 }
 
@@ -2293,7 +2293,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	services, err := snap.Services("node1")
+	services, err := snap.Services("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3875,7 +3875,7 @@ func TestStateStore_Check_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	iter, err := snap.Checks("node1")
+	iter, err := snap.Checks("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4131,7 +4131,7 @@ func TestStateStore_ServiceDump(t *testing.T) {
 		{
 			name: "delete a node",
 			modFn: func(t *testing.T) {
-				s.DeleteNode(12, "node2")
+				s.DeleteNode(12, "node2", nil)
 			},
 			allFired:  true, // fires due to "index"
 			kindFired: true, // fires due to "index"
@@ -6791,7 +6791,7 @@ func TestCatalog_topologyCleanupPanic(t *testing.T) {
 	assert.True(t, watchFired(ws))
 
 	// Now delete the node Foo, and this would panic because of the deletion within an iterator
-	require.NoError(t, s.DeleteNode(3, "foo"))
+	require.NoError(t, s.DeleteNode(3, "foo", nil))
 	assert.True(t, watchFired(ws))
 
 }
@@ -7074,7 +7074,7 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 	require.NoError(t, s.EnsureService(5, "foo", &api2))
 
 	// Now delete the node "foo", and this would panic because of the deletion within an iterator
-	require.NoError(t, s.DeleteNode(6, "foo"))
+	require.NoError(t, s.DeleteNode(6, "foo", nil))
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {

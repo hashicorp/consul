@@ -5,12 +5,15 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 )
+
+// TODO(partitions): test partitioned nodes here
 
 // generateRandomCoordinate creates a random coordinate. This mucks with the
 // underlying structure directly, so it's not really useful for any particular
@@ -37,7 +40,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	// Make sure the coordinates list starts out empty, and that a query for
 	// a per-node coordinate for a nonexistent node doesn't do anything bad.
 	ws := memdb.NewWatchSet()
-	idx, all, err := s.Coordinates(ws)
+	idx, all, err := s.Coordinates(ws, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -47,7 +50,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	require.Nil(t, all)
 
 	coordinateWs := memdb.NewWatchSet()
-	_, coords, err := s.Coordinate("nope", coordinateWs)
+	_, coords, err := s.Coordinate(coordinateWs, "nope", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -75,7 +78,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	// Should still be empty, though applying an empty batch does bump
 	// the table index.
 	ws = memdb.NewWatchSet()
-	idx, all, err = s.Coordinates(ws)
+	idx, all, err = s.Coordinates(ws, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -85,7 +88,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	require.Nil(t, all)
 
 	coordinateWs = memdb.NewWatchSet()
-	idx, _, err = s.Coordinate("node1", coordinateWs)
+	idx, _, err = s.Coordinate(coordinateWs, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -105,7 +108,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// Should go through now.
 	ws = memdb.NewWatchSet()
-	idx, all, err = s.Coordinates(ws)
+	idx, all, err = s.Coordinates(ws, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -118,7 +121,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	nodeWs := make([]memdb.WatchSet, len(updates))
 	for i, update := range updates {
 		nodeWs[i] = memdb.NewWatchSet()
-		idx, coords, err := s.Coordinate(update.Node, nodeWs[i])
+		idx, coords, err := s.Coordinate(nodeWs[i], update.Node, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -146,7 +149,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	}
 
 	// Verify it got applied.
-	idx, all, err = s.Coordinates(nil)
+	idx, all, err = s.Coordinates(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -157,7 +160,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// And check the per-node coordinate version of the same thing.
 	for _, update := range updates {
-		idx, coords, err := s.Coordinate(update.Node, nil)
+		idx, coords, err := s.Coordinate(nil, update.Node, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -183,7 +186,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// Verify we are at the previous state, though the empty batch does bump
 	// the table index.
-	idx, all, err = s.Coordinates(nil)
+	idx, all, err = s.Coordinates(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -215,7 +218,7 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	}
 
 	// Make sure it's in there.
-	_, coords, err := s.Coordinate("node1", nil)
+	_, coords, err := s.Coordinate(nil, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -226,19 +229,19 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	require.Equal(t, expected, coords)
 
 	// Now delete the node.
-	if err := s.DeleteNode(3, "node1"); err != nil {
+	if err := s.DeleteNode(3, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the coordinate is gone.
-	_, coords, err = s.Coordinate("node1", nil)
+	_, coords, err = s.Coordinate(nil, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	require.Equal(t, lib.CoordinateSet{}, coords)
 
 	// Make sure the index got updated.
-	idx, all, err := s.Coordinates(nil)
+	idx, all, err := s.Coordinates(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -326,7 +329,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 		restore.Commit()
 
 		// Read the restored coordinates back out and verify that they match.
-		idx, res, err := s.Coordinates(nil)
+		idx, res, err := s.Coordinates(nil, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

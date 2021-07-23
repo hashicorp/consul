@@ -49,13 +49,15 @@ func (s *Snapshot) Nodes() (memdb.ResultIterator, error) {
 
 // Services is used to pull the full list of services for a given node for use
 // during snapshots.
-func (s *Snapshot) Services(node string) (memdb.ResultIterator, error) {
+func (s *Snapshot) Services(node string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	// TODO(partitions): use the provided entmeta
 	return s.tx.Get(tableServices, indexNode, Query{Value: node})
 }
 
 // Checks is used to pull the full list of checks for a given node for use
 // during snapshots.
-func (s *Snapshot) Checks(node string) (memdb.ResultIterator, error) {
+func (s *Snapshot) Checks(node string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	// TODO(partitions): use the provided entmeta
 	return s.tx.Get(tableChecks, indexNode, Query{Value: node})
 }
 
@@ -329,7 +331,8 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 }
 
 // GetNode is used to retrieve a node registration by node name ID.
-func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
+func (s *Store) GetNode(nodeNameOrID string, _ *structs.EnterpriseMeta) (uint64, *structs.Node, error) {
+	// TODO(partitions): use the provided entmeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -337,7 +340,7 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve the node from the state store
-	node, err := getNodeTxn(tx, id)
+	node, err := getNodeTxn(tx, nodeNameOrID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
@@ -386,7 +389,8 @@ func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
 }
 
 // Nodes is used to return all of the known nodes.
-func (s *Store) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
+func (s *Store) Nodes(ws memdb.WatchSet, _ *structs.EnterpriseMeta) (uint64, structs.Nodes, error) {
+	// TODO(partitions): use the provided entmeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -409,7 +413,8 @@ func (s *Store) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
 }
 
 // NodesByMeta is used to return all nodes with the given metadata key/value pairs.
-func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint64, structs.Nodes, error) {
+func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string, _ *structs.EnterpriseMeta) (uint64, structs.Nodes, error) {
+	// TODO(partitions): use the provided entmeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -440,7 +445,8 @@ func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint6
 }
 
 // DeleteNode is used to delete a given node by its ID.
-func (s *Store) DeleteNode(idx uint64, nodeName string) error {
+func (s *Store) DeleteNode(idx uint64, nodeName string, _ *structs.EnterpriseMeta) error {
+	// TODO(partitions): use the provided entmeta
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 

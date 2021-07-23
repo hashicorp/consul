@@ -402,7 +402,8 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		qs.Node = args.Agent.Node
 	} else if qs.Node == "_ip" {
 		if args.Source.Ip != "" {
-			_, nodes, err := state.Nodes(nil)
+			// TODO(partitions)
+			_, nodes, err := state.Nodes(nil, nil)
 			if err != nil {
 				return err
 			}

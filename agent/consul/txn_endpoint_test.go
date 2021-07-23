@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 var testTxnRules = `
@@ -233,7 +234,8 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	_, n, err := state.GetNode("foo")
+	// TODO(partitions)
+	_, n, err := state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
