@@ -25,6 +25,7 @@ type CheckDefinition struct {
 	ScriptArgs                     []string
 	HTTP                           string
 	H2PING                         string
+	H2PINGDisableTLS               bool
 	Header                         map[string][]string
 	Method                         string
 	Body                           string
@@ -69,6 +70,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
+		H2PINGDisableTLSSnake               bool        `json:"h2ping_disable_tls"`
 
 		*Alias
 	}{
@@ -99,6 +101,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if aux.GRPCUseTLSSnake {
 		t.GRPCUseTLS = aux.GRPCUseTLSSnake
+	}
+	if aux.H2PINGDisableTLSSnake {
+		t.H2PINGDisableTLS = aux.H2PINGDisableTLSSnake
 	}
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
@@ -182,6 +187,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		AliasService:                   c.AliasService,
 		HTTP:                           c.HTTP,
 		H2PING:                         c.H2PING,
+		H2PINGDisableTLS:               c.H2PINGDisableTLS,
 		GRPC:                           c.GRPC,
 		GRPCUseTLS:                     c.GRPCUseTLS,
 		Header:                         c.Header,

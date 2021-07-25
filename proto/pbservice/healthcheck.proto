@@ -83,6 +83,7 @@ message HealthCheckDefinition {
     string DockerContainerID = 11;
     string Shell = 12;
     string H2PING = 20;
+    bool H2PINGDisableTLS = 21;
     string GRPC = 13;
     bool GRPCUseTLS = 14;
     string AliasNode = 15;
@@ -124,6 +125,7 @@ message CheckType {
     string DockerContainerID = 12;
     string Shell = 13;
     string H2PING = 28;
+    bool H2PINGDisableTLS = 30;
     string GRPC = 14;
     bool GRPCUseTLS = 15;
     string TLSServerName = 27;

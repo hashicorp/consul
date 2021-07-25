@@ -1544,6 +1544,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
+	H2PINGDisableTLS               bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
@@ -1691,6 +1692,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
+		H2PINGDisableTLS:               c.Definition.H2PINGDisableTLS,
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
 		Shell:                          c.Definition.Shell,

@@ -1571,6 +1571,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
+		H2PINGDisableTLS:               boolVal(v.H2PINGDisableTLS),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),

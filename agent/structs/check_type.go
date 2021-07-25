@@ -33,6 +33,7 @@ type CheckType struct {
 	ScriptArgs             []string
 	HTTP                   string
 	H2PING                 string
+	H2PINGDisableTLS       bool
 	Header                 map[string][]string
 	Method                 string
 	Body                   string
@@ -81,6 +82,7 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
+		H2PINGDisableTLSSnake               bool        `json:"h2ping_disable_tls"`
 
 		// These are going to be ignored but since we are disallowing unknown fields
 		// during parsing we have to be explicit about parsing but not using these.
@@ -114,6 +116,9 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}
 	if aux.GRPCUseTLSSnake {
 		t.GRPCUseTLS = aux.GRPCUseTLSSnake
+	}
+	if aux.H2PINGDisableTLSSnake {
+		t.H2PINGDisableTLS = aux.H2PINGDisableTLSSnake
 	}
 
 	if aux.Interval != nil {

@@ -13,6 +13,7 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.ScriptArgs = s.ScriptArgs
 	t.HTTP = s.HTTP
 	t.H2PING = s.H2PING
+	t.H2PINGDisableTLS = s.H2PINGDisableTLS
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
 	t.Body = s.Body
@@ -46,6 +47,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.ScriptArgs = t.ScriptArgs
 	s.HTTP = t.HTTP
 	s.H2PING = t.H2PING
+	s.H2PINGDisableTLS = t.H2PINGDisableTLS
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method
 	s.Body = t.Body
@@ -120,6 +122,7 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 	t.Body = s.Body
 	t.TCP = s.TCP
 	t.H2PING = s.H2PING
+	t.H2PINGDisableTLS = s.H2PINGDisableTLS
 	t.Interval = s.Interval
 	t.OutputMaxSize = uint(s.OutputMaxSize)
 	t.Timeout = s.Timeout
@@ -144,6 +147,7 @@ func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) Health
 	s.Body = t.Body
 	s.TCP = t.TCP
 	s.H2PING = t.H2PING
+	s.H2PINGDisableTLS = t.H2PINGDisableTLS
 	s.Interval = t.Interval
 	s.OutputMaxSize = uint32(t.OutputMaxSize)
 	s.Timeout = t.Timeout
