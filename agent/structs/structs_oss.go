@@ -46,6 +46,10 @@ func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return IntentionDefaultNamespace
 }
 
+func (m *EnterpriseMeta) NamespaceOrEmpty() string {
+	return ""
+}
+
 func EnterpriseMetaInitializer(_ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
 }
