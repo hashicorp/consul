@@ -28,6 +28,7 @@ export default function ConsulSubnav() {
       menuItemsAlign="right"
       menuItems={subnavItems}
       constrainWidth
+      matchOnBasePath
     />
   )
 }
