@@ -18,7 +18,7 @@ func (a *Agent) sidecarServiceID(serviceID string) string {
 // config.
 //
 // It assumes the ns has been validated already which means the nested
-// SidecarService is also already validated.It also assumes that any check
+// SidecarService is also already validated. It also assumes that any check
 // definitions within the sidecar service definition have been validated if
 // necessary. If no sidecar service is defined in ns, then nil is returned with
 // nil error.
@@ -34,15 +34,15 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		return nil, nil, "", nil
 	}
 
+	// for now at least these must be identical
+	ns.Connect.SidecarService.EnterpriseMeta = ns.EnterpriseMeta
+
 	// Start with normal conversion from service definition
 	sidecar := ns.Connect.SidecarService.NodeService()
 
 	// Override the ID which must always be consistent for a given outer service
 	// ID. We rely on this for lifecycle management of the nested definition.
 	sidecar.ID = a.sidecarServiceID(ns.ID)
-
-	// for now at least these must be identical
-	sidecar.EnterpriseMeta = ns.EnterpriseMeta
 
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
