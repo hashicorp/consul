@@ -1177,7 +1177,12 @@ func TestLeader_CARootPruning(t *testing.T) {
 	}
 
 	// Can not use t.Parallel(), because this modifies a global.
+	origPruneInterval := caRootPruneInterval
 	caRootPruneInterval = 200 * time.Millisecond
+	t.Cleanup(func() {
+		// Reset the value of the global prune interval so that it doesn't affect other tests
+		caRootPruneInterval = origPruneInterval
+	})
 
 	require := require.New(t)
 	dir1, s1 := testServer(t)
