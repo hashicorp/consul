@@ -129,7 +129,8 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 					LocalServiceAddress:    "127.0.127.0",
 					LocalServicePort:       9999,
 					Config:                 map[string]interface{}{"baz": "qux"},
-					Upstreams:              structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t)),
+					Upstreams: structs.TestAddDefaultsToUpstreams(t, structs.TestUpstreams(t),
+						*structs.DefaultEnterpriseMetaInDefaultPartition()),
 				},
 			},
 			wantChecks: []*structs.CheckType{
@@ -308,7 +309,7 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set port range to be tiny (one availabl) to test consuming all of it.
+			// Set port range to be tiny (one available) to test consuming all of it.
 			// This allows a single assigned port at 2222 thanks to being inclusive at
 			// both ends.
 			if tt.maxPort == 0 {

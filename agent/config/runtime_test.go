@@ -5647,9 +5647,10 @@ func TestLoad_FullConfig(t *testing.T) {
 					},
 					Upstreams: structs.Upstreams{
 						{
-							DestinationType: "service", // Default should be explicitly filled
-							DestinationName: "KPtAj2cb",
-							LocalBindPort:   4051,
+							DestinationType:      "service", // Default should be explicitly filled
+							DestinationName:      "KPtAj2cb",
+							DestinationNamespace: defaultEntMeta.NamespaceOrEmpty(),
+							LocalBindPort:        4051,
 							Config: map[string]interface{}{
 								"kzRnZOyd": "nUNKoL8H",
 							},
