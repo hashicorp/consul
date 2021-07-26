@@ -150,16 +150,14 @@ jobs:
           command: *lintcmd
       - run: *notify-slack-failure
 
-  # checks vendor directory is correct
-  check-vendor:
+  check-go-mod:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - run:
-          command: make update-vendor
+      - run: go mod tidy
       - run: |
           if [[ -n $(git status -s) ]]; then
             echo "Git directory has changes"
@@ -989,7 +987,7 @@ workflows:
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
-      - check-vendor: &filter-ignore-non-go-branches
+      - check-go-mod: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
@@ -1032,12 +1030,12 @@ workflows:
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
-      - check-vendor: *filter-ignore-non-go-branches
-      - build-386: &require-check-vendor
+      - check-go-mod: *filter-ignore-non-go-branches
+      - build-386: &require-check-go-mod
           requires:
-            - check-vendor
-      - build-amd64: *require-check-vendor
-      - build-arm: *require-check-vendor
+            - check-go-mod
+      - build-amd64: *require-check-go-mod
+      - build-arm: *require-check-go-mod
       # every commit on main will have a rebuilt UI
       - frontend-cache:
           filters:
