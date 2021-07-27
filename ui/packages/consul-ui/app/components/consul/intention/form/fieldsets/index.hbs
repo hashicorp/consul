@@ -39,7 +39,7 @@
               @buildSuggestion={{action "createNewLabel" "Use a Consul Namespace called '{{term}}'"}}
               @showCreateWhen={{action "isUnique" nspaces}}
               @onCreate={{action onchange "SourceNS"}}
-              @onChange={{action (mut SourceNS)}} as |nspace|>
+              @onChange={{fn (mut SourceNS)}} as |nspace|>
                 {{#if (eq nspace.Name '*') }}
                   * (All Namespaces)
                 {{else}}
@@ -88,7 +88,7 @@
               @buildSuggestion={{action "createNewLabel" "Use a future Consul Namespace called '{{term}}'"}}
               @showCreateWhen={{action "isUnique" nspaces}}
               @onCreate={{action onchange "DestinationNS"}}
-              @onChange={{action (mut DestinationNS)}} as |nspace|>
+              @onChange={{fn (mut DestinationNS)}} as |nspace|>
                   {{#if (eq nspace.Name '*') }}
                     * (All Namespaces)
                   {{else}}
