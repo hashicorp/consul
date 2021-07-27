@@ -432,12 +432,20 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		}
 
 		handleErr := func(err error) {
-			httpLogger.Error("Request error",
-				"method", req.Method,
-				"url", logURL,
-				"from", req.RemoteAddr,
-				"error", err,
-			)
+			if req.Context().Err() != nil {
+				httpLogger.Info("Request cancelled",
+					"method", req.Method,
+					"url", logURL,
+					"from", req.RemoteAddr,
+					"error", err)
+			} else {
+				httpLogger.Error("Request error",
+					"method", req.Method,
+					"url", logURL,
+					"from", req.RemoteAddr,
+					"error", err)
+			}
+
 			switch {
 			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)
