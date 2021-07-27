@@ -136,6 +136,8 @@ message CheckType {
     // mog: func-to=int func-from=int32
     int32 SuccessBeforePassing = 21;
     // mog: func-to=int func-from=int32
+    int32 FailuresBeforeWarning = 29;
+    // mog: func-to=int func-from=int32
     int32 FailuresBeforeCritical = 22;
 
     // Definition fields used when exposing checks through a proxy

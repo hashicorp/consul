@@ -240,11 +240,16 @@ The table below shows this endpoint's support for
 
 - `SuccessBeforePassing` `(int: 0)` - Specifies the number of consecutive successful
   results required before check status transitions to passing. Available for HTTP,
-  TCP, gRPC, Docker & Monitor checks.
+  TCP, gRPC, Docker & Monitor checks. Added in Consul 1.7.0.
+
+- `FailuresBeforeWarning` `(int: 0)` - Specifies the number of consecutive unsuccessful
+  results required before check status transitions to warning. Defaults to the same value
+  as `FailuresBeforeCritical`. Values higher than `FailuresBeforeCritical` are invalid.
+  Available for HTTP, TCP, gRPC, Docker & Monitor checks. Added in Consul 1.11.0.
 
 - `FailuresBeforeCritical` `(int: 0)` - Specifies the number of consecutive unsuccessful
   results required before check status transitions to critical. Available for HTTP,
-  TCP, gRPC, Docker & Monitor checks.
+  TCP, gRPC, Docker & Monitor checks. Added in Consul 1.7.0.
 
 ### Sample Payload
 

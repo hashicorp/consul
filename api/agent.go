@@ -330,6 +330,7 @@ type AgentServiceCheck struct {
 	AliasNode              string              `json:",omitempty"`
 	AliasService           string              `json:",omitempty"`
 	SuccessBeforePassing   int                 `json:",omitempty"`
+	FailuresBeforeWarning  int                 `json:",omitempty"`
 	FailuresBeforeCritical int                 `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service

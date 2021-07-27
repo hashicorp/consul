@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	http2 "golang.org/x/net/http2"
 	"io"
 	"io/ioutil"
 	"net"
@@ -15,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	http2 "golang.org/x/net/http2"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
@@ -907,17 +908,19 @@ type StatusHandler struct {
 	logger                 hclog.Logger
 	successBeforePassing   int
 	successCounter         int
+	failuresBeforeWarning  int
 	failuresBeforeCritical int
 	failuresCounter        int
 }
 
 // NewStatusHandler set counters values to threshold in order to immediatly update status after first check.
-func NewStatusHandler(inner CheckNotifier, logger hclog.Logger, successBeforePassing, failuresBeforeCritical int) *StatusHandler {
+func NewStatusHandler(inner CheckNotifier, logger hclog.Logger, successBeforePassing, failuresBeforeWarning, failuresBeforeCritical int) *StatusHandler {
 	return &StatusHandler{
 		logger:                 logger,
 		inner:                  inner,
 		successBeforePassing:   successBeforePassing,
 		successCounter:         successBeforePassing,
+		failuresBeforeWarning:  failuresBeforeWarning,
 		failuresBeforeCritical: failuresBeforeCritical,
 		failuresCounter:        failuresBeforeCritical,
 	}
@@ -950,10 +953,17 @@ func (s *StatusHandler) updateCheck(checkID structs.CheckID, status, output stri
 			s.inner.UpdateCheck(checkID, status, output)
 			return
 		}
-		s.logger.Warn("Check failed but has not reached failure threshold",
+		// Defaults to same value as failuresBeforeCritical if not set.
+		if s.failuresCounter >= s.failuresBeforeWarning {
+			s.logger.Warn("Check is now warning", "check", checkID.String())
+			s.inner.UpdateCheck(checkID, api.HealthWarning, output)
+			return
+		}
+		s.logger.Warn("Check failed but has not reached warning/failure threshold",
 			"check", checkID.String(),
 			"status", status,
 			"failure_count", s.failuresCounter,
+			"warning_threshold", s.failuresBeforeWarning,
 			"failure_threshold", s.failuresBeforeCritical,
 		)
 	}
