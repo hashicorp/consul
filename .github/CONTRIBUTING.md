@@ -90,6 +90,16 @@ lives in the spot where the go cli tools are expecting to find it.
 
 ## Testing
 
+### During Development: Run Relevant Test(s)
+
+During development, it may be more convenient to check your work-in-progress by running only the tests which you expect to be affected by your changes, as the full test suite can take several minutes to execute. [Go's built-in test tool](https://golang.org/pkg/cmd/go/internal/test/) allows specifying a list of packages to test and the `-run` option to only include test names matching a regular expression.
+
+Examples (run from the repository root):
+- `go test -v ./connect` will run all tests in the connect package (see `./connect` folder)
+- `go test -v -run TestRetryJoin ./command/agent` will run all tests in the agent package (see `./command/agent` folder) with name substring `TestRetryJoin`
+
+### Before Submitting Changes: Run All Tests
+
 Before submitting changes, run **all** tests locally by typing `make test`. 
 The test suite may fail if over-parallelized, so if you are seeing stochastic 
 failures try `GOTEST_FLAGS="-p 2 -parallel 2" make test`. 
