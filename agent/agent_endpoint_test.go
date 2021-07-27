@@ -410,27 +410,22 @@ func TestAgent_Service(t *testing.T) {
 	}
 	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
 	hash1, err := hashstructure.Hash(expectedResponse, nil)
-	if err != nil {
-		t.Fatalf("error generating hash: %v", err)
-	}
+	require.NoError(t, err, "failed to generate hash")
 	expectedResponse.ContentHash = fmt.Sprintf("%x", hash1)
 
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "" // clear field before generating a new hash
+	updatedResponse.ContentHash = "" // clear field before hashing
 	hash2, err := hashstructure.Hash(updatedResponse, nil)
-	if err != nil {
-		t.Fatalf("error generating hash: %v", err)
-	}
+	require.NoError(t, err, "failed to generate hash")
 	updatedResponse.ContentHash = fmt.Sprintf("%x", hash2)
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
-		ID:          "web",
-		Service:     "web",
-		Port:        8181,
-		ContentHash: "f012740ee2d8ce60",
+		ID:      "web",
+		Service: "web",
+		Port:    8181,
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -446,6 +441,9 @@ func TestAgent_Service(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
+	hash3, err := hashstructure.Hash(expectWebResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	expectWebResponse.ContentHash = fmt.Sprintf("%x", hash3)
 
 	tests := []struct {
 		name       string
