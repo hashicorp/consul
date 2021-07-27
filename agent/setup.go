@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
@@ -48,6 +50,7 @@ type BaseDeps struct {
 // MetricsHandler provides an http.Handler for displaying metrics.
 type MetricsHandler interface {
 	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+	Stream(ctx context.Context, encoder metrics.Encoder)
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)

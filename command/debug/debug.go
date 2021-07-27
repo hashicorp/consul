@@ -2,18 +2,21 @@ package debug
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
@@ -386,14 +389,6 @@ func captureShortLived(c *cmd) error {
 			return c.captureGoRoutines(timestampDir)
 		})
 	}
-
-	// Capture metrics
-	if c.configuredTarget("metrics") {
-		g.Go(func() error {
-			return c.captureMetrics(timestampDir)
-		})
-	}
-
 	return g.Wait()
 }
 
@@ -412,7 +407,6 @@ func (c *cmd) captureLongRunning() error {
 	timestamp := time.Now().Local().Unix()
 
 	timestampDir, err := c.createTimestampDir(timestamp)
-
 	if err != nil {
 		return err
 	}
@@ -423,7 +417,6 @@ func (c *cmd) captureLongRunning() error {
 	if s < 1 {
 		s = 1
 	}
-	// Capture pprof
 	if c.configuredTarget("pprof") {
 		g.Go(func() error {
 			return c.captureProfile(s, timestampDir)
@@ -433,10 +426,18 @@ func (c *cmd) captureLongRunning() error {
 			return c.captureTrace(s, timestampDir)
 		})
 	}
-	// Capture logs
 	if c.configuredTarget("logs") {
 		g.Go(func() error {
 			return c.captureLogs(timestampDir)
+		})
+	}
+	if c.configuredTarget("metrics") {
+		// TODO: pass in context from caller
+		ctx, cancel := context.WithTimeout(context.Background(), c.duration)
+		defer cancel()
+
+		g.Go(func() error {
+			return c.captureMetrics(ctx, timestampDir)
 		})
 	}
 
@@ -515,20 +516,26 @@ func (c *cmd) captureLogs(timestampDir string) error {
 	}
 }
 
-func (c *cmd) captureMetrics(timestampDir string) error {
-
-	metrics, err := c.client.Agent().Metrics()
+func (c *cmd) captureMetrics(ctx context.Context, timestampDir string) error {
+	stream, err := c.client.Agent().MetricsStream(ctx)
 	if err != nil {
 		return err
 	}
+	defer stream.Close()
 
-	marshaled, err := json.MarshalIndent(metrics, "", "\t")
+	filename := fmt.Sprintf("%s/%s.json", timestampDir, "metrics")
+	fh, err := os.Create(filename)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create metrics file: %w", err)
 	}
+	defer fh.Close()
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s/%s.json", timestampDir, "metrics"), marshaled, 0644)
-	return err
+	b := bufio.NewReader(stream)
+	_, err = b.WriteTo(fh)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("failed to copy metrics to file: %w", err)
+	}
+	return nil
 }
 
 // allowedTarget returns a boolean if the target is able to be captured

@@ -220,7 +220,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 
 		var gzipHandler http.Handler
 		minSize := gziphandler.DefaultMinSize
-		if pattern == "/v1/agent/monitor" {
+		if pattern == "/v1/agent/monitor" || pattern == "/v1/agent/metrics/stream" {
 			minSize = 0
 		}
 		gzipWrapper, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(minSize))
