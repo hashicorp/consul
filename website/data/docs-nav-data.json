@@ -661,7 +661,20 @@
       },
       {
         "title": "Network Drivers",
-        "path": "nia/network-drivers"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/network-drivers"
+          },
+          {
+            "title": "Terraform",
+            "path": "nia/network-drivers/terraform"
+          },
+          {
+            "title": "Terraform Cloud",
+            "path": "nia/network-drivers/terraform-cloud"
+          }
+        ]
       },
       {
         "title": "Compatibility",
