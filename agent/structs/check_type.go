@@ -49,6 +49,7 @@ type CheckType struct {
 	Timeout                time.Duration
 	TTL                    time.Duration
 	SuccessBeforePassing   int
+	FailuresBeforeWarning  int
 	FailuresBeforeCritical int
 
 	// Definition fields used when exposing checks through a proxy
@@ -182,6 +183,10 @@ func (c *CheckType) Validate() error {
 	if c.OutputMaxSize < 0 {
 		return fmt.Errorf("MaxOutputMaxSize must be positive")
 	}
+	if c.FailuresBeforeWarning > c.FailuresBeforeCritical {
+		return fmt.Errorf("FailuresBeforeWarning can't be higher than FailuresBeforeCritical")
+	}
+
 	return nil
 }
 
