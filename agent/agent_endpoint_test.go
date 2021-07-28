@@ -683,8 +683,8 @@ func TestAgent_Checks(t *testing.T) {
 		Node:     a.Config.NodeName,
 		CheckID:  "mysql",
 		Name:     "mysql",
-		Interval: 30 * time.Second,
-		Timeout:  5 * time.Second,
+		Interval: "30s",
+		Timeout:  "5s",
 		Status:   api.HealthPassing,
 	}
 	a.State.AddCheck(chk1, "")

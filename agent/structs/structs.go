@@ -1478,8 +1478,8 @@ type HealthCheck struct {
 	ServiceTags []string      // optional service tags
 	Type        string        // Check type: http/ttl/tcp/etc
 
-	Interval time.Duration // from definition
-	Timeout  time.Duration // from definition
+	Interval string // from definition
+	Timeout  string // from definition
 
 	// ExposedPort is the port of the exposed Envoy listener representing the
 	// HTTP or GRPC health check of the service.

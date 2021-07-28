@@ -2653,8 +2653,8 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Name:           "memory check",
 		Status:         api.HealthCritical,
 		Notes:          "my cool notes",
-		Interval:       30 * time.Second,
-		Timeout:        5 * time.Second,
+		Interval:       "30s",
+		Timeout:        "5s",
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.Equal(t, expected, result)
