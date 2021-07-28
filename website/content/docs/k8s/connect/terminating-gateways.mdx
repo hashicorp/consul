@@ -69,7 +69,7 @@ $ export CONSUL_HTTP_SSL_VERIFY=false
 If ACLs are enabled also set:
 
 ```shell-session
-$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token -o jsonpath={.data.token} | base64 -D)
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token -o jsonpath={.data.token} | base64 --decode)
 ```
 
 ## Register external services with Consul
