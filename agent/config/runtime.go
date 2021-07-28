@@ -1920,3 +1920,16 @@ func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind
 func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
 }
+
+// ApplyDefaultQueryOptions returns a function which will set default values on
+// the options based on the configuration. The RuntimeConfig must not be nil.
+func ApplyDefaultQueryOptions(config *RuntimeConfig) func(options *structs.QueryOptions) {
+	return func(options *structs.QueryOptions) {
+		switch {
+		case options.MaxQueryTime > config.MaxQueryTime:
+			options.MaxQueryTime = config.MaxQueryTime
+		case options.MaxQueryTime == 0:
+			options.MaxQueryTime = config.DefaultQueryTime
+		}
+	}
+}

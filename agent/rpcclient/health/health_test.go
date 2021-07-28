@@ -3,10 +3,12 @@ package health
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 )
@@ -25,6 +27,7 @@ func TestClient_ServiceNodes_BackendRouting(t *testing.T) {
 			ViewStore:           &fakeViewStore{},
 			CacheName:           "cache-no-streaming",
 			UseStreamingBackend: true,
+			QueryOptionDefaults: config.ApplyDefaultQueryOptions(&config.RuntimeConfig{}),
 		}
 
 		_, _, err := c.ServiceNodes(context.Background(), tc.req)
@@ -232,4 +235,29 @@ func TestClient_Notify_BackendRouting(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestClient_ServiceNodes_SetsDefaults(t *testing.T) {
+	store := &fakeViewStore{}
+	c := &Client{
+		ViewStore:           store,
+		CacheName:           "cache-no-streaming",
+		UseStreamingBackend: true,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(&config.RuntimeConfig{
+			MaxQueryTime:     200 * time.Second,
+			DefaultQueryTime: 100 * time.Second,
+		}),
+	}
+
+	req := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "web1",
+		QueryOptions: structs.QueryOptions{MinQueryIndex: 22},
+	}
+
+	_, _, err := c.ServiceNodes(context.Background(), req)
+	require.NoError(t, err)
+
+	require.Len(t, store.calls, 1)
+	require.Equal(t, 100*time.Second, store.calls[0].CacheInfo().Timeout)
 }

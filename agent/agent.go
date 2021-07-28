@@ -395,6 +395,7 @@ func New(bd BaseDeps) (*Agent, error) {
 			Logger: bd.Logger.Named("rpcclient.health"),
 		},
 		UseStreamingBackend: a.config.UseStreamingBackend,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.serviceManager = NewServiceManager(&a)
