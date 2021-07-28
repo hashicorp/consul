@@ -1,8 +1,9 @@
 package structs
 
 import (
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 // ServiceDefinition is used to JSON decode the Service definitions. For
@@ -86,7 +87,7 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
 			}
 
-			// If a proxy's namespace is not defined, inherit the server's namespace.
+			// If a proxy's namespace is not defined, inherit the proxied service's namespace.
 			// Applicable only to Consul Enterprise.
 			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
 				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()
