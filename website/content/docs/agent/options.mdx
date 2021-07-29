@@ -867,6 +867,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       the rules governing how audit events are written.
       The following keys are valid:
       - `best-effort` - Consul only supports `best-effort` event delivery.
+    - `mode` - The permissions to set on the audit log files.
     - `rotate_duration` - Specifies the
       interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
       must be configured to enable audit logging.
