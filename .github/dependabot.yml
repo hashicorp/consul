@@ -25,3 +25,8 @@ updates:
   directory: "/website"
   schedule:
     interval: daily
+- package-ecosystem: github-actions
+  open-pull-requests-limit: 5
+  directory: /
+  schedule:
+    interval: daily
