@@ -26,6 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/connect"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/pool"
@@ -934,11 +936,12 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
 	require.NoError(t, err)
 
-	signer, err := tlsutil.ParseSigner(pk)
-	require.NoError(t, err)
-
-	newCert := func(t *testing.T, node, name string) {
+	newCert := func(t *testing.T, caPEM, pk, node, name string) {
 		t.Helper()
+
+		signer, err := tlsutil.ParseSigner(pk)
+		require.NoError(t, err)
+
 		pem, key, err := tlsutil.GenerateCert(tlsutil.CertOpts{
 			Signer:      signer,
 			CA:          caPEM,
@@ -955,7 +958,10 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	newCert(t, "srv1", "server.dc1.consul")
+	newCert(t, caPEM, pk, "srv1", "server.dc1.consul")
+
+	_, connectCApk, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
 
 	_, srv := testServerWithConfig(t, func(c *Config) {
 		c.Domain = "consul." // consul. is the default value in agent/config
@@ -964,8 +970,24 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		c.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
 		c.VerifyIncoming = true
 		c.VerifyServerHostname = true
+		// Enable Auto-Encrypt so that Conenct CA roots are added to the
+		// tlsutil.Configurator.
+		c.AutoEncryptAllowTLS = true
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config:    map[string]interface{}{"PrivateKey": connectCApk},
+		}
 	})
 	defer srv.Shutdown()
+
+	// Wait for ConnectCA initiation to complete.
+	retry.Run(t, func(r *retry.R) {
+		_, root := srv.caManager.getCAProvider()
+		if root == nil {
+			r.Fatal("ConnectCA root is still nil")
+		}
+	})
 
 	useTLSByte := func(t *testing.T, c *tlsutil.Configurator) net.Conn {
 		wrapper := tlsutil.SpecificDC("dc1", c.OutgoingRPCWrapper())
@@ -991,26 +1013,38 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		return tlsConn
 	}
 
+	setupAgentTLSCert := func(name string) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			newCert(t, caPEM, pk, "node1", name)
+			return filepath.Join(dir, "node1-"+name)
+		}
+	}
+
+	setupConnectCACert := func(name string) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			_, caRoot := srv.caManager.getCAProvider()
+			newCert(t, caRoot.RootCert, connectCApk, "node1", name)
+			return filepath.Join(dir, "node1-"+name)
+		}
+	}
+
 	type testCase struct {
 		name        string
 		conn        func(t *testing.T, c *tlsutil.Configurator) net.Conn
-		certName    string
+		setupCert   func(t *testing.T) string
 		expectError bool
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		newCert(t, "node1", tc.certName)
+		certPath := tc.setupCert(t)
 
 		cfg := tlsutil.Config{
 			VerifyOutgoing:       true,
 			VerifyServerHostname: true,
 			CAFile:               filepath.Join(dir, "ca.pem"),
-			CertFile:             filepath.Join(dir, "node1-"+tc.certName+".pem"),
-			KeyFile:              filepath.Join(dir, "node1-"+tc.certName+".key"),
+			CertFile:             certPath + ".pem",
+			KeyFile:              certPath + ".key",
 			Domain:               "consul",
-			// TODO: what happens if these are set?
-			//NodeName:             "",
-			//ServerName:           "",
 		}
 		c, err := tlsutil.NewConfigurator(cfg, hclog.New(nil))
 		require.NoError(t, err)
@@ -1028,37 +1062,49 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	var testCases = []testCase{
 		{
 			name:        "TLS byte with client cert",
-			certName:    "client.dc1.consul",
+			setupCert:   setupAgentTLSCert("client.dc1.consul"),
 			conn:        useTLSByte,
 			expectError: true,
 		},
 		{
 			name:        "TLS byte with server cert in different DC",
-			certName:    "server.dc2.consul",
+			setupCert:   setupAgentTLSCert("server.dc2.consul"),
 			conn:        useTLSByte,
 			expectError: true,
 		},
 		{
-			name:     "TLS byte with server cert in same DC",
-			certName: "server.dc1.consul",
-			conn:     useTLSByte,
+			name:      "TLS byte with server cert in same DC",
+			setupCert: setupAgentTLSCert("server.dc1.consul"),
+			conn:      useTLSByte,
+		},
+		{
+			name:        "TLS byte with ConnectCA leaf cert",
+			setupCert:   setupConnectCACert("server.dc1.consul"),
+			conn:        useTLSByte,
+			expectError: true,
 		},
 		{
 			name:        "native TLS with client cert",
-			certName:    "client.dc1.consul",
+			setupCert:   setupAgentTLSCert("client.dc1.consul"),
 			conn:        useNativeTLS,
 			expectError: true,
 		},
 		{
 			name:        "native TLS with server cert in different DC",
-			certName:    "server.dc2.consul",
+			setupCert:   setupAgentTLSCert("server.dc2.consul"),
 			conn:        useNativeTLS,
 			expectError: true,
 		},
 		{
-			name:     "native TLS with server cert in same DC",
-			certName: "server.dc1.consul",
-			conn:     useNativeTLS,
+			name:      "native TLS with server cert in same DC",
+			setupCert: setupAgentTLSCert("server.dc1.consul"),
+			conn:      useNativeTLS,
+		},
+		{
+			name:        "native TLS with ConnectCA leaf cert",
+			setupCert:   setupConnectCACert("server.dc1.consul"),
+			conn:        useNativeTLS,
+			expectError: true,
 		},
 	}
 
