@@ -937,19 +937,25 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		return nil
 	}
 
-	// TODO: also restrict the chains to only the agent TLS CA, not the connect CA
+	c.RLock()
+	caPool := c.manual.caPool
+	c.RUnlock()
 
 	expected := c.ServerSNI(dc, "")
 	for _, chain := range conn.ConnectionState().VerifiedChains {
 		if len(chain) == 0 {
 			continue
 		}
-		for _, name := range chain[0].DNSNames {
-
-			if name == expected && chain[0].Subject.CommonName == expected {
-				return nil
-			}
+		clientCert := chain[0]
+		_, err := clientCert.Verify(x509.VerifyOptions{
+			DNSName:   expected,
+			Roots:     caPool,
+			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		})
+		if err == nil {
+			return nil
 		}
+		c.logger.Debug("AuthorizeServerConn failed certificate validation", "error", err)
 	}
 	return fmt.Errorf("a TLS certificate with a CommonName of %v is required for this operation", expected)
 }
