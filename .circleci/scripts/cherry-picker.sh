@@ -22,7 +22,7 @@ function get_latest_backport_label {
     local ret
     local latest_backport_label
 
-    resp=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/labels")
+    resp=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/labels?per_page=100")
     ret="$?"
     if [[ "$ret" -ne 0 ]]; then
         status "The GitHub API returned $ret which means it was probably rate limited."
