@@ -97,6 +97,9 @@ accepted.
 An intention source or destination may also be the special wildcard
 value `*`. This matches _any_ value and is used as a catch-all.
 
+Wildcards can be used for service name matching. In Consul <EnterpriseAlert inline />
+they can also be used for Namespace matching.
+
 This example says that the "web" service cannot connect to _any_ service:
 
 ```hcl
@@ -119,6 +122,22 @@ Sources = [
   {
     Name   = "*"
     Action = "deny"
+  }
+]
+```
+
+This <EnterpriseAlert inline /> example grants access to Prometheus 
+access to any service in any namespace.
+
+```hcl
+Kind = "service-intentions"
+Name = "*"
+Namespace = "*"
+Sources = [
+  {
+    Name      = "prometheus"
+    Namespace = "monitoring"
+    Action = "allow"
   }
 ]
 ```
