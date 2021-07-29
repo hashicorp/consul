@@ -520,7 +520,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 			require.NoError(t, err, info)
 			pems, err := LoadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
-			pool, err := pool(pems)
+			pool, err := newX509CertPool(pems)
 			require.NoError(t, err, info)
 			err3 = validateConfig(v.config, pool, cert)
 		}
@@ -579,7 +579,7 @@ func TestConfigurator_LoadCAs(t *testing.T) {
 	}
 	for i, v := range variants {
 		pems, err1 := LoadCAs(v.cafile, v.capath)
-		pool, err2 := pool(pems)
+		pool, err2 := newX509CertPool(pems)
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {
 			if err1 == nil && err2 == nil {
