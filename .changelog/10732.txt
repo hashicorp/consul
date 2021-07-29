@@ -1,0 +1,3 @@
+```release-note:improvement
+config: **(Enterprise Only)** Allow specifying permission mode for audit logs.
+```
