@@ -2211,6 +2211,12 @@ This section documents all of the configuration settings that apply to Agent TLS
 TLS is used by the HTTP API, server RPC, and xDS interfaces. Some of these settings may also be
 applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
 
+~> **Security Note:** The Certificate Authority (CA) specified by `ca_file` or `ca_path`
+should be a private CA, not a public one. We recommend using a dedicated CA
+which should not be used with any other systems. Any certificate signed by the
+CA will be allowed to communicate with the cluster and a specially crafted certificate
+signed by the CA can be used to gain full access to Consul.
+
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
   and server connections with the appropriate [`verify_incoming`](#verify_incoming)
