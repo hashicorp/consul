@@ -662,10 +662,10 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		magicByte  pool.RPCType
 		tlsEnabled bool
 	}{
-		{"RPC", pool.RPCMultiplexV2, false},
-		{"RPC TLS", pool.RPCMultiplexV2, true},
-		{"Raft", pool.RPCRaft, false},
-		{"Raft TLS", pool.RPCRaft, true},
+		{"RPC v2", pool.RPCMultiplexV2, false},
+		{"RPC v2 TLS", pool.RPCMultiplexV2, true},
+		{"RPC", pool.RPCConsul, false},
+		{"RPC TLS", pool.RPCConsul, true},
 	}
 
 	for _, tc := range cases {
