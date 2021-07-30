@@ -30,7 +30,7 @@ as |item|>
         </dl>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
-    {{#if (and (not-eq item.SecretID '') (not-eq item.SecretID '<hidden>'))}}
+    {{#if item.hasSecretID}}
       <CopyButton
         @value={{item.SecretID}}
         @name={{t "common.consul.secretID"}}
