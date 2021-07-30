@@ -169,7 +169,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	// NOTE: We will not support enterprise authorizer contexts with legacy ACLs
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -261,7 +261,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	// and this check for ACLWrite is basically what it did before.
 	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if rule.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

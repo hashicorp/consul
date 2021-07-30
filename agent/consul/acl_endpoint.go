@@ -2028,11 +2028,10 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 	}
 
 	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID, &args.EnterpriseMeta)
-	if err != nil {
+	switch {
+	case err != nil:
 		return err
-	}
-
-	if rule == nil {
+	case rule == nil:
 		return nil
 	}
 

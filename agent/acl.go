@@ -193,9 +193,6 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	if err != nil {
 		return err
 	}
-	if rule == nil {
-		return nil
-	}
 
 	var authzContext acl.AuthorizerContext
 	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
@@ -216,6 +213,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 }
 
 // filterServices redacts services that the token doesn't have access to.
+// TODO: move to test file
 func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*structs.NodeService) error {
 	// Resolve the token and bail if ACLs aren't enabled.
 	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)

@@ -452,23 +452,21 @@ func (m *Internal) KeyringOperation(
 	if err := m.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil {
-		switch args.Operation {
-		case structs.KeyringList:
-			if rule.KeyringRead(nil) != acl.Allow {
-				return fmt.Errorf("Reading keyring denied by ACLs")
-			}
-		case structs.KeyringInstall:
-			fallthrough
-		case structs.KeyringUse:
-			fallthrough
-		case structs.KeyringRemove:
-			if rule.KeyringWrite(nil) != acl.Allow {
-				return fmt.Errorf("Modifying keyring denied due to ACLs")
-			}
-		default:
-			panic("Invalid keyring operation")
+	switch args.Operation {
+	case structs.KeyringList:
+		if rule.KeyringRead(nil) != acl.Allow {
+			return fmt.Errorf("Reading keyring denied by ACLs")
 		}
+	case structs.KeyringInstall:
+		fallthrough
+	case structs.KeyringUse:
+		fallthrough
+	case structs.KeyringRemove:
+		if rule.KeyringWrite(nil) != acl.Allow {
+			return fmt.Errorf("Modifying keyring denied due to ACLs")
+		}
+	default:
+		panic("Invalid keyring operation")
 	}
 
 	if args.LocalOnly || args.Forwarded || m.srv.serfWAN == nil {

@@ -1448,7 +1448,7 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsHandler = sink
-	d := fakeResolveTokenDelegate{}
+	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
