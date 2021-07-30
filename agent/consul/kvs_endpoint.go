@@ -263,9 +263,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 				reply.Index = index
 			}
 
-			if authz != nil {
-				entries = FilterDirEnt(authz, entries)
-			}
+			entries = FilterDirEnt(authz, entries)
 
 			// Collect the keys from the filtered entries
 			prefixLen := len(args.Prefix)

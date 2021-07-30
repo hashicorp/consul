@@ -72,29 +72,27 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		return err
 	}
 
-	if authz != nil {
-		switch args.Op {
-		case structs.SessionDestroy:
-			state := s.srv.fsm.State()
-			_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Session lookup failed: %v", err)
-			}
-			if existing == nil {
-				return nil
-			}
-			if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
-			}
-
-		case structs.SessionCreate:
-			if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
-			}
-
-		default:
-			return fmt.Errorf("Invalid session operation %q", args.Op)
+	switch args.Op {
+	case structs.SessionDestroy:
+		state := s.srv.fsm.State()
+		_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Session lookup failed: %v", err)
 		}
+		if existing == nil {
+			return nil
+		}
+		if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+	case structs.SessionCreate:
+		if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+	default:
+		return fmt.Errorf("Invalid session operation %q", args.Op)
 	}
 
 	// Ensure that the specified behavior is allowed

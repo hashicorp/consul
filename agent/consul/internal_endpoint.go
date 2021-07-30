@@ -169,10 +169,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultAllow := acl.Allow
-			if authz != nil {
-				defaultAllow = authz.IntentionDefaultAllow(nil)
-			}
+			defaultAllow := authz.IntentionDefaultAllow(nil)
 
 			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
@@ -216,10 +213,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultDecision := acl.Allow
-			if authz != nil {
-				defaultDecision = authz.IntentionDefaultAllow(nil)
-			}
+			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
 			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
