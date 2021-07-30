@@ -440,7 +440,7 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, rule, err := m.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, rule, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}

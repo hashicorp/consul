@@ -224,7 +224,7 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
+	_, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	return authz, err
 }
 
@@ -235,14 +235,10 @@ func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 	return s.acls.ResolveTokenToIdentity(token)
 }
 
-func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	return s.acls.ResolveTokenToIdentityAndAuthorizer(token)
-}
-
 // ResolveTokenIdentityAndDefaultMeta retrieves an identity and authorizer for the caller,
 // and populates the EnterpriseMeta based on the AuthorizerContext.
 func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (structs.ACLIdentity, acl.Authorizer, error) {
-	identity, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
+	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return nil, nil, err
 	}
