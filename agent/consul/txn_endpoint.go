@@ -108,6 +108,36 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 	return errors
 }
 
+// vetNodeTxnOp applies the given ACL policy to a node transaction operation.
+func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	op.FillAuthzContext(&authzContext)
+
+	if rule.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+	return nil
+}
+
+// vetCheckTxnOp applies the given ACL policy to a check transaction operation.
+func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	op.FillAuthzContext(&authzContext)
+
+	if op.Check.ServiceID == "" {
+		// Node-level check.
+		if rule.NodeWrite(op.Check.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	} else {
+		// Service-level check.
+		if rule.ServiceWrite(op.Check.ServiceName, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	}
+	return nil
+}
+
 // Apply is used to apply multiple operations in a single, atomic transaction.
 func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error {
 	if done, err := t.srv.ForwardRPC("Txn.Apply", args, reply); done {
