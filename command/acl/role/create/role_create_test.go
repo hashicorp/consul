@@ -33,7 +33,7 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 
@@ -126,7 +126,7 @@ func TestRoleCreateCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 

@@ -104,7 +104,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"root"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -168,7 +168,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"root"},
 			Port:    8000,
 		},
 	}
@@ -294,7 +294,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"root"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -1495,7 +1495,7 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 			Service: &structs.NodeService{
 				ID:      "db",
 				Service: "db",
-				Tags:    []string{"master"},
+				Tags:    []string{"root"},
 				Port:    8000,
 			},
 			Check: &structs.HealthCheck{
@@ -1625,7 +1625,7 @@ func TestFSM_Chunking_TermChange(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"root"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{

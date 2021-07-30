@@ -74,7 +74,7 @@ func TestAgent_Services(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Meta: map[string]string{
 			"foo": "bar",
 		},
@@ -106,7 +106,7 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Meta: map[string]string{
 			"foo": "bar",
 		},
@@ -314,7 +314,7 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Port:    5000,
 	}
 	a.State.AddService(srv1, "")
@@ -1223,7 +1223,7 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 	t.Run("root-token-health-by-id", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/agent/health/service/id/foo1", nil)
 		require.NoError(t, err)
-		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+		req.Header.Add("X-Consul-Token", TestDefaultRootToken)
 		resp := httptest.NewRecorder()
 		_, err = a.srv.AgentHealthServiceByID(resp, req)
 		require.NotEqual(t, acl.ErrPermissionDenied, err)
@@ -1232,7 +1232,7 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 	t.Run("root-token-health-by-name", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/agent/health/service/name/foo", nil)
 		require.NoError(t, err)
-		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
+		req.Header.Add("X-Consul-Token", TestDefaultRootToken)
 		resp := httptest.NewRecorder()
 		_, err = a.srv.AgentHealthServiceByName(resp, req)
 		require.NotEqual(t, acl.ErrPermissionDenied, err)
@@ -1367,7 +1367,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 		}
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent root token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/self?token=towel", nil)
 		if _, err := a.srv.AgentSelf(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1400,7 +1400,7 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 		}
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent root token", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/agent/metrics?token=towel", nil)
 		if _, err := a.srv.AgentMetrics(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1938,7 +1938,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 		}
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=towel", addr), nil)
 		_, err := a1.srv.AgentJoin(nil, req)
 		if err != nil {
@@ -2059,7 +2059,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 
 	// this sub-test will change the state so that there is no leader.
 	// it must therefore be the last one in this list.
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/leave?token=towel", nil)
 		if _, err := a.srv.AgentLeave(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -2148,7 +2148,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 		}
 	})
 
-	t.Run("agent master token", func(t *testing.T) {
+	t.Run("agent root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", uri+"?token=towel", nil)
 		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -3023,7 +3023,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			TTL: 15 * time.Second,
@@ -3113,7 +3113,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3137,7 +3137,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	args = &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3192,7 +3192,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3217,7 +3217,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	args = &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
 			{
@@ -3494,7 +3494,7 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 
 	args := &structs.ServiceDefinition{
 		Name: "test",
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			TTL: 15 * time.Second,
@@ -4345,7 +4345,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			Name:       "test-check",
@@ -4397,7 +4397,7 @@ func testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T, extra
 	args := &structs.ServiceDefinition{
 		Name: "test",
 		Meta: map[string]string{"hello": "world"},
-		Tags: []string{"master"},
+		Tags: []string{"primary"},
 		Port: 8000,
 		Check: structs.CheckType{
 			Name:       "test-check",
@@ -5118,7 +5118,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 					tokens {
 						default = ""
 						agent = ""
-						agent_master = ""
+						agent_root = ""
 						replication = ""
 					}
 				}
@@ -5161,7 +5161,7 @@ func TestAgent_Token(t *testing.T) {
 			tokens {
 				default = ""
 				agent = ""
-				agent_master = ""
+				agent_root = ""
 				replication = ""
 			}
 		}
@@ -5170,20 +5170,20 @@ func TestAgent_Token(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	type tokens struct {
-		user         string
-		userSource   tokenStore.TokenSource
-		agent        string
-		agentSource  tokenStore.TokenSource
-		master       string
-		masterSource tokenStore.TokenSource
-		repl         string
-		replSource   tokenStore.TokenSource
+		user        string
+		userSource  tokenStore.TokenSource
+		agent       string
+		agentSource tokenStore.TokenSource
+		root        string
+		rootSource  tokenStore.TokenSource
+		repl        string
+		replSource  tokenStore.TokenSource
 	}
 
 	resetTokens := func(init tokens) {
 		a.tokens.UpdateUserToken(init.user, init.userSource)
 		a.tokens.UpdateAgentToken(init.agent, init.agentSource)
-		a.tokens.UpdateAgentMasterToken(init.master, init.masterSource)
+		a.tokens.UpdateAgentRootToken(init.root, init.rootSource)
 		a.tokens.UpdateReplicationToken(init.repl, init.replSource)
 	}
 
@@ -5258,22 +5258,22 @@ func TestAgent_Token(t *testing.T) {
 			effective: tokens{user: "U", agent: "A"},
 		},
 		{
-			name:      "set master legacy",
+			name:      "set root legacy",
 			method:    "PUT",
-			url:       "acl_agent_master_token?token=root",
+			url:       "acl_agent_root_token?token=root",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
-			effective: tokens{master: "M"},
+			raw:       tokens{root: "M", rootSource: tokenStore.TokenSourceAPI},
+			effective: tokens{root: "M"},
 		},
 		{
-			name:      "set master ",
+			name:      "set root ",
 			method:    "PUT",
-			url:       "agent_master?token=root",
+			url:       "agent_root?token=root",
 			body:      body("M"),
 			code:      http.StatusOK,
-			raw:       tokens{master: "M", masterSource: tokenStore.TokenSourceAPI},
-			effective: tokens{master: "M"},
+			raw:       tokens{root: "M", rootSource: tokenStore.TokenSourceAPI},
+			effective: tokens{root: "M"},
 		},
 		{
 			name:      "set repl legacy",
@@ -5330,22 +5330,22 @@ func TestAgent_Token(t *testing.T) {
 			raw:    tokens{agentSource: tokenStore.TokenSourceAPI},
 		},
 		{
-			name:   "clear master legacy",
+			name:   "clear root legacy",
 			method: "PUT",
-			url:    "acl_agent_master_token?token=root",
+			url:    "acl_agent_root_token?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			init:   tokens{master: "M"},
-			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+			init:   tokens{root: "M"},
+			raw:    tokens{rootSource: tokenStore.TokenSourceAPI},
 		},
 		{
-			name:   "clear master",
+			name:   "clear root",
 			method: "PUT",
-			url:    "agent_master?token=root",
+			url:    "agent_root?token=root",
 			body:   body(""),
 			code:   http.StatusOK,
-			init:   tokens{master: "M"},
-			raw:    tokens{masterSource: tokenStore.TokenSourceAPI},
+			init:   tokens{root: "M"},
+			raw:    tokens{rootSource: tokenStore.TokenSourceAPI},
 		},
 		{
 			name:   "clear repl legacy",
@@ -5382,7 +5382,7 @@ func TestAgent_Token(t *testing.T) {
 			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
-			require.Equal(t, tt.effective.master, a.tokens.AgentMasterToken())
+			require.Equal(t, tt.effective.root, a.tokens.AgentRootToken())
 			require.Equal(t, tt.effective.repl, a.tokens.ReplicationToken())
 
 			tok, src := a.tokens.UserTokenAndSource()
@@ -5393,9 +5393,9 @@ func TestAgent_Token(t *testing.T) {
 			require.Equal(t, tt.raw.agent, tok)
 			require.Equal(t, tt.raw.agentSource, src)
 
-			tok, src = a.tokens.AgentMasterTokenAndSource()
-			require.Equal(t, tt.raw.master, tok)
-			require.Equal(t, tt.raw.masterSource, src)
+			tok, src = a.tokens.AgentRootTokenAndSource()
+			require.Equal(t, tt.raw.root, tok)
+			require.Equal(t, tt.raw.rootSource, src)
 
 			tok, src = a.tokens.ReplicationTokenAndSource()
 			require.Equal(t, tt.raw.repl, tok)
@@ -6724,9 +6724,9 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 	a := NewTestAgent(t, `
 		acl_datacenter = "`+dc1+`"
 		acl_default_policy = "allow"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_agent_token = "root"
-		acl_agent_master_token = "towel"
+		acl_agent_root_token = "towel"
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, dc1)
@@ -6759,14 +6759,14 @@ func TestAgent_Host(t *testing.T) {
 	a := NewTestAgent(t, `
 	acl_datacenter = "`+dc1+`"
 	acl_default_policy = "allow"
-	acl_master_token = "master"
+	acl_root_token = "root"
 	acl_agent_token = "agent"
-	acl_agent_master_token = "towel"
+	acl_agent_root_token = "towel"
 `)
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/host?token=master", nil)
+	req, _ := http.NewRequest("GET", "/v1/agent/host?token=root", nil)
 	resp := httptest.NewRecorder()
 	respRaw, err := a.srv.AgentHost(resp, req)
 	assert.Nil(err)
@@ -6790,9 +6790,9 @@ func TestAgent_HostBadACL(t *testing.T) {
 	a := NewTestAgent(t, `
 	acl_datacenter = "`+dc1+`"
 	acl_default_policy = "deny"
-	acl_master_token = "root"
+	acl_root_token = "root"
 	acl_agent_token = "agent"
-	acl_agent_master_token = "towel"
+	acl_agent_root_token = "towel"
 `)
 	defer a.Shutdown()
 

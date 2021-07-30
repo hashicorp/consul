@@ -51,7 +51,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Port:    5000,
 		Weights: &structs.Weights{
 			Passing: 1,
@@ -659,7 +659,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 		srv := &structs.NodeService{
 			ID:      "mysql",
 			Service: "mysql",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    5000,
 		}
 		a.State.AddService(srv, "")
@@ -709,7 +709,7 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 		srv := &structs.NodeService{
 			ID:      "redis",
 			Service: "redis",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    5000,
 		}
 		a.State.AddService(srv, "")
@@ -786,7 +786,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_default_policy = "deny" `)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -813,7 +813,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Port:    5000,
 		Weights: &structs.Weights{
 			Passing: 1,
@@ -1213,7 +1213,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	dc := "dc1"
 	a := &agent.TestAgent{HCL: `
 		acl_datacenter = "` + dc + `"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_default_policy = "deny" `}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
@@ -1244,7 +1244,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Port:    5000,
 		Weights: &structs.Weights{
 			Passing: 1,
@@ -1314,7 +1314,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 		Node:           a.Config.NodeName,
 		ServiceID:      "mysql",
 		ServiceName:    "mysql",
-		ServiceTags:    []string{"master"},
+		ServiceTags:    []string{"primary"},
 		CheckID:        "mysql-check",
 		Name:           "mysql",
 		Status:         api.HealthPassing,

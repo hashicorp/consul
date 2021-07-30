@@ -49,9 +49,9 @@ message ACL {
 }
 
 message ACLTokens {
-   string   Master = 1;
+   string   Root = 1;
    string   Replication = 2;
-   string   AgentMaster = 3;
+   string   AgentRoot = 3;
    string   Default = 4;
    string   Agent = 5;
    repeated ACLServiceProviderToken ManagedServiceProvider = 6;

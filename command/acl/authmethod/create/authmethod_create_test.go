@@ -43,7 +43,7 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 
@@ -197,7 +197,7 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 
@@ -368,7 +368,7 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 
@@ -514,7 +514,7 @@ func TestAuthMethodCreateCommand_config(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 

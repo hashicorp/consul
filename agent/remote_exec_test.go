@@ -118,7 +118,7 @@ func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
 		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_token = "root"
 		acl_default_policy = "deny"
 	`, "root", true, dc)
@@ -133,7 +133,7 @@ func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
 		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_agent_token = "root"
 		acl_default_policy = "deny"
 	`, "root", true, dc)
@@ -148,7 +148,7 @@ func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
 		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_default_policy = "deny"
 	`, "root", false, dc)
 }
@@ -208,7 +208,7 @@ func TestRemoteExecWrites_ACLToken(t *testing.T) {
 	dc := "dc1"
 	testRemoteExecWrites(t, `
 		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_token = "root"
 		acl_default_policy = "deny"
 	`, "root", true, dc)
@@ -223,7 +223,7 @@ func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 	dc := "dc1"
 	testRemoteExecWrites(t, `
 		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_agent_token = "root"
 		acl_default_policy = "deny"
 	`, "root", true, dc)
@@ -238,7 +238,7 @@ func TestRemoteExecWrites_ACLDeny(t *testing.T) {
 	dc := "dc1"
 	testRemoteExecWrites(t, `
 		acl_datacenter = "`+dc+`"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_default_policy = "deny"
 	`, "root", false, dc)
 }

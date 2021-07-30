@@ -455,24 +455,24 @@ func TestACLConfig() string {
 	return `
 		acl_datacenter = "dc1"
 		acl_default_policy = "deny"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_agent_token = "root"
-		acl_agent_master_token = "towel"
+		acl_agent_root_token = "towel"
 	`
 }
 
 const (
-	TestDefaultMasterToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
-	TestDefaultAgentMasterToken = "bca580d4-db07-4074-b766-48acc9676955'"
+	TestDefaultRootToken      = "d9f05e83-a7ae-47ce-839e-c0d53a68c00a"
+	TestDefaultAgentRootToken = "bca580d4-db07-4074-b766-48acc9676955'"
 )
 
 type TestACLConfigParams struct {
 	PrimaryDatacenter      string
 	DefaultPolicy          string
-	MasterToken            string
+	RootToken              string
 	AgentToken             string
 	DefaultToken           string
-	AgentMasterToken       string
+	AgentRootToken         string
 	ReplicationToken       string
 	EnableTokenReplication bool
 }
@@ -481,17 +481,17 @@ func DefaulTestACLConfigParams() *TestACLConfigParams {
 	return &TestACLConfigParams{
 		PrimaryDatacenter: "dc1",
 		DefaultPolicy:     "deny",
-		MasterToken:       TestDefaultMasterToken,
-		AgentToken:        TestDefaultMasterToken,
-		AgentMasterToken:  TestDefaultAgentMasterToken,
+		RootToken:         TestDefaultRootToken,
+		AgentToken:        TestDefaultRootToken,
+		AgentRootToken:    TestDefaultAgentRootToken,
 	}
 }
 
 func (p *TestACLConfigParams) HasConfiguredTokens() bool {
-	return p.MasterToken != "" ||
+	return p.RootToken != "" ||
 		p.AgentToken != "" ||
 		p.DefaultToken != "" ||
-		p.AgentMasterToken != "" ||
+		p.AgentRootToken != "" ||
 		p.ReplicationToken != ""
 }
 
@@ -499,9 +499,9 @@ func TestACLConfigNew() string {
 	return TestACLConfigWithParams(&TestACLConfigParams{
 		PrimaryDatacenter: "dc1",
 		DefaultPolicy:     "deny",
-		MasterToken:       "root",
+		RootToken:         "root",
 		AgentToken:        "root",
-		AgentMasterToken:  "towel",
+		AgentRootToken:    "towel",
 	})
 }
 
@@ -517,14 +517,14 @@ var aclConfigTpl = template.Must(template.New("ACL Config").Parse(`
 		enable_token_replication = {{printf "%t" .EnableTokenReplication }}
 		{{- if .HasConfiguredTokens}}
 		tokens {
-			{{- if ne .MasterToken ""}}
-			master = "{{ .MasterToken }}"
+			{{- if ne .RootToken ""}}
+			root = "{{ .RootToken }}"
 			{{- end}}
 			{{- if ne .AgentToken ""}}
 			agent = "{{ .AgentToken }}"
 			{{- end}}
-			{{- if ne .AgentMasterToken "" }}
-			agent_master = "{{ .AgentMasterToken }}"
+			{{- if ne .AgentRootToken "" }}
+			agent_root = "{{ .AgentRootToken }}"
 			{{- end}}
 			{{- if ne .DefaultToken "" }}
 			default = "{{ .DefaultToken }}"

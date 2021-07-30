@@ -663,7 +663,7 @@ func TestStateStore_PreparedQueryResolve(t *testing.T) {
 			Regexp: "^prod-(.*)$",
 		},
 		Service: structs.ServiceQuery{
-			Service: "${match(1)}-master",
+			Service: "${match(1)}-primary",
 		},
 	}
 	if err := s.PreparedQuerySet(5, tmpl2); err != nil {
@@ -705,7 +705,7 @@ func TestStateStore_PreparedQueryResolve(t *testing.T) {
 			Regexp: "^prod-(.*)$",
 		},
 		Service: structs.ServiceQuery{
-			Service: "redis-foobar-master",
+			Service: "redis-foobar-primary",
 		},
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 5,

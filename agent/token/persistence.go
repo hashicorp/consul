@@ -21,7 +21,7 @@ type Config struct {
 	DataDir             string
 	ACLDefaultToken     string
 	ACLAgentToken       string
-	ACLAgentMasterToken string
+	ACLAgentRootToken   string
 	ACLReplicationToken string
 
 	EnterpriseConfig
@@ -70,7 +70,7 @@ func (t *Store) WithPersistenceLock(f func() error) error {
 
 type persistedTokens struct {
 	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
+	AgentRoot   string `json:"agent_root,omitempty"`
 	Default     string `json:"default,omitempty"`
 	Agent       string `json:"agent,omitempty"`
 }
@@ -110,14 +110,14 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 		s.UpdateAgentToken(cfg.ACLAgentToken, TokenSourceConfig)
 	}
 
-	if tokens.AgentMaster != "" {
-		s.UpdateAgentMasterToken(tokens.AgentMaster, TokenSourceAPI)
+	if tokens.AgentRoot != "" {
+		s.UpdateAgentRootToken(tokens.AgentRoot, TokenSourceAPI)
 
-		if cfg.ACLAgentMasterToken != "" {
-			logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
+		if cfg.ACLAgentRootToken != "" {
+			logger.Warn("\"agent_root\" token present in both the configuration and persisted token store, using the persisted token")
 		}
 	} else {
-		s.UpdateAgentMasterToken(cfg.ACLAgentMasterToken, TokenSourceConfig)
+		s.UpdateAgentRootToken(cfg.ACLAgentRootToken, TokenSourceConfig)
 	}
 
 	if tokens.Replication != "" {
@@ -170,8 +170,8 @@ func (p *fileStore) saveToFile(s *Store) error {
 		tokens.Agent = tok
 	}
 
-	if tok, source := s.AgentMasterTokenAndSource(); tok != "" && source == TokenSourceAPI {
-		tokens.AgentMaster = tok
+	if tok, source := s.AgentRootTokenAndSource(); tok != "" && source == TokenSourceAPI {
+		tokens.AgentRoot = tok
 	}
 
 	if tok, source := s.ReplicationTokenAndSource(); tok != "" && source == TokenSourceAPI {

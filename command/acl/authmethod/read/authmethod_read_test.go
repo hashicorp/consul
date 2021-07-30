@@ -37,7 +37,7 @@ func TestAuthMethodReadCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 
@@ -127,7 +127,7 @@ func TestAuthMethodReadCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 

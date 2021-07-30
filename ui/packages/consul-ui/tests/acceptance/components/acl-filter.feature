@@ -24,7 +24,7 @@ Feature: components / acl filter: Acl Filter
     ---
     s: secret
     ---
-    And I see 1 [Model] model with the name "Master Token"
+    And I see 1 [Model] model with the name "Root Token"
 
   Where:
     -------------------------------------------------

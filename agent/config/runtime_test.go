@@ -5228,7 +5228,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "418fdff1",
 			ACLAgentToken:       "bed2377c",
-			ACLAgentMasterToken: "64fd0e08",
+			ACLAgentRootToken:   "64fd0e08",
 			ACLReplicationToken: "5795983a",
 		},
 
@@ -5237,7 +5237,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		ACLDefaultPolicy:                 "72c2e7a0",
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnableKeyListPolicy:           true,
-		ACLMasterToken:                   "8a19ac27",
+		ACLRootToken:                     "8a19ac27",
 		ACLTokenTTL:                      3321 * time.Second,
 		ACLPolicyTTL:                     1123 * time.Second,
 		ACLRoleTTL:                       9876 * time.Second,

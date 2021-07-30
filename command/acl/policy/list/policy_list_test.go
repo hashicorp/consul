@@ -34,7 +34,7 @@ func TestPolicyListCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 
@@ -89,7 +89,7 @@ func TestPolicyListCommand_JSON(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 

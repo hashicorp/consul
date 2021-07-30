@@ -163,7 +163,7 @@ func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLRootToken = TestDefaultRootToken
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -175,11 +175,11 @@ func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	opReadToken, err := upsertTestTokenWithPolicyRules(
-		codec, TestDefaultMasterToken, "dc1", `operator = "read"`)
+		codec, TestDefaultRootToken, "dc1", `operator = "read"`)
 	require.NoError(t, err)
 
 	opWriteToken, err := upsertTestTokenWithPolicyRules(
-		codec, TestDefaultMasterToken, "dc1", `operator = "write"`)
+		codec, TestDefaultRootToken, "dc1", `operator = "write"`)
 	require.NoError(t, err)
 
 	// Update a config value
@@ -215,7 +215,7 @@ pY0heYeK9A6iOLrzqxSerkXXQyj5e9bE4VgUnxgPU6g=
 	args := &structs.CARequest{
 		Datacenter:   "dc1",
 		Config:       newConfig,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultRootToken},
 	}
 	var reply interface{}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
@@ -1104,7 +1104,7 @@ func TestConnectCASignValidation(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)

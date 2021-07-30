@@ -861,7 +861,7 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -946,17 +946,17 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 
 	// create some test policies.
 
-	writeToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "" { policy = "deny" intentions = "write" }`)
+	writeToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service_prefix "" { policy = "deny" intentions = "write" }`)
 	require.NoError(t, err)
-	readToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "" { policy = "deny" intentions = "read" }`)
+	readToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service_prefix "" { policy = "deny" intentions = "read" }`)
 	require.NoError(t, err)
-	exactToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "*" { policy = "deny" intentions = "write" }`)
+	exactToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service "*" { policy = "deny" intentions = "write" }`)
 	require.NoError(t, err)
-	wildcardPrefixToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "*" { policy = "deny" intentions = "write" }`)
+	wildcardPrefixToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service_prefix "*" { policy = "deny" intentions = "write" }`)
 	require.NoError(t, err)
-	fooToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "foo" { policy = "deny" intentions = "write" }`)
+	fooToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service "foo" { policy = "deny" intentions = "write" }`)
 	require.NoError(t, err)
-	denyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "" { policy = "deny" intentions = "deny" }`)
+	denyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service_prefix "" { policy = "deny" intentions = "deny" }`)
 	require.NoError(t, err)
 
 	doIntentionCreate := func(t *testing.T, token string, dest string, deny bool) string {
@@ -1266,7 +1266,7 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1347,7 +1347,7 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1416,7 +1416,7 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1461,7 +1461,7 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1526,7 +1526,7 @@ func TestIntentionGet_acl(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1662,7 +1662,7 @@ func TestIntentionList_acl(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 	waitForNewACLs(t, s1)
 
-	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "foo" { policy = "write" }`)
+	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service_prefix "foo" { policy = "write" }`)
 	require.NoError(t, err)
 
 	// Create a few records
@@ -1675,7 +1675,7 @@ func TestIntentionList_acl(t *testing.T) {
 		ixn.Intention.SourceNS = "default"
 		ixn.Intention.DestinationNS = "default"
 		ixn.Intention.DestinationName = name
-		ixn.WriteRequest.Token = TestDefaultMasterToken
+		ixn.WriteRequest.Token = TestDefaultRootToken
 
 		// Create
 		var reply string
@@ -1693,10 +1693,10 @@ func TestIntentionList_acl(t *testing.T) {
 	})
 
 	// Test with management token
-	t.Run("master-token", func(t *testing.T) {
+	t.Run("root-token", func(t *testing.T) {
 		req := &structs.IntentionListRequest{
 			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
+			QueryOptions: structs.QueryOptions{Token: TestDefaultRootToken},
 		}
 		var resp structs.IndexedIntentions
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp))
@@ -1718,7 +1718,7 @@ func TestIntentionList_acl(t *testing.T) {
 		req := &structs.IntentionListRequest{
 			Datacenter: "dc1",
 			QueryOptions: structs.QueryOptions{
-				Token:  TestDefaultMasterToken,
+				Token:  TestDefaultRootToken,
 				Filter: "DestinationName == foobar",
 			},
 		}
@@ -1814,7 +1814,7 @@ func TestIntentionMatch_acl(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "bar" { policy = "write" }`)
+	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service "bar" { policy = "write" }`)
 	require.NoError(t, err)
 
 	// Create some records
@@ -1832,7 +1832,7 @@ func TestIntentionMatch_acl(t *testing.T) {
 				Intention:  structs.TestIntention(t),
 			}
 			ixn.Intention.DestinationName = v
-			ixn.WriteRequest.Token = TestDefaultMasterToken
+			ixn.WriteRequest.Token = TestDefaultRootToken
 
 			// Create
 			var reply string
@@ -1930,7 +1930,7 @@ func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -1966,7 +1966,7 @@ func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 	})
 	defer os.RemoveAll(dir1)
@@ -2002,7 +2002,7 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -2059,7 +2059,7 @@ func TestIntentionCheck_match(t *testing.T) {
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 	waitForLeaderEstablishment(t, srv)
 
-	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service "api" { policy = "read" }`)
+	token, err := upsertTestTokenWithPolicyRules(codec, TestDefaultRootToken, "dc1", `service "api" { policy = "read" }`)
 	require.NoError(t, err)
 
 	// Create some intentions
@@ -2081,7 +2081,7 @@ func TestIntentionCheck_match(t *testing.T) {
 					DestinationName: v[1],
 					Action:          structs.IntentionActionAllow,
 				},
-				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultRootToken},
 			}
 			// Create
 			var reply string

@@ -178,10 +178,10 @@ type Config struct {
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
 
-	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
+	// ACLRootToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
-	// that the Master token is available. This provides the initial token.
-	ACLMasterToken string
+	// that the Root token is available. This provides the initial token.
+	ACLRootToken string
 
 	// ACLDatacenter provides the authoritative datacenter for ACL
 	// tokens. If not provided, ACL verification is disabled.

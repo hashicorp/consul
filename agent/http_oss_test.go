@@ -72,13 +72,13 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 		enabled        = true
 		default_policy = "deny"
 		tokens {
-			master  = "sekrit"
+			root  = "sekrit"
 			agent   = "sekrit"
 		}
 	}
 	`)
 	defer a.Shutdown()
-	// Use the master token here so the wait actually works.
+	// Use the root token here so the wait actually works.
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("sekrit"))
 
 	all := []string{"GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"}

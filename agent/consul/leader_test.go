@@ -31,7 +31,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -108,7 +108,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -174,7 +174,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -226,7 +226,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -293,7 +293,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
@@ -303,7 +303,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -313,7 +313,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -401,7 +401,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
@@ -411,7 +411,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -421,7 +421,7 @@ func TestLeader_ReapServer(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
@@ -482,7 +482,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -536,7 +536,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
@@ -891,7 +891,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
 		c.TombstoneTTLGranularity = 10 * time.Millisecond
@@ -1180,13 +1180,13 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	tests := []struct {
 		name      string
 		build     string
-		master    string
+		root      string
 		bootstrap bool
 	}{
-		{"old version, no master", "0.8.0", "", true},
-		{"old version, master", "0.8.0", "root", false},
-		{"new version, no master", "0.9.1", "", true},
-		{"new version, master", "0.9.1", "root", false},
+		{"old version, no root", "0.8.0", "", true},
+		{"old version, root", "0.8.0", "root", false},
+		{"new version, no root", "0.9.1", "", true},
+		{"new version, root", "0.9.1", "root", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1196,17 +1196,17 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Datacenter = "dc1"
 				c.ACLDatacenter = "dc1"
 				c.ACLsEnabled = true
-				c.ACLMasterToken = tt.master
+				c.ACLRootToken = tt.root
 			}
 			dir1, s1 := testServerWithConfig(t, conf)
 			defer os.RemoveAll(dir1)
 			defer s1.Shutdown()
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-			if tt.master != "" {
-				_, master, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.master, nil)
+			if tt.root != "" {
+				_, root, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.root, nil)
 				require.NoError(t, err)
-				require.NotNil(t, master)
+				require.NotNil(t, root)
 			}
 
 			_, anon, err := s1.fsm.State().ACLTokenGetBySecret(nil, anonymousToken, nil)
@@ -1232,7 +1232,7 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1307,7 +1307,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

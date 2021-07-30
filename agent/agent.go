@@ -176,8 +176,8 @@ type Agent struct {
 	// depending on the configuration
 	delegate delegate
 
-	// aclMasterAuthorizer is an object that helps manage local ACL enforcement.
-	aclMasterAuthorizer acl.Authorizer
+	// aclRootAuthorizer is an object that helps manage local ACL enforcement.
+	aclRootAuthorizer acl.Authorizer
 
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
@@ -1106,8 +1106,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.RaftTrailingLogs != 0 {
 		cfg.RaftConfig.TrailingLogs = uint64(runtimeCfg.RaftTrailingLogs)
 	}
-	if runtimeCfg.ACLMasterToken != "" {
-		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
+	if runtimeCfg.ACLRootToken != "" {
+		cfg.ACLRootToken = runtimeCfg.ACLRootToken
 	}
 	if runtimeCfg.ACLDatacenter != "" {
 		cfg.ACLDatacenter = runtimeCfg.ACLDatacenter

@@ -634,17 +634,17 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `tokens` ((#acl_tokens)) - This object holds all of the configured
     ACL tokens for the agents usage.
 
-    - `master` ((#acl_tokens_master)) - Only used for servers in the [`primary_datacenter`](#primary_datacenter).
+    - `root` ((#acl_tokens_root)) - Only used for servers in the [`primary_datacenter`](#primary_datacenter).
       This token will be created with management-level permissions if it does not
       exist. It allows operators to bootstrap the ACL system with a token Secret
       ID that is well-known.
 
-      The `master` token is only installed when a server acquires cluster
-      leadership. If you would like to install or change the `acl_master_token`,
-      set the new value for `master` in the configuration for all servers. Once
+      The `root` token is only installed when a server acquires cluster
+      leadership. If you would like to install or change the `acl_root_token`,
+      set the new value for `root` in the configuration for all servers. Once
       this is done, restart the current leader to force a leader election. If
-      the `master` token is not supplied, then the servers do not create a
-      master token. When you provide a value, it should be a UUID. To maintain
+      the `root` token is not supplied, then the servers do not create a
+      root token. When you provide a value, it should be a UUID. To maintain
       backwards compatibility and an upgrade path this restriction is not
       currently enforced but will be in a future major Consul release.
 
@@ -662,7 +662,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       register as in order to set any of the node-level information in the
       catalog such as metadata, or the node's tagged addresses.
 
-    - `agent_master` ((#acl_tokens_agent_master)) - Used to access [agent endpoints](/api/agent)
+    - `agent_root` ((#acl_tokens_agent_root)) - Used to access [agent endpoints](/api/agent)
       that require agent read or write privileges, or node read privileges, even if Consul servers aren't present to validate any tokens. This should only be used by operators during outages, regular ACL tokens should normally be used by applications.
 
     - `replication` ((#acl_tokens_replication)) - The ACL token used to
@@ -711,8 +711,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   is bad between ACL authoritative and other datacenters, latency of operations is
   not impacted.
 
-- `acl_agent_master_token` ((#acl_agent_master_token_legacy)) - **Deprecated
-  in Consul 1.4.0. See the [`acl.tokens.agent_master`](#acl_tokens_agent_master)
+- `acl_agent_root_token` ((#acl_agent_root_token_legacy)) - **Deprecated
+  in Consul 1.4.0. See the [`acl.tokens.agent_root`](#acl_tokens_agent_root)
   field instead.** Used to access [agent endpoints](/api/agent) that
   require agent read or write privileges, or node read privileges, even if Consul
   servers aren't present to validate any tokens. This should only be used by operators
@@ -734,16 +734,16 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   in Consul 0.8 and later. This helps ease the transition to the new ACL features
   by allowing policies to be in place before enforcement begins.
 
-- `acl_master_token` ((#acl_master_token_legacy)) - **Deprecated in Consul
-  1.4.0. See the [`acl.tokens.master`](#acl_tokens_master) field instead.** Only
+- `acl_root_token` ((#acl_root_token_legacy)) - **Deprecated in Consul
+  1.4.0. See the [`acl.tokens.root`](#acl_tokens_root) field instead.** Only
   used for servers in the [`primary_datacenter`](#primary_datacenter). This token
   will be created with management-level permissions if it does not exist. It allows
   operators to bootstrap the ACL system with a token ID that is well-known.
 
-  The `acl_master_token` is only installed when a server acquires cluster leadership. If
-  you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
+  The `acl_root_token` is only installed when a server acquires cluster leadership. If
+  you would like to install or change the `acl_root_token`, set the new value for `acl_root_token`
   in the configuration for all servers. Once this is done, restart the current leader to force a
-  leader election. If the `acl_master_token` is not supplied, then the servers do not create a master
+  leader election. If the `acl_root_token` is not supplied, then the servers do not create a root
   token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
   the same as the other tokens, but isn't strictly necessary.
 

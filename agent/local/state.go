@@ -878,7 +878,7 @@ func (l *State) Stats() map[string]string {
 // updateSyncState queries the server for all the services and checks in the catalog
 // registered to this node, and updates the local entries as InSync or Deleted.
 func (l *State) updateSyncState() error {
-	// Get all checks and services from the master
+	// Get all checks and services from the primary
 	req := structs.NodeSpecificRequest{
 		Datacenter: l.config.Datacenter,
 		Node:       l.config.NodeName,

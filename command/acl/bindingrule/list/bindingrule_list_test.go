@@ -37,7 +37,7 @@ func TestBindingRuleListCommand(t *testing.T) {
 	acl {
 		enabled = true
 		tokens {
-			master = "root"
+			root = "root"
 		}
 	}`)
 

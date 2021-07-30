@@ -75,7 +75,7 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	a := agent.NewTestAgent(t, config)
 	t.Cleanup(func() { a.Shutdown() })
 
-	testrpc.WaitForTestAgent(t, a.RPC, "primary", testrpc.WithToken(agent.TestDefaultMasterToken))
+	testrpc.WaitForTestAgent(t, a.RPC, "primary", testrpc.WithToken(agent.TestDefaultRootToken))
 
 	return a
 }

@@ -197,7 +197,7 @@ as to whether they are set on servers, clients, or both.
 
 | Configuration Option                                                  | Servers    | Clients    | Purpose                                                                                   |
 | --------------------------------------------------------------------- | ---------- | ---------- | ----------------------------------------------------------------------------------------- |
-| [`acl_datacenter`](/docs/agent/options#acl_datacenter)                | `REQUIRED` | `REQUIRED` | Master control that enables ACLs by defining the authoritative Consul datacenter for ACLs |
+| [`acl_datacenter`](/docs/agent/options#acl_datacenter)                | `REQUIRED` | `REQUIRED` | Root control that enables ACLs by defining the authoritative Consul datacenter for ACLs |
 | [`acl_default_policy`](/docs/agent/options#acl_default_policy_legacy) | `OPTIONAL` | `N/A`      | Determines allowlist or denylist mode                                                     |
 | [`acl_down_policy`](/docs/agent/options#acl_down_policy_legacy)       | `OPTIONAL` | `OPTIONAL` | Determines what to do when the ACL datacenter is offline                                  |
 | [`acl_ttl`](/docs/agent/options#acl_ttl_legacy)                       | `OPTIONAL` | `OPTIONAL` | Determines time-to-live for cached ACLs                                                   |
@@ -211,17 +211,17 @@ system, or accessing Consul in special situations:
 
 | Special Token                                                                 | Servers    | Clients    | Purpose                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------------------------------------------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token_legacy) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations, see the [ACL Agent Master Token](#acl-agent-master-token) section for more details |
+| [`acl_agent_root_token`](/docs/agent/options#acl_agent_root_token_legacy) | `OPTIONAL` | `OPTIONAL` | Special token that can be used to access [Agent API](/api/agent) when the ACL datacenter isn't available, or servers are offline (for clients); used for setting up the cluster such as doing initial join operations, see the [ACL Agent Root Token](#acl-agent-root-token) section for more details |
 | [`acl_agent_token`](/docs/agent/options#acl_agent_token_legacy)               | `OPTIONAL` | `OPTIONAL` | Special token that is used for an agent's internal operations, see the [ACL Agent Token](#acl-agent-token) section for more details                                                                                                                                                                       |
-| [`acl_master_token`](/docs/agent/options#acl_master_token_legacy)             | `REQUIRED` | `N/A`      | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details                                                                                                                                                                                |
+| [`acl_root_token`](/docs/agent/options#acl_root_token_legacy)             | `REQUIRED` | `N/A`      | Special token used to bootstrap the ACL system, see the [Bootstrapping ACLs](#bootstrapping-acls) section for more details                                                                                                                                                                                |
 | [`acl_token`](/docs/agent/options#acl_token_legacy)                           | `OPTIONAL` | `OPTIONAL` | Default token to use for client requests where no token is supplied; this is often configured with read-only access to services to enable DNS service discovery on agents                                                                                                                                 |
 
 In Consul 0.9.1 and later, the agent ACL tokens can be introduced or updated via the
 [/v1/agent/token API](/api/agent#update-acl-tokens).
 
-#### ACL Agent Master Token
+#### ACL Agent Root Token
 
-Since the [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token_legacy) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it (the `node` policy was added in Consul 0.9.0):
+Since the [`acl_agent_root_token`](/docs/agent/options#acl_agent_root_token_legacy) is designed to be used when the Consul servers are not available, its policy is managed locally on the agent and does not need to have a token defined on the Consul servers via the ACL API. Once set, it implicitly has the following policy associated with it (the `node` policy was added in Consul 0.9.0):
 
 ```hcl
 agent "<node name of agent>" {
@@ -273,7 +273,7 @@ The first step for bootstrapping ACLs is to enable ACLs on the Consul servers in
 datacenter. In this example, we are configuring the following:
 
 1. An ACL datacenter of "dc1", which is where these servers are
-2. An ACL master token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl/acl#bootstrap-acls)
+2. An ACL root token of "b1gs33cr3t"; see below for an alternative using the [/v1/acl/bootstrap API](/api/acl/acl#bootstrap-acls)
 3. A default policy of "deny" which means we are in allowlist mode
 4. A down policy of "extend-cache" which means that we will ignore token TTLs
    during an outage
@@ -283,7 +283,7 @@ Here's the corresponding JSON configuration file:
 ```json
 {
   "acl_datacenter": "dc1",
-  "acl_master_token": "b1gs33cr3t",
+  "acl_root_token": "b1gs33cr3t",
   "acl_default_policy": "deny",
   "acl_down_policy": "extend-cache"
 }
@@ -293,17 +293,17 @@ The servers will need to be restarted to load the new configuration. Please take
 to start the servers one at a time, and ensure each server has joined and is operating
 correctly before starting another.
 
-The [`acl_master_token`](/docs/agent/options#acl_master_token) will be created
+The [`acl_root_token`](/docs/agent/options#acl_root_token) will be created
 as a "management" type token automatically. The
-[`acl_master_token`](/docs/agent/options#acl_master_token) is only installed when
+[`acl_root_token`](/docs/agent/options#acl_root_token) is only installed when
 a server acquires cluster leadership. If you would like to install or change the
-[`acl_master_token`](/docs/agent/options#acl_master_token), set the new value for
-[`acl_master_token`](/docs/agent/options#acl_master_token) in the configuration
+[`acl_root_token`](/docs/agent/options#acl_root_token), set the new value for
+[`acl_root_token`](/docs/agent/options#acl_root_token) in the configuration
 for all servers. Once this is done, restart the current leader to force a leader election.
 
 In Consul 0.9.1 and later, you can use the [/v1/acl/bootstrap API](/api/acl/acl#bootstrap-acls)
-to make the initial master token, so a token never needs to be placed into a configuration
-file. To use this approach, omit `acl_master_token` from the above config and then call the API:
+to make the initial root token, so a token never needs to be placed into a configuration
+file. To use this approach, omit `acl_root_token` from the above config and then call the API:
 
 ```shell-session
 $ curl \
@@ -314,7 +314,7 @@ $ curl \
 ```
 
 The returned token is the initial management token, which is randomly generated by Consul.
-It's only possible to bootstrap one time, and bootstrapping will be disabled if a master
+It's only possible to bootstrap one time, and bootstrapping will be disabled if a root
 token was configured and created.
 
 Once the ACL system is bootstrapped, ACL tokens can be managed through the
@@ -334,7 +334,7 @@ These errors are because the agent doesn't yet have a properly configured
 [`acl_agent_token`](/docs/agent/options#acl_agent_token) that it can use for its
 own internal operations like updating its node information in the catalog and performing
 [anti-entropy](/docs/internals/anti-entropy) syncing. We can create a token using the
-ACL API, and the ACL master token we set in the previous step:
+ACL API, and the ACL root token we set in the previous step:
 
 ```shell-session
 $ curl \
@@ -356,7 +356,7 @@ configuration and restart the servers once more to apply it:
 ```json
 {
   "acl_datacenter": "dc1",
-  "acl_master_token": "b1gs33cr3t",
+  "acl_root_token": "b1gs33cr3t",
   "acl_default_policy": "deny",
   "acl_down_policy": "extend-cache",
   "acl_agent_token": "fe3b8d40-0ee0-8783-6cc2-ab1aa9bb16c1"
@@ -726,7 +726,7 @@ starts with "bar".
 
 Since [Agent API](/api/agent) utility operations may be required before an agent is joined to
 a cluster, or during an outage of the Consul servers or ACL datacenter, a special token may be
-configured with [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token) to allow
+configured with [`acl_agent_root_token`](/docs/agent/options#acl_agent_root_token) to allow
 write access to these operations even if no ACL resolution capability is available.
 
 #### Event Rules
@@ -1104,7 +1104,7 @@ also be used to rotate the token without restarting the Consul servers.
 With replication enabled, the servers will maintain a replica of the authoritative
 datacenter's full set of ACLs on the non-authoritative servers. The ACL replication
 token needs to be a valid ACL token with management privileges, it can also be the
-same as the master ACL token.
+same as the root ACL token.
 
 Replication occurs with a background process that looks for new ACLs approximately
 every 30 seconds. Replicated changes are written at a rate that's throttled to
@@ -1171,7 +1171,7 @@ Here's a summary of the new features:
 
 Two new configuration options are used once version 8 ACLs are enabled:
 
-- [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token) is used as
+- [`acl_agent_root_token`](/docs/agent/options#acl_agent_root_token) is used as
   a special access token that has `agent` ACL policy `write` privileges on each agent where
   it is configured, as well as `node` ACL policy `read` privileges for all nodes. This token
   should only be used by operators during outages when Consul servers aren't available to
@@ -1191,11 +1191,11 @@ in order to enable agent-level ACL features. If this is set, the agents will con
 servers to determine if ACLs are enabled at the cluster level. If they detect that ACLs are not
 enabled, they will check at most every 2 minutes to see if they have become enabled, and will
 start enforcing ACLs automatically. If an agent has an `acl_datacenter` defined, operators will
-need to use the [`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token) to
+need to use the [`acl_agent_root_token`](/docs/agent/options#acl_agent_root_token) to
 perform agent-level operations if the Consul servers aren't present (such as for a manual join
 to the cluster), unless the [`acl_down_policy`](/docs/agent/options#acl_down_policy) on the
 agent is set to "allow".
 
 Non-server agents do not need to have the
-[`acl_master_token`](/docs/agent/options#acl_master_token) configured; it is not
+[`acl_root_token`](/docs/agent/options#acl_root_token) configured; it is not
 used by agents in any way.

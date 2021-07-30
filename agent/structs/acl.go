@@ -1803,54 +1803,54 @@ func CreateACLAuthorizationResponses(authz acl.Authorizer, requests []ACLAuthori
 	return responses, nil
 }
 
-type AgentMasterTokenIdentity struct {
+type AgentRootTokenIdentity struct {
 	agent    string
 	secretID string
 }
 
-func NewAgentMasterTokenIdentity(agent string, secretID string) *AgentMasterTokenIdentity {
-	return &AgentMasterTokenIdentity{
+func NewAgentRootTokenIdentity(agent string, secretID string) *AgentRootTokenIdentity {
+	return &AgentRootTokenIdentity{
 		agent:    agent,
 		secretID: secretID,
 	}
 }
 
-func (id *AgentMasterTokenIdentity) ID() string {
-	return fmt.Sprintf("agent-master:%s", id.agent)
+func (id *AgentRootTokenIdentity) ID() string {
+	return fmt.Sprintf("agent-root:%s", id.agent)
 }
 
-func (id *AgentMasterTokenIdentity) SecretToken() string {
+func (id *AgentRootTokenIdentity) SecretToken() string {
 	return id.secretID
 }
 
-func (id *AgentMasterTokenIdentity) PolicyIDs() []string {
+func (id *AgentRootTokenIdentity) PolicyIDs() []string {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) RoleIDs() []string {
+func (id *AgentRootTokenIdentity) RoleIDs() []string {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) EmbeddedPolicy() *ACLPolicy {
+func (id *AgentRootTokenIdentity) EmbeddedPolicy() *ACLPolicy {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) ServiceIdentityList() []*ACLServiceIdentity {
+func (id *AgentRootTokenIdentity) ServiceIdentityList() []*ACLServiceIdentity {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) NodeIdentityList() []*ACLNodeIdentity {
+func (id *AgentRootTokenIdentity) NodeIdentityList() []*ACLNodeIdentity {
 	return nil
 }
 
-func (id *AgentMasterTokenIdentity) IsExpired(asOf time.Time) bool {
+func (id *AgentRootTokenIdentity) IsExpired(asOf time.Time) bool {
 	return false
 }
 
-func (id *AgentMasterTokenIdentity) IsLocal() bool {
+func (id *AgentRootTokenIdentity) IsLocal() bool {
 	return true
 }
 
-func (id *AgentMasterTokenIdentity) EnterpriseMetadata() *EnterpriseMeta {
+func (id *AgentRootTokenIdentity) EnterpriseMetadata() *EnterpriseMeta {
 	return nil
 }

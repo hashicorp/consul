@@ -20,13 +20,13 @@ func TestStore_Load(t *testing.T) {
 		cfg := Config{
 			DataDir:             dataDir,
 			ACLAgentToken:       "alfa",
-			ACLAgentMasterToken: "bravo",
+			ACLAgentRootToken:   "bravo",
 			ACLDefaultToken:     "charlie",
 			ACLReplicationToken: "delta",
 		}
 		require.NoError(t, store.Load(cfg, logger))
 		require.Equal(t, "alfa", store.AgentToken())
-		require.Equal(t, "bravo", store.AgentMasterToken())
+		require.Equal(t, "bravo", store.AgentRootToken())
 		require.Equal(t, "charlie", store.UserToken())
 		require.Equal(t, "delta", store.ReplicationToken())
 	})
@@ -36,14 +36,14 @@ func TestStore_Load(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "echo",
 			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
+			ACLAgentRootToken:   "golf",
 			ACLReplicationToken: "hotel",
 		}
 		// ensures no error for missing persisted tokens file
 		require.NoError(t, store.Load(cfg, logger))
 		require.Equal(t, "echo", store.UserToken())
 		require.Equal(t, "foxtrot", store.AgentToken())
-		require.Equal(t, "golf", store.AgentMasterToken())
+		require.Equal(t, "golf", store.AgentRootToken())
 		require.Equal(t, "hotel", store.ReplicationToken())
 	})
 
@@ -52,13 +52,13 @@ func TestStore_Load(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "echo",
 			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
+			ACLAgentRootToken:   "golf",
 			ACLReplicationToken: "hotel",
 		}
 
 		tokens := `{
 			"agent" : "india",
-			"agent_master" : "juliett",
+			"agent_root" : "juliett",
 			"default": "kilo",
 			"replication" : "lima"
 		}`
@@ -69,14 +69,14 @@ func TestStore_Load(t *testing.T) {
 		// no updates since token persistence is not enabled
 		require.Equal(t, "echo", store.UserToken())
 		require.Equal(t, "foxtrot", store.AgentToken())
-		require.Equal(t, "golf", store.AgentMasterToken())
+		require.Equal(t, "golf", store.AgentRootToken())
 		require.Equal(t, "hotel", store.ReplicationToken())
 
 		cfg.EnablePersistence = true
 		require.NoError(t, store.Load(cfg, logger))
 
 		require.Equal(t, "india", store.AgentToken())
-		require.Equal(t, "juliett", store.AgentMasterToken())
+		require.Equal(t, "juliett", store.AgentRootToken())
 		require.Equal(t, "kilo", store.UserToken())
 		require.Equal(t, "lima", store.ReplicationToken())
 
@@ -87,7 +87,7 @@ func TestStore_Load(t *testing.T) {
 	t.Run("with persisted tokens, persisted tokens override config", func(t *testing.T) {
 		tokens := `{
 			"agent" : "mike",
-			"agent_master" : "november",
+			"agent_root" : "november",
 			"default": "oscar",
 			"replication" : "papa"
 		}`
@@ -97,7 +97,7 @@ func TestStore_Load(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "quebec",
 			ACLAgentToken:       "romeo",
-			ACLAgentMasterToken: "sierra",
+			ACLAgentRootToken:   "sierra",
 			ACLReplicationToken: "tango",
 		}
 
@@ -105,7 +105,7 @@ func TestStore_Load(t *testing.T) {
 		require.NoError(t, store.Load(cfg, logger))
 
 		require.Equal(t, "mike", store.AgentToken())
-		require.Equal(t, "november", store.AgentMasterToken())
+		require.Equal(t, "november", store.AgentRootToken())
 		require.Equal(t, "oscar", store.UserToken())
 		require.Equal(t, "papa", store.ReplicationToken())
 	})
@@ -113,7 +113,7 @@ func TestStore_Load(t *testing.T) {
 	t.Run("with some persisted tokens", func(t *testing.T) {
 		tokens := `{
 			"agent" : "uniform",
-			"agent_master" : "victor"
+			"agent_root" : "victor"
 		}`
 
 		cfg := Config{
@@ -121,7 +121,7 @@ func TestStore_Load(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "whiskey",
 			ACLAgentToken:       "xray",
-			ACLAgentMasterToken: "yankee",
+			ACLAgentRootToken:   "yankee",
 			ACLReplicationToken: "zulu",
 		}
 
@@ -129,7 +129,7 @@ func TestStore_Load(t *testing.T) {
 		require.NoError(t, store.Load(cfg, logger))
 
 		require.Equal(t, "uniform", store.AgentToken())
-		require.Equal(t, "victor", store.AgentMasterToken())
+		require.Equal(t, "victor", store.AgentRootToken())
 		require.Equal(t, "whiskey", store.UserToken())
 		require.Equal(t, "zulu", store.ReplicationToken())
 	})
@@ -140,7 +140,7 @@ func TestStore_Load(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "one",
 			ACLAgentToken:       "two",
-			ACLAgentMasterToken: "three",
+			ACLAgentRootToken:   "three",
 			ACLReplicationToken: "four",
 		}
 
@@ -151,7 +151,7 @@ func TestStore_Load(t *testing.T) {
 
 		require.Equal(t, "one", store.UserToken())
 		require.Equal(t, "two", store.AgentToken())
-		require.Equal(t, "three", store.AgentMasterToken())
+		require.Equal(t, "three", store.AgentRootToken())
 		require.Equal(t, "four", store.ReplicationToken())
 	})
 
@@ -161,7 +161,7 @@ func TestStore_Load(t *testing.T) {
 			DataDir:             dataDir,
 			ACLDefaultToken:     "alfa",
 			ACLAgentToken:       "bravo",
-			ACLAgentMasterToken: "charlie",
+			ACLAgentRootToken:   "charlie",
 			ACLReplicationToken: "foxtrot",
 		}
 
@@ -172,7 +172,7 @@ func TestStore_Load(t *testing.T) {
 
 		require.Equal(t, "alfa", store.UserToken())
 		require.Equal(t, "bravo", store.AgentToken())
-		require.Equal(t, "charlie", store.AgentMasterToken())
+		require.Equal(t, "charlie", store.AgentRootToken())
 		require.Equal(t, "foxtrot", store.ReplicationToken())
 	})
 }
@@ -185,7 +185,7 @@ func TestStore_WithPersistenceLock(t *testing.T) {
 		DataDir:             dataDir,
 		ACLDefaultToken:     "default-token",
 		ACLAgentToken:       "agent-token",
-		ACLAgentMasterToken: "master-token",
+		ACLAgentRootToken:   "root-token",
 		ACLReplicationToken: "replication-token",
 	}
 	err := store.Load(cfg, hclog.New(nil))
@@ -195,7 +195,7 @@ func TestStore_WithPersistenceLock(t *testing.T) {
 		updated := store.UpdateUserToken("the-new-token", TokenSourceAPI)
 		require.True(t, updated)
 
-		updated = store.UpdateAgentMasterToken("the-new-master-token", TokenSourceAPI)
+		updated = store.UpdateAgentRootToken("the-new-root-token", TokenSourceAPI)
 		require.True(t, updated)
 		return nil
 	}
@@ -206,8 +206,8 @@ func TestStore_WithPersistenceLock(t *testing.T) {
 	tokens, err := readPersistedFromFile(filepath.Join(dataDir, tokensPath))
 	require.NoError(t, err)
 	expected := persistedTokens{
-		Default:     "the-new-token",
-		AgentMaster: "the-new-master-token",
+		Default:   "the-new-token",
+		AgentRoot: "the-new-root-token",
 	}
 	require.Equal(t, expected, tokens)
 }

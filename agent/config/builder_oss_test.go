@@ -110,7 +110,7 @@ func TestValidateEnterpriseConfigKeys(t *testing.T) {
 			config: Config{
 				ReadReplica: &boolVal,
 				SegmentName: &stringVal,
-				ACL:         ACL{Tokens: Tokens{AgentMaster: &stringVal}},
+				ACL:         ACL{Tokens: Tokens{AgentRoot: &stringVal}},
 			},
 			badKeys: []string{"read_replica (or the deprecated non_voting_server)", "segment"},
 		},

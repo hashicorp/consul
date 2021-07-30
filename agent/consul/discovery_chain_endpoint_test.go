@@ -25,7 +25,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)

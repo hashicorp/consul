@@ -304,7 +304,7 @@ func TestAgentKeyring_ACL(t *testing.T) {
 
 	a := StartTestAgent(t, TestAgent{HCL: TestACLConfig() + `
 		acl_datacenter = "dc1"
-		acl_master_token = "root"
+		acl_root_token = "root"
 		acl_default_policy = "deny"
 	`, DataDir: dataDir})
 	defer a.Shutdown()

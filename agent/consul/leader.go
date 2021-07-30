@@ -430,11 +430,11 @@ func (s *Server) initializeLegacyACL() error {
 		s.logger.Info("Created the anonymous token")
 	}
 
-	// Check for configured master token.
-	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master, nil)
+	// Check for configured root token.
+	if root := s.config.ACLRootToken; len(root) > 0 {
+		_, token, err = state.ACLTokenGetBySecret(nil, root, nil)
 		if err != nil {
-			return fmt.Errorf("failed to get master token: %v", err)
+			return fmt.Errorf("failed to get root token: %v", err)
 		}
 		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
@@ -442,16 +442,16 @@ func (s *Server) initializeLegacyACL() error {
 				Datacenter: authDC,
 				Op:         structs.ACLSet,
 				ACL: structs.ACL{
-					ID:   master,
-					Name: "Master Token",
+					ID:   root,
+					Name: "Root Token",
 					Type: structs.ACLTokenTypeManagement,
 				},
 			}
 			_, err := s.raftApply(structs.ACLRequestType, &req)
 			if err != nil {
-				return fmt.Errorf("failed to create master token: %v", err)
+				return fmt.Errorf("failed to create root token: %v", err)
 			}
-			s.logger.Info("Created ACL master token from configuration")
+			s.logger.Info("Created ACL root token from configuration")
 		}
 	}
 
@@ -563,28 +563,28 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 			s.logger.Info("Created ACL 'global-management' policy")
 		}
 
-		// Check for configured master token.
-		if master := s.config.ACLMasterToken; len(master) > 0 {
+		// Check for configured root token.
+		if root := s.config.ACLRootToken; len(root) > 0 {
 			state := s.fsm.State()
-			if _, err := uuid.ParseUUID(master); err != nil {
-				s.logger.Warn("Configuring a non-UUID master token is deprecated")
+			if _, err := uuid.ParseUUID(root); err != nil {
+				s.logger.Warn("Configuring a non-UUID root token is deprecated")
 			}
 
-			_, token, err := state.ACLTokenGetBySecret(nil, master, nil)
+			_, token, err := state.ACLTokenGetBySecret(nil, root, nil)
 			if err != nil {
-				return fmt.Errorf("failed to get master token: %v", err)
+				return fmt.Errorf("failed to get root token: %v", err)
 			}
 			// Ignoring expiration times to avoid an insertion collision.
 			if token == nil {
 				accessor, err := lib.GenerateUUID(s.checkTokenUUID)
 				if err != nil {
-					return fmt.Errorf("failed to generate the accessor ID for the master token: %v", err)
+					return fmt.Errorf("failed to generate the accessor ID for the root token: %v", err)
 				}
 
 				token := structs.ACLToken{
 					AccessorID:  accessor,
-					SecretID:    master,
-					Description: "Master Token",
+					SecretID:    root,
+					Description: "Root Token",
 					Policies: []structs.ACLTokenPolicyLink{
 						{
 							ID: structs.ACLPolicyGlobalManagementID,
@@ -607,12 +607,12 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 						ResetIndex: 0,
 					}
 					if _, err := s.raftApply(structs.ACLBootstrapRequestType, &req); err == nil {
-						s.logger.Info("Bootstrapped ACL master token from configuration")
+						s.logger.Info("Bootstrapped ACL root token from configuration")
 						done = true
 					} else {
 						if err.Error() != structs.ACLBootstrapNotAllowedErr.Error() &&
 							err.Error() != structs.ACLBootstrapInvalidResetIndexErr.Error() {
-							return fmt.Errorf("failed to bootstrap master token: %v", err)
+							return fmt.Errorf("failed to bootstrap root token: %v", err)
 						}
 					}
 				}
@@ -624,10 +624,10 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 						CAS:    false,
 					}
 					if _, err := s.raftApply(structs.ACLTokenSetRequestType, &req); err != nil {
-						return fmt.Errorf("failed to create master token: %v", err)
+						return fmt.Errorf("failed to create root token: %v", err)
 					}
 
-					s.logger.Info("Created ACL master token from configuration")
+					s.logger.Info("Created ACL root token from configuration")
 				}
 			}
 		}

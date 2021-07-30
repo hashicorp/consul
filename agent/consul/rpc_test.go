@@ -830,7 +830,7 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

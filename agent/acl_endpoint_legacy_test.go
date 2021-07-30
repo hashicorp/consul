@@ -298,7 +298,7 @@ func TestACL_Legacy_List(t *testing.T) {
 		t.Fatalf("should work")
 	}
 
-	// 10  + master
+	// 10  + root
 	// anonymous token is a new token and wont show up in this list
 	if len(respObj) != 11 {
 		t.Fatalf("bad: %v", respObj)

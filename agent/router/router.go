@@ -582,7 +582,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 
 		// Compute the median RTT between this server and the servers
 		// in each datacenter. We accumulate the lowest RTT to each DC
-		// in the master map, since a given DC might appear in multiple
+		// in the main map, since a given DC might appear in multiple
 		// areas.
 		for dc, rtts := range index {
 			sort.Float64s(rtts)

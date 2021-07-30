@@ -731,12 +731,12 @@ is restarted.
 | ------ | --------------------------- | ------------------ |
 | `PUT`  | `/agent/token/default`      | `application/json` |
 | `PUT`  | `/agent/token/agent`        | `application/json` |
-| `PUT`  | `/agent/token/agent_master` | `application/json` |
+| `PUT`  | `/agent/token/agent_root` | `application/json` |
 | `PUT`  | `/agent/token/replication`  | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
 [`default`](/docs/agent/options#acl_tokens_default), [`agent`](/docs/agent/options#acl_tokens_agent),
-[`agent_master`](/docs/agent/options#acl_tokens_agent_master), and
+[`agent_root`](/docs/agent/options#acl_tokens_agent_root), and
 [`replication`](/docs/agent/options#acl_tokens_replication).
 
 -> **Deprecation Note:** The following paths were deprecated in version 1.4.3
@@ -745,12 +745,12 @@ The paths above correspond to the token names as found in the agent configuratio
 | ------ | ------------------------------------- | ------------------ |
 | `PUT`  | `/agent/token/acl_token`              | `application/json` |
 | `PUT`  | `/agent/token/acl_agent_token`        | `application/json` |
-| `PUT`  | `/agent/token/acl_agent_master_token` | `application/json` |
+| `PUT`  | `/agent/token/acl_agent_root_token` | `application/json` |
 | `PUT`  | `/agent/token/acl_replication_token`  | `application/json` |
 
 The paths above correspond to the token names as found in the agent configuration:
 [`acl_token`](/docs/agent/options#acl_token_legacy), [`acl_agent_token`](/docs/agent/options#acl_agent_token_legacy),
-[`acl_agent_master_token`](/docs/agent/options#acl_agent_master_token_legacy), and
+[`acl_agent_root_token`](/docs/agent/options#acl_agent_root_token_legacy), and
 [`acl_replication_token`](/docs/agent/options#acl_replication_token_legacy).
 
 The table below shows this endpoint's support for

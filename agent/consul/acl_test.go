@@ -2196,7 +2196,7 @@ func TestACL_Replication(t *testing.T) {
 	for _, aclDownPolicy := range aclExtendPolicies {
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {
 			c.ACLDatacenter = "dc1"
-			c.ACLMasterToken = "root"
+			c.ACLRootToken = "root"
 		})
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
@@ -2314,7 +2314,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -4038,7 +4038,7 @@ func TestACL_LocalToken(t *testing.T) {
 	})
 }
 
-func TestACLResolver_AgentMaster(t *testing.T) {
+func TestACLResolver_AgentRoot(t *testing.T) {
 	var tokens token.Store
 
 	d := &ACLResolverTestDelegate{
@@ -4051,14 +4051,14 @@ func TestACLResolver_AgentMaster(t *testing.T) {
 		cfg.AutoDisable = false
 	})
 
-	tokens.UpdateAgentMasterToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
+	tokens.UpdateAgentRootToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
 
 	ident, authz, err := r.ResolveTokenToIdentityAndAuthorizer("9a184a11-5599-459e-b71a-550e5f9a5a23")
 	require.NoError(t, err)
 	require.NotNil(t, ident)
-	require.Equal(t, "agent-master:foo", ident.ID())
+	require.Equal(t, "agent-root:foo", ident.ID())
 	require.NotNil(t, authz)
-	require.Equal(t, r.agentMasterAuthz, authz)
+	require.Equal(t, r.agentRootAuthz, authz)
 	require.Equal(t, acl.Allow, authz.AgentWrite("foo", nil))
 	require.Equal(t, acl.Allow, authz.NodeRead("bar", nil))
 	require.Equal(t, acl.Deny, authz.NodeWrite("bar", nil))

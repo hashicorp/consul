@@ -111,7 +111,7 @@ type Cache struct {
 // changed and refactored at will since this will break existing setups.
 type Config struct {
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLAgentMasterToken *string `mapstructure:"acl_agent_master_token"`
+	ACLAgentRootToken *string `mapstructure:"acl_agent_root_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLAgentToken *string `mapstructure:"acl_agent_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
@@ -123,7 +123,7 @@ type Config struct {
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLEnableKeyListPolicy *bool `mapstructure:"acl_enable_key_list_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLMasterToken *string `mapstructure:"acl_master_token"`
+	ACLRootToken *string `mapstructure:"acl_root_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLReplicationToken *string `mapstructure:"acl_replication_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
@@ -749,9 +749,9 @@ type ACL struct {
 }
 
 type Tokens struct {
-	Master      *string `mapstructure:"master"`
+	Root        *string `mapstructure:"root"`
 	Replication *string `mapstructure:"replication"`
-	AgentMaster *string `mapstructure:"agent_master"`
+	AgentRoot   *string `mapstructure:"agent_root"`
 	Default     *string `mapstructure:"default"`
 	Agent       *string `mapstructure:"agent"`
 

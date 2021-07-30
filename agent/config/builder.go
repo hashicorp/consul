@@ -871,7 +871,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ACLDefaultPolicy:       stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
 		ACLDownPolicy:          stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
 		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
+		ACLRootToken:           stringValWithDefault(c.ACL.Tokens.Root, stringVal(c.ACLRootToken)),
 		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
 		ACLRoleTTL:             b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
@@ -882,7 +882,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
 			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
 			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
-			ACLAgentMasterToken: stringValWithDefault(c.ACL.Tokens.AgentMaster, stringVal(c.ACLAgentMasterToken)),
+			ACLAgentRootToken:   stringValWithDefault(c.ACL.Tokens.AgentRoot, stringVal(c.ACLAgentRootToken)),
 			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
 		},
 

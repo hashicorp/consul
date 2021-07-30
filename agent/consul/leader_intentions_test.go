@@ -29,7 +29,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 		c.Datacenter = "dc1"
 		c.ACLDatacenter = "dc1"
 		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
+		c.ACLRootToken = "root"
 		c.ACLDefaultPolicy = "deny"
 		c.Build = "1.6.0"
 		c.OverrideInitialSerfTags = func(tags map[string]string) {

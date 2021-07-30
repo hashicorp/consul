@@ -8,14 +8,14 @@ import (
 
 func TestStore_RegularTokens(t *testing.T) {
 	type tokens struct {
-		userSource   TokenSource
-		user         string
-		agent        string
-		agentSource  TokenSource
-		master       string
-		masterSource TokenSource
-		repl         string
-		replSource   TokenSource
+		userSource  TokenSource
+		user        string
+		agent       string
+		agentSource TokenSource
+		root        string
+		rootSource  TokenSource
+		repl        string
+		replSource  TokenSource
 	}
 
 	tests := []struct {
@@ -67,22 +67,22 @@ func TestStore_RegularTokens(t *testing.T) {
 			effective: tokens{repl: "R"},
 		},
 		{
-			name:      "set master - config",
-			set:       tokens{master: "M", masterSource: TokenSourceConfig},
-			raw:       tokens{master: "M", masterSource: TokenSourceConfig},
-			effective: tokens{master: "M"},
+			name:      "set root - config",
+			set:       tokens{root: "M", rootSource: TokenSourceConfig},
+			raw:       tokens{root: "M", rootSource: TokenSourceConfig},
+			effective: tokens{root: "M"},
 		},
 		{
-			name:      "set master - api",
-			set:       tokens{master: "M", masterSource: TokenSourceAPI},
-			raw:       tokens{master: "M", masterSource: TokenSourceAPI},
-			effective: tokens{master: "M"},
+			name:      "set root - api",
+			set:       tokens{root: "M", rootSource: TokenSourceAPI},
+			raw:       tokens{root: "M", rootSource: TokenSourceAPI},
+			effective: tokens{root: "M"},
 		},
 		{
 			name:      "set all",
-			set:       tokens{user: "U", agent: "A", repl: "R", master: "M"},
-			raw:       tokens{user: "U", agent: "A", repl: "R", master: "M"},
-			effective: tokens{user: "U", agent: "A", repl: "R", master: "M"},
+			set:       tokens{user: "U", agent: "A", repl: "R", root: "M"},
+			raw:       tokens{user: "U", agent: "A", repl: "R", root: "M"},
+			effective: tokens{user: "U", agent: "A", repl: "R", root: "M"},
 		},
 	}
 	for _, tt := range tests {
@@ -100,19 +100,19 @@ func TestStore_RegularTokens(t *testing.T) {
 				require.True(t, s.UpdateReplicationToken(tt.set.repl, tt.set.replSource))
 			}
 
-			if tt.set.master != "" {
-				require.True(t, s.UpdateAgentMasterToken(tt.set.master, tt.set.masterSource))
+			if tt.set.root != "" {
+				require.True(t, s.UpdateAgentRootToken(tt.set.root, tt.set.rootSource))
 			}
 
 			// If they don't change then they return false.
 			require.False(t, s.UpdateUserToken(tt.set.user, tt.set.userSource))
 			require.False(t, s.UpdateAgentToken(tt.set.agent, tt.set.agentSource))
 			require.False(t, s.UpdateReplicationToken(tt.set.repl, tt.set.replSource))
-			require.False(t, s.UpdateAgentMasterToken(tt.set.master, tt.set.masterSource))
+			require.False(t, s.UpdateAgentRootToken(tt.set.root, tt.set.rootSource))
 
 			require.Equal(t, tt.effective.user, s.UserToken())
 			require.Equal(t, tt.effective.agent, s.AgentToken())
-			require.Equal(t, tt.effective.master, s.AgentMasterToken())
+			require.Equal(t, tt.effective.root, s.AgentRootToken())
 			require.Equal(t, tt.effective.repl, s.ReplicationToken())
 
 			tok, src := s.UserTokenAndSource()
@@ -123,9 +123,9 @@ func TestStore_RegularTokens(t *testing.T) {
 			require.Equal(t, tt.raw.agent, tok)
 			require.Equal(t, tt.raw.agentSource, src)
 
-			tok, src = s.AgentMasterTokenAndSource()
-			require.Equal(t, tt.raw.master, tok)
-			require.Equal(t, tt.raw.masterSource, src)
+			tok, src = s.AgentRootTokenAndSource()
+			require.Equal(t, tt.raw.root, tok)
+			require.Equal(t, tt.raw.rootSource, src)
 
 			tok, src = s.ReplicationTokenAndSource()
 			require.Equal(t, tt.raw.repl, tok)
@@ -134,27 +134,27 @@ func TestStore_RegularTokens(t *testing.T) {
 	}
 }
 
-func TestStore_AgentMasterToken(t *testing.T) {
+func TestStore_AgentRootToken(t *testing.T) {
 	s := new(Store)
 
 	verify := func(want bool, toks ...string) {
 		for _, tok := range toks {
-			require.Equal(t, want, s.IsAgentMasterToken(tok))
+			require.Equal(t, want, s.IsAgentRootToken(tok))
 		}
 	}
 
 	verify(false, "", "nope")
 
-	s.UpdateAgentMasterToken("master", TokenSourceConfig)
-	verify(true, "master")
+	s.UpdateAgentRootToken("root", TokenSourceConfig)
+	verify(true, "root")
 	verify(false, "", "nope")
 
-	s.UpdateAgentMasterToken("another", TokenSourceConfig)
+	s.UpdateAgentRootToken("another", TokenSourceConfig)
 	verify(true, "another")
-	verify(false, "", "nope", "master")
+	verify(false, "", "nope", "root")
 
-	s.UpdateAgentMasterToken("", TokenSourceConfig)
-	verify(false, "", "nope", "master", "another")
+	s.UpdateAgentRootToken("", TokenSourceConfig)
+	verify(false, "", "nope", "root", "another")
 }
 
 func TestStore_Notify(t *testing.T) {
@@ -180,7 +180,7 @@ func TestStore_Notify(t *testing.T) {
 
 	agentNotifier := newNotification(t, s, TokenKindAgent)
 	userNotifier := newNotification(t, s, TokenKindUser)
-	agentMasterNotifier := newNotification(t, s, TokenKindAgentMaster)
+	agentRootNotifier := newNotification(t, s, TokenKindAgentRoot)
 	replicationNotifier := newNotification(t, s, TokenKindReplication)
 	replicationNotifier2 := newNotification(t, s, TokenKindReplication)
 
@@ -193,7 +193,7 @@ func TestStore_Notify(t *testing.T) {
 	requireNotNotified(t, agentNotifier.Ch)
 	requireNotifiedOnce(t, userNotifier.Ch)
 	requireNotNotified(t, replicationNotifier.Ch)
-	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, agentRootNotifier.Ch)
 	requireNotNotified(t, replicationNotifier2.Ch)
 
 	// now update the agent token which should send notificaitons to the agent and all notifier
@@ -202,16 +202,16 @@ func TestStore_Notify(t *testing.T) {
 	requireNotifiedOnce(t, agentNotifier.Ch)
 	requireNotNotified(t, userNotifier.Ch)
 	requireNotNotified(t, replicationNotifier.Ch)
-	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, agentRootNotifier.Ch)
 	requireNotNotified(t, replicationNotifier2.Ch)
 
-	// now update the agent master token which should send notificaitons to the agent master and all notifier
-	require.True(t, s.UpdateAgentMasterToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
+	// now update the agent root token which should send notificaitons to the agent root and all notifier
+	require.True(t, s.UpdateAgentRootToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
 
 	requireNotNotified(t, agentNotifier.Ch)
 	requireNotNotified(t, userNotifier.Ch)
 	requireNotNotified(t, replicationNotifier.Ch)
-	requireNotifiedOnce(t, agentMasterNotifier.Ch)
+	requireNotifiedOnce(t, agentRootNotifier.Ch)
 	requireNotNotified(t, replicationNotifier2.Ch)
 
 	// now update the replication token which should send notificaitons to the replication and all notifier
@@ -220,7 +220,7 @@ func TestStore_Notify(t *testing.T) {
 	requireNotNotified(t, agentNotifier.Ch)
 	requireNotNotified(t, userNotifier.Ch)
 	requireNotifiedOnce(t, replicationNotifier.Ch)
-	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, agentRootNotifier.Ch)
 	requireNotifiedOnce(t, replicationNotifier2.Ch)
 
 	s.StopNotify(replicationNotifier2)
@@ -231,12 +231,12 @@ func TestStore_Notify(t *testing.T) {
 	requireNotNotified(t, agentNotifier.Ch)
 	requireNotNotified(t, userNotifier.Ch)
 	requireNotifiedOnce(t, replicationNotifier.Ch)
-	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, agentRootNotifier.Ch)
 	requireNotNotified(t, replicationNotifier2.Ch)
 
 	// request updates but that are not changes
 	require.False(t, s.UpdateAgentToken("5d748ec2-d536-461f-8e2a-1f7eae98d559", TokenSourceAPI))
-	require.False(t, s.UpdateAgentMasterToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
+	require.False(t, s.UpdateAgentRootToken("789badc8-f850-43e1-8742-9b9f484957cc", TokenSourceAPI))
 	require.False(t, s.UpdateUserToken("47788919-f944-476a-bda5-446d64be1df8", TokenSourceAPI))
 	require.False(t, s.UpdateReplicationToken("eb0b56b9-fa65-4ae1-902a-c64457c62ac6", TokenSourceAPI))
 
@@ -244,5 +244,5 @@ func TestStore_Notify(t *testing.T) {
 	requireNotNotified(t, agentNotifier.Ch)
 	requireNotNotified(t, userNotifier.Ch)
 	requireNotNotified(t, replicationNotifier.Ch)
-	requireNotNotified(t, agentMasterNotifier.Ch)
+	requireNotNotified(t, agentRootNotifier.Ch)
 }
