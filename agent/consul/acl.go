@@ -133,11 +133,12 @@ func tokenSecretCacheID(token string) string {
 	return "token-secret:" + token
 }
 
-type ACLResolverDelegate interface {
+type ACLResolverBackend interface {
 	ACLDatacenter() string
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
+	// TODO: separate methods for each RPC call (there are 4)
 	RPC(method string, args interface{}, reply interface{}) error
 	EnterpriseACLResolverDelegate
 }
@@ -160,8 +161,9 @@ type ACLResolverConfig struct {
 	// CacheConfig is a pass through configuration for ACL cache limits
 	CacheConfig *structs.ACLCachesConfig
 
-	// Delegate that implements some helper functionality that is server/client specific
-	Delegate ACLResolverDelegate
+	// Backend is used to retrieve data from the state store, or perform RPCs
+	// to fetch data from other Datacenters.
+	Backend ACLResolverBackend
 
 	// DisableDuration is the length of time to leave ACLs disabled when an RPC
 	// request to a server indicates that the ACL system is disabled. If set to
@@ -219,9 +221,9 @@ type ACLResolverSettings struct {
 // ACLResolver is the type to handle all your token and policy resolution needs.
 //
 // Supports:
-//   - Resolving tokens locally via the ACLResolverDelegate
-//   - Resolving policies locally via the ACLResolverDelegate
-//   - Resolving roles locally via the ACLResolverDelegate
+//   - Resolving tokens locally via the ACLResolverBackend
+//   - Resolving policies locally via the ACLResolverBackend
+//   - Resolving roles locally via the ACLResolverBackend
 //   - Resolving legacy tokens remotely via an ACL.GetPolicy RPC
 //   - Resolving tokens remotely via an ACL.TokenRead RPC
 //   - Resolving policies remotely via an ACL.PolicyResolve RPC
@@ -245,8 +247,8 @@ type ACLResolver struct {
 	config ACLResolverSettings
 	logger hclog.Logger
 
-	delegate ACLResolverDelegate
-	aclConf  *acl.Config
+	backend ACLResolverBackend
+	aclConf *acl.Config
 
 	tokens *token.Store
 
@@ -298,7 +300,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	if config == nil {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a config")
 	}
-	if config.Delegate == nil {
+	if config.Backend == nil {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a valid delegate")
 	}
 
@@ -331,7 +333,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	return &ACLResolver{
 		config:             config.Config,
 		logger:             config.Logger.Named(logging.ACL),
-		delegate:           config.Delegate,
+		backend:            config.Backend,
 		aclConf:            config.ACLConfig,
 		cache:              cache,
 		disableDuration:    config.DisableDuration,
@@ -349,7 +351,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	cacheID := tokenSecretCacheID(token)
 
 	req := structs.ACLTokenGetRequest{
-		Datacenter:  r.delegate.ACLDatacenter(),
+		Datacenter:  r.backend.ACLDatacenter(),
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
@@ -359,7 +361,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	}
 
 	var resp structs.ACLTokenResponse
-	err := r.delegate.RPC("ACL.TokenRead", &req, &resp)
+	err := r.backend.RPC("ACL.TokenRead", &req, &resp)
 	if err == nil {
 		if resp.Token == nil {
 			r.cache.PutIdentity(cacheID, nil)
@@ -396,7 +398,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 // we initiate an RPC for the value.
 func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentity, error) {
 	// Attempt to resolve locally first (local results are not cached)
-	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
+	if done, identity, err := r.backend.ResolveIdentityFromToken(token); done {
 		return identity, err
 	}
 
@@ -437,7 +439,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 
 func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) (map[string]*structs.ACLPolicy, error) {
 	req := structs.ACLPolicyBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(),
+		Datacenter: r.backend.ACLDatacenter(),
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -446,7 +448,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 	}
 
 	var resp structs.ACLPolicyBatchResponse
-	err := r.delegate.RPC("ACL.PolicyResolve", &req, &resp)
+	err := r.backend.RPC("ACL.PolicyResolve", &req, &resp)
 	if err == nil {
 		out := make(map[string]*structs.ACLPolicy)
 		for _, policy := range resp.Policies {
@@ -492,7 +494,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 
 func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity, roleIDs []string, cached map[string]*structs.RoleCacheEntry) (map[string]*structs.ACLRole, error) {
 	req := structs.ACLRoleBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(),
+		Datacenter: r.backend.ACLDatacenter(),
 		RoleIDs:    roleIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -501,7 +503,7 @@ func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity
 	}
 
 	var resp structs.ACLRoleBatchResponse
-	err := r.delegate.RPC("ACL.RoleResolve", &req, &resp)
+	err := r.backend.RPC("ACL.RoleResolve", &req, &resp)
 	if err == nil {
 		out := make(map[string]*structs.ACLRole)
 		for _, role := range resp.Roles {
@@ -774,7 +776,7 @@ func (r *ACLResolver) collectPoliciesForIdentity(identity structs.ACLIdentity, p
 	}
 
 	for _, policyID := range policyIDs {
-		if done, policy, err := r.delegate.ResolvePolicyFromID(policyID); done {
+		if done, policy, err := r.backend.ResolvePolicyFromID(policyID); done {
 			if err != nil && !acl.IsErrNotFound(err) {
 				return nil, err
 			}
@@ -871,7 +873,7 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 	expCacheMap := make(map[string]*structs.RoleCacheEntry)
 
 	for _, roleID := range roleIDs {
-		if done, role, err := r.delegate.ResolveRoleFromID(roleID); done {
+		if done, role, err := r.backend.ResolveRoleFromID(roleID); done {
 			if err != nil && !acl.IsErrNotFound(err) {
 				return nil, err
 			}

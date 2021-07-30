@@ -110,7 +110,7 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 		return nil, fmt.Errorf("Cannot create the Replicator without a config")
 	}
 	if config.Delegate == nil {
-		return nil, fmt.Errorf("Cannot create the Replicator without a Delegate set in the config")
+		return nil, fmt.Errorf("Cannot create the Replicator without a Backend set in the config")
 	}
 	if config.Logger == nil {
 		logger := hclog.New(&hclog.LoggerOptions{})

@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
+var clientACLCacheConfig = &structs.ACLCachesConfig{
 	// The ACL cache configuration on client agents is more conservative than
 	// on the servers. It is assumed that individual client agents will have
 	// fewer distinct identities accessing the client than a server would
@@ -23,23 +23,28 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	Roles: 128,
 }
 
-func (c *Client) ACLDatacenter() string {
-	// For resolution running on clients, servers within the current datacenter
+type clientACLResolverBackend struct {
+	// TODO: un-embed
+	*Client
+}
+
+func (c *clientACLResolverBackend) ACLDatacenter() string {
+	// For resolution running on clients servers within the current datacenter
 	// must be queried first to pick up local tokens.
 	return c.config.Datacenter
 }
 
-func (c *Client) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
+func (c *clientACLResolverBackend) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// clients do no local identity resolution at the moment
 	return false, nil, nil
 }
 
-func (c *Client) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
+func (c *clientACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
 	// clients do no local policy resolution at the moment
 	return false, nil, nil
 }
 
-func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+func (c *clientACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
 	// clients do no local role resolution at the moment
 	return false, nil, nil
 }
