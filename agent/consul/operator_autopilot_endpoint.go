@@ -24,7 +24,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:read permissions")
 	}
 
@@ -56,7 +56,7 @@ func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRe
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:write permissions")
 	}
 
@@ -91,7 +91,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:read permissions")
 	}
 
@@ -158,7 +158,7 @@ func (op *Operator) AutopilotState(args *structs.DCSpecificRequest, reply *autop
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return acl.PermissionDenied("Missing operator:read permissions")
 	}
 

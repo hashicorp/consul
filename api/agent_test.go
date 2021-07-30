@@ -618,7 +618,11 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
-	if err := agent.ServiceDeregister("foo"); err != nil {
+	if err := agent.ServiceDeregister("foo1"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := agent.ServiceDeregister("foo2"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1641,7 +1645,7 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	auth, err := agent.ConnectAuthorize(params)
 	require.Nil(err)
 	require.True(auth.Authorized)
-	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+	require.Equal(auth.Reason, "Default behavior configured by ACLs")
 }
 
 func TestAPI_AgentHealthServiceOpts(t *testing.T) {

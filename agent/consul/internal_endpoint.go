@@ -409,7 +409,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
-	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
+	if rule.EventWrite(args.Name, nil) != acl.Allow {
 		accessorID := m.aclAccessorID(args.Token)
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
