@@ -157,7 +157,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if authz != nil && authz.KeyRead(args.Key, &authzContext) != acl.Allow {
+			if authz.KeyRead(args.Key, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -194,7 +194,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
+	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -206,9 +206,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			if err != nil {
 				return err
 			}
-			if authz != nil {
-				ent = FilterDirEnt(authz, ent)
-			}
+			ent = FilterDirEnt(authz, ent)
 
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
