@@ -189,7 +189,8 @@ func (e policyOrRoleTokenError) Error() string {
 
 // ACLResolverConfig holds all the configuration necessary to create an ACLResolver
 type ACLResolverConfig struct {
-	Config *Config
+	// TODO: rename this field?
+	Config ACLResolverSettings
 	Logger hclog.Logger
 
 	// CacheConfig is a pass through configuration for ACL cache limits
@@ -209,6 +210,20 @@ type ACLResolverConfig struct {
 
 	// Tokens is the token store of locally managed tokens
 	Tokens *token.Store
+}
+
+// TODO: remove these fields from consul.Config and config.RuntimeConfig
+// TODO: rename the fields to remove the ACL prefix
+type ACLResolverSettings struct {
+	ACLsEnabled      bool
+	Datacenter       string
+	NodeName         string
+	ACLPolicyTTL     time.Duration
+	ACLTokenTTL      time.Duration
+	ACLRoleTTL       time.Duration
+	ACLDisabledTTL   time.Duration
+	ACLDownPolicy    string
+	ACLDefaultPolicy string
 }
 
 // ACLResolver is the type to handle all your token and policy resolution needs.
@@ -237,7 +252,8 @@ type ACLResolverConfig struct {
 //   upon.
 //
 type ACLResolver struct {
-	config *Config
+	// TODO: store the ACLResolverConfig as a field instead of copying all the fields onto ACLResolver.
+	config ACLResolverSettings
 	logger hclog.Logger
 
 	delegate ACLResolverDelegate
@@ -289,11 +305,6 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	if config == nil {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a config")
 	}
-
-	if config.Config == nil {
-		return nil, fmt.Errorf("ACLResolverConfig.Config must not be nil")
-	}
-
 	if config.Delegate == nil {
 		return nil, fmt.Errorf("ACL Resolver must be initialized with a valid delegate")
 	}

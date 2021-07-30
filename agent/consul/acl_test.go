@@ -722,7 +722,17 @@ func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func
 	config.ACLDownPolicy = "extend-cache"
 	config.ACLsEnabled = delegate.enabled
 	rconf := &ACLResolverConfig{
-		Config: config,
+		Config: ACLResolverSettings{
+			ACLsEnabled:      config.ACLsEnabled,
+			Datacenter:       config.Datacenter,
+			NodeName:         config.NodeName,
+			ACLPolicyTTL:     config.ACLPolicyTTL,
+			ACLTokenTTL:      config.ACLTokenTTL,
+			ACLRoleTTL:       config.ACLRoleTTL,
+			ACLDisabledTTL:   config.ACLDisabledTTL,
+			ACLDownPolicy:    config.ACLDownPolicy,
+			ACLDefaultPolicy: config.ACLDefaultPolicy,
+		},
 		Logger: testutil.Logger(t),
 		CacheConfig: &structs.ACLCachesConfig{
 			Identities:     4,
