@@ -232,8 +232,8 @@ The options below are all specified on the command-line.
   they are defined in the local configuration files. Script checks defined in HTTP
   API registrations will still not be allowed.
 
-- `-encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
-  of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
+- `-encrypt` ((#\_encrypt)) - the secret key used to encrypt and decrypt 
+  gossip network traffic. This key must be 32-bytes that are Base64-encoded. The
   easiest way to create an encryption key is to use [`consul keygen`](/commands/keygen).
   All nodes within a cluster must share the same encryption key to communicate. The
   provided key is automatically persisted to the data directory and loaded automatically

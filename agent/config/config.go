@@ -219,6 +219,7 @@ type Config struct {
 	RetryJoinMaxAttemptsLAN          *int                `mapstructure:"retry_max"`
 	RetryJoinMaxAttemptsWAN          *int                `mapstructure:"retry_max_wan"`
 	RetryJoinWAN                     []string            `mapstructure:"retry_join_wan"`
+	SecureDefaults                   *bool               `mapstructure:"secure_defaults"`
 	SerfAllowedCIDRsLAN              []string            `mapstructure:"serf_lan_allowed_cidrs"`
 	SerfAllowedCIDRsWAN              []string            `mapstructure:"serf_wan_allowed_cidrs"`
 	SerfBindAddrLAN                  *string             `mapstructure:"serf_lan"`

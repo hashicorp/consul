@@ -758,8 +758,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		enableTokenReplication = true
 	}
 
-	boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
-
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
@@ -1130,6 +1128,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		rt.Bootstrap = true
 		rt.BootstrapExpect = 0
 		b.warn(`BootstrapExpect is set to 1; this is the same as Bootstrap mode.`)
+	}
+
+	if boolVal(c.SecureDefaults) {
+		if err := applyAndValidateSecureDefaults(&rt); err != nil {
+			return rt, fmt.Errorf("missing required value for secure defaults: %w", err)
+		}
 	}
 
 	return rt, nil
