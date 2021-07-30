@@ -981,8 +981,6 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1073,8 +1071,6 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1507,8 +1503,6 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -2565,8 +2559,6 @@ func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]st
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return fmt.Errorf("Failed to initialize authorizer")
 	}
 
 	responses, err := structs.CreateACLAuthorizationResponses(authz, args.Requests)
