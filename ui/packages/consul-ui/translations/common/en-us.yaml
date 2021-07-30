@@ -38,7 +38,6 @@ consul:
   destinationname: Destination Name
   sourcename: Source Name
   displayname: Display Name
-  secretID: Secret ID
 search:
   search: Search
   searchproperty: Search Across
