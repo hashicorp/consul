@@ -3276,7 +3276,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 	}
 }
 
-func TestACL_redactTokenSecret(t *testing.T) {
+func TestFilterACL_redactTokenSecret(t *testing.T) {
 	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
@@ -3293,16 +3293,16 @@ func TestACL_redactTokenSecret(t *testing.T) {
 		SecretID:   "6a5e25b3-28f2-4085-9012-c3fb754314d1",
 	}
 
-	err := r.filterACL("acl-wr", &token)
+	err := filterACL(r, "acl-wr", &token)
 	require.NoError(t, err)
 	require.Equal(t, "6a5e25b3-28f2-4085-9012-c3fb754314d1", token.SecretID)
 
-	err = r.filterACL("acl-ro", &token)
+	err = filterACL(r, "acl-ro", &token)
 	require.NoError(t, err)
 	require.Equal(t, redactedToken, token.SecretID)
 }
 
-func TestACL_redactTokenSecrets(t *testing.T) {
+func TestFilterACL_redactTokenSecrets(t *testing.T) {
 	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
@@ -3321,11 +3321,11 @@ func TestACL_redactTokenSecrets(t *testing.T) {
 		},
 	}
 
-	err := r.filterACL("acl-wr", &tokens)
+	err := filterACL(r, "acl-wr", &tokens)
 	require.NoError(t, err)
 	require.Equal(t, "6a5e25b3-28f2-4085-9012-c3fb754314d1", tokens[0].SecretID)
 
-	err = r.filterACL("acl-ro", &tokens)
+	err = filterACL(r, "acl-ro", &tokens)
 	require.NoError(t, err)
 	require.Equal(t, redactedToken, tokens[0].SecretID)
 }

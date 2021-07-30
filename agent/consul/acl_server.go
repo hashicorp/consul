@@ -268,9 +268,9 @@ func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
-	return s.acls.filterACL(token, subj)
+	return filterACL(s.acls, token, subj)
 }
 
 func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
-	s.acls.filterACLWithAuthorizer(authorizer, subj)
+	filterACLWithAuthorizer(s.acls.logger, authorizer, subj)
 }

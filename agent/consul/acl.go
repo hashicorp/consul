@@ -1928,12 +1928,11 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 	*mappings = ret
 }
 
-func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
+func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, subj interface{}) {
 	if authorizer == nil {
 		return
 	}
-	// Create the filter
-	filt := newACLFilter(authorizer, r.logger)
+	filt := newACLFilter(authorizer, logger)
 
 	switch v := subj.(type) {
 	case *structs.CheckServiceNodes:
@@ -2030,14 +2029,15 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 	}
 }
 
-// filterACL is used to filter results from our service catalog based on the
-// rules configured for the provided token.
-func (r *ACLResolver) filterACL(token string, subj interface{}) error {
+// filterACL uses the ACLResolver to resolve the token in an acl.Authorizer,
+// then uses the acl.Authorizer to filter subj. Any entities in subj that are
+// not authorized for read access will be removed from subj.
+func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	// Get the ACL from the token
 	_, authorizer, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return err
 	}
-	r.filterACLWithAuthorizer(authorizer, subj)
+	filterACLWithAuthorizer(r.logger, authorizer, subj)
 	return nil
 }
