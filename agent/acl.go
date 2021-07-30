@@ -40,10 +40,6 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 }
 
 func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *structs.NodeService) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 	// Vet the service itself.
@@ -73,19 +69,6 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	return nil
 }
 
-// vetServiceUpdate makes sure the service update action is allowed by the given
-// token.
-// TODO: move to test package
-func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.vetServiceUpdateWithAuthorizer(authz, serviceID)
-}
-
 func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID structs.ServiceID) error {
 	var authzContext acl.AuthorizerContext
 
@@ -103,23 +86,7 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	return nil
 }
 
-// vetCheckRegister makes sure the check registration action is allowed by the
-// given token.
-func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.vetCheckRegisterWithAuthorizer(authz, check)
-}
-
 func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *structs.HealthCheck) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
 	// Vet the check itself.
@@ -149,22 +116,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 	return nil
 }
 
-// vetCheckUpdate makes sure that a check update is allowed by the given token.
-func (a *Agent) vetCheckUpdate(token string, checkID structs.CheckID) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.vetCheckUpdateWithAuthorizer(authz, checkID)
-}
-
 func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID structs.CheckID) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	checkID.FillAuthzContext(&authzContext)
 
@@ -212,22 +164,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	return nil
 }
 
-// filterServices redacts services that the token doesn't have access to.
-// TODO: move to test file
-func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*structs.NodeService) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.filterServicesWithAuthorizer(authz, services)
-}
-
 func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map[structs.ServiceID]*structs.NodeService) error {
-	if authz == nil {
-		return nil
-	}
 	var authzContext acl.AuthorizerContext
 	// Filter out services based on the service policy.
 	for id, service := range *services {
@@ -241,22 +178,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map
 	return nil
 }
 
-// filterChecks redacts checks that the token doesn't have access to.
-func (a *Agent) filterChecks(token string, checks *map[structs.CheckID]*structs.HealthCheck) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.filterChecksWithAuthorizer(authz, checks)
-}
-
 func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[structs.CheckID]*structs.HealthCheck) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
 	for id, check := range *checks {
