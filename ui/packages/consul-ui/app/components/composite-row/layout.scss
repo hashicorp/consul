@@ -1,6 +1,6 @@
 %composite-row {
   display: grid;
-  grid-template-columns: auto 50px;
+  grid-template-columns: 1fr auto;
   grid-template-rows: 50% 50%;
 
   grid-template-areas:
@@ -25,8 +25,7 @@
 }
 %composite-row-actions {
   grid-area: actions;
-  justify-self: center;
-  align-self: center;
+  display: inline-flex;
 }
 
 %composite-row-header:nth-last-child(2) {
