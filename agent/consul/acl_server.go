@@ -235,12 +235,11 @@ func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 	return s.acls.ResolveTokenToIdentity(token)
 }
 
-// ResolveTokenIdentityAndDefaultMeta retrieves an identity and authorizer for the caller,
-// and populates the EnterpriseMeta based on the AuthorizerContext.
-func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (structs.ACLIdentity, acl.Authorizer, error) {
+// TODO: Client has an identical implementation, remove duplication
+func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -254,12 +253,6 @@ func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *struc
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return identity, authz, err
-}
-
-// ResolveTokenAndDefaultMeta passes through to ResolveTokenIdentityAndDefaultMeta, eliding the identity from its response.
-func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	_, authz, err := s.ResolveTokenIdentityAndDefaultMeta(token, entMeta, authzContext)
 	return authz, err
 }
 

@@ -100,15 +100,18 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	}
 
 	// Get the ACL token for the request for the checks below.
-	var entMeta structs.EnterpriseMeta
-	ident, authz, err := s.srv.ResolveTokenIdentityAndDefaultMeta(args.Token, &entMeta, nil)
+	identity, authz, err := s.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 
 	var accessorID string
-	if ident != nil {
-		accessorID = ident.ID()
+	var entMeta structs.EnterpriseMeta
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+		accessorID = identity.ID()
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
 	var (

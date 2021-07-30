@@ -1244,6 +1244,10 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	return identity, acl.NewChainedAuthorizer(chain), nil
 }
 
+// TODO: rename to AccessorIDFromToken. This method is only used to retrieve the
+// ACLIdentity.ID, so we don't need to return a full ACLIdentity. We could
+// return a much smaller type (instad of just a string) to allow for changes
+// in the future.
 func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
 	if !r.ACLsEnabled() {
 		return nil, nil
