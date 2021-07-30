@@ -591,8 +591,13 @@ func (a *Agent) ServicesWithFilterOpts(filter string, q *QueryOptions) (map[stri
 // - If the service is found, will return (critical|passing|warning), AgentServiceChecksInfo, nil)
 // - In all other cases, will return an error
 func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceChecksInfo, error) {
+	return a.AgentHealthServiceByIDOpts(serviceID, nil)
+}
+
+func (a *Agent) AgentHealthServiceByIDOpts(serviceID string, q *QueryOptions) (string, *AgentServiceChecksInfo, error) {
 	path := fmt.Sprintf("/v1/agent/health/service/id/%v", url.PathEscape(serviceID))
 	r := a.c.newRequest("GET", path)
+	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
 	_, resp, err := a.c.doRequest(r)
@@ -625,8 +630,13 @@ func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceC
 // - If the service is found, will return (critical|passing|warning), []api.AgentServiceChecksInfo, nil)
 // - In all other cases, will return an error
 func (a *Agent) AgentHealthServiceByName(service string) (string, []AgentServiceChecksInfo, error) {
+	return a.AgentHealthServiceByNameOpts(service, nil)
+}
+
+func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (string, []AgentServiceChecksInfo, error) {
 	path := fmt.Sprintf("/v1/agent/health/service/name/%v", url.PathEscape(service))
 	r := a.c.newRequest("GET", path)
+	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
 	_, resp, err := a.c.doRequest(r)
@@ -1028,7 +1038,12 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *Qu
 // EnableServiceMaintenance toggles service maintenance mode on
 // for the given service ID.
 func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
+	return a.EnableServiceMaintenanceOpts(serviceID, reason, nil)
+}
+
+func (a *Agent) EnableServiceMaintenanceOpts(serviceID, reason string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r.setQueryOptions(q)
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
 	_, resp, err := requireOK(a.c.doRequest(r))
@@ -1042,7 +1057,12 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 // DisableServiceMaintenance toggles service maintenance mode off
 // for the given service ID.
 func (a *Agent) DisableServiceMaintenance(serviceID string) error {
+	return a.DisableServiceMaintenanceOpts(serviceID, nil)
+}
+
+func (a *Agent) DisableServiceMaintenanceOpts(serviceID string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r.setQueryOptions(q)
 	r.params.Set("enable", "false")
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
