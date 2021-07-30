@@ -1928,9 +1928,9 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 	*mappings = ret
 }
 
-func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
+func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
 	if authorizer == nil {
-		return nil
+		return
 	}
 	// Create the filter
 	filt := newACLFilter(authorizer, r.logger)
@@ -2028,8 +2028,6 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))
 	}
-
-	return nil
 }
 
 // filterACL is used to filter results from our service catalog based on the
@@ -2040,11 +2038,6 @@ func (r *ACLResolver) filterACL(token string, subj interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	// Fast path if ACLs are not enabled
-	if authorizer == nil {
-		return nil
-	}
-
-	return r.filterACLWithAuthorizer(authorizer, subj)
+	r.filterACLWithAuthorizer(authorizer, subj)
+	return nil
 }

@@ -271,6 +271,6 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	return s.acls.filterACL(token, subj)
 }
 
-func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
-	return s.acls.filterACLWithAuthorizer(authorizer, subj)
+func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
+	s.acls.filterACLWithAuthorizer(authorizer, subj)
 }

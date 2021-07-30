@@ -956,9 +956,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 			}
 
 			// filter down to just the tokens that the requester has permissions to read
-			if err := a.srv.filterACLWithAuthorizer(authz, &stubs); err != nil {
-				return err
-			}
+			a.srv.filterACLWithAuthorizer(authz, &stubs)
 
 			reply.Index, reply.Tokens = index, stubs
 			return nil

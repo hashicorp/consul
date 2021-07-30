@@ -222,7 +222,8 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			}
 
 			reply.Index, reply.Services = index, services
-			return m.srv.filterACLWithAuthorizer(authz, reply)
+			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
 		})
 }
 
