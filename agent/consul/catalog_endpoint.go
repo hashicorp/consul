@@ -118,14 +118,14 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if authz != nil && authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if authz != nil && authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -456,7 +456,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
-		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}
@@ -659,7 +659,7 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 		return err
 	}
 
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

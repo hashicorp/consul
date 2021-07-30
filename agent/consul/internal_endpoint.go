@@ -161,7 +161,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -254,7 +254,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	}
 
 	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -338,7 +338,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
-	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

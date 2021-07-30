@@ -690,7 +690,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	if prefix, ok := query.GetACLPrefix(); ok {
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
-		if authz != nil && authz.ServiceRead(prefix, &authzContext) != acl.Allow {
+		if authz.ServiceRead(prefix, &authzContext) != acl.Allow {
 			accessorID := s.aclAccessorID(args.Token)
 			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)

@@ -391,7 +391,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			}
 			var authzContext acl.AuthorizerContext
 			svc.FillAuthzContext(&authzContext)
-			if authz != nil && authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
+			if authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied
 			}
 
@@ -837,7 +837,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	dc := s.agent.config.Datacenter
 
 	if service := s.agent.State.Service(sid); service != nil {
-		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
 			return nil, acl.ErrPermissionDenied
 		}
 		code, status, healthChecks := agentHealthService(sid, s)
@@ -886,7 +886,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	if authz != nil && authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 

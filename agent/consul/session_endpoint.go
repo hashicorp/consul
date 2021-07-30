@@ -310,7 +310,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
-	if authz != nil && authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
+	if authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
