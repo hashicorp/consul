@@ -41,8 +41,9 @@ segment you wish to join.
 
 For example, given the following segment configuration on the server agents:
 
+<CodeBlockConfig filename="server-config.hcl">
+
 ```hcl
-# server-config.hcl
 segments = [
   {
     name = "alpha"
@@ -59,6 +60,8 @@ segments = [
 ]
 ```
 
+</CodeBlockConfig>
+
 A Consul client agent wishing to join the "alpha" segment would need to be configured
 to use port `8303` as its Serf LAN port prior to attempting to join the cluster.
 
@@ -68,12 +71,15 @@ to use port `8303` as its Serf LAN port prior to attempting to join the cluster.
 The following example configuration overrides the default Serf LAN port using the
 [`ports.serf_lan`](/docs/agent/options#serf_lan_port) configuration option.
 
+<CodeBlockConfig filename="client-config.hcl">
+
 ```hcl
-# client-config.hcl
 ports {
   serf_lan = 8303
 }
 ```
+
+</CodeBlockConfig>
 
 </Tab>
 <Tab heading="Command-line flag">

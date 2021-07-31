@@ -534,7 +534,7 @@ definitions support being updated during a reload.
 
 #### Example Configuration File
 
-```javascript
+```json
 {
   "datacenter": "east-aws",
   "data_dir": "/opt/consul",
@@ -1093,15 +1093,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   within a double quoted string value must be escaped with a backslash `\`.
   Some example templates:
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
 ```
-
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -1109,8 +1105,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 - `cache` configuration for client agents. The configurable values are the following:
 
@@ -2295,7 +2290,7 @@ signed by the CA can be used to gain full access to Consul.
 encryption and authentication. Failing to set [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing)
 will result in TLS not being enabled at all, even when specifying a [`ca_file`](#ca_file), [`cert_file`](#cert_file), and [`key_file`](#key_file).
 
-```javascript
+```json
 {
   "datacenter": "east-aws",
   "data_dir": "/opt/consul",
@@ -2319,7 +2314,7 @@ will result in TLS not being enabled at all, even when specifying a [`ca_file`](
 
 See, especially, the use of the `ports` setting:
 
-```javascript
+```json
 "ports": {
   "https": 8501
 }

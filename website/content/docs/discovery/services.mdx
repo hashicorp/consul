@@ -33,7 +33,7 @@ using the [HTTP API](/api).
 A service definition is a configuration that looks like the following. This
 example shows all possible fields, but note that only a few are required.
 
-```javascript
+```json
 {
   "service": {
     "id": "redis",
@@ -281,7 +281,7 @@ Multiple services definitions can be provided at once when registering services
 via the agent configuration by using the plural `services` key (registering
 multiple services in this manner is not supported using the HTTP API).
 
-```javascript
+```json
 {
   "services": [
     {

@@ -98,8 +98,9 @@ or by reading the [Helm Chart Reference](/docs/k8s/helm).
 For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
 use the following config file:
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
-# config.yaml
 global:
   name: consul
 connectInject:
@@ -107,6 +108,8 @@ connectInject:
 controller:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
 
@@ -218,6 +221,8 @@ spec:
 An example `Deployment` is also shown below to show how the host IP can
 be accessed from nested pod specifications:
 
+<CodeBlockConfig highlight="18-28">
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -248,6 +253,8 @@ spec:
               export CONSUL_HTTP_ADDR="${HOST_IP}:8500"
               consul kv put hello world
 ```
+
+</CodeBlockConfig>
 
 ## Architecture
 
