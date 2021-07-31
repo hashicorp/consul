@@ -159,7 +159,7 @@ and vice versa. A catalog entry can have either, neither, or both.
 $ curl \
     --request PUT \
     --data @payload.json \
-    -H "X-Consul-Namespace: team-1" \
+    --header "X-Consul-Namespace: team-1" \
     http://127.0.0.1:8500/v1/catalog/register
 ```
 

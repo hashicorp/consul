@@ -764,7 +764,7 @@ Use these links to navigate to a particular top-level stanza.
 
     ```shell
     kubectl config view \
-      -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
+      --output jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
 
 ### client

@@ -138,7 +138,7 @@ is executed on the leader.
 **Command - Unfiltered**
 
 ```shell
-curl -X GET localhost:8500/v1/agent/services
+curl --request GET localhost:8500/v1/agent/services
 ```
 
 **Response - Unfiltered**
@@ -228,7 +228,7 @@ curl --get localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env ==
 **Command - Unfiltered**
 
 ```shell
-curl -X GET localhost:8500/v1/catalog/service/api-internal
+curl --request GET localhost:8500/v1/catalog/service/api-internal
 ```
 
 **Response - Unfiltered**
@@ -373,7 +373,7 @@ curl --get localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filt
 **Command - Unfiltered**
 
 ```shell
-curl -X GET localhost:8500/v1/health/node/node-1
+curl --request GET localhost:8500/v1/health/node/node-1
 ```
 
 **Response - Unfiltered**
@@ -414,7 +414,7 @@ curl -X GET localhost:8500/v1/health/node/node-1
 **Command - Filtered**
 
 ```shell
-curl -G localhost:8500/v1/health/node/node-1 --data-urlencode 'filter=ServiceName != ""'
+curl --get localhost:8500/v1/health/node/node-1 --data-urlencode 'filter=ServiceName != ""'
 ```
 
 **Response - Filtered**

@@ -103,7 +103,7 @@ In order to use the Update CA Configuration HTTP endpoint, the private key and c
 must be passed via JSON:
 
 ```shell-session
-$ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
+$ jq --null-input --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
 {
     "Provider": "consul",
     "Config": {

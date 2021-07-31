@@ -59,7 +59,7 @@ Two very notable items are:
 consul server in that DC:
 
 ```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
@@ -82,7 +82,7 @@ disabled, so this is normal even if replication is happening.
 consul server in that DC:
 
 ```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
@@ -116,8 +116,8 @@ continue working.
 From a Consul server in DC2:
 
 ```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
 ```
 
 Take note of the `ReplicatedIndex` value.
@@ -140,14 +140,14 @@ with the following contents:
 From a Consul server in DC1, create a new token using that file:
 
 ```shell
-curl -X PUT -H "X-Consul-Token: $MASTER_TOKEN" -d @test-ui-token.json localhost:8500/v1/acl/create
+curl --request PUT --header "X-Consul-Token: $MASTER_TOKEN" --data @test-ui-token.json localhost:8500/v1/acl/create
 ```
 
 From a Consul server in DC2:
 
 ```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/list?pretty
 ```
 
 `ReplicatedIndex` should have incremented and you should find the new token listed. If you try using CLI ACL commands you will receive this error:
@@ -170,7 +170,7 @@ Once this is complete, you should observe a log entry like this from your server
 consul server in that DC:
 
 ```shell
-curl -s -H "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
+curl --silent --header "X-Consul-Token: $MASTER_TOKEN" localhost:8500/v1/acl/replication?pretty
 ```
 
 You should receive output similar to this:
