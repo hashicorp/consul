@@ -63,7 +63,9 @@ create and update configuration entries. This command will load either a JSON or
 HCL file holding the configuration entry definition and then will push this
 configuration to Consul.
 
-Example HCL Configuration File - `proxy-defaults.hcl`:
+Example HCL Configuration File:
+
+<CodeBlockConfig filename="proxy-defaults.hcl">
 
 ```hcl
 Kind = "proxy-defaults"
@@ -73,6 +75,8 @@ Config {
    handshake_timeout_ms = 10000
 }
 ```
+
+</CodeBlockConfig>
 
 Then to apply this configuration, run:
 

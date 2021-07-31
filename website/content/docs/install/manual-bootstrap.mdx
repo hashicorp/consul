@@ -30,7 +30,7 @@ This is necessary because at this point, there are no other servers running in
 the datacenter! Lets call this first server `Node A`. When starting `Node A`
 something like the following will be logged:
 
-```text
+```log
 2014/02/22 19:23:32 [INFO] consul: cluster leadership acquired
 ```
 
@@ -43,7 +43,7 @@ in a failure scenario. We start the next servers **without** specifying
 bootstrap mode. Once `Node B` and `Node C` are started, you should see a
 message to the effect of:
 
-```text
+```log
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
 
@@ -66,7 +66,7 @@ Successfully joined cluster by contacting 2 nodes.
 
 Once the join is successful, `Node A` should output something like:
 
-```text
+```log
 [INFO] raft: Added peer 127.0.0.2:8300, starting replication
 ....
 [INFO] raft: Added peer 127.0.0.3:8300, starting replication

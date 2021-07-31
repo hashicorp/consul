@@ -204,7 +204,7 @@ The table below shows this endpoint's support for
 
 ### Sample Payload
 
-```text
+```hcl
 agent "" {
    policy = "read"
 }
@@ -218,7 +218,7 @@ $ curl -X POST -d @rules.hcl http://127.0.0.1:8500/v1/acl/rules/translate
 
 ### Sample Response
 
-```text
+```hcl
 agent_prefix "" {
    policy = "read"
 }
@@ -257,7 +257,7 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/rules/translate/4f48f7e6-9359-4890-8e
 
 ### Sample Response
 
-```text
+```hcl
 agent_prefix "" {
    policy = "read"
 }
