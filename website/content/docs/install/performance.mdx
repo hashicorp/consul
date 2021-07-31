@@ -32,7 +32,7 @@ expense of some performance in leader failure detection and leader election time
 
 The default performance configuration is equivalent to this:
 
-```javascript
+```json
 {
   "performance": {
     "raft_multiplier": 5
@@ -50,7 +50,7 @@ timeouts by a factor of 5, so it can be quite slow during these events.
 
 The high performance configuration is simple and looks like this:
 
-```javascript
+```json
 {
   "performance": {
     "raft_multiplier": 1

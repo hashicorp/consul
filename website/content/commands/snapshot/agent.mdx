@@ -33,7 +33,7 @@ leader and starting saving snapshots.
 
 As snapshots are saved, they will be reported in the log produced by the agent:
 
-```text
+```log
 2016/11/16 21:21:13 [INFO] Snapshot agent running
 2016/11/16 21:21:13 [INFO] Waiting to obtain leadership...
 2016/11/16 21:21:13 [INFO] Obtained leadership
@@ -67,8 +67,7 @@ If ACLs are enabled the following privileges are required:
 The following is a example least privilege policy which allows the snapshot agent
 to run on a node named `server-1234`.
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 # Required to read and snapshot ACL data
@@ -88,9 +87,6 @@ service "consul-snapshot" {
   policy = "write"
 }
 ```
-
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -113,8 +109,7 @@ service "consul-snapshot" {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 Additional `session` rules should be created, or `session_prefix` used, if the
 snapshot agent is deployed across more than one host.

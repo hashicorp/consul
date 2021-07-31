@@ -325,7 +325,7 @@ Once the ACL system is bootstrapped, ACL tokens can be managed through the
 After the servers are restarted above, you will see new errors in the logs of the Consul
 servers related to permission denied errors:
 
-```text
+```log
 2017/07/08 23:38:24 [WARN] agent: Node info update blocked by ACLs
 2017/07/08 23:38:44 [WARN] agent: Coordinate update blocked by ACLs
 ```
@@ -379,7 +379,7 @@ $ curl \
 With that ACL agent token set, the servers will be able to sync themselves with the
 catalog:
 
-```text
+```log
 2017/07/08 23:42:59 [INFO] agent: Synced node info
 ```
 
@@ -640,7 +640,7 @@ operator = "read"
 
 This is equivalent to the following JSON input:
 
-```javascript
+```json
 {
   "key": {
     "": {
@@ -784,15 +784,15 @@ recursive reads via [the KV API](/api/kv#recurse) with an invalid token result i
 
 ```hcl
 key "" {
- policy = "deny"
+  policy = "deny"
 }
 
 key "bar" {
- policy = "list"
+  policy = "list"
 }
 
 key "baz" {
- policy = "read"
+  policy = "read"
 }
 ```
 
@@ -828,7 +828,7 @@ The `keyring` policy controls access to keyring operations in the
 
 Keyring rules look like this:
 
-```text
+```hcl
 keyring = "write"
 ```
 
@@ -900,7 +900,7 @@ The `operator` policy controls access to cluster-level operations in the
 
 Operator rules look like this:
 
-```text
+```hcl
 operator = "read"
 ```
 

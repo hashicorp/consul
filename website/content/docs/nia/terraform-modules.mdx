@@ -36,6 +36,8 @@ First, create a directory to organize Terraform configuration files that make up
 
 The `main.tf` is the entry point of the module and this is where you can begin authoring your module. It can contain multiple Terraform resources related to an automation task that uses Consul service discovery information, particularly the required [`services` input variable](#services-variable). The code example below shows a resource using the `services` variable. When this example is used in automation with Consul-Terraform-Sync, the content of the local file would dynamically update as Consul service discovery information changes.
 
+<CodeBlockConfig filename="main.tf">
+
 ```hcl
 # Create a file with service names and their node addresses
 resource "local_file" "consul_services" {
@@ -46,11 +48,15 @@ resource "local_file" "consul_services" {
 }
 ```
 
+</CodeBlockConfig>
+
 Something important to consider before authoring your module is deciding the [condition under which it will execute](/docs/nia/tasks#task-execution). This will allow you to potentially include other types of Consul-Terraform-Sync provided input variables in your module. It will also help inform your documentation and how users should configure their task for your module.
 
 ### Services Variable
 
 To satisfy the specification requirements for a compatible module, copy the `services` variable declaration to the `variables.tf` file. Your module can optionally have other [variable declarations](#module-input-variables) and [Consul-Terraform-Sync provided input variables](/docs/nia/terraform-modules#optional-input-variables) in addition to `var.services`.
+
+<CodeBlockConfig filename="variables.tf">
 
 ```hcl
 variable "services" {
@@ -79,6 +85,8 @@ variable "services" {
   )
 }
 ```
+
+</CodeBlockConfig>
 
 Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for Consul-Terraform-Sync tasks](/docs/nia/tasks#services-condition).
 

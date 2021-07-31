@@ -45,7 +45,7 @@ or specify no value at all on all the servers. Only servers that specify a value
 Suppose we are starting a three server cluster. We can start `Node A`, `Node B`, and `Node C` with each
 providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should see a warning message in the service output.
 
-```text
+```log
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
 
@@ -82,7 +82,7 @@ Successfully joined cluster by contacting 3 nodes.
 
 Since a join operation is symmetric, it does not matter which node initiates it. Once the join is successful, one of the nodes will output something like:
 
-```text
+```log
 [INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
 [INFO] consul: adding server bar (Addr: 127.0.0.1:8300) (DC: dc1)
 [INFO] consul: Attempting bootstrap with nodes: [127.0.0.3:8300 127.0.0.2:8300 127.0.0.1:8300]
