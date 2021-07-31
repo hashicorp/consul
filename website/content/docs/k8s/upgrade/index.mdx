@@ -117,11 +117,16 @@ to update to the new version.
 1. Read our [Compatibility Matrix](/docs/k8s/upgrade/compatibility) to ensure
    your current Helm chart version supports this Consul version. If it does not,
    you may need to also upgrade your Helm chart version at the same time.
-1. Set `global.consul` in your `values.yaml` to the desired version:
+1. Set `global.image` in your `values.yaml` to the desired version:
+
+   <CodeBlockConfig filename="values.yaml" highlight="2">
+
    ```yaml
    global:
      image: consul:1.8.3
    ```
+   </CodeBlockConfig>
+
 1. Determine your current installed chart version:
 
 ```bash

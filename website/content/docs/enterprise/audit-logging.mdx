@@ -45,8 +45,7 @@ The following example configures a destination called "My Sink" which stores aud
 events at the file `/tmp/audit.json`. The log file will be rotated either every
 24 hours, or when the log file size is greater than 25165824 bytes (24 megabytes).
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 audit {
@@ -62,8 +61,6 @@ audit {
   }
 }
 ```
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -83,8 +80,8 @@ audit {
   }
 }
 ```
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 
 <Tab heading="Log to standard out">
@@ -93,8 +90,7 @@ audit {
 The following example configures a destination called "My Sink" which emits audit
 logs to standard out.
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 audit {
@@ -107,8 +103,6 @@ audit {
   }
 }
 ```
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -126,8 +120,8 @@ audit {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
@@ -142,6 +136,8 @@ request.
 
 The value of the `payload.auth.accessor_id` field is the accessor ID of the
 [ACL token](/docs/security/acl/acl-system#acl-tokens) which issued the request.
+
+<CodeBlockConfig highlight="10">
 
 ```json
 {
@@ -169,9 +165,13 @@ The value of the `payload.auth.accessor_id` field is the accessor ID of the
 }
 ```
 
+</CodeBlockConfig>
+
 After the request is processed, a corresponding log entry is written for the HTTP
 response. The `stage` field is set to `OperationComplete` which indicates the agent
 has completed processing the request.
+
+<CodeBlockConfig highlight="24">
 
 ```json
 {
@@ -201,3 +201,5 @@ has completed processing the request.
   }
 }
 ```
+
+</CodeBlockConfig>
