@@ -103,7 +103,7 @@ service {
 {
   "service": {
     "name": "redis",
-    "port": 80
+    "port": 80,
     "tagged_addresses": {
       "<tag>": {
         "address": "<address>",
@@ -165,7 +165,7 @@ service {
   "service": {
     "name": "redis",
     "address": "192.0.2.10",
-    "port": 80
+    "port": 80,
     "tagged_addresses": {
       "lan": {
         "address": "192.0.2.10",
@@ -174,7 +174,7 @@ service {
       "lan_ipv4": {
         "address": "192.0.2.10",
         "port": 80
-      }
+      },
       "lan_ipv6": {
         "address": "2001:db8:1:2:cafe::1337",
         "port": 80
@@ -235,7 +235,7 @@ service {
   "service": {
     "name": "redis",
     "address": "192.0.2.10",
-    "port": 80
+    "port": 80,
     "tagged_addresses": {
       "virtual": {
         "address": "203.0.113.50",
@@ -301,7 +301,7 @@ service {
   "service": {
     "name": "redis",
     "address": "192.0.2.10",
-    "port": 80
+    "port": 80,
     "tagged_addresses": {
       "wan": {
         "address": "198.51.100.200",
@@ -310,7 +310,7 @@ service {
       "wan_ipv4": {
         "address": "198.51.100.200",
         "port": 80
-      }
+      },
       "wan_ipv6": {
         "address": "2001:db8:5:6:1337::1eaf",
         "port": 80
