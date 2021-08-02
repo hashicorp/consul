@@ -9,16 +9,14 @@ description: >-
 
 Network drivers are used by Consul-Terraform-Sync to execute and update network infrastructure. Drivers transform Consul service level information into downstream changes by understanding and abstracting API and resource details tied to specific network infrastructure.
 
-## Terraform
-
 Consul-Terraform-Sync is a HashiCorp solution to Network Infrastructure Automation by bridging the networking features of Consul and infrastructure management with Terraform. The solution seamlessly embeds Terraform as network drivers to manage automation of Terraform modules. This expands the Consul ecosystem and taps into the rich features and community of Terraform and Terraform providers.
 
 In addition to the core functionality Terraform provides Consul-Terraform-Sync for network automation, the table below highlights product features Terraform and Terraform Enterprise offers when used as a network driver.
 
 | Network Driver | Description | Features |
 | -------------- | ----------- | -------- |
-| [Terraform driver](/docs/nia/network-drivers/terraform) | Consul-Terraform-Sync automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br /> - Local workspace directories <br /> - [Backend options](/docs/nia/configuration#backend) available for state storage <br /> |
-| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | Consul-Terraform-Sync automates remote workspaces on [Terraform Enterprise](https://www.terraform.io/docs/cloud/index.html)<sup>1</sup> | - [Remote Terraform execution](https://www.terraform.io/docs/cloud/run/index.html) <br/> - [Secured variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) <br /> - [State versions](https://www.terraform.io/docs/cloud/workspaces/state.html) <br /> - [Audit logs](https://www.terraform.io/docs/enterprise/admin/logging.html) <br /> - Run [history](https://www.terraform.io/docs/cloud/run/manage.html), [triggers](https://www.terraform.io/docs/cloud/workspaces/run-triggers.html) and [notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) |
+| [Terraform driver](/docs/nia/network-drivers/terraform) | Consul-Terraform-Sync automates a local installation of the [Terraform CLI](https://www.terraform.io/) | - Local Terraform execution <br/> - Local workspace directories <br/> - [Backend options](/docs/nia/configuration#backend) available for state storage <br/> |
+| [Terraform Cloud driver](/docs/nia/network-drivers/terraform-cloud) | Consul-Terraform-Sync Enterprise automates remote workspaces on [Terraform Enterprise](https://www.terraform.io/docs/cloud/index.html)<sup>1</sup> | - [Remote Terraform execution](https://www.terraform.io/docs/cloud/run/index.html) <br/> - Concurrent runs <br/> - [Secured variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) <br/> - [State versions](https://www.terraform.io/docs/cloud/workspaces/state.html) <br/> - [Sentinel](https://www.terraform.io/docs/cloud/sentinel/index.html) to enforce governance policies as code <br/> - [Audit logs](https://www.terraform.io/docs/enterprise/admin/logging.html) <br/> - Run [history](https://www.terraform.io/docs/cloud/run/manage.html), [triggers](https://www.terraform.io/docs/cloud/workspaces/run-triggers.html) and [notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) |
 
 _The table does not provide a comprehensive list of features. For more information, visit the [Terraform product page](https://www.hashicorp.com/products/terraform) or [contact our sales team](https://www.hashicorp.com/contact-sales)._
 
