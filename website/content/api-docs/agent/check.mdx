@@ -228,8 +228,8 @@ The table below shows this endpoint's support for
   result in a successful check.
 
 - `TTL` `(duration: 10s)` - Specifies this is a TTL check, and the TTL endpoint
-  must be used periodically to update the state of the check within the specified
-  duration, otherwise the check will be set to the failed state.
+  must be used periodically to update the state of the check. If the check is not
+  set to passing within the specified duration, then the check will be set to the failed state.
 
 - `ServiceID` `(string: "")` - Specifies the ID of a service to associate the
   registered check with an existing service provided by the agent.
