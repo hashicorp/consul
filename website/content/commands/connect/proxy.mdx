@@ -34,10 +34,12 @@ Usage: `consul connect proxy [options]`
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
+  This can also be specified via the `CONNECT_SIDECAR_FOR` environment variable.
 
 - `-proxy-id` - The [proxy
   service](/docs/connect/registration/service-registration) ID on the
-  local agent. This must already be present on the local agent.
+  local agent. This must already be present on the local agent. This option
+  can also be specified via the `CONNECT_PROXY_ID` environment variable.
 
 - `-log-level` - Specifies the log level.
 
