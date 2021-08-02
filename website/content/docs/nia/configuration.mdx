@@ -258,6 +258,8 @@ The Terraform Cloud driver enables Consul-Terraform-Sync Enterprise to integrate
 
 An overview of features enabled with Terraform Enterprise can be viewed within the [Network Drivers](/docs/nia/network-drivers) documentation.
 
+Only one network driver can be configured per deployment of Consul-Terraform-Sync.
+
 -> <sup>1</sup> **Upcoming**: The Terraform Cloud driver is introduced in Consul-Terraform-Sync v0.3.0 and only supports [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise), the self-hosted distribution. The upcoming v0.4.0 release will support integration with [Terraform Cloud](https://www.terraform.io/cloud), the HashiCorp managed service.
 
 ```hcl
@@ -265,6 +267,9 @@ driver "terraform-cloud" {
   hostname     = "my.tfe.hostname.io"
   organization = "my-org"
   token        = "<TEAM_TOKEN>"
+  // Optionally set the token to be securely queried from Vault instead of
+  // written directly to the configuration file.
+  // token = "{{ with secret \"secret/my/path\" }}{{ .Data.data.foo }}{{ end }}"
 
   required_providers {
     myprovider = {
