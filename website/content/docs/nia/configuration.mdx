@@ -265,6 +265,9 @@ driver "terraform-cloud" {
   hostname     = "my.tfe.hostname.io"
   organization = "my-org"
   token        = "<TEAM_TOKEN>"
+  // Optionally set the token to be securely queried from Vault instead of
+  // written directly to the configuration file.
+  // token = "{{ with secret \"secret/my/path\" }}{{ .Data.data.foo }}{{ end }}"
 
   required_providers {
     myprovider = {
