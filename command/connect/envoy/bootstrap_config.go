@@ -579,6 +579,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	// metrics. This cluster will only be created once since it's only created
 	// when prometheusBackendPort is set, and prometheusBackendPort is only set
 	// when calling this function if c.PrometheusBindAddr is set.
+	clusterAddress := args.AdminBindAddress
 	clusterPort := args.AdminBindPort
 	clusterName := selfAdminName
 	if prometheusBackendPort != "" {
@@ -601,7 +602,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							"endpoint": {
 								"address": {
 									"socket_address": {
-										"address": "127.0.0.1",
+										"address": "` + clusterAddress + `",
 										"port_value": ` + clusterPort + `
 									}
 								}
