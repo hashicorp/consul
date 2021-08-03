@@ -256,6 +256,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		Meta:              s.Meta,
 		Port:              s.Port,
 		Address:           s.Address,
+		SocketPath:        s.SocketPath,
 		TaggedAddresses:   taggedAddrs,
 		EnableTagOverride: s.EnableTagOverride,
 		CreateIndex:       s.CreateIndex,
