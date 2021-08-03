@@ -57,8 +57,14 @@ The table below shows this endpoint's support for
   if you override this list, you include the default `serfHealth`. Added in
   Consul 1.7.0.
 
-- `ServiceChecks` `(array<string>: nil)` - Specifies a list of service health
-  check IDs (commonly `CheckID` in API responses). Added in Consul 1.7.0.
+- `ServiceChecks` `(array<ServiceCheck>: nil)` - Specifies a list of service
+  checks. Added in Consul 1.7.0.
+
+  - `ID` `(string: <required>)` - The ID of the service check to monitor
+    (commonly `CheckID` in API responses).
+
+  - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the
+    namespace in which to resolve the service check ID.
 
 - `Behavior` `(string: "release")` - Controls the behavior to take when a
   session is invalidated. Valid values are:
