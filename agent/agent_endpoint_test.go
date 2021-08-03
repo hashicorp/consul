@@ -680,10 +680,12 @@ func TestAgent_Checks(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	chk1 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "mysql",
-		Name:    "mysql",
-		Status:  api.HealthPassing,
+		Node:     a.Config.NodeName,
+		CheckID:  "mysql",
+		Name:     "mysql",
+		Interval: "30s",
+		Timeout:  "5s",
+		Status:   api.HealthPassing,
 	}
 	a.State.AddCheck(chk1, "")
 
@@ -697,6 +699,15 @@ func TestAgent_Checks(t *testing.T) {
 		t.Fatalf("bad checks: %v", obj)
 	}
 	if val["mysql"].Status != api.HealthPassing {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Node != chk1.Node {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Interval != chk1.Interval {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Timeout != chk1.Timeout {
 		t.Fatalf("bad check: %v", obj)
 	}
 }

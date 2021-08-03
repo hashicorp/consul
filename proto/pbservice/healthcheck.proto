@@ -44,6 +44,9 @@ message HealthCheck {
 
     // mog: func-to=int func-from=int32
     int32 ExposedPort = 14;
+
+    string Interval = 15;
+    string Timeout = 16;
 }
 
 message HeaderValue {
