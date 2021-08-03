@@ -786,6 +786,7 @@ type AuditSink struct {
 	Format            *string `mapstructure:"format"`
 	Path              *string `mapstructure:"path"`
 	DeliveryGuarantee *string `mapstructure:"delivery_guarantee"`
+	Mode              *string `mapstructure:"mode"`
 	RotateBytes       *int    `mapstructure:"rotate_bytes"`
 	RotateDuration    *string `mapstructure:"rotate_duration"`
 	RotateMaxFiles    *int    `mapstructure:"rotate_max_files"`

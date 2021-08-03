@@ -15,7 +15,7 @@
     "@hashicorp/react-call-to-action": "^3.1.2",
     "@hashicorp/react-callouts": "^7.1.2",
     "@hashicorp/react-code-block": "^4.1.4",
-    "@hashicorp/react-consent-manager": "^5.3.2",
+    "@hashicorp/react-consent-manager": "6.0.0",
     "@hashicorp/react-content": "^7.0.2",
     "@hashicorp/react-docs-page": "^13.5.1",
     "@hashicorp/react-enterprise-alert": "^5.0.1",

@@ -55,7 +55,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -144,7 +144,7 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
@@ -224,7 +224,7 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -512,7 +512,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -544,7 +544,7 @@ func (s *HTTPHandlers) AgentLeave(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -562,7 +562,7 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1198,7 +1198,7 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1219,7 +1219,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1298,7 +1298,7 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1476,7 +1476,7 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 

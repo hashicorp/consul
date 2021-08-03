@@ -1,0 +1,6 @@
+```release-note:bug
+streaming: set the default wait timeout for health queries
+```
+```release-note:bug
+http: log cancelled requests as such at the INFO level, instead of logging them as errored requests.
+```

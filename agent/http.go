@@ -253,7 +253,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
-			if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+			if rule.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}
@@ -432,12 +432,20 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		}
 
 		handleErr := func(err error) {
-			httpLogger.Error("Request error",
-				"method", req.Method,
-				"url", logURL,
-				"from", req.RemoteAddr,
-				"error", err,
-			)
+			if req.Context().Err() != nil {
+				httpLogger.Info("Request cancelled",
+					"method", req.Method,
+					"url", logURL,
+					"from", req.RemoteAddr,
+					"error", err)
+			} else {
+				httpLogger.Error("Request error",
+					"method", req.Method,
+					"url", logURL,
+					"from", req.RemoteAddr,
+					"error", err)
+			}
+
 			switch {
 			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)

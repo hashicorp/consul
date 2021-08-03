@@ -103,6 +103,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/connect/ingress-gateways',
+    destination: '/docs/connect/gateways/ingress-gateway',
+    permanent: true,
+  },
+  {
     source: '/docs/connect/terminating(_|-)gateway',
     destination: '/docs/connect/gateways/terminating-gateway',
     permanent: true,

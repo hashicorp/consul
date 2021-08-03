@@ -867,6 +867,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       the rules governing how audit events are written.
       The following keys are valid:
       - `best-effort` - Consul only supports `best-effort` event delivery.
+    - `mode` - The permissions to set on the audit log files.
     - `rotate_duration` - Specifies the
       interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
       must be configured to enable audit logging.
@@ -2210,6 +2211,12 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 This section documents all of the configuration settings that apply to Agent TLS. Agent
 TLS is used by the HTTP API, server RPC, and xDS interfaces. Some of these settings may also be
 applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
+
+~> **Security Note:** The Certificate Authority (CA) specified by `ca_file` or `ca_path`
+should be a private CA, not a public one. We recommend using a dedicated CA
+which should not be used with any other systems. Any certificate signed by the
+CA will be allowed to communicate with the cluster and a specially crafted certificate
+signed by the CA can be used to gain full access to Consul.
 
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
