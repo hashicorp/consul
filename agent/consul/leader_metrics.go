@@ -97,8 +97,11 @@ func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 func getActiveIntermediateExpiry(s *Server) (time.Duration, error) {
 	state := s.fsm.State()
 	_, root, err := state.CARootActive(nil)
-	if err != nil {
-		return 0, err
+	switch {
+	case err != nil:
+		return 0, fmt.Errorf("failed to retrieve root CA: %w", err)
+	case root == nil:
+		return 0, fmt.Errorf("no active root CA")
 	}
 
 	// the CA used in a secondary DC is the active intermediate,
@@ -130,24 +133,32 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 
 	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
 
+	fn := func() {
+		d, err := m.Query()
+		if err != nil {
+			logger.Warn("failed to emit certificate expiry metric", "error", err)
+			return
+		}
+
+		if d < 24*time.Hour {
+			logger.Warn("certificate will expire soon",
+				"time_to_expiry", d, "expiration", time.Now().Add(d))
+		}
+
+		expiry := d / time.Second
+		metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
+	}
+
+	// emit the metric immediately so that if a cert was just updated the
+	// new metric will be updated to the new expiration time.
+	fn()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			d, err := m.Query()
-			if err != nil {
-				logger.Warn("failed to emit certificate expiry metric", "error", err)
-				continue
-			}
-
-			if d < 24*time.Hour {
-				logger.Warn("certificate will expire soon",
-					"time_to_expiry", d, "expiration", time.Now().Add(d))
-			}
-
-			expiry := d / time.Second
-			metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
+			fn()
 		}
 	}
 }
