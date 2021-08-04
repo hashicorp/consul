@@ -227,7 +227,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 // worst let a service update revert a recent node update, so it doesn't open up
 // too much abuse).
 func vetRegisterWithACL(
-	rule acl.Authorizer,
+	authz acl.Authorizer,
 	subj *structs.RegisterRequest,
 	ns *structs.NodeServices,
 ) error {
@@ -239,7 +239,7 @@ func vetRegisterWithACL(
 	// privileges.
 	needsNode := ns == nil || subj.ChangesNode(ns.Node)
 
-	if needsNode && rule.NodeWrite(subj.Node, &authzContext) != acl.Allow {
+	if needsNode && authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -247,7 +247,7 @@ func vetRegisterWithACL(
 	// the given service, and that we can write to any existing service that
 	// is being modified by id (if any).
 	if subj.Service != nil {
-		if rule.ServiceWrite(subj.Service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(subj.Service.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -261,7 +261,7 @@ func vetRegisterWithACL(
 				var secondaryCtx acl.AuthorizerContext
 				other.FillAuthzContext(&secondaryCtx)
 
-				if rule.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
+				if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
 					return acl.ErrPermissionDenied
 				}
 			}
@@ -291,7 +291,7 @@ func vetRegisterWithACL(
 
 		// Node-level check.
 		if check.ServiceID == "" {
-			if rule.NodeWrite(subj.Node, &authzContext) != acl.Allow {
+			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 			continue
@@ -322,7 +322,7 @@ func vetRegisterWithACL(
 		var secondaryCtx acl.AuthorizerContext
 		other.FillAuthzContext(&secondaryCtx)
 
-		if rule.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
+		if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -385,7 +385,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 // endpoint. The NodeService for the referenced service must be supplied, and can
 // be nil; similar for the HealthCheck for the referenced health check.
 func vetDeregisterWithACL(
-	rule acl.Authorizer,
+	authz acl.Authorizer,
 	subj *structs.DeregisterRequest,
 	ns *structs.NodeService,
 	nc *structs.HealthCheck,
@@ -400,7 +400,7 @@ func vetDeregisterWithACL(
 	// Allow service deregistration if the token has write permission for the node.
 	// This accounts for cases where the agent no longer has a token with write permission
 	// on the service to deregister it.
-	if rule.NodeWrite(subj.Node, &authzContext) == acl.Allow {
+	if authz.NodeWrite(subj.Node, &authzContext) == acl.Allow {
 		return nil
 	}
 
@@ -415,7 +415,7 @@ func vetDeregisterWithACL(
 
 		ns.FillAuthzContext(&authzContext)
 
-		if rule.ServiceWrite(ns.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(ns.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	} else if subj.CheckID != "" {
@@ -426,11 +426,11 @@ func vetDeregisterWithACL(
 		nc.FillAuthzContext(&authzContext)
 
 		if nc.ServiceID != "" {
-			if rule.ServiceWrite(nc.ServiceName, &authzContext) != acl.Allow {
+			if authz.ServiceWrite(nc.ServiceName, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		} else {
-			if rule.NodeWrite(subj.Node, &authzContext) != acl.Allow {
+			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 		}
