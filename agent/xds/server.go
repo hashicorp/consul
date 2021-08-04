@@ -569,7 +569,7 @@ func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.Co
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	rule, err := s.ResolveToken(tokenFromContext(streamCtx))
+	authz, err := s.ResolveToken(tokenFromContext(streamCtx))
 
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
@@ -583,12 +583,12 @@ func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.Co
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	default:

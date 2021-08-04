@@ -245,7 +245,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 				return
 			}
 
-			rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+			authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 			if err != nil {
 				resp.WriteHeader(http.StatusForbidden)
 				return
@@ -253,7 +253,7 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 
 			// If the token provided does not have the necessary permissions,
 			// write a forbidden response
-			if rule.OperatorRead(nil) != acl.Allow {
+			if authz.OperatorRead(nil) != acl.Allow {
 				resp.WriteHeader(http.StatusForbidden)
 				return
 			}

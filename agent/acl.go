@@ -141,7 +141,7 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 // filterMembers redacts members that the token doesn't have access to.
 func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	m := *members
 	for i := 0; i < len(m); i++ {
 		node := m[i].Name
-		if rule.NodeRead(node, &authzContext) == acl.Allow {
+		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
 		accessorID := a.aclAccessorID(token)

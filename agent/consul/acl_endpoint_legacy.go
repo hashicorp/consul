@@ -167,9 +167,9 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 
 	// Verify token is permitted to modify ACLs
 	// NOTE: We will not support enterprise authorizer contexts with legacy ACLs
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	if authz, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule.ACLWrite(nil) != acl.Allow {
+	} else if authz.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -259,9 +259,9 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	// Verify token is permitted to list ACLs
 	// NOTES: Previously with legacy ACL there was no read-only ACL permissions
 	// and this check for ACLWrite is basically what it did before.
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	if authz, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule.ACLWrite(nil) != acl.Allow {
+	} else if authz.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
