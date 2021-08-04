@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -73,12 +74,10 @@ func signingCAExpiryMonitor(s *Server) CertExpirationMonitor {
 			Query: func() (time.Duration, error) {
 				provider, _ := s.caManager.getCAProvider()
 
-				if _, ok := provider.(ca.PrimaryUsesIntermediate); !ok {
+				if _, ok := provider.(ca.PrimaryUsesIntermediate); ok {
 					return getActiveIntermediateExpiry(s)
 				}
-
 				return getRootCAExpiry(s)
-
 			},
 		}
 	}
@@ -129,6 +128,8 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	ticker := time.NewTicker(certExpirationMonitorInterval)
 	defer ticker.Stop()
 
+	logger := m.Logger.With("metric", strings.Join(m.Key, "."))
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -136,7 +137,8 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		case <-ticker.C:
 			d, err := m.Query()
 			if err != nil {
-				m.Logger.Warn("failed to emit certificate expiry metric", "error", err)
+				logger.Warn("failed to emit certificate expiry metric", "error", err)
+				continue
 			}
 			expiry := d / time.Second
 			metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
