@@ -85,7 +85,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
+func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCtxFill func(*acl.AuthorizerContext)) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -110,7 +110,7 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 	}
 
 	var authzContext acl.AuthorizerContext
-	service.FillAuthzContext(&authzContext)
+	authzCtxFill(&authzContext)
 
 	// Apply the ACL policy if any. The 'consul' service is excluded
 	// since it is managed automatically internally (that behavior
@@ -175,7 +175,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	// Handle a service registration.
 	if args.Service != nil {
-		if err := servicePreApply(args.Service, authz); err != nil {
+		if err := servicePreApply(args.Service, authz, args.Service.FillAuthzContext); err != nil {
 			return err
 		}
 	}
