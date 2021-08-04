@@ -39,7 +39,7 @@
     "@hashicorp/react-use-cases": "^4.0.1",
     "@hashicorp/react-vertical-text-block-list": "^6.0.3",
     "next": "10.2.2",
-    "next-mdx-remote": "3.0.1",
+    "next-mdx-remote": "3.0.4",
     "next-remote-watch": "1.0.0",
     "nuka-carousel": "4.7.7",
     "react": "16.13.1",
