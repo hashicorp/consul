@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/fatih/color v1.9.0 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.1
+	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/kr/pretty v0.2.0 // indirect
