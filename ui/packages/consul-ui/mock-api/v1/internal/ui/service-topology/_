@@ -83,7 +83,7 @@ ${
       "Intention": {
         "Allowed": ${allowed},
         "HasPermissions": ${hasPerms},
-        "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
+        "ExternalSource": "${fake.helpers.randomize(['vault', 'nomad', 'kubernetes', ''])}",
         "HasExact": ${fake.random.boolean()},
         "DefaultAllow": ${fake.random.boolean()}
       }

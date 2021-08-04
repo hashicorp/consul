@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Add UI support to use Vault as an external source for a service
+```
