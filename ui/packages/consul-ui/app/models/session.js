@@ -27,6 +27,6 @@ export default class Session extends Model {
 
   @computed('NodeChecks', 'ServiceChecks')
   get checks() {
-    return [...this.NodeChecks, ...this.ServiceChecks.map(item => item.ID)];
+    return [...this.NodeChecks, ...this.ServiceChecks.map(({ ID }) => ID)];
   }
 }
