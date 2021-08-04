@@ -461,7 +461,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return act
 		}
 
-		act, err = c.state.CACheckAndSetConfig(index+1, req.Config.ModifyIndex, req.Config)
+		act, err = c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
 		if err != nil {
 			return err
 		}
