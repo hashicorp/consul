@@ -20,7 +20,7 @@ The proxy you integrate must be able to accept inbound connections and/or establ
 
 Sidecar proxies may support L4 or L7 network functionality. L4 integration is simpler and adequate for securing all traffic. L4 treats all traffic as TCP, however, so advanced routing or metrics features are not supported.
 
-Full L7 support is built on top of L4 support. An L7 proxy integration supports most or all of the L7 traffic routing features in Connect by dynamically configuring routing, retries, and other L7 features. The built-in proxy only supports L4, while Envoy supports the full L7 feature set.
+Full L7 support is built on top of L4 support. An L7 proxy integration supports most or all of the L7 traffic routing features in Connect by dynamically configuring routing, retries, and other L7 features. The built-in proxy only supports L4, while [Envoy](/docs/connect/proxies/envoy) supports the full L7 feature set.
 
 Areas where the integration approach differs between L4 and L7 are identified in this topic.
 
@@ -38,7 +38,7 @@ curl http://<host-ip>:8500/v1/agent/connect/ca/leaf/<service-name>
 
 ```
 
-The cleint certificate from the inbound connection must be validated against the Connect CA root certificates. Call the [`/v1/agent/connect/ca/roots`] endpoint to obtain the root certificates from the Connect CA, e.g.:
+The client certificate from the inbound connection must be validated against the Connect CA root certificates. Call the [`/v1/agent/connect/ca/roots`] endpoint to obtain the root certificates from the Connect CA, e.g.:
 
 ```shell-session
 
@@ -103,7 +103,7 @@ leaf certificate.
 
 For outbound connections, the proxy should communicate with a Connect-capable
 endpoint for a service and provide a client certificate from the
-[`/v1/agent/connect/ca/leaf/`] API endpoint. The proxy can call the [`/v1/agent/connect/ca/roots`] endpoint to verify the certificate served from the destination endpoint against the root certificates.
+[`/v1/agent/connect/ca/leaf/`] API endpoint. The proxy must use the root certificate obtained from the [`/v1/agent/connect/ca/roots`] endpoint to verify the certificate served from the destination endpoint.
 
 ## Configuration Discovery
 
@@ -136,15 +136,9 @@ documentation for details about supported configuration parameters.
 
 ### Service Discovery
 
-Proxies can use Consul's [service discovery API]
-(`/v1/health/connect/:service_id`) to return all available, Connect-capable
-endpoints for a given service. This endpoint supports a `cached` query parameter,
-which uses [agent caching](/api/features/caching) to improve
-performance. The API package provides a [`UseCache`] query option to
-leverage caching. In addition to performance improvements, using the cache makes
-the mesh more resilient to Consul server outages. This is because the mesh "fails static" with
-the last known set of service instances still used, rather than errors on new
-connections.
+Proxies can use Consul's [service discovery API](`/v1/health/connect/:service_id`) to return all available, Connect-capable endpoints for a given service. This endpoint supports a `cached` query parameter, which uses [agent caching](/api/features/caching) to improve
+performance. The API package provides a [`UseCache`] query option to leverage caching.
+In addition to performance improvements, using the cache makes the mesh more resilient to Consul server outages. This is because the mesh "fails static" with the last known set of service instances still used, rather than errors on new connections.
 
 Proxies can decide whether to perform just-in-time queries to the API when a
 new connection needs to be routed, or to use blocking queries to load the
@@ -153,11 +147,8 @@ built-in proxy currently use just-in-time resolution however many existing
 proxies are likely to find it easier to integrate by pulling the set of
 endpoints and maintaining it in local memory using blocking queries.
 
-Upstreams can be defined with Prepared Query target types. These upstreams
-should use Consul's [prepared query](/api/query) API. It's worth noting that
-the PreparedQuery API does not support blocking, so proxies choosing to
-populate endpoints in memory will need to poll the endpoint at a suitable and
-ideally configurable frequency.
+Upstreams may be defined with the Prepared Query target type. These upstreams
+should use Consul's [prepared query](/api/query) API to determine a list of upstream endpoints for the service. Note that the `PreparedQuery` API does not support blocking, so proxies choosing to populate endpoints in memory will need to poll the endpoint at a suitable and, ideally, configurable frequency.
 
 -> **Long-term support for [`service-resolver`](/docs/connect/config-entries/service-resolver) configuration
 entries**. The `service-resolver` configuration will completely replace prepared queries in future versions of Consul. In some instances, however, prepared queries are still used.
