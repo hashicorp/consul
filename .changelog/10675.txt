@@ -1,3 +1,0 @@
-```release-note:bug
-ca: use the correct raft index when saving the CA config
-```
