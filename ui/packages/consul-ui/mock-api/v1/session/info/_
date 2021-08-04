@@ -8,7 +8,15 @@
         }",
         "Node":"node-1",
         "NodeChecks":["serfHealth"],
-        "ServiceChecks": ["${fake.hacker.noun()}Health"],
+        "ServiceChecks": [
+            {
+                "ID": "${fake.hacker.noun()}Health",
+                "Namespace": "${
+                typeof location.search.ns !== 'undefined' ? location.search.ns :
+                    typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
+                }"
+            }
+        ],
         "LockDelay":15000000000,
         "Behavior":"${fake.helpers.randomize(['release', 'delete'])}",
         "TTL":"",
