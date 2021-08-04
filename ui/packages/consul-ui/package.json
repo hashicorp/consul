@@ -143,7 +143,7 @@
     "eslint-plugin-node": "^11.0.0",
     "faker": "^5.5.3",
     "flat": "^5.0.0",
-    "husky": "^4.2.5",
+    "husky": "^7.0.1",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^4.0.0",
     "jsonlint": "^1.6.3",
