@@ -118,14 +118,14 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if authz != nil && authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if authz != nil && authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -200,15 +200,12 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	if authz != nil {
-		state := c.srv.fsm.State()
-		_, ns, err := state.NodeServices(nil, args.Node, entMeta)
-		if err != nil {
-			return fmt.Errorf("Node lookup failed: %v", err)
-		}
-		if err := vetRegisterWithACL(authz, args, ns); err != nil {
-			return err
-		}
+	_, ns, err := state.NodeServices(nil, args.Node, entMeta)
+	if err != nil {
+		return fmt.Errorf("Node lookup failed: %v", err)
+	}
+	if err := vetRegisterWithACL(authz, args, ns); err != nil {
+		return err
 	}
 
 	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
@@ -238,29 +235,26 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Check the complete deregister request against the given ACL policy.
-	if authz != nil {
-		state := c.srv.fsm.State()
+	state := c.srv.fsm.State()
 
-		var ns *structs.NodeService
-		if args.ServiceID != "" {
-			_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Service lookup failed: %v", err)
-			}
+	var ns *structs.NodeService
+	if args.ServiceID != "" {
+		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Service lookup failed: %v", err)
 		}
+	}
 
-		var nc *structs.HealthCheck
-		if args.CheckID != "" {
-			_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Check lookup failed: %v", err)
-			}
+	var nc *structs.HealthCheck
+	if args.CheckID != "" {
+		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Check lookup failed: %v", err)
 		}
+	}
 
-		if err := vetDeregisterWithACL(authz, args, ns, nc); err != nil {
-			return err
-		}
-
+	if err := vetDeregisterWithACL(authz, args, ns, nc); err != nil {
+		return err
 	}
 
 	_, err = c.srv.raftApply(structs.DeregisterRequestType, args)
@@ -456,7 +450,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
-		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}
@@ -659,7 +653,7 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 		return err
 	}
 
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

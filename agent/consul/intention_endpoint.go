@@ -593,24 +593,22 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		}
 	}
 
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		// Go through each entry to ensure we have intention:read for the resource.
+	var authzContext acl.AuthorizerContext
+	// Go through each entry to ensure we have intention:read for the resource.
 
-		// TODO - should we do this instead of filtering the result set? This will only allow
-		// queries for which the token has intention:read permissions on the requested side
-		// of the service. Should it instead return all matches that it would be able to list.
-		// if so we should remove this and call filterACL instead. Based on how this is used
-		// its probably fine. If you have intention read on the source just do a source type
-		// matching, if you have it on the dest then perform a dest type match.
-		for _, entry := range args.Match.Entries {
-			entry.FillAuthzContext(&authzContext)
-			if prefix := entry.Name; prefix != "" && authz.IntentionRead(prefix, &authzContext) != acl.Allow {
-				accessorID := s.aclAccessorID(args.Token)
-				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
-				return acl.ErrPermissionDenied
-			}
+	// TODO - should we do this instead of filtering the result set? This will only allow
+	// queries for which the token has intention:read permissions on the requested side
+	// of the service. Should it instead return all matches that it would be able to list.
+	// if so we should remove this and call filterACL instead. Based on how this is used
+	// its probably fine. If you have intention read on the source just do a source type
+	// matching, if you have it on the dest then perform a dest type match.
+	for _, entry := range args.Match.Entries {
+		entry.FillAuthzContext(&authzContext)
+		if prefix := entry.Name; prefix != "" && authz.IntentionRead(prefix, &authzContext) != acl.Allow {
+			accessorID := s.aclAccessorID(args.Token)
+			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+			s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
+			return acl.ErrPermissionDenied
 		}
 	}
 
@@ -690,7 +688,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	if prefix, ok := query.GetACLPrefix(); ok {
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
-		if authz != nil && authz.ServiceRead(prefix, &authzContext) != acl.Allow {
+		if authz.ServiceRead(prefix, &authzContext) != acl.Allow {
 			accessorID := s.aclAccessorID(args.Token)
 			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
@@ -710,10 +708,7 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	// NOTE(mitchellh): This is the same behavior as the agent authorize
 	// endpoint. If this behavior is incorrect, we should also change it there
 	// which is much more important.
-	defaultDecision := acl.Allow
-	if authz != nil {
-		defaultDecision = authz.IntentionDefaultAllow(nil)
-	}
+	defaultDecision := authz.IntentionDefaultAllow(nil)
 
 	state := s.srv.fsm.State()
 

@@ -161,7 +161,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -169,10 +169,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultAllow := acl.Allow
-			if authz != nil {
-				defaultAllow = authz.IntentionDefaultAllow(nil)
-			}
+			defaultAllow := authz.IntentionDefaultAllow(nil)
 
 			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
@@ -216,10 +213,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultDecision := acl.Allow
-			if authz != nil {
-				defaultDecision = authz.IntentionDefaultAllow(nil)
-			}
+			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
 			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
@@ -254,7 +248,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	}
 
 	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -338,7 +332,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
-	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

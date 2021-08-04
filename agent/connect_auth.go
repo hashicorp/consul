@@ -65,7 +65,7 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(err)
 	}
 
-	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
+	if authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
