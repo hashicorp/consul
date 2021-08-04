@@ -55,7 +55,7 @@ transport layer.
 
 The proxy can authorize the connection by either calling the [`/v1/agent/connect/authorize`](/api/agent/connect) API endpoint or by querying the [intention match API](/api/connect/intentions#list-matching-intentions) endpoint.
 
-The [`/v1/agent/connect/authorize`](/api/agent/connect) endpoint should be called in the connection path.
+The [`/v1/agent/connect/authorize`](/api/agent/connect) endpoint should be called in the connection path for each received connection.
 If the local Consul agent is down or unresponsive, the success rate of new connections will be compromised.
 The agent uses locally-cached data to authorize the connection and typically responds in microseconds. As a result, the TLS handshake typically spans microseconds.
 
