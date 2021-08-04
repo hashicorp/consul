@@ -298,9 +298,6 @@ func (x *Intention) Validate() error {
 }
 
 func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
-	if authz == nil {
-		return true
-	}
 	var authzContext acl.AuthorizerContext
 
 	// Read access on either end of the intention allows you to read the
@@ -325,11 +322,12 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 }
 
 func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
-	if authz == nil || authz == acl.ManageAll() {
+	if authz == acl.ManageAll() {
 		return true
 	}
 	var authzContext acl.AuthorizerContext
 
+	// TODO: this line seems to require checking 'authz == acl.ManageAll()' above
 	if ixn.DestinationName == "" {
 		return false
 	}

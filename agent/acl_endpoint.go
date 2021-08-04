@@ -1156,8 +1156,6 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 		authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(request.Token, nil, nil)
 		if err != nil {
 			return nil, err
-		} else if authz == nil {
-			return nil, fmt.Errorf("Failed to initialize authorizer")
 		}
 
 		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)

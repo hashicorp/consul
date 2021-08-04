@@ -75,9 +75,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			return err
 		}
 
-		var ok bool
-		event, ok = filterByAuth(authz, event)
-		if !ok {
+		if !event.Payload.HasReadPermission(authz) {
 			continue
 		}
 
@@ -124,16 +122,6 @@ func forwardToDC(
 			}
 		}
 	}
-}
-
-// filterByAuth to only those Events allowed by the acl token.
-func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool) {
-	// authz will be nil when ACLs are disabled
-	if authz == nil {
-		return event, true
-	}
-
-	return event, event.Payload.HasReadPermission(authz)
 }
 
 func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {

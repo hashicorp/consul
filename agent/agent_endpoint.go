@@ -175,7 +175,7 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 	switch {
 	case err != nil:
 		return nil, err
-	case rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow:
+	case rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow:
 		return nil, acl.ErrPermissionDenied
 	}
 
