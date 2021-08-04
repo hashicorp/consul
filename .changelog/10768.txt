@@ -1,0 +1,4 @@
+```release-note:improvement
+telemetry: add a new `agent.tls.cert.expiry` metric for tracking when the Agent TLS certificate expires.
+```
+
