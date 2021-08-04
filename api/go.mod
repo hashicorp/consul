@@ -11,6 +11,6 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/serf v0.9.5
-	github.com/mitchellh/mapstructure v1.1.2
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/stretchr/testify v1.4.0
 )
