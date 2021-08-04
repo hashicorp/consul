@@ -3549,23 +3549,7 @@ broccoli-funnel@^2.0.0, broccoli-funnel@^2.0.1, broccoli-funnel@^2.0.2:
     symlink-or-copy "^1.0.0"
     walk-sync "^0.3.1"
 
-broccoli-funnel@^3.0.1, broccoli-funnel@^3.0.2, broccoli-funnel@^3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/broccoli-funnel/-/broccoli-funnel-3.0.3.tgz#26fd42632471f67a91f4770d1987118087219937"
-  integrity sha512-LPzZ91BwStoHZXdXHQAJeYORl189OrRKM5NdIi86SDU9wZ4s/3lV1PRFOiobDT/jKM10voM7CDzfvicHbCYxAQ==
-  dependencies:
-    array-equal "^1.0.0"
-    blank-object "^1.0.1"
-    broccoli-plugin "^4.0.1"
-    debug "^4.1.1"
-    fast-ordered-set "^1.0.0"
-    fs-tree-diff "^2.0.1"
-    heimdalljs "^0.2.0"
-    minimatch "^3.0.0"
-    path-posix "^1.0.0"
-    walk-sync "^2.0.2"
-
-broccoli-funnel@^3.0.5:
+broccoli-funnel@^3.0.1, broccoli-funnel@^3.0.2, broccoli-funnel@^3.0.3, broccoli-funnel@^3.0.5:
   version "3.0.8"
   resolved "https://registry.yarnpkg.com/broccoli-funnel/-/broccoli-funnel-3.0.8.tgz#f5b62e2763c3918026a15a3c833edc889971279b"
   integrity sha512-ng4eIhPYiXqMw6SyGoxPHR3YAwEd2lr9FgBI1CyTbspl4txZovOsmzFkMkGAlu88xyvYXJqHiM2crfLa65T1BQ==
@@ -6207,10 +6191,10 @@ ember-inflector@^4.0.1:
   dependencies:
     ember-cli-babel "^7.23.0"
 
-ember-intl@^5.5.1:
-  version "5.6.2"
-  resolved "https://registry.yarnpkg.com/ember-intl/-/ember-intl-5.6.2.tgz#ece4820923dfda033c279b7e3920cbbc8b6bde07"
-  integrity sha512-+FfI2udVbnEzueompcRb3ytBWhfnBfVVjAwnCuxwqIyS9ti8lK0ZiYHa5bquNPHjjfBzfFl4x5TlVgDNaCnccg==
+ember-intl@^5.7.0:
+  version "5.7.0"
+  resolved "https://registry.yarnpkg.com/ember-intl/-/ember-intl-5.7.0.tgz#2381a6a210e39bcf1e879308538ec72903b0da7a"
+  integrity sha512-NcQFPeV9wxyOX7Tb0y+84CXHPt5XleYUlszywx5aQgJQ4yE6in3kHjI804CRKtLz6OY0rzVfTa5Jc/y8CtI+0Q==
   dependencies:
     broccoli-caching-writer "^3.0.3"
     broccoli-funnel "^3.0.3"
