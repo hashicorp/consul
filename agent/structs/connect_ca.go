@@ -212,8 +212,9 @@ type CARequest struct {
 	// Index is used by CAOpSetRoots for a CAS operation.
 	Index uint64
 
-	// Index is used by CAOpSetRootsAndConfig and CAOpSetConfigCAS for a CAS operation.
-	Cas uint64
+	// ConfigCASIndex is used as the check-and-set index for the CAOpSetConfigCAS operation, and for the
+	// Config portion of the CAOpSetRootsAndConfig operation.
+	ConfigCASIndex uint64
 
 	// Roots is a list of roots. This is used for CAOpSet. One root must
 	// always be active.

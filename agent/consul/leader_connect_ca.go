@@ -756,11 +756,11 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	}
 
 	args := &structs.CARequest{
-		Op:     structs.CAOpSetRootsAndConfig,
-		Index:  idx,
-		Roots:  newRoots,
-		Config: &newConf,
-		Cas:    confIdx,
+		Op:             structs.CAOpSetRootsAndConfig,
+		Index:          idx,
+		Roots:          newRoots,
+		Config:         &newConf,
+		ConfigCASIndex: confIdx,
 	}
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
@@ -1004,7 +1004,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
 	args.Roots = newRoots
-	args.Cas = confIdx
+	args.ConfigCASIndex = confIdx
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err
