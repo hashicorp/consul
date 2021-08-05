@@ -700,7 +700,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 
 	// Look up the existing CA config if a new one wasn't provided.
 	var newConf structs.CAConfiguration
-	_, storedConfig, err := state.CAConfig(nil)
+	confIdx, storedConfig, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -760,6 +760,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Index:  idx,
 		Roots:  newRoots,
 		Config: &newConf,
+		Cas:    confIdx,
 	}
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
@@ -802,7 +803,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// Exit early if it's a no-op change
 	state := c.delegate.State()
-	_, config, err := state.CAConfig(nil)
+	confIdx, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -1003,6 +1004,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
 	args.Roots = newRoots
+	args.Cas = confIdx
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
 		return err

@@ -98,10 +98,10 @@ func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}
 			}
 		}
 		args.Op = structs.CAOpSetConfigCAS
-		args.Index = casVal
+		args.Cas = casVal
 	} else {
 		args.Op = structs.CAOpSetConfig
-		args.Index = 0
+		args.Cas = 0
 	}
 	if err := decodeBody(req.Body, &args.Config); err != nil {
 		return nil, BadRequestError{

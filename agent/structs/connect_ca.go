@@ -209,8 +209,11 @@ type CARequest struct {
 	// Datacenter is the target for this request.
 	Datacenter string
 
-	// Index is used by CAOpSetRoots and CAOpSetConfig for a CAS operation.
+	// Index is used by CAOpSetRoots for a CAS operation.
 	Index uint64
+
+	// Index is used by CAOpSetRootsAndConfig and CAOpSetConfigCAS for a CAS operation.
+	Cas uint64
 
 	// Roots is a list of roots. This is used for CAOpSet. One root must
 	// always be active.

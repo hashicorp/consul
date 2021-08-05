@@ -423,7 +423,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.CAOpSetConfigCAS:
-		return c.state.CACheckAndSetConfig(index, req.Index, req.Config)
+		return c.state.CACheckAndSetConfig(index, req.Cas, req.Config)
 
 	case structs.CAOpSetConfig:
 		return c.state.CASetConfig(index, req.Config)
@@ -457,7 +457,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return act
 		}
 
-		return c.state.CACheckAndSetConfig(index, req.Index, req.Config)
+		return c.state.CACheckAndSetConfig(index, req.Cas, req.Config)
 	case structs.CAOpIncrementProviderSerialNumber:
 		sn, err := c.state.CAIncrementProviderSerialNumber(index)
 		if err != nil {
