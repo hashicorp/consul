@@ -222,7 +222,8 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			}
 
 			reply.Index, reply.Services = index, services
-			return m.srv.filterACLWithAuthorizer(authz, reply)
+			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
 		})
 }
 
@@ -439,7 +440,7 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, rule, err := m.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, rule, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}

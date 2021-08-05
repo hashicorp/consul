@@ -93,6 +93,7 @@ func (c *Client) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 	return c.acls.ResolveTokenToIdentity(token)
 }
 
+// TODO: Server has an identical implementation, remove duplication
 func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {

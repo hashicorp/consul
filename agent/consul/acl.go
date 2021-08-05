@@ -1244,6 +1244,10 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	return identity, acl.NewChainedAuthorizer(chain), nil
 }
 
+// TODO: rename to AccessorIDFromToken. This method is only used to retrieve the
+// ACLIdentity.ID, so we don't need to return a full ACLIdentity. We could
+// return a much smaller type (instad of just a string) to allow for changes
+// in the future.
 func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
 	if !r.ACLsEnabled() {
 		return nil, nil
@@ -1928,12 +1932,11 @@ func (f *aclFilter) filterGatewayServices(mappings *structs.GatewayServices) {
 	*mappings = ret
 }
 
-func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
+func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, subj interface{}) {
 	if authorizer == nil {
-		return nil
+		return
 	}
-	// Create the filter
-	filt := newACLFilter(authorizer, r.logger)
+	filt := newACLFilter(authorizer, logger)
 
 	switch v := subj.(type) {
 	case *structs.CheckServiceNodes:
@@ -2028,23 +2031,17 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %T %#v", subj, subj))
 	}
-
-	return nil
 }
 
-// filterACL is used to filter results from our service catalog based on the
-// rules configured for the provided token.
-func (r *ACLResolver) filterACL(token string, subj interface{}) error {
+// filterACL uses the ACLResolver to resolve the token in an acl.Authorizer,
+// then uses the acl.Authorizer to filter subj. Any entities in subj that are
+// not authorized for read access will be removed from subj.
+func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	// Get the ACL from the token
 	_, authorizer, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return err
 	}
-
-	// Fast path if ACLs are not enabled
-	if authorizer == nil {
-		return nil
-	}
-
-	return r.filterACLWithAuthorizer(authorizer, subj)
+	filterACLWithAuthorizer(r.logger, authorizer, subj)
+	return nil
 }
