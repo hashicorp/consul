@@ -141,7 +141,7 @@ func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manag
 // setState attempts to update the CA state to the given state.
 // Valid state transitions are:
 //
-// caStateInitialized -> <any state>
+// caStateInitialized -> <any state except caStateInitializing>
 // caStateUninitialized -> caStateInitializing
 // caStateUninitialized -> caStateReconfig
 //
