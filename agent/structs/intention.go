@@ -322,16 +322,7 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 }
 
 func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
-	if authz == acl.ManageAll() {
-		return true
-	}
 	var authzContext acl.AuthorizerContext
-
-	// TODO: this line seems to require checking 'authz == acl.ManageAll()' above
-	if ixn.DestinationName == "" {
-		return false
-	}
-
 	ixn.FillAuthzContext(&authzContext, true)
 	return authz.IntentionWrite(ixn.DestinationName, &authzContext) == acl.Allow
 }

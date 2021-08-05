@@ -81,18 +81,7 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 			}
 
 			service := &op.Service.Service
-			// acl.ManageAll is used here because the request will be authorized
-			// later using vetServiceTxnOp.
-			if err := servicePreApply(service, acl.ManageAll()); err != nil {
-				errors = append(errors, &structs.TxnError{
-					OpIndex: i,
-					What:    err.Error(),
-				})
-				break
-			}
-
-			// Check that the token has permissions for the given operation.
-			if err := vetServiceTxnOp(op.Service, authorizer); err != nil {
+			if err := servicePreApply(service, authorizer, op.Service.FillAuthzContext); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
