@@ -96,7 +96,7 @@ func (c *CAManager) reset() {
 // setState attempts to update the CA state to the given state.
 // Valid state transitions are:
 //
-// caStateInitialized -> <any state>
+// caStateInitialized -> <any state except caStateInitializing>
 // caStateUninitialized -> caStateInitializing
 // caStateUninitialized -> caStateReconfig
 //
@@ -109,14 +109,22 @@ func (c *CAManager) setState(newState caState, validateState bool) (caState, err
 	state := c.state
 
 	if !validateState ||
-		state == caStateInitialized ||
+		(state == caStateInitialized && newState != caStateInitializing) ||
 		(state == caStateUninitialized && newState == caStateInitializing) ||
 		(state == caStateUninitialized && newState == caStateReconfig) {
 		c.state = newState
 	} else {
-		return state, fmt.Errorf("CA is already in state %q", state)
+		return state, &caStateError{Current: state}
 	}
 	return state, nil
+}
+
+type caStateError struct {
+	Current caState
+}
+
+func (e *caStateError) Error() string {
+	return fmt.Sprintf("CA is already in state %q", e.Current)
 }
 
 // setPrimaryRoots updates the most recently seen roots from the primary.
@@ -308,12 +316,12 @@ func (c *CAManager) InitializeCA() (reterr error) {
 	}
 
 	// Update the state before doing anything else.
-	oldState, err := c.setState(caStateInitializing, true)
-	// if we were already in the initialized state then there is nothing to be done.
-	if oldState == caStateInitialized {
+	_, err := c.setState(caStateInitializing, true)
+	var errCaState *caStateError
+	switch {
+	case errors.As(err, &errCaState) && errCaState.Current == caStateInitialized:
 		return nil
-	}
-	if err != nil {
+	case err != nil:
 		return err
 	}
 
