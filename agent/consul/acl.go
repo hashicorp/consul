@@ -2247,23 +2247,6 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 	return nil
 }
 
-// vetServiceTxnOp applies the given ACL policy to a service transaction operation.
-func vetServiceTxnOp(op *structs.TxnServiceOp, rule acl.Authorizer) error {
-	// Fast path if ACLs are not enabled.
-	if rule == nil {
-		return nil
-	}
-
-	var authzContext acl.AuthorizerContext
-	op.FillAuthzContext(&authzContext)
-
-	if rule.ServiceWrite(op.Service.Service, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
-	}
-
-	return nil
-}
-
 // vetCheckTxnOp applies the given ACL policy to a check transaction operation.
 func vetCheckTxnOp(op *structs.TxnCheckOp, rule acl.Authorizer) error {
 	// Fast path if ACLs are not enabled.
