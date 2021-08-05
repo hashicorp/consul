@@ -1,0 +1,4 @@
+```release-note:bug
+txn: fixes Txn.Apply to properly authorize service registrations.
+```
+
