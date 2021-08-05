@@ -167,6 +167,11 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
+- `cas` `(int: 0)` - Specifies to use a Check-And-Set operation. If the index is
+  0, Consul will only store the entry if it does not already exist. If the index is
+  non-zero, the entry is only set if the current index matches the `ModifyIndex`
+  of that entry.
+
 - `Provider` `(string: <required>)` - Specifies the CA provider type to use.
 
 - `Config` `(map[string]string: <required>)` - The raw configuration to use
