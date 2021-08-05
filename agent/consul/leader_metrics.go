@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -156,6 +157,9 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			// "Zero-out" the metric on exit so that when prometheus scrapes this
+			// metric from a non-leader, it does not get a stale value.
+			metrics.SetGauge(m.Key, float32(math.NaN()))
 			return nil
 		case <-ticker.C:
 			fn()
