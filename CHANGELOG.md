@@ -2,6 +2,10 @@
 
 ## 1.10.1 (July 15, 2021)
 
+KNOWN ISSUES:
+
+* The change to enable streaming by default uncovered an incompatibility between streaming and WAN federation over mesh gateways causing traffic to fall back to attempting a direct WAN connection rather than transiting through the gateways. We currently suggest explicitly setting [`use_streaming_backend=false`](https://www.consul.io/docs/agent/options#use_streaming_backend) if using WAN federation over mesh gateways when upgrading to 1.10.1 and are working to address this issue in a future patch release.
+
 SECURITY:
 
 * xds: ensure envoy verifies the subject alternative name for upstreams [CVE-2021-32574](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-32574) [[GH-10621](https://github.com/hashicorp/consul/issues/10621)]
