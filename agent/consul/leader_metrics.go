@@ -140,6 +140,12 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 				logger.Warn("failed to emit certificate expiry metric", "error", err)
 				continue
 			}
+
+			if d < 24*time.Hour {
+				logger.Warn("certificate will expire soon",
+					"time_to_expiry", d, "expiration", time.Now().Add(d))
+			}
+
 			expiry := d / time.Second
 			metrics.SetGaugeWithLabels(m.Key, float32(expiry), m.Labels)
 		}
