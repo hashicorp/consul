@@ -16,19 +16,14 @@ To get a trial license for Consul-Terraform-Sync Enterprise, you can sign-up for
 
 ## Setting the License
 
-Consul-Terraform-Sync Enterprise binary is only offered without a built-in license. Depending on how you would like to set the license, have the license value at hand or saved in a file to disk.
+Depending on how you would like to set the license, have the license value at hand or saved in a file to disk.
 
-The options to set the license:
+The options to set the license in order of precedence:
  - `CONSUL_LICENSE`: environment variable to set the license value
  - `CONSUL_LICENSE_PATH`: environment variable to set the path to the file containing the license
  - [`license_path`](/docs/nia/configuration#license_path): configuration file variable to set the path to the file containing the license
 
-If multiple license options are set, the order of precedence is as follows:
-1. `CONSUL_LICENSE`
-1. `CONSUL_LICENSE_PATH`
-1. `license_path`
-
-Note: the [options to set the license and order of precedence](](/docs/enterprise/license/overview#binaries-without-built-in-licenses)) is the same as Consul Enterprise server agents.
+Note: the [options to set the license and order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) is the same as Consul Enterprise server agents.
 
 ## Notification and Termination Behavior
 
