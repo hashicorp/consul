@@ -205,7 +205,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
 				c.ACLMasterToken = masterToken
-				c.ACLDefaultPolicy = "deny"
+				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 				c.CAConfig.Config["test_state"] = dc1State
@@ -223,7 +223,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLDefaultPolicy = "deny"
+				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.ACLTokenReplication = true
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits

@@ -123,17 +123,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 
 	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config: ACLResolverSettings{
-			ACLsEnabled:      config.ACLsEnabled,
-			Datacenter:       config.Datacenter,
-			NodeName:         config.NodeName,
-			ACLPolicyTTL:     config.ACLPolicyTTL,
-			ACLTokenTTL:      config.ACLTokenTTL,
-			ACLRoleTTL:       config.ACLRoleTTL,
-			ACLDisabledTTL:   config.ACLDisabledTTL,
-			ACLDownPolicy:    config.ACLDownPolicy,
-			ACLDefaultPolicy: config.ACLDefaultPolicy,
-		},
+		Config:      config.ACLResolverSettings,
 		Delegate:    c,
 		Logger:      c.logger,
 		AutoDisable: true,

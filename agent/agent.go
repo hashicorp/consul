@@ -1115,21 +1115,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.ACLMasterToken != "" {
 		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
 	}
-	if runtimeCfg.ACLTokenTTL != 0 {
-		cfg.ACLTokenTTL = runtimeCfg.ACLTokenTTL
-	}
-	if runtimeCfg.ACLPolicyTTL != 0 {
-		cfg.ACLPolicyTTL = runtimeCfg.ACLPolicyTTL
-	}
-	if runtimeCfg.ACLRoleTTL != 0 {
-		cfg.ACLRoleTTL = runtimeCfg.ACLRoleTTL
-	}
-	if runtimeCfg.ACLDefaultPolicy != "" {
-		cfg.ACLDefaultPolicy = runtimeCfg.ACLDefaultPolicy
-	}
-	if runtimeCfg.ACLDownPolicy != "" {
-		cfg.ACLDownPolicy = runtimeCfg.ACLDownPolicy
-	}
+	// TODO: cfg.ACLResolverSettings = runtimeCfg.ACLResolverSettings
 	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
 	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
 	if runtimeCfg.ACLEnableKeyListPolicy {

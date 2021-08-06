@@ -212,7 +212,6 @@ type ACLResolverConfig struct {
 	Tokens *token.Store
 }
 
-// TODO: remove these fields from consul.Config and config.RuntimeConfig
 // TODO: rename the fields to remove the ACL prefix
 type ACLResolverSettings struct {
 	ACLsEnabled      bool

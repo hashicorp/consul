@@ -718,21 +718,11 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 
 func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func(*ACLResolverConfig)) *ACLResolver {
 	config := DefaultConfig()
-	config.ACLDefaultPolicy = "deny"
-	config.ACLDownPolicy = "extend-cache"
-	config.ACLsEnabled = delegate.enabled
+	config.ACLResolverSettings.ACLDefaultPolicy = "deny"
+	config.ACLResolverSettings.ACLDownPolicy = "extend-cache"
+	config.ACLResolverSettings.ACLsEnabled = delegate.enabled
 	rconf := &ACLResolverConfig{
-		Config: ACLResolverSettings{
-			ACLsEnabled:      config.ACLsEnabled,
-			Datacenter:       config.Datacenter,
-			NodeName:         config.NodeName,
-			ACLPolicyTTL:     config.ACLPolicyTTL,
-			ACLTokenTTL:      config.ACLTokenTTL,
-			ACLRoleTTL:       config.ACLRoleTTL,
-			ACLDisabledTTL:   config.ACLDisabledTTL,
-			ACLDownPolicy:    config.ACLDownPolicy,
-			ACLDefaultPolicy: config.ACLDefaultPolicy,
-		},
+		Config: config.ACLResolverSettings,
 		Logger: testutil.Logger(t),
 		CacheConfig: &structs.ACLCachesConfig{
 			Identities:     4,
@@ -2215,7 +2205,7 @@ func TestACL_Replication(t *testing.T) {
 		dir2, s2 := testServerWithConfig(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
-			c.ACLDefaultPolicy = "deny"
+			c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 			c.ACLDownPolicy = aclDownPolicy
 			c.ACLTokenReplication = true
 			c.ACLReplicationRate = 100
