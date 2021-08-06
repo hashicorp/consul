@@ -12,8 +12,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -55,7 +57,7 @@ const (
 	debugProtocolVersion = 1
 )
 
-func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
+func New(ui cli.Ui) *cmd {
 	ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
 		InfoPrefix:   "    ",
@@ -63,7 +65,7 @@ func New(ui cli.Ui, shutdownCh <-chan struct{}) *cmd {
 		Ui:           ui,
 	}
 
-	c := &cmd{UI: ui, shutdownCh: shutdownCh}
+	c := &cmd{UI: ui}
 	c.init()
 	return c
 }
@@ -73,8 +75,6 @@ type cmd struct {
 	flags *flag.FlagSet
 	http  *flags.HTTPFlags
 	help  string
-
-	shutdownCh <-chan struct{}
 
 	// flags
 	interval time.Duration
@@ -136,6 +136,9 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
 	if err := c.flags.Parse(args); err != nil {
 		c.UI.Error(fmt.Sprintf("Error parsing flags: %s", err))
 		return 1
@@ -197,8 +200,12 @@ func (c *cmd) Run(args []string) int {
 	// Capture dynamic information from the target agent, blocking for duration
 	if c.captureTarget(targetMetrics) || c.captureTarget(targetLogs) || c.captureTarget(targetProfiles) {
 		g := new(errgroup.Group)
-		g.Go(c.captureInterval)
-		g.Go(c.captureLongRunning)
+		g.Go(func() error {
+			return c.captureInterval(ctx)
+		})
+		g.Go(func() error {
+			return c.captureLongRunning(ctx)
+		})
 		err = g.Wait()
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error encountered during collection: %v", err))
@@ -333,7 +340,7 @@ func writeJSONFile(filename string, content interface{}) error {
 // captureInterval blocks for the duration of the command
 // specified by the duration flag, capturing the dynamic
 // targets at the interval specified
-func (c *cmd) captureInterval() error {
+func (c *cmd) captureInterval(ctx context.Context) error {
 	intervalChn := time.NewTicker(c.interval)
 	defer intervalChn.Stop()
 	durationChn := time.After(c.duration)
@@ -358,7 +365,7 @@ func (c *cmd) captureInterval() error {
 		case <-durationChn:
 			intervalChn.Stop()
 			return nil
-		case <-c.shutdownCh:
+		case <-ctx.Done():
 			return errors.New("stopping collection due to shutdown signal")
 		}
 	}
@@ -395,7 +402,7 @@ func (c *cmd) createTimestampDir(timestamp int64) (string, error) {
 	return timestampDir, nil
 }
 
-func (c *cmd) captureLongRunning() error {
+func (c *cmd) captureLongRunning(ctx context.Context) error {
 	timestamp := time.Now().Local().Unix()
 
 	timestampDir, err := c.createTimestampDir(timestamp)
@@ -411,24 +418,27 @@ func (c *cmd) captureLongRunning() error {
 	}
 	if c.captureTarget(targetProfiles) {
 		g.Go(func() error {
-			return c.captureProfile(s, timestampDir)
+			// use ctx without a timeout to allow the profile to finish sending
+			return c.captureProfile(ctx, s, timestampDir)
 		})
 
 		g.Go(func() error {
-			return c.captureTrace(s, timestampDir)
+			// use ctx without a timeout to allow the trace to finish sending
+			return c.captureTrace(ctx, s, timestampDir)
 		})
 	}
 	if c.captureTarget(targetLogs) {
 		g.Go(func() error {
-			return c.captureLogs(timestampDir)
+			ctx, cancel := context.WithTimeout(ctx, c.duration)
+			defer cancel()
+			return c.captureLogs(ctx, timestampDir)
 		})
 	}
 	if c.captureTarget(targetMetrics) {
-		// TODO: pass in context from caller
-		ctx, cancel := context.WithTimeout(context.Background(), c.duration)
-		defer cancel()
-
 		g.Go(func() error {
+
+			ctx, cancel := context.WithTimeout(ctx, c.duration)
+			defer cancel()
 			return c.captureMetrics(ctx, timestampDir)
 		})
 	}
@@ -445,22 +455,38 @@ func (c *cmd) captureGoRoutines(timestampDir string) error {
 	return ioutil.WriteFile(fmt.Sprintf("%s/goroutine.prof", timestampDir), gr, 0644)
 }
 
-func (c *cmd) captureTrace(s float64, timestampDir string) error {
-	trace, err := c.client.Debug().Trace(int(s))
-	if err != nil {
-		return fmt.Errorf("failed to collect trace: %w", err)
-	}
-
-	return ioutil.WriteFile(fmt.Sprintf("%s/trace.out", timestampDir), trace, 0644)
-}
-
-func (c *cmd) captureProfile(s float64, timestampDir string) error {
-	prof, err := c.client.Debug().Profile(int(s))
+func (c *cmd) captureTrace(ctx context.Context, s float64, timestampDir string) error {
+	prof, err := c.client.Debug().PProf(ctx, "trace", int(s))
 	if err != nil {
 		return fmt.Errorf("failed to collect cpu profile: %w", err)
 	}
+	defer prof.Close()
 
-	return ioutil.WriteFile(fmt.Sprintf("%s/profile.prof", timestampDir), prof, 0644)
+	r := bufio.NewReader(prof)
+	fh, err := os.Create(fmt.Sprintf("%s/trace.out", timestampDir))
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	_, err = r.WriteTo(fh)
+	return err
+}
+
+func (c *cmd) captureProfile(ctx context.Context, s float64, timestampDir string) error {
+	prof, err := c.client.Debug().PProf(ctx, "profile", int(s))
+	if err != nil {
+		return fmt.Errorf("failed to collect cpu profile: %w", err)
+	}
+	defer prof.Close()
+
+	r := bufio.NewReader(prof)
+	fh, err := os.Create(fmt.Sprintf("%s/profile.prof", timestampDir))
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	_, err = r.WriteTo(fh)
+	return err
 }
 
 func (c *cmd) captureHeap(timestampDir string) error {
@@ -472,15 +498,11 @@ func (c *cmd) captureHeap(timestampDir string) error {
 	return ioutil.WriteFile(fmt.Sprintf("%s/heap.prof", timestampDir), heap, 0644)
 }
 
-func (c *cmd) captureLogs(timestampDir string) error {
-	endLogChn := make(chan struct{})
-	timeIsUp := time.After(c.duration)
-	logCh, err := c.client.Agent().Monitor("DEBUG", endLogChn, nil)
+func (c *cmd) captureLogs(ctx context.Context, timestampDir string) error {
+	logCh, err := c.client.Agent().Monitor("DEBUG", ctx.Done(), nil)
 	if err != nil {
 		return err
 	}
-	// Close the log stream
-	defer close(endLogChn)
 
 	// Create the log file for writing
 	f, err := os.Create(fmt.Sprintf("%s/%s", timestampDir, "consul.log"))
@@ -498,7 +520,7 @@ func (c *cmd) captureLogs(timestampDir string) error {
 			if _, err = f.WriteString(log + "\n"); err != nil {
 				return err
 			}
-		case <-timeIsUp:
+		case <-ctx.Done():
 			return nil
 		}
 	}

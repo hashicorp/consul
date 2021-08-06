@@ -26,7 +26,7 @@ import (
 )
 
 func TestDebugCommand_Help_TextContainsNoTabs(t *testing.T) {
-	if strings.ContainsRune(New(cli.NewMockUi(), nil).Help(), '\t') {
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
@@ -46,7 +46,7 @@ func TestDebugCommand(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -92,7 +92,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -137,7 +137,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 
 func TestDebugCommand_ArgsBad(t *testing.T) {
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 
 	args := []string{"foo", "bad"}
 
@@ -153,7 +153,7 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 
 func TestDebugCommand_InvalidFlags(t *testing.T) {
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := ""
@@ -186,7 +186,7 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := ""
@@ -219,7 +219,7 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -304,7 +304,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 		ui := cli.NewMockUi()
-		cmd := New(ui, nil)
+		cmd := New(ui)
 		cmd.validateTiming = false
 
 		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
@@ -387,7 +387,7 @@ func TestDebugCommand_CaptureLogs(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 		ui := cli.NewMockUi()
-		cmd := New(ui, nil)
+		cmd := New(ui)
 		cmd.validateTiming = false
 
 		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
@@ -480,7 +480,7 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -548,7 +548,7 @@ func TestDebugCommand_Prepare_ValidateTiming(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			ui := cli.NewMockUi()
-			cmd := New(ui, nil)
+			cmd := New(ui)
 
 			args := []string{
 				"-duration=" + tc.duration,
@@ -579,7 +579,7 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
