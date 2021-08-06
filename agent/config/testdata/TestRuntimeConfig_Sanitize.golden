@@ -1,13 +1,18 @@
 {
-    "ACLDefaultPolicy": "",
-    "ACLDisabledTTL": "0s",
-    "ACLDownPolicy": "",
     "ACLEnableKeyListPolicy": false,
     "ACLMasterToken": "hidden",
-    "ACLPolicyTTL": "0s",
-    "ACLRoleTTL": "0s",
+    "ACLResolverSettings": {
+        "ACLDefaultPolicy": "",
+        "ACLDisabledTTL": "0s",
+        "ACLDownPolicy": "",
+        "ACLPolicyTTL": "0s",
+        "ACLRoleTTL": "0s",
+        "ACLTokenTTL": "0s",
+        "ACLsEnabled": false,
+        "Datacenter": "",
+        "NodeName": ""
+    },
     "ACLTokenReplication": false,
-    "ACLTokenTTL": "0s",
     "ACLTokens": {
         "ACLAgentMasterToken": "hidden",
         "ACLAgentToken": "hidden",

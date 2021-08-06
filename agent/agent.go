@@ -542,13 +542,13 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	var intentionDefaultAllow bool
-	switch a.config.ACLDefaultPolicy {
+	switch a.config.ACLResolverSettings.ACLDefaultPolicy {
 	case "allow":
 		intentionDefaultAllow = true
 	case "deny":
 		intentionDefaultAllow = false
 	default:
-		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLDefaultPolicy)
+		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
 	}
 
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
@@ -1023,6 +1023,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.PrimaryDatacenter = runtimeCfg.PrimaryDatacenter
 	cfg.DataDir = runtimeCfg.DataDir
 	cfg.NodeName = runtimeCfg.NodeName
+	cfg.ACLResolverSettings = runtimeCfg.ACLResolverSettings
 
 	cfg.CoordinateUpdateBatchSize = runtimeCfg.ConsulCoordinateUpdateBatchSize
 	cfg.CoordinateUpdateMaxBatches = runtimeCfg.ConsulCoordinateUpdateMaxBatches
@@ -1115,7 +1116,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.ACLMasterToken != "" {
 		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
 	}
-	// TODO: cfg.ACLResolverSettings = runtimeCfg.ACLResolverSettings
 	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
 	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
 	if runtimeCfg.ACLEnableKeyListPolicy {

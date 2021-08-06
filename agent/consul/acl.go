@@ -214,14 +214,42 @@ type ACLResolverConfig struct {
 
 // TODO: rename the fields to remove the ACL prefix
 type ACLResolverSettings struct {
-	ACLsEnabled      bool
-	Datacenter       string
-	NodeName         string
-	ACLPolicyTTL     time.Duration
-	ACLTokenTTL      time.Duration
-	ACLRoleTTL       time.Duration
-	ACLDisabledTTL   time.Duration
-	ACLDownPolicy    string
+	ACLsEnabled bool
+	Datacenter  string
+	NodeName    string
+
+	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	ACLPolicyTTL time.Duration
+	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	ACLTokenTTL time.Duration
+	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	ACLRoleTTL time.Duration
+
+	// ACLDisabledTTL is used by agents to determine how long they will
+	// wait to check again with the servers if they discover ACLs are not
+	// enabled. (not user configurable)
+	ACLDisabledTTL time.Duration
+
+	// ACLDownPolicy is used to control the ACL interaction when we cannot
+	// reach the PrimaryDatacenter and the token is not in the cache.
+	// There are the following modes:
+	//   * allow - Allow all requests
+	//   * deny - Deny all requests
+	//   * extend-cache - Ignore the cache expiration, and allow cached
+	//                    ACL's to be used to service requests. This
+	//                    is the default. If the ACL is not in the cache,
+	//                    this acts like deny.
+	//   * async-cache - Same behavior as extend-cache, but perform ACL
+	//                   Lookups asynchronously when cache TTL is expired.
+	ACLDownPolicy string
+
+	// ACLDefaultPolicy is used to control the ACL interaction when
+	// there is no defined policy. This can be "allow" which means
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	ACLDefaultPolicy string
 }
 
@@ -251,7 +279,6 @@ type ACLResolverSettings struct {
 //   upon.
 //
 type ACLResolver struct {
-	// TODO: store the ACLResolverConfig as a field instead of copying all the fields onto ACLResolver.
 	config ACLResolverSettings
 	logger hclog.Logger
 

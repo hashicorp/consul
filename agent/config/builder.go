@@ -830,7 +830,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	dataDir := stringVal(c.DataDir)
 	rt = RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
@@ -866,15 +865,23 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GossipWANRetransmitMult: intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
-		ACLsEnabled:            aclsEnabled,
-		ACLDefaultPolicy:       stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
-		ACLDownPolicy:          stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
+		ACLsEnabled: aclsEnabled,
+		ACLResolverSettings: consul.ACLResolverSettings{
+			ACLsEnabled:      aclsEnabled,
+			Datacenter:       datacenter,
+			NodeName:         b.nodeName(c.NodeName),
+			ACLPolicyTTL:     b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
+			ACLTokenTTL:      b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+			ACLRoleTTL:       b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
+			ACLDisabledTTL:   b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
+			ACLDownPolicy:    stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
+			ACLDefaultPolicy: stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
+		},
+
 		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
 		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
-		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
-		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-		ACLRoleTTL:             b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-		ACLTokenReplication:    boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+
+		ACLTokenReplication: boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
 
 		ACLTokens: token.Config{
 			DataDir:             dataDir,
