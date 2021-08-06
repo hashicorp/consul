@@ -258,17 +258,17 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		"single": {
 			[]string{"agent"},
 			[]string{"agent.json"},
-			[]string{"host.json", "cluster.json"},
+			[]string{"host.json", "members.json"},
 		},
 		"static": {
 			[]string{"agent", "host", "cluster"},
-			[]string{"agent.json", "host.json", "cluster.json"},
+			[]string{"agent.json", "host.json", "members.json"},
 			[]string{"*/metrics.json"},
 		},
 		"metrics-only": {
 			[]string{"metrics"},
 			[]string{"*/metrics.json"},
-			[]string{"agent.json", "host.json", "cluster.json"},
+			[]string{"agent.json", "host.json", "members.json"},
 		},
 		"all-but-pprof": {
 			[]string{
@@ -281,7 +281,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			[]string{
 				"host.json",
 				"agent.json",
-				"cluster.json",
+				"members.json",
 				"*/metrics.json",
 				"*/consul.log",
 			},
