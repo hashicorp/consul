@@ -679,30 +679,17 @@ func (c *cmd) createArchiveTemp(path string) (tempName string, err error) {
 // defaultTargets specifies the list of all targets that
 // will be captured by default
 func (c *cmd) defaultTargets() []string {
-	return append(c.dynamicTargets(), c.staticTargets()...)
-}
-
-// dynamicTargets returns all the supported targets
-// that are retrieved at the interval specified
-func (c *cmd) dynamicTargets() []string {
-	return []string{"metrics", "logs", "pprof"}
-}
-
-// staticTargets returns all the supported targets
-// that are retrieved at the start of the command execution
-func (c *cmd) staticTargets() []string {
-	return []string{"host", "agent", "cluster"}
+	return []string{"metrics", "logs", "pprof", "host", "agent", "cluster"}
 }
 
 func (c *cmd) Synopsis() string {
-	return synopsis
+	return "Records a debugging archive for operators"
 }
 
 func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Records a debugging archive for operators"
 const help = `
 Usage: consul debug [options]
 
