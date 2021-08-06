@@ -18,10 +18,9 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -86,8 +85,6 @@ type cmd struct {
 	// validateTiming can be used to skip validation of interval, duration. This
 	// is primarily useful for testing
 	validateTiming bool
-
-	index *debugIndex
 }
 
 // debugIndex is used to manage the summary of all data recorded
@@ -178,15 +175,6 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Info(fmt.Sprintf("        Output: '%s'", archiveName))
 	c.UI.Info(fmt.Sprintf("       Capture: '%s'", strings.Join(c.capture, ", ")))
 
-	// Record some information for the index at the root of the archive
-	index := &debugIndex{
-		Version:      debugProtocolVersion,
-		AgentVersion: version,
-		Interval:     c.interval.String(),
-		Duration:     c.duration.String(),
-		Targets:      c.capture,
-	}
-
 	// Add the extra grace period to ensure
 	// all intervals will be captured within the time allotted
 	c.duration = c.duration + debugDurationGrace
@@ -212,15 +200,15 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	// Write the index document
-	idxMarshalled, err := json.MarshalIndent(index, "", "\t")
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error marshalling index document: %v", err))
-		return 1
+	// Record some information for the index at the root of the archive
+	index := &debugIndex{
+		Version:      debugProtocolVersion,
+		AgentVersion: version,
+		Interval:     c.interval.String(),
+		Duration:     c.duration.String(),
+		Targets:      c.capture,
 	}
-
-	err = ioutil.WriteFile(fmt.Sprintf("%s/index.json", c.output), idxMarshalled, 0644)
-	if err != nil {
+	if err := writeJSONFile(fmt.Sprintf("%s/index.json", c.output), index); err != nil {
 		c.UI.Error(fmt.Sprintf("Error creating index document: %v", err))
 		return 1
 	}
@@ -346,13 +334,13 @@ func (c *cmd) captureInterval(ctx context.Context) error {
 	durationChn := time.After(c.duration)
 	intervalCount := 0
 
-	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local().String(), intervalCount))
+	c.UI.Output(fmt.Sprintf("Beginning capture interval %s (%d)", time.Now().Local(), intervalCount))
 
 	err := captureShortLived(c)
 	if err != nil {
 		return err
 	}
-	c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Now().Local().String(), intervalCount))
+	c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", time.Now().Local(), intervalCount))
 	for {
 		select {
 		case t := <-intervalChn.C:
@@ -361,7 +349,7 @@ func (c *cmd) captureInterval(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local().String(), intervalCount))
+			c.UI.Output(fmt.Sprintf("Capture successful %s (%d)", t.Local(), intervalCount))
 		case <-durationChn:
 			intervalChn.Stop()
 			return nil
@@ -436,7 +424,6 @@ func (c *cmd) captureLongRunning(ctx context.Context) error {
 	}
 	if c.captureTarget(targetMetrics) {
 		g.Go(func() error {
-
 			ctx, cancel := context.WithTimeout(ctx, c.duration)
 			defer cancel()
 			return c.captureMetrics(ctx, timestampDir)
