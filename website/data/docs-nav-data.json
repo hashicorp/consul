@@ -652,6 +652,10 @@
         "path": "nia/configuration"
       },
       {
+        "title": "License",
+        "path": "nia/license"
+      },
+      {
         "title": "Tasks",
         "path": "nia/tasks"
       },
