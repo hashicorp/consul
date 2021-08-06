@@ -810,7 +810,7 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 				0,
 			)
 			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError(err)
+			s.updateACLReplicationStatusError(err.Error())
 			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
 		} else {
 			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
@@ -927,7 +927,7 @@ func (s *Server) runACLReplicator(
 				0,
 			)
 			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError(err)
+			s.updateACLReplicationStatusError(err.Error())
 			logger.Warn("ACL replication error (will retry if still leader)",
 				"error", err,
 			)
