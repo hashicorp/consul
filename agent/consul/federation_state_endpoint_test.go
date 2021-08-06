@@ -27,6 +27,7 @@ func TestFederationState_Apply_Upsert(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -190,6 +191,7 @@ func TestFederationState_Get(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -306,6 +308,7 @@ func TestFederationState_List(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -596,6 +599,7 @@ func TestFederationState_Apply_Delete(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

@@ -331,20 +331,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, err
 	}
 
-	// Set the primary DC if it wasn't set.
-	// TODO: remove
-	if config.PrimaryDatacenter == "" {
-		if config.PrimaryDatacenter != "" {
-			config.PrimaryDatacenter = config.PrimaryDatacenter
-		} else {
-			config.PrimaryDatacenter = config.Datacenter
-		}
-	}
-
-	if config.PrimaryDatacenter != "" {
-		config.PrimaryDatacenter = config.PrimaryDatacenter
-	}
-
 	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {

@@ -55,6 +55,7 @@ func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
 				// Initialize primary as the primary DC
 				dir1, srv := testServerWithConfig(t, func(c *Config) {
 					c.Datacenter = "dc1"
+					c.PrimaryDatacenter = "dc1"
 					c.Build = "1.6.0"
 					c.CAConfig.Config["PrivateKeyType"] = src.keyType
 					c.CAConfig.Config["PrivateKeyBits"] = src.keyBits
@@ -600,6 +601,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -850,6 +852,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

@@ -670,6 +670,7 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 	// Initialize primary as the primary DC
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "primary"
+		c.PrimaryDatacenter = "primary"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -842,6 +843,7 @@ func TestConnectCASign(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 			dir1, s1 := testServerWithConfig(t, func(cfg *Config) {
+				cfg.PrimaryDatacenter = "dc1"
 				cfg.CAConfig.Config["PrivateKeyType"] = tt.caKeyType
 				cfg.CAConfig.Config["PrivateKeyBits"] = tt.caKeyBits
 			})
@@ -931,6 +933,7 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		c.CAConfig.Config = map[string]interface{}{
 			// It actually doesn't work as expected with some higher values because
@@ -996,6 +999,7 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 	require := require.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		c.CAConfig.Config = map[string]interface{}{
 			// Must disable the rate limit since it takes precedence

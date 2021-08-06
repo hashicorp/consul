@@ -1232,6 +1232,7 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLsEnabled = true
+		c.PrimaryDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)

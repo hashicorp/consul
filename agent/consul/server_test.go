@@ -125,6 +125,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
+	config.PrimaryDatacenter = "dc1"
 	config.DataDir = dir
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
@@ -195,6 +196,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 func testServer(t *testing.T) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 	})
 }
@@ -209,6 +211,7 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
+		c.PrimaryDatacenter = dc
 		c.Bootstrap = bootstrap
 	})
 }
