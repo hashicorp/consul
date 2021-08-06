@@ -64,8 +64,8 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 	// in legacy mode the clients should directly query the
 	// ACL Datacenter. When no ACL datacenter has been set
 	// then we assume that the local DC is the ACL DC
-	if legacy && c.config.ACLDatacenter != "" {
-		return c.config.ACLDatacenter
+	if legacy && c.config.PrimaryDatacenter != "" {
+		return c.config.PrimaryDatacenter
 	}
 
 	return c.config.Datacenter

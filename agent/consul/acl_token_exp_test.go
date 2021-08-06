@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestACLTokenReap_Primary(t *testing.T) {
@@ -41,7 +42,7 @@ func testACLTokenReap_Primary(t *testing.T, local, global bool) {
 	require.NotEqual(t, local, global)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond

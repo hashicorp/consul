@@ -200,7 +200,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// Initialize primary as the primary DC
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
 				c.Datacenter = "primary"
-				c.ACLDatacenter = "primary"
+				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
 				c.ACLMasterToken = masterToken
@@ -219,7 +219,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// secondary as a secondary DC
 			dir2, s2 := testServerWithConfig(t, func(c *Config) {
 				c.Datacenter = "secondary"
-				c.ACLDatacenter = "primary"
+				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
 				c.ACLDefaultPolicy = "deny"

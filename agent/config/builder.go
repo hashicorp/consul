@@ -867,7 +867,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 		// ACL
 		ACLsEnabled:            aclsEnabled,
-		ACLDatacenter:          primaryDatacenter,
 		ACLDefaultPolicy:       stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
 		ACLDownPolicy:          stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
 		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
@@ -1311,7 +1310,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
-	if err := validateBasicName("acl_datacenter", rt.ACLDatacenter, true); err != nil {
+	if err := validateBasicName("primary_datacenter", rt.PrimaryDatacenter, true); err != nil {
 		return err
 	}
 	// In DevMode, UI is enabled by default, so to enable rt.UIDir, don't perform this check

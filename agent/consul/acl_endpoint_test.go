@@ -33,7 +33,7 @@ func TestACLEndpoint_Bootstrap(t *testing.T) {
 	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
 		c.Build = "0.8.0" // Too low for auto init of bootstrap.
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		// remove the default as we want to bootstrap
 		c.ACLMasterToken = ""
@@ -490,7 +490,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 
 	t.Parallel()
 	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc2"
+		c.PrimaryDatacenter = "dc2"
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100
 		c.ACLReplicationBurst = 100

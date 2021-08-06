@@ -332,16 +332,17 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	}
 
 	// Set the primary DC if it wasn't set.
+	// TODO: remove
 	if config.PrimaryDatacenter == "" {
-		if config.ACLDatacenter != "" {
-			config.PrimaryDatacenter = config.ACLDatacenter
+		if config.PrimaryDatacenter != "" {
+			config.PrimaryDatacenter = config.PrimaryDatacenter
 		} else {
 			config.PrimaryDatacenter = config.Datacenter
 		}
 	}
 
 	if config.PrimaryDatacenter != "" {
-		config.ACLDatacenter = config.PrimaryDatacenter
+		config.PrimaryDatacenter = config.PrimaryDatacenter
 	}
 
 	// Create the tombstone GC.

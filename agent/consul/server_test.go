@@ -74,7 +74,7 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 // up all of the ACL configurations (so they can still be overridden)
 func testServerACLConfig(cb func(*Config)) func(*Config) {
 	return func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
 		c.ACLDefaultPolicy = "deny"
@@ -349,11 +349,11 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "bee")
 
 	require.Equal(t, "aye", s1.config.Datacenter)
-	require.Equal(t, "aye", s1.config.ACLDatacenter)
+	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
 	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
 
 	require.Equal(t, "bee", s2.config.Datacenter)
-	require.Equal(t, "aye", s2.config.ACLDatacenter)
+	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 }
 

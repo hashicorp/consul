@@ -152,7 +152,7 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -281,7 +281,7 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -494,7 +494,7 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -579,7 +579,7 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -738,7 +738,7 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -1960,7 +1960,7 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"

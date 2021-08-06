@@ -6,15 +6,16 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/hashicorp/go-uuid"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	uuid "github.com/hashicorp/go-uuid"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFederationState_Apply_Upsert(t *testing.T) {
@@ -112,7 +113,7 @@ func TestFederationState_Apply_Upsert_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -232,7 +233,7 @@ func TestFederationState_Get_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -403,7 +404,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -419,7 +420,7 @@ func TestFederationState_List_ACLDeny(t *testing.T) {
 		c.DisableFederationStateAntiEntropy = true
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -678,7 +679,7 @@ func TestFederationState_Apply_Delete_ACLDeny(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.DisableFederationStateAntiEntropy = true
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"

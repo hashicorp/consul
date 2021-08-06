@@ -27,7 +27,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
@@ -62,7 +62,7 @@ func TestLeader_ReplicateIntentions(t *testing.T) {
 	// dc2 as a secondary DC
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLDefaultPolicy = "deny"
 		c.ACLTokenReplication = false

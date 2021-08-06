@@ -19,7 +19,7 @@ func (s *HTTPHandlers) ACLDestroy(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	args := structs.ACLRequest{
-		Datacenter: s.agent.config.ACLDatacenter,
+		Datacenter: s.agent.config.PrimaryDatacenter,
 		Op:         structs.ACLDelete,
 	}
 	s.parseToken(req, &args.Token)
@@ -55,7 +55,7 @@ func (s *HTTPHandlers) ACLUpdate(resp http.ResponseWriter, req *http.Request) (i
 
 func (s *HTTPHandlers) aclSet(resp http.ResponseWriter, req *http.Request, update bool) (interface{}, error) {
 	args := structs.ACLRequest{
-		Datacenter: s.agent.config.ACLDatacenter,
+		Datacenter: s.agent.config.PrimaryDatacenter,
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Type: structs.ACLTokenTypeClient,
@@ -96,7 +96,7 @@ func (s *HTTPHandlers) ACLClone(resp http.ResponseWriter, req *http.Request) (in
 	}
 
 	args := structs.ACLSpecificRequest{
-		Datacenter: s.agent.config.ACLDatacenter,
+		Datacenter: s.agent.config.PrimaryDatacenter,
 	}
 	var dc string
 	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
@@ -148,7 +148,7 @@ func (s *HTTPHandlers) ACLGet(resp http.ResponseWriter, req *http.Request) (inte
 	}
 
 	args := structs.ACLSpecificRequest{
-		Datacenter: s.agent.config.ACLDatacenter,
+		Datacenter: s.agent.config.PrimaryDatacenter,
 	}
 	var dc string
 	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
@@ -182,7 +182,7 @@ func (s *HTTPHandlers) ACLList(resp http.ResponseWriter, req *http.Request) (int
 	}
 
 	args := structs.DCSpecificRequest{
-		Datacenter: s.agent.config.ACLDatacenter,
+		Datacenter: s.agent.config.PrimaryDatacenter,
 	}
 	var dc string
 	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
