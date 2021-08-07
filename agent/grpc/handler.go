@@ -10,6 +10,9 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 )
 
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
@@ -20,8 +23,14 @@ func NewHandler(addr net.Addr, register func(server *grpc.Server)) *Handler {
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
+		middleware.WithUnaryServerChain(
+			recovery.UnaryServerInterceptor(),
+		),
+		middleware.WithStreamServerChain(
+			recovery.StreamServerInterceptor(),
+			(&activeStreamCounter{metrics: metrics}).Intercept,
+		),
 		grpc.StatsHandler(newStatsHandler(metrics)),
-		grpc.StreamInterceptor((&activeStreamCounter{metrics: metrics}).Intercept),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime: 15 * time.Second,
 		}),

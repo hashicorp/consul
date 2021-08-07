@@ -13,6 +13,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -547,6 +549,12 @@ func tokenFromContext(ctx context.Context) string {
 func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
+		middleware.WithUnaryServerChain(
+			recovery.UnaryServerInterceptor(),
+		),
+		middleware.WithStreamServerChain(
+			recovery.StreamServerInterceptor(),
+		),
 	}
 	if tlsConfigurator != nil {
 		if tlsConfigurator.Cert() != nil {
