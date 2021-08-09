@@ -343,6 +343,20 @@ RPC:
 		}
 		upstreamResp = append(upstreamResp, &sum)
 	}
+	for k, v := range out.ServiceTopology.UpstreamSources {
+		if v == structs.TopologySourceRoutingConfig {
+			sn := structs.ServiceNameFromString(k)
+			sum := ServiceTopologySummary{
+				ServiceSummary: ServiceSummary{
+					Name:           sn.Name,
+					EnterpriseMeta: sn.EnterpriseMeta,
+				},
+				Intention: out.ServiceTopology.UpstreamDecisions[sn.String()],
+				Source:    out.ServiceTopology.UpstreamSources[sn.String()],
+			}
+			upstreamResp = append(upstreamResp, &sum)
+		}
+	}
 
 	sortedDownstreams := prepSummaryOutput(downstreams, true)
 	for _, svc := range sortedDownstreams {

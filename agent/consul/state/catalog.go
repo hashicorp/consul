@@ -3092,14 +3092,8 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var (
-		seenUpstreams   = make(map[string]struct{})
-		upstreamSources = make(map[string]string)
-	)
+	var upstreamSources = make(map[string]string)
 	for _, un := range upstreamNames {
-		if _, ok := seenUpstreams[un.String()]; !ok {
-			seenUpstreams[un.String()] = struct{}{}
-		}
 		upstreamSources[un.String()] = structs.TopologySourceRegistration
 	}
 
@@ -3113,7 +3107,7 @@ func (s *Store) ServiceTopology(
 
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 	for _, svc := range intentionUpstreams {
-		if _, ok := seenUpstreams[svc.Name.String()]; ok {
+		if _, ok := upstreamSources[svc.Name.String()]; ok {
 			// Avoid duplicating entry
 			continue
 		}
@@ -3132,7 +3126,7 @@ func (s *Store) ServiceTopology(
 		upstreamSources[svc.Name.String()] = source
 	}
 
-	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
+	idx, unfilteredUpstreams, notFoundUpstreamNames, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
 	}
@@ -3178,6 +3172,22 @@ func (s *Store) ServiceTopology(
 		upstreamDecisions[un.String()] = decision
 	}
 
+	// Check upstream names that had no service instances to see if they are routing config.
+	for _, un := range notFoundUpstreamNames {
+		for _, kind := range serviceGraphKinds {
+			idx, entry, err := configEntryTxn(tx, ws, kind, un.Name, &un.EnterpriseMeta)
+			if err != nil {
+				return 0, nil, err
+			}
+			if entry != nil {
+				upstreamSources[un.String()] = structs.TopologySourceRoutingConfig
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+		}
+	}
+
 	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
 	if err != nil {
 		return 0, nil, err
@@ -3186,14 +3196,8 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var (
-		seenDownstreams   = make(map[string]struct{})
-		downstreamSources = make(map[string]string)
-	)
+	var downstreamSources = make(map[string]string)
 	for _, dn := range downstreamNames {
-		if _, ok := seenDownstreams[dn.String()]; !ok {
-			seenDownstreams[dn.String()] = struct{}{}
-		}
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
@@ -3207,7 +3211,7 @@ func (s *Store) ServiceTopology(
 
 	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 	for _, svc := range intentionDownstreams {
-		if _, ok := seenDownstreams[svc.Name.String()]; ok {
+		if _, ok := downstreamSources[svc.Name.String()]; ok {
 			// Avoid duplicating entry
 			continue
 		}
@@ -3226,7 +3230,7 @@ func (s *Store) ServiceTopology(
 		downstreamSources[svc.Name.String()] = source
 	}
 
-	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+	idx, unfilteredDownstreams, _, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
 	}
@@ -3291,32 +3295,45 @@ func (s *Store) ServiceTopology(
 
 // combinedServiceNodesTxn returns typical and connect endpoints for a list of services.
 // This enabled aggregating checks statuses across both.
-func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
+// Returns a slice of ServiceNames not associated with a ServiceNode instance.
+func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, []structs.ServiceName, error) {
 	var (
-		maxIdx uint64
-		resp   structs.CheckServiceNodes
+		maxIdx   uint64
+		resp     structs.CheckServiceNodes
+		notFound []structs.ServiceName
 	)
 	for _, u := range names {
+		var found bool
 		// Collect typical then connect instances
 		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 		if idx > maxIdx {
 			maxIdx = idx
+		}
+		if len(csn) > 0 {
+			found = true
 		}
 		resp = append(resp, csn...)
 
 		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 		if idx > maxIdx {
 			maxIdx = idx
 		}
+		if len(csn) > 0 {
+			found = true
+		}
 		resp = append(resp, csn...)
+
+		if !found {
+			notFound = append(notFound, u)
+		}
 	}
-	return maxIdx, resp, nil
+	return maxIdx, resp, notFound, nil
 }
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
