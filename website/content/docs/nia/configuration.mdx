@@ -38,6 +38,7 @@ buffer_period {
   - `facility` - (string: "local0") Name of the syslog facility to log to.
   - `name` - (string: "consul-terraform-sync") Name to use for the daemon process when logging to syslog.
 - `working_dir` - (string: "sync-tasks") The base working directory to manage generated artifacts by Consul-Terraform-Sync, including Terraform configuration files for each task. Each task will have a subdirectory used as the working directory, e.g. `./sync-tasks/task-name`. The working directory for tasks can be overridden using the [`task.working_dir`](#working_dir-1) option.
+ - `license_path` <EnterpriseAlert inline /> - (string: "") Configures the path to the file containing the license. License must be set in order to use enterprise but can be alternatively set through environment variables `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` instead. See section on [setting a license](/docs/nia/enterprise/license#setting-the-license) for more details.
 
 ## Consul
 
