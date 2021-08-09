@@ -429,7 +429,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		Config:      config.ACLResolverSettings,
 		Delegate:    s,
 		CacheConfig: serverACLCacheConfig,
-		AutoDisable: false,
 		Logger:      logger,
 		ACLConfig:   s.aclConfig,
 		Tokens:      flat.Tokens,

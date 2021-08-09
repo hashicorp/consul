@@ -345,6 +345,9 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 }
 
 func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	args := []struct {
 		testName              string
