@@ -206,7 +206,7 @@ entries](/docs/connect/config-entries/service-resolver) are intended to replace
 Prepared Queries in Consul entirely, but for now these are still used in some
 configurations.
 
-## Sidecar instantiation
+## Sidecar Instantiation
 
 Consul does not start or manage sidecar proxies processes. Proxies running on a
 physical host or VM are designed to be started and run by process supervisor
@@ -218,9 +218,15 @@ The proxy will use the [`CONSUL_HTTP_TOKEN`](/commands#consul_http_token) and
 [`CONSUL_HTTP_ADDR`](/commands#consul_http_addr) environment variables to
 contact Consul to fetch certificates, provided the `CONSUL_HTTP_TOKEN`
 environment variable contains a Consul ACL that has the necessary permissions
-to read configuration for that service. If you use our Go [`api` package] then
+to read configuration for that service. If you use our Go [`api` package], then
 those environment variables will be read and the client configured for you
 automatically.
+
+If TLS is enabled on Consul, you will also need to add the following environment variables _prior_ to starting the proxy:
+
+- [`CONSUL_CACERT`](/commands#consul_cacert)
+- [`CONSUL_CLIENT_CERT`](/commands#consul_client_cert)
+- [`CONSUL_CLIENT_KEY`](/commands#consul_client_key)
 
 The ID of the proxy service comes from the user. See [`consul connect envoy`](/commands/connect/envoy) as an example. You may start it with the
 `-proxy-id` flag and pass the ID of the proxy service you registered elsewhere.
