@@ -5241,7 +5241,6 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLsEnabled:      true,
 			Datacenter:       "rzo029wg",
 			NodeName:         "otlLxGaI",
-			ACLDisabledTTL:   120 * time.Second,
 			ACLDefaultPolicy: "72c2e7a0",
 			ACLDownPolicy:    "03eb2aee",
 			ACLTokenTTL:      3321 * time.Second,

@@ -3,7 +3,6 @@
     "ACLMasterToken": "hidden",
     "ACLResolverSettings": {
         "ACLDefaultPolicy": "",
-        "ACLDisabledTTL": "0s",
         "ACLDownPolicy": "",
         "ACLPolicyTTL": "0s",
         "ACLRoleTTL": "0s",

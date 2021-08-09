@@ -184,9 +184,6 @@ func NonUserSource() Source {
 		Name:   "non-user",
 		Format: "hcl",
 		Data: `
-		acl = {
-			disabled_ttl = "120s"
-		}
 		check_deregister_interval_min = "1m"
 		check_reap_interval = "30s"
 		ae_interval = "1m"

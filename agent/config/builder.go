@@ -873,7 +873,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLPolicyTTL:     b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
 			ACLTokenTTL:      b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 			ACLRoleTTL:       b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-			ACLDisabledTTL:   b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
 			ACLDownPolicy:    stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
 			ACLDefaultPolicy: stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
 		},

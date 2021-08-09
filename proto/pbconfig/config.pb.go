@@ -323,20 +323,22 @@ func (m *TLS) GetPreferServerCipherSuites() bool {
 }
 
 type ACL struct {
-	Enabled                bool       `protobuf:"varint,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
-	PolicyTTL              string     `protobuf:"bytes,2,opt,name=PolicyTTL,proto3" json:"PolicyTTL,omitempty"`
-	RoleTTL                string     `protobuf:"bytes,3,opt,name=RoleTTL,proto3" json:"RoleTTL,omitempty"`
-	TokenTTL               string     `protobuf:"bytes,4,opt,name=TokenTTL,proto3" json:"TokenTTL,omitempty"`
-	DownPolicy             string     `protobuf:"bytes,5,opt,name=DownPolicy,proto3" json:"DownPolicy,omitempty"`
-	DefaultPolicy          string     `protobuf:"bytes,6,opt,name=DefaultPolicy,proto3" json:"DefaultPolicy,omitempty"`
-	EnableKeyListPolicy    bool       `protobuf:"varint,7,opt,name=EnableKeyListPolicy,proto3" json:"EnableKeyListPolicy,omitempty"`
-	Tokens                 *ACLTokens `protobuf:"bytes,8,opt,name=Tokens,proto3" json:"Tokens,omitempty"`
-	DisabledTTL            string     `protobuf:"bytes,9,opt,name=DisabledTTL,proto3" json:"DisabledTTL,omitempty"`
-	EnableTokenPersistence bool       `protobuf:"varint,10,opt,name=EnableTokenPersistence,proto3" json:"EnableTokenPersistence,omitempty"`
-	MSPDisableBootstrap    bool       `protobuf:"varint,11,opt,name=MSPDisableBootstrap,proto3" json:"MSPDisableBootstrap,omitempty"`
-	XXX_NoUnkeyedLiteral   struct{}   `json:"-"`
-	XXX_unrecognized       []byte     `json:"-"`
-	XXX_sizecache          int32      `json:"-"`
+	Enabled             bool       `protobuf:"varint,1,opt,name=Enabled,proto3" json:"Enabled,omitempty"`
+	PolicyTTL           string     `protobuf:"bytes,2,opt,name=PolicyTTL,proto3" json:"PolicyTTL,omitempty"`
+	RoleTTL             string     `protobuf:"bytes,3,opt,name=RoleTTL,proto3" json:"RoleTTL,omitempty"`
+	TokenTTL            string     `protobuf:"bytes,4,opt,name=TokenTTL,proto3" json:"TokenTTL,omitempty"`
+	DownPolicy          string     `protobuf:"bytes,5,opt,name=DownPolicy,proto3" json:"DownPolicy,omitempty"`
+	DefaultPolicy       string     `protobuf:"bytes,6,opt,name=DefaultPolicy,proto3" json:"DefaultPolicy,omitempty"`
+	EnableKeyListPolicy bool       `protobuf:"varint,7,opt,name=EnableKeyListPolicy,proto3" json:"EnableKeyListPolicy,omitempty"`
+	Tokens              *ACLTokens `protobuf:"bytes,8,opt,name=Tokens,proto3" json:"Tokens,omitempty"`
+	// DisabledTTL is deprecated. It is no longer populated and should be ignored
+	// by clients.
+	DisabledTTL            string   `protobuf:"bytes,9,opt,name=DisabledTTL,proto3" json:"DisabledTTL,omitempty"`
+	EnableTokenPersistence bool     `protobuf:"varint,10,opt,name=EnableTokenPersistence,proto3" json:"EnableTokenPersistence,omitempty"`
+	MSPDisableBootstrap    bool     `protobuf:"varint,11,opt,name=MSPDisableBootstrap,proto3" json:"MSPDisableBootstrap,omitempty"`
+	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
+	XXX_unrecognized       []byte   `json:"-"`
+	XXX_sizecache          int32    `json:"-"`
 }
 
 func (m *ACL) Reset()         { *m = ACL{} }
