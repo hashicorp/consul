@@ -245,6 +245,12 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 			cb(config)
 		}
 
+		// Apply config to copied fields because many tests only set the old
+		//values.
+		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
+		config.ACLResolverSettings.NodeName = config.NodeName
+		config.ACLResolverSettings.Datacenter = config.Datacenter
+
 		var err error
 		srv, err = newServer(t, config)
 		if err != nil {

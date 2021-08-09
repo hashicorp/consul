@@ -153,6 +153,8 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		}
 		c.AutoConfigAuthzAllowReuse = true
 
+		c.ACLResolverSettings.ACLDisabledTTL = 12 * time.Second
+
 		cafile := path.Join(c.DataDir, "cacert.pem")
 		err := ioutil.WriteFile(cafile, []byte(cacert), 0600)
 		require.NoError(t, err)
@@ -263,7 +265,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						PolicyTTL:     "30s",
 						TokenTTL:      "30s",
 						RoleTTL:       "30s",
-						DisabledTTL:   "0s",
+						DisabledTTL:   "12s",
 						DownPolicy:    "extend-cache",
 						DefaultPolicy: "deny",
 						Tokens: &pbconfig.ACLTokens{
