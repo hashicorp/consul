@@ -99,8 +99,8 @@ per-connection (L4) using an `ext_authz` network filter.
 
 Envoy will use the [`CONSUL_HTTP_TOKEN`](/commands#consul_http_token) and [`CONSUL_HTTP_ADDR`](/commands#consul_http_addr) environment variables to contact Consul to fetch certificates if the following conditions are met:
 
-- The `CONSUL_HTTP_TOKEN` environment variable contains a Consul ACL.
-- The Consul ACL has the necessary permissions to read configuration for that service.
+- The `CONSUL_HTTP_TOKEN` environment variable contains a Consul ACL token.
+- The Consul ACL token has the necessary permissions to read configuration for that service.
 
 If TLS is enabled on Consul, you will also need to add the following environment variables _prior_ to starting Envoy:
 
