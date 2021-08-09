@@ -136,12 +136,24 @@ proxy configuration needed.
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
+  For terminating and mesh gateways, this is the IP and port on which
+  to receive traffic from services in the mesh. For ingress gateways, this is
+  the IP and port at which to instantiate a `/ready` HTTP endpoint which is used
+  by Consul for health checking the gateway. The specified IP will also be used
+  by the ingress gateway when instantiating user-defined listeners
+  configured in the
+  [ingress gateway](/docs/connect/gateways/ingress-gateway) configuration entry.
+
+  ~> **Note**: Ensure that user-defined ingress gateway listeners utilize a
+     different port than the port specified in `-address` so that they do not
+     conflict with the health check endpoint.
+
 - `-admin-access-log-path` The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
 
-- `-bind-address` - The bind address to use instead of the default binding rules
-  given as `<name>=<ip>:<port>` pairs. This flag may be specified multiple times
+- `-bind-address` - The bind address to use instead of the default binding rules.
+  Speciifed as `<name>=<ip>:<port>` pairs. This flag may be specified multiple times
   to add multiple bind addresses.
 
 - `-expose-servers` - Expose the servers for WAN federation via this mesh
