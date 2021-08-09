@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Expose upstream routing configurations in the topology view
+```
