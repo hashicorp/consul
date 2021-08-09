@@ -395,6 +395,7 @@ func New(bd BaseDeps) (*Agent, error) {
 			Logger: bd.Logger.Named("rpcclient.health"),
 		},
 		UseStreamingBackend: a.config.UseStreamingBackend,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -617,8 +618,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	// Start gRPC server.
-	if err := a.listenAndServeGRPC(); err != nil {
+	if err := a.listenAndServeXDS(); err != nil {
 		return err
 	}
 
@@ -637,6 +637,11 @@ func (a *Agent) Start(ctx context.Context) error {
 	// future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+
+	if a.tlsConfigurator.Cert() != nil {
+		m := consul.AgentTLSCertExpirationMonitor(a.tlsConfigurator, a.logger, a.config.Datacenter)
+		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
 	// consul version metric with labels
@@ -661,8 +666,8 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) listenAndServeGRPC() error {
-	if len(a.config.GRPCAddrs) < 1 {
+func (a *Agent) listenAndServeXDS() error {
+	if len(a.config.XDSAddrs) < 1 {
 		return nil
 	}
 
@@ -682,13 +687,9 @@ func (a *Agent) listenAndServeGRPC() error {
 	if a.config.HTTPSPort <= 0 {
 		tlsConfig = nil
 	}
-	var err error
-	a.grpcServer, err = xdsServer.GRPCServer(tlsConfig)
-	if err != nil {
-		return err
-	}
+	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
 
-	ln, err := a.startListeners(a.config.GRPCAddrs)
+	ln, err := a.startListeners(a.config.XDSAddrs)
 	if err != nil {
 		return err
 	}
@@ -1198,22 +1199,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
-	// Copy the TLS configuration
-	cfg.VerifyIncoming = runtimeCfg.VerifyIncoming || runtimeCfg.VerifyIncomingRPC
-	if runtimeCfg.CAPath != "" || runtimeCfg.CAFile != "" {
-		cfg.UseTLS = true
-	}
-	cfg.VerifyOutgoing = runtimeCfg.VerifyOutgoing
-	cfg.VerifyServerHostname = runtimeCfg.VerifyServerHostname
-	cfg.CAFile = runtimeCfg.CAFile
-	cfg.CAPath = runtimeCfg.CAPath
-	cfg.CertFile = runtimeCfg.CertFile
-	cfg.KeyFile = runtimeCfg.KeyFile
-	cfg.ServerName = runtimeCfg.ServerName
-	cfg.Domain = runtimeCfg.DNSDomain
-	cfg.TLSMinVersion = runtimeCfg.TLSMinVersion
-	cfg.TLSCipherSuites = runtimeCfg.TLSCipherSuites
-	cfg.TLSPreferServerCipherSuites = runtimeCfg.TLSPreferServerCipherSuites
+	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
+
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
 
@@ -1703,7 +1690,7 @@ OUTER:
 // reapServicesInternal does a single pass, looking for services to reap.
 func (a *Agent) reapServicesInternal() {
 	reaped := make(map[structs.ServiceID]bool)
-	for checkID, cs := range a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()) {
+	for checkID, cs := range a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 		serviceID := cs.Check.CompoundServiceID()
 
 		// There's nothing to do if there's no service.
@@ -2033,7 +2020,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	// Agent.Start does not have a snapshot, and we don't want to query
 	// State.Checks each time.
 	if req.checkStateSnapshot == nil {
-		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMeta())
+		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 	}
 
 	// Create an associated health check
@@ -3326,7 +3313,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 // unloadServices will deregister all services.
 func (a *Agent) unloadServices() error {
-	for id := range a.State.Services(structs.WildcardEnterpriseMeta()) {
+	for id := range a.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 		if err := a.removeServiceLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering service '%s': %v", id, err)
 		}
@@ -3440,7 +3427,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 // unloadChecks will deregister all checks known to the local agent.
 func (a *Agent) unloadChecks() error {
-	for id := range a.State.Checks(structs.WildcardEnterpriseMeta()) {
+	for id := range a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 		if err := a.removeCheckLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering check '%s': %s", id, err)
 		}
@@ -3452,7 +3439,7 @@ func (a *Agent) unloadChecks() error {
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
 func (a *Agent) snapshotCheckState() map[structs.CheckID]*structs.HealthCheck {
-	return a.State.Checks(structs.WildcardEnterpriseMeta())
+	return a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 }
 
 // loadMetadata loads node metadata fields from the agent config and

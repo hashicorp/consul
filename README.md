@@ -1,4 +1,4 @@
-# Consul [![CircleCI](https://circleci.com/gh/hashicorp/consul/tree/master.svg?style=svg)](https://circleci.com/gh/hashicorp/consul/tree/master) [![Discuss](https://img.shields.io/badge/discuss-consul-ca2171.svg?style=flat)](https://discuss.hashicorp.com/c/consul)
+# Consul [![CircleCI](https://circleci.com/gh/hashicorp/consul/tree/main.svg?style=svg)](https://circleci.com/gh/hashicorp/consul/tree/main) [![Discuss](https://img.shields.io/badge/discuss-consul-ca2171.svg?style=flat)](https://discuss.hashicorp.com/c/consul)
 
 * Website: https://www.consul.io
 * Tutorials: [HashiCorp Learn](https://learn.hashicorp.com/consul)
@@ -29,7 +29,7 @@ Consul provides several key features:
   dynamic configuration, feature flagging, coordination, leader election and
   more. The simple HTTP API makes it easy to use anywhere.
 
-Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows. A commercial
+Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows. A commercial
 version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
 is also available.
 
@@ -54,4 +54,4 @@ https://www.consul.io/docs
 
 ## Contributing
 
-Thank you for your interest in contributing! Please refer to [CONTRIBUTING.md](https://github.com/hashicorp/consul/blob/master/.github/CONTRIBUTING.md) for guidance.
+Thank you for your interest in contributing! Please refer to [CONTRIBUTING.md](https://github.com/hashicorp/consul/blob/main/.github/CONTRIBUTING.md) for guidance.

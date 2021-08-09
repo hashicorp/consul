@@ -198,7 +198,6 @@ auto_encrypt = {
 connect {
     ca_provider = "consul"
     ca_config {
-        rotation_period = "90h"
         intermediate_cert_ttl = "8760h"
         leaf_cert_ttl = "1h"
         # hack float since json parses numbers as float and we have to
@@ -285,8 +284,8 @@ limits {
     rpc_rate = 12029.43
     rpc_max_burst = 44848
     rpc_max_conns_per_client = 2954
-    kv_max_value_size = 1234567800000000
-    txn_max_req_len = 5678000000000000
+    kv_max_value_size = 1234567800
+    txn_max_req_len = 567800000
 }
 log_level = "k1zo9Spt"
 log_json = true
@@ -298,6 +297,7 @@ node_meta {
 }
 node_name = "otlLxGaI"
 non_voting_server = true
+partition = ""
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5

@@ -1,0 +1,3 @@
+```release-note:bug
+api: Fix default values used for optional fields in autopilot configuration update (POST to `/v1/operator/autopilot/configuration`) [[GH-10558](https://github.com/hashicorp/consul/issues/10558)]
+```

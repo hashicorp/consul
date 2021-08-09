@@ -7,7 +7,7 @@ export default class PermissionAdapter extends Adapter {
   requestForAuthorize(request, { dc, ns, resources = [], index }) {
     // the authorize endpoint is slightly different to all others in that it
     // ignores an ns parameter, but accepts a Namespace property on each
-    // resource. Here we hide this different from the rest of the app as
+    // resource. Here we hide this difference from the rest of the app as
     // currently we never need to ask for permissions/resources for multiple
     // different namespaces in one call so here we use the ns param and add
     // this to the resources instead of passing through on the queryParameter

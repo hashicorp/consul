@@ -32,7 +32,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -52,7 +52,8 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	svcs := []*api.AgentServiceRegistration{{
-		ID: c.flagId}}
+		ID: c.flagId,
+	}}
 	if len(args) > 0 {
 		var err error
 		svcs, err = services.ServicesFromFiles(c.UI, args)
@@ -99,8 +100,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Deregister services with the local agent"
-const help = `
+const (
+	synopsis = "Deregister services with the local agent"
+	help     = `
 Usage: consul services deregister [options] [FILE...]
 
   Deregister one or more services that were previously registered with
@@ -115,3 +117,4 @@ Usage: consul services deregister [options] [FILE...]
   Services are deregistered from the local agent catalog. This command must
   be run against the same agent where the service was registered.
 `
+)

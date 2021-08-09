@@ -618,7 +618,11 @@ func TestAPI_AgentServiceAddress(t *testing.T) {
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Address, "198.18.0.1")
 	require.Equal(t, services["foo2"].TaggedAddresses["wan"].Port, 80)
 
-	if err := agent.ServiceDeregister("foo"); err != nil {
+	if err := agent.ServiceDeregister("foo1"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := agent.ServiceDeregister("foo2"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1322,7 +1326,7 @@ func TestAPI_AgentMonitorJSON(t *testing.T) {
 	})
 }
 
-func TestAPI_ServiceMaintenance(t *testing.T) {
+func TestAPI_ServiceMaintenanceOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1337,8 +1341,11 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Specify namespace in query option
+	opts := &QueryOptions{Namespace: defaultNamespace}
+
 	// Enable maintenance mode
-	if err := agent.EnableServiceMaintenance("redis", "broken"); err != nil {
+	if err := agent.EnableServiceMaintenanceOpts("redis", "broken", opts); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1361,7 +1368,7 @@ func TestAPI_ServiceMaintenance(t *testing.T) {
 	}
 
 	// Disable maintenance mode
-	if err := agent.DisableServiceMaintenance("redis"); err != nil {
+	if err := agent.DisableServiceMaintenanceOpts("redis", opts); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1638,10 +1645,10 @@ func TestAPI_AgentConnectAuthorize(t *testing.T) {
 	auth, err := agent.ConnectAuthorize(params)
 	require.Nil(err)
 	require.True(auth.Authorized)
-	require.Equal(auth.Reason, "ACLs disabled, access is allowed by default")
+	require.Equal(auth.Reason, "Default behavior configured by ACLs")
 }
 
-func TestAPI_AgentHealthService(t *testing.T) {
+func TestAPI_AgentHealthServiceOpts(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -1651,7 +1658,8 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	requireServiceHealthID := func(t *testing.T, serviceID, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service id:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceID, shouldExist, expected)
 
-		state, out, err := agent.AgentHealthServiceByID(serviceID)
+		opts := &QueryOptions{Namespace: defaultNamespace}
+		state, out, err := agent.AgentHealthServiceByIDOpts(serviceID, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {
@@ -1664,7 +1672,8 @@ func TestAPI_AgentHealthService(t *testing.T) {
 	requireServiceHealthName := func(t *testing.T, serviceName, expected string, shouldExist bool) {
 		msg := fmt.Sprintf("service name:%s, shouldExist:%v, expectedStatus:%s : bad %%s", serviceName, shouldExist, expected)
 
-		state, outs, err := agent.AgentHealthServiceByName(serviceName)
+		opts := &QueryOptions{Namespace: defaultNamespace}
+		state, outs, err := agent.AgentHealthServiceByNameOpts(serviceName, opts)
 		require.Nil(t, err, msg, "err")
 		require.Equal(t, expected, state, msg, "state")
 		if !shouldExist {

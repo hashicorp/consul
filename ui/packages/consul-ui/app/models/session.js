@@ -1,4 +1,5 @@
 import Model, { attr } from '@ember-data/model';
+import { computed } from '@ember/object';
 import { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
@@ -23,4 +24,9 @@ export default class Session extends Model {
   @nullValue([]) @attr({ defaultValue: () => [] }) ServiceChecks;
 
   @attr({ defaultValue: () => [] }) Resources; // []
+
+  @computed('NodeChecks', 'ServiceChecks')
+  get checks() {
+    return [...this.NodeChecks, ...this.ServiceChecks.map(({ ID }) => ID)];
+  }
 }

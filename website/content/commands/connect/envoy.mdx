@@ -54,7 +54,8 @@ proxy configuration needed.
 
 - `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent unless a gateway is being
-  registered with the `-register` flag.
+  registered with the `-register` flag. As of Consul 1.8.0, this can also be
+  specified via the `CONNECT_PROXY_ID` environment variable.
 
 - `-envoy-binary` - The full path to a specific Envoy binary to exec. By
   default the current `$PATH` is searched for `envoy`.
@@ -110,6 +111,8 @@ proxy configuration needed.
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
+  As of Consul 1.8.0, this can also be specified via the `CONNECT_SIDECAR_FOR`
+  environment variable.
 
   -> **Note:** If ACLs are enabled, a token granting `service:write` for the
   _target_ service (configured in `proxy.destination_service_name`) must be

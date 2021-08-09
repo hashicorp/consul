@@ -42,6 +42,12 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which
+  to list services. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -63,13 +69,14 @@ $ curl \
         "port": 8000
       },
       "wan": {
-        "address": "198.18.0.53",
+        "address": "198.51.100.53",
         "port": 80
       }
     },
     "Meta": {
       "redis_version": "4.0"
     },
+    "Namespace": "default",
     "Port": 8000,
     "Address": "",
     "EnableTagOverride": false,
@@ -158,6 +165,12 @@ The table below shows this endpoint's support for
 - `service_id` `(string: <required>)` - Specifies the ID of the service to
   fetch. This is specified as part of the URL.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
+  the service's configuration. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -174,6 +187,7 @@ $ curl \
   "Service": "web-sidecar-proxy",
   "Tags": null,
   "Meta": null,
+  "Namespace": "default",
   "Port": 18080,
   "Address": "",
   "TaggedAddresses": {
@@ -182,7 +196,7 @@ $ curl \
       "port": 8000
     },
     "wan": {
-      "address": "198.18.0.53",
+      "address": "198.51.100.53",
       "port": 80
     }
   },
@@ -246,28 +260,39 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | -------------- |
 | `NO`             | `none`            | `none`        | `service:read` |
 
-Those endpoints return the aggregated values of all healthchecks for the
+### Parameters
+
+- `service_name` `(string: <required>)` - Specifies the name of the service to
+  retrieve. This is specified as part of the URL.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace to lookup
+  the service's health data. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
+Those endpoints return the aggregated values of all health checks for the
 service instance(s) and will return the corresponding HTTP codes:
 
 | Result | Meaning                                                         |
 | ------ | --------------------------------------------------------------- |
-| `200`  | All healthchecks of every matching service instance are passing |
+| `200`  | All health checks of every matching service instance are passing |
 | `400`  | Bad parameter (missing service name of id)                      |
 | `404`  | No such service id or name                                      |
-| `429`  | Some healthchecks are passing, at least one is warning          |
-| `503`  | At least one of the healthchecks is critical                    |
+| `429`  | Some health checks are passing, at least one is warning          |
+| `503`  | At least one of the health checks is critical                    |
 
 Those endpoints might be useful for the following use-cases:
 
 - a load-balancer wants to check IP connectivity with an agent and retrieve
   the aggregated status of given service
-- create aliases for a given service (thus, the healthcheck of alias uses
-  http://localhost:8500/v1/agent/service/id/aliased_service_id healthcheck)
+- create aliases for a given service (thus, the health check of alias uses
+  http://localhost:8500/v1/agent/service/id/aliased_service_id health check)
 
 ##### Note
 
 If you know the ID of service you want to target, it is recommended to use
-[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-its-id)
+[`/v1/agent/health/service/id/:service_id`](/api/agent/service#get-local-service-health-by-id)
 so you have the result for the service only. When requesting
 `/v1/agent/health/service/name/:service_name`, the caller will receive the
 worst state of all services having the given name.
@@ -276,77 +301,214 @@ worst state of all services having the given name.
 
 Given 2 services with name `web`, with web2 critical and web1 passing:
 
-#### List worst statuses of all instances of web-demo services (HTTP 503)
+#### List the worst status across all instances of the `web` service (HTTP 503)
 
 ##### By Name, Text
 
 ```shell
-curl http://localhost:8500/v1/agent/health/service/name/web?format=text
+$ curl http://localhost:8500/v1/agent/health/service/name/web?format=text
 critical
 ```
 
 ##### By Name, JSON
 
-In JSON, the detail of passing/warning/critical services is present in output,
-in a array.
+For the JSON output, the response is an array containing the details of each
+passing, warning, or critical service.
 
 ```shell
 curl localhost:8500/v1/agent/health/service/name/web
 ```
 
 ```json
-{
-  "critical": [
-    {
-      "ID": "web2",
-      "Service": "web",
-      "Tags": ["rails"],
-      "Address": "",
-      "TaggedAddresses": {
-        "lan": {
-          "address": "127.0.0.1",
-          "port": 8000
-        },
-        "wan": {
-          "address": "198.18.0.53",
-          "port": 80
-        }
-      },
-      "Meta": null,
-      "Port": 80,
-      "EnableTagOverride": false,
-      "Datacenter": "dc1",
-      "Connect": {
-        "Native": false,
-        "Proxy": null
-      },
-      "CreateIndex": 0,
-      "ModifyIndex": 0
-    }
-  ],
-  "passing": [
-    {
+[
+  {
+    "AggregatedStatus": "passing",
+    "Service": {
       "ID": "web1",
       "Service": "web",
-      "Tags": ["rails"],
+      "Tags": [
+        "rails"
+      ],
+      "Meta": {},
+      "Port": 80,
       "Address": "",
+      "SocketPath": "",
       "TaggedAddresses": {
         "lan": {
-          "address": "127.0.0.1",
-          "port": 8000
+          "Address": "127.0.0.1",
+          "Port": 8000
         },
         "wan": {
-          "address": "198.18.0.53",
-          "port": 80
+          "Address": "198.51.100.53",
+          "Port": 80
         }
       },
-      "Meta": null,
-      "Port": 80,
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
       "EnableTagOverride": false,
-      "Datacenter": "dc1",
-      "Connect": {
-        "Native": false,
-        "Proxy": null
+      "Namespace": "default",
+      "Datacenter": "dc1"
+    },
+    "Checks": []
+  },
+  {
+    "AggregatedStatus": "critical",
+    "Service": {
+      "ID": "web2",
+      "Service": "web",
+      "Tags": [
+        "rails"
+      ],
+      "Meta": {},
+      "Port": 80,
+      "Address": "",
+      "SocketPath": "",
+      "TaggedAddresses": {
+        "lan": {
+          "Address": "127.0.0.1",
+          "Port": 8000
+        },
+        "wan": {
+          "Address": "198.51.100.54",
+          "Port": 80
+        }
+      },
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Namespace": "default",
+      "Datacenter": "dc1"
+    },
+    "Checks": [
+      {
+        "Node": "server1",
+        "CheckID": "service:web2",
+        "Name": "Service 'web' check",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "Get \"http://localhost/health\": dial tcp [::1]:80: connect: connection refused",
+        "ServiceID": "web2",
+        "ServiceName": "web",
+        "ServiceTags": [
+          "rails"
+        ],
+        "Type": "",
+        "Namespace": "default",
+        "Definition": {
+          "Interval": "0s",
+          "Timeout": "0s",
+          "DeregisterCriticalServiceAfter": "0s",
+          "HTTP": "",
+          "Header": null,
+          "Method": "",
+          "Body": "",
+          "TLSServerName": "",
+          "TLSSkipVerify": false,
+          "TCP": ""
+        },
+        "CreateIndex": 0,
+        "ModifyIndex": 0
+      }
+    ]
+  }
+]
+```
+
+## Get local service health by ID ((#get-local-service-health-by-its-id))
+
+Retrieve the health state of a specific service on the local agent by ID.
+
+| Method | Path                                               | Produces           |
+| ------ | -------------------------------------------------- | ------------------ |
+| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
+| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
+
+The supported request parameters are the same as
+[`/v1/agent/health/service/name/:service_name`](/api/agent/service#get-local-service-health).
+
+### Sample Requests
+
+Query the health status of the service with ID `web2`.
+
+#### List status of web2 (HTTP 503)
+
+##### Failure By ID, Text
+
+```shell
+$ curl http://localhost:8500/v1/agent/health/service/id/web2?format=text
+critical
+```
+
+##### Failure By ID, JSON
+
+In JSON, the output for a query by ID is an object containing only the details
+for that service.
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web2
+```
+
+```json
+{
+  "AggregatedStatus": "critical",
+  "Service": {
+    "ID": "web2",
+    "Service": "web",
+    "Tags": [
+      "rails"
+    ],
+    "Meta": {},
+    "Port": 80,
+    "Address": "",
+    "SocketPath": "",
+    "TaggedAddresses": {
+      "lan": {
+        "Address": "127.0.0.1",
+        "Port": 8000
+      },
+      "wan": {
+        "Address": "198.51.100.54",
+        "Port": 80
+      }
+    },
+    "Weights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "EnableTagOverride": false,
+    "Namespace": "default",
+    "Datacenter": "dc1"
+  },
+  "Checks": [
+    {
+      "Node": "server1",
+      "CheckID": "service:web2",
+      "Name": "Service 'web' check",
+      "Status": "critical",
+      "Notes": "",
+      "Output": "Get \"http://localhost/health\": dial tcp [::1]:80: connect: connection refused",
+      "ServiceID": "web2",
+      "ServiceName": "web",
+      "ServiceTags": [
+        "rails"
+      ],
+      "Type": "",
+      "Namespace": "default",
+      "Definition": {
+        "Interval": "0s",
+        "Timeout": "0s",
+        "DeregisterCriticalServiceAfter": "0s",
+        "HTTP": "",
+        "Header": null,
+        "Method": "",
+        "Body": "",
+        "TLSServerName": "",
+        "TLSSkipVerify": false,
+        "TCP": ""
       },
       "CreateIndex": 0,
       "ModifyIndex": 0
@@ -355,61 +517,12 @@ curl localhost:8500/v1/agent/health/service/name/web
 }
 ```
 
-#### List status of web2 (HTTP 503)
-
-##### Failure By ID, Text
-
-```shell
-curl http://localhost:8500/v1/agent/health/service/id/web2?format=text
-critical
-```
-
-##### Failure By ID, JSON
-
-In JSON, the output per ID is not an array, but only contains the value
-of service.
-
-```shell
-curl localhost:8500/v1/agent/health/service/id/web2
-```
-
-```json
-{
-  "critical": {
-    "ID": "web2",
-    "Service": "web",
-    "Tags": ["rails"],
-    "Address": "",
-    "TaggedAddresses": {
-      "lan": {
-        "address": "127.0.0.1",
-        "port": 8000
-      },
-      "wan": {
-        "address": "198.18.0.53",
-        "port": 80
-      }
-    },
-    "Meta": null,
-    "Port": 80,
-    "EnableTagOverride": false,
-    "Datacenter": "dc1",
-    "Connect": {
-      "Native": false,
-      "Proxy": null
-    },
-    "CreateIndex": 0,
-    "ModifyIndex": 0
-  }
-}
-```
-
-#### List status of web2 (HTTP 200)
+#### List status of web1 (HTTP 200)
 
 ##### Success By ID, Text
 
 ```shell
-curl localhost:8500/v1/agent/health/service/id/web1?format=text
+$ curl localhost:8500/v1/agent/health/service/id/web1?format=text
 passing
 ```
 
@@ -421,48 +534,38 @@ curl localhost:8500/v1/agent/health/service/id/web1
 
 ```json
 {
-  "passing": {
+  "AggregatedStatus": "passing",
+  "Service": {
     "ID": "web1",
     "Service": "web",
-    "Tags": ["rails"],
+    "Tags": [
+      "rails"
+    ],
+    "Meta": {},
+    "Port": 80,
     "Address": "",
+    "SocketPath": "",
     "TaggedAddresses": {
       "lan": {
-        "address": "127.0.0.1",
-        "port": 8000
+        "Address": "127.0.0.1",
+        "Port": 8000
       },
       "wan": {
-        "address": "198.18.0.53",
-        "port": 80
+        "Address": "198.51.100.53",
+        "Port": 80
       }
     },
-    "Meta": null,
-    "Port": 80,
-    "EnableTagOverride": false,
-    "Datacenter": "dc1",
-    "Connect": {
-      "Native": false,
-      "Proxy": null
+    "Weights": {
+      "Passing": 1,
+      "Warning": 1
     },
-    "CreateIndex": 0,
-    "ModifyIndex": 0
-  }
+    "EnableTagOverride": false,
+    "Namespace": "default",
+    "Datacenter": "dc1"
+  },
+  "Checks": []
 }
 ```
-
-## Get local service health by its ID
-
-Retrieve an aggregated state of service(s) on the local agent by ID.
-
-See:
-
-| Method | Path                                               | Produces           |
-| ------ | -------------------------------------------------- | ------------------ |
-| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
-| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
-
-Parameters and response format are the same as
-[`/v1/agent/health/service/name/:service_name`](/api/agent/service#get-local-service-health).
 
 ## Register Service
 
@@ -492,7 +595,7 @@ The table below shows this endpoint's support for
 
 ### Query string parameters
 
-- `replace-existing-checks` - Missing healthchecks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
+- `replace-existing-checks` - Missing health checks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
 
 ### Parameters
 
@@ -522,6 +625,12 @@ service definition keys for compatibility with the config file format.
 
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   linked to the service instance.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to register the service. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 - `Port` `(int: 0)` - Specifies the port of the service.
 
@@ -660,7 +769,13 @@ The table below shows this endpoint's support for
 ### Parameters
 
 - `service_id` `(string: <required>)` - Specifies the ID of the service to
-  deregister. This is specified as part of the URL.
+  deregister. This is specifi### Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in which
+  to deregister the service. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -699,6 +814,12 @@ The table below shows this endpoint's support for
 - `enable` `(bool: <required>)` - Specifies whether to enable or disable
   maintenance mode. This is specified as part of the URL as a query string
   parameter.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace
+  of the service to place into maintenance mode. This value can be specified as
+  the `ns` URL query parameter or the `X-Consul-Namespace` header. If not provided
+  by either, the namespace will be inherited from the request's ACL token or will
+  default to the `default` namespace. Added in Consul 1.7.0.
 
 - `reason` `(string: "")` - Specifies a text string explaining the reason for
   placing the node into maintenance mode. This is simply to aid human operators.

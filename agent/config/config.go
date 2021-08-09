@@ -290,6 +290,8 @@ type Config struct {
 	SegmentName *string `mapstructure:"segment"`
 	// Enterprise Only
 	Segments []Segment `mapstructure:"segments"`
+	// Enterprise Only
+	Partition *string `mapstructure:"partition"`
 
 	// Enterprise Only - not user configurable
 	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time"`
@@ -338,7 +340,10 @@ type Addresses struct {
 	DNS   *string `mapstructure:"dns"`
 	HTTP  *string `mapstructure:"http"`
 	HTTPS *string `mapstructure:"https"`
-	GRPC  *string `mapstructure:"grpc"`
+	XDS   *string `mapstructure:"xds"`
+
+	// Deprecated: replaced by XDS
+	GRPC *string `mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -629,6 +634,7 @@ type DNS struct {
 	MaxStale           *string           `mapstructure:"max_stale"`
 	NodeTTL            *string           `mapstructure:"node_ttl"`
 	OnlyPassing        *bool             `mapstructure:"only_passing"`
+	RecursorStrategy   *string           `mapstructure:"recursor_strategy"`
 	RecursorTimeout    *string           `mapstructure:"recursor_timeout"`
 	ServiceTTL         map[string]string `mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `mapstructure:"udp_answer_limit"`
@@ -688,13 +694,16 @@ type Ports struct {
 	SerfLAN        *int `mapstructure:"serf_lan"`
 	SerfWAN        *int `mapstructure:"serf_wan"`
 	Server         *int `mapstructure:"server"`
-	GRPC           *int `mapstructure:"grpc"`
+	XDS            *int `mapstructure:"xds"`
 	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `mapstructure:"sidecar_min_port"`
 	SidecarMaxPort *int `mapstructure:"sidecar_max_port"`
 	ExposeMinPort  *int `mapstructure:"expose_min_port"`
 	ExposeMaxPort  *int `mapstructure:"expose_max_port"`
+
+	// Deprecated: replaced by XDS
+	GRPC *int `mapstructure:"grpc"`
 }
 
 type UnixSocket struct {
@@ -777,6 +786,7 @@ type AuditSink struct {
 	Format            *string `mapstructure:"format"`
 	Path              *string `mapstructure:"path"`
 	DeliveryGuarantee *string `mapstructure:"delivery_guarantee"`
+	Mode              *string `mapstructure:"mode"`
 	RotateBytes       *int    `mapstructure:"rotate_bytes"`
 	RotateDuration    *string `mapstructure:"rotate_duration"`
 	RotateMaxFiles    *int    `mapstructure:"rotate_max_files"`

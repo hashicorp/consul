@@ -11,20 +11,6 @@
   cursor: default;
   box-shadow: none;
 }
-%copy-button {
-  @extend %button;
-  min-height: 17px;
-}
-%copy-button::before {
-  @extend %with-copy-action-mask, %as-pseudo;
-  background-color: var(--gray-500);
-}
-%copy-button::after {
-  background-color: var(--gray-050);
-}
-%copy-button:not(:empty)::before {
-  margin-right: 10px;
-}
 %primary-button,
 %secondary-button,
 %dangerous-button {
@@ -34,22 +20,6 @@
   box-shadow: $decor-elevation-300;
 }
 /* color */
-%copy-button {
-  color: $color-action;
-  background-color: $color-transparent;
-}
-%copy-button:hover:not(:disabled):not(:active),
-%copy-button:focus {
-  /*frame-grey frame-blue*/
-  color: $color-action;
-  background-color: $gray-050;
-}
-%copy-button:hover::before {
-  background-color: $blue-500;
-}
-%copy-button:active {
-  background-color: $gray-200;
-}
 %primary-button {
   @extend %frame-blue-800;
 }

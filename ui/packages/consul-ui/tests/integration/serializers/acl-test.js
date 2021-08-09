@@ -49,7 +49,7 @@ module('Integration | Serializer | acl', function(hooks) {
         Datacenter: dc,
         [META]: {
           [DC.toLowerCase()]: dc,
-          [NSPACE.toLowerCase()]: nspace,
+          [NSPACE.toLowerCase()]: '',
         },
         // TODO: default isn't required here, once we've
         // refactored out our Serializer this can go

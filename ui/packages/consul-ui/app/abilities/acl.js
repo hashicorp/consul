@@ -6,6 +6,12 @@ export default class ACLAbility extends BaseAbility {
 
   resource = 'acl';
   segmented = false;
+  // Access is very similar to read, but when ACLs are disabled you still need
+  // access to ACLs in order to see the ACLs disabled page, which is accessing
+  // the ACLs area, but without read
+  get canAccess() {
+    return this.env.var('CONSUL_ACLS_ENABLED') ? this.canRead : true;
+  }
 
   get canRead() {
     return this.env.var('CONSUL_ACLS_ENABLED') && super.canRead;

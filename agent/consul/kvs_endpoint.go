@@ -39,37 +39,35 @@ func kvsPreApply(logger hclog.Logger, srv *Server, authz acl.Authorizer, op api.
 	}
 
 	// Apply the ACL policy if any.
-	if authz != nil {
-		switch op {
-		case api.KVDeleteTree:
-			var authzContext acl.AuthorizerContext
-			dirEnt.FillAuthzContext(&authzContext)
+	switch op {
+	case api.KVDeleteTree:
+		var authzContext acl.AuthorizerContext
+		dirEnt.FillAuthzContext(&authzContext)
 
-			if authz.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
-				return false, acl.ErrPermissionDenied
-			}
+		if authz.KeyWritePrefix(dirEnt.Key, &authzContext) != acl.Allow {
+			return false, acl.ErrPermissionDenied
+		}
 
-		case api.KVGet, api.KVGetTree:
-			// Filtering for GETs is done on the output side.
+	case api.KVGet, api.KVGetTree:
+		// Filtering for GETs is done on the output side.
 
-		case api.KVCheckSession, api.KVCheckIndex:
-			// These could reveal information based on the outcome
-			// of the transaction, and they operate on individual
-			// keys so we check them here.
-			var authzContext acl.AuthorizerContext
-			dirEnt.FillAuthzContext(&authzContext)
+	case api.KVCheckSession, api.KVCheckIndex:
+		// These could reveal information based on the outcome
+		// of the transaction, and they operate on individual
+		// keys so we check them here.
+		var authzContext acl.AuthorizerContext
+		dirEnt.FillAuthzContext(&authzContext)
 
-			if authz.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
-				return false, acl.ErrPermissionDenied
-			}
+		if authz.KeyRead(dirEnt.Key, &authzContext) != acl.Allow {
+			return false, acl.ErrPermissionDenied
+		}
 
-		default:
-			var authzContext acl.AuthorizerContext
-			dirEnt.FillAuthzContext(&authzContext)
+	default:
+		var authzContext acl.AuthorizerContext
+		dirEnt.FillAuthzContext(&authzContext)
 
-			if authz.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
-				return false, acl.ErrPermissionDenied
-			}
+		if authz.KeyWrite(dirEnt.Key, &authzContext) != acl.Allow {
+			return false, acl.ErrPermissionDenied
 		}
 	}
 
@@ -157,7 +155,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if err != nil {
 				return err
 			}
-			if authz != nil && authz.KeyRead(args.Key, &authzContext) != acl.Allow {
+			if authz.KeyRead(args.Key, &authzContext) != acl.Allow {
 				return acl.ErrPermissionDenied
 			}
 
@@ -194,7 +192,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
-	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
+	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Key, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -206,9 +204,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			if err != nil {
 				return err
 			}
-			if authz != nil {
-				ent = FilterDirEnt(authz, ent)
-			}
+			ent = FilterDirEnt(authz, ent)
 
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -246,7 +242,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
-	if authz != nil && k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Prefix, &authzContext) != acl.Allow {
+	if k.srv.config.ACLEnableKeyListPolicy && authz.KeyList(args.Prefix, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -267,9 +263,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 				reply.Index = index
 			}
 
-			if authz != nil {
-				entries = FilterDirEnt(authz, entries)
-			}
+			entries = FilterDirEnt(authz, entries)
 
 			// Collect the keys from the filtered entries
 			prefixLen := len(args.Prefix)

@@ -31,7 +31,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -74,8 +74,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Delete a centralized config entry"
-const help = `
+const (
+	synopsis = "Delete a centralized config entry"
+	help     = `
 Usage: consul config delete [options] -kind <config kind> -name <config name>
 
   Deletes the configuration entry specified by the kind and name.
@@ -84,3 +85,4 @@ Usage: consul config delete [options] -kind <config kind> -name <config name>
 
     $ consul config delete -kind service-defaults -name web
 `
+)

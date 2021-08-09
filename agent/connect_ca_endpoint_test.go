@@ -12,9 +12,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestConnectCARoots_empty(t *testing.T) {
@@ -24,7 +25,6 @@ func TestConnectCARoots_empty(t *testing.T) {
 
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "connect { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -32,8 +32,8 @@ func TestConnectCARoots_empty(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	_, err := a.srv.ConnectCARoots(resp, req)
-	require.Error(err)
-	require.Contains(err.Error(), "Connect must be enabled")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Connect must be enabled")
 }
 
 func TestConnectCARoots_list(t *testing.T) {
@@ -43,7 +43,7 @@ func TestConnectCARoots_list(t *testing.T) {
 
 	t.Parallel()
 
-	assert := assert.New(t)
+	assertion := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -56,16 +56,16 @@ func TestConnectCARoots_list(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.ConnectCARoots(resp, req)
-	assert.NoError(err)
+	assertion.NoError(err)
 
 	value := obj.(structs.IndexedCARoots)
-	assert.Equal(value.ActiveRootID, ca2.ID)
-	assert.Len(value.Roots, 2)
+	assertion.Equal(value.ActiveRootID, ca2.ID)
+	assertion.Len(value.Roots, 2)
 
 	// We should never have the secret information
 	for _, r := range value.Roots {
-		assert.Equal("", r.SigningCert)
-		assert.Equal("", r.SigningKey)
+		assertion.Equal("", r.SigningCert)
+		assertion.Equal("", r.SigningKey)
 	}
 }
 
@@ -90,7 +90,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"Config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				}
 			}`,
@@ -100,7 +99,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 			},
@@ -112,7 +110,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"Config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				}
 			}`,
@@ -122,7 +119,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 			},
@@ -134,7 +130,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"Config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				},
 				"ForceWithoutCrossSigning": true
@@ -145,7 +140,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 				ForceWithoutCrossSigning: true,
@@ -163,7 +157,6 @@ func TestConnectCAConfig(t *testing.T) {
 				"provider": "consul",
 				"config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
 					"IntermediateCertTTL": "288h"
 				},
 				"force_without_cross_signing": true
@@ -174,7 +167,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 				ForceWithoutCrossSigning: true,
@@ -199,8 +191,7 @@ func TestConnectCAConfig(t *testing.T) {
 				"Provider": "consul",
 				"config": {
 					"LeafCertTTL": "72h",
-					"RotationPeriod": "1h",
-				        "IntermediateCertTTL": "288h"
+					"IntermediateCertTTL": "288h"
 				},
 				"State": {
 					"foo": "bar"
@@ -212,7 +203,6 @@ func TestConnectCAConfig(t *testing.T) {
 				ClusterID: connect.TestClusterID,
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"RotationPeriod":      "1h",
 					"IntermediateCertTTL": "288h",
 				},
 				State: map[string]string{
@@ -225,7 +215,6 @@ func TestConnectCAConfig(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			require := require.New(t)
 			hcl := ""
 			if tc.initialState != "" {
 				hcl = `
@@ -251,23 +240,23 @@ func TestConnectCAConfig(t *testing.T) {
 				resp := httptest.NewRecorder()
 				_, err := a.srv.ConnectCAConfiguration(resp, req)
 				if tc.wantErr {
-					require.Error(err)
+					require.Error(t, err)
 					return
 				}
-				require.NoError(err)
+				require.NoError(t, err)
 			}
 			// The config should be updated now.
 			{
 				req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
 				resp := httptest.NewRecorder()
 				obj, err := a.srv.ConnectCAConfiguration(resp, req)
-				require.NoError(err)
+				require.NoError(t, err)
 
 				got := obj.(structs.CAConfiguration)
 				// Reset Raft indexes to make it non flaky
 				got.CreateIndex = 0
 				got.ModifyIndex = 0
-				require.Equal(tc.wantCfg, got)
+				require.Equal(t, tc.wantCfg, got)
 			}
 		})
 	}
@@ -300,9 +289,7 @@ func TestConnectCARoots_PEMEncoding(t *testing.T) {
 
 	data, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
-
 	pool := x509.NewCertPool()
-
 	require.True(t, pool.AppendCertsFromPEM(data))
 	// expecting the root cert from dc1 and an intermediate in dc2
 	require.Len(t, pool.Subjects(), 2)

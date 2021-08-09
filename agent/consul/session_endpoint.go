@@ -72,29 +72,27 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		return err
 	}
 
-	if authz != nil {
-		switch args.Op {
-		case structs.SessionDestroy:
-			state := s.srv.fsm.State()
-			_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Session lookup failed: %v", err)
-			}
-			if existing == nil {
-				return nil
-			}
-			if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
-			}
-
-		case structs.SessionCreate:
-			if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
-			}
-
-		default:
-			return fmt.Errorf("Invalid session operation %q", args.Op)
+	switch args.Op {
+	case structs.SessionDestroy:
+		state := s.srv.fsm.State()
+		_, existing, err := state.SessionGet(nil, args.Session.ID, &args.Session.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Session lookup failed: %v", err)
 		}
+		if existing == nil {
+			return nil
+		}
+		if authz.SessionWrite(existing.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+	case structs.SessionCreate:
+		if authz.SessionWrite(args.Session.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+	default:
+		return fmt.Errorf("Invalid session operation %q", args.Op)
 	}
 
 	// Ensure that the specified behavior is allowed
@@ -201,9 +199,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 			} else {
 				reply.Sessions = nil
 			}
-			if err := s.srv.filterACLWithAuthorizer(authz, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -235,9 +231,7 @@ func (s *Session) List(args *structs.SessionSpecificRequest,
 			}
 
 			reply.Index, reply.Sessions = index, sessions
-			if err := s.srv.filterACLWithAuthorizer(authz, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -269,9 +263,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 			}
 
 			reply.Index, reply.Sessions = index, sessions
-			if err := s.srv.filterACLWithAuthorizer(authz, reply); err != nil {
-				return err
-			}
+			s.srv.filterACLWithAuthorizer(authz, reply)
 			return nil
 		})
 }
@@ -310,7 +302,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return nil
 	}
 
-	if authz != nil && authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
+	if authz.SessionWrite(session.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

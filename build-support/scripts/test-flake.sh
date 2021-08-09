@@ -26,7 +26,7 @@ Description:
   Single or package-wide tests are run for multiple iterations with a configurable
   amount of CPU resources. 
 
-  0.15 CPUs and 30 iterations are configured as sane defaults.
+  0.15 CPUs and 30 iterations are configured as reasonable defaults.
 
   See Docker docs for more info on tuning 'cpus' param: 
   https://docs.docker.com/config/containers/resource_constraints/#cpu

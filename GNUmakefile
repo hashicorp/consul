@@ -133,13 +133,6 @@ ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
 
-DEV_PUSH?=0
-ifeq ($(DEV_PUSH),1)
-DEV_PUSH_ARG=
-else
-DEV_PUSH_ARG=--no-push
-endif
-
 # all builds binaries for all targets
 all: bin
 
@@ -150,7 +143,7 @@ bin: tools
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev: changelogfmt dev-build
+dev: dev-build
 
 dev-build:
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-local.sh -o $(GOOS) -a $(GOARCH)
@@ -176,14 +169,10 @@ ci.dev-docker:
 	@echo $(DOCKER_PASS) | docker login -u="$(DOCKER_USER)" --password-stdin
 	@echo "Pushing dev image to: https://cloud.docker.com/u/hashicorpdev/repository/docker/hashicorpdev/consul"
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT)
-ifeq ($(CIRCLE_BRANCH), master)
+ifeq ($(CIRCLE_BRANCH), main)
 	@docker tag $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):$(GIT_COMMIT) $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
 endif
-
-changelogfmt:
-	@echo "--> Making [GH-xxxx] references clickable..."
-	@sed -E 's|([^\[])\[GH-([0-9]+)\]|\1[[GH-\2](https://github.com/hashicorp/consul/issues/\2)]|g' CHANGELOG.md > changelog.tmp && mv changelog.tmp CHANGELOG.md
 
 # linux builds a linux package independent of the source platform
 linux:
@@ -192,15 +181,6 @@ linux:
 # dist builds binaries for all platforms and packages them for distribution
 dist:
 	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
-
-verify:
-	@$(SHELL) $(CURDIR)/build-support/scripts/verify.sh
-
-publish:
-	@$(SHELL) $(CURDIR)/build-support/scripts/publish.sh $(PUB_GIT_ARG) $(PUB_WEBSITE_ARG)
-
-dev-tree:
-	@$(SHELL) $(CURDIR)/build-support/scripts/dev.sh $(DEV_PUSH_ARG)
 
 cover: cov
 cov: other-consul dev-build
@@ -218,14 +198,6 @@ go-mod-tidy:
 	@cd sdk && go mod tidy
 	@cd api && go mod tidy
 	@go mod tidy
-
-update-vendor: go-mod-tidy
-	@echo "--> Running go mod vendor"
-	@go mod vendor
-	@echo "--> Removing vendoring of our own nested modules"
-	@rm -rf vendor/github.com/hashicorp/consul
-	@grep -v "hashicorp/consul/" < vendor/modules.txt > vendor/modules.txt.new
-	@mv vendor/modules.txt.new vendor/modules.txt
 
 test-internal:
 	@echo "--> Running go test"
@@ -360,14 +332,14 @@ ifeq ("$(CIRCLECI)","true")
 # Run in CI
 	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
 # Run leader tests that require Vault
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run TestLeader_Vault_ ./agent/consul
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run '.*_Vault_' ./agent/consul
 # Run agent tests that require Vault
 	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- -cover -coverprofile=coverage-agent.txt -run '.*_Vault_' ./agent
 else
 # Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
 	@go test -v ./agent/connect/ca
-	@go test -v ./agent/consul -run 'TestLeader_Vault_'
+	@go test -v ./agent/consul -run '.*_Vault_'
 	@go test -v ./agent -run '.*_Vault_'
 endif
 
@@ -400,6 +372,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
+.PHONY: all bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version proto test-envoy-integ

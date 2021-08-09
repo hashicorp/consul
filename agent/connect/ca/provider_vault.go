@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 const VaultCALeafCertRole = "leaf-cert"
@@ -38,8 +37,11 @@ type VaultProvider struct {
 	logger                       hclog.Logger
 }
 
-func NewVaultProvider() *VaultProvider {
-	return &VaultProvider{shutdown: func() {}}
+func NewVaultProvider(logger hclog.Logger) *VaultProvider {
+	return &VaultProvider{
+		shutdown: func() {},
+		logger:   logger,
+	}
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -143,14 +145,6 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	}
 }
 
-// SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (v *VaultProvider) SetLogger(logger hclog.Logger) {
-	v.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.Vault)
-}
-
 // State implements Provider. Vault provider needs no state other than the
 // user-provided config currently.
 func (v *VaultProvider) State() (map[string]string, error) {
@@ -169,7 +163,7 @@ func (v *VaultProvider) GenerateRoot() error {
 	}
 
 	// Set up the root PKI backend if necessary.
-	_, err := v.ActiveRoot()
+	rootPEM, err := v.ActiveRoot()
 	switch err {
 	case ErrBackendNotMounted:
 		err := v.client.Sys().Mount(v.config.RootPKIPath, &vaultapi.MountInput{
@@ -202,6 +196,31 @@ func (v *VaultProvider) GenerateRoot() error {
 	default:
 		if err != nil {
 			return err
+		}
+
+		if rootPEM != "" {
+			rootCert, err := connect.ParseCert(rootPEM)
+			if err != nil {
+				return err
+			}
+
+			// Vault PKI doesn't allow in-place cert/key regeneration. That
+			// means if you need to change either the key type or key bits then
+			// you also need to provide new mount points.
+			// https://www.vaultproject.io/api-docs/secret/pki#generate-root
+			//
+			// A separate bug in vault likely also requires that you use the
+			// ForceWithoutCrossSigning option when changing key types.
+			foundKeyType, foundKeyBits, err := connect.KeyInfoFromCert(rootCert)
+			if err != nil {
+				return err
+			}
+			if v.config.PrivateKeyType != foundKeyType {
+				return fmt.Errorf("cannot update the PrivateKeyType field without choosing a new PKI mount for the root CA")
+			}
+			if v.config.PrivateKeyBits != foundKeyBits {
+				return fmt.Errorf("cannot update the PrivateKeyBits field without choosing a new PKI mount for the root CA")
+			}
 		}
 	}
 
@@ -366,7 +385,7 @@ func (v *VaultProvider) getCA(path string) (string, error) {
 		return "", err
 	}
 
-	root := string(bytes)
+	root := EnsureTrailingNewline(string(bytes))
 	if root == "" {
 		return "", ErrBackendNotInitialized
 	}
@@ -440,7 +459,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 		return "", fmt.Errorf("issuing_ca was not a string")
 	}
 
-	return fmt.Sprintf("%s\n%s", cert, ca), nil
+	return EnsureTrailingNewline(cert) + EnsureTrailingNewline(ca), nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint
@@ -477,7 +496,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		return "", fmt.Errorf("signed intermediate result is not a string")
 	}
 
-	return intermediate, nil
+	return EnsureTrailingNewline(intermediate), nil
 }
 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
@@ -517,7 +536,7 @@ func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
 		return "", fmt.Errorf("certificate was not a string")
 	}
 
-	return xcCert, nil
+	return EnsureTrailingNewline(xcCert), nil
 }
 
 // SupportsCrossSigning implements Provider

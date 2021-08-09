@@ -11,8 +11,11 @@ Below is a list of the most commonly used functions as bookmarklets followed by 
 | [Enable ACLs](javascript:Scenario('CONSUL_ACLS_ENABLE=1')) | Enable ACLs |
 | [Enable Nspaces](javascript:Scenario('CONSUL_NSPACES_ENABLE=1')) | Enable Namespace Support |
 | [Enable Partitions](javascript:Scenario('CONSUL_PARTITIONS_ENABLE=1')) | Enable Admin Partition Support |
-| [Enable SSO ](javascript:Scenario('CONSUL_SSO_ENABLE=1')) | Enable SSO Support |
+| [Enable SSO](javascript:Scenario('CONSUL_SSO_ENABLE=1')) | Enable SSO Support |
 | [Enable Metrics](javascript:Scenario('CONSUL_METRICS_PROXY_ENABLE=1;CONSUL_METRICS_PROVIDER=prometheus')) | Enable all configuration required for viewing the full Metrics Visualization |
+| [Enable Intl Debug](javascript:Scenario('CONSUL_INTL_DEBUG=1')) | Render intl interpolation variable names instead of interpolating them |
+| [Intl Lorem Ipsum](javascript:Scenario('CONSUL_INTL_LOCALE=la-fk')) | Render all intl copy as lorem ipsum |
+| [Intl Dashes](javascript:Scenario('CONSUL_INTL_LOCALE=-')) | Render all intl copy as `-` |
 | [Toggle QUnit Display](javascript:(function()%7B(function()%7Bconst%20s%20%3D%20document.getElementById(%22ember-testing-container%22).style%3Bs.display%20%3D%20s.display%20%3D%3D%3D%20%22none%22%20%3F%20%22block%22%20%3A%20%22none%22%3B%7D)()%3B%7D)()%3B) | Toggle the QUnit display on or off during browser testing |
 
 | Function | Arguments | Description |

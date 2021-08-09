@@ -9,7 +9,9 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 }
 
 const trailingSlashRe = /\/$/;
-const moreThan1SlashRe = /\/{2,}/g;
+
+// see below re: ember double slashes
+// const moreThan1SlashRe = /\/{2,}/g;
 
 const _uuid = function() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -123,15 +125,16 @@ export default class FSMWithOptionalLocation {
   }
 
   getURLFrom(url) {
-    // remove trailing slashes if they exists
+    // remove trailing slashes if they exist
     url = url || this.location.pathname;
     this.rootURL = this.rootURL.replace(trailingSlashRe, '');
     this.baseURL = this.baseURL.replace(trailingSlashRe, '');
     // remove baseURL and rootURL from start of path
     return url
       .replace(new RegExp(`^${this.baseURL}(?=/|$)`), '')
-      .replace(new RegExp(`^${this.rootURL}(?=/|$)`), '')
-      .replace(moreThan1SlashRe, '/'); // remove extra slashes
+      .replace(new RegExp(`^${this.rootURL}(?=/|$)`), '');
+    // ember default locations remove double slashes here e.g. '//'
+    // .replace(moreThan1SlashRe, '/'); // remove extra slashes
   }
 
   getURLForTransition(url) {

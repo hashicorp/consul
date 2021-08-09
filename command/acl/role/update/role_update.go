@@ -69,7 +69,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -250,8 +250,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL role"
-const help = `
+const (
+	synopsis = "Update an ACL role"
+	help     = `
 Usage: consul acl role update [options]
 
   Updates a role. By default it will merge the role information with its
@@ -270,3 +271,4 @@ Usage: consul acl role update [options]
                                    -policy-name "token-replication" \
                                    -service-identity "web"
 `
+)

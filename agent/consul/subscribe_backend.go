@@ -31,6 +31,7 @@ var _ subscribe.Backend = (*subscribeBackend)(nil)
 // or if it matches the Datacenter in config.
 //
 // TODO: extract this so that it can be used with other grpc services.
+// TODO: rename to ForwardToDC
 func (s subscribeBackend) Forward(dc string, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	if dc == "" || dc == s.srv.config.Datacenter {
 		return false, nil

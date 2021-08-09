@@ -195,10 +195,13 @@ func (c *cmd) run(args []string) int {
 	ui.Info(fmt.Sprintf("       Version: '%s'", c.versionHuman))
 	ui.Info(fmt.Sprintf("       Node ID: '%s'", config.NodeID))
 	ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	if ap := config.PartitionOrEmpty(); ap != "" {
+		ui.Info(fmt.Sprintf("     Partition: '%s'", ap))
+	}
 	ui.Info(fmt.Sprintf("    Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
 	ui.Info(fmt.Sprintf("        Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, DNS: %d)", config.ClientAddrs,
-		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.DNSPort))
+	ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, xDS: %d, DNS: %d)", config.ClientAddrs,
+		config.HTTPPort, config.HTTPSPort, config.XDSPort, config.DNSPort))
 	ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
 	ui.Info(fmt.Sprintf("       Encrypt: Gossip: %v, TLS-Outgoing: %v, TLS-Incoming: %v, Auto-Encrypt-TLS: %t",

@@ -859,6 +859,7 @@ func TestACL_HTTP(t *testing.T) {
 				found := false
 				for _, actual := range tokens {
 					if actual.AccessorID == tokenID {
+						require.Equal(t, expected.SecretID, actual.SecretID)
 						require.Equal(t, expected.Description, actual.Description)
 						require.Equal(t, expected.Policies, actual.Policies)
 						require.Equal(t, expected.Local, actual.Local)

@@ -169,7 +169,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		QueryOptions:   structs.QueryOptions{Token: "my-token", Filter: ""},
 		ServiceName:    "db",
 		Connect:        true,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	})
 	db_v1_HealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
 		Datacenter: "dc1",
@@ -178,7 +178,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		},
 		ServiceName:    "db",
 		Connect:        true,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	})
 	db_v2_HealthCacheKey := testGenCacheKey(&structs.ServiceSpecificRequest{
 		Datacenter: "dc1",
@@ -187,7 +187,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		},
 		ServiceName:    "db",
 		Connect:        true,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	})
 
 	db := structs.NewServiceName("db", nil)

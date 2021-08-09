@@ -398,7 +398,6 @@ func testCAConfigSet(t testing.T, a TestAgentRPC,
 		Config: map[string]interface{}{
 			"PrivateKey":          ca.SigningKey,
 			"RootCert":            ca.RootCert,
-			"RotationPeriod":      180 * 24 * time.Hour,
 			"IntermediateCertTTL": 288 * time.Hour,
 		},
 	}

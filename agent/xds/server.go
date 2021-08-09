@@ -543,14 +543,15 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// GRPCServer returns a server instance that can handle xDS requests.
-func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
+// NewGRPCServer creates a grpc.Server, registers the Server, and then returns
+// the grpc.Server.
+func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 	}
 	if tlsConfigurator != nil {
 		if tlsConfigurator.Cert() != nil {
-			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
+			creds := credentials.NewTLS(tlsConfigurator.IncomingXDSConfig())
 			opts = append(opts, grpc.Creds(creds))
 		}
 	}
@@ -560,8 +561,7 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	if !s.DisableV2Protocol {
 		envoy_discovery_v2.RegisterAggregatedDiscoveryServiceServer(srv, &adsServerV2Shim{srv: s})
 	}
-
-	return srv, nil
+	return srv
 }
 
 func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
@@ -583,12 +583,12 @@ func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.Co
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+		if rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	default:

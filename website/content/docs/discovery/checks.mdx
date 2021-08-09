@@ -64,7 +64,7 @@ There are several different kinds of checks:
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition. When using TLS, the SNI will be set
   automatically from the URL if it uses a hostname (as opposed to an IP address);
-  the value can be overriden by setting `tls_server_name`.
+  the value can be overridden by setting `tls_server_name`.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts

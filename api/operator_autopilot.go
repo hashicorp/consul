@@ -58,6 +58,23 @@ type AutopilotConfiguration struct {
 	ModifyIndex uint64
 }
 
+// Defines default values for the AutopilotConfiguration type, consistent with
+// https://www.consul.io/api-docs/operator/autopilot#parameters-1
+func NewAutopilotConfiguration() AutopilotConfiguration {
+	cfg := AutopilotConfiguration{
+		CleanupDeadServers:      true,
+		LastContactThreshold:    NewReadableDuration(200 * time.Millisecond),
+		MaxTrailingLogs:         250,
+		MinQuorum:               0,
+		ServerStabilizationTime: NewReadableDuration(10 * time.Second),
+		RedundancyZoneTag:       "",
+		DisableUpgradeMigration: false,
+		UpgradeVersionTag:       "",
+	}
+
+	return cfg
+}
+
 // ServerHealth is the health (from the leader's point of view) of a server.
 type ServerHealth struct {
 	// ID is the raft ID of the server.

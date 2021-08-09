@@ -47,7 +47,7 @@ func (t *txnResultsFilter) Filter(i int) bool {
 		result.KV.EnterpriseMeta.FillAuthzContext(&authzContext)
 		return t.authorizer.KeyRead(result.KV.Key, &authzContext) != acl.Allow
 	case result.Node != nil:
-		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 		return t.authorizer.NodeRead(result.Node.Node, &authzContext) != acl.Allow
 	case result.Service != nil:
 		result.Service.EnterpriseMeta.FillAuthzContext(&authzContext)

@@ -53,7 +53,7 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 
 	// Test for service IDs
 	if v := spiffeIDServiceRegexp.FindStringSubmatch(path); v != nil {
-		// Determine the values. We assume they're sane to save cycles,
+		// Determine the values. We assume they're reasonable to save cycles,
 		// but if the raw path is not empty that means that something is
 		// URL encoded so we go to the slow path.
 		ap := v[1]
@@ -84,7 +84,7 @@ func ParseCertURI(input *url.URL) (CertURI, error) {
 			Service:    service,
 		}, nil
 	} else if v := spiffeIDAgentRegexp.FindStringSubmatch(path); v != nil {
-		// Determine the values. We assume they're sane to save cycles,
+		// Determine the values. We assume they're reasonable to save cycles,
 		// but if the raw path is not empty that means that something is
 		// URL encoded so we go to the slow path.
 		ap := v[1]

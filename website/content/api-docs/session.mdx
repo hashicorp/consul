@@ -46,9 +46,25 @@ The table below shows this endpoint's support for
 
 - `Name` `(string: "")` - Specifies a human-readable name for the session.
 
-- `Checks` `(array<string>: nil)` - specifies a list of associated health
+- `Checks` `(array<string>: nil)` - Specifies a list of node health
   check IDs (commonly `CheckID` in API responses). It is highly recommended that,
   if you override this list, you include the default `serfHealth`.
+  Deprecated in Consul 1.7.0 and replaced by `NodeChecks`. This field will be
+  omitted from the API response in Consul 1.7+ if `serfHealth` is the only defined check.
+
+- `NodeChecks` `(array<string>: nil)` - Specifies a list of node health
+  check IDs (commonly `CheckID` in API responses). It is highly recommended that,
+  if you override this list, you include the default `serfHealth`. Added in
+  Consul 1.7.0.
+
+- `ServiceChecks` `(array<ServiceCheck>: nil)` - Specifies a list of service
+  checks. Added in Consul 1.7.0. A service check has the following fields:
+
+  - `ID` `(string: <required>)` - The ID of the service check to monitor
+    (commonly `CheckID` in API responses).
+
+  - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the
+    namespace in which to resolve the service check ID.
 
 - `Behavior` `(string: "release")` - Controls the behavior to take when a
   session is invalidated. Valid values are:
@@ -88,7 +104,7 @@ $ curl \
 
 ### Sample Response
 
-```javascript
+```json
 {
   "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
 }
@@ -195,10 +211,13 @@ $ curl \
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "Name": "test-session",
     "Node": "raja-laptop-02",
-    "Checks": ["serfHealth"],
-    "LockDelay": 1.5e10,
+    "LockDelay": 15000000000,
     "Behavior": "release",
     "TTL": "30s",
+    "NodeChecks": [
+      "serfHealth"
+    ],
+    "ServiceChecks": null,
     "CreateIndex": 1086449,
     "ModifyIndex": 1086449
   }
@@ -255,11 +274,14 @@ $ curl \
   {
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "Name": "test-session",
-    "Node": "raja-laptop-02",
-    "Checks": ["serfHealth"],
-    "LockDelay": 1.5e10,
+    "Node": "node-abcd1234",
+    "LockDelay": 15000000000,
     "Behavior": "release",
     "TTL": "30s",
+    "NodeChecks": [
+      "serfHealth"
+    ],
+    "ServiceChecks": null,
     "CreateIndex": 1086449,
     "ModifyIndex": 1086449
   }
@@ -311,10 +333,13 @@ $ curl \
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "Name": "test-session",
     "Node": "raja-laptop-02",
-    "Checks": ["serfHealth"],
-    "LockDelay": 1.5e10,
+    "LockDelay": 15000000000,
     "Behavior": "release",
     "TTL": "30s",
+    "NodeChecks": [
+      "serfHealth"
+    ],
+    "ServiceChecks": null,
     "CreateIndex": 1086449,
     "ModifyIndex": 1086449
   }
@@ -370,10 +395,13 @@ $ curl \
     "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "Name": "test-session",
     "Node": "raja-laptop-02",
-    "Checks": ["serfHealth"],
-    "LockDelay": 1.5e10,
+    "LockDelay": 15000000000,
     "Behavior": "release",
-    "TTL": "15s",
+    "TTL": "30s",
+    "NodeChecks": [
+      "serfHealth"
+    ],
+    "ServiceChecks": null,
     "CreateIndex": 1086449,
     "ModifyIndex": 1086449
   }

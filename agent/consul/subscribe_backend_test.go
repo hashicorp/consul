@@ -26,8 +26,8 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	t.Parallel()
 
 	_, conf1 := testServerConfig(t)
-	conf1.VerifyIncoming = true
-	conf1.VerifyOutgoing = true
+	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyOutgoing = true
 	conf1.RPCConfig.EnableStreaming = true
 	configureTLS(conf1)
 	server, err := newServer(t, conf1)
@@ -147,11 +147,11 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 
 	// Set up a server with initially bad certificates.
 	_, conf1 := testServerConfig(t)
-	conf1.VerifyIncoming = true
-	conf1.VerifyOutgoing = true
-	conf1.CAFile = "../../test/ca/root.cer"
-	conf1.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
-	conf1.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
+	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyOutgoing = true
+	conf1.TLSConfig.CAFile = "../../test/ca/root.cer"
+	conf1.TLSConfig.CertFile = "../../test/key/ssl-cert-snakeoil.pem"
+	conf1.TLSConfig.KeyFile = "../../test/key/ssl-cert-snakeoil.key"
 	conf1.RPCConfig.EnableStreaming = true
 
 	server, err := newServer(t, conf1)
@@ -178,7 +178,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	require.Error(t, err)
 
 	// Reload the server with valid certs
-	newConf := server.config.ToTLSUtilConfig()
+	newConf := server.config.TLSConfig
 	newConf.CertFile = "../../test/key/ourdomain.cer"
 	newConf.KeyFile = "../../test/key/ourdomain.key"
 	server.tlsConfigurator.Update(newConf)
@@ -192,7 +192,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 }
 
 func clientConfigVerifyOutgoing(config *Config) {
-	config.VerifyOutgoing = true
+	config.TLSConfig.VerifyOutgoing = true
 }
 
 // retryFailedConn forces the ClientConn to reset its backoff timer and retry the connection,

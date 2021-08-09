@@ -39,7 +39,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -147,8 +147,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Removes data from the KV store"
-const help = `
+const (
+	synopsis = "Removes data from the KV store"
+	help     = `
 Usage: consul kv delete [options] KEY_OR_PREFIX
 
   Removes the value from Consul's key-value store at the given path. If no
@@ -165,3 +166,4 @@ Usage: consul kv delete [options] KEY_OR_PREFIX
   This will delete the keys named "foo", "food", and "foo/bar/zip" if they
   existed.
 `
+)

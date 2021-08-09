@@ -20,6 +20,11 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/http2"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
@@ -27,10 +32,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/net/http2"
 )
 
 func TestHTTPServer_UnixSocket(t *testing.T) {
@@ -632,7 +633,7 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 	}
 
 	t.Parallel()
-	buf := new(bytes.Buffer)
+	buf := &syncBuffer{b: new(bytes.Buffer)}
 	a := StartTestAgent(t, TestAgent{LogOutput: buf})
 	defer a.Shutdown()
 

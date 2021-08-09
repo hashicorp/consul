@@ -81,18 +81,7 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 			}
 
 			service := &op.Service.Service
-			// This is intentionally nil as we will authorize the request
-			// using vetServiceTxnOp next instead of doing it in servicePreApply
-			if err := servicePreApply(service, nil); err != nil {
-				errors = append(errors, &structs.TxnError{
-					OpIndex: i,
-					What:    err.Error(),
-				})
-				break
-			}
-
-			// Check that the token has permissions for the given operation.
-			if err := vetServiceTxnOp(op.Service, authorizer); err != nil {
+			if err := servicePreApply(service, authorizer, op.Service.FillAuthzContext); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
@@ -117,6 +106,36 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 	}
 
 	return errors
+}
+
+// vetNodeTxnOp applies the given ACL policy to a node transaction operation.
+func vetNodeTxnOp(op *structs.TxnNodeOp, authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	op.FillAuthzContext(&authzContext)
+
+	if authz.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+	return nil
+}
+
+// vetCheckTxnOp applies the given ACL policy to a check transaction operation.
+func vetCheckTxnOp(op *structs.TxnCheckOp, authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	op.FillAuthzContext(&authzContext)
+
+	if op.Check.ServiceID == "" {
+		// Node-level check.
+		if authz.NodeWrite(op.Check.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	} else {
+		// Service-level check.
+		if authz.ServiceWrite(op.Check.ServiceName, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	}
+	return nil
 }
 
 // Apply is used to apply multiple operations in a single, atomic transaction.

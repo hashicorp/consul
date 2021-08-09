@@ -95,7 +95,7 @@ func (c *CompiledDiscoveryChain) ID() string {
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
-	entMeta := NewEnterpriseMeta(c.Namespace)
+	entMeta := NewEnterpriseMetaInDefaultPartition(c.Namespace)
 	return NewServiceName(c.ServiceName, &entMeta)
 }
 

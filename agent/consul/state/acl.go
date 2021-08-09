@@ -1013,7 +1013,7 @@ func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *st
 
 func aclTokenDeleteAllForAuthMethodTxn(tx WriteTxn, idx uint64, methodName string, methodGlobalLocality bool, methodMeta *structs.EnterpriseMeta) error {
 	// collect all the tokens linked with the given auth method.
-	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMeta())
+	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}
@@ -1143,7 +1143,7 @@ func (s *Store) ACLPolicyGetByName(ws memdb.WatchSet, name string, entMeta *stru
 func aclPolicyGetByName(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	// todo: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{Value: name, EnterpriseMeta: *entMeta}
 	return tx.FirstWatch(tableACLPolicies, indexName, q)
@@ -1376,7 +1376,7 @@ func (s *Store) ACLRoleGetByName(ws memdb.WatchSet, name string, entMeta *struct
 func aclRoleGetByName(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	q := Query{EnterpriseMeta: *entMeta, Value: name}
 	return tx.FirstWatch(tableACLRoles, indexName, q)
@@ -1445,7 +1445,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 
 	// TODO: accept non-pointer value
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	if policy != "" {

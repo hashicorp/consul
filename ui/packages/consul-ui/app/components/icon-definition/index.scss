@@ -38,7 +38,7 @@
   @extend %with-public-default-mask, %as-pseudo;
 }
 %icon-definition.socket dt::before {
-  @extend %with-port-mask, %as-pseudo;
+  @extend %with-socket-mask, %as-pseudo;
 }
 %icon-definition.mesh dt::before {
   @extend %with-mesh-mask, %as-pseudo;

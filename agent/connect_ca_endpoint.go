@@ -37,6 +37,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 
 	// defined in RFC 8555 and registered with the IANA
 	resp.Header().Set("Content-Type", "application/pem-certificate-chain")
+
 	for _, root := range reply.Roots {
 		if _, err := resp.Write([]byte(root.RootCert)); err != nil {
 			return nil, err
@@ -47,7 +48,6 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 			}
 		}
 	}
-
 	return nil, nil
 }
 
@@ -58,7 +58,7 @@ func (s *HTTPHandlers) ConnectCAConfiguration(resp http.ResponseWriter, req *htt
 		return s.ConnectCAConfigurationGet(resp, req)
 
 	case "PUT":
-		return s.ConnectCAConfigurationSet(resp, req)
+		return s.ConnectCAConfigurationSet(req)
 
 	default:
 		return nil, MethodNotAllowedError{req.Method, []string{"GET", "POST"}}
@@ -83,7 +83,7 @@ func (s *HTTPHandlers) ConnectCAConfigurationGet(resp http.ResponseWriter, req *
 }
 
 // PUT /v1/connect/ca/configuration
-func (s *HTTPHandlers) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfigurationSet(req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 
 	var args structs.CARequest

@@ -1,16 +1,18 @@
 # Significant patterns
 
+## Ember specific
+
 The Consul UI tries to follow typical conventional ember but differs
 significantly in several places:
 
-## Routing
+### Routing
 
 We use a declarative configuration format for our routing rather than Ember's
 DSL. The format is closely modeled on Ember's DSL and if you need to generate
 Ember's DSL from this for some reason you can use one of our Debug Utilities
 to do this.
 
-## Routes
+### Routes
 
 We use a specific BaseRoute as a parent Route for **all** our Routes. This contains project wide
 functionality for several important additions. If you use the normal `ember
@@ -27,7 +29,7 @@ has no query parameters configured they are copied over from the Route.
 Preferably we don't use Controllers, but this doesn't mean you shouldn't if
 you need to.
 
-## Routlets
+### Routlets
 
 We use have a concept of 'routlets', the combination of a `<Route />` and
 `<Outlet />` components that we use within our route templates to achieve
@@ -38,7 +40,7 @@ Every route template should be wrapped in a `<Route @name={{routeName}}>` compon
 The `routeName` variable is made available in every single route template and
 it equal to the routeName of the current template e.g. `dc.services.index`
 
-## DataSources
+### DataSources
 
 In order to support our live updating long-polling blocking queries we use
 'DataSources' which come in two flavours. A service backed
@@ -79,7 +81,7 @@ And a component based approach for use within templates.
 
 See the relavant component/service documentation for more detail.
 
-## Components
+### Components
 
 You could group our components into two different groups:
 
@@ -94,7 +96,7 @@ We currently use a mix of named/block slots and contextual components and its
 fair to say that we use more named/block slots, but both are fine depending on
 your use case.
 
-## Significant Addons
+### Significant Addons
 
 - `ember-data` - model layer
 - `ember-stargate` - wormhole/portal/put this DOM over there functionality
@@ -105,4 +107,47 @@ your use case.
 
 Please see our package.json file dependencies.
 
+## Consul specific
 
+### Namespace support
+
+Whilst Consul namespaces are a OSS feature of Consul, we almost always build
+things 'pretending' that namespaces are always enabled. Then there is code
+within the data layer of the application that removes any namespace related
+query parameters.
+
+Namespaces are a little more complex to think about than other things in
+Consul as we have the idea of 'the default' namespace, and then additionally
+an ACL token can have 'a default' namespace (not the same as 'the default'
+namespace) which is a little like a namespace that is assigned to the token,
+or where the token originated from. The Consul backend can then use the tokens
+default/origin/assigned namespace to figure out whether and how to filter any
+results by namespace before sending those results to the UI.
+
+When you are requesting data from the API you should always include a
+namespace (if applicable to the API endpoint), but you should never default
+the namespace value to 'the default' namespace - `default`. Conversly, when
+receiving data from an API response, there are some places where we do default
+a namespace to 'the default' namespace `default`. The easiest way to think
+about this is: If its on the way out, don't add a default ever, if its on the
+way in you may need to default any potentially empty Namespace parameters to
+`default` (due to using Consul without namespaces enabled), there is a
+NspaceAbility and/or an `env` feature flag to help you to discover this.
+
+We've made various decisions in the UI to make it hard to omit a namespace
+when you shouldn't, for example using our DataSource component requires you to
+include a defined namespace parameter (even if the value for that is `''`),
+and the route parameter `nspace` value will always default to `''`. It also
+reminds you to be continually thinking about namespaces whilst adding new
+features.
+
+Lastly, we always refer to namespaces in code as the word `nspace` or
+`nspaces`. Both `ns` and `namespace` have other purposes in Ember and Ember
+Data (in various places one is significant but not the other and vice versa).
+Always using the term `nspace` means we avoid any strange bugs or
+clashes/overwrites with anything in Ember or Ember Data core. The only place
+where we use `ns` or `Namespace` is to construct API requests/responses.
+Sometimes when using this term in CSS or on plain javascript objects, this may
+seem unnecessary but it just helps smooth over writing code around namespaces
+as you don't have the split second decision of whether you write `ns` or
+`namespace` - just use `nspace` and everything will be fine :)

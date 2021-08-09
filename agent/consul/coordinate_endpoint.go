@@ -142,12 +142,10 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	if err != nil {
 		return err
 	}
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
+	var authzContext acl.AuthorizerContext
+	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
 	}
 
 	// Add the coordinate to the map of pending updates.
@@ -199,7 +197,8 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, coords, err := state.Coordinates(ws)
+			// TODO(partitions)
+			index, coords, err := state.Coordinates(ws, nil)
 			if err != nil {
 				return err
 			}
@@ -225,18 +224,17 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	if err != nil {
 		return err
 	}
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
+	var authzContext acl.AuthorizerContext
+	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
 	}
 
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodeCoords, err := state.Coordinate(args.Node, ws)
+			// TODO(partitions)
+			index, nodeCoords, err := state.Coordinate(ws, args.Node, nil)
 			if err != nil {
 				return err
 			}

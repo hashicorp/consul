@@ -11,7 +11,7 @@ import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
 
-const DEFAULT_NSPACE = 'default';
+const DEFAULT_NSPACE = '';
 
 const map = function(obj, cb) {
   if (!Array.isArray(obj)) {

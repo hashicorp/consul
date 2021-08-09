@@ -46,7 +46,7 @@ func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
 
-	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMeta())
+	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return err
 	}

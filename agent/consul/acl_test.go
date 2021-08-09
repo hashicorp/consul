@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -310,43 +309,51 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 	switch policyID {
 	case "acl-ro":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "acl-ro",
 			Name:        "acl-ro",
 			Description: "acl-ro",
 			Rules:       `acl = "read"`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "acl-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "acl-wr",
 			Name:        "acl-wr",
 			Description: "acl-wr",
 			Rules:       `acl = "write"`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "service-ro":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "service-ro",
 			Name:        "service-ro",
 			Description: "service-ro",
 			Rules:       `service_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "service-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "service-wr",
 			Name:        "service-wr",
 			Description: "service-wr",
 			Rules:       `service_prefix "" { policy = "write" }`,
 			Syntax:      acl.SyntaxCurrent,
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "node-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "node-wr",
 			Name:        "node-wr",
 			Description: "node-wr",
@@ -354,9 +361,11 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc1"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	case "dc2-key-wr":
-		return true, &structs.ACLPolicy{
+		p := &structs.ACLPolicy{
 			ID:          "dc2-key-wr",
 			Name:        "dc2-key-wr",
 			Description: "dc2-key-wr",
@@ -364,7 +373,9 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: []string{"dc2"},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
+		}
+		p.SetHash(false)
+		return true, p, nil
 	default:
 		return testPolicyForIDEnterprise(policyID)
 	}
@@ -745,7 +756,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	r := newTestACLResolver(t, delegate, nil)
 
 	authz, err := r.ResolveToken("does not exist")
-	require.Nil(t, authz)
+	require.Equal(t, acl.ManageAll(), authz)
 	require.Nil(t, err)
 }
 
@@ -3265,7 +3276,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 	}
 }
 
-func TestACL_redactTokenSecret(t *testing.T) {
+func TestFilterACL_redactTokenSecret(t *testing.T) {
 	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
@@ -3282,16 +3293,16 @@ func TestACL_redactTokenSecret(t *testing.T) {
 		SecretID:   "6a5e25b3-28f2-4085-9012-c3fb754314d1",
 	}
 
-	err := r.filterACL("acl-wr", &token)
+	err := filterACL(r, "acl-wr", &token)
 	require.NoError(t, err)
 	require.Equal(t, "6a5e25b3-28f2-4085-9012-c3fb754314d1", token.SecretID)
 
-	err = r.filterACL("acl-ro", &token)
+	err = filterACL(r, "acl-ro", &token)
 	require.NoError(t, err)
 	require.Equal(t, redactedToken, token.SecretID)
 }
 
-func TestACL_redactTokenSecrets(t *testing.T) {
+func TestFilterACL_redactTokenSecrets(t *testing.T) {
 	t.Parallel()
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
@@ -3310,11 +3321,11 @@ func TestACL_redactTokenSecrets(t *testing.T) {
 		},
 	}
 
-	err := r.filterACL("acl-wr", &tokens)
+	err := filterACL(r, "acl-wr", &tokens)
 	require.NoError(t, err)
 	require.Equal(t, "6a5e25b3-28f2-4085-9012-c3fb754314d1", tokens[0].SecretID)
 
-	err = r.filterACL("acl-ro", &tokens)
+	err = filterACL(r, "acl-ro", &tokens)
 	require.NoError(t, err)
 	require.Equal(t, redactedToken, tokens[0].SecretID)
 }
@@ -3407,488 +3418,6 @@ func TestACL_unhandledFilterType(t *testing.T) {
 
 	// Pass an unhandled type into the ACL filter.
 	srv.filterACL(token, &structs.HealthCheck{})
-}
-
-func TestACL_vetRegisterWithACL(t *testing.T) {
-	t.Parallel()
-	args := &structs.RegisterRequest{
-		Node:    "nope",
-		Address: "127.0.0.1",
-	}
-
-	// With a nil ACL, the update should be allowed.
-	if err := vetRegisterWithACL(nil, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource("", 0, `
-node "node" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// With that policy, the update should now be blocked for node reasons.
-	err = vetRegisterWithACL(perms, args, nil)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Now use a permitted node name.
-	args.Node = "node"
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Build some node info that matches what we have now.
-	ns := &structs.NodeServices{
-		Node: &structs.Node{
-			Node:    "node",
-			Address: "127.0.0.1",
-		},
-		Services: make(map[string]*structs.NodeService),
-	}
-
-	// Try to register a service, which should be blocked.
-	args.Service = &structs.NodeService{
-		Service: "service",
-		ID:      "my-id",
-	}
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Chain on a basic service policy.
-	policy, err = acl.NewPolicyFromSource("", 0, `
-service "service" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// With the service ACL, the update should go through.
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Add an existing service that they are clobbering and aren't allowed
-	// to write to.
-	ns.Services["my-id"] = &structs.NodeService{
-		Service: "other",
-		ID:      "my-id",
-	}
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Chain on a policy that allows them to write to the other service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
-service "other" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Now it should go through.
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Try creating the node and the service at once by having no existing
-	// node record. This should be ok since we have node and service
-	// permissions.
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Add a node-level check to the member, which should be rejected.
-	args.Check = &structs.HealthCheck{
-		Node: "node",
-	}
-	err = vetRegisterWithACL(perms, args, ns)
-	if err == nil || !strings.Contains(err.Error(), "check member must be nil") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Move the check into the slice, but give a bad node name.
-	args.Check.Node = "nope"
-	args.Checks = append(args.Checks, args.Check)
-	args.Check = nil
-	err = vetRegisterWithACL(perms, args, ns)
-	if err == nil || !strings.Contains(err.Error(), "doesn't match register request node") {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Fix the node name, which should now go through.
-	args.Checks[0].Node = "node"
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Add a service-level check.
-	args.Checks = append(args.Checks, &structs.HealthCheck{
-		Node:      "node",
-		ServiceID: "my-id",
-	})
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Try creating everything at once. This should be ok since we have all
-	// the permissions we need. It also makes sure that we can register a
-	// new node, service, and associated checks.
-	if err := vetRegisterWithACL(perms, args, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Nil out the service registration, which'll skip the special case
-	// and force us to look at the ns data (it will look like we are
-	// writing to the "other" service which also has "my-id").
-	args.Service = nil
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Chain on a policy that forbids them to write to the other service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
-service "other" {
-  policy = "deny"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// This should get rejected.
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Change the existing service data to point to a service name they
-	// car write to. This should go through.
-	ns.Services["my-id"] = &structs.NodeService{
-		Service: "service",
-		ID:      "my-id",
-	}
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Chain on a policy that forbids them to write to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
-node "node" {
-  policy = "deny"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// This should get rejected because there's a node-level check in here.
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-
-	// Change the node-level check into a service check, and then it should
-	// go through.
-	args.Checks[0].ServiceID = "my-id"
-	if err := vetRegisterWithACL(perms, args, ns); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Finally, attempt to update the node part of the data and make sure
-	// that gets rejected since they no longer have permissions.
-	args.Address = "127.0.0.2"
-	err = vetRegisterWithACL(perms, args, ns)
-	if !acl.IsErrPermissionDenied(err) {
-		t.Fatalf("bad: %v", err)
-	}
-}
-
-func TestACL_vetDeregisterWithACL(t *testing.T) {
-	t.Parallel()
-	args := &structs.DeregisterRequest{
-		Node: "nope",
-	}
-
-	// With a nil ACL, the update should be allowed.
-	if err := vetDeregisterWithACL(nil, args, nil, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource("", 0, `
-node "node" {
-  policy = "write"
-}
-`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	nodePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	policy, err = acl.NewPolicyFromSource("", 0, `
-	service "my-service" {
-	  policy = "write"
-	}
-	`, acl.SyntaxLegacy, nil, nil)
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	servicePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	for _, args := range []struct {
-		DeregisterRequest structs.DeregisterRequest
-		Service           *structs.NodeService
-		Check             *structs.HealthCheck
-		Perms             acl.Authorizer
-		Expected          bool
-		Name              string
-	}{
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node: "nope",
-			},
-			Perms:    nodePerms,
-			Expected: false,
-			Name:     "no right on node",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node: "nope",
-			},
-			Perms:    servicePerms,
-			Expected: false,
-			Name:     "right on service but node dergister request",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "nope",
-				ServiceID: "my-service-id",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Perms:    nodePerms,
-			Expected: false,
-			Name:     "no rights on node nor service",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "nope",
-				ServiceID: "my-service-id",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Perms:    servicePerms,
-			Expected: true,
-			Name:     "no rights on node but rights on service",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "nope",
-				ServiceID: "my-service-id",
-				CheckID:   "my-check",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    nodePerms,
-			Expected: false,
-			Name:     "no right on node nor service for check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "nope",
-				ServiceID: "my-service-id",
-				CheckID:   "my-check",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    servicePerms,
-			Expected: true,
-			Name:     "no rights on node but rights on service for check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:    "nope",
-				CheckID: "my-check",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    nodePerms,
-			Expected: false,
-			Name:     "no right on node for node check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:    "nope",
-				CheckID: "my-check",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    servicePerms,
-			Expected: false,
-			Name:     "rights on service but no right on node for node check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node: "node",
-			},
-			Perms:    nodePerms,
-			Expected: true,
-			Name:     "rights on node for node",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node: "node",
-			},
-			Perms:    servicePerms,
-			Expected: false,
-			Name:     "rights on service but not on node for node",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "node",
-				ServiceID: "my-service-id",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Perms:    nodePerms,
-			Expected: true,
-			Name:     "rights on node for service",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "node",
-				ServiceID: "my-service-id",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Perms:    servicePerms,
-			Expected: true,
-			Name:     "rights on service for service",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "node",
-				ServiceID: "my-service-id",
-				CheckID:   "my-check",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    nodePerms,
-			Expected: true,
-			Name:     "right on node for check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:      "node",
-				ServiceID: "my-service-id",
-				CheckID:   "my-check",
-			},
-			Service: &structs.NodeService{
-				Service: "my-service",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    servicePerms,
-			Expected: true,
-			Name:     "rights on service for check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:    "node",
-				CheckID: "my-check",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    nodePerms,
-			Expected: true,
-			Name:     "rights on node for check",
-		},
-		{
-			DeregisterRequest: structs.DeregisterRequest{
-				Node:    "node",
-				CheckID: "my-check",
-			},
-			Check: &structs.HealthCheck{
-				CheckID: "my-check",
-			},
-			Perms:    servicePerms,
-			Expected: false,
-			Name:     "rights on service for node check",
-		},
-	} {
-		t.Run(args.Name, func(t *testing.T) {
-			err = vetDeregisterWithACL(args.Perms, &args.DeregisterRequest, args.Service, args.Check)
-			if !args.Expected {
-				if err == nil {
-					t.Errorf("expected error with %+v", args.DeregisterRequest)
-				}
-				if !acl.IsErrPermissionDenied(err) {
-					t.Errorf("expected permission denied error with %+v, instead got %+v", args.DeregisterRequest, err)
-				}
-			} else if err != nil {
-				t.Errorf("expected no error with %+v", args.DeregisterRequest)
-			}
-		})
-	}
 }
 
 func TestDedupeServiceIdentities(t *testing.T) {

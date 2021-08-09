@@ -1,0 +1,4 @@
+```release-note:deprecation
+config: the `ports.grpc` and `addresses.grpc` configuration settings have been renamed to `ports.xds` and `addresses.xds` to better match their function.
+```
+

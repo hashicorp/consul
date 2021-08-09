@@ -72,7 +72,7 @@ parameters are required to properly configure an auth method of type
 
 - `JWTSupportedAlgs` `(array<string>)` - JWTSupportedAlgs is a list of
   supported signing algorithms. Defaults to `RS256`. ([Available
-  algorithms](https://github.com/hashicorp/consul/blob/master/vendor/github.com/coreos/go-oidc/jose.go#L7))
+  algorithms](https://github.com/hashicorp/consul/blob/main/vendor/github.com/coreos/go-oidc/jose.go#L7))
 
 - `BoundAudiences` `(array<string>)` - List of `aud` claims that are valid for
   login; any match is sufficient.
@@ -201,7 +201,7 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
   request to obtain a JWT that you can inspect. An example of how to decode the
   JWT (in this case located in the `access_token` field of a JSON response):
 
-      cat jwt.json | jq -r .access_token | cut -d. -f2 | base64 -D
+      cat jwt.json | jq -r .access_token | cut -d. -f2 | base64 --decode
 
 - The [`VerboseOIDCLogging`](#verboseoidclogging) option is available which
   will log the received OIDC token if debug level logging is enabled. This can

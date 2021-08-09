@@ -2844,7 +2844,7 @@ func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
 	// we'll create our auth method here that shadows the global-token-minting
 	// one in the primary.
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	lastIndex++
 	require.NoError(t, s.ACLAuthMethodSet(lastIndex, &structs.ACLAuthMethod{

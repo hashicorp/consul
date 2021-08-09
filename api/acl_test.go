@@ -595,6 +595,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	token1, ok := tokenMap[created1.AccessorID]
 	require.True(t, ok)
 	require.NotNil(t, token1)
+	require.Equal(t, created1.SecretID, token1.SecretID)
 	require.Equal(t, created1.Description, token1.Description)
 	require.Equal(t, created1.CreateIndex, token1.CreateIndex)
 	require.Equal(t, created1.ModifyIndex, token1.ModifyIndex)
@@ -604,6 +605,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	token2, ok := tokenMap[created2.AccessorID]
 	require.True(t, ok)
 	require.NotNil(t, token2)
+	require.Equal(t, created2.SecretID, token2.SecretID)
 	require.Equal(t, created2.Description, token2.Description)
 	require.Equal(t, created2.CreateIndex, token2.CreateIndex)
 	require.Equal(t, created2.ModifyIndex, token2.ModifyIndex)
@@ -613,6 +615,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	token3, ok := tokenMap[created3.AccessorID]
 	require.True(t, ok)
 	require.NotNil(t, token3)
+	require.Equal(t, created3.SecretID, token3.SecretID)
 	require.Equal(t, created3.Description, token3.Description)
 	require.Equal(t, created3.CreateIndex, token3.CreateIndex)
 	require.Equal(t, created3.ModifyIndex, token3.ModifyIndex)

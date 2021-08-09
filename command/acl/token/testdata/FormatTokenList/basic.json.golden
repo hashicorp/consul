@@ -3,6 +3,7 @@
         "CreateIndex": 42,
         "ModifyIndex": 100,
         "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+        "SecretID": "257ade69-748c-4022-bafd-76d27d9143f8",
         "Description": "test token",
         "Local": false,
         "CreateTime": "2020-05-22T18:52:31Z",

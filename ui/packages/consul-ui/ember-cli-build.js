@@ -1,14 +1,16 @@
 'use strict';
 const Funnel = require('broccoli-funnel');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
+const utils = require('./config/utils');
 
-module.exports = function(defaults) {
+module.exports = function(defaults, $ = process.env) {
   // available environments
   // ['production', 'development', 'staging', 'test'];
 
+  $ = utils.env($);
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
-  const sourcemaps = !['production'].includes(env);
+  const sourcemaps = !['production'].includes(env) && !$('BABEL_DISABLE_SOURCEMAPS', false);
 
   const trees = {};
   const addons = {};

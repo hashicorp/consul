@@ -46,7 +46,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -93,11 +93,13 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Lists ACL auth methods"
-const help = `
+const (
+	synopsis = "Lists ACL auth methods"
+	help     = `
 Usage: consul acl auth-method list [options]
 
   List all auth methods:
 
     $ consul acl auth-method list
 `
+)

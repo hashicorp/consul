@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Adds a copy button to each composite row in tokens list page, if Secret ID returns an actual ID
+```

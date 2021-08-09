@@ -29,6 +29,13 @@ export default function(scenario, create, set, win = window, doc = document) {
     .given(['the local datacenter is "$value"'], function(value) {
       doc.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
     })
+    .given(['ACLs are disabled'], function() {
+      doc.cookie = `CONSUL_ACLS_ENABLE=0`;
+    })
+    .given(['a "$value" metrics provider'], function(value) {
+      doc.cookie = `CONSUL_METRICS_PROXY_ENABLE=1`;
+      doc.cookie = `CONSUL_METRICS_PROVIDER=${value}`;
+    })
     .given(['permissions from yaml\n$yaml'], function(data) {
       Object.entries(data).forEach(([key, value]) => {
         const resource = `CONSUL_RESOURCE_${key.toUpperCase()}`;

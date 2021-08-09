@@ -207,7 +207,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	// If we're doing a connect or ingress query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect || args.Ingress {
-		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}

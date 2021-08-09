@@ -67,7 +67,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -185,8 +185,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL policy"
-const help = `
+const (
+	synopsis = "Update an ACL policy"
+	help     = `
 Usage: consul acl policy update [options]
 
   Updates a policy. By default it will merge the policy information with its
@@ -203,3 +204,4 @@ Usage: consul acl policy update [options]
           # the description
           $consul acl policy update -id abcd -name "better-name" -rules @rules.hcl
 `
+)

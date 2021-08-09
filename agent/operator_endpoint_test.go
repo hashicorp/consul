@@ -435,7 +435,21 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
+	// Provide a non-default value only for CleanupDeadServers.
+	// Expect all other fields to be updated with default values
+	// (except CreateIndex and ModifyIndex).
 	body := bytes.NewBuffer([]byte(`{"CleanupDeadServers": false}`))
+	expected := structs.AutopilotConfig{
+		CleanupDeadServers:      false, // only non-default value
+		LastContactThreshold:    200 * time.Millisecond,
+		MaxTrailingLogs:         250,
+		MinQuorum:               0,
+		ServerStabilizationTime: 10 * time.Second,
+		RedundancyZoneTag:       "",
+		DisableUpgradeMigration: false,
+		UpgradeVersionTag:       "",
+	}
+
 	req, _ := http.NewRequest("PUT", "/v1/operator/autopilot/configuration", body)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.OperatorAutopilotConfiguration(resp, req); err != nil {
@@ -453,9 +467,11 @@ func TestOperator_AutopilotSetConfiguration(t *testing.T) {
 	if err := a.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if reply.CleanupDeadServers {
-		t.Fatalf("bad: %#v", reply)
-	}
+
+	// For equality comparison check, ignore CreateIndex and ModifyIndex
+	expected.CreateIndex = reply.CreateIndex
+	expected.ModifyIndex = reply.ModifyIndex
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_AutopilotCASConfiguration(t *testing.T) {

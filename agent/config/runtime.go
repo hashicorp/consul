@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -269,6 +270,15 @@ type RuntimeConfig struct {
 	//
 	// hcl: dns_config { only_passing = (true|false) }
 	DNSOnlyPassing bool
+
+	// DNSRecursorStrategy controls the order in which DNS recursors are queried.
+	// 'sequential' queries recursors in the order they are listed under `recursors`.
+	// 'random' causes random selection of recursors which has the effect of
+	// spreading the query load among all listed servers, rather than having
+	// client agents try the first server in the list every time.
+	//
+	// hcl: dns_config { recursor_strategy = "(random|sequential)" }
+	DNSRecursorStrategy dns.RecursorStrategy
 
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.
@@ -715,27 +725,27 @@ type RuntimeConfig struct {
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
 
-	// GRPCPort is the port the gRPC server listens on. Currently this only
+	// XDSPort is the port the xDS gRPC server listens on. This port only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
-	// hcl: ports { grpc = int }
-	// flags: -grpc-port int
-	GRPCPort int
+	// hcl: ports { xds = int }
+	// flags: -xds-port int
+	XDSPort int
 
-	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
-	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
+	// XDSAddrs contains the list of TCP addresses and UNIX sockets the xDS gRPC
+	// server will bind to. If the xDS endpoint is disabled (ports.xds <= 0)
 	// the list is empty.
 	//
-	// The addresses are taken from 'addresses.grpc' which should contain a
+	// The addresses are taken from 'addresses.xds' which should contain a
 	// space separated list of ip addresses, UNIX socket paths and/or
 	// go-sockaddr templates. UNIX socket paths must be written as
-	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-xds.sock'.
 	//
-	// If 'addresses.grpc' was not provided the 'client_addr' addresses are
+	// If 'addresses.xds' was not provided the 'client_addr' addresses are
 	// used.
 	//
-	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
-	GRPCAddrs []net.Addr
+	// hcl: client_addr = string addresses { xds = string } ports { xds = int }
+	XDSAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
@@ -1661,7 +1671,6 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 	ca := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"RotationPeriod":      structs.DefaultCARotationPeriod,
 			"LeafCertTTL":         structs.DefaultLeafCertTTL,
 			"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
 		},
@@ -1920,4 +1929,17 @@ func isUint(t reflect.Type) bool {
 func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind() == reflect.Float64 }
 func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
+}
+
+// ApplyDefaultQueryOptions returns a function which will set default values on
+// the options based on the configuration. The RuntimeConfig must not be nil.
+func ApplyDefaultQueryOptions(config *RuntimeConfig) func(options *structs.QueryOptions) {
+	return func(options *structs.QueryOptions) {
+		switch {
+		case options.MaxQueryTime > config.MaxQueryTime:
+			options.MaxQueryTime = config.MaxQueryTime
+		case options.MaxQueryTime == 0:
+			options.MaxQueryTime = config.DefaultQueryTime
+		}
+	}
 }

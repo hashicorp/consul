@@ -156,7 +156,7 @@ func (s *Server) fetchFederationStateAntiEntropyDetails(
 			}
 
 			// Fetch our current list of all mesh gateways.
-			entMeta := structs.WildcardEnterpriseMeta()
+			entMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 			idx2, raw, err := state.ServiceDump(ws, structs.ServiceKindMeshGateway, true, entMeta)
 			if err != nil {
 				return err

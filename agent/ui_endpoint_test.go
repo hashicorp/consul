@@ -413,7 +413,7 @@ func TestUiServices(t *testing.T) {
 					ChecksPassing:  2,
 					ChecksWarning:  1,
 					ChecksCritical: 0,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				ConnectedWithProxy:   true,
 				ConnectedWithGateway: true,
@@ -430,7 +430,7 @@ func TestUiServices(t *testing.T) {
 					ChecksWarning:   0,
 					ChecksCritical:  0,
 					ExternalSources: []string{"k8s"},
-					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			{
@@ -444,7 +444,7 @@ func TestUiServices(t *testing.T) {
 					ChecksPassing:  0,
 					ChecksWarning:  0,
 					ChecksCritical: 0,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				ConnectedWithGateway: true,
 			},
@@ -459,7 +459,7 @@ func TestUiServices(t *testing.T) {
 					ChecksPassing:  1,
 					ChecksWarning:  0,
 					ChecksCritical: 0,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			{
@@ -474,7 +474,7 @@ func TestUiServices(t *testing.T) {
 					ChecksWarning:  0,
 					ChecksCritical: 0,
 					GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			{
@@ -489,7 +489,7 @@ func TestUiServices(t *testing.T) {
 					ChecksWarning:   0,
 					ChecksCritical:  1,
 					ExternalSources: []string{"k8s"},
-					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		}
@@ -526,7 +526,7 @@ func TestUiServices(t *testing.T) {
 					ChecksPassing:  1,
 					ChecksWarning:  1,
 					ChecksCritical: 0,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				ConnectedWithProxy:   false,
 				ConnectedWithGateway: false,
@@ -543,7 +543,7 @@ func TestUiServices(t *testing.T) {
 					ChecksWarning:   0,
 					ChecksCritical:  1,
 					ExternalSources: []string{"k8s"},
-					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		}
@@ -687,7 +687,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	expect := []*ServiceSummary{
 		{
 			Name:           "redis",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			Name:           "db",
@@ -698,7 +698,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			ChecksPassing:  1,
 			ChecksWarning:  1,
 			ChecksCritical: 0,
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	require.ElementsMatch(t, expect, summary)
@@ -836,10 +836,10 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	// Construct expected addresses so that differences between OSS/Ent are
 	// handled by code. We specifically don't include the trailing DNS . here as
 	// we are constructing what we are expecting, not the actual value
-	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMeta())
-	webDNSAlt := serviceIngressDNSName("web", "dc1", "alt.consul", structs.DefaultEnterpriseMeta())
-	dbDNS := serviceIngressDNSName("db", "dc1", "consul", structs.DefaultEnterpriseMeta())
-	dbDNSAlt := serviceIngressDNSName("db", "dc1", "alt.consul", structs.DefaultEnterpriseMeta())
+	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMetaInDefaultPartition())
+	webDNSAlt := serviceIngressDNSName("web", "dc1", "alt.consul", structs.DefaultEnterpriseMetaInDefaultPartition())
+	dbDNS := serviceIngressDNSName("db", "dc1", "consul", structs.DefaultEnterpriseMetaInDefaultPartition())
+	dbDNSAlt := serviceIngressDNSName("db", "dc1", "alt.consul", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	dump := obj.([]*ServiceSummary)
 	expect := []*ServiceSummary{
@@ -852,7 +852,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 					"*.test.example.com:8081",
 				},
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			Name:           "db",
@@ -869,7 +869,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 					fmt.Sprintf("%s:8888", dbDNSAlt),
 				},
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 
@@ -1383,7 +1383,7 @@ func TestUIServiceTopology(t *testing.T) {
 							Services: []structs.IngressService{
 								{
 									Name:           "api",
-									EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+									EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 								},
 							},
 						},
@@ -1435,7 +1435,7 @@ func TestUIServiceTopology(t *testing.T) {
 							Nodes:            []string{"foo"},
 							InstanceCount:    1,
 							ChecksPassing:    3,
-							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							TransparentProxy: true,
 						},
 						Intention: structs.IntentionDecisionSummary{
@@ -1483,7 +1483,7 @@ func TestUIServiceTopology(t *testing.T) {
 							Nodes:            []string{"edge"},
 							InstanceCount:    1,
 							ChecksPassing:    1,
-							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
@@ -1505,7 +1505,7 @@ func TestUIServiceTopology(t *testing.T) {
 							ChecksPassing:    3,
 							ChecksWarning:    1,
 							ChecksCritical:   2,
-							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
@@ -1557,7 +1557,7 @@ func TestUIServiceTopology(t *testing.T) {
 							InstanceCount:    1,
 							ChecksPassing:    2,
 							ChecksCritical:   1,
-							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
@@ -1577,7 +1577,7 @@ func TestUIServiceTopology(t *testing.T) {
 							Nodes:            []string{"foo"},
 							InstanceCount:    1,
 							ChecksPassing:    3,
-							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							TransparentProxy: true,
 						},
 						Intention: structs.IntentionDecisionSummary{
@@ -1630,7 +1630,7 @@ func TestUIServiceTopology(t *testing.T) {
 							ChecksPassing:  3,
 							ChecksWarning:  1,
 							ChecksCritical: 2,
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 						},
 						Intention: structs.IntentionDecisionSummary{
 							DefaultAllow:   true,

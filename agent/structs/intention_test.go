@@ -445,7 +445,7 @@ func TestIntention_String(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		// Add a bunch of required fields.
-		tc.ixn.DefaultNamespaces(DefaultEnterpriseMeta())
+		tc.ixn.DefaultNamespaces(DefaultEnterpriseMetaInDefaultPartition())
 		tc.ixn.UpdatePrecedence()
 
 		t.Run(name, func(t *testing.T) {

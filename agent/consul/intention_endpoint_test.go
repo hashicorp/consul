@@ -377,7 +377,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	// Force "test" to be L7-capable.
 	{
@@ -413,7 +413,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 	opList := func() (*structs.IndexedIntentions, error) {
 		req := &structs.IntentionListRequest{
 			Datacenter:     "dc1",
-			EnterpriseMeta: *structs.WildcardEnterpriseMeta(),
+			EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
 		}
 		var resp structs.IndexedIntentions
 		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {

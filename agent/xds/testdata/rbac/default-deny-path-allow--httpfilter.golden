@@ -1,0 +1,35 @@
+{
+  "name": "envoy.filters.http.rbac",
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "urlPath": {
+                "path": {
+                  "prefix": "/"
+                }
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

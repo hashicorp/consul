@@ -7,11 +7,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 )
 
 func TestConnectCASetConfigCommand_noTabs(t *testing.T) {
@@ -53,6 +54,5 @@ func TestConnectCASetConfigCommand(t *testing.T) {
 
 	parsed, err := ca.ParseConsulCAConfig(reply.Config)
 	require.NoError(err)
-	require.Equal(24*time.Hour, parsed.RotationPeriod)
 	require.Equal(288*time.Hour, parsed.IntermediateCertTTL)
 }

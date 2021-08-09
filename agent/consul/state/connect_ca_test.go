@@ -3,7 +3,8 @@ package state
 import (
 	"reflect"
 	"testing"
-	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
@@ -19,9 +20,8 @@ func TestStore_CAConfig(t *testing.T) {
 	expected := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     "asdf",
-			"RootCert":       "qwer",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": "asdf",
+			"RootCert":   "qwer",
 		},
 	}
 
@@ -61,9 +61,9 @@ func TestStore_CAConfigCAS(t *testing.T) {
 	ok, err := s.CACheckAndSetConfig(2, 0, &structs.CAConfiguration{
 		Provider: "static",
 	})
-	if ok || err != nil {
-		t.Fatalf("expected (false, nil), got: (%v, %#v)", ok, err)
-	}
+
+	require.False(t, ok)
+	testutil.RequireErrorContains(t, err, "ModifyIndex did not match existing")
 
 	// Check that the index is untouched and the entry
 	// has not been updated.
@@ -104,9 +104,8 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 	before := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     "asdf",
-			"RootCert":       "qwer",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": "asdf",
+			"RootCert":   "qwer",
 		},
 	}
 	if err := s.CASetConfig(99, before); err != nil {
@@ -195,7 +194,7 @@ func TestStore_CARootSetList(t *testing.T) {
 
 	// Build a valid value
 	ca1 := connect.TestCA(t, nil)
-
+	expected := *ca1
 	// Set
 	ok, err := s.CARootSetCAS(1, 0, []*structs.CARoot{ca1})
 	assert.Nil(err)
@@ -206,18 +205,17 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
-	expected := *ca1
+
 	expected.RaftIndex = structs.RaftIndex{
 		CreateIndex: 1,
 		ModifyIndex: 1,
 	}
-
 	ws = memdb.NewWatchSet()
 	_, roots, err := s.CARoots(ws)
 	assert.Nil(err)
 	assert.Len(roots, 1)
 	actual := roots[0]
-	assert.Equal(&expected, actual)
+	assertDeepEqual(t, expected, *actual)
 }
 
 func TestStore_CARootSet_emptyID(t *testing.T) {

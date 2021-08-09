@@ -169,7 +169,7 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 			return err
 		}
 	} else {
-		if err := c.state.DeleteNode(index, req.Node); err != nil {
+		if err := c.state.DeleteNode(index, req.Node, &req.EnterpriseMeta); err != nil {
 			c.logger.Warn("DeleteNode failed", "error", err)
 			return err
 		}
@@ -462,7 +462,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 			return act
 		}
 
-		act, err = c.state.CACheckAndSetConfig(index+1, req.Config.ModifyIndex, req.Config)
+		act, err = c.state.CACheckAndSetConfig(index, req.Config.ModifyIndex, req.Config)
 		if err != nil {
 			return err
 		}
@@ -492,7 +492,6 @@ func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} 
 	switch req.Op {
 	case structs.CALeafOpIncrementIndex:
 		// Use current index as the new value as well as the value to write at.
-		// TODO(banks) do we even use this op any more?
 		if err := c.state.CALeafSetIndex(index, index); err != nil {
 			return err
 		}

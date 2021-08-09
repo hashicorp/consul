@@ -82,7 +82,8 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 
 // Coordinate returns a map of coordinates for the given node, indexed by
 // network segment.
-func (s *Store) Coordinate(node string, ws memdb.WatchSet) (uint64, lib.CoordinateSet, error) {
+func (s *Store) Coordinate(ws memdb.WatchSet, node string, _ *structs.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
+	// TODO(partitions): use the provided entmeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -103,7 +104,8 @@ func (s *Store) Coordinate(node string, ws memdb.WatchSet) (uint64, lib.Coordina
 }
 
 // Coordinates queries for all nodes with coordinates.
-func (s *Store) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates, error) {
+func (s *Store) Coordinates(ws memdb.WatchSet, _ *structs.EnterpriseMeta) (uint64, structs.Coordinates, error) {
+	// TODO(partitions): use the provided entmeta
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 

@@ -81,6 +81,11 @@ type LoadOpts struct {
 	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
 	getPrivateIPv4 func() ([]*net.IPAddr, error)
 	getPublicIPv6  func() ([]*net.IPAddr, error)
+
+	// sources is a shim for testing. Many test cases used explicit sources instead
+	// paths to config files. This shim allows us to preserve those test cases
+	// while using Load as the entrypoint.
+	sources []Source
 }
 
 // Load will build the configuration including the config source injected
@@ -94,8 +99,11 @@ func Load(opts LoadOpts) (LoadResult, error) {
 	if err != nil {
 		return r, err
 	}
-	cfg, err := b.BuildAndValidate()
+	cfg, err := b.build()
 	if err != nil {
+		return r, err
+	}
+	if err := b.validate(cfg); err != nil {
 		return r, err
 	}
 	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
@@ -166,6 +174,7 @@ func newBuilder(opts LoadOpts) (*builder, error) {
 		b.Head = append(b.Head, opts.DefaultConfig)
 	}
 
+	b.Sources = opts.sources
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
@@ -295,24 +304,13 @@ func (a byName) Len() int           { return len(a) }
 func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
-func (b *builder) BuildAndValidate() (RuntimeConfig, error) {
-	rt, err := b.Build()
-	if err != nil {
-		return RuntimeConfig{}, err
-	}
-	if err := b.Validate(rt); err != nil {
-		return RuntimeConfig{}, err
-	}
-	return rt, nil
-}
-
-// Build constructs the runtime configuration from the config sources
+// build constructs the runtime configuration from the config sources
 // and the command line flags. The config sources are processed in the
 // order they were added with the flags being processed last to give
 // precedence over the other sources. If the error is nil then
 // warnings can still contain deprecation or format warnings that should
 // be presented to the user.
-func (b *builder) Build() (rt RuntimeConfig, err error) {
+func (b *builder) build() (rt RuntimeConfig, err error) {
 	srcs := make([]Source, 0, len(b.Head)+len(b.Sources)+len(b.Tail))
 	srcs = append(srcs, b.Head...)
 	srcs = append(srcs, b.Sources...)
@@ -428,7 +426,10 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	httpPort := b.portVal("ports.http", c.Ports.HTTP)
 	httpsPort := b.portVal("ports.https", c.Ports.HTTPS)
 	serverPort := b.portVal("ports.server", c.Ports.Server)
-	grpcPort := b.portVal("ports.grpc", c.Ports.GRPC)
+	if c.Ports.XDS == nil {
+		c.Ports.XDS = c.Ports.GRPC
+	}
+	xdsPort := b.portVal("ports.xds", c.Ports.XDS)
 	serfPortLAN := b.portVal("ports.serf_lan", c.Ports.SerfLAN)
 	serfPortWAN := b.portVal("ports.serf_wan", c.Ports.SerfWAN)
 	proxyMinPort := b.portVal("ports.proxy_min_port", c.Ports.ProxyMinPort)
@@ -555,7 +556,10 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
-	grpcAddrs := b.makeAddrs(b.expandAddrs("addresses.grpc", c.Addresses.GRPC), clientAddrs, grpcPort)
+	if c.Addresses.XDS == nil {
+		c.Addresses.XDS = c.Addresses.GRPC
+	}
+	xdsAddrs := b.makeAddrs(b.expandAddrs("addresses.xds", c.Addresses.XDS), clientAddrs, xdsPort)
 
 	for _, a := range dnsAddrs {
 		if x, ok := a.(*net.TCPAddr); ok {
@@ -700,7 +704,6 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 			// Consul CA config
 			"private_key":           "PrivateKey",
 			"root_cert":             "RootCert",
-			"rotation_period":       "RotationPeriod",
 			"intermediate_cert_ttl": "IntermediateCertTTL",
 
 			// Vault CA config
@@ -905,6 +908,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
 		DNSOnlyPassing:        boolVal(c.DNS.OnlyPassing),
 		DNSPort:               dnsPort,
+		DNSRecursorStrategy:   b.dnsRecursorStrategyVal(stringVal(c.DNS.RecursorStrategy)),
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
@@ -1014,8 +1018,8 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		EncryptKey:                 stringVal(c.EncryptKey),
 		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
 		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                   grpcPort,
-		GRPCAddrs:                  grpcAddrs,
+		XDSPort:                    xdsPort,
+		XDSAddrs:                   xdsAddrs,
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KeyFile:                    stringVal(c.KeyFile),
@@ -1170,8 +1174,8 @@ func validateBasicName(field, value string, allowEmpty bool) error {
 	return nil
 }
 
-// Validate performs semantic validation of the runtime configuration.
-func (b *builder) Validate(rt RuntimeConfig) error {
+// validate performs semantic validation of the runtime configuration.
+func (b *builder) validate(rt RuntimeConfig) error {
 
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
@@ -1742,6 +1746,20 @@ func (b *builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 	return cfg
 }
 
+func (b *builder) dnsRecursorStrategyVal(v string) dns.RecursorStrategy {
+	var out dns.RecursorStrategy
+
+	switch dns.RecursorStrategy(v) {
+	case dns.RecursorStrategyRandom:
+		out = dns.RecursorStrategyRandom
+	case dns.RecursorStrategySequential, "":
+		out = dns.RecursorStrategySequential
+	default:
+		b.err = multierror.Append(b.err, fmt.Errorf("dns_config.recursor_strategy: invalid strategy: %q", v))
+	}
+	return out
+}
+
 func (b *builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 	var out structs.ExposeConfig
 	if v == nil {
@@ -2255,7 +2273,7 @@ func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 	val.AuthMethod = structs.ACLAuthMethod{
 		Name:           "Auto Config Authorizer",
 		Type:           "jwt",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		Config: map[string]interface{}{
 			"JWTSupportedAlgs":     raw.Static.JWTSupportedAlgs,
 			"BoundAudiences":       raw.Static.BoundAudiences,

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -38,11 +39,12 @@ type Self struct {
 	Member      serf.Member
 	Stats       map[string]map[string]string
 	Meta        map[string]string
-	XDS         *xdsSelf `json:"xDS,omitempty"`
+	XDS         *XDSSelf `json:"xDS,omitempty"`
 }
 
-type xdsSelf struct {
+type XDSSelf struct {
 	SupportedProxies map[string][]string
+	Port             int
 }
 
 func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -53,7 +55,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -65,12 +67,13 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
-	var xds *xdsSelf
+	var xds *XDSSelf
 	if s.agent.grpcServer != nil {
-		xds = &xdsSelf{
+		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
 			},
+			Port: s.agent.config.XDSPort,
 		}
 	}
 
@@ -91,9 +94,14 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Server:            s.agent.config.ServerMode,
 		Version:           s.agent.config.Version,
 	}
+	debugConfig := s.agent.config.Sanitized()
+	// Backwards compat for the envoy command. Never use DebugConfig for
+	// programmatic access to data.
+	debugConfig["GRPCPort"] = s.agent.config.XDSPort
+
 	return Self{
 		Config:      config,
-		DebugConfig: s.agent.config.Sanitized(),
+		DebugConfig: debugConfig,
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
 		Stats:       s.agent.Stats(),
@@ -136,7 +144,7 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
@@ -159,6 +167,55 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
 }
 
+func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	switch {
+	case err != nil:
+		return nil, err
+	case rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow:
+		return nil, acl.ErrPermissionDenied
+	}
+
+	flusher, ok := resp.(http.Flusher)
+	if !ok {
+		return nil, fmt.Errorf("streaming not supported")
+	}
+
+	resp.WriteHeader(http.StatusOK)
+
+	// 0 byte write is needed before the Flush call so that if we are using
+	// a gzip stream it will go ahead and write out the HTTP response header
+	resp.Write([]byte(""))
+	flusher.Flush()
+
+	enc := metricsEncoder{
+		logger:  s.agent.logger,
+		encoder: json.NewEncoder(resp),
+		flusher: flusher,
+	}
+	enc.encoder.SetIndent("", "    ")
+	s.agent.baseDeps.MetricsHandler.Stream(req.Context(), enc)
+	return nil, nil
+}
+
+type metricsEncoder struct {
+	logger  hclog.Logger
+	encoder *json.Encoder
+	flusher http.Flusher
+}
+
+func (m metricsEncoder) Encode(summary interface{}) error {
+	if err := m.encoder.Encode(summary); err != nil {
+		m.logger.Error("failed to encode metrics summary", "error", err)
+		return err
+	}
+	m.flusher.Flush()
+	return nil
+}
+
 func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
@@ -167,7 +224,7 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -334,7 +391,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			}
 			var authzContext acl.AuthorizerContext
 			svc.FillAuthzContext(&authzContext)
-			if authz != nil && authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
+			if authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied
 			}
 
@@ -455,7 +512,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -487,7 +544,7 @@ func (s *HTTPHandlers) AgentLeave(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -505,7 +562,7 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -780,7 +837,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 	dc := s.agent.config.Datacenter
 
 	if service := s.agent.State.Service(sid); service != nil {
-		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
 			return nil, acl.ErrPermissionDenied
 		}
 		code, status, healthChecks := agentHealthService(sid, s)
@@ -829,7 +886,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	if authz != nil && authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1141,7 +1198,7 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1162,7 +1219,7 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1241,7 +1298,7 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1419,7 +1476,7 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if rule.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 

@@ -28,7 +28,7 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 					EnterpriseMeta: pbcommon.EnterpriseMeta{Namespace: "the-namespace"},
 				},
 			},
-			expected: "the-node-name/the-namespace/the-service-id",
+			expected: "/the-node-name/the-namespace/the-service-id",
 		},
 		{
 			name: "without node",
@@ -38,14 +38,14 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 					EnterpriseMeta: pbcommon.EnterpriseMeta{Namespace: "the-namespace"},
 				},
 			},
-			expected: "the-namespace/the-service-id",
+			expected: "/the-namespace/the-service-id",
 		},
 		{
 			name: "without service",
 			csn: CheckServiceNode{
 				Node: &Node{Node: "the-node-name"},
 			},
-			expected: "the-node-name/",
+			expected: "/the-node-name/",
 		},
 		{
 			name: "without namespace",
@@ -55,7 +55,7 @@ func TestCheckServiceNode_UniqueID(t *testing.T) {
 					ID: "the-service-id",
 				},
 			},
-			expected: "the-node-name//the-service-id",
+			expected: "/the-node-name//the-service-id",
 		},
 	}
 	for _, tc := range testCases {

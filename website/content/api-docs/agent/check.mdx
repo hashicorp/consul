@@ -40,6 +40,12 @@ The table below shows this endpoint's support for
 - `filter` `(string: "")` - Specifies the expression used to filter the
   queries results prior to returning the data.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to list checks. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -60,7 +66,15 @@ $ curl \
     "Output": "",
     "ServiceID": "redis",
     "ServiceName": "redis",
-    "ServiceTags": ["primary"]
+    "ServiceTags": ["primary"],
+    "Interval": "10s",
+    "Timeout": "1s"
+    "Type": "tcp",
+    "ExposedPort": 0,
+    "Definition": {},
+    "Namespace": "default",
+    "CreateIndex": 0,
+    "ModifyIndex": 0
   }
 }
 ```
@@ -109,6 +123,13 @@ The table below shows this endpoint's support for
 - `ID` `(string: "")` - Specifies a unique ID for this check on the node.
   This defaults to the `"Name"` parameter, but it may be necessary to provide an
   ID for uniqueness. This value will return in the response as `"CheckId"`.
+
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to register the check. This parameter is only valid for service checks.
+  If not provided in the JSON body, the value of the `ns` URL query parameter or
+  in the `X-Consul-Namespace` header will be used. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 - `Interval` `(string: "")` - Specifies the frequency at which to run this
   check. This is required for HTTP and TCP checks.
@@ -208,8 +229,9 @@ The table below shows this endpoint's support for
   made to both addresses, and the first successful connection attempt will
   result in a successful check.
 
-- `TTL` `(string: "")` - Specifies this is a TTL check, and the TTL endpoint
-  must be used periodically to update the state of the check.
+- `TTL` `(duration: 10s)` - Specifies this is a TTL check, and the TTL endpoint
+  must be used periodically to update the state of the check. If the check is not
+  set to passing within the specified duration, then the check will be set to the failed state.
 
 - `ServiceID` `(string: "")` - Specifies the ID of a service to associate the
   registered check with an existing service provided by the agent.
@@ -230,6 +252,7 @@ The table below shows this endpoint's support for
 {
   "ID": "mem",
   "Name": "Memory utilization",
+  "Namespace": "default",
   "Notes": "Ensure we don't oversubscribe memory",
   "DeregisterCriticalServiceAfter": "90m",
   "Args": ["/usr/local/bin/check_mem.py"],
@@ -280,6 +303,12 @@ The table below shows this endpoint's support for
 - `check_id` `(string: "")` - Specifies the unique ID of the check to
   deregister. This is specified as part of the URL.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to deregister the check. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -314,6 +343,12 @@ The table below shows this endpoint's support for
 
 - `note` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to update the check. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -350,6 +385,12 @@ The table below shows this endpoint's support for
 - `note` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to update the check. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -383,6 +424,12 @@ The table below shows this endpoint's support for
 
 - `note` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to update the check. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Request
 
@@ -420,6 +467,12 @@ The table below shows this endpoint's support for
 
 - `Output` `(string: "")` - Specifies a human-readable message. This will be
   passed through to the check's `Output` field.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to update the check. This value can be specified as the `ns` URL query
+  parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
 

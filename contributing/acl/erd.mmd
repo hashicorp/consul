@@ -1,0 +1,33 @@
+erDiagram
+
+    Token
+    Policy
+    Role
+    ServiceIdentity
+    NodeIdentity
+    AuthMethod
+    BindingRule
+    Rule {
+        string Resource
+        enum AccessLevel
+    }
+
+    Policy ||--|{ Rule: grants
+    Role ||--|{ Policy: includes
+    Role }|--|{ ServiceIdentity: includes
+    Role }|--|{ NodeIdentity: includes
+
+    Token }|--|{ Policy: includes
+    Token }|--|{ Role: includes
+    Token }|--|{ ServiceIdentity: includes
+    Token }|--|{ NodeIdentity: includes
+
+    AuthMethod ||--|{ BindingRule: defines
+    AuthMethod ||--|{ Token: creates
+
+    ServiceIdentity ||--|{ Rule: implies
+    NodeIdentity ||--|{ Rule: implies
+
+    Token ||--|| Authorizer: "resolves to"
+    Authorizer ||--|{ EnforcementDecision: produces
+

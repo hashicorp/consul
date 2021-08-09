@@ -1,0 +1,3 @@
+title: Copy {name} to the clipboard
+success: Copied {name}
+error: There was a problem.

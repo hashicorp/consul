@@ -130,7 +130,7 @@ export const routes = {
     acls: {
       _options: {
         path: '/acls',
-        abilities: ['read acls'],
+        abilities: ['access acls'],
       },
       edit: {
         _options: { path: '/:id' },

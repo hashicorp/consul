@@ -540,3 +540,9 @@ type NodeCheckQuery struct {
 func (q NodeCheckQuery) NamespaceOrDefault() string {
 	return q.EnterpriseMeta.NamespaceOrDefault()
 }
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q NodeCheckQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}

@@ -103,6 +103,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/connect/ingress-gateways',
+    destination: '/docs/connect/gateways/ingress-gateway',
+    permanent: true,
+  },
+  {
     source: '/docs/connect/terminating(_|-)gateway',
     destination: '/docs/connect/gateways/terminating-gateway',
     permanent: true,
@@ -176,11 +181,6 @@ module.exports = [
   {
     source: '/docs/k8s/operations/uninstalling',
     destination: '/docs/k8s/uninstall',
-    permanent: true,
-  },
-  {
-    source: '/docs/k8s/operations/tls-on-existing-cluster',
-    destination: '/docs/k8s/tls-on-existing-cluster',
     permanent: true,
   },
   {

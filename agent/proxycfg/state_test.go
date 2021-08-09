@@ -312,7 +312,7 @@ func genVerifyGatewayWatch(expectedDatacenter string) verifyWatchRequest {
 		require.Equal(t, expectedDatacenter, reqReal.Datacenter)
 		require.True(t, reqReal.UseServiceKind)
 		require.Equal(t, structs.ServiceKindMeshGateway, reqReal.ServiceKind)
-		require.Equal(t, structs.DefaultEnterpriseMeta(), &reqReal.EnterpriseMeta)
+		require.Equal(t, structs.DefaultEnterpriseMetaInDefaultPartition(), &reqReal.EnterpriseMeta)
 	}
 }
 
@@ -1658,7 +1658,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 1)
 
-						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
 						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wc.String())
 					},
 				},
@@ -1868,6 +1868,13 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[string]ServicePassthroughAddrs{
 							db.String(): {
 								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, snap.Datacenter, snap.Roots.TrustDomain),
+								SpiffeID: connect.SpiffeIDService{
+									Host:       snap.Roots.TrustDomain,
+									Namespace:  db.NamespaceOrDefault(),
+									Partition:  db.PartitionOrDefault(),
+									Datacenter: snap.Datacenter,
+									Service:    "db",
+								},
 								Addrs: map[string]struct{}{
 									"10.10.10.10": {},
 									"10.0.0.2":    {},
@@ -2004,7 +2011,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// Centrally configured upstream defaults should be stored so that upstreams from intentions can inherit them
 						require.Len(t, snap.ConnectProxy.UpstreamConfig, 2)
 
-						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+						wc := structs.NewServiceName(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
 						require.Contains(t, snap.ConnectProxy.UpstreamConfig, wc.String())
 						require.Contains(t, snap.ConnectProxy.UpstreamConfig, upstreamIDForDC2(db.String()))
 					},

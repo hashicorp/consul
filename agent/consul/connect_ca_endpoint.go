@@ -65,7 +65,7 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -97,7 +97,7 @@ func (s *ConnectCA) ConfigurationSet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -175,7 +175,7 @@ func (s *ConnectCA) Sign(
 	if isService {
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
 		entMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
+		if rule.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -186,13 +186,14 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
-		if rule != nil && rule.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
+
+		structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+		if rule.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
-	cert, err := s.srv.SignCertificate(csr, spiffeID)
+	cert, err := s.srv.caManager.SignCertificate(csr, spiffeID)
 	if err != nil {
 		return err
 	}
@@ -223,7 +224,7 @@ func (s *ConnectCA) SignIntermediate(
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

@@ -52,6 +52,7 @@ token:
         global-management: Global Management
         global: Global Scope
         local: Local Scope
+  secretID: Secret ID
 policy:
   search-bar:
     kind:

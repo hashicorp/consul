@@ -194,6 +194,12 @@ The table below shows this endpoint's support for
   certificate. This is specified in the URL. The service does not need to
   exist in the catalog, but the proper ACL permissions must be available.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace in
+  which to request the leaf certificate. This value can be specified as the `ns`
+  URL query parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### Sample Request
 
 ```shell-session
@@ -212,6 +218,7 @@ $ curl \
   "ServiceURI": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/web",
   "ValidAfter": "2018-05-21T16:33:28Z",
   "ValidBefore": "2018-05-24T16:33:28Z",
+  "Namespace": "default",
   "CreateIndex": 5,
   "ModifyIndex": 5
 }

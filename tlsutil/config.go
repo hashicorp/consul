@@ -175,6 +175,11 @@ type manual struct {
 // Configurator receives an initial TLS configuration from agent configuration,
 // and receives updates from config reloads, auto-encrypt, and auto-config.
 type Configurator struct {
+	// version is increased each time the Configurator is updated. Must be accessed
+	// using sync/atomic. Also MUST be the first field in this struct to ensure
+	// 64-bit alignment. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+	version uint64
+
 	// lock synchronizes access to all fields on this struct except for logger and version.
 	lock    sync.RWMutex
 	base    *Config
@@ -188,9 +193,6 @@ type Configurator struct {
 	// logger is not protected by a lock. It must never be changed after
 	// Configurator is created.
 	logger hclog.Logger
-	// version is increased each time the Configurator is updated. Must be accessed
-	// using sync/atomic.
-	version uint64
 }
 
 // NewConfigurator creates a new Configurator and sets the provided
@@ -602,9 +604,9 @@ func (c *Configurator) VerifyServerHostname() bool {
 	return c.base.VerifyServerHostname || c.autoTLS.verifyServerHostname
 }
 
-// IncomingGRPCConfig generates a *tls.Config for incoming GRPC connections.
-func (c *Configurator) IncomingGRPCConfig() *tls.Config {
-	c.log("IncomingGRPCConfig")
+// IncomingXDSConfig generates a *tls.Config for incoming xDS connections.
+func (c *Configurator) IncomingXDSConfig() *tls.Config {
+	c.log("IncomingXDSConfig")
 
 	// false has the effect that this config doesn't require a client cert
 	// verification. This is because there is no verify_incoming_grpc
@@ -613,7 +615,7 @@ func (c *Configurator) IncomingGRPCConfig() *tls.Config {
 	// effect on the grpc server.
 	config := c.commonTLSConfig(false)
 	config.GetConfigForClient = func(*tls.ClientHelloInfo) (*tls.Config, error) {
-		return c.IncomingGRPCConfig(), nil
+		return c.IncomingXDSConfig(), nil
 	}
 	return config
 }

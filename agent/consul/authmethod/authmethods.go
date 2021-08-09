@@ -36,7 +36,7 @@ type Validator interface {
 	NewIdentity() *Identity
 
 	// ValidateLogin takes raw user-provided auth method metadata and ensures
-	// it is sane, provably correct, and currently valid. Relevant identifying
+	// it is reasonable, provably correct, and currently valid. Relevant identifying
 	// data is extracted and returned for immediate use by the role binding
 	// process.
 	//

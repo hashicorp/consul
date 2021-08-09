@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
@@ -48,6 +50,7 @@ type BaseDeps struct {
 // MetricsHandler provides an http.Handler for displaying metrics.
 type MetricsHandler interface {
 	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+	Stream(ctx context.Context, encoder metrics.Encoder)
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
@@ -106,6 +109,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	builder := resolver.NewServerResolverBuilder(resolver.Config{})
 	resolver.Register(builder)
 	d.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()), d.TLSConfigurator.UseTLS)
+	d.LeaderForwarder = builder
 
 	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
 

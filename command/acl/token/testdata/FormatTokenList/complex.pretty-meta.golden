@@ -1,8 +1,9 @@
 AccessorID:       fbd2447f-7479-4329-ad13-b021d74f86ba
+SecretID:         257ade69-748c-4022-bafd-76d27d9143f8
 Namespace:        foo
 Description:      test token
 Local:            false
-Auth Method:      bar
+Auth Method:      bar (Namespace: baz)
 Create Time:      2020-05-22 18:52:31 +0000 UTC
 Expiration Time:  2020-05-22 19:52:31 +0000 UTC
 Legacy:           false

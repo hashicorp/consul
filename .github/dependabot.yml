@@ -1,0 +1,32 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  open-pull-requests-limit: 5
+  directory: "/"
+  schedule:
+    interval: daily
+- package-ecosystem: gomod
+  open-pull-requests-limit: 5
+  directory: "/api"
+  schedule:
+    interval: daily
+- package-ecosystem: gomod
+  open-pull-requests-limit: 5
+  directory: "/sdk"
+  schedule:
+    interval: daily
+- package-ecosystem: npm 
+  open-pull-requests-limit: 5
+  directory: "/ui"
+  schedule:
+    interval: daily
+- package-ecosystem: npm 
+  open-pull-requests-limit: 5
+  directory: "/website"
+  schedule:
+    interval: daily
+- package-ecosystem: github-actions
+  open-pull-requests-limit: 5
+  directory: /
+  schedule:
+    interval: daily

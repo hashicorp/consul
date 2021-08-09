@@ -111,7 +111,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 	// Check to see if we already upgraded the last time we ran by seeing if we
 	// have a copy of any global management policy stored locally. This should
 	// always be true because policies always replicate.
-	_, mgmtPolicy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+	_, mgmtPolicy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		s.logger.Warn("Failed to get the builtin global-management policy to check for a completed ACL upgrade; skipping this optimization", "error", err)
 	} else if mgmtPolicy != nil {
@@ -224,7 +224,7 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
+	_, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	return authz, err
 }
 
@@ -235,16 +235,11 @@ func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 	return s.acls.ResolveTokenToIdentity(token)
 }
 
-func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	return s.acls.ResolveTokenToIdentityAndAuthorizer(token)
-}
-
-// ResolveTokenIdentityAndDefaultMeta retrieves an identity and authorizer for the caller,
-// and populates the EnterpriseMeta based on the AuthorizerContext.
-func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (structs.ACLIdentity, acl.Authorizer, error) {
-	identity, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
+// TODO: Client has an identical implementation, remove duplication
+func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := s.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
@@ -252,25 +247,19 @@ func (s *Server) ResolveTokenIdentityAndDefaultMeta(token string, entMeta *struc
 	if identity != nil {
 		entMeta.Merge(identity.EnterpriseMetadata())
 	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMeta())
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
 	// Use the meta to fill in the ACL authorization context
 	entMeta.FillAuthzContext(authzContext)
 
-	return identity, authz, err
-}
-
-// ResolveTokenAndDefaultMeta passes through to ResolveTokenIdentityAndDefaultMeta, eliding the identity from its response.
-func (s *Server) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
-	_, authz, err := s.ResolveTokenIdentityAndDefaultMeta(token, entMeta, authzContext)
 	return authz, err
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
-	return s.acls.filterACL(token, subj)
+	return filterACL(s.acls, token, subj)
 }
 
-func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) error {
-	return s.acls.filterACLWithAuthorizer(authorizer, subj)
+func (s *Server) filterACLWithAuthorizer(authorizer acl.Authorizer, subj interface{}) {
+	filterACLWithAuthorizer(s.acls.logger, authorizer, subj)
 }

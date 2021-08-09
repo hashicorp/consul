@@ -57,7 +57,7 @@ func (s *ResourceGenerator) routesForConnectProxy(chains map[string]*structs.Com
 			Name:         id,
 			VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
 			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the sane value of true to prevent
+			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
 			ValidateClusters: makeBoolValue(true),
 		}
@@ -151,7 +151,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 			},
 		},
 		// ValidateClusters defaults to true when defined statically and false
-		// when done via RDS. Re-set the sane value of true to prevent
+		// when done via RDS. Re-set the reasonable value of true to prevent
 		// null-routing traffic.
 		ValidateClusters: makeBoolValue(true),
 	}, nil
@@ -174,7 +174,7 @@ func (s *ResourceGenerator) routesForIngressGateway(
 		upstreamRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
-			// when done via RDS. Re-set the sane value of true to prevent
+			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
 			ValidateClusters: makeBoolValue(true),
 		}

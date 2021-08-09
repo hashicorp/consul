@@ -1671,21 +1671,21 @@ func TestServiceConfigEntry(t *testing.T) {
 			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 				UpstreamConfig: &UpstreamConfiguration{
 					Overrides: []*UpstreamConfig{
 						{
 							Name:           "good",
-							EnterpriseMeta: *DefaultEnterpriseMeta(),
+							EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 							Protocol:       "grpc",
 						},
 						{
-							EnterpriseMeta: *DefaultEnterpriseMeta(),
+							EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 							Protocol:       "http2",
 						},
 						{
 							Name:           "also-good",
-							EnterpriseMeta: *DefaultEnterpriseMeta(),
+							EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 							Protocol:       "http",
 						},
 					},
@@ -1707,7 +1707,7 @@ func TestServiceConfigEntry(t *testing.T) {
 			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 				UpstreamConfig: &UpstreamConfiguration{
 					Defaults: &UpstreamConfig{
 						Name:     "also-good",
@@ -1724,7 +1724,7 @@ func TestServiceConfigEntry(t *testing.T) {
 			expected: &ServiceConfigEntry{
 				Kind:           ServiceDefaults,
 				Name:           "web",
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			normalizeOnly: true,
 		},
@@ -1738,7 +1738,7 @@ func TestServiceConfigEntry(t *testing.T) {
 				Kind:           ServiceDefaults,
 				Name:           "web",
 				Protocol:       "protocol",
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			normalizeOnly: true,
 		},
@@ -1759,7 +1759,7 @@ func TestServiceConfigEntry(t *testing.T) {
 					},
 					Defaults: &UpstreamConfig{ConnectTimeoutMs: -20},
 				},
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			expected: &ServiceConfigEntry{
 				Kind: ServiceDefaults,
@@ -1768,13 +1768,13 @@ func TestServiceConfigEntry(t *testing.T) {
 					Overrides: []*UpstreamConfig{
 						{
 							Name:             "redis",
-							EnterpriseMeta:   *DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *DefaultEnterpriseMetaInDefaultPartition(),
 							Protocol:         "tcp",
 							ConnectTimeoutMs: 0,
 						},
 						{
 							Name:             "memcached",
-							EnterpriseMeta:   *DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *DefaultEnterpriseMetaInDefaultPartition(),
 							ConnectTimeoutMs: 0,
 						},
 					},
@@ -1782,7 +1782,7 @@ func TestServiceConfigEntry(t *testing.T) {
 						ConnectTimeoutMs: 0,
 					},
 				},
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			normalizeOnly: true,
 		},
@@ -1842,7 +1842,7 @@ func TestServiceConfigEntry(t *testing.T) {
 					},
 					Defaults: &UpstreamConfig{ConnectTimeoutMs: -20},
 				},
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			expected: &ServiceConfigEntry{
 				Kind: ServiceDefaults,
@@ -1851,19 +1851,19 @@ func TestServiceConfigEntry(t *testing.T) {
 					Overrides: []*UpstreamConfig{
 						{
 							Name:             "redis",
-							EnterpriseMeta:   *DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *DefaultEnterpriseMetaInDefaultPartition(),
 							Protocol:         "tcp",
 							ConnectTimeoutMs: 0,
 						},
 						{
 							Name:             "memcached",
-							EnterpriseMeta:   *DefaultEnterpriseMeta(),
+							EnterpriseMeta:   *DefaultEnterpriseMetaInDefaultPartition(),
 							ConnectTimeoutMs: 0,
 						},
 					},
 					Defaults: &UpstreamConfig{ConnectTimeoutMs: 0},
 				},
-				EnterpriseMeta: *DefaultEnterpriseMeta(),
+				EnterpriseMeta: *DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 	}

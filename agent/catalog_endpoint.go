@@ -235,6 +235,9 @@ func (s *HTTPHandlers) CatalogNodes(resp http.ResponseWriter, req *http.Request)
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	s.parseSource(req, &args.Source)
+	if err := parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 	args.NodeMetaFilters = s.parseMetaFilter(req)
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_nodes"}, 1,

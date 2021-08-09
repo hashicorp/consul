@@ -229,7 +229,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
-	policy.EnterpriseMeta = *DefaultEnterpriseMeta()
+	policy.EnterpriseMeta = *DefaultEnterpriseMetaInDefaultPartition()
 	policy.SetHash(true)
 	return policy
 }
@@ -557,6 +557,7 @@ type ACLTokens []*ACLToken
 
 type ACLTokenListStub struct {
 	AccessorID        string
+	SecretID          string
 	Description       string
 	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
 	Roles             []ACLTokenRoleLink    `json:",omitempty"`
@@ -571,27 +572,30 @@ type ACLTokenListStub struct {
 	ModifyIndex       uint64
 	Legacy            bool `json:",omitempty"`
 	EnterpriseMeta
+	ACLAuthMethodEnterpriseMeta
 }
 
 type ACLTokenListStubs []*ACLTokenListStub
 
 func (token *ACLToken) Stub() *ACLTokenListStub {
 	return &ACLTokenListStub{
-		AccessorID:        token.AccessorID,
-		Description:       token.Description,
-		Policies:          token.Policies,
-		Roles:             token.Roles,
-		ServiceIdentities: token.ServiceIdentities,
-		NodeIdentities:    token.NodeIdentities,
-		Local:             token.Local,
-		AuthMethod:        token.AuthMethod,
-		ExpirationTime:    token.ExpirationTime,
-		CreateTime:        token.CreateTime,
-		Hash:              token.Hash,
-		CreateIndex:       token.CreateIndex,
-		ModifyIndex:       token.ModifyIndex,
-		Legacy:            token.Rules != "",
-		EnterpriseMeta:    token.EnterpriseMeta,
+		AccessorID:                  token.AccessorID,
+		SecretID:                    token.SecretID,
+		Description:                 token.Description,
+		Policies:                    token.Policies,
+		Roles:                       token.Roles,
+		ServiceIdentities:           token.ServiceIdentities,
+		NodeIdentities:              token.NodeIdentities,
+		Local:                       token.Local,
+		AuthMethod:                  token.AuthMethod,
+		ExpirationTime:              token.ExpirationTime,
+		CreateTime:                  token.CreateTime,
+		Hash:                        token.Hash,
+		CreateIndex:                 token.CreateIndex,
+		ModifyIndex:                 token.ModifyIndex,
+		Legacy:                      token.Rules != "",
+		EnterpriseMeta:              token.EnterpriseMeta,
+		ACLAuthMethodEnterpriseMeta: token.ACLAuthMethodEnterpriseMeta,
 	}
 }
 
@@ -1269,6 +1273,7 @@ type ACLReplicationStatus struct {
 	ReplicatedTokenIndex uint64
 	LastSuccess          time.Time
 	LastError            time.Time
+	LastErrorMessage     string
 }
 
 // ACLTokenSetRequest is used for token creation and update operations

@@ -2066,6 +2066,36 @@ func TestACLEndpoint_TokenList(t *testing.T) {
 		}
 		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
 	})
+
+	t.Run("filter SecretID for acl:read", func(t *testing.T) {
+		rules := `
+			acl = "read"
+		`
+		readOnlyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", rules)
+		require.NoError(t, err)
+
+		req := structs.ACLTokenListRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: readOnlyToken.SecretID},
+		}
+
+		resp := structs.ACLTokenListResponse{}
+
+		err = acl.TokenList(&req, &resp)
+		require.NoError(t, err)
+
+		tokens := []string{
+			masterTokenAccessorID,
+			structs.ACLTokenAnonymousID,
+			readOnlyToken.AccessorID,
+			t1.AccessorID,
+			t2.AccessorID,
+		}
+		require.ElementsMatch(t, gatherIDs(t, resp.Tokens), tokens)
+		for _, token := range resp.Tokens {
+			require.Equal(t, redactedToken, token.SecretID)
+		}
+	})
 }
 
 func TestACLEndpoint_TokenBatchRead(t *testing.T) {
@@ -4371,7 +4401,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 	})
 
 	// We delay until now to setup an auth method and binding rule in the
-	// primary so our earlier listing tests were sane. We need to be able to
+	// primary so our earlier listing tests were reasonable. We need to be able to
 	// use auth methods in both datacenters in order to verify Logout is
 	// properly scoped.
 	t.Run("initialize primary so we can test logout", func(t *testing.T) {
@@ -4961,7 +4991,7 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 	got.SecretID = ""
 	got.Hash = nil
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	expect := &structs.ACLToken{
 		AuthMethod:     method.Name,
 		Description:    `token created via login: {"pod":"pod1"}`,
@@ -5072,7 +5102,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 			got.SecretID = ""
 			got.Hash = nil
 
-			defaultEntMeta := structs.DefaultEnterpriseMeta()
+			defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 			expect := &structs.ACLToken{
 				AuthMethod:  method.Name,
 				Description: `token created via login: {"pod":"pod1"}`,

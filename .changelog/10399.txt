@@ -1,0 +1,4 @@
+```release-note:improvement
+debug: Add a new /v1/agent/metrics/stream API endpoint for streaming of metrics
+```
+

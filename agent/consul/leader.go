@@ -387,9 +387,6 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConnectLeader()
 
-	s.caManager.setCAProvider(nil, nil)
-	s.caManager.setState(caStateUninitialized, false)
-
 	s.stopACLTokenReaping()
 
 	s.stopACLUpgrade()
@@ -536,7 +533,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 		s.logger.Info("initializing acls")
 
 		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
@@ -547,7 +544,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 				Description:    "Builtin Policy that grants unlimited access",
 				Rules:          structs.ACLPolicyGlobalManagement,
 				Syntax:         acl.SyntaxCurrent,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			if policy != nil {
 				newPolicy.Name = policy.Name
@@ -598,7 +595,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
 					Type:           structs.ACLTokenTypeManagement,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 
 				token.SetHash(true)
@@ -657,7 +654,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 					SecretID:       anonymousToken,
 					Description:    "Anonymous Token",
 					CreateTime:     time.Now(),
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 				token.SetHash(true)
 
@@ -810,7 +807,7 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 				0,
 			)
 			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError()
+			s.updateACLReplicationStatusError(err.Error())
 			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
 		} else {
 			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
@@ -927,7 +924,7 @@ func (s *Server) runACLReplicator(
 				0,
 			)
 			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError()
+			s.updateACLReplicationStatusError(err.Error())
 			logger.Warn("ACL replication error (will retry if still leader)",
 				"error", err,
 			)
@@ -1115,7 +1112,7 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // We generate a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMeta())
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return err
 	}
@@ -1131,7 +1128,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMeta())
+		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err
 		}
@@ -1142,7 +1139,8 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	CHECKS:
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
-				_, node, err := state.GetNode(check.Node)
+				// TODO(partitions)
+				_, node, err := state.GetNode(check.Node, nil)
 				if err != nil {
 					s.logger.Error("Unable to look up node with name", "name", check.Node, "error", err)
 					continue CHECKS
@@ -1265,7 +1263,8 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	// TODO(partitions)
+	_, node, err := state.GetNode(member.Name, nil)
 	if err != nil {
 		return err
 	}
@@ -1273,7 +1272,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMeta())
+			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMetaInDefaultPartition())
 			if err != nil {
 				return err
 			}
@@ -1291,7 +1290,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err
 		}
@@ -1333,7 +1332,8 @@ AFTER_CHECK:
 func (s *Server) handleFailedMember(member serf.Member) error {
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	// TODO(partitions)
+	_, node, err := state.GetNode(member.Name, nil)
 	if err != nil {
 		return err
 	}
@@ -1345,7 +1345,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
+		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err
 		}
@@ -1410,7 +1410,8 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 	// Check if the node does not exist
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	// TODO(partitions)
+	_, node, err := state.GetNode(member.Name, nil)
 	if err != nil {
 		return err
 	}

@@ -32,6 +32,9 @@ span.policy-service-identity::before {
 %pill.consul::before {
   @extend %with-logo-consul-color-icon, %as-pseudo;
 }
+%pill.vault::before {
+  @extend %with-logo-vault-color-icon, %as-pseudo;
+}
 %pill.aws::before {
   @extend %with-logo-aws-color-icon, %as-pseudo;
 }

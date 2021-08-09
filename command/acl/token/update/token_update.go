@@ -86,7 +86,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -331,8 +331,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Update an ACL token"
-const help = `
+const (
+	synopsis = "Update an ACL token"
+	help     = `
 Usage: consul acl token update [options]
 
     This command will update a token. Some parts such as marking the token local
@@ -349,3 +350,4 @@ Usage: consul acl token update [options]
                                   -policy-name "token-replication" \
                                   -role-name "db-updater"
 `
+)

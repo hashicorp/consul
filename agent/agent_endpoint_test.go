@@ -18,8 +18,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/hashstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -380,7 +383,7 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Define an updated version. Be careful to copy it.
@@ -391,15 +394,14 @@ func TestAgent_Service(t *testing.T) {
 	// API struct types.
 	expectProxy := proxy
 	expectProxy.Upstreams =
-		structs.TestAddDefaultsToUpstreams(t, sidecarProxy.Proxy.Upstreams)
+		structs.TestAddDefaultsToUpstreams(t, sidecarProxy.Proxy.Upstreams, *structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	expectedResponse := &api.AgentService{
-		Kind:        api.ServiceKindConnectProxy,
-		ID:          "web-sidecar-proxy",
-		Service:     "web-sidecar-proxy",
-		Port:        8000,
-		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "854327a458fe02a6",
+		Kind:    api.ServiceKindConnectProxy,
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Port:    8000,
+		Proxy:   expectProxy.ToAPI(),
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -408,19 +410,24 @@ func TestAgent_Service(t *testing.T) {
 		Tags:       []string{},
 		Datacenter: "dc1",
 	}
-	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMeta())
+	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
+	hash1, err := hashstructure.Hash(expectedResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	expectedResponse.ContentHash = fmt.Sprintf("%x", hash1)
 
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "b80a4d9370ed1104"
+	updatedResponse.ContentHash = "" // clear field before hashing
+	hash2, err := hashstructure.Hash(updatedResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	updatedResponse.ContentHash = fmt.Sprintf("%x", hash2)
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
-		ID:          "web",
-		Service:     "web",
-		Port:        8181,
-		ContentHash: "f012740ee2d8ce60",
+		ID:      "web",
+		Service: "web",
+		Port:    8181,
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -435,7 +442,10 @@ func TestAgent_Service(t *testing.T) {
 		Tags:       []string{},
 		Datacenter: "dc1",
 	}
-	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMeta())
+	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
+	hash3, err := hashstructure.Hash(expectWebResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	expectWebResponse.ContentHash = fmt.Sprintf("%x", hash3)
 
 	tests := []struct {
 		name       string
@@ -670,10 +680,12 @@ func TestAgent_Checks(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	chk1 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "mysql",
-		Name:    "mysql",
-		Status:  api.HealthPassing,
+		Node:     a.Config.NodeName,
+		CheckID:  "mysql",
+		Name:     "mysql",
+		Interval: "30s",
+		Timeout:  "5s",
+		Status:   api.HealthPassing,
 	}
 	a.State.AddCheck(chk1, "")
 
@@ -687,6 +699,15 @@ func TestAgent_Checks(t *testing.T) {
 		t.Fatalf("bad checks: %v", obj)
 	}
 	if val["mysql"].Status != api.HealthPassing {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Node != chk1.Node {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Interval != chk1.Interval {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Timeout != chk1.Timeout {
 		t.Fatalf("bad check: %v", obj)
 	}
 }
@@ -1404,6 +1425,91 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 	})
+}
+
+func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
+	bd := BaseDeps{}
+	bd.Tokens = new(tokenStore.Store)
+	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
+	bd.MetricsHandler = sink
+	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
+	agent := &Agent{
+		baseDeps: bd,
+		delegate: d,
+		tokens:   bd.Tokens,
+		config:   &config.RuntimeConfig{NodeName: "the-node"},
+		logger:   hclog.NewInterceptLogger(nil),
+	}
+	h := HTTPHandlers{agent: agent, denylist: NewDenylist(nil)}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
+	require.NoError(t, err)
+	handle := h.handler(false)
+	handle.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusForbidden, resp.Code)
+	require.Contains(t, resp.Body.String(), "Permission denied")
+}
+
+func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
+	bd := BaseDeps{}
+	bd.Tokens = new(tokenStore.Store)
+	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
+	bd.MetricsHandler = sink
+	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
+	agent := &Agent{
+		baseDeps: bd,
+		delegate: d,
+		tokens:   bd.Tokens,
+		config:   &config.RuntimeConfig{NodeName: "the-node"},
+		logger:   hclog.NewInterceptLogger(nil),
+	}
+	h := HTTPHandlers{agent: agent, denylist: NewDenylist(nil)}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Millisecond)
+	defer cancel()
+
+	// produce some metrics
+	go func() {
+		for ctx.Err() == nil {
+			sink.SetGauge([]string{"the-key"}, 12)
+			time.Sleep(5 * time.Millisecond)
+		}
+	}()
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
+	require.NoError(t, err)
+	handle := h.handler(false)
+	handle.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	decoder := json.NewDecoder(resp.Body)
+	var summary metrics.MetricsSummary
+	err = decoder.Decode(&summary)
+	require.NoError(t, err)
+
+	expected := []metrics.GaugeValue{
+		{Name: "the-key", Value: 12, DisplayLabels: map[string]string{}},
+	}
+	require.Equal(t, expected, summary.Gauges)
+
+	// There should be at least two intervals worth of metrics
+	err = decoder.Decode(&summary)
+	require.NoError(t, err)
+	require.Equal(t, expected, summary.Gauges)
+}
+
+type fakeResolveTokenDelegate struct {
+	delegate
+	authorizer acl.Authorizer
+}
+
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *structs.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
+	return f.authorizer, nil
 }
 
 func TestAgent_Reload(t *testing.T) {
@@ -2973,7 +3079,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	}
 
 	// Ensure we have a check mapping
-	checks := a.State.Checks(structs.WildcardEnterpriseMeta())
+	checks := a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 	if len(checks) != 3 {
 		t.Fatalf("bad: %v", checks)
 	}
@@ -3063,7 +3169,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Equal(t, 3, len(checks))
 
 	checkIDs := []string{}
@@ -3142,7 +3248,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Len(t, checks, 2)
 
 	checkIDs := []string{}
@@ -3319,7 +3425,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					// there worked by inspecting the registered sidecar below.
 					SidecarService: nil,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			got := a.State.Service(structs.NewServiceID("test", nil))
@@ -3356,7 +3462,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						},
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			gotSidecar := a.State.Service(structs.NewServiceID("test-sidecar-proxy", nil))
 			hasNoCorrectTCPCheck := true
@@ -3537,8 +3643,18 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 	svc := a.State.Service(sid)
 	require.NotNil(t, svc, "has service")
 	require.Equal(t, structs.ServiceKindConnectProxy, svc.Kind)
-	// Registration must set that default type
-	args.Proxy.Upstreams[0].DestinationType = api.UpstreamDestTypeService
+
+	// Registration sets default types and namespaces
+	for i := range args.Proxy.Upstreams {
+		if args.Proxy.Upstreams[i].DestinationType == "" {
+			args.Proxy.Upstreams[i].DestinationType = api.UpstreamDestTypeService
+		}
+		if args.Proxy.Upstreams[i].DestinationNamespace == "" {
+			args.Proxy.Upstreams[i].DestinationNamespace =
+				structs.DefaultEnterpriseMetaInDefaultPartition().NamespaceOrEmpty()
+		}
+	}
+
 	require.Equal(t, args.Proxy, svc.Proxy.ToAPI())
 
 	// Ensure the token was configured
@@ -3567,7 +3683,7 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 			LocalServiceAddress:    "127.0.0.1",
 			LocalServicePort:       port,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	for _, fn := range fns {
 		fn(ns)
@@ -3925,7 +4041,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// After we deregister the web service above, the fake sidecar with
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
@@ -3972,7 +4088,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1111,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		{
@@ -4417,12 +4533,9 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	t.Run("bad service id", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/_nope_?enable=true", nil)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.AgentServiceMaintenance(resp, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if resp.Code != 404 {
-			t.Fatalf("expected 404, got %d", resp.Code)
-		}
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, 404, resp.Code)
+		require.Contains(t, resp.Body.String(), `Unknown service "_nope_"`)
 	})
 }
 

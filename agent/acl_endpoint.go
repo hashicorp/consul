@@ -110,7 +110,7 @@ func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Req
 	}
 	// Should this require lesser permissions? Really the only reason to require authorization at all is
 	// to prevent external entities from DoS Consul with repeated rule translation requests
-	if rule != nil && rule.ACLRead(nil) != acl.Allow {
+	if rule.ACLRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1156,8 +1156,6 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 		authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(request.Token, nil, nil)
 		if err != nil {
 			return nil, err
-		} else if authz == nil {
-			return nil, fmt.Errorf("Failed to initialize authorizer")
 		}
 
 		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)

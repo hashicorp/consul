@@ -8,11 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mitchellh/copystructure"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServiceManager_RegisterService(t *testing.T) {
@@ -46,7 +49,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 		ID:             "redis",
 		Service:        "redis",
 		Port:           8000,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
@@ -62,7 +65,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, redisService)
 }
 
@@ -118,7 +121,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
@@ -155,7 +158,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, sidecarService)
 }
 
@@ -191,7 +194,7 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 		ID:             "mesh-gateway",
 		Service:        "mesh-gateway",
 		Port:           443,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
@@ -215,7 +218,7 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, gateway)
 }
 
@@ -251,7 +254,7 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 		ID:             "terminating-gateway",
 		Service:        "terminating-gateway",
 		Port:           443,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
@@ -275,7 +278,7 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, gateway)
 }
 
@@ -330,26 +333,27 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Now register a sidecar proxy via the API.
-	svc := &structs.NodeService{
-		Kind:    structs.ServiceKindConnectProxy,
-		ID:      "web-sidecar-proxy",
-		Service: "web-sidecar-proxy",
-		Port:    21000,
-		Proxy: structs.ConnectProxyConfig{
-			DestinationServiceName: "web",
-			DestinationServiceID:   "web",
-			LocalServiceAddress:    "127.0.0.1",
-			LocalServicePort:       8000,
-			Upstreams: structs.Upstreams{
-				{
-					DestinationName:      "redis",
-					DestinationNamespace: "default",
-					LocalBindPort:        5000,
+	newNodeService := func() *structs.NodeService {
+		return &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "web-sidecar-proxy",
+			Service: "web-sidecar-proxy",
+			Port:    21000,
+			Proxy: structs.ConnectProxyConfig{
+				DestinationServiceName: "web",
+				DestinationServiceID:   "web",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       8000,
+				Upstreams: structs.Upstreams{
+					{
+						DestinationName:      "redis",
+						DestinationNamespace: "default",
+						LocalBindPort:        5000,
+					},
 				},
 			},
-		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		}
 	}
 
 	expectState := &structs.NodeService{
@@ -382,9 +386,10 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
+	svc := newNodeService()
 	svcID := svc.CompoundServiceID()
 
 	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHash())
@@ -407,14 +412,14 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
-	// Service definition file is sane.
+	// Service definition file is reasonable.
 	expectJSONFile(t, svcFile, persistedService{
 		Token:   "mytoken",
 		Service: svc,
 		Source:  "remote",
 	}, nil)
 
-	// Service config file is sane.
+	// Service config file is reasonable.
 	pcfg := persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
@@ -431,7 +436,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
@@ -443,8 +448,15 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	}
 
 	// Updates service definition on disk
+	svc = newNodeService()
 	svc.Proxy.LocalServicePort = 8001
-	require.NoError(a.addServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
+	err = a.AddService(AddServiceRequest{
+		Service: svc,
+		persist: true,
+		token:   "mytoken",
+		Source:  ConfigSourceRemote,
+	})
+	require.NoError(err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -472,7 +484,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	expectJSONFile(t, configFile, pcfg, resetDefaultsQueryMeta)
 
@@ -611,7 +623,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Now wait until we've re-registered using central config updated data.
@@ -632,7 +644,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
-	// Service config file is sane.
+	// Service config file is reasonable.
 	expectJSONFile(t, configFile, persistedServiceConfig{
 		ServiceID: "web-sidecar-proxy",
 		Defaults: &structs.ServiceConfigResponse{
@@ -649,7 +661,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, resetDefaultsQueryMeta)
 
 	// Verify in memory state.
@@ -732,7 +744,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 				},
 			},
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
@@ -763,7 +775,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, sidecarService)
 }
 
@@ -873,7 +885,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						{
 							Upstream: structs.ServiceID{
 								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							},
 							Config: map[string]interface{}{
 								"passive_health_check": map[string]interface{}{
@@ -936,7 +948,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						{
 							Upstream: structs.ServiceID{
 								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							},
 							Config: map[string]interface{}{
 								"protocol": "grpc",
@@ -1008,7 +1020,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						{
 							Upstream: structs.ServiceID{
 								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							},
 							Config: map[string]interface{}{
 								"protocol": "grpc",
@@ -1064,7 +1076,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						{
 							Upstream: structs.ServiceID{
 								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							},
 							Config: map[string]interface{}{
 								"mesh_gateway": map[string]interface{}{
@@ -1122,7 +1134,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						{
 							Upstream: structs.ServiceID{
 								ID:             "zap",
-								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							},
 							Config: map[string]interface{}{
 								"mesh_gateway": map[string]interface{}{
@@ -1178,9 +1190,16 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
 			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
 		})
 	}
 }
@@ -1271,9 +1290,16 @@ func Test_mergeServiceConfig_TransparentProxy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defaultsCopy, err := copystructure.Copy(tt.args.defaults)
+			require.NoError(t, err)
+
 			got, err := mergeServiceConfig(tt.args.defaults, tt.args.service)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+
+			// The input defaults must not be modified by the merge.
+			// See PR #10647
+			assert.Equal(t, tt.args.defaults, defaultsCopy)
 		})
 	}
 }

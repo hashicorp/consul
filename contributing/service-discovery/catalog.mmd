@@ -1,0 +1,24 @@
+erDiagram
+   
+    CheckServiceNode
+    Node
+    NodeService
+    ServiceNode
+    HealthCheck
+
+    CheckServiceNode ||--|| Node: has
+    CheckServiceNode ||--|| NodeService: has
+    CheckServiceNode ||--o{ HealthCheck: has
+
+    Store ||--o{ Node: "stored in the node table"
+    Store ||--o{ ServiceNode: "stored in the service table"
+    Store ||--o{ HealthCheck: "stored in the checks table"
+
+    ServiceNode ||--|| Node: references
+    HealthCheck ||--o| Node: references
+    HealthCheck ||--o| Service: references
+
+    RegisterRequest ||--o| Node: has
+    RegisterRequest ||--o| NodeService: has
+    RegisterRequest ||--o{ HealthCheck: has
+

@@ -86,7 +86,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// need to make sure they have write access for whatever they are
 	// proposing.
 	if prefix, ok := args.Query.GetACLPrefix(); ok {
-		if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
+		if rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
 			p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
 			return acl.ErrPermissionDenied
 		}
@@ -106,7 +106,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		}
 
 		if prefix, ok := query.GetACLPrefix(); ok {
-			if rule != nil && rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
+			if rule.PreparedQueryWrite(prefix, nil) != acl.Allow {
 				p.logger.Warn("Operation on prepared query denied due to ACLs", "query", args.Query.ID)
 				return acl.ErrPermissionDenied
 			}
@@ -402,7 +402,8 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		qs.Node = args.Agent.Node
 	} else if qs.Node == "_ip" {
 		if args.Source.Ip != "" {
-			_, nodes, err := state.Nodes(nil)
+			// TODO(partitions)
+			_, nodes, err := state.Nodes(nil, nil)
 			if err != nil {
 				return err
 			}

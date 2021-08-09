@@ -50,6 +50,11 @@ func makeClientWithConfig(
 	t *testing.T,
 	cb1 configCallback,
 	cb2 testutil.ServerConfigCallback) (*Client, *testutil.TestServer) {
+	// Skip test when -short flag provided; any tests that create a test
+	// server will take at least 100ms which is undesirable for -short
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	// Make client config
 	conf := DefaultConfig()
@@ -733,6 +738,7 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
 		Namespace:         "operator",
+		Partition:         "asdf",
 		Datacenter:        "foo",
 		AllowStale:        true,
 		RequireConsistent: true,
@@ -745,6 +751,9 @@ func TestAPI_SetQueryOptions(t *testing.T) {
 	r.setQueryOptions(q)
 
 	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("partition") != "asdf" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("dc") != "foo" {
@@ -794,11 +803,15 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &WriteOptions{
 		Namespace:  "operator",
+		Partition:  "asdf",
 		Datacenter: "foo",
 		Token:      "23456",
 	}
 	r.setWriteOptions(q)
 	if r.params.Get("ns") != "operator" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("partition") != "asdf" {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("dc") != "foo" {

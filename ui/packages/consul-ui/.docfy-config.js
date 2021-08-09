@@ -2,6 +2,7 @@ const path = require('path');
 
 const autolinkHeadings = require('remark-autolink-headings');
 const refractor = require('refractor');
+const gherkin = require('refractor/lang/gherkin');
 const prism = require('@mapbox/rehype-prism');
 
 const fs = require('fs');
@@ -24,6 +25,7 @@ if($CONSUL_DOCFY_CONFIG.length > 0) {
   }
 }
 
+refractor.register(gherkin);
 refractor.alias('handlebars', 'hbs');
 refractor.alias('shell', 'sh');
 

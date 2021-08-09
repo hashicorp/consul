@@ -524,6 +524,9 @@ func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) En
 // IntentionWrite checks if writing (creating, updating, or deleting) of an
 // intention is allowed.
 func (p *policyAuthorizer) IntentionWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "" {
+		return Deny
+	}
 	if prefix == "*" {
 		return p.allAllowed(p.intentionRules, AccessWrite)
 	}

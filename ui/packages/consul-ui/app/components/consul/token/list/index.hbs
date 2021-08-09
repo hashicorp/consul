@@ -30,7 +30,14 @@ as |item|>
         </dl>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
-
+    {{#if item.hasSecretID}}
+      <CopyButton
+        @value={{item.SecretID}}
+        @name={{t "components.consul.token.secretID"}}
+      >
+        {{t "components.consul.token.secretID"}}
+      </CopyButton>
+    {{/if}}
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>
           <BlockSlot @name="label">

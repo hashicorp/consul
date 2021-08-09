@@ -115,7 +115,8 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		services, err := s.state.Services(n.Node)
+		// TODO(partitions)
+		services, err := s.state.Services(n.Node, nil)
 		if err != nil {
 			return err
 		}
@@ -131,7 +132,8 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		checks, err := s.state.Checks(n.Node)
+		// TODO(partitions)
+		checks, err := s.state.Checks(n.Node, nil)
 		if err != nil {
 			return err
 		}
@@ -153,6 +155,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	if err != nil {
 		return err
 	}
+	// TODO(partitions)
 	for coord := coords.Next(); coord != nil; coord = coords.Next() {
 		if _, err := sink.Write([]byte{byte(structs.CoordinateBatchUpdateType)}); err != nil {
 			return err

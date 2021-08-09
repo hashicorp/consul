@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 var testTxnRules = `
@@ -233,7 +234,8 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	_, n, err := state.GetNode("foo")
+	// TODO(partitions)
+	_, n, err := state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -754,14 +756,14 @@ func TestTxn_Read(t *testing.T) {
 		ID:             "svc-foo",
 		Service:        "svc-foo",
 		Address:        "127.0.0.1",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.NoError(state.EnsureService(3, "foo", &svc))
 
 	check := structs.HealthCheck{
 		Node:           "foo",
 		CheckID:        types.CheckID("check-foo"),
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	state.EnsureCheck(4, &check)
 

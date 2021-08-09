@@ -58,7 +58,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -139,8 +139,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Register services with the local agent"
-const help = `
+const (
+	synopsis = "Register services with the local agent"
+	help     = `
 Usage: consul services register [options] [FILE...]
 
   Register one or more services using the local agent API. Services can
@@ -153,3 +154,4 @@ Usage: consul services register [options] [FILE...]
 
   Additional flags and more advanced use cases are detailed below.
 `
+)
