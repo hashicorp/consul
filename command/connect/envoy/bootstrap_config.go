@@ -553,7 +553,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		"hosts": [
 			{
 				"socket_address": {
-					"address": "127.0.0.1",
+					"address": "` + args.AdminBindAddress + `",
 					"port_value": ` + args.AdminBindPort + `
 				}
 			}
