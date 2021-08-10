@@ -572,7 +572,7 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 		Cache:  c,
 		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
 		State:  state,
-		// TODO: Tokens: tokens,
+		Tokens: tokens,
 		Source: &structs.QuerySource{Datacenter: "dc1"},
 		Logger: logger,
 	})
