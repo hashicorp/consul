@@ -1,0 +1,4 @@
+```release-note:bug
+cli: Ensure the metrics endpoint is accessible when Envoy is configured to use
+a non-default admin bind address.
+```
