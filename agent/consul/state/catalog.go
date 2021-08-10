@@ -3126,7 +3126,7 @@ func (s *Store) ServiceTopology(
 		upstreamSources[svc.Name.String()] = source
 	}
 
-	idx, unfilteredUpstreams, notFoundUpstreamNames, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
+	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
 	}
@@ -3163,6 +3163,7 @@ func (s *Store) ServiceTopology(
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
+
 	for _, un := range upstreamNames {
 		decision, err := s.IntentionDecision(un.Name, un.NamespaceOrDefault(), srcIntentions, structs.IntentionMatchDestination, defaultAllow, false)
 		if err != nil {
@@ -3172,8 +3173,17 @@ func (s *Store) ServiceTopology(
 		upstreamDecisions[un.String()] = decision
 	}
 
+	var foundUpstreams = make(map[structs.ServiceName]struct{})
+	for _, csn := range upstreams {
+		foundUpstreams[csn.Service.CompoundServiceName()] = struct{}{}
+	}
+
 	// Check upstream names that had no service instances to see if they are routing config.
-	for _, un := range notFoundUpstreamNames {
+	for _, un := range upstreamNames {
+		if _, ok := foundUpstreams[un]; ok {
+			continue
+		}
+
 		for _, kind := range serviceGraphKinds {
 			idx, entry, err := configEntryTxn(tx, ws, kind, un.Name, &un.EnterpriseMeta)
 			if err != nil {
@@ -3230,7 +3240,7 @@ func (s *Store) ServiceTopology(
 		downstreamSources[svc.Name.String()] = source
 	}
 
-	idx, unfilteredDownstreams, _, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
 	}
@@ -3296,44 +3306,33 @@ func (s *Store) ServiceTopology(
 // combinedServiceNodesTxn returns typical and connect endpoints for a list of services.
 // This enabled aggregating checks statuses across both.
 // Returns a slice of ServiceNames not associated with a ServiceNode instance.
-func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, []structs.ServiceName, error) {
+func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
 	var (
-		maxIdx   uint64
-		resp     structs.CheckServiceNodes
-		notFound []structs.ServiceName
+		maxIdx uint64
+		resp   structs.CheckServiceNodes
 	)
 	for _, u := range names {
-		var found bool
 		// Collect typical then connect instances
 		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta)
 		if err != nil {
-			return 0, nil, nil, err
+			return 0, nil, err
 		}
 		if idx > maxIdx {
 			maxIdx = idx
-		}
-		if len(csn) > 0 {
-			found = true
 		}
 		resp = append(resp, csn...)
 
 		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta)
 		if err != nil {
-			return 0, nil, nil, err
+			return 0, nil, err
 		}
 		if idx > maxIdx {
 			maxIdx = idx
 		}
-		if len(csn) > 0 {
-			found = true
-		}
-		resp = append(resp, csn...)
 
-		if !found {
-			notFound = append(notFound, u)
-		}
+		resp = append(resp, csn...)
 	}
-	return maxIdx, resp, notFound, nil
+	return maxIdx, resp, nil
 }
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
