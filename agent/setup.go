@@ -106,9 +106,20 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{})
+	builder, err := resolver.NewServerResolverBuilder(resolver.Config{})
+	if err != nil {
+		return d, err
+	}
 	resolver.Register(builder)
-	d.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()), d.TLSConfigurator.UseTLS)
+	d.GRPCConnPool = grpc.NewClientConnPool(
+		builder,
+		d.ConnPool.SrcAddr,
+		grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
+		grpc.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
+		d.TLSConfigurator.UseTLS,
+		cfg.ServerMode,
+		cfg.Datacenter,
+	)
 	d.LeaderForwarder = builder
 
 	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)

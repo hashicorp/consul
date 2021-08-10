@@ -460,7 +460,7 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	// Write TLS byte to avoid being closed by either the (outer) first byte
 	// timeout or the fact that server requires TLS
-	_, err = conn.Write([]byte{pool.RPCTLS})
+	_, err = conn.Write([]byte{byte(pool.RPCTLS)})
 	require.NoError(t, err)
 
 	// Wait for more than the timeout before we start a TLS handshake. This is

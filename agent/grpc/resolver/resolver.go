@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
 	"google.golang.org/grpc/resolver"
 
 	"github.com/hashicorp/consul/agent/metadata"
@@ -34,12 +35,21 @@ type Config struct {
 	Authority string
 }
 
-func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
+func NewServerResolverBuilder(cfg Config) (*ServerResolverBuilder, error) {
+	if cfg.Authority == "" {
+		// Ensure that each resolver builder is isolated even if a unit test
+		// forgets to override the authority field.
+		var err error
+		cfg.Authority, err = uuid.GenerateUUID()
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &ServerResolverBuilder{
 		cfg:       cfg,
 		servers:   make(map[string]*metadata.Server),
 		resolvers: make(map[resolver.ClientConn]*serverResolver),
-	}
+	}, nil
 }
 
 // NewRebalancer returns a function which shuffles the server list for resolvers
@@ -67,17 +77,17 @@ func (s *ServerResolverBuilder) NewRebalancer(dc string) func() {
 	}
 }
 
-// ServerForAddr returns server metadata for a server with the specified address.
-func (s *ServerResolverBuilder) ServerForAddr(addr string) (*metadata.Server, error) {
+// ServerForGlobalAddr returns server metadata for a server with the specified globally unique address.
+func (s *ServerResolverBuilder) ServerForGlobalAddr(globalAddr string) (*metadata.Server, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	for _, server := range s.servers {
-		if server.Addr.String() == addr {
+		if DCPrefix(server.Datacenter, server.Addr.String()) == globalAddr {
 			return server, nil
 		}
 	}
-	return nil, fmt.Errorf("failed to find Consul server for address %q", addr)
+	return nil, fmt.Errorf("failed to find Consul server for global address %q", globalAddr)
 }
 
 // Build returns a new serverResolver for the given ClientConn. The resolver
@@ -161,6 +171,12 @@ func uniqueID(server *metadata.Server) string {
 	return server.Datacenter + "-" + server.ID
 }
 
+// DCPrefix prefixes the given string with a datacenter for use in
+// disambiguation.
+func DCPrefix(datacenter, suffix string) string {
+	return datacenter + "-" + suffix
+}
+
 // RemoveServer updates the resolvers' states with the given server removed.
 func (s *ServerResolverBuilder) RemoveServer(server *metadata.Server) {
 	s.lock.Lock()
@@ -186,7 +202,8 @@ func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
 		}
 
 		addrs = append(addrs, resolver.Address{
-			Addr:       server.Addr.String(),
+			// NOTE: the address persisted here is only dialable using our custom dialer
+			Addr:       DCPrefix(server.Datacenter, server.Addr.String()),
 			Type:       resolver.Backend,
 			ServerName: server.Name,
 		})
@@ -195,11 +212,11 @@ func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
 }
 
 // UpdateLeaderAddr updates the leader address in the local DC's resolver.
-func (s *ServerResolverBuilder) UpdateLeaderAddr(leaderAddr string) {
+func (s *ServerResolverBuilder) UpdateLeaderAddr(datacenter, addr string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.leaderResolver.addr = leaderAddr
+	s.leaderResolver.globalAddr = DCPrefix(datacenter, addr)
 	s.leaderResolver.updateClientConn()
 }
 
@@ -262,7 +279,7 @@ func (r *serverResolver) Close() {
 func (*serverResolver) ResolveNow(resolver.ResolveNowOption) {}
 
 type leaderResolver struct {
-	addr       string
+	globalAddr string
 	clientConn resolver.ClientConn
 }
 
@@ -271,12 +288,13 @@ func (l leaderResolver) ResolveNow(resolver.ResolveNowOption) {}
 func (l leaderResolver) Close() {}
 
 func (l leaderResolver) updateClientConn() {
-	if l.addr == "" || l.clientConn == nil {
+	if l.globalAddr == "" || l.clientConn == nil {
 		return
 	}
 	addrs := []resolver.Address{
 		{
-			Addr:       l.addr,
+			// NOTE: the address persisted here is only dialable using our custom dialer
+			Addr:       l.globalAddr,
 			Type:       resolver.Backend,
 			ServerName: "leader",
 		},

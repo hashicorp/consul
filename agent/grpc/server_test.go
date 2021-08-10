@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -31,6 +33,8 @@ type testServer struct {
 func (s testServer) Metadata() *metadata.Server {
 	return &metadata.Server{
 		ID:         s.name,
+		Name:       s.name + "." + s.dc,
+		ShortName:  s.name,
 		Datacenter: s.dc,
 		Addr:       s.addr,
 		UseTLS:     s.rpc.tlsConf != nil,
@@ -43,7 +47,12 @@ func newTestServer(t *testing.T, name string, dc string) testServer {
 		testservice.RegisterSimpleServer(server, &simple{name: name, dc: dc})
 	})
 
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	ports := freeport.MustTake(1)
+	t.Cleanup(func() {
+		freeport.Return(ports)
+	})
+
+	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(ports[0])))
 	require.NoError(t, err)
 
 	rpc := &fakeRPCListener{t: t, handler: handler}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -15,8 +16,11 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/tlsutil"
 )
+
+// TODO(rb): add tests for the wanfed/alpn variations
 
 // useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled
 func useTLSForDcAlwaysTrue(_ string) bool {
@@ -24,11 +28,15 @@ func useTLSForDcAlwaysTrue(_ string) bool {
 }
 
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
+
+	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(ports[0])))
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis.Close))
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{})
+	builder, err := resolver.NewServerResolverBuilder(resolver.Config{})
+	require.NoError(t, err)
 	builder.AddServer(&metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
@@ -42,16 +50,26 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 		called = true
 		return conn, nil
 	}
-	dial := newDialer(builder, wrapper, useTLSForDcAlwaysTrue)
+	dial := newDialer(
+		builder,
+		nil,
+		&gatewayResolverDep{},
+		wrapper,
+		nil,
+		useTLSForDcAlwaysTrue,
+		true,
+		"dc1",
+	)
 	ctx := context.Background()
-	conn, err := dial(ctx, lis.Addr().String())
+	conn, err := dial(ctx, resolver.DCPrefix("dc1", lis.Addr().String()))
 	require.NoError(t, err)
 	require.NoError(t, conn.Close())
 	require.True(t, called, "expected TLSWrapper to be called")
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res, err := resolver.NewServerResolverBuilder(newConfig(t))
+	require.NoError(t, err)
 	registerWithGRPC(t, res)
 
 	srv := newTestServer(t, "server-1", "dc1")
@@ -65,10 +83,19 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	require.NoError(t, err)
 	srv.rpc.tlsConf = tlsConf
 
-	res.AddServer(srv.Metadata())
+	md := srv.Metadata()
+	res.AddServer(md)
 	t.Cleanup(srv.shutdown)
 
-	pool := NewClientConnPool(res, TLSWrapper(tlsConf.OutgoingRPCWrapper()), tlsConf.UseTLS)
+	pool := NewClientConnPool(
+		res,
+		nil,
+		TLSWrapper(tlsConf.OutgoingRPCWrapper()),
+		nil,
+		tlsConf.UseTLS,
+		true,
+		"dc1",
+	)
 
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -85,9 +112,18 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res, err := resolver.NewServerResolverBuilder(newConfig(t))
+	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
+	pool := NewClientConnPool(
+		res,
+		nil,
+		nil,
+		nil,
+		useTLSForDcAlwaysTrue,
+		true,
+		"dc1",
+	)
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -116,9 +152,18 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	count := 3
 	conf := newConfig(t)
-	res := resolver.NewServerResolverBuilder(conf)
+	res, err := resolver.NewServerResolverBuilder(conf)
+	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
+	pool := NewClientConnPool(
+		res,
+		nil,
+		nil,
+		nil,
+		useTLSForDcAlwaysTrue,
+		true,
+		"dc1",
+	)
 
 	var servers []testServer
 	for i := 0; i < count; i++ {
@@ -130,7 +175,8 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	}
 
 	// Set the leader address to the first server.
-	res.UpdateLeaderAddr(servers[0].addr.String())
+	srv0 := servers[0].Metadata()
+	res.UpdateLeaderAddr(srv0.Datacenter, srv0.Addr.String())
 
 	conn, err := pool.ClientConnLeader()
 	require.NoError(t, err)
@@ -144,7 +190,8 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	require.Equal(t, first.ServerName, servers[0].name)
 
 	// Update the leader address and make another request.
-	res.UpdateLeaderAddr(servers[1].addr.String())
+	srv1 := servers[1].Metadata()
+	res.UpdateLeaderAddr(srv1.Datacenter, srv1.Addr.String())
 
 	resp, err := client.Something(ctx, &testservice.Req{})
 	require.NoError(t, err)
@@ -160,9 +207,18 @@ func newConfig(t *testing.T) resolver.Config {
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	count := 5
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res, err := resolver.NewServerResolverBuilder(newConfig(t))
+	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
+	pool := NewClientConnPool(
+		res,
+		nil,
+		nil,
+		nil,
+		useTLSForDcAlwaysTrue,
+		true,
+		"dc1",
+	)
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -209,9 +265,18 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	dcs := []string{"dc1", "dc2", "dc3"}
 
-	res := resolver.NewServerResolverBuilder(newConfig(t))
+	res, err := resolver.NewServerResolverBuilder(newConfig(t))
+	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
+	pool := NewClientConnPool(
+		res,
+		nil,
+		nil,
+		nil,
+		useTLSForDcAlwaysTrue,
+		true,
+		"dc1",
+	)
 
 	for _, dc := range dcs {
 		name := "server-0-" + dc
