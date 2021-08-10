@@ -10,7 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	"path"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -79,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 		}
 
 		pair := &api.KVPair{
-			Key:   filepath.Join(c.prefix, entry.Key),
+			Key:   path.Join(c.prefix, entry.Key),
 			Flags: entry.Flags,
 			Value: value,
 		}

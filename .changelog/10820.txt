@@ -1,0 +1,3 @@
+```release-note:bug
+cli: Fix broken KV import command on Windows.
+```
