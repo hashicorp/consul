@@ -38,32 +38,24 @@
         </dl>
       {{/if}}
       {{#if item.LocalBindSocketPath}}
-{{#let (if item.LocalBindSocketMode
-          (hash
-            label=(concat '(Local bind mode)')
-            value=(concat '(Mode:' item.LocalBindSocketMode ')')
-          )
-          (hash
-            label=""
-            value=""
-          )
-        )
-as |mode|}}
-          <dl class="local-bind-socket">
+          <dl>
             <dt>
-              <span>
-                Local bind socket {{mode.label}}
-              </span>
+                Local bind socket path
             </dt>
             <dd>
               <CopyButton
                 @value={{item.LocalBindSocketPath}}
-                @name="Socket path"
+                @name="Local bind socket path"
               />
               {{item.LocalBindSocketPath}}
             </dd>
           </dl>
-{{/let}}
+          <dl class="local-bind-mode">
+            <dt class>mode</dt>
+            <dd>
+              {{or item.LocalBindSocketMode '-'}}
+            </dd>
+          </dl>
       {{else}}
         {{#if (gt item.LocalBindPort 0)}}
   {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
