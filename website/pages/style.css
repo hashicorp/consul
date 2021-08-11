@@ -35,7 +35,6 @@
 @import '../components/use-cases-layout/style.css';
 
 /* Local Pages */
-@import './community/style.css';
 @import './home/style.css';
 
 /* Print Styles */
