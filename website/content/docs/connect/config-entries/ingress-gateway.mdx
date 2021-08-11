@@ -205,11 +205,11 @@ Listeners = [
     Services = [
       {
         Name  = "api"
-        Hosts = ["foo.example.com", "foo.example.com:4567"]
+        Hosts = ["foo.example.com"]
       },
       {
         Name  = "web"
-        Hosts = ["website.example.com", "website.example.com:4567"]
+        Hosts = ["website.example.com"]
       }
     ]
   }
@@ -233,9 +233,9 @@ spec:
       protocol: http
       services:
         - name: api
-          hosts: ['foo.example.com', 'foo.example.com:4567']
+          hosts: ['foo.example.com']
         - name: web
-          hosts: ['website.example.com', 'website.example.com:4567']
+          hosts: ['website.example.com']
 ```
 
 ```json
@@ -261,11 +261,11 @@ spec:
       "Services": [
         {
           "Name": "api",
-          "Hosts": ["foo.example.com", "foo.example.com:4567"]
+          "Hosts": ["foo.example.com"]
         },
         {
           "Name": "web",
-          "Hosts": ["website.example.com", "website.example.com:4567"]
+          "Hosts": ["website.example.com"]
         }
       ]
     }
@@ -310,12 +310,12 @@ Listeners = [
       {
         Namespace = "frontend"
         Name  = "api"
-        Hosts = ["foo.example.com", "foo.example.com:4567"]
+        Hosts = ["foo.example.com"]
       },
       {
         Namespace = "frontend"
         Name  = "web"
-        Hosts = ["website.example.com", "website.example.com:4567"]
+        Hosts = ["website.example.com"]
       }
     ]
   }
@@ -342,10 +342,10 @@ spec:
       services:
         - name: api
           namespace: frontend
-          hosts: ['foo.example.com', 'foo.example.com:4567']
+          hosts: ['foo.example.com']
         - name: web
           namespace: frontend
-          hosts: ['website.example.com', 'website.example.com:4567']
+          hosts: ['website.example.com']
 ```
 
 ```json
@@ -374,12 +374,12 @@ spec:
         {
           "Namespace": "frontend",
           "Name": "api",
-          "Hosts": ["foo.example.com", "foo.example.com:4567"]
+          "Hosts": ["foo.example.com"]
         },
         {
           "Namespace": "frontend",
           "Name": "web",
-          "Hosts": ["website.example.com", "website.example.com:4567"]
+          "Hosts": ["website.example.com"]
         }
       ]
     }
@@ -830,13 +830,7 @@ spec:
               be used as part of the host to match multiple hosts, but only in the
               leftmost DNS label. This ensures that all defined hosts are valid DNS
               records. For example, \`*.example.com\` is valid, while \`example.*\` and
-              \`*-suffix.example.com\` are not.<br><br>
-              <b>Note:</b> If a well-known port is not used, i.e. a port other than 80
-              (http) or 443 (https), then the port must be appended to the host to
-              correctly match traffic. This is defined in the [HTTP/1.1 RFC](https://tools.ietf.org/html/rfc2616#section-14.23). If TLS is
-              enabled, then the host <b>without</b> the port must be added to the \`Hosts\`
-              field as well. TLS verification only matches against the hostname of the
-              incoming connection, and thus does not take into account the port.`,
+              \`*-suffix.example.com\` are not.`,
             },
           ],
         },
