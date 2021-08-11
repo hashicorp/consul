@@ -389,17 +389,22 @@ service {
 
 #### Virtual
 
-Virtual tagged addresses are logical address types used by
-[Connect](/docs/connect) to route traffic to the associated destination service
-in the service mesh when:
+Virtual tagged addresses are logical address types which can be configured on
+[Connect](/docs/connect)-enabled services. The virtual address provides a fixed
+IP address that can be used by downstream services when connecting to an
+upstream service. Connections to the virtual address are load balanced across
+available instances of a service, provided the following conditions are satisfied:
 
-1. [Transparent proxy](/docs/connect/transparent-proxy) is enabled.
-1. The service is not configured for individual instances to be
+1. [Transparent proxy](/docs/connect/transparent-proxy) is enabled for the
+   downstream and upstream services.
+1. The upstream service is not configured for individual instances to be
    [dialed directly](/docs/connect/config-entries/service-defaults#dialeddirectly).
 
 -> **Note**: Virtual addresses are not required to be routable IPs within the
-network. They are strictly a control plane construct used to provide a single
-address for the instances of a given logical service.
+network. They are strictly a control plane construct used to provide a fixed
+address for the instances of a given logical service. Egress proxy connections
+to an upstream service will be destined to the IP address of the selected
+service instance, not the logical, virtual address.
 
 ##### Supported tags
 
