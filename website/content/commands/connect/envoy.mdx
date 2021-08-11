@@ -136,15 +136,16 @@ proxy configuration needed.
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
-  For terminating and mesh gateways, this is the IP and port on which
-  to receive traffic from services in the mesh. For ingress gateways, this is
-  the IP and port at which to instantiate a `/ready` HTTP endpoint which is used
-  by Consul for health checking the gateway. The specified IP will also be used
-  by the ingress gateway when instantiating user-defined listeners
-  configured in the
+  If Envoy is configured as a terminating or mesh gateway, traffic from services
+  within the mesh will be received at the specified IP and port.
+
+  If Envoy is configured as an ingress gateway, a `/ready` HTTP endpoint will be
+  instantiated at the specified IP and port. Consul uses `/ready` HTTP endpoints
+  to check gateway health. The specified IP will also be used by the ingress
+  gateway when instantiating user-defined listeners configured in the
   [ingress gateway](/docs/connect/gateways/ingress-gateway) configuration entry.
 
-  ~> **Note**: Ensure that user-defined ingress gateway listeners utilize a
+  ~> **Note**: Ensure that user-defined ingress gateway listeners use a
      different port than the port specified in `-address` so that they do not
      conflict with the health check endpoint.
 
@@ -153,7 +154,7 @@ proxy configuration needed.
   use `/dev/null`.
 
 - `-bind-address` - The bind address to use instead of the default binding rules.
-  Speciifed as `<name>=<ip>:<port>` pairs. This flag may be specified multiple times
+  Specified as `<name>=<ip>:<port>` pairs. This flag may be used multiple times
   to add multiple bind addresses.
 
 - `-expose-servers` - Expose the servers for WAN federation via this mesh
