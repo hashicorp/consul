@@ -31,14 +31,14 @@ buffer_period {
   - `enabled` - (bool: true) Enable or disable buffer periods globally. Specifying `min` will also enable it.
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
-- `log_level` - (string: "WARN") The log level to use for Consul-Terraform-Sync logging.
+- `log_level` - (string: "INFO") The log level to use for Consul-Terraform-Sync logging. This defaults to "INFO". The available log levels are "TRACE", "DEBUG", "INFO", "WARN", and "ERR".
 - `port` - (int: 8558) The port for Consul-Terraform-Sync to use to serve API requests.
 - `syslog` - Specifies the syslog server for logging.
   - `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
   - `facility` - (string: "local0") Name of the syslog facility to log to.
   - `name` - (string: "consul-terraform-sync") Name to use for the daemon process when logging to syslog.
 - `working_dir` - (string: "sync-tasks") The base working directory to manage generated artifacts by Consul-Terraform-Sync, including Terraform configuration files for each task. Each task will have a subdirectory used as the working directory, e.g. `./sync-tasks/task-name`. The working directory for tasks can be overridden using the [`task.working_dir`](#working_dir-1) option.
- - `license_path` <EnterpriseAlert inline /> - (string: "") Configures the path to the file containing the license. License must be set in order to use enterprise but can be alternatively set through environment variables `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` instead. See section on [setting a license](/docs/nia/enterprise/license#setting-the-license) for more details.
+- `license_path` <EnterpriseAlert inline /> - (string: "") Configures the path to the file containing the license. License must be set in order to use enterprise but can be alternatively set through environment variables `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` instead. See section on [setting a license](/docs/nia/enterprise/license#setting-the-license) for more details.
 
 ## Consul
 
@@ -251,7 +251,9 @@ driver "terraform" {
 
 <EnterpriseAlert>
   This feature requires{' '}
-  <a href="https://www.hashicorp.com/products/consul/features">Consul-Terraform-Sync Enterprise</a>{' '}
+  <a href="https://www.hashicorp.com/products/consul/features">
+    Consul-Terraform-Sync Enterprise
+  </a>{' '}
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
 
@@ -284,7 +286,7 @@ driver "terraform-cloud" {
 - `hostname` - (string) The Terraform Enterprise hostname to connect to. Can be overridden with the `TFC_HOSTNAME` environment variable.
 - `organization` - (string) The Terraform Enterprise organization that hosts the managed workspaces by Consul-Terraform-Sync. Can be overridden with the `TFC_ORGANIZATION` environment variable.
 - `token` - (string) Required [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Enterprise and workspace management. Only workspace permissions are needed for Consul-Terraform-Sync. The token can also be provided using the `TFC_TOKEN` environment variable.
-  * We recommend creating a dedicated team and team API token to isolate automation by Consul-Terraform-Sync from other Terraform Enterprise operations.
+  - We recommend creating a dedicated team and team API token to isolate automation by Consul-Terraform-Sync from other Terraform Enterprise operations.
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This is similar to the [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
 
 Consul-Terraform-Sync generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/docs/nia/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
