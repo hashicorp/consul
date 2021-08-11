@@ -56,14 +56,44 @@ a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
    $ make tools
    ```
 
-1. Build Consul for your current system and put the binary in `./bin/`
-   (relative to the git checkout). The `make dev` target is just a shortcut that
-   builds `consul` for only your local build environment (no cross-compiled
-   targets).
+1. Build Consul for your target system. The binary will be placed in `./bin`
+   (relative to the git checkout).
 
-   ```shell
-   $ make dev
-   ```
+<!--
+   The tabs below *should* be indented with the step immediately above,
+   but that is not currently possible.
+
+   The pre-commit linting rules will automatically unindent the <Tab>
+   element upon commit. This causes compilation to fail, because <Tabs>
+   and all its contained <Tab> elements need to be at the same indent level
+   for compilation. As a temporary solution, the <Tabs> will be unindented.
+-->
+
+<Tabs>
+<Tab heading="Compile for your current system">
+
+```shell-session
+$ make dev
+```
+
+</Tab>
+<Tab heading="Cross-compile for another system">
+
+Specify your target system by setting the following environment variables
+before building:
+
+- `XC_OS`: Target operating system. Valid values include:
+  `linux`, `darwin`, `windows`, `solaris`, `freebsd`.
+- `XC_ARCH`: Target architecture. Valid values include:
+  `386`, `amd64`, `arm`, `arm64`
+
+```shell-session
+$ export XC_OS=linux XC_ARCH=amd64
+$ make dev
+```
+
+</Tab>
+</Tabs>
 
 ## Verifying the Installation
 
