@@ -22,58 +22,59 @@ address from each other.
 
 This requires that operators setting up the virtual machines or containers
 hosting the servers take additional steps to ensure the necessary routing and
-firewall rules are in place to allow the servers to speak to each other over
+firewall rules are in place to allow the servers to connect to each other over
 the WAN.
 
 Sometimes this prerequisite is difficult or undesirable to meet:
 
 - **Difficult:** The datacenters may exist in multiple Kubernetes clusters that
-  unfortunately have overlapping pod IP subnets, or may exist in different
+  have overlapping pod IP subnets, or may exist in different
   cloud provider VPCs that have overlapping subnets.
 
-- **Undesirable:** Network security teams may not approve of granting so many
-  firewall rules. When using platform autoscaling, keeping rules up to date becomes untenable.
+- **Undesirable:** Network security teams may not approve of installing the
+  required firewall rules. When deploying servers on a platform that supports
+  autoscaling, keeping rules up-to-date becomes challenging.
 
 Operators looking to simplify their WAN deployment and minimize the exposed
 security surface area can elect to join these datacenters together using [mesh
-gateways](/docs/connect/gateways/mesh-gateway) to do so.
+gateways](/docs/connect/gateways/mesh-gateway).
 
 ## Architecture
 
-There are two main kinds of communication that occur over the WAN link spanning
-the gulf between disparate Consul datacenters:
+There are two main types of communication that occur over the WAN link between
+federated Consul datacenters:
 
-- **WAN gossip:** We leverage the serf and memberlist libraries to gossip
-  around failure detector knowledge about Consul servers in each datacenter.
-  By default this operates point to point between servers over `8302/udp` with
-  a fallback to `8302/tcp` (which logs a warning indicating the network is
-  misconfigured).
+- **WAN gossip:** Consul uses the serf and memberlist libraries to gossip
+  failure detector knowledge to other Consul servers in each datacenter.
+  By default this operates point-to-point between servers over `8302/udp` with
+  a fallback to `8302/tcp` if UDP probes are unsuccessful (Note: this will log
+  a warning indicating the network may be misconfigured).
 
 - **Cross-datacenter RPCs:** Consul servers expose a special multiplexed port
   over `8300/tcp`. Several distinct kinds of messages can be received on this
   port, such as RPC requests forwarded from servers in other datacenters.
 
-In this network topology individual Consul client agents on a LAN in one
-datacenter never need to directly dial servers in other datacenters. This
-means you could introduce a set of firewall rules prohibiting `10.0.0.0/24`
-from sending any traffic at all to `10.1.2.0/24` for security isolation.
+In this network topology, individual Consul client agents on a LAN in one
+datacenter do not need to directly dial servers in other datacenters. This
+means you could introduce a set of firewall rules for security isolation which
+prohibit the subnet(s) containing client agents (e.g., `10.0.0.0/24`) from
+sending any traffic a subnet containing the Consul servers (e.g. `10.1.2.0/24`).
 
 You may already have configured [mesh
 gateways](https://learn.hashicorp.com/tutorials/consul/service-mesh-gateways)
-to allow for services in the service mesh to freely connect between datacenters
-regardless of the lateral connectivity of the nodes hosting the Consul client
-agents.
+to allow for services in the service mesh to communicate with services in other
+datacenters.
 
-By activating WAN federation via mesh gateways the servers
-can similarly use the existing mesh gateways to reach each other without
-themselves being directly reachable.
+By activating WAN federation via mesh gateways, the Consul servers
+can similarly use the existing mesh gateways to reach services in another
+datacenter without requiring that they be directly reachable from the remote DC.
 
 ## Configuration
 
 ### TLS
 
-All Consul servers in all datacenters should have TLS configured with certificates containing
-these SAN fields:
+All Consul servers in all datacenters must have TLS configured with certificates
+containing the following SAN (subject alternative name) fields:
 
     server.<this_datacenter>.<domain>              (normal)
     <node_name>.server.<this_datacenter>.<domain>  (needed for wan federation)
@@ -82,27 +83,26 @@ This can be achieved using any number of tools, including `consul tls cert creat
 
 ### Mesh Gateways
 
-There needs to be at least one mesh gateway configured to opt-in to exposing
-the servers in its configuration. When using the `consul connect envoy` CLI
-this is done by using the flag `-expose-servers`. All this does is to register
-the mesh gateway into the catalog with the additional piece of service metadata
+There must be at least one mesh gateway deployedw which is configured to expose
+the Consul servers. When using the `consul connect envoy` CLI,
+this is done by adding the flag `-expose-servers`. This registers
+the mesh gateway into the catalog with the service metadata
 of `{"consul-wan-federation":"1"}`. If you are registering the mesh gateways
-into the catalog out of band you may simply add this to your existing
+into the catalog out-of-band, you must add this to your existing service
 registration payload.
 
-!> Before activating the feature on an existing cluster you should ensure that
-there is at least one mesh gateway prepared to expose the servers registered in
-each datacenter otherwise the WAN will become only partly connected.
+!> Before activating the feature on an existing cluster you must ensure that
+there is at least one mesh gateway in each datacenter which is configured to
+expose the servers, otherwise the WAN will become partially connected.
 
 ### Consul Server Options
 
-There are a few necessary additional pieces of configuration beyond those
-required for standing up a
+Additional parameters must be configured to enable WAN federation over mesh
+gateways, beyond those which are required for enabling standard
 [multi-datacenter](https://learn.hashicorp.com/tutorials/consul/federarion-gossip-wan)
-Consul cluster.
+federation between Consul clusters.
 
-Consul servers in the _primary_ datacenter should add this snippet to the
-configuration file:
+Add the following configuration to Consul servers in the _primary_ datacenter.
 
 ```hcl
 connect {
@@ -111,8 +111,7 @@ connect {
 }
 ```
 
-Consul servers in all _secondary_ datacenters should add this snippet to the
-configuration file:
+Add the following configuration to Consul servers in all _secondary_ datacenters.
 
 ```hcl
 primary_gateways = [ "<primary-mesh-gateway-ip>:<primary-mesh-gateway-port>", ... ]
@@ -122,45 +121,49 @@ connect {
 }
 ```
 
-Any references to [`start_join_wan`](/docs/agent/options#start_join_wan) or [`retry_join_wan`](/docs/agent/options#retry_join_wan) should be omitted.
+Any prior references to [`start_join_wan`](/docs/agent/options#start_join_wan) or
+[`retry_join_wan`](/docs/agent/options#retry_join_wan) in the configuration
+should be removed.
 
--> The `primary_gateways` configuration can also use `go-discover` syntax just
-like `retry_join_wan`.
+-> Similar to `retry_join_wan`, the `primary_gateways` parameter supports
+using `go-discover` to discover server addresses. See
+[Cloud Auto-join](/docs/install/cloud-auto-join) for more information.
 
 ### Bootstrapping
 
 For ease of debugging (such as avoiding a flurry of misleading error messages)
-when intending to activate WAN federation via mesh gateways it is best to
-follow this general procedure:
+when intending to activate WAN federation via mesh gateways, use the following
+bootstrapping procedure:
 
 ### New secondary
 
 1. Upgrade to the desired version of the consul binary for all servers,
    clients, and CLI.
-2. Start all consul servers and clients on the new version in the primary
+1. Start all consul servers and clients on the new version in the primary
    datacenter.
-3. Ensure the primary datacenter has at least one running, registered mesh gateway with
-   the service metadata key of `{"consul-wan-federation":"1"}` set.
-4. Ensure you are _prepared_ to launch corresponding mesh gateways in all
-   secondaries. When ACLs are enabled actually registering these requires
-   upstream connectivity to the primary datacenter to authorize catalog
-   registration.
-5. Ensure all servers in the primary datacenter have updated configuration and
+1. Ensure the primary datacenter has at least one mesh gateway registered and
+   running with the service metadata key of `{"consul-wan-federation":"1"}`.
+1. Ensure you are _prepared_ to launch corresponding mesh gateways in all
+   secondaries. When ACLs are enabled, registering mesh gateways requires
+   upstream connectivity to the primary datacenter in order to authorize the
+   catalog registration.
+1. Ensure all servers in the primary datacenter have updated configuration, and
    restart.
-6. Ensure all servers in the secondary datacenter have updated configuration.
-7. Start all consul servers and clients on the new version in the secondary
+1. Ensure all servers in the secondary datacenter have updated configuration.
+1. Start all consul servers and clients on the new version in the secondary
    datacenter.
-8. When ACLs are enabled, shortly afterwards it should become possible to
-   resolve ACL tokens from the secondary, at which time it should be possible
+1. If ACLs are enabled, it should become possible to resolve ACL tokens through
+   the servers in the secondary datacenter after they have shortly afterwards the server is started.
+   , at which time it should be possible
    to launch the mesh gateways in the secondary datacenter.
 
 ### Existing secondary
 
 1. Upgrade to the desired version of the consul binary for all servers,
    clients, and CLI.
-2. Restart all consul servers and clients on the new version.
-3. Ensure each datacenter has at least one running, registered mesh gateway with the
-   service metadata key of `{"consul-wan-federation":"1"}` set.
+2. Restart all consul servers and clients so that they are using the new version
+3. Ensure each datacenter has at least one mesh gateway which is registered, running,
+   and has the service metadata key of `{"consul-wan-federation":"1"}`.
 4. Ensure all servers in the primary datacenter have updated configuration and
    restart.
 5. Ensure all servers in the secondary datacenter have updated configuration and
@@ -168,12 +171,12 @@ follow this general procedure:
 
 ### Verification
 
-From any two datacenters joined together double check the following give you an
-expected result:
+From any two federated datacenters, verify the following commands produce the
+expected results:
 
-- Check that `consul members -wan` lists all servers in all datacenters with
-  their _local_ ip addresses and are listed as `alive`.
+- Verify that `consul members -wan` returns all servers in all datacenters with
+  their _local_ IP address in the `Address` column, and the `Status` of `alive`.
 
-- Ensure any API request that activates datacenter request forwarding. such as
-  [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api/catalog#dc-1)
-  succeeds.
+- Verify API requests to the remote data center successfully complete. For
+  example, accessing [`/v1/catalog/services?dc=<OTHER_DATACENTER_NAME>`](/api/catalog#dc-1)
+  should return a successful response.
