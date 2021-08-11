@@ -1,3 +1,6 @@
+# For documentation on building consul from source, refer to:
+# https://www.consul.io/docs/install#compiling-from-source
+
 SHELL = bash
 GOGOVERSION?=$(shell grep github.com/gogo/protobuf go.mod | awk '{print $$2}')
 GOTOOLS = \
