@@ -14,5 +14,6 @@
   color: var(--gray-2);
 }
 .heading {
+  composes: g-type-display-2 from global;
   margin: 0;
 }
