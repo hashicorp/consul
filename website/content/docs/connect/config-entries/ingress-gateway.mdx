@@ -784,11 +784,14 @@ spec:
         {
           name: 'Port',
           type: 'int: 0',
-          description: `The port on which the listener should receive traffic.
-                        <b>Note:</b> This port must not conflict with the port
-                        that was specified in the
-                        [\`-address\`](/commands/connect/envoy#address) flag
-                        when starting the gateway.`,
+          description: `The port on which the ingress listener should receive
+                        traffic. The port will be bound to the IP address that
+                        was specified in the [`-address`](/commands/connect/envoy#address)
+                        flag when starting the gateway.
+
+                        <b>Note:</b> The ingress listener port must not conflict
+                        with the health check port specified in the `-address\`
+                        flag.`
         },
         {
           name: 'Protocol',
