@@ -950,7 +950,7 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		_, err := clientCert.Verify(x509.VerifyOptions{
 			DNSName:   expected,
 			Roots:     caPool,
-			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		})
 		if err == nil {
 			return nil
