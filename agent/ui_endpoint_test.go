@@ -12,15 +12,16 @@ import (
 	"sync/atomic"
 	"testing"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -1397,34 +1398,59 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 	}
 
-	t.Run("request without kind", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.UIServiceTopology(resp, req)
-		require.Nil(t, err)
-		require.Nil(t, obj)
-		require.Equal(t, "Missing service kind", resp.Body.String())
-	})
+	type testCase struct {
+		name    string
+		httpReq *http.Request
+		want    *ServiceTopology
+		wantErr string
+	}
 
-	t.Run("request with unsupported kind", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=not-a-kind", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.UIServiceTopology(resp, req)
-		require.Nil(t, err)
-		require.Nil(t, obj)
-		require.Equal(t, `Unsupported service kind "not-a-kind"`, resp.Body.String())
-	})
-
-	t.Run("ingress", func(t *testing.T) {
+	run := func(t *testing.T, tc testCase) {
 		retry.Run(t, func(r *retry.R) {
-			// Request topology for ingress
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=ingress-gateway", nil)
 			resp := httptest.NewRecorder()
-			obj, err := a.srv.UIServiceTopology(resp, req)
+			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
 			assert.Nil(r, err)
-			require.NoError(r, checkIndex(resp))
 
-			expect := ServiceTopology{
+			if tc.wantErr != "" {
+				assert.Nil(t, tc.want) // should not define a non-nil want
+				require.Equal(t, tc.wantErr, resp.Body.String())
+				require.Nil(t, obj)
+				return
+			}
+
+			require.NoError(r, checkIndex(resp))
+			require.NotNil(t, obj)
+			result := obj.(ServiceTopology)
+			clearUnexportedFields(result)
+
+			require.Equal(r, *tc.want, result)
+		})
+	}
+
+	tcs := []testCase{
+		{
+			name: "request without kind",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress", nil)
+				return req
+			}(),
+			wantErr: "Missing service kind",
+		},
+		{
+			name: "request with unsupported kind",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=not-a-kind", nil)
+				return req
+			}(),
+			wantErr: `Unsupported service kind "not-a-kind"`,
+		},
+		{
+			name: "ingress",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=ingress-gateway", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
 				Protocol:         "tcp",
 				TransparentProxy: false,
 				Upstreams: []*ServiceTopologySummary{
@@ -1449,29 +1475,15 @@ func TestUIServiceTopology(t *testing.T) {
 				},
 				Downstreams:    []*ServiceTopologySummary{},
 				FilteredByACLs: false,
-			}
-			result := obj.(ServiceTopology)
-
-			// Internal accounting that is not returned in JSON response
-			for _, u := range result.Upstreams {
-				u.externalSourceSet = nil
-				u.checks = nil
-				u.transparentProxySet = false
-			}
-			require.Equal(r, expect, result)
-		})
-	})
-
-	t.Run("api", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			// Request topology for api
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api?kind=", nil)
-			resp := httptest.NewRecorder()
-			obj, err := a.srv.UIServiceTopology(resp, req)
-			assert.Nil(r, err)
-			require.NoError(r, checkIndex(resp))
-
-			expect := ServiceTopology{
+			},
+		},
+		{
+			name: "api",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
 				Protocol:         "tcp",
 				TransparentProxy: true,
 				Downstreams: []*ServiceTopologySummary{
@@ -1518,34 +1530,15 @@ func TestUIServiceTopology(t *testing.T) {
 					},
 				},
 				FilteredByACLs: false,
-			}
-			result := obj.(ServiceTopology)
-
-			// Internal accounting that is not returned in JSON response
-			for _, u := range result.Upstreams {
-				u.transparentProxySet = false
-				u.externalSourceSet = nil
-				u.checks = nil
-			}
-			for _, d := range result.Downstreams {
-				d.transparentProxySet = false
-				d.externalSourceSet = nil
-				d.checks = nil
-			}
-			require.Equal(r, expect, result)
-		})
-	})
-
-	t.Run("web", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			// Request topology for web
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web?kind=", nil)
-			resp := httptest.NewRecorder()
-			obj, err := a.srv.UIServiceTopology(resp, req)
-			assert.Nil(r, err)
-			require.NoError(r, checkIndex(resp))
-
-			expect := ServiceTopology{
+			},
+		},
+		{
+			name: "web",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
 				Protocol:         "http",
 				TransparentProxy: false,
 				Upstreams: []*ServiceTopologySummary{
@@ -1590,70 +1583,327 @@ func TestUIServiceTopology(t *testing.T) {
 					},
 				},
 				FilteredByACLs: false,
-			}
-			result := obj.(ServiceTopology)
+			},
+		},
+	}
 
-			// Internal accounting that is not returned in JSON response
-			for _, u := range result.Upstreams {
-				u.transparentProxySet = false
-				u.externalSourceSet = nil
-				u.checks = nil
-			}
-			for _, d := range result.Downstreams {
-				d.transparentProxySet = false
-				d.externalSourceSet = nil
-				d.checks = nil
-			}
-			require.Equal(r, expect, result)
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
-	})
+	}
+}
 
-	t.Run("redis", func(t *testing.T) {
+// clearUnexportedFields sets unexported members of ServiceTopology to their
+// type defaults, since the fields are not marshalled in the JSON response.
+func clearUnexportedFields(result ServiceTopology) {
+	for _, u := range result.Upstreams {
+		u.transparentProxySet = false
+		u.externalSourceSet = nil
+		u.checks = nil
+	}
+	for _, d := range result.Downstreams {
+		d.transparentProxySet = false
+		d.externalSourceSet = nil
+		d.checks = nil
+	}
+}
+
+func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register dashboard -> routing-config -> counting
+	// 										∟> counting-v2
+	{
+		registrations := map[string]*structs.RegisterRequest{
+			"Service dashboard": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "dashboard",
+					Service: "dashboard",
+					Port:    9002,
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:dashboard",
+						Status:      api.HealthPassing,
+						ServiceID:   "dashboard",
+						ServiceName: "dashboard",
+					},
+				},
+			},
+			"Service dashboard-proxy": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "dashboard-sidecar-proxy",
+					Service: "dashboard-sidecar-proxy",
+					Port:    5000,
+					Address: "198.18.1.0",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "dashboard",
+						DestinationServiceID:   "dashboard",
+						LocalServiceAddress:    "127.0.0.1",
+						LocalServicePort:       9002,
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType: "service",
+								DestinationName: "routing-config",
+								LocalBindPort:   5000,
+							},
+						},
+					},
+					LocallyRegisteredAsSidecar: true,
+				},
+			},
+			"Service counting": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "counting",
+					Service: "counting",
+					Port:    9003,
+					Address: "198.18.1.1",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:api",
+						Status:      api.HealthPassing,
+						ServiceID:   "counting",
+						ServiceName: "counting",
+					},
+				},
+			},
+			"Service counting-proxy": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "counting-proxy",
+					Service: "counting-proxy",
+					Port:    5001,
+					Address: "198.18.1.1",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "counting",
+					},
+					LocallyRegisteredAsSidecar: true,
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:counting-proxy",
+						Status:      api.HealthPassing,
+						ServiceID:   "counting-proxy",
+						ServiceName: "counting-proxy",
+					},
+				},
+			},
+			"Service counting-v2": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "counting-v2",
+					Service: "counting-v2",
+					Port:    9004,
+					Address: "198.18.1.2",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:api",
+						Status:      api.HealthPassing,
+						ServiceID:   "counting-v2",
+						ServiceName: "counting-v2",
+					},
+				},
+			},
+			"Service counting-v2-proxy": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "counting-v2-proxy",
+					Service: "counting-v2-proxy",
+					Port:    5002,
+					Address: "198.18.1.2",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "counting-v2",
+					},
+					LocallyRegisteredAsSidecar: true,
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:counting-v2-proxy",
+						Status:      api.HealthPassing,
+						ServiceID:   "counting-v2-proxy",
+						ServiceName: "counting-v2-proxy",
+					},
+				},
+			},
+		}
+		for _, args := range registrations {
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		}
+	}
+	{
+		entries := []structs.ConfigEntryRequest{
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "routing-config",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathPrefix: "/v2",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "counting-v2",
+							},
+						},
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathPrefix: "/",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "counting",
+							},
+						},
+					},
+				},
+			},
+		}
+		for _, req := range entries {
+			out := false
+			require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		}
+	}
+
+	type testCase struct {
+		name    string
+		httpReq *http.Request
+		want    *ServiceTopology
+		wantErr string
+	}
+
+	run := func(t *testing.T, tc testCase) {
 		retry.Run(t, func(r *retry.R) {
-			// Request topology for redis
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis?kind=", nil)
 			resp := httptest.NewRecorder()
-			obj, err := a.srv.UIServiceTopology(resp, req)
+			obj, err := a.srv.UIServiceTopology(resp, tc.httpReq)
 			assert.Nil(r, err)
-			require.NoError(r, checkIndex(resp))
 
-			expect := ServiceTopology{
+			if tc.wantErr != "" {
+				assert.Nil(t, tc.want) // should not define a non-nil want
+				require.Equal(t, tc.wantErr, resp.Body.String())
+				require.Nil(t, obj)
+				return
+			}
+
+			require.NoError(r, checkIndex(resp))
+			require.NotNil(t, obj)
+			result := obj.(ServiceTopology)
+			clearUnexportedFields(result)
+
+			require.Equal(r, *tc.want, result)
+		})
+	}
+
+	tcs := []testCase{
+		{
+			name: "dashboard has upstream routing-config",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/dashboard?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
+				Protocol:    "http",
+				Downstreams: []*ServiceTopologySummary{},
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:             "routing-config",
+							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							TransparentProxy: false,
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow: true,
+							Allowed:      true,
+						},
+						Source: structs.TopologySourceRoutingConfig,
+					},
+				},
+			},
+		},
+		{
+			name: "counting has downstream dashboard",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/counting?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
 				Protocol:  "http",
 				Upstreams: []*ServiceTopologySummary{},
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:           "web",
-							Datacenter:     "dc1",
-							Nodes:          []string{"bar", "baz"},
-							InstanceCount:  2,
-							ChecksPassing:  3,
-							ChecksWarning:  1,
-							ChecksCritical: 2,
-							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							Name:          "dashboard",
+							Datacenter:    "dc1",
+							Nodes:         []string{"foo"},
+							InstanceCount: 1,
+							ChecksPassing: 1,
 						},
+						Source: "proxy-registration",
 						Intention: structs.IntentionDecisionSummary{
-							DefaultAllow:   true,
-							Allowed:        false,
-							HasPermissions: true,
-							HasExact:       true,
+							Allowed:      true,
+							DefaultAllow: true,
 						},
-						Source: structs.TopologySourceRegistration,
 					},
 				},
-				FilteredByACLs: false,
-			}
-			result := obj.(ServiceTopology)
+			},
+		},
+	}
 
-			// Internal accounting that is not returned in JSON response
-			for _, d := range result.Downstreams {
-				d.transparentProxySet = false
-				d.externalSourceSet = nil
-				d.checks = nil
-			}
-			require.Equal(r, expect, result)
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
-	})
+	}
 }
 
 func TestUIEndpoint_MetricsProxy(t *testing.T) {
