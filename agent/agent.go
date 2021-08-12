@@ -559,6 +559,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		Health: a.rpcClientHealth,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
+		Tokens: a.baseDeps.Tokens,
 		Source: &structs.QuerySource{
 			Datacenter: a.config.Datacenter,
 			Segment:    a.config.SegmentName,
