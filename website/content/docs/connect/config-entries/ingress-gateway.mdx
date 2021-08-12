@@ -786,12 +786,11 @@ spec:
           type: 'int: 0',
           description: `The port on which the ingress listener should receive
                         traffic. The port will be bound to the IP address that
-                        was specified in the [`-address`](/commands/connect/envoy#address)
+                        was specified in the [\`-address\`](/commands/connect/envoy#address)
                         flag when starting the gateway.
-
                         <b>Note:</b> The ingress listener port must not conflict
-                        with the health check port specified in the `-address\`
-                        flag.`
+                        with the health check port specified in the \`-address\`
+                        flag.`,
         },
         {
           name: 'Protocol',
@@ -803,7 +802,7 @@ spec:
           name: 'Services',
           type: 'array<IngressService>: <optional>',
           description:
-            'A list of services to be exposed via this listener. For "tcp" listeners, only a single service is allowed.',
+            'A list of services to be exposed via this listener. For `tcp` listeners, only a single service is allowed.',
           children: [
             {
               name: 'Name',
@@ -812,7 +811,7 @@ spec:
                                   through this listener. This can be either a service registered in the
                                   catalog, or a service defined only by [other config entries](/docs/connect/l7-traffic-management). If the wildcard specifier,
                                   \`*\`, is provided, then ALL services will be exposed through the listener.
-                                  This is not supported for listener's with protocol "tcp".`,
+                                  This is not supported for listener's with protocol \`tcp\`.`,
             },
             {
               name: 'Namespace',
