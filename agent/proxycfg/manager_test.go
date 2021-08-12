@@ -600,5 +600,5 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 	require.NoError(t, err)
 	m.syncState()
 
-	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].serviceInstance.token)
+	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].token)
 }
