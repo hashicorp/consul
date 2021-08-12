@@ -1,0 +1,3 @@
+```release-note:improvement
+deps: update to gogo/protobuf v1.3.2
+```
