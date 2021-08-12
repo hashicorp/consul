@@ -84,11 +84,10 @@ require (
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.0.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20201007082116-8445cc04cbdf
-	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.9.0 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
