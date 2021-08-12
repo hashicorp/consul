@@ -25,7 +25,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Topic enumerates the supported event topics.
 type Topic int32
@@ -257,16 +257,16 @@ type isEvent_Payload interface {
 }
 
 type Event_EndOfSnapshot struct {
-	EndOfSnapshot bool `protobuf:"varint,2,opt,name=EndOfSnapshot,proto3,oneof"`
+	EndOfSnapshot bool `protobuf:"varint,2,opt,name=EndOfSnapshot,proto3,oneof" json:"EndOfSnapshot,omitempty"`
 }
 type Event_NewSnapshotToFollow struct {
-	NewSnapshotToFollow bool `protobuf:"varint,3,opt,name=NewSnapshotToFollow,proto3,oneof"`
+	NewSnapshotToFollow bool `protobuf:"varint,3,opt,name=NewSnapshotToFollow,proto3,oneof" json:"NewSnapshotToFollow,omitempty"`
 }
 type Event_EventBatch struct {
-	EventBatch *EventBatch `protobuf:"bytes,4,opt,name=EventBatch,proto3,oneof"`
+	EventBatch *EventBatch `protobuf:"bytes,4,opt,name=EventBatch,proto3,oneof" json:"EventBatch,omitempty"`
 }
 type Event_ServiceHealth struct {
-	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,10,opt,name=ServiceHealth,proto3,oneof"`
+	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,10,opt,name=ServiceHealth,proto3,oneof" json:"ServiceHealth,omitempty"`
 }
 
 func (*Event_EndOfSnapshot) isEvent_Payload()       {}
@@ -316,114 +316,14 @@ func (m *Event) GetServiceHealth() *ServiceHealthUpdate {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Event) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Event_OneofMarshaler, _Event_OneofUnmarshaler, _Event_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Event) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Event_EndOfSnapshot)(nil),
 		(*Event_NewSnapshotToFollow)(nil),
 		(*Event_EventBatch)(nil),
 		(*Event_ServiceHealth)(nil),
 	}
-}
-
-func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Event)
-	// Payload
-	switch x := m.Payload.(type) {
-	case *Event_EndOfSnapshot:
-		t := uint64(0)
-		if x.EndOfSnapshot {
-			t = 1
-		}
-		_ = b.EncodeVarint(2<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(t)
-	case *Event_NewSnapshotToFollow:
-		t := uint64(0)
-		if x.NewSnapshotToFollow {
-			t = 1
-		}
-		_ = b.EncodeVarint(3<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(t)
-	case *Event_EventBatch:
-		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.EventBatch); err != nil {
-			return err
-		}
-	case *Event_ServiceHealth:
-		_ = b.EncodeVarint(10<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.ServiceHealth); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Event.Payload has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Event)
-	switch tag {
-	case 2: // Payload.EndOfSnapshot
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Payload = &Event_EndOfSnapshot{x != 0}
-		return true, err
-	case 3: // Payload.NewSnapshotToFollow
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Payload = &Event_NewSnapshotToFollow{x != 0}
-		return true, err
-	case 4: // Payload.EventBatch
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(EventBatch)
-		err := b.DecodeMessage(msg)
-		m.Payload = &Event_EventBatch{msg}
-		return true, err
-	case 10: // Payload.ServiceHealth
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(ServiceHealthUpdate)
-		err := b.DecodeMessage(msg)
-		m.Payload = &Event_ServiceHealth{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Event_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Event)
-	// Payload
-	switch x := m.Payload.(type) {
-	case *Event_EndOfSnapshot:
-		n += 1 // tag and wire
-		n += 1
-	case *Event_NewSnapshotToFollow:
-		n += 1 // tag and wire
-		n += 1
-	case *Event_EventBatch:
-		s := proto.Size(x.EventBatch)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Event_ServiceHealth:
-		s := proto.Size(x.ServiceHealth)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type EventBatch struct {
@@ -829,7 +729,8 @@ func (m *Event) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *Event_EndOfSnapshot) MarshalTo(dAtA []byte) (int, error) {
-	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
 func (m *Event_EndOfSnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
@@ -845,7 +746,8 @@ func (m *Event_EndOfSnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Event_NewSnapshotToFollow) MarshalTo(dAtA []byte) (int, error) {
-	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
 func (m *Event_NewSnapshotToFollow) MarshalToSizedBuffer(dAtA []byte) (int, error) {
@@ -861,7 +763,8 @@ func (m *Event_NewSnapshotToFollow) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 func (m *Event_EventBatch) MarshalTo(dAtA []byte) (int, error) {
-	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
 func (m *Event_EventBatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
@@ -881,7 +784,8 @@ func (m *Event_EventBatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Event_ServiceHealth) MarshalTo(dAtA []byte) (int, error) {
-	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
 func (m *Event_ServiceHealth) MarshalToSizedBuffer(dAtA []byte) (int, error) {
@@ -1334,10 +1238,7 @@ func (m *SubscribeRequest) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthSubscribe
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthSubscribe
 			}
 			if (iNdEx + skippy) > l {
@@ -1519,10 +1420,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthSubscribe
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthSubscribe
 			}
 			if (iNdEx + skippy) > l {
@@ -1607,10 +1505,7 @@ func (m *EventBatch) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthSubscribe
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthSubscribe
 			}
 			if (iNdEx + skippy) > l {
@@ -1716,10 +1611,7 @@ func (m *ServiceHealthUpdate) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthSubscribe
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthSubscribe
 			}
 			if (iNdEx + skippy) > l {
@@ -1738,6 +1630,7 @@ func (m *ServiceHealthUpdate) Unmarshal(dAtA []byte) error {
 func skipSubscribe(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
+	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -1769,10 +1662,8 @@ func skipSubscribe(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			return iNdEx, nil
 		case 1:
 			iNdEx += 8
-			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -1793,55 +1684,30 @@ func skipSubscribe(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthSubscribe
 			}
 			iNdEx += length
-			if iNdEx < 0 {
-				return 0, ErrInvalidLengthSubscribe
-			}
-			return iNdEx, nil
 		case 3:
-			for {
-				var innerWire uint64
-				var start int = iNdEx
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return 0, ErrIntOverflowSubscribe
-					}
-					if iNdEx >= l {
-						return 0, io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					innerWire |= (uint64(b) & 0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				innerWireType := int(innerWire & 0x7)
-				if innerWireType == 4 {
-					break
-				}
-				next, err := skipSubscribe(dAtA[start:])
-				if err != nil {
-					return 0, err
-				}
-				iNdEx = start + next
-				if iNdEx < 0 {
-					return 0, ErrInvalidLengthSubscribe
-				}
-			}
-			return iNdEx, nil
+			depth++
 		case 4:
-			return iNdEx, nil
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupSubscribe
+			}
+			depth--
 		case 5:
 			iNdEx += 4
-			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthSubscribe
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
 	}
-	panic("unreachable")
+	return 0, io.ErrUnexpectedEOF
 }
 
 var (
-	ErrInvalidLengthSubscribe = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowSubscribe   = fmt.Errorf("proto: integer overflow")
+	ErrInvalidLengthSubscribe        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowSubscribe          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupSubscribe = fmt.Errorf("proto: unexpected end of group")
 )
