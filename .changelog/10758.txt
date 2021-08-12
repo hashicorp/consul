@@ -1,0 +1,3 @@
+```release-note:feature
+connect: add support for unix domain socket config via API/CLI
+```

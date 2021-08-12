@@ -261,6 +261,7 @@ type AgentServiceRegistration struct {
 	Tags              []string                  `json:",omitempty"`
 	Port              int                       `json:",omitempty"`
 	Address           string                    `json:",omitempty"`
+	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	EnableTagOverride bool                      `json:",omitempty"`
 	Meta              map[string]string         `json:",omitempty"`
