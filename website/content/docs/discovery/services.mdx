@@ -402,13 +402,14 @@ available instances of a service, provided the following conditions are satisfie
 
 -> **Note**: Virtual addresses are not required to be routable IPs within the
 network. They are strictly a control plane construct used to provide a fixed
-address for the instances of a given logical service. Egress proxy connections
-to an upstream service will be destined to the IP address of the selected
-service instance, not the logical, virtual address.
+address for the instances of a given logical service. Egress connections from
+the proxy to an upstream service will be destined to the IP address of an
+individual service instance, not the virtual address of the logical service.
 
 ##### Supported tags
 
-Use the following address tag to specify the logical address at which the service can be reached by other services in the mesh.
+Use the following address tag to specify the logical address at which the
+service can be reached by other services in the mesh.
 
 - `virtual` - The virtual IP address at which a logical service is reachable.
 
@@ -455,8 +456,8 @@ service {
 
 #### WAN
 
-These addresses are intended to be accessible only when dialing a node or service
-from a remote WAN federated data center.
+Define a WAN address for the service or node when it should be accessed at an
+alternate address by services in a remote datacenter.
 
 ##### Supported tags
 
