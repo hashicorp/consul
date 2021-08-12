@@ -80,11 +80,11 @@ func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 }
 
 func (m *EnterpriseMeta) PartitionOrDefault() string {
-	return ""
+	return "default"
 }
 
 func PartitionOrDefault(_ string) string {
-	return ""
+	return "default"
 }
 
 func (m *EnterpriseMeta) PartitionOrEmpty() string {
