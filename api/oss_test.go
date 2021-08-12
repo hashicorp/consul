@@ -3,3 +3,4 @@
 package api
 
 var defaultNamespace = ""
+var defaultPartition = ""
