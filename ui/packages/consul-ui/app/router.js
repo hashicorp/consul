@@ -205,6 +205,9 @@ export const routes = {
         },
       },
     },
+    'routing-config': {
+      _options: { path: '/routing-config/:name' },
+    },
   },
   // Shows a datacenter picker. If you only have one
   // it just redirects you through.
