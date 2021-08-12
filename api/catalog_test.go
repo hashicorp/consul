@@ -782,6 +782,7 @@ func TestAPI_CatalogNodeServiceList(t *testing.T) {
 
 		if proxySvc == nil {
 			r.Fatalf("Missing proxy service: %v", info.Services)
+			return
 		}
 
 		if !reflect.DeepEqual(proxyReg.Service.Proxy, proxySvc.Proxy) {

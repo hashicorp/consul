@@ -28,6 +28,7 @@ type cmd struct {
 	flagName            string
 	flagAddress         string
 	flagPort            int
+	flagSocketPath      string
 	flagTags            []string
 	flagMeta            map[string]string
 	flagTaggedAddresses map[string]string
@@ -44,6 +45,8 @@ func (c *cmd) init() {
 		"Address of the service to register for arg-based registration.")
 	c.flags.IntVar(&c.flagPort, "port", 0,
 		"Port of the service to register for arg-based registration.")
+	c.flags.StringVar(&c.flagSocketPath, "socket", "",
+		"Path to the Unix domain socket to register for arg-based registration (conflicts with address and port).")
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
 		"Metadata to set on the service, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
@@ -86,6 +89,7 @@ func (c *cmd) Run(args []string) int {
 		Name:            c.flagName,
 		Address:         c.flagAddress,
 		Port:            c.flagPort,
+		SocketPath:      c.flagSocketPath,
 		Tags:            c.flagTags,
 		Meta:            c.flagMeta,
 		TaggedAddresses: taggedAddrs,
