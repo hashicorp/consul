@@ -507,7 +507,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		Cache:  a.cache,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
-		Tokens: a.baseDeps.Tokens,
+		Tokens: a.tokens,
 		Source: &structs.QuerySource{
 			Node:       a.config.NodeName,
 			Datacenter: a.config.Datacenter,
