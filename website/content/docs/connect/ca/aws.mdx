@@ -57,13 +57,15 @@ connect {
 ```
 
 ~> Note that suitable AWS IAM credentials are necessary for the provider to
-work, however these are not configured in the Consul config which is typically
-on disk and rely on the [standard AWS SDK configuration
+work. However, these are not configured in the Consul config which is typically
+on disk, and instead rely on the [standard AWS SDK configuration
 locations](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials).
 
-The configuration options are listed below. Note, the
-first key is the value used in API calls and the second key (after the `/`)
-is used if you're adding configuring to the agent's configuration file.
+The configuration options are listed below.
+
+-> **Note**: The first key is the value used in API calls, and the second key
+   (after the `/`) is used if you're adding the configuration to the agent's
+   configuration file.
 
 - `ExistingARN` / `existing_arn` (`string: <optional>`) - The Amazon Resource
   Name (ARN) of an existing private CA in your ACM account. If specified,
@@ -80,6 +82,8 @@ is used if you're adding configuring to the agent's configuration file.
   create a new root CA in the primary datacenter and a subordinate CA in
   each secondary DC.
 
+@include 'http_api_connect_ca_common_options.mdx'
+
 ## Limitations
 
 ACM Private CA has several
@@ -93,7 +97,7 @@ limitations described below.
 ### Unable to Cross-sign Other CAs
 
 It's not possible to cross-sign other CA provider's root certificates during a
-migration. ACM Private CA is capable of doing that through a different work flow
+migration. ACM Private CA is capable of doing that through a different workflow
 but is not able to blindly cross-sign another root certificate without a CSR
 being generated. Both Consul's built-in CA and Vault can do this and the current
 workflow for managing CAs relies on it.
