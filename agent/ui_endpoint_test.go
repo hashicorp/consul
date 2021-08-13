@@ -1412,14 +1412,14 @@ func TestUIServiceTopology(t *testing.T) {
 			assert.Nil(r, err)
 
 			if tc.wantErr != "" {
-				assert.Nil(t, tc.want) // should not define a non-nil want
-				require.Equal(t, tc.wantErr, resp.Body.String())
-				require.Nil(t, obj)
+				assert.Nil(r, tc.want) // should not define a non-nil want
+				require.Equal(r, tc.wantErr, resp.Body.String())
+				require.Nil(r, obj)
 				return
 			}
 
 			require.NoError(r, checkIndex(resp))
-			require.NotNil(t, obj)
+			require.NotNil(r, obj)
 			result := obj.(ServiceTopology)
 			clearUnexportedFields(result)
 
@@ -1619,8 +1619,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	// Register dashboard -> routing-config -> counting
-	// 										∟> counting-v2
+	// Register dashboard -> routing-config -> { counting, counting-v2 }
 	{
 		registrations := map[string]*structs.RegisterRequest{
 			"Service dashboard": {
@@ -1829,14 +1828,14 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 			assert.Nil(r, err)
 
 			if tc.wantErr != "" {
-				assert.Nil(t, tc.want) // should not define a non-nil want
-				require.Equal(t, tc.wantErr, resp.Body.String())
-				require.Nil(t, obj)
+				assert.Nil(r, tc.want) // should not define a non-nil want
+				require.Equal(r, tc.wantErr, resp.Body.String())
+				require.Nil(r, obj)
 				return
 			}
 
 			require.NoError(r, checkIndex(resp))
-			require.NotNil(t, obj)
+			require.NotNil(r, obj)
 			result := obj.(ServiceTopology)
 			clearUnexportedFields(result)
 

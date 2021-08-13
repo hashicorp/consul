@@ -1917,8 +1917,7 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// dashboard -> routing-config -> counting
-	//							   ∟> counting-v2
+	// dashboard -> routing-config -> { counting, counting-v2 }
 	registerTestRoutingConfigTopologyEntries(t, codec)
 
 	t.Run("dashboard", func(t *testing.T) {
