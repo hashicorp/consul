@@ -338,7 +338,7 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil, false})
+	m, err := NewManager(ManagerConfig{Cache: c, State: state, Source: source, Logger: logger})
 	require.NoError(err)
 
 	// And run it
@@ -540,7 +540,6 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 
 	m, err := NewManager(ManagerConfig{
 		Cache:  c,
-		Health: &health.Client{Cache: c, CacheName: cachetype.HealthServicesName},
 		State:  state,
 		Tokens: tokens,
 		Source: &structs.QuerySource{Datacenter: "dc1"},
@@ -570,5 +569,5 @@ func TestManager_SyncState_DefaultToken(t *testing.T) {
 	require.NoError(t, err)
 	m.syncState()
 
-	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].serviceInstance.token)
+	require.Equal(t, "default-token", m.proxies[srv.CompoundServiceID()].token)
 }
