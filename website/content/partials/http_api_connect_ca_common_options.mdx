@@ -2,15 +2,15 @@
 
 The following configuration options are ssupported by all CA providers:
 
-- `CSRMaxConcurrent` / `csr_max_concurrent` (`int: 0`) - Sets a limit on how
-  many Certificate Signing Requests will be processed concurrently. Defaults
-  to 0 (disabled). This is useful when you have more than one or two cores available
-  to the server. For example, on an 8 core server, setting this to 1 will ensure
-  that even during a CA rotation no more than one CPU core on the leader will
-  be consumed at a time when generating new certificates. Setting this is recommended
-  **instead** of `csr_max_per_second` where you know there are multiple cores available
-  since it is simpler to reason about limiting CSR resources this way without
-  artificially slowing down rotations. Added in 1.4.1.
+- `CSRMaxConcurrent` / `csr_max_concurrent` (`int: 0`) - Sets a limit on the
+  number of Certificate Signing Requests that can be processed concurrently. Defaults
+  to 0 (disabled). This is useful when you want to limit the number of CPU cores
+  available to the server for certificate signing operations. For example, on an
+  8 core server, setting this to 1 will ensure that no more than one CPU core
+  will be consumed when generating or rotating certificates. Setting this is
+  recommended **instead** of `csr_max_per_second` when you want to limit the
+  number of cores consumed since it is simpler to reason about limiting CSR
+  resources this way without artificially slowing down rotations. Added in 1.4.1.
 
 - `CSRMaxPerSecond` / `csr_max_per_second` (`float: 50`) - Sets a rate limit
   on the maximum number of Certificate Signing Requests (CSRs) the servers will
