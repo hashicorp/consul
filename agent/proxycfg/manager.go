@@ -4,11 +4,13 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -70,6 +72,9 @@ type ManagerConfig struct {
 	// logger is the agent's logger to be used for logging logs.
 	Logger          hclog.Logger
 	TLSConfigurator *tlsutil.Configurator
+	// Tokens configured on the local agent. Used to look up the agent token if
+	// a service is registered without a token.
+	Tokens *token.Store
 }
 
 // NewManager constructs a manager from the provided agent cache.
@@ -148,7 +153,7 @@ func (m *Manager) syncState() {
 		// know that so we'd need to set it here if not during registration of the
 		// proxy service. Sidecar Service in the interim can do that, but we should
 		// validate more generally that that is always true.
-		err := m.ensureProxyServiceLocked(svc, m.State.ServiceToken(sid))
+		err := m.ensureProxyServiceLocked(svc)
 		if err != nil {
 			m.Logger.Error("failed to watch proxy service",
 				"service", sid.String(),
@@ -167,10 +172,18 @@ func (m *Manager) syncState() {
 }
 
 // ensureProxyServiceLocked adds or changes the proxy to our state.
-func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string) error {
+func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService) error {
 	sid := ns.CompoundServiceID()
-	state, ok := m.proxies[sid]
 
+	// Retrieve the token used to register the service, or fallback to the
+	// default user token. This token is expected to match the token used in
+	// the xDS request for this data.
+	token := m.State.ServiceToken(sid)
+	if token == "" {
+		token = m.Tokens.UserToken()
+	}
+
+	state, ok := m.proxies[sid]
 	if ok {
 		if !state.Changed(ns, token) {
 			// No change
