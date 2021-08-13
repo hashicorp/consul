@@ -105,55 +105,6 @@ func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Req
 	return nil, nil
 }
 
-func (s *HTTPHandlers) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/rules/translate/")
-	if tokenID == "" {
-		return nil, BadRequestError{Reason: "Missing token ID"}
-	}
-
-	args := structs.ACLTokenGetRequest{
-		Datacenter:  s.agent.config.Datacenter,
-		TokenID:     tokenID,
-		TokenIDType: structs.ACLTokenAccessor,
-	}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
-	}
-
-	if args.Datacenter == "" {
-		args.Datacenter = s.agent.config.Datacenter
-	}
-
-	// Do not allow blocking
-	args.QueryOptions.MinQueryIndex = 0
-
-	var out structs.ACLTokenResponse
-	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
-		return nil, err
-	}
-
-	if out.Token == nil {
-		return nil, acl.ErrNotFound
-	}
-
-	if out.Token.Rules == "" {
-		return nil, fmt.Errorf("The specified token does not have any rules set")
-	}
-
-	translated, err := acl.TranslateLegacyRules([]byte(out.Token.Rules))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse legacy rules: %v", err)
-	}
-
-	resp.Write(translated)
-	return nil, nil
-}
-
 func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil

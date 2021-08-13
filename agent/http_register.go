@@ -20,7 +20,7 @@ func init() {
 	registerEndpoint("/v1/acl/auth-method", []string{"PUT"}, (*HTTPHandlers).ACLAuthMethodCreate)
 	registerEndpoint("/v1/acl/auth-method/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).ACLAuthMethodCRUD)
 	registerEndpoint("/v1/acl/rules/translate", []string{"POST"}, (*HTTPHandlers).ACLRulesTranslate)
-	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPHandlers).ACLRulesTranslateLegacyToken)
+	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
 	registerEndpoint("/v1/acl/tokens", []string{"GET"}, (*HTTPHandlers).ACLTokenList)
 	registerEndpoint("/v1/acl/token", []string{"PUT"}, (*HTTPHandlers).ACLTokenCreate)
 	registerEndpoint("/v1/acl/token/self", []string{"GET"}, (*HTTPHandlers).ACLTokenSelf)
