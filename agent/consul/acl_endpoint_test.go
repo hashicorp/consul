@@ -25,42 +25,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-func TestACLEndpoint_Bootstrap(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, func(c *Config) {
-		c.Build = "0.8.0" // Too low for auto init of bootstrap.
-		c.PrimaryDatacenter = "dc1"
-		c.ACLsEnabled = true
-		// remove the default as we want to bootstrap
-		c.ACLMasterToken = ""
-	}, false)
-	waitForLeaderEstablishment(t, srv)
-
-	// Expect an error initially since ACL bootstrap is not initialized.
-	arg := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var out structs.ACL
-	// We can only do some high
-	// level checks on the ACL since we don't have control over the UUID or
-	// Raft indexes at this level.
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
-	require.NoError(t, err)
-	require.Len(t, out.ID, len("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"))
-	require.True(t, strings.HasPrefix(out.Name, "Bootstrap Token"))
-	require.Equal(t, structs.ACLTokenTypeManagement, out.Type)
-	require.NotEqual(t, uint64(0), out.CreateIndex)
-	require.NotEqual(t, uint64(0), out.ModifyIndex)
-
-	// Finally, make sure that another attempt is rejected.
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Bootstrap", &arg, &out)
-	testutil.RequireErrorContains(t, err, structs.ACLBootstrapNotAllowedErr.Error())
-}
-
 func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
