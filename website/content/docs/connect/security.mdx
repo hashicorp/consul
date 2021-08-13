@@ -100,19 +100,16 @@ will not be encrypted or authorized via Connect.
 
 ### Restrict Access to Envoy's Administration Interface
 
-Envoy exposes a local, unauthenticated
+Envoy exposes an **unauthenticated**
 [administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin)
-that can be used to query and modify different aspects of the proxy. The admin
-interface allows potentially sensitive information to be retrieved, such as:
+that can be used to query and modify the proxy. This interface 
+allows potentially sensitive information to be retrieved, such as:
 
-* Envoy configuration.
+* Envoy configuration
 * TLS certificates
 * List of upstream services and endpoints
 
-In addition, the admin interface allows you to perform operations that affect how
-connections are routed to or from the proxy within the service mesh.
-
-We **highly recommend** only exposing the endpoint on a loopback
+We **strongly advise** only exposing the administration interface on a loopback
 address (default configuration) and restricting access to a subset of users.
 
 **If the administration interface is exposed externally**, for
