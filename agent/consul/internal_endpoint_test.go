@@ -1902,6 +1902,71 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	})
 }
 
+func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// dashboard -> routing-config -> counting
+	//							   ∟> counting-v2
+	registerTestRoutingConfigTopologyEntries(t, codec)
+
+	t.Run("dashboard", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "dashboard",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			require.Empty(r, out.ServiceTopology.Downstreams)
+
+			expectDown := map[string]structs.IntentionDecisionSummary{
+				"counting":    {DefaultAllow: true, Allowed: true},
+				"counting-v2": {DefaultAllow: true, Allowed: true},
+			}
+			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+
+			expectDownstreamSources := map[string]string{
+				"counting":    structs.TopologySourceDefaultAllow,
+				"counting-v2": structs.TopologySourceDefaultAllow,
+			}
+			require.Equal(r, expectDownstreamSources, out.ServiceTopology.DownstreamSources)
+
+			require.Empty(r, out.ServiceTopology.Upstreams)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				"counting":       {DefaultAllow: true, Allowed: true},
+				"counting-v2":    {DefaultAllow: true, Allowed: true},
+				"routing-config": {DefaultAllow: true, Allowed: true},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+
+			expectUpstreamSources := map[string]string{
+				"counting":       structs.TopologySourceDefaultAllow,
+				"counting-v2":    structs.TopologySourceDefaultAllow,
+				"routing-config": structs.TopologySourceRoutingConfig,
+			}
+			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)
+
+			require.False(r, out.ServiceTopology.TransparentProxy)
+		})
+	})
+}
+
 func TestInternal_ServiceTopology_ACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

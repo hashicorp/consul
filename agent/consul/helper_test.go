@@ -7,14 +7,15 @@ import (
 	"net/rpc"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/types"
 )
 
 func waitForLeader(servers ...*Server) error {
@@ -968,6 +969,196 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 				},
 			},
 			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
+}
+
+func registerTestRoutingConfigTopologyEntries(t *testing.T, codec rpc.ClientCodec) {
+	registrations := map[string]*structs.RegisterRequest{
+		"Service dashboard": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "dashboard",
+				Service: "dashboard",
+				Port:    9002,
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:dashboard",
+					Status:      api.HealthPassing,
+					ServiceID:   "dashboard",
+					ServiceName: "dashboard",
+				},
+			},
+		},
+		"Service dashboard-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "dashboard-sidecar-proxy",
+				Service: "dashboard-sidecar-proxy",
+				Port:    5000,
+				Address: "198.18.1.0",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "dashboard",
+					DestinationServiceID:   "dashboard",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       9002,
+					Upstreams: []structs.Upstream{
+						{
+							DestinationType: "service",
+							DestinationName: "routing-config",
+							LocalBindPort:   5000,
+						},
+					},
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+		},
+		"Service counting": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "counting",
+				Service: "counting",
+				Port:    9003,
+				Address: "198.18.1.1",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:api",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting",
+					ServiceName: "counting",
+				},
+			},
+		},
+		"Service counting-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "counting-proxy",
+				Service: "counting-proxy",
+				Port:    5001,
+				Address: "198.18.1.1",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "counting",
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:counting-proxy",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting-proxy",
+					ServiceName: "counting-proxy",
+				},
+			},
+		},
+		"Service counting-v2": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "counting-v2",
+				Service: "counting-v2",
+				Port:    9004,
+				Address: "198.18.1.2",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:api",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting-v2",
+					ServiceName: "counting-v2",
+				},
+			},
+		},
+		"Service counting-v2-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "counting-v2-proxy",
+				Service: "counting-v2-proxy",
+				Port:    5002,
+				Address: "198.18.1.2",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "counting-v2",
+				},
+				LocallyRegisteredAsSidecar: true,
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:counting-v2-proxy",
+					Status:      api.HealthPassing,
+					ServiceID:   "counting-v2-proxy",
+					ServiceName: "counting-v2-proxy",
+				},
+			},
+		},
+	}
+	registerTestCatalogEntriesMap(t, codec, registrations)
+
+	entries := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceRouterConfigEntry{
+				Kind: structs.ServiceRouter,
+				Name: "routing-config",
+				Routes: []structs.ServiceRoute{
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/v2",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "counting-v2",
+						},
+					},
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "counting",
+						},
+					},
+				},
+			},
 		},
 	}
 	for _, req := range entries {
