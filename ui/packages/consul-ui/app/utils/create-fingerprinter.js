@@ -12,11 +12,11 @@ export default function(foreignKey, nspaceKey, hash = JSON.stringify) {
         }
         return get(item, slugKey);
       });
-      const nspaceValue = get(item, nspaceKey) || 'default';
+      const nspaceValue = get(item, nspaceKey) || '';
 
       // This ensures that all data objects have a Namespace value set, even
       // in OSS. An empty Namespace will default to default
-      item[nspaceKey] = nspaceValue;
+      // item[nspaceKey] = nspaceValue;
 
       if (typeof item[foreignKey] === 'undefined') {
         item[foreignKey] = foreignKeyValue;
