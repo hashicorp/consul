@@ -94,7 +94,10 @@ func testRegisterNodeOpts(t *testing.T, s *Store, idx uint64, nodeID string, opt
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	n, err := tx.First(tableNodes, indexID, Query{Value: nodeID})
+	n, err := tx.First(tableNodes, indexID, Query{
+		Value:          nodeID,
+		EnterpriseMeta: *node.GetEnterpriseMeta(),
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

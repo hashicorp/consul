@@ -28,6 +28,7 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 
 func TestStateStore_GetNodeID(t *testing.T) {
 	s := testStateStore(t)
+
 	_, out, err := s.GetNodeID(types.NodeID("wrongId"))
 	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
 		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
@@ -53,30 +54,53 @@ func TestStateStore_GetNodeID(t *testing.T) {
 		Node:    "node1",
 		Address: "1.2.3.4",
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 
 	_, out, err = s.GetNodeID(nodeID)
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
+
 	// Case insensitive lookup should work as well
 	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"))
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
 }
 
+func TestStateStore_GetNode(t *testing.T) {
+	s := testStateStore(t)
+
+	// initially does not exist
+	idx, out, err := s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.Nil(t, out)
+	require.Equal(t, uint64(0), idx)
+
+	// Create it
+	testRegisterNode(t, s, 1, "node1")
+
+	// now exists
+	idx, out, err = s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+
+	// Case insensitive lookup should work as well
+	idx, out, err = s.GetNode("NoDe1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+}
+
 func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
+
 	nodeID := makeRandomNodeID(t)
 	req := &structs.RegisterRequest{
 		ID:              nodeID,
@@ -90,9 +114,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 	req = &structs.RegisterRequest{
 		ID:      types.NodeID(""),
 		Node:    "node2",
@@ -103,31 +125,29 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(2, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(2, req))
+
 	tx := s.db.WriteTxnRestore()
 	defer tx.Abort()
+
 	node := &structs.Node{
 		ID:      makeRandomNodeID(t),
 		Node:    "NOdE1", // Name is similar but case is different
 		Address: "2.3.4.5",
 	}
+
 	// Lets conflict with node1 (has an ID)
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should return an error since another name with similar name exists")
+
 	// Lets conflict with node without ID
 	node.Node = "NoDe2"
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
-		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should not clash with another similar node name without ID")
 
 	// Set node1's Serf health to failing and replace it.
 	newNode := &structs.Node{
@@ -135,17 +155,15 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Node:    "node1",
 		Address: "2.3.4.5",
 	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
-		t.Fatalf("Should return an error since the previous node is still healthy")
-	}
-	s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false),
+		"Should return an error since the previous node is still healthy")
+
+	require.NoError(t, s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
 		Node:    "node1",
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
-	})
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
-		t.Fatal(err)
-	}
+	}))
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false))
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {

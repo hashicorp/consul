@@ -35,7 +35,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 		events = append(events, tc.events...)
 
 		pe := &PayloadEvents{Items: events}
-		ok := pe.MatchesKey(tc.req.Key, tc.req.Namespace)
+		ok := pe.MatchesKey(tc.req.Key, tc.req.Namespace, tc.req.Partition)
 		require.Equal(t, tc.expectEvent, ok)
 		if !tc.expectEvent {
 			return
@@ -133,6 +133,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 	}
 }
 
+// TODO(partitions)
 func newNSEvent(key, namespace string) Event {
 	return Event{Index: 22, Payload: nsPayload{key: key, namespace: namespace}}
 }
@@ -141,11 +142,14 @@ type nsPayload struct {
 	framingEvent
 	key       string
 	namespace string
+	partition string
 	value     string
 }
 
-func (p nsPayload) MatchesKey(key, namespace string) bool {
-	return (key == "" || key == p.key) && (namespace == "" || namespace == p.namespace)
+func (p nsPayload) MatchesKey(key, namespace, partition string) bool {
+	return (key == "" || key == p.key) &&
+		(namespace == "" || namespace == p.namespace) &&
+		(partition == "" || partition == p.partition)
 }
 
 func TestPayloadEvents_HasReadPermission(t *testing.T) {
