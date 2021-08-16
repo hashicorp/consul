@@ -31,14 +31,14 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
     And I click ".ember-power-select-option:first-child"
     And I see 2 policy models on the policies component
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
     ---
-      Namespace: @namespace
-      Policies:
-      - ID: policy-1
-        Name: Policy 1
-      - ID: policy-2
-        Name: Policy 2
+      body:
+        Policies:
+        - ID: policy-1
+          Name: Policy 1
+        - ID: policy-2
+          Name: Policy 2
     ---
     Then the url should be /datacenter/acls/[Model]s
     And "[data-notification]" has the "notification-update" class

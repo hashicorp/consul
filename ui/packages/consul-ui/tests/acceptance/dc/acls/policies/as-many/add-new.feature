@@ -23,19 +23,17 @@ Feature: dc / acls / policies / as many / add new: Add new policy
       Rules: key {}
     ---
     And I click submit on the policies.form
-    Then a PUT request was made to "/v1/acl/policy?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/policy?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: New-Policy
         Description: New Policy Description
-        Namespace: @namespace
         Rules: key {}
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
-        Namespace: @namespace
         Policies:
           - ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
             Name: New-Policy
@@ -57,10 +55,9 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     And I click serviceIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
-        Namespace: @namespace
         ServiceIdentities:
           - ServiceName: New-Service-Identity
     ---
@@ -81,10 +78,9 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     And I click nodeIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
-        Namespace: @namespace
         NodeIdentities:
           - NodeName: New-Node-Identity
             Datacenter: datacenter
@@ -112,12 +108,12 @@ Feature: dc / acls / policies / as many / add new: Add new policy
       Rules: key {}
     ---
     And I click submit on the policies.form
-    Then a PUT request was made to "/v1/acl/policy?dc=datacenter" with the body from yaml
+    Then a PUT request was made to "/v1/acl/policy?dc=datacenter&ns=@namespace" from yaml
     ---
-      Name: New-Policy
-      Description: New Policy Description
-      Namespace: @namespace
-      Rules: key {}
+      body:
+        Name: New-Policy
+        Description: New Policy Description
+        Rules: key {}
     ---
     And I see error on the policies.form.rules like 'Invalid service policy: acl.ServicePolicy{Name:"service", Policy:"", Sentinel:acl.Sentinel{Code:"", EnforcementLevel:""}, Intentions:""}'
   Where:

@@ -20,10 +20,9 @@ Feature: dc / acls / tokens / update: ACL Token Update
       Description: [Description]
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
-        Namespace: @namespace
         Description: [Description]
     ---
     Then the url should be /datacenter/acls/tokens
