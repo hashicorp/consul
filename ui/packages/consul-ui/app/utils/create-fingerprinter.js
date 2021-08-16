@@ -1,4 +1,6 @@
 import { get } from '@ember/object';
+import { env } from 'consul-ui/env';
+
 export default function(foreignKey, nspaceKey, hash = JSON.stringify) {
   return function(primaryKey, slugKey, foreignKeyValue) {
     if (foreignKeyValue == null || foreignKeyValue.length < 1) {
@@ -12,11 +14,11 @@ export default function(foreignKey, nspaceKey, hash = JSON.stringify) {
         }
         return get(item, slugKey);
       });
-      const nspaceValue = get(item, nspaceKey) || '';
+      const nspaceValue = get(item, nspaceKey) || env('CONSUL_NSPACES_ENABLED') ? '' : 'default';
 
       // This ensures that all data objects have a Namespace value set, even
       // in OSS. An empty Namespace will default to default
-      // item[nspaceKey] = nspaceValue;
+      item[nspaceKey] = nspaceValue;
 
       if (typeof item[foreignKey] === 'undefined') {
         item[foreignKey] = foreignKeyValue;
