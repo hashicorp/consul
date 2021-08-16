@@ -320,7 +320,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 	// Make sure it looks as expected.
 	expectedServices := &structs.NodeServices{
 		Node: &structs.Node{
-			Node: "node1",
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 1,

@@ -284,7 +284,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			return nil
 		},
 		Mutate: func(s *Store, tx *txn) error {
-			return s.deleteNodeTxn(tx, tx.Index, "node1")
+			return s.deleteNodeTxn(tx, tx.Index, "node1", nil)
 		},
 		WantEvents: []stream.Event{
 			// Should publish deregistration events for all services
@@ -1695,10 +1695,11 @@ type regOption func(req *structs.RegisterRequest) error
 
 func testNodeRegistration(t *testing.T, opts ...regOption) *structs.RegisterRequest {
 	r := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		ID:         "11111111-2222-3333-4444-555555555555",
-		Node:       "node1",
-		Address:    "10.10.10.10",
+		Datacenter:     "dc1",
+		ID:             "11111111-2222-3333-4444-555555555555",
+		Node:           "node1",
+		Address:        "10.10.10.10",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		Checks: structs.HealthChecks{
 			&structs.HealthCheck{
 				CheckID: "serf-health",
@@ -1719,19 +1720,21 @@ func testServiceRegistration(t *testing.T, svc string, opts ...regOption) *struc
 	// note: don't pass opts or they might get applied twice!
 	r := testNodeRegistration(t)
 	r.Service = &structs.NodeService{
-		ID:      svc,
-		Service: svc,
-		Port:    8080,
+		ID:             svc,
+		Service:        svc,
+		Port:           8080,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	r.Checks = append(r.Checks,
 		&structs.HealthCheck{
-			CheckID:     types.CheckID("service:" + svc),
-			Name:        "service:" + svc,
-			Node:        "node1",
-			ServiceID:   svc,
-			ServiceName: svc,
-			Type:        "ttl",
-			Status:      api.HealthPassing,
+			CheckID:        types.CheckID("service:" + svc),
+			Name:           "service:" + svc,
+			Node:           "node1",
+			ServiceID:      svc,
+			ServiceName:    svc,
+			Type:           "ttl",
+			Status:         api.HealthPassing,
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		})
 	for _, opt := range opts {
 		err := opt(r)
@@ -1753,6 +1756,7 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) strea
 	csn := getPayloadCheckServiceNode(e.Payload)
 	csn.Node.ID = "11111111-2222-3333-4444-555555555555"
 	csn.Node.Address = "10.10.10.10"
+	csn.Node.Partition = structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty()
 
 	for _, opt := range opts {
 		if err := opt(&e); err != nil {

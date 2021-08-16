@@ -26,6 +26,15 @@ func serviceKindIndexName(kind structs.ServiceKind, _ *structs.EnterpriseMeta) s
 	}
 }
 
+func catalogUpdateNodesIndexes(tx WriteTxn, idx uint64, entMeta *structs.EnterpriseMeta) error {
+	// overall nodes index
+	if err := indexUpdateMaxTxn(tx, idx, tableNodes); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
 func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
 	// overall services index
 	if err := indexUpdateMaxTxn(tx, idx, tableServices); err != nil {
@@ -60,6 +69,29 @@ func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.Ent
 	return nil
 }
 
+func catalogInsertNode(tx WriteTxn, node *structs.Node) error {
+	// ensure that the Partition is always clear within the state store in OSS
+	node.Partition = ""
+
+	// Insert the node and update the index.
+	if err := tx.Insert(tableNodes, node); err != nil {
+		return fmt.Errorf("failed inserting node: %s", err)
+	}
+
+	if err := catalogUpdateNodesIndexes(tx, node.ModifyIndex, node.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	// Update the node's service indexes as the node information is included
+	// in health queries and we would otherwise miss node updates in some cases
+	// for those queries.
+	if err := updateAllServiceIndexesOfNode(tx, node.ModifyIndex, node.Node, node.GetEnterpriseMeta()); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	return nil
+}
+
 func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 	// Insert the service and update the index
 	if err := tx.Insert(tableServices, svc); err != nil {
@@ -79,6 +111,10 @@ func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 	}
 
 	return nil
+}
+
+func catalogNodesMaxIndex(tx ReadTxn, entMeta *structs.EnterpriseMeta) uint64 {
+	return maxIndexTxn(tx, tableNodes)
 }
 
 func catalogServicesMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
@@ -107,16 +143,16 @@ func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (i
 
 func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexTxn(tx, "nodes", tableServices, tableChecks)
+		return maxIndexTxn(tx, tableNodes, tableServices, tableChecks)
 	}
-	return maxIndexTxn(tx, "nodes", tableServices)
+	return maxIndexTxn(tx, tableNodes, tableServices)
 }
 
 func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *structs.EnterpriseMeta, checks bool) uint64 {
 	if checks {
-		return maxIndexWatchTxn(tx, ws, "nodes", tableServices, tableChecks)
+		return maxIndexWatchTxn(tx, ws, tableNodes, tableServices, tableChecks)
 	}
-	return maxIndexWatchTxn(tx, ws, "nodes", tableServices)
+	return maxIndexWatchTxn(tx, ws, tableNodes, tableServices)
 }
 
 func catalogUpdateCheckIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {

@@ -41,19 +41,13 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	// a per-node coordinate for a nonexistent node doesn't do anything bad.
 	ws := memdb.NewWatchSet()
 	idx, all, err := s.Coordinates(ws, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 0 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), idx, "bad index")
 	require.Nil(t, all)
 
 	coordinateWs := memdb.NewWatchSet()
 	_, coords, err := s.Coordinate(coordinateWs, "nope", nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, err)
 	require.Equal(t, lib.CoordinateSet{}, coords)
 
 	// Make an update for nodes that don't exist and make sure they get
@@ -68,40 +62,26 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 			Coord: generateRandomCoordinate(),
 		},
 	}
-	if err := s.CoordinateBatchUpdate(1, updates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if watchFired(ws) || watchFired(coordinateWs) {
-		t.Fatalf("bad")
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(1, updates))
+	require.False(t, watchFired(ws) || watchFired(coordinateWs))
 
-	// Should still be empty, though applying an empty batch does bump
+	// Should still be empty, though applying an empty batch does NOT bump
 	// the table index.
 	ws = memdb.NewWatchSet()
 	idx, all, err = s.Coordinates(ws, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), idx, "bad index")
 	require.Nil(t, all)
 
 	coordinateWs = memdb.NewWatchSet()
 	idx, _, err = s.Coordinate(coordinateWs, "node1", nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), idx, "bad index")
 
 	// Register the nodes then do the update again.
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterNode(t, s, 2, "node2")
-	if err := s.CoordinateBatchUpdate(3, updates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(3, updates))
 	if !watchFired(ws) || !watchFired(coordinateWs) {
 		t.Fatalf("bad")
 	}
@@ -109,12 +89,8 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	// Should go through now.
 	ws = memdb.NewWatchSet()
 	idx, all, err = s.Coordinates(ws, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), idx, "bad index")
 	require.Equal(t, updates, all)
 
 	// Also verify the per-node coordinate interface.
@@ -122,12 +98,8 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 	for i, update := range updates {
 		nodeWs[i] = memdb.NewWatchSet()
 		idx, coords, err := s.Coordinate(nodeWs[i], update.Node, nil)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 3 {
-			t.Fatalf("bad index: %d", idx)
-		}
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), idx, "bad index")
 		expected := lib.CoordinateSet{
 			"": update.Coord,
 		}
@@ -136,9 +108,7 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// Update the coordinate for one of the nodes.
 	updates[1].Coord = generateRandomCoordinate()
-	if err := s.CoordinateBatchUpdate(4, updates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(4, updates))
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -150,23 +120,15 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 
 	// Verify it got applied.
 	idx, all, err = s.Coordinates(nil, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(4), idx, "bad index")
 	require.Equal(t, updates, all)
 
 	// And check the per-node coordinate version of the same thing.
 	for _, update := range updates {
 		idx, coords, err := s.Coordinate(nil, update.Node, nil)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 4 {
-			t.Fatalf("bad index: %d", idx)
-		}
+		require.NoError(t, err)
+		require.Equal(t, uint64(4), idx, "bad index")
 		expected := lib.CoordinateSet{
 			"": update.Coord,
 		}
@@ -180,19 +142,13 @@ func TestStateStore_Coordinate_Updates(t *testing.T) {
 			Coord: &coordinate.Coordinate{Height: math.NaN()},
 		},
 	}
-	if err := s.CoordinateBatchUpdate(5, badUpdates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(5, badUpdates))
 
-	// Verify we are at the previous state, though the empty batch does bump
-	// the table index.
+	// Verify we are at the previous state, and verify that the empty batch
+	// does NOT bump the table index.
 	idx, all, err = s.Coordinates(nil, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 5 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(4), idx, "bad index")
 	require.Equal(t, updates, all)
 }
 
@@ -213,15 +169,11 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 			Coord:   generateRandomCoordinate(),
 		},
 	}
-	if err := s.CoordinateBatchUpdate(2, updates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(2, updates))
 
 	// Make sure it's in there.
 	_, coords, err := s.Coordinate(nil, "node1", nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, err)
 	expected := lib.CoordinateSet{
 		"alpha": updates[0].Coord,
 		"beta":  updates[1].Coord,
@@ -229,25 +181,17 @@ func TestStateStore_Coordinate_Cleanup(t *testing.T) {
 	require.Equal(t, expected, coords)
 
 	// Now delete the node.
-	if err := s.DeleteNode(3, "node1", nil); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.DeleteNode(3, "node1", nil))
 
 	// Make sure the coordinate is gone.
 	_, coords, err = s.Coordinate(nil, "node1", nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, err)
 	require.Equal(t, lib.CoordinateSet{}, coords)
 
 	// Make sure the index got updated.
 	idx, all, err := s.Coordinates(nil, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 3 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), idx, "bad index")
 	require.Nil(t, all)
 }
 
@@ -267,9 +211,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 			Coord: generateRandomCoordinate(),
 		},
 	}
-	if err := s.CoordinateBatchUpdate(3, updates); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(3, updates))
 
 	// Manually put a bad coordinate in for node3.
 	testRegisterNode(t, s, 4, "node3")
@@ -278,9 +220,7 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 		Coord: &coordinate.Coordinate{Height: math.NaN()},
 	}
 	tx := s.db.WriteTxn(5)
-	if err := tx.Insert("coordinates", badUpdate); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, tx.Insert("coordinates", badUpdate))
 	require.NoError(t, tx.Commit())
 
 	// Snapshot the coordinates.
@@ -298,18 +238,13 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 			Coord: generateRandomCoordinate(),
 		},
 	}
-	if err := s.CoordinateBatchUpdate(5, trash); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.CoordinateBatchUpdate(5, trash))
 
 	// Verify the snapshot.
-	if idx := snap.LastIndex(); idx != 4 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	require.Equal(t, uint64(4), snap.LastIndex(), "bad index")
 	iter, err := snap.Coordinates()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, err)
+
 	var dump structs.Coordinates
 	for coord := iter.Next(); coord != nil; coord = iter.Next() {
 		dump = append(dump, coord.(*structs.Coordinate))
@@ -319,30 +254,20 @@ func TestStateStore_Coordinate_Snapshot_Restore(t *testing.T) {
 	// the read side.
 	require.Equal(t, append(updates, badUpdate), dump)
 
-	// Restore the values into a new state store.
-	func() {
+	runStep(t, "restore the values into a new state store", func(t *testing.T) {
 		s := testStateStore(t)
 		restore := s.Restore()
-		if err := restore.Coordinates(6, dump); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, restore.Coordinates(6, dump))
 		restore.Commit()
 
 		// Read the restored coordinates back out and verify that they match.
 		idx, res, err := s.Coordinates(nil, nil)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if idx != 6 {
-			t.Fatalf("bad index: %d", idx)
-		}
+		require.NoError(t, err)
+		require.Equal(t, uint64(6), idx, "bad index")
 		require.Equal(t, updates, res)
 
 		// Check that the index was updated (note that it got passed
 		// in during the restore).
-		if idx := s.maxIndex("coordinates"); idx != 6 {
-			t.Fatalf("bad index: %d", idx)
-		}
-	}()
-
+		require.Equal(t, uint64(6), s.maxIndex("coordinates"), "bad index")
+	})
 }

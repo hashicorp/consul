@@ -38,9 +38,10 @@ func nodesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNode,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromQuery,
+					writeIndex:  indexFromNode,
+					prefixIndex: prefixIndexFromQueryNoNamespace,
 				},
 			},
 			"uuid": {

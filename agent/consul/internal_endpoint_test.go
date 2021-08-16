@@ -6,6 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -13,9 +17,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
@@ -875,6 +876,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "baz",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.3",
 				Datacenter: "dc1",
 			},
@@ -907,6 +909,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "bar",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.2",
 				Datacenter: "dc1",
 			},
@@ -1214,6 +1217,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "bar",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.2",
 				Datacenter: "dc1",
 			},
@@ -1249,6 +1253,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "baz",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.3",
 				Datacenter: "dc1",
 			},
