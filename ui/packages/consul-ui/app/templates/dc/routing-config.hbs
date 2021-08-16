@@ -1,0 +1,22 @@
+{{page-title @model.slug}}
+
+<AppView>
+  <BlockSlot @name="breadcrumbs">
+    <ol>
+        <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+    </ol>
+  </BlockSlot>
+  <BlockSlot @name="header">
+    <h1>
+      {{@model.slug}}
+    </h1>
+    <Consul::Source @source={{t "routes.dc.routing-config.source"}} @withInfo={{true}} />
+  </BlockSlot>
+  <BlockSlot @name="content">
+    <div class="container">
+      <Consul::DiscoveryChain
+        @chain={{@model.chain.Chain}}
+      />
+    </div>
+  </BlockSlot>
+</AppView>

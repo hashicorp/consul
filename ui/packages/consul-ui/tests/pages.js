@@ -52,6 +52,7 @@ import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject'
 import index from 'consul-ui/tests/pages/index';
 import dcs from 'consul-ui/tests/pages/dc';
 import settings from 'consul-ui/tests/pages/settings';
+import routingConfig from 'consul-ui/tests/pages/dc/routing-config';
 import services from 'consul-ui/tests/pages/dc/services/index';
 import service from 'consul-ui/tests/pages/dc/services/show';
 import instance from 'consul-ui/tests/pages/dc/services/instance';
@@ -230,4 +231,5 @@ export default {
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)
   ),
   settings: create(settings(visitable, submitable, isPresent)),
+  routingConfig: create(routingConfig(visitable, text)),
 };

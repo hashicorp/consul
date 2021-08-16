@@ -49,7 +49,8 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
 /* needs a top margun :S */
 %app-view-content .tab-section > *:first-child:not(.filter-bar):not(table),
 %app-view-content .tab-section > .search-bar + p,
-%app-view-content .tab-section .consul-health-check-list {
+%app-view-content .tab-section .consul-health-check-list,
+%app-view-content .container {
   margin-top: 1.25em;
 }
 .consul-upstream-instance-list,
