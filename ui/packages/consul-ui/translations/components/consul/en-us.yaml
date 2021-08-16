@@ -109,6 +109,10 @@ intention:
         name: Precedence
         asc: Ascending
         desc: Descending
+  notice:
+    permissions:
+      body: Permissions are L7 attributes. If any of the following permissions match the request, the Intention will apply. Requests that fail to match any of the provided routes will follow the default ACL policy.
+      footer: Learn more about permissions
 transparent-proxy: Transparent Proxy
 topology-metrics:
   source-type:
