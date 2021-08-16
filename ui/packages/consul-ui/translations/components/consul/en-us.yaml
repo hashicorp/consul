@@ -155,3 +155,9 @@ topology-metrics:
       header: No traffic
       body: Add "{upstream}" as an explicit upstream of "{downstream}" or set the "{downstream}" proxy to "transparent" mode to enable traffic.
       action: Documentation
+source:
+  header: This is not a registered Consul service. It’s a routing configuration that routes traffic to real services in Consul. For more information, read our documentation.
+  menu-title: About Routing Configs
+  links:
+    documentation: Documentation
+
