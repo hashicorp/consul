@@ -15,7 +15,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.3
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.7
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
