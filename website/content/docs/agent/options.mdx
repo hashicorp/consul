@@ -609,10 +609,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     In "deny" mode, ACLs are an allowlist: any operation not specifically
     allowed is blocked. **Note**: this will not take effect until you've enabled ACLs.
 
-  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Either "enabled"
-    or "disabled", defaults to "disabled". When enabled, the `list` permission will
-    be required on the prefix being recursively read from the KV store. Regardless
-    of being enabled, the full set of KV entries under the prefix will be filtered
+  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Boolean value, defaults to false. 
+    When true, the `list` permission will be required on the prefix being recursively read from the KV store. 
+    Regardless of being enabled, the full set of KV entries under the prefix will be filtered
     to remove any entries that the request's ACL token does not grant at least read
     permissions. This option is only available in Consul 1.0 and newer.
 
