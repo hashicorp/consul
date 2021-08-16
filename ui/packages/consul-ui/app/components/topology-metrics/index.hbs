@@ -25,8 +25,9 @@
       @hasMetricsProvider={{@hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
     >
-    {{#if (and @hasMetricsProvider (not-eq @service.Service.Kind 'ingress-gateway'))}}
+    {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
       <TopologyMetrics::Stats
+        data-test-downstream-metrics-stats
         @nspace={{or item.Namespace 'default'}}
         @dc={{item.Datacenter}}
         @endpoint='downstream-summary-for-service'
@@ -43,7 +44,7 @@
     <div class="metrics-header">
       {{@service.Service.Service}}
     </div>
-    {{#if @hasMetricsProvider }}
+    {{#if (and @hasMetricsProvider this.mainNotIngressService)}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
         @dc={{@dc}}
@@ -51,7 +52,6 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
-      {{#if (not-eq @service.Service.Kind 'ingress-gateway')}}
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
         @dc={{@dc}}
@@ -60,7 +60,6 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
-      {{/if}}
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
@@ -98,7 +97,7 @@
         @item={{item}}
         @service={{@service.Service}}
       >
-      {{#if (and @hasMetricsProvider (not-eq @service.Service.Kind 'ingress-gateway'))}}
+      {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
         <TopologyMetrics::Stats
           @nspace={{or item.Namespace 'default'}}
           @dc={{item.Datacenter}}

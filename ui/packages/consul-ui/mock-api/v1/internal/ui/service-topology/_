@@ -72,6 +72,7 @@ ${
         const allowed = hasPerms ? false : fake.random.boolean();
         return `
     {
+      "Kind": "${fake.helpers.randomize(['mesh-gateway', 'ingress-gateway', 'terminating-gateway', ''])}",
       "Name": "${item.Name}",
       "Datacenter": "${item.Datacenter}",
       "Namespace": "${item.Namespace}",
@@ -98,6 +99,7 @@ ${
         const allowed = hasPerms ? false : fake.random.boolean();
         return `
     {
+      "Kind": "${fake.helpers.randomize(['mesh-gateway', 'ingress-gateway', 'terminating-gateway', ''])}",
       "Name": "${item.Name}",
       "Datacenter": "${item.Datacenter}",
       "Namespace": "${item.Namespace}",
