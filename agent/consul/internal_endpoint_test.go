@@ -876,6 +876,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "baz",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.3",
 				Datacenter: "dc1",
 			},
@@ -908,6 +909,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "bar",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.2",
 				Datacenter: "dc1",
 			},
@@ -1215,6 +1217,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "bar",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.2",
 				Datacenter: "dc1",
 			},
@@ -1250,6 +1253,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "baz",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.3",
 				Datacenter: "dc1",
 			},

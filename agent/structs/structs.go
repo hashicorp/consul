@@ -437,7 +437,7 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	// Check if any of the node-level fields are being changed.
 	if r.ID != node.ID ||
 		r.Node != node.Node ||
-		// TODO(partitions): do we need to check partition here?
+		r.PartitionOrDefault() != node.PartitionOrDefault() ||
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||

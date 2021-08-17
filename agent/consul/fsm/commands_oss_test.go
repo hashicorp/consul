@@ -53,9 +53,10 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
+		Datacenter:     "dc1",
+		Node:           "foo",
+		Address:        "127.0.0.1",
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -114,6 +115,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 			Status:    api.HealthPassing,
 			ServiceID: "db",
 		},
+		EnterpriseMeta: *structs.NodeEnterpriseMetaInDefaultPartition(),
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -712,12 +714,14 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	// Write a batch of two coordinates.
 	updates := structs.Coordinates{
 		&structs.Coordinate{
-			Node:  "node1",
-			Coord: generateRandomCoordinate(),
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			Coord:     generateRandomCoordinate(),
 		},
 		&structs.Coordinate{
-			Node:  "node2",
-			Coord: generateRandomCoordinate(),
+			Node:      "node2",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
+			Coord:     generateRandomCoordinate(),
 		},
 	}
 	buf, err := structs.Encode(structs.CoordinateBatchUpdateType, updates)
@@ -734,9 +738,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if !reflect.DeepEqual(coords, updates) {
-		t.Fatalf("bad: %#v", coords)
-	}
+	require.Equal(t, updates, coords)
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {

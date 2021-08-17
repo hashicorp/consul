@@ -96,6 +96,8 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 	// Register each node
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
+		nodeEntMeta := n.GetEnterpriseMeta()
+
 		req := structs.RegisterRequest{
 			ID:              n.ID,
 			Node:            n.Node,
@@ -104,6 +106,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 			TaggedAddresses: n.TaggedAddresses,
 			NodeMeta:        n.Meta,
 			RaftIndex:       n.RaftIndex,
+			EnterpriseMeta:  *nodeEntMeta,
 		}
 
 		// Register the node itself
@@ -115,8 +118,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		// TODO(partitions)
-		services, err := s.state.Services(n.Node, nil)
+		services, err := s.state.Services(n.Node, nodeEntMeta)
 		if err != nil {
 			return err
 		}
@@ -132,8 +134,7 @@ func (s *snapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		// TODO(partitions)
-		checks, err := s.state.Checks(n.Node, nil)
+		checks, err := s.state.Checks(n.Node, nodeEntMeta)
 		if err != nil {
 			return err
 		}

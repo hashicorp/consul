@@ -115,6 +115,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node1",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc1",
 								Address:    "3.4.5.6",
 								RaftIndex:  raftIndex(ids, "reg2", "reg2"),
@@ -145,6 +146,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node2",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc1",
 								Address:    "1.2.3.4",
 								RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -194,6 +196,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 					CheckServiceNode: &pbservice.CheckServiceNode{
 						Node: &pbservice.Node{
 							Node:       "node2",
+							Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 							Datacenter: "dc1",
 							Address:    "1.2.3.4",
 							RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -465,6 +468,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node1",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc2",
 								Address:    "3.4.5.6",
 								RaftIndex:  raftIndex(ids, "reg2", "reg2"),
@@ -495,6 +499,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 						CheckServiceNode: &pbservice.CheckServiceNode{
 							Node: &pbservice.Node{
 								Node:       "node2",
+								Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 								Datacenter: "dc2",
 								Address:    "1.2.3.4",
 								RaftIndex:  raftIndex(ids, "reg3", "reg3"),
@@ -544,6 +549,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 					CheckServiceNode: &pbservice.CheckServiceNode{
 						Node: &pbservice.Node{
 							Node:       "node2",
+							Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 							Datacenter: "dc2",
 							Address:    "1.2.3.4",
 							RaftIndex:  raftIndex(ids, "reg3", "reg3"),

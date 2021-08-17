@@ -185,7 +185,25 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 				source:   &structs.Node{Node: "NoDeId"},
 				expected: []byte("nodeid\x00"),
 			},
+			prefix: []indexValue{
+				{
+					source:   (*structs.EnterpriseMeta)(nil),
+					expected: nil,
+				},
+				{
+					source:   structs.EnterpriseMeta{},
+					expected: nil,
+				},
+				{
+					source:   Query{Value: "NoDeId"},
+					expected: []byte("nodeid\x00"),
+				},
+			},
 		},
+		// TODO: uuid
+		// TODO: meta
+
+		// TODO(partitions): fix schema tests for tables that reference nodes too
 	}
 }
 

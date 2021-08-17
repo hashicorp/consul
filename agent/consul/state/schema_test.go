@@ -36,14 +36,18 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 	require.NoError(t, schema.Validate())
 
 	var testcases = map[string]func() map[string]indexerTestCase{
-		tableACLPolicies:     testIndexerTableACLPolicies,
-		tableACLRoles:        testIndexerTableACLRoles,
+		// acl
+		tableACLPolicies: testIndexerTableACLPolicies,
+		tableACLRoles:    testIndexerTableACLRoles,
+		// catalog
 		tableChecks:          testIndexerTableChecks,
 		tableServices:        testIndexerTableServices,
 		tableNodes:           testIndexerTableNodes,
-		tableConfigEntries:   testIndexerTableConfigEntries,
+		tableCoordinates:     testIndexerTableCoordinates,
 		tableMeshTopology:    testIndexerTableMeshTopology,
 		tableGatewayServices: testIndexerTableGatewayServices,
+		// config
+		tableConfigEntries: testIndexerTableConfigEntries,
 	}
 	addEnterpriseIndexerTestCases(testcases)
 

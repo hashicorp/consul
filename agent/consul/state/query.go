@@ -40,6 +40,17 @@ func indexFromQuery(arg interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func indexFromServiceNameAsString(arg interface{}) ([]byte, error) {
+	sn, ok := arg.(structs.ServiceName)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for ServiceName index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(sn.String()))
+	return b.Bytes(), nil
+}
+
 // uuidStringToBytes is a modified version of memdb.UUIDFieldIndex.parseString
 func uuidStringToBytes(uuid string) ([]byte, error) {
 	l := len(uuid)

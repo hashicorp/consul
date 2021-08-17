@@ -51,6 +51,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 			{
 				ID:         s.Config.NodeID,
 				Node:       s.Config.NodeName,
+				Partition:  defaultPartition,
 				Address:    "127.0.0.1",
 				Datacenter: "dc1",
 				TaggedAddresses: map[string]string{

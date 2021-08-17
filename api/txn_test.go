@@ -170,6 +170,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 			Node: &Node{
 				ID:          nodeID,
 				Node:        "foo",
+				Partition:   defaultPartition,
 				Address:     "2.2.2.2",
 				Datacenter:  "dc1",
 				CreateIndex: ret.Results[2].Node.CreateIndex,
@@ -269,6 +270,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				Node: &Node{
 					ID:         s.Config.NodeID,
 					Node:       s.Config.NodeName,
+					Partition:  defaultPartition,
 					Address:    "127.0.0.1",
 					Datacenter: "dc1",
 					TaggedAddresses: map[string]string{
@@ -283,7 +285,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				},
 			},
 		}
-		require.Equal(r, ret.Results, expected)
+		require.Equal(r, expected, ret.Results)
 	})
 
 	// Sanity check using the regular GET API.

@@ -171,6 +171,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			ID:              nodeID,
 			Node:            "node1",
 			Address:         "1.2.3.4",
+			Partition:       structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			TaggedAddresses: map[string]string{"hello": "world"},
 			Meta:            map[string]string{"somekey": "somevalue"},
 			RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
@@ -1316,7 +1317,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{"nodes", tableServices, tableChecks} {
+	for _, tbl := range []string{tableNodes, tableServices, tableChecks} {
 		if idx := s.maxIndex(tbl); idx != 3 {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
@@ -1327,7 +1328,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	if err := s.DeleteNode(4, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("nodes"); idx != 3 {
+	if idx := s.maxIndex(tableNodes); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -4236,7 +4237,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	// Check that our result matches what we expect.
 	expect := structs.NodeDump{
 		&structs.NodeInfo{
-			Node: "node1",
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node1",
@@ -4293,7 +4295,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			},
 		},
 		&structs.NodeInfo{
-			Node: "node2",
+			Node:      "node2",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node2",
@@ -7517,4 +7520,47 @@ func TestProtocolForIngressGateway(t *testing.T) {
 			require.Equal(t, tc.expect, protocol)
 		})
 	}
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
+}
+
+func assertMaxIndexes(t *testing.T, tx ReadTxn, expect map[string]uint64, skip ...string) {
+	t.Helper()
+
+	all := dumpMaxIndexes(t, tx)
+
+	for _, index := range skip {
+		if _, ok := all[index]; ok {
+			delete(all, index)
+		} else {
+			t.Logf("index %q isn't even set; probably test assertion isn't relevant anymore", index)
+		}
+	}
+
+	require.Equal(t, expect, all)
+
+	// TODO
+	// for _, index := range indexes {
+	// 	require.Equal(t, expectIndex, maxIndexTxn(tx, index),
+	// 		"index %s has the wrong value", index)
+	// }
+}
+
+func dumpMaxIndexes(t *testing.T, tx ReadTxn) map[string]uint64 {
+	out := make(map[string]uint64)
+
+	iter, err := tx.Get(tableIndex, "id")
+	require.NoError(t, err)
+
+	for entry := iter.Next(); entry != nil; entry = iter.Next() {
+		if idx, ok := entry.(*IndexEntry); ok {
+			out[idx.Key] = idx.Value
+		}
+	}
+	return out
 }
