@@ -188,12 +188,12 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
 	acl := &pbconfig.ACL{
 		Enabled:             ac.config.ACLsEnabled,
-		PolicyTTL:           ac.config.ACLPolicyTTL.String(),
-		RoleTTL:             ac.config.ACLRoleTTL.String(),
-		TokenTTL:            ac.config.ACLTokenTTL.String(),
-		DisabledTTL:         ac.config.ACLDisabledTTL.String(),
-		DownPolicy:          ac.config.ACLDownPolicy,
-		DefaultPolicy:       ac.config.ACLDefaultPolicy,
+		PolicyTTL:           ac.config.ACLResolverSettings.ACLPolicyTTL.String(),
+		RoleTTL:             ac.config.ACLResolverSettings.ACLRoleTTL.String(),
+		TokenTTL:            ac.config.ACLResolverSettings.ACLTokenTTL.String(),
+		DisabledTTL:         ac.config.ACLResolverSettings.ACLDisabledTTL.String(),
+		DownPolicy:          ac.config.ACLResolverSettings.ACLDownPolicy,
+		DefaultPolicy:       ac.config.ACLResolverSettings.ACLDefaultPolicy,
 		EnableKeyListPolicy: ac.config.ACLEnableKeyListPolicy,
 	}
 

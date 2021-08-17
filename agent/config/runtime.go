@@ -55,13 +55,6 @@ type RuntimeConfig struct {
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
 
-	// ACLDisabledTTL is used by agents to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl.disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
-
 	// ACLsEnabled is used to determine whether ACLs should be enabled
 	//
 	// hcl: acl.enabled = boolean
@@ -69,28 +62,7 @@ type RuntimeConfig struct {
 
 	ACLTokens token.Config
 
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	//
-	// hcl: acl.default_policy = ("allow"|"deny")
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy is used to control the ACL interaction when we cannot
-	// reach the PrimaryDatacenter and the token is not in the cache.
-	// There are the following modes:
-	//   * allow - Allow all requests
-	//   * deny - Deny all requests
-	//   * extend-cache - Ignore the cache expiration, and allow cached
-	//                    ACL's to be used to service requests. This
-	//                    is the default. If the ACL is not in the cache,
-	//                    this acts like deny.
-	//   * async-cache - Same behavior as extend-cache, but perform ACL
-	//                   Lookups asynchronously when cache TTL is expired.
-	//
-	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
-	ACLDownPolicy string
+	ACLResolverSettings consul.ACLResolverSettings
 
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
@@ -113,24 +85,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.token_replication = boolean
 	ACLTokenReplication bool
-
-	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.policy_ttl = "duration"
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.token_ttl = "duration"
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.role_ttl = "duration"
-	ACLRoleTTL time.Duration
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.

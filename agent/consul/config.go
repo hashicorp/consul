@@ -175,6 +175,8 @@ type Config struct {
 	// operators track which versions are actively deployed
 	Build string
 
+	ACLResolverSettings ACLResolverSettings
+
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
 
@@ -183,45 +185,12 @@ type Config struct {
 	// that the Master token is available. This provides the initial token.
 	ACLMasterToken string
 
-	// ACLTokenTTL controls the time-to-live of cached ACL tokens.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL controls the time-to-live of cached ACL policies.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL controls the time-to-live of cached ACL roles.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLRoleTTL time.Duration
-
-	// ACLDisabledTTL is the time between checking if ACLs should be
-	// enabled. This
-	ACLDisabledTTL time.Duration
-
 	// ACLTokenReplication is used to enabled token replication.
 	//
 	// By default policy-only replication is enabled. When token
 	// replication is off and the primary datacenter is not
 	// yet upgraded to the new ACLs no replication will be performed
 	ACLTokenReplication bool
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy controls the behavior of ACLs if the PrimaryDatacenter
-	// cannot be contacted. It can be either "deny" to deny all requests,
-	// "extend-cache" or "async-cache" which ignores the ACLCacheInterval and
-	// uses cached policies.
-	// If a policy is not in the cache, it acts like deny.
-	// "allow" can be used to allow all requests. This is not recommended.
-	ACLDownPolicy string
 
 	// ACLReplicationRate is the max number of replication rounds that can
 	// be run per second. Note that either 1 or 2 RPCs are used during each replication
@@ -438,19 +407,20 @@ func (c *Config) CheckProtocolVersion() error {
 }
 
 // CheckACL validates the ACL configuration.
+// TODO: move this to ACLResolverSettings
 func (c *Config) CheckACL() error {
-	switch c.ACLDefaultPolicy {
+	switch c.ACLResolverSettings.ACLDefaultPolicy {
 	case "allow":
 	case "deny":
 	default:
-		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLDefaultPolicy)
+		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLResolverSettings.ACLDefaultPolicy)
 	}
-	switch c.ACLDownPolicy {
+	switch c.ACLResolverSettings.ACLDownPolicy {
 	case "allow":
 	case "deny":
 	case "async-cache", "extend-cache":
 	default:
-		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLDownPolicy)
+		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLResolverSettings.ACLDownPolicy)
 	}
 	return nil
 }
@@ -463,21 +433,27 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                                version.Version,
-		Datacenter:                           DefaultDC,
-		NodeName:                             hostname,
-		RPCAddr:                              DefaultRPCAddr,
-		RaftConfig:                           raft.DefaultConfig(),
-		SerfLANConfig:                        libserf.DefaultConfig(),
-		SerfWANConfig:                        libserf.DefaultConfig(),
-		SerfFloodInterval:                    60 * time.Second,
-		ReconcileInterval:                    60 * time.Second,
-		ProtocolVersion:                      ProtocolVersion2Compatible,
-		ACLRoleTTL:                           30 * time.Second,
-		ACLPolicyTTL:                         30 * time.Second,
-		ACLTokenTTL:                          30 * time.Second,
-		ACLDefaultPolicy:                     "allow",
-		ACLDownPolicy:                        "extend-cache",
+		Build:             version.Version,
+		Datacenter:        DefaultDC,
+		NodeName:          hostname,
+		RPCAddr:           DefaultRPCAddr,
+		RaftConfig:        raft.DefaultConfig(),
+		SerfLANConfig:     libserf.DefaultConfig(),
+		SerfWANConfig:     libserf.DefaultConfig(),
+		SerfFloodInterval: 60 * time.Second,
+		ReconcileInterval: 60 * time.Second,
+		ProtocolVersion:   ProtocolVersion2Compatible,
+		ACLResolverSettings: ACLResolverSettings{
+			ACLsEnabled:      false,
+			Datacenter:       DefaultDC,
+			NodeName:         hostname,
+			ACLPolicyTTL:     30 * time.Second,
+			ACLTokenTTL:      30 * time.Second,
+			ACLRoleTTL:       30 * time.Second,
+			ACLDisabledTTL:   30 * time.Second,
+			ACLDownPolicy:    "extend-cache",
+			ACLDefaultPolicy: "allow",
+		},
 		ACLReplicationRate:                   1,
 		ACLReplicationBurst:                  5,
 		ACLReplicationApplyLimit:             100, // ops / sec

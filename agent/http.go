@@ -362,7 +362,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
-		setACLDefaultPolicy(resp, s.agent.config.ACLDefaultPolicy)
+		setACLDefaultPolicy(resp, s.agent.config.ACLResolverSettings.ACLDefaultPolicy)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)

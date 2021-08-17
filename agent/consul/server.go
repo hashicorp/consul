@@ -426,7 +426,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	s.aclConfig = newACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
+		Config:      config.ACLResolverSettings,
 		Delegate:    s,
 		CacheConfig: serverACLCacheConfig,
 		AutoDisable: false,

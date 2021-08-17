@@ -1390,7 +1390,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 	}
 
 	// Get the policy via the cache
-	parent := a.srv.config.ACLDefaultPolicy
+	parent := a.srv.config.ACLResolverSettings.ACLDefaultPolicy
 
 	ident, policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
 	if err != nil {
@@ -1409,7 +1409,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 
 	// Setup the response
 	reply.ETag = etag
-	reply.TTL = a.srv.config.ACLTokenTTL
+	reply.TTL = a.srv.config.ACLResolverSettings.ACLTokenTTL
 	a.srv.setQueryMeta(&reply.QueryMeta)
 
 	// Only send the policy on an Etag mis-match

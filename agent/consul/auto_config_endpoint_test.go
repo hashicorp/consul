@@ -153,6 +153,8 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		}
 		c.AutoConfigAuthzAllowReuse = true
 
+		c.ACLResolverSettings.ACLDisabledTTL = 12 * time.Second
+
 		cafile := path.Join(c.DataDir, "cacert.pem")
 		err := ioutil.WriteFile(cafile, []byte(cacert), 0600)
 		require.NoError(t, err)
@@ -263,7 +265,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 						PolicyTTL:     "30s",
 						TokenTTL:      "30s",
 						RoleTTL:       "30s",
-						DisabledTTL:   "0s",
+						DisabledTTL:   "12s",
 						DownPolicy:    "extend-cache",
 						DefaultPolicy: "deny",
 						Tokens: &pbconfig.ACLTokens{
@@ -716,15 +718,17 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 	cases := map[string]testCase{
 		"enabled": {
 			config: Config{
-				Datacenter:             testDC,
-				PrimaryDatacenter:      testDC,
-				ACLsEnabled:            true,
-				ACLPolicyTTL:           7 * time.Second,
-				ACLRoleTTL:             10 * time.Second,
-				ACLTokenTTL:            12 * time.Second,
-				ACLDisabledTTL:         31 * time.Second,
-				ACLDefaultPolicy:       "allow",
-				ACLDownPolicy:          "deny",
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       true,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDisabledTTL:   31 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: true,
@@ -748,15 +752,17 @@ func TestAutoConfig_updateACLsInConfig(t *testing.T) {
 		},
 		"disabled": {
 			config: Config{
-				Datacenter:             testDC,
-				PrimaryDatacenter:      testDC,
-				ACLsEnabled:            false,
-				ACLPolicyTTL:           7 * time.Second,
-				ACLRoleTTL:             10 * time.Second,
-				ACLTokenTTL:            12 * time.Second,
-				ACLDisabledTTL:         31 * time.Second,
-				ACLDefaultPolicy:       "allow",
-				ACLDownPolicy:          "deny",
+				Datacenter:        testDC,
+				PrimaryDatacenter: testDC,
+				ACLsEnabled:       false,
+				ACLResolverSettings: ACLResolverSettings{
+					ACLPolicyTTL:     7 * time.Second,
+					ACLRoleTTL:       10 * time.Second,
+					ACLTokenTTL:      12 * time.Second,
+					ACLDisabledTTL:   31 * time.Second,
+					ACLDefaultPolicy: "allow",
+					ACLDownPolicy:    "deny",
+				},
 				ACLEnableKeyListPolicy: true,
 			},
 			expectACLToken: false,

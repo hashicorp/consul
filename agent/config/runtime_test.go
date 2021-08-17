@@ -5146,6 +5146,10 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		// case does not need to set this field.
 		require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 		expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
+		// These fields are always the same
+		expected.ACLResolverSettings.Datacenter = expected.Datacenter
+		expected.ACLResolverSettings.ACLsEnabled = expected.ACLsEnabled
+		expected.ACLResolverSettings.NodeName = expected.NodeName
 
 		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
@@ -5187,7 +5191,6 @@ func TestLoad_FullConfig(t *testing.T) {
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             120 * time.Second,
 		AEInterval:                 time.Minute,
 		CheckDeregisterIntervalMin: time.Minute,
 		CheckReapInterval:          30 * time.Second,
@@ -5232,15 +5235,21 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLReplicationToken: "5795983a",
 		},
 
-		ACLsEnabled:                      true,
-		PrimaryDatacenter:                "ejtmd43d",
-		ACLDefaultPolicy:                 "72c2e7a0",
-		ACLDownPolicy:                    "03eb2aee",
+		ACLsEnabled:       true,
+		PrimaryDatacenter: "ejtmd43d",
+		ACLResolverSettings: consul.ACLResolverSettings{
+			ACLsEnabled:      true,
+			Datacenter:       "rzo029wg",
+			NodeName:         "otlLxGaI",
+			ACLDisabledTTL:   120 * time.Second,
+			ACLDefaultPolicy: "72c2e7a0",
+			ACLDownPolicy:    "03eb2aee",
+			ACLTokenTTL:      3321 * time.Second,
+			ACLPolicyTTL:     1123 * time.Second,
+			ACLRoleTTL:       9876 * time.Second,
+		},
 		ACLEnableKeyListPolicy:           true,
 		ACLMasterToken:                   "8a19ac27",
-		ACLTokenTTL:                      3321 * time.Second,
-		ACLPolicyTTL:                     1123 * time.Second,
-		ACLRoleTTL:                       9876 * time.Second,
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),

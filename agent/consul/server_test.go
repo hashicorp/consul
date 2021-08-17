@@ -77,7 +77,7 @@ func testServerACLConfig(cb func(*Config)) func(*Config) {
 		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 
 		if cb != nil {
 			cb(c)
@@ -244,6 +244,12 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 		if cb != nil {
 			cb(config)
 		}
+
+		// Apply config to copied fields because many tests only set the old
+		//values.
+		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
+		config.ACLResolverSettings.NodeName = config.NodeName
+		config.ACLResolverSettings.Datacenter = config.Datacenter
 
 		var err error
 		srv, err = newServer(t, config)
