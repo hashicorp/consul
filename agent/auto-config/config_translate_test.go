@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	pbconfig "github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
-	"github.com/stretchr/testify/require"
 )
 
 func stringPointer(s string) *string {
@@ -65,7 +66,6 @@ func TestTranslateConfig(t *testing.T) {
 			DownPolicy:             "deny",
 			DefaultPolicy:          "deny",
 			EnableKeyListPolicy:    true,
-			DisabledTTL:            "4s",
 			EnableTokenPersistence: true,
 			MSPDisableBootstrap:    false,
 			Tokens: &pbconfig.ACLTokens{
@@ -127,7 +127,6 @@ func TestTranslateConfig(t *testing.T) {
 			DownPolicy:             stringPointer("deny"),
 			DefaultPolicy:          stringPointer("deny"),
 			EnableKeyListPolicy:    boolPointer(true),
-			DisabledTTL:            stringPointer("4s"),
 			EnableTokenPersistence: boolPointer(true),
 			Tokens: config.Tokens{
 				Master:      stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),

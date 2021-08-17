@@ -268,8 +268,6 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDisabledTTL             *string  `mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `mapstructure:"ae_interval"`
 	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
 	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
@@ -741,7 +739,6 @@ type ACL struct {
 	DefaultPolicy          *string `mapstructure:"default_policy"`
 	EnableKeyListPolicy    *bool   `mapstructure:"enable_key_list_policy"`
 	Tokens                 Tokens  `mapstructure:"tokens"`
-	DisabledTTL            *string `mapstructure:"disabled_ttl"`
 	EnableTokenPersistence *bool   `mapstructure:"enable_token_persistence"`
 
 	// Enterprise Only

@@ -731,8 +731,8 @@ func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func
 			Authorizers:    4,
 			Roles:          4,
 		},
-		AutoDisable: true,
-		Delegate:    delegate,
+		DisableDuration: aclClientDisabledTTL,
+		Delegate:        delegate,
 	}
 
 	if cb != nil {
@@ -3565,7 +3565,7 @@ func TestACLResolver_AgentMaster(t *testing.T) {
 	r := newTestACLResolver(t, d, func(cfg *ACLResolverConfig) {
 		cfg.Tokens = &tokens
 		cfg.Config.NodeName = "foo"
-		cfg.AutoDisable = false
+		cfg.DisableDuration = 0
 	})
 
 	tokens.UpdateAgentMasterToken("9a184a11-5599-459e-b71a-550e5f9a5a23", token.TokenSourceConfig)
@@ -3579,4 +3579,62 @@ func TestACLResolver_AgentMaster(t *testing.T) {
 	require.Equal(t, acl.Allow, authz.AgentWrite("foo", nil))
 	require.Equal(t, acl.Allow, authz.NodeRead("bar", nil))
 	require.Equal(t, acl.Deny, authz.NodeWrite("bar", nil))
+}
+
+func TestACLResolver_ACLsEnabled(t *testing.T) {
+	type testCase struct {
+		name     string
+		resolver *ACLResolver
+		enabled  bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		require.Equal(t, tc.enabled, tc.resolver.ACLsEnabled())
+	}
+
+	var testCases = []testCase{
+		{
+			name:     "config disabled",
+			resolver: &ACLResolver{},
+		},
+		{
+			name: "config enabled, disableDuration=0 (Server)",
+			resolver: &ACLResolver{
+				config: ACLResolverSettings{ACLsEnabled: true},
+			},
+			enabled: true,
+		},
+		{
+			name: "config enabled, disabled by RPC (Client)",
+			resolver: &ACLResolver{
+				config:          ACLResolverSettings{ACLsEnabled: true},
+				disableDuration: 10 * time.Second,
+				disabledUntil:   time.Now().Add(5 * time.Second),
+			},
+		},
+		{
+			name: "config enabled, past disabledUntil (Client)",
+			resolver: &ACLResolver{
+				config:          ACLResolverSettings{ACLsEnabled: true},
+				disableDuration: 10 * time.Second,
+				disabledUntil:   time.Now().Add(-5 * time.Second),
+			},
+			enabled: true,
+		},
+		{
+			name: "config enabled, no disabledUntil (Client)",
+			resolver: &ACLResolver{
+				config:          ACLResolverSettings{ACLsEnabled: true},
+				disableDuration: 10 * time.Second,
+			},
+			enabled: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
 }

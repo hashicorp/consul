@@ -123,13 +123,13 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 
 	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config.ACLResolverSettings,
-		Delegate:    c,
-		Logger:      c.logger,
-		AutoDisable: true,
-		CacheConfig: clientACLCacheConfig,
-		ACLConfig:   newACLConfig(c.logger),
-		Tokens:      deps.Tokens,
+		Config:          config.ACLResolverSettings,
+		Delegate:        c,
+		Logger:          c.logger,
+		DisableDuration: aclClientDisabledTTL,
+		CacheConfig:     clientACLCacheConfig,
+		ACLConfig:       newACLConfig(c.logger),
+		Tokens:          deps.Tokens,
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {

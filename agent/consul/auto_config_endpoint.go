@@ -191,7 +191,6 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 		PolicyTTL:           ac.config.ACLResolverSettings.ACLPolicyTTL.String(),
 		RoleTTL:             ac.config.ACLResolverSettings.ACLRoleTTL.String(),
 		TokenTTL:            ac.config.ACLResolverSettings.ACLTokenTTL.String(),
-		DisabledTTL:         ac.config.ACLResolverSettings.ACLDisabledTTL.String(),
 		DownPolicy:          ac.config.ACLResolverSettings.ACLDownPolicy,
 		DefaultPolicy:       ac.config.ACLResolverSettings.ACLDefaultPolicy,
 		EnableKeyListPolicy: ac.config.ACLEnableKeyListPolicy,

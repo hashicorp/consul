@@ -450,7 +450,6 @@ func DefaultConfig() *Config {
 			ACLPolicyTTL:     30 * time.Second,
 			ACLTokenTTL:      30 * time.Second,
 			ACLRoleTTL:       30 * time.Second,
-			ACLDisabledTTL:   30 * time.Second,
 			ACLDownPolicy:    "extend-cache",
 			ACLDefaultPolicy: "allow",
 		},
