@@ -72,9 +72,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if !stringslice.Contains(nodes[0].Services[0].Tags, "primary") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[0].Checks[0].Status != api.HealthPassing {
-		t.Fatalf("Bad: %v", nodes[0])
-	}
+	require.Nil(t, nodes[0].Checks)
 }
 
 func TestInternal_NodeDump(t *testing.T) {
@@ -151,19 +149,13 @@ func TestInternal_NodeDump(t *testing.T) {
 			if !stringslice.Contains(node.Services[0].Tags, "primary") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
-			if node.Checks[0].Status != api.HealthPassing {
-				t.Fatalf("Bad: %v", nodes[0])
-			}
-
+			require.Nil(t, node.Checks)
 		case "bar":
 			foundBar = true
 			if !stringslice.Contains(node.Services[0].Tags, "replica") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
-			if node.Checks[0].Status != api.HealthWarning {
-				t.Fatalf("Bad: %v", nodes[1])
-			}
-
+			require.Nil(t, node.Checks)
 		default:
 			continue
 		}
