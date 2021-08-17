@@ -51,7 +51,7 @@ Feature: dc / services / show / topology / stats
     ---
     And I see topology on the tabs
     And I don't see the "[data-test-topology-metrics-stats]" element
-    And I don't see the "[data-test-sparkline]" element
+    And I see the "[data-test-sparkline]" element
   Scenario: Given metrics is enabled, metric stats are disabled for ingress gateway as downstream services
     Given 1 datacenter model with the value "dc1"
     Given a "prometheus" metrics provider
