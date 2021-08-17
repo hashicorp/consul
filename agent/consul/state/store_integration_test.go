@@ -422,7 +422,19 @@ type nodePayload struct {
 	node *structs.ServiceNode
 }
 
-func (p nodePayload) MatchesKey(key, _ string) bool {
+func (p nodePayload) MatchesKey(key, _, partition string) bool {
+	if key == "" && partition == "" {
+		return true
+	}
+
+	if p.node == nil {
+		return false
+	}
+
+	if structs.PartitionOrDefault(partition) != p.node.PartitionOrDefault() {
+		return false
+	}
+
 	return p.key == key
 }
 

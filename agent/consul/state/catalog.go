@@ -202,6 +202,8 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWithoutID bool) error {
 	// Retrieve all of the nodes
 
+	// TODO(partitions): since the node UUID field is not partitioned, do we have to do something additional here?
+
 	enodes, err := tx.Get(tableNodes, indexID+"_prefix", node.GetEnterpriseMeta())
 	if err != nil {
 		return fmt.Errorf("Cannot lookup all nodes: %s", err)
