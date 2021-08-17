@@ -404,7 +404,7 @@ func (s *Server) initializeLegacyACL() error {
 		return nil
 	}
 
-	authDC := s.config.ACLDatacenter
+	authDC := s.config.PrimaryDatacenter
 
 	// Create anonymous token if missing.
 	state := s.fsm.State()

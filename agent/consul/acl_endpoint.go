@@ -276,7 +276,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenRead", args, reply); done {
@@ -345,7 +345,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenClone", args, reply); done {
@@ -369,8 +369,8 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return acl.ErrNotFound
 	} else if !a.srv.InACLDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.ACLDatacenter, args, reply)
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.PrimaryDatacenter, args, reply)
 	}
 
 	if token.AuthMethod != "" {
@@ -414,7 +414,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 
 	// Global token creation/modification always goes to the ACL DC
 	if !args.ACLToken.Local {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	} else if !a.srv.LocalTokensEnabled() {
 		return fmt.Errorf("Local tokens are disabled")
 	}
@@ -822,7 +822,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenDelete", args, reply); done {
@@ -862,13 +862,13 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 
 		// token found in secondary DC but its not local so it must be deleted in the primary
 		if !a.srv.InACLDatacenter() && !token.Local {
-			args.Datacenter = a.srv.config.ACLDatacenter
-			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+			args.Datacenter = a.srv.config.PrimaryDatacenter
+			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 		}
 	} else if !a.srv.InACLDatacenter() {
 		// token not found in secondary DC - attempt to delete within the primary
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 	} else {
 		// in Primary Datacenter but the token does not exist - return early as there is nothing to do.
 		return nil
@@ -903,12 +903,12 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	if !a.srv.LocalTokensEnabled() {
-		if args.Datacenter != a.srv.config.ACLDatacenter {
-			args.Datacenter = a.srv.config.ACLDatacenter
+		if args.Datacenter != a.srv.config.PrimaryDatacenter {
+			args.Datacenter = a.srv.config.PrimaryDatacenter
 			args.IncludeLocal = false
 			args.IncludeGlobal = true
 		}
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenList", args, reply); done {
@@ -969,7 +969,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 	}
 
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenBatchRead", args, reply); done {
@@ -1095,7 +1095,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.PolicySet", args, reply); done {
@@ -1226,7 +1226,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.PolicyDelete", args, reply); done {
@@ -1385,7 +1385,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 	}
 
 	// Verify we are allowed to serve this request
-	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+	if a.srv.config.PrimaryDatacenter != a.srv.config.Datacenter {
 		return acl.ErrDisabled
 	}
 
@@ -1527,7 +1527,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.RoleSet", args, reply); done {
@@ -1685,7 +1685,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.RoleDelete", args, reply); done {
@@ -2522,8 +2522,8 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 
 	} else if !a.srv.InACLDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.Logout", a.srv.config.ACLDatacenter, args, reply)
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+		return a.srv.forwardDC("ACL.Logout", a.srv.config.PrimaryDatacenter, args, reply)
 	}
 
 	// No need to check expiration time because it's being deleted.

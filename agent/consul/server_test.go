@@ -74,7 +74,7 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 // up all of the ACL configurations (so they can still be overridden)
 func testServerACLConfig(cb func(*Config)) func(*Config) {
 	return func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
 		c.ACLDefaultPolicy = "deny"
@@ -125,6 +125,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
+	config.PrimaryDatacenter = "dc1"
 	config.DataDir = dir
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
@@ -195,6 +196,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 func testServer(t *testing.T) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 	})
 }
@@ -209,6 +211,7 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
+		c.PrimaryDatacenter = dc
 		c.Bootstrap = bootstrap
 	})
 }
@@ -349,11 +352,11 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "bee")
 
 	require.Equal(t, "aye", s1.config.Datacenter)
-	require.Equal(t, "aye", s1.config.ACLDatacenter)
+	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
 	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
 
 	require.Equal(t, "bee", s2.config.Datacenter)
-	require.Equal(t, "aye", s2.config.ACLDatacenter)
+	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 }
 

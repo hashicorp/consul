@@ -1115,9 +1115,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.ACLMasterToken != "" {
 		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
 	}
-	if runtimeCfg.ACLDatacenter != "" {
-		cfg.ACLDatacenter = runtimeCfg.ACLDatacenter
-	}
 	if runtimeCfg.ACLTokenTTL != 0 {
 		cfg.ACLTokenTTL = runtimeCfg.ACLTokenTTL
 	}

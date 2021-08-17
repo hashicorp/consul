@@ -2194,7 +2194,7 @@ func TestACL_Replication(t *testing.T) {
 
 	for _, aclDownPolicy := range aclExtendPolicies {
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {
-			c.ACLDatacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
 			c.ACLMasterToken = "root"
 		})
 		defer os.RemoveAll(dir1)
@@ -2204,7 +2204,7 @@ func TestACL_Replication(t *testing.T) {
 
 		dir2, s2 := testServerWithConfig(t, func(c *Config) {
 			c.Datacenter = "dc2"
-			c.ACLDatacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
 			c.ACLDefaultPolicy = "deny"
 			c.ACLDownPolicy = aclDownPolicy
 			c.ACLTokenReplication = true
@@ -2218,7 +2218,7 @@ func TestACL_Replication(t *testing.T) {
 
 		dir3, s3 := testServerWithConfig(t, func(c *Config) {
 			c.Datacenter = "dc3"
-			c.ACLDatacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
 			c.ACLDownPolicy = "deny"
 			c.ACLTokenReplication = true
 			c.ACLReplicationRate = 100
@@ -2312,7 +2312,7 @@ func TestACL_Replication(t *testing.T) {
 func TestACL_MultiDC_Found(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -2322,7 +2322,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.PrimaryDatacenter = "dc1" // Enable ACLs!
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()

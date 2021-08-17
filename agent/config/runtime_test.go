@@ -221,7 +221,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -237,7 +236,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -254,7 +252,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.DataDir = dataDir
 		},
@@ -285,7 +282,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -471,7 +467,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -492,7 +487,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -509,7 +503,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -659,7 +652,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "dc2"
 			rt.PrimaryDatacenter = "dc1"
-			rt.ACLDatacenter = "dc1"
 			rt.PrimaryGateways = []string{"a", "b"}
 			rt.DataDir = dataDir
 			// server things
@@ -1484,7 +1476,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Bootstrap = false
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
@@ -1540,7 +1531,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfAdvertiseAddrLAN = tcpAddr("1.1.1.1:8301")
 			rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
 			rt.NodeMeta = map[string]string{"a": "c"}
@@ -1626,7 +1616,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{`datacenter = "A"`},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -1638,7 +1627,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{`acl_datacenter = "A"`},
 		expected: func(rt *RuntimeConfig) {
 			rt.ACLsEnabled = true
-			rt.ACLDatacenter = "a"
 			rt.DataDir = dataDir
 			rt.PrimaryDatacenter = "a"
 		},
@@ -1749,15 +1737,28 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "acl_datacenter invalid",
+		desc: "primary_datacenter invalid",
 		args: []string{
 			`-datacenter=a`,
 			`-data-dir=` + dataDir,
 		},
-		json:             []string{`{ "acl_datacenter": "%" }`},
-		hcl:              []string{`acl_datacenter = "%"`},
-		expectedErr:      `acl_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
+		json:        []string{`{ "primary_datacenter": "%" }`},
+		hcl:         []string{`primary_datacenter = "%"`},
+		expectedErr: `primary_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
+	})
+	run(t, testCase{
+		desc: "acl_datacenter deprecated",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json:             []string{`{ "acl_datacenter": "ab" }`},
+		hcl:              []string{`acl_datacenter = "ab"`},
 		expectedWarnings: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLsEnabled = true
+			rt.PrimaryDatacenter = "ab"
+			rt.DataDir = dataDir
+		},
 	})
 	run(t, testCase{
 		desc: "autopilot.max_trailing_logs invalid",
@@ -3373,7 +3374,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.Datacenter = "two"
 			rt.PrimaryDatacenter = "one"
-			rt.ACLDatacenter = "one"
 			rt.PrimaryGateways = []string{"foo.local", "bar.local"}
 			rt.ConnectEnabled = true
 			rt.ConnectMeshGatewayWANFederationEnabled = true
@@ -5233,7 +5233,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		},
 
 		ACLsEnabled:                      true,
-		ACLDatacenter:                    "ejtmd43d",
+		PrimaryDatacenter:                "ejtmd43d",
 		ACLDefaultPolicy:                 "72c2e7a0",
 		ACLDownPolicy:                    "03eb2aee",
 		ACLEnableKeyListPolicy:           true,
@@ -5483,7 +5483,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		NodeName:                "otlLxGaI",
 		ReadReplica:             true,
 		PidFile:                 "43xN80Km",
-		PrimaryDatacenter:       "ejtmd43d",
 		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
 		PrimaryGatewaysInterval: 18866 * time.Second,
 		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),

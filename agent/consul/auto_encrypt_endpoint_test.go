@@ -57,6 +57,7 @@ func TestAutoEncryptSign(t *testing.T) {
 			}
 			dir, s := testServerWithConfig(t, func(c *Config) {
 				c.AutoEncryptAllowTLS = true
+				c.PrimaryDatacenter = "dc1"
 				c.Bootstrap = true
 				c.TLSConfig.CAFile = root
 				c.TLSConfig.VerifyOutgoing = true

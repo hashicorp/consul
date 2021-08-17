@@ -119,9 +119,9 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 	}
 
 	if !s.InACLDatacenter() {
-		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.ACLDatacenter)
+		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.PrimaryDatacenter)
 		if mode != structs.ACLModeEnabled || !foundServers {
-			s.logger.Debug("Cannot upgrade to new ACLs, servers in acl datacenter are not yet upgraded", "ACLDatacenter", s.config.ACLDatacenter, "mode", mode, "found", foundServers)
+			s.logger.Debug("Cannot upgrade to new ACLs, servers in acl datacenter are not yet upgraded", "PrimaryDatacenter", s.config.PrimaryDatacenter, "mode", mode, "found", foundServers)
 			return false
 		}
 	}
@@ -143,7 +143,7 @@ func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
 }
 
 func (s *Server) InACLDatacenter() bool {
-	return s.config.ACLDatacenter == "" || s.config.Datacenter == s.config.ACLDatacenter
+	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
 }
 
 func (s *Server) UseLegacyACLs() bool {
@@ -167,8 +167,8 @@ func (s *Server) LocalTokensEnabled() bool {
 func (s *Server) ACLDatacenter(legacy bool) string {
 	// For resolution running on servers the only option
 	// is to contact the configured ACL Datacenter
-	if s.config.ACLDatacenter != "" {
-		return s.config.ACLDatacenter
+	if s.config.PrimaryDatacenter != "" {
+		return s.config.PrimaryDatacenter
 	}
 
 	// This function only gets called if ACLs are enabled.

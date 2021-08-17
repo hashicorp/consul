@@ -69,13 +69,6 @@ type RuntimeConfig struct {
 
 	ACLTokens token.Config
 
-	// ACLDatacenter is the central datacenter that holds authoritative
-	// ACL records. This must be the same for the entire cluster.
-	// If this is not set, ACLs are not enabled. Off by default.
-	//
-	// hcl: acl_datacenter = string
-	ACLDatacenter string
-
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
 	// ACLs are used to deny-list, or "deny" which means ACLs are
@@ -85,7 +78,7 @@ type RuntimeConfig struct {
 	ACLDefaultPolicy string
 
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
-	// reach the ACLDatacenter and the token is not in the cache.
+	// reach the PrimaryDatacenter and the token is not in the cache.
 	// There are the following modes:
 	//   * allow - Allow all requests
 	//   * deny - Deny all requests
@@ -109,7 +102,7 @@ type RuntimeConfig struct {
 	ACLEnableKeyListPolicy bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	//
 	// hcl: acl.tokens.master = string

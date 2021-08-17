@@ -7,8 +7,9 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // aclIterator simplifies the algorithm below by providing a basic iterator that
@@ -166,7 +167,7 @@ func (s *Server) fetchRemoteLegacyACLs(lastRemoteIndex uint64) (*structs.Indexed
 	defer metrics.MeasureSince([]string{"leader", "fetchRemoteACLs"}, time.Now())
 
 	args := structs.DCSpecificRequest{
-		Datacenter: s.config.ACLDatacenter,
+		Datacenter: s.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:         s.tokens.ReplicationToken(),
 			MinQueryIndex: lastRemoteIndex,

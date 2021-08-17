@@ -56,7 +56,7 @@ func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) err
 
 	// Attempt a bootstrap.
 	req := structs.ACLRequest{
-		Datacenter: a.srv.config.ACLDatacenter,
+		Datacenter: a.srv.config.PrimaryDatacenter,
 		Op:         structs.ACLBootstrapNow,
 		ACL: structs.ACL{
 			ID:   token,

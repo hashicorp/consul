@@ -179,13 +179,9 @@ type Config struct {
 	ACLsEnabled bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	ACLMasterToken string
-
-	// ACLDatacenter provides the authoritative datacenter for ACL
-	// tokens. If not provided, ACL verification is disabled.
-	ACLDatacenter string
 
 	// ACLTokenTTL controls the time-to-live of cached ACL tokens.
 	// It can be set to zero to disable caching, but this adds
@@ -219,7 +215,7 @@ type Config struct {
 	// allow-lists.
 	ACLDefaultPolicy string
 
-	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
+	// ACLDownPolicy controls the behavior of ACLs if the PrimaryDatacenter
 	// cannot be contacted. It can be either "deny" to deny all requests,
 	// "extend-cache" or "async-cache" which ignores the ACLCacheInterval and
 	// uses cached policies.
