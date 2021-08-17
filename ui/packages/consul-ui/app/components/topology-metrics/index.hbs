@@ -44,14 +44,16 @@
     <div class="metrics-header">
       {{@service.Service.Service}}
     </div>
-    {{#if (and @hasMetricsProvider this.mainNotIngressService)}}
+    {{#if @hasMetricsProvider}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
         @dc={{@dc}}
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
+        @kind={{@service.Service.Kind}}
       />
+      {{#if this.mainNotIngressService}}
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
         @dc={{@dc}}
@@ -60,6 +62,7 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+      {{/if}}
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}

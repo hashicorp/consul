@@ -1,12 +1,14 @@
-{{#if @noMetricsReason}}
+{{#if (eq @kind 'ingress-gateway')}}
+  <span class="topology-metrics-error">{{t "components.consul.topology-metrics.status.ingress-gateway"}}</span>
+{{else if @noMetricsReason}}
   <span class="topology-metrics-error">
-    Unable to load metrics
+    {{t "components.consul.topology-metrics.status.error"}}
     <span>
       <Tooltip>{{@noMetricsReason}}</Tooltip>
     </span>
   </span>
 {{else if @error}}
-  <span class="topology-metrics-error">Unable to load metrics</span>
+  <span class="topology-metrics-error">{{t "components.consul.topology-metrics.status.error"}}</span>
 {{else}}
-  <span class="topology-metrics-loader">Loading Metrics</span>
+  <span class="topology-metrics-loader">{{t "components.consul.topology-metrics.status.loading"}}</span>
 {{/if}}
