@@ -692,9 +692,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, fedState2, fedStateLoaded2)
 
 	// Verify usage data is correctly updated
-	idx, nodeCount, err := fsm2.state.NodeCount()
+	idx, nodeUsage, err := fsm2.state.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, len(nodes), nodeCount)
+	require.Equal(t, len(nodes), nodeUsage.Nodes)
 	require.NotZero(t, idx)
 
 	// Verify system metadata is restored.
