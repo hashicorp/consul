@@ -78,7 +78,7 @@ ${
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
-      "Source": "${fake.helpers.randomize(['proxy-registration', 'default-allow', 'wildcard-intention'])}",
+      "Source": "${fake.helpers.randomize(['routing-config', 'proxy-registration'])}",
       "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},
@@ -104,7 +104,7 @@ ${
       "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
       "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
-      "Source": "${fake.helpers.randomize(['proxy-registration', 'specific-intention', 'default-allow', 'wildcard-intention'])}",
+      "Source": "${fake.helpers.randomize(['routing-config', 'proxy-registration', 'specific-intention'])}",
       "TransparentProxy": ${fake.random.boolean()},
       "Intention": {
         "Allowed": ${allowed},

@@ -1,6 +1,7 @@
 <span
+  data-test-topology-metrics-source-type
   class="topology-metrics-source-type"
-  {{tooltip (t "components.consul.topology-metrics.source-type.tooltip")}}
+  {{tooltip (t (concat "components.consul.topology-metrics.source-type." @source ".tooltip"))}}
 >
-  {{t "components.consul.topology-metrics.source-type.text"}}
+  {{t (concat "components.consul.topology-metrics.source-type." @source ".text")}}
 </span>

@@ -6,10 +6,11 @@
 </a>
 {{else}}
 <a class="topology-metrics-card"
+  data-test-topology-metrics-card
   href={{if
    (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
-    (href-to "dc.services.show.index" @item.Datacenter @item.Name params=(hash nspace=@item.Namespace))
-    (href-to "dc.services.show.index" @item.Name)
+    (href-to this.hrefPath @item.Datacenter @item.Name params=(hash nspace=@item.Namespace))
+    (href-to this.hrefPath @item.Name)
   }}
   data-permission={{service/intention-permissions @item}}
   id="{{@item.Namespace}}{{@item.Name}}"
@@ -18,7 +19,10 @@
     {{@item.Name}}
   </p>
   {{#if (eq @item.Source 'proxy-registration')}}
-    <TopologyMetrics::SourceType />
+    <TopologyMetrics::SourceType @source='proxy-registration' />
+  {{/if}}
+  {{#if (eq @item.Source 'routing-config')}}
+    <TopologyMetrics::SourceType @source='routing-config' />
   {{/if}}
   <div class="details">
   {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))}}

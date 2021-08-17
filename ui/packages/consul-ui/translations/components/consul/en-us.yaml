@@ -117,8 +117,12 @@ intention:
 transparent-proxy: Transparent Proxy
 topology-metrics:
   source-type:
-    tooltip: This connection was defined in a proxy registration.
-    text: Defined in proxy registration
+    proxy-registration:
+      tooltip: This connection was defined in a proxy registration.
+      text: Defined in proxy registration
+    routing-config:
+      tooltip: This is not a registered Consul service. It’s a routing configuration that routes traffic to real services in Consul.
+      text: Routing configuration
   notice:
     limited-access:
       header: Limited Access
