@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
+	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -2519,8 +2520,9 @@ type configEntryTestcase struct {
 	normalizeErr string
 	validateErr  string
 
-	// Only one of either expected or check can be set.
-	expected ConfigEntry
+	// Only one of expected, expectUnchanged or check can be set.
+	expected        ConfigEntry
+	expectUnchanged bool
 	// check is called between normalize and validate
 	check func(t *testing.T, entry ConfigEntry)
 }
@@ -2531,19 +2533,37 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			err := tc.entry.Normalize()
+			beforeNormalize, err := copystructure.Copy(tc.entry)
+			require.NoError(t, err)
+
+			err = tc.entry.Normalize()
 			if tc.normalizeErr != "" {
 				testutil.RequireErrorContains(t, err, tc.normalizeErr)
 				return
 			}
 			require.NoError(t, err)
 
-			if tc.expected != nil && tc.check != nil {
-				t.Fatal("cannot set both 'expected' and 'check' test case fields")
+			checkMethods := 0
+			if tc.expected != nil {
+				checkMethods++
+			}
+			if tc.expectUnchanged {
+				checkMethods++
+			}
+			if tc.check != nil {
+				checkMethods++
+			}
+
+			if checkMethods > 1 {
+				t.Fatal("cannot set more than one of 'expected', 'expectUnchanged' and 'check' test case fields")
 			}
 
 			if tc.expected != nil {
 				require.Equal(t, tc.expected, tc.entry)
+			}
+
+			if tc.expectUnchanged {
+				require.Equal(t, beforeNormalize, tc.entry, "Expected Normalize not to change anything")
 			}
 
 			if tc.check != nil {

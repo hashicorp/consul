@@ -437,6 +437,7 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
+			expectUnchanged: true,
 		},
 		"request header manip not allowed for non-http protocol": {
 			entry: &IngressGatewayConfigEntry{
@@ -502,6 +503,374 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 			// Match only the last part of the exected error because the service name
 			// differs between Ent and OSS default/default/web vs web
 			validateErr: "cannot be added multiple times (listener on port 1111)",
+		},
+		"TLS.SDS kitchen sink": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName:  "secret-service1",
+						CertResource: "some-ns/ingress-default",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "secret-service2",
+								CertResource: "some-ns/ingress-1111",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name:  "web",
+								Hosts: []string{"*"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										ClusterName:  "secret-service3",
+										CertResource: "some-ns/web",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS gateway-level": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName:  "secret-service1",
+						CertResource: "some-ns/ingress-default",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS listener-level": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "secret-service1",
+								CertResource: "some-ns/db1",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "secret-service2",
+								CertResource: "some-ns/db2",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS gateway-level cluster only": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName: "secret-service",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								CertResource: "some-ns/db1",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								CertResource: "some-ns/db2",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS mixed TLS and non-TLS listeners": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				// No Gateway level TLS.Enabled or SDS config
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName:  "sds-cluster",
+								CertResource: "some-ns/db1",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db1",
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						// No TLS config
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS only service-level mixed": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				// No Gateway level TLS.Enabled or SDS config
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						// No TLS config
+						Services: []IngressService{
+							{
+								Name:  "web",
+								Hosts: []string{"www.example.com"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster",
+										CertResource: "web-cert",
+									},
+								},
+							},
+							{
+								Name:  "api",
+								Hosts: []string{"api.example.com"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster",
+										CertResource: "api-cert",
+									},
+								},
+							},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "http",
+						// No TLS config
+						Services: []IngressService{
+							{
+								Name: "db2",
+							},
+						},
+					},
+				},
+			},
+			expectUnchanged: true,
+		},
+		"TLS.SDS requires cluster if gateway-level cert specified": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						CertResource: "foo",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"TLS.SDS listener requires cluster if there is no gateway-level one": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								CertResource: "foo",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
+		},
+		"TLS.SDS listener requires a cert resource if gw ClusterName set": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+				TLS: GatewayTLSConfig{
+					SDS: &GatewayTLSSDSConfig{
+						ClusterName: "foo",
+					},
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.CertResource is required if ClusterName is set for gateway (listener on port 1111)",
+		},
+		"TLS.SDS listener requires a cert resource if listener ClusterName set": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						TLS: &GatewayTLSConfig{
+							SDS: &GatewayTLSSDSConfig{
+								ClusterName: "foo",
+							},
+						},
+						Services: []IngressService{
+							{
+								Name: "db",
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.CertResource is required if ClusterName is set for listener (listener on port 1111)",
+		},
+		"TLS.SDS at service level is not supported without Hosts set": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name: "*",
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										CertResource: "foo",
+										ClusterName:  "sds-cluster",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "A service specifying TLS.SDS.CertResource must have at least one item in Hosts (service \"*\" on listener on port 1111)",
+		},
+		"TLS.SDS at service level needs a cluster from somewhere": {
+			entry: &IngressGatewayConfigEntry{
+				Kind: "ingress-gateway",
+				Name: "ingress-web",
+
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "foo",
+								Hosts: []string{"foo.example.com"},
+								TLS: &GatewayServiceTLSConfig{
+									SDS: &GatewayTLSSDSConfig{
+										CertResource: "foo",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set (service \"foo\" on listener on port 1111)",
 		},
 	}
 

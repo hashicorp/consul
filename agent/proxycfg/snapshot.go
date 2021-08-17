@@ -3,8 +3,9 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
+
+	"github.com/hashicorp/consul/agent/connect"
 
 	"github.com/mitchellh/copystructure"
 
@@ -307,7 +308,11 @@ type configSnapshotIngressGateway struct {
 
 	// TLSEnabled is whether this gateway's listeners should have TLS configured.
 	TLSEnabled bool
-	TLSSet     bool
+
+	// TODO(banks): rename to "ConfigLoaded" or something or just remove it since
+	// only usages seem to be places that really should be checking TLSEnabled ==
+	// true anyway?
+	TLSSet bool
 
 	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs.
 	Hosts    []string
