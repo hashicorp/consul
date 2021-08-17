@@ -4242,18 +4242,6 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node1",
-					CheckID:     "check1",
-					ServiceID:   "service1",
-					ServiceName: "service1",
-					Status:      api.HealthPassing,
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 6,
-						ModifyIndex: 6,
-					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				},
-				&structs.HealthCheck{
-					Node:        "node1",
 					CheckID:     "check2",
 					ServiceID:   "",
 					ServiceName: "",
@@ -4298,18 +4286,6 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			Node:      "node2",
 			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
-					Node:        "node2",
-					CheckID:     "check1",
-					ServiceID:   "service1",
-					ServiceName: "service1",
-					Status:      api.HealthPassing,
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 7,
-						ModifyIndex: 7,
-					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				},
 				&structs.HealthCheck{
 					Node:        "node2",
 					CheckID:     "check2",
@@ -4374,9 +4350,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if idx != 9 {
 		t.Fatalf("bad index: %d", 9)
 	}
-	if !reflect.DeepEqual(dump, expect) {
-		t.Fatalf("bad: %#v", dump[0].Services[0])
-	}
+	require.Equal(t, expect, dump)
 
 	// Registering some unrelated node + service + check should not fire the
 	// watch.

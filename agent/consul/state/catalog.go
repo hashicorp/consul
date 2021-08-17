@@ -2474,7 +2474,7 @@ func serviceDumpKindTxn(tx ReadTxn, ws memdb.WatchSet, kind structs.ServiceKind,
 
 // parseNodes takes an iterator over a set of nodes and returns a struct
 // containing the nodes along with all of their associated services
-// and/or health checks.
+// and/or health checks (excluding service health checks).
 func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator, entMeta *structs.EnterpriseMeta) (uint64, structs.NodeDump, error) {
 
@@ -2522,8 +2522,9 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 			dump.Services = append(dump.Services, ns)
 		}
 
-		// Query the service level checks
-		checks, err := catalogListChecksByNode(tx, Query{Value: node.Node, EnterpriseMeta: *entMeta})
+		// Query for non-service checks where Service == ""
+		q := NodeServiceQuery{Node: node.Node, EnterpriseMeta: *entMeta}
+		checks, err := tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
