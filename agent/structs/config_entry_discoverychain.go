@@ -246,12 +246,12 @@ func isValidHTTPMethod(method string) bool {
 	}
 }
 
-func (e *ServiceRouterConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return canReadDiscoveryChain(e, rule)
+func (e *ServiceRouterConfigEntry) CanRead(authz acl.Authorizer) bool {
+	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceRouterConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return canWriteDiscoveryChain(e, rule)
+func (e *ServiceRouterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	return canWriteDiscoveryChain(e, authz)
 }
 
 func (e *ServiceRouterConfigEntry) GetRaftIndex() *RaftIndex {
@@ -580,12 +580,12 @@ func scaleWeight(v float32) int {
 	return int(math.Round(float64(v * 100.0)))
 }
 
-func (e *ServiceSplitterConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return canReadDiscoveryChain(e, rule)
+func (e *ServiceSplitterConfigEntry) CanRead(authz acl.Authorizer) bool {
+	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceSplitterConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return canWriteDiscoveryChain(e, rule)
+func (e *ServiceSplitterConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	return canWriteDiscoveryChain(e, authz)
 }
 
 func (e *ServiceSplitterConfigEntry) GetRaftIndex() *RaftIndex {
@@ -955,12 +955,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	return nil
 }
 
-func (e *ServiceResolverConfigEntry) CanRead(rule acl.Authorizer) bool {
-	return canReadDiscoveryChain(e, rule)
+func (e *ServiceResolverConfigEntry) CanRead(authz acl.Authorizer) bool {
+	return canReadDiscoveryChain(e, authz)
 }
 
-func (e *ServiceResolverConfigEntry) CanWrite(rule acl.Authorizer) bool {
-	return canWriteDiscoveryChain(e, rule)
+func (e *ServiceResolverConfigEntry) CanWrite(authz acl.Authorizer) bool {
+	return canWriteDiscoveryChain(e, authz)
 }
 
 func (e *ServiceResolverConfigEntry) GetRaftIndex() *RaftIndex {
@@ -1191,7 +1191,7 @@ func canReadDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer
 	return authz.ServiceRead(entry.GetName(), &authzContext) == acl.Allow
 }
 
-func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer) bool {
+func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorizer) bool {
 	entryID := NewServiceID(entry.GetName(), entry.GetEnterpriseMeta())
 
 	var authzContext acl.AuthorizerContext
@@ -1199,7 +1199,7 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 
 	name := entry.GetName()
 
-	if rule.ServiceWrite(name, &authzContext) != acl.Allow {
+	if authz.ServiceWrite(name, &authzContext) != acl.Allow {
 		return false
 	}
 
@@ -1211,7 +1211,7 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, rule acl.Authorizer
 		svc.FillAuthzContext(&authzContext)
 		// You only need read on related services to redirect traffic flow for
 		// your own service.
-		if rule.ServiceRead(svc.ID, &authzContext) != acl.Allow {
+		if authz.ServiceRead(svc.ID, &authzContext) != acl.Allow {
 			return false
 		}
 	}

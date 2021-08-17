@@ -31,11 +31,11 @@ func (c *DiscoveryChain) Get(args *structs.DiscoveryChainRequest, reply *structs
 	// Fetch the ACL token, if any.
 	entMeta := args.GetEnterpriseMeta()
 	var authzContext acl.AuthorizerContext
-	rule, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, entMeta, &authzContext)
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, entMeta, &authzContext)
 	if err != nil {
 		return err
 	}
-	if rule.ServiceRead(args.Name, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
