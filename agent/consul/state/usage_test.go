@@ -9,40 +9,40 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestStateStore_Usage_NodeCount(t *testing.T) {
+func TestStateStore_Usage_NodeUsage(t *testing.T) {
 	s := testStateStore(t)
 
 	// No nodes have been registered, and thus no usage entry exists
-	idx, count, err := s.NodeCount()
+	idx, usage, err := s.NodeUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(0))
-	require.Equal(t, count, 0)
+	require.Equal(t, usage.Nodes, 0)
 
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
-	idx, count, err = s.NodeCount()
+	idx, usage, err = s.NodeUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(1))
-	require.Equal(t, count, 2)
+	require.Equal(t, usage.Nodes, 2)
 }
 
-func TestStateStore_Usage_NodeCount_Delete(t *testing.T) {
+func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 	s := testStateStore(t)
 
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
-	idx, count, err := s.NodeCount()
+	idx, usage, err := s.NodeUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(1))
-	require.Equal(t, count, 2)
+	require.Equal(t, usage.Nodes, 2)
 
 	require.NoError(t, s.DeleteNode(2, "node2", nil))
-	idx, count, err = s.NodeCount()
+	idx, usage, err = s.NodeUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(2))
-	require.Equal(t, count, 1)
+	require.Equal(t, usage.Nodes, 1)
 }
 
 func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
@@ -54,6 +54,22 @@ func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
 	require.Equal(t, idx, uint64(0))
 	require.Equal(t, usage.Services, 0)
 	require.Equal(t, usage.ServiceInstances, 0)
+}
+
+func TestStateStore_Usage_ServiceUsage(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
+	testRegisterService(t, s, 8, "node1", "service1")
+	testRegisterService(t, s, 9, "node2", "service1")
+	testRegisterService(t, s, 10, "node2", "service2")
+
+	idx, usage, err := s.ServiceUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(10))
+	require.Equal(t, 2, usage.Services)
+	require.Equal(t, 3, usage.ServiceInstances)
 }
 
 func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
@@ -116,10 +132,10 @@ func TestStateStore_Usage_Restore(t *testing.T) {
 	})
 	require.NoError(t, restore.Commit())
 
-	idx, count, err := s.NodeCount()
+	idx, nodeUsage, err := s.NodeUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(9))
-	require.Equal(t, count, 1)
+	require.Equal(t, nodeUsage.Nodes, 1)
 
 	idx, usage, err := s.ServiceUsage()
 	require.NoError(t, err)
