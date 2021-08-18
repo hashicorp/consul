@@ -2631,6 +2631,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 			notes = "my cool notes"
 			args = ["/bin/check-redis.py"]
 			interval = "30s"
+			timeout = "5s"
 		}
 	`})
 	defer a2.Shutdown()
@@ -2647,6 +2648,8 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Name:           "memory check",
 		Status:         api.HealthCritical,
 		Notes:          "my cool notes",
+		Interval:       "30s",
+		Timeout:        "5s",
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	require.Equal(t, expected, result)
