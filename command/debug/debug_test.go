@@ -3,10 +3,11 @@ package debug
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/fs"
 
 	"github.com/hashicorp/consul/agent"
@@ -49,12 +51,17 @@ func TestDebugCommand(t *testing.T) {
 	cmd := New(ui)
 	cmd.validateTiming = false
 
+	it := &incrementalTime{
+		base: time.Date(2021, 7, 8, 9, 10, 11, 0, time.UTC),
+	}
+	cmd.timeNow = it.Now
+
 	outputPath := fmt.Sprintf("%s/debug", testDir)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-output=" + outputPath,
-		"-duration=100ms",
-		"-interval=50ms",
+		"-duration=2s",
+		"-interval=1s",
 		"-archive=false",
 	}
 
@@ -64,17 +71,75 @@ func TestDebugCommand(t *testing.T) {
 
 	expected := fs.Expected(t,
 		fs.WithDir("debug",
-			fs.WithFile("agent.json", "", fs.MatchAnyFileContent),
-			fs.WithFile("host.json", "", fs.MatchAnyFileContent),
-			fs.WithFile("index.json", "", fs.MatchAnyFileContent),
-			fs.WithFile("members.json", "", fs.MatchAnyFileContent),
-			// TODO: make the sub-directory names predictable)
+			fs.WithFile("index.json", "", fs.MatchFileContent(validIndexJSON)),
+			fs.WithFile("agent.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("host.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("members.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("metrics.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("consul.log", "", fs.MatchFileContent(validLogFile)),
+			fs.WithFile("profile.prof", "", fs.MatchFileContent(validProfileData)),
+			fs.WithFile("trace.out", "", fs.MatchAnyFileContent),
+			fs.WithDir("2021-07-08T09-10-12Z",
+				fs.WithFile("goroutine.prof", "", fs.MatchFileContent(validProfileData)),
+				fs.WithFile("heap.prof", "", fs.MatchFileContent(validProfileData))),
+			fs.WithDir("2021-07-08T09-10-13Z",
+				fs.WithFile("goroutine.prof", "", fs.MatchFileContent(validProfileData)),
+				fs.WithFile("heap.prof", "", fs.MatchFileContent(validProfileData))),
+			// Ignore the extra directories, they should be the same as the first two
 			fs.MatchExtraFiles))
 	assert.Assert(t, fs.Equal(testDir, expected))
 
-	metricsFiles, err := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, "metrics.json"))
-	require.NoError(t, err)
-	require.Len(t, metricsFiles, 1)
+	require.Equal(t, "", ui.ErrorWriter.String(), "expected no error output")
+}
+
+func validLogFile(raw []byte) fs.CompareResult {
+	scanner := bufio.NewScanner(bytes.NewReader(raw))
+	for scanner.Scan() {
+		logLine := scanner.Text()
+		if !validateLogLine([]byte(logLine)) {
+			return cmp.ResultFailure(fmt.Sprintf("log line is not valid %s", logLine))
+		}
+	}
+	if scanner.Err() != nil {
+		return cmp.ResultFailure(scanner.Err().Error())
+	}
+	return cmp.ResultSuccess
+}
+
+func validIndexJSON(raw []byte) fs.CompareResult {
+	var target debugIndex
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&target); err != nil {
+		return cmp.ResultFailure(err.Error())
+	}
+	return cmp.ResultSuccess
+}
+
+func validJSON(raw []byte) fs.CompareResult {
+	var target interface{}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	if err := decoder.Decode(&target); err != nil {
+		return cmp.ResultFailure(err.Error())
+	}
+	return cmp.ResultSuccess
+}
+
+func validProfileData(raw []byte) fs.CompareResult {
+	if _, err := profile.ParseData(raw); err != nil {
+		return cmp.ResultFailure(err.Error())
+	}
+	return cmp.ResultSuccess
+}
+
+type incrementalTime struct {
+	base time.Time
+	next uint64
+}
+
+func (t *incrementalTime) Now() time.Time {
+	t.next++
+	return t.base.Add(time.Duration(t.next) * time.Second)
 }
 
 func TestDebugCommand_Archive(t *testing.T) {
@@ -267,11 +332,11 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		"static": {
 			[]string{"agent", "host", "cluster"},
 			[]string{"agent.json", "host.json", "members.json"},
-			[]string{"*/metrics.json"},
+			[]string{"metrics.json"},
 		},
 		"metrics-only": {
 			[]string{"metrics"},
-			[]string{"*/metrics.json"},
+			[]string{"metrics.json"},
 			[]string{"agent.json", "host.json", "members.json"},
 		},
 		"all-but-pprof": {
@@ -286,8 +351,8 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 				"host.json",
 				"agent.json",
 				"members.json",
-				"*/metrics.json",
-				"*/consul.log",
+				"metrics.json",
+				"consul.log",
 			},
 			[]string{},
 		},
@@ -356,100 +421,6 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 	}
 }
 
-func TestDebugCommand_CaptureLogs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	cases := map[string]struct {
-		// used in -target param
-		targets []string
-		// existence verified after execution
-		files []string
-		// non-existence verified after execution
-		excludedFiles []string
-	}{
-		"logs-only": {
-			[]string{"logs"},
-			[]string{"*/consul.log"},
-			[]string{"agent.json", "host.json", "cluster.json", "*/metrics.json"},
-		},
-	}
-
-	for name, tc := range cases {
-		testDir := testutil.TempDir(t, "debug")
-
-		a := agent.NewTestAgent(t, `
-		enable_debug = true
-		`)
-
-		defer a.Shutdown()
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-		cmd.validateTiming = false
-
-		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-output=" + outputPath,
-			"-archive=false",
-			"-duration=1000ms",
-			"-interval=50ms",
-		}
-		for _, t := range tc.targets {
-			args = append(args, "-capture="+t)
-		}
-
-		if code := cmd.Run(args); code != 0 {
-			t.Fatalf("should exit 0, got code: %d", code)
-		}
-
-		errOutput := ui.ErrorWriter.String()
-		if errOutput != "" {
-			t.Errorf("expected no error output, got %q", errOutput)
-		}
-
-		// Ensure the debug data was written
-		_, err := os.Stat(outputPath)
-		if err != nil {
-			t.Fatalf("output path should exist: %s", err)
-		}
-
-		// Ensure the captured static files exist
-		for _, f := range tc.files {
-			path := fmt.Sprintf("%s/%s", outputPath, f)
-			// Glob ignores file system errors
-			fs, _ := filepath.Glob(path)
-			if len(fs) <= 0 {
-				t.Fatalf("%s: output data should exist for %s", name, f)
-			}
-			for _, logFile := range fs {
-				content, err := ioutil.ReadFile(logFile)
-				require.NoError(t, err)
-				scanner := bufio.NewScanner(strings.NewReader(string(content)))
-				for scanner.Scan() {
-					logLine := scanner.Text()
-					if !validateLogLine([]byte(logLine)) {
-						t.Fatalf("%s: log line is not valid %s", name, logLine)
-					}
-				}
-			}
-		}
-
-		// Ensure any excluded files do not exist
-		for _, f := range tc.excludedFiles {
-			path := fmt.Sprintf("%s/%s", outputPath, f)
-			// Glob ignores file system errors
-			fs, _ := filepath.Glob(path)
-			if len(fs) > 0 {
-				t.Fatalf("%s: output data should not exist for %s", name, f)
-			}
-		}
-	}
-}
-
 func validateLogLine(content []byte) bool {
 	fields := strings.SplitN(string(content), " ", 2)
 	if len(fields) != 2 {
@@ -464,62 +435,6 @@ func validateLogLine(content []byte) bool {
 	re := regexp.MustCompile(`(\[(ERROR|WARN|INFO|DEBUG|TRACE)]) (.*?): (.*)`)
 	valid := re.Match([]byte(fields[1]))
 	return valid
-}
-
-func TestDebugCommand_ProfilesExist(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	testDir := testutil.TempDir(t, "debug")
-
-	a := agent.NewTestAgent(t, `
-	enable_debug = true
-	`)
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	ui := cli.NewMockUi()
-	cmd := New(ui)
-	cmd.validateTiming = false
-
-	outputPath := fmt.Sprintf("%s/debug", testDir)
-	println(outputPath)
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
-		"-output=" + outputPath,
-		// CPU profile has a minimum of 1s
-		"-archive=false",
-		"-duration=2s",
-		"-interval=1s",
-		"-capture=pprof",
-	}
-
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("should exit 0, got code: %d", code)
-	}
-
-	profiles := []string{"heap.prof", "profile.prof", "goroutine.prof", "trace.out"}
-	// Glob ignores file system errors
-	for _, v := range profiles {
-		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		if len(fs) < 1 {
-			t.Errorf("output data should exist for %s", v)
-		}
-		for _, f := range fs {
-			if !strings.Contains(f, "trace.out") {
-				content, err := ioutil.ReadFile(f)
-				require.NoError(t, err)
-				_, err = profile.ParseData(content)
-				require.NoError(t, err)
-			}
-		}
-	}
-
-	errOutput := ui.ErrorWriter.String()
-	if errOutput != "" {
-		t.Errorf("expected no error output, got %s", errOutput)
-	}
 }
 
 func TestDebugCommand_Prepare_ValidateTiming(t *testing.T) {
