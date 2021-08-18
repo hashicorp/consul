@@ -138,7 +138,7 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
-		return s.checkStreamACLs(stream.Context(), cfgSnap)
+		return s.authorize(stream.Context(), cfgSnap)
 	}
 
 	for {
