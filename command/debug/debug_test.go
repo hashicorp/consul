@@ -14,20 +14,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/pprof/profile"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
-
-	"github.com/google/pprof/profile"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/fs"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestDebugCommand_noTabs(t *testing.T) {
-	t.Parallel()
-
-	if strings.ContainsRune(New(cli.NewMockUi(), nil).Help(), '\t') {
+func TestDebugCommand_Help_TextContainsNoTabs(t *testing.T) {
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
@@ -47,7 +46,7 @@ func TestDebugCommand(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -62,6 +61,16 @@ func TestDebugCommand(t *testing.T) {
 	code := cmd.Run(args)
 	require.Equal(t, 0, code)
 	require.Equal(t, "", ui.ErrorWriter.String())
+
+	expected := fs.Expected(t,
+		fs.WithDir("debug",
+			fs.WithFile("agent.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("host.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("index.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("members.json", "", fs.MatchAnyFileContent),
+			// TODO: make the sub-directory names predictable)
+			fs.MatchExtraFiles))
+	assert.Assert(t, fs.Equal(testDir, expected))
 
 	metricsFiles, err := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, "metrics.json"))
 	require.NoError(t, err)
@@ -83,7 +92,7 @@ func TestDebugCommand_Archive(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -127,15 +136,10 @@ func TestDebugCommand_Archive(t *testing.T) {
 }
 
 func TestDebugCommand_ArgsBad(t *testing.T) {
-	t.Parallel()
-
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 
-	args := []string{
-		"foo",
-		"bad",
-	}
+	args := []string{"foo", "bad"}
 
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("should exit non-zero, got code: %d", code)
@@ -149,7 +153,7 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 
 func TestDebugCommand_InvalidFlags(t *testing.T) {
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := ""
@@ -182,7 +186,7 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := ""
@@ -215,7 +219,7 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -258,17 +262,17 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		"single": {
 			[]string{"agent"},
 			[]string{"agent.json"},
-			[]string{"host.json", "cluster.json"},
+			[]string{"host.json", "members.json"},
 		},
 		"static": {
 			[]string{"agent", "host", "cluster"},
-			[]string{"agent.json", "host.json", "cluster.json"},
+			[]string{"agent.json", "host.json", "members.json"},
 			[]string{"*/metrics.json"},
 		},
 		"metrics-only": {
 			[]string{"metrics"},
 			[]string{"*/metrics.json"},
-			[]string{"agent.json", "host.json", "cluster.json"},
+			[]string{"agent.json", "host.json", "members.json"},
 		},
 		"all-but-pprof": {
 			[]string{
@@ -281,7 +285,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			[]string{
 				"host.json",
 				"agent.json",
-				"cluster.json",
+				"members.json",
 				"*/metrics.json",
 				"*/consul.log",
 			},
@@ -300,7 +304,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 		ui := cli.NewMockUi()
-		cmd := New(ui, nil)
+		cmd := New(ui)
 		cmd.validateTiming = false
 
 		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
@@ -383,7 +387,7 @@ func TestDebugCommand_CaptureLogs(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 		ui := cli.NewMockUi()
-		cmd := New(ui, nil)
+		cmd := New(ui)
 		cmd.validateTiming = false
 
 		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
@@ -476,7 +480,7 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -518,65 +522,44 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 	}
 }
 
-func TestDebugCommand_ValidateTiming(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
+func TestDebugCommand_Prepare_ValidateTiming(t *testing.T) {
 	cases := map[string]struct {
 		duration string
 		interval string
-		output   string
-		code     int
+		expected string
 	}{
 		"both": {
-			"20ms",
-			"10ms",
-			"duration must be longer",
-			1,
+			duration: "20ms",
+			interval: "10ms",
+			expected: "duration must be longer",
 		},
 		"short interval": {
-			"10s",
-			"10ms",
-			"interval must be longer",
-			1,
+			duration: "10s",
+			interval: "10ms",
+			expected: "interval must be longer",
 		},
 		"lower duration": {
-			"20s",
-			"30s",
-			"must be longer than interval",
-			1,
+			duration: "20s",
+			interval: "30s",
+			expected: "must be longer than interval",
 		},
 	}
 
 	for name, tc := range cases {
-		// Because we're only testng validation, we want to shut down
-		// the valid duration test to avoid hanging
-		shutdownCh := make(chan struct{})
+		t.Run(name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
 
-		a := agent.NewTestAgent(t, "")
-		defer a.Shutdown()
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
+			args := []string{
+				"-duration=" + tc.duration,
+				"-interval=" + tc.interval,
+			}
+			err := cmd.flags.Parse(args)
+			require.NoError(t, err)
 
-		ui := cli.NewMockUi()
-		cmd := New(ui, shutdownCh)
-
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-duration=" + tc.duration,
-			"-interval=" + tc.interval,
-			"-capture=agent",
-		}
-		code := cmd.Run(args)
-
-		if code != tc.code {
-			t.Errorf("%s: should exit %d, got code: %d", name, tc.code, code)
-		}
-
-		errOutput := ui.ErrorWriter.String()
-		if !strings.Contains(errOutput, tc.output) {
-			t.Errorf("%s: expected error output '%s', got '%q'", name, tc.output, errOutput)
-		}
+			_, err = cmd.prepare()
+			testutil.RequireErrorContains(t, err, tc.expected)
+		})
 	}
 }
 
@@ -596,7 +579,7 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
