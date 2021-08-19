@@ -212,6 +212,19 @@ func indexFromUUIDQuery(raw interface{}) ([]byte, error) {
 	return uuidStringToBytes(q.Value)
 }
 
+func prefixIndexFromUUIDQuery(arg interface{}) ([]byte, error) {
+	switch v := arg.(type) {
+	case *structs.EnterpriseMeta:
+		return nil, nil
+	case structs.EnterpriseMeta:
+		return nil, nil
+	case Query:
+		return variableLengthUUIDStringToBytes(v.Value)
+	}
+
+	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
+}
+
 func multiIndexPolicyFromACLRole(raw interface{}) ([][]byte, error) {
 	role, ok := raw.(*structs.ACLRole)
 	if !ok {
