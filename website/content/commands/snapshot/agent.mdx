@@ -299,6 +299,7 @@ no `aws-s3-static-snapshot-name` configured.
 | `DeleteObject`       | `arn:aws:s3:::<bucket name>/<key>` | Required only when snapshot rotation is enabled |
 | `ListBucket`         | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 | `ListBucketVersions` | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
+| `kms:GenerateDataKey`| `arn:aws:kms:<region>:<key_ID>`    | Required only when bucket encryption is enabled |
 
 Within the table `<key>` refers to the the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
 
