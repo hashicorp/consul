@@ -348,6 +348,7 @@ RPC:
 			sn := structs.ServiceNameFromString(k)
 			sum := ServiceTopologySummary{
 				ServiceSummary: ServiceSummary{
+					Datacenter:     args.Datacenter,
 					Name:           sn.Name,
 					EnterpriseMeta: sn.EnterpriseMeta,
 				},

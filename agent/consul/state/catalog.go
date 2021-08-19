@@ -3097,33 +3097,37 @@ func (s *Store) ServiceTopology(
 		upstreamSources[un.String()] = structs.TopologySourceRegistration
 	}
 
-	idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
-	if err != nil {
-		return 0, nil, err
-	}
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
-	for _, svc := range intentionUpstreams {
-		if _, ok := upstreamSources[svc.Name.String()]; ok {
-			// Avoid duplicating entry
-			continue
-		}
-		upstreamDecisions[svc.Name.String()] = svc.Decision
-		upstreamNames = append(upstreamNames, svc.Name)
 
-		var source string
-		switch {
-		case svc.Decision.HasExact:
-			source = structs.TopologySourceSpecificIntention
-		case svc.Decision.DefaultAllow:
-			source = structs.TopologySourceDefaultAllow
-		default:
-			source = structs.TopologySourceWildcardIntention
+	// Only transparent proxies have upstreams from intentions
+	if hasTransparent {
+		idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
+		if err != nil {
+			return 0, nil, err
 		}
-		upstreamSources[svc.Name.String()] = source
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		for _, svc := range intentionUpstreams {
+			if _, ok := upstreamSources[svc.Name.String()]; ok {
+				// Avoid duplicating entry
+				continue
+			}
+			upstreamDecisions[svc.Name.String()] = svc.Decision
+			upstreamNames = append(upstreamNames, svc.Name)
+
+			var source string
+			switch {
+			case svc.Decision.HasExact:
+				source = structs.TopologySourceSpecificIntention
+			case svc.Decision.DefaultAllow:
+				source = structs.TopologySourceDefaultAllow
+			default:
+				source = structs.TopologySourceWildcardIntention
+			}
+			upstreamSources[svc.Name.String()] = source
+		}
 	}
 
 	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
