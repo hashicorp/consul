@@ -688,7 +688,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	}
 	autoEncryptAllowTLS := boolVal(c.AutoEncrypt.AllowTLS)
-	autoConfig := b.autoConfigVal(c.AutoConfig)
+	autoConfig := b.autoConfigVal(c.AutoConfig, stringVal(c.Partition))
 	if autoEncryptAllowTLS || autoConfig.Enabled {
 		connectEnabled = true
 	}
@@ -2231,7 +2231,7 @@ func (b *builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.A
 	return x
 }
 
-func (b *builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
+func (b *builder) autoConfigVal(raw AutoConfigRaw, agentPartition string) AutoConfig {
 	var val AutoConfig
 
 	val.Enabled = boolValWithDefault(raw.Enabled, false)
@@ -2259,12 +2259,12 @@ func (b *builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 		val.IPSANs = append(val.IPSANs, ip)
 	}
 
-	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorization)
+	val.Authorizer = b.autoConfigAuthorizerVal(raw.Authorization, agentPartition)
 
 	return val
 }
 
-func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoConfigAuthorizer {
+func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw, agentPartition string) AutoConfigAuthorizer {
 	// Our config file syntax wraps the static authorizer configuration in a "static" stanza. However
 	// internally we do not support multiple configured authorization types so the RuntimeConfig just
 	// inlines the static one. While we can and probably should extend the authorization types in the
@@ -2272,13 +2272,16 @@ func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 	// needed right now so the configuration types will remain simplistic until they need to be otherwise.
 	var val AutoConfigAuthorizer
 
+	entMeta := structs.DefaultEnterpriseMetaInPartition(agentPartition)
+	entMeta.Normalize()
+
 	val.Enabled = boolValWithDefault(raw.Enabled, false)
 	val.ClaimAssertions = raw.Static.ClaimAssertions
 	val.AllowReuse = boolValWithDefault(raw.Static.AllowReuse, false)
 	val.AuthMethod = structs.ACLAuthMethod{
 		Name:           "Auto Config Authorizer",
 		Type:           "jwt",
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: *entMeta,
 		Config: map[string]interface{}{
 			"JWTSupportedAlgs":     raw.Static.JWTSupportedAlgs,
 			"BoundAudiences":       raw.Static.BoundAudiences,

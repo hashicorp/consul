@@ -22,8 +22,7 @@ func (s *Server) newNodeSorter(cs lib.CoordinateSet, nodes structs.Nodes) (sort.
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		// TODO(partitions)
-		_, other, err := state.Coordinate(nil, node.Node, nil)
+		_, other, err := state.Coordinate(nil, node.Node, node.GetEnterpriseMeta())
 		if err != nil {
 			return nil, err
 		}
@@ -63,8 +62,7 @@ func (s *Server) newServiceNodeSorter(cs lib.CoordinateSet, nodes structs.Servic
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		// TODO(partitions)
-		_, other, err := state.Coordinate(nil, node.Node, nil)
+		_, other, err := state.Coordinate(nil, node.Node, &node.EnterpriseMeta)
 		if err != nil {
 			return nil, err
 		}
@@ -104,8 +102,7 @@ func (s *Server) newHealthCheckSorter(cs lib.CoordinateSet, checks structs.Healt
 	state := s.fsm.State()
 	vec := make([]float64, len(checks))
 	for i, check := range checks {
-		// TODO(partitions)
-		_, other, err := state.Coordinate(nil, check.Node, nil)
+		_, other, err := state.Coordinate(nil, check.Node, &check.EnterpriseMeta)
 		if err != nil {
 			return nil, err
 		}
@@ -145,8 +142,7 @@ func (s *Server) newCheckServiceNodeSorter(cs lib.CoordinateSet, nodes structs.C
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		// TODO(partitions)
-		_, other, err := state.Coordinate(nil, node.Node.Node, nil)
+		_, other, err := state.Coordinate(nil, node.Node.Node, node.Node.GetEnterpriseMeta())
 		if err != nil {
 			return nil, err
 		}

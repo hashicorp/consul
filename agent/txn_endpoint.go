@@ -152,11 +152,14 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 				KV: &structs.TxnKVOp{
 					Verb: verb,
 					DirEnt: structs.DirEntry{
-						Key:            in.KV.Key,
-						Value:          in.KV.Value,
-						Flags:          in.KV.Flags,
-						Session:        in.KV.Session,
-						EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(in.KV.Namespace),
+						Key:     in.KV.Key,
+						Value:   in.KV.Value,
+						Flags:   in.KV.Flags,
+						Session: in.KV.Session,
+						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+							in.KV.Partition,
+							in.KV.Namespace,
+						),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: in.KV.Index,
 						},
@@ -182,6 +185,7 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 					Node: structs.Node{
 						ID:              types.NodeID(node.ID),
 						Node:            node.Node,
+						Partition:       node.Partition,
 						Address:         node.Address,
 						Datacenter:      node.Datacenter,
 						TaggedAddresses: node.TaggedAddresses,
@@ -216,7 +220,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
-						EnterpriseMeta:    structs.NewEnterpriseMetaInDefaultPartition(svc.Namespace),
+						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+							svc.Partition,
+							svc.Namespace,
+						),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: svc.ModifyIndex,
 						},
@@ -274,7 +281,10 @@ func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (
 							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
-						EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(check.Namespace),
+						EnterpriseMeta: structs.NewEnterpriseMetaWithPartition(
+							check.Partition,
+							check.Namespace,
+						),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
 						},

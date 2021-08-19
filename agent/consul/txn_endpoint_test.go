@@ -234,7 +234,6 @@ func TestTxn_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	// TODO(partitions)
 	_, n, err := state.GetNode("foo", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)

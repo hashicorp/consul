@@ -330,6 +330,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				rootsCacheKey, leafCacheKey,
 				roots,
 				webProxyCopy.(*structs.NodeService),
+				local.Config{},
 				expectSnapCopy.(*ConfigSnapshot),
 			)
 		})
@@ -349,13 +350,14 @@ func testManager_BasicLifecycle(
 	rootsCacheKey, leafCacheKey string,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
+	agentConfig local.Config,
 	expectSnap *ConfigSnapshot,
 ) {
 	c := TestCacheWithTypes(t, types)
 
 	require := require.New(t)
 	logger := testutil.Logger(t)
-	state := local.NewState(local.Config{}, logger, &token.Store{})
+	state := local.NewState(agentConfig, logger, &token.Store{})
 	source := &structs.QuerySource{Datacenter: "dc1"}
 
 	// Stub state syncing

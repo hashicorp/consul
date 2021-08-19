@@ -333,6 +333,11 @@ func (s *HTTPHandlers) nodeName() string {
 	return s.agent.config.NodeName
 }
 
+// nodePartition returns the node partition of the agent
+func (s *HTTPHandlers) nodePartition() string {
+	return s.agent.config.PartitionOrEmpty()
+}
+
 // aclEndpointRE is used to find old ACL endpoints that take tokens in the URL
 // so that we can redact them. The ACL endpoints that take the token in the URL
 // are all of the form /v1/acl/<verb>/<token>, and can optionally include query
@@ -1032,6 +1037,7 @@ func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySourc
 		} else {
 			source.Node = node
 		}
+		source.NodePartition = s.agent.config.PartitionOrEmpty()
 	}
 }
 

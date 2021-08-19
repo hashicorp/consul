@@ -49,7 +49,6 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -79,7 +78,6 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Server should be registered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(s1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -129,7 +127,6 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -191,7 +188,6 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -207,7 +203,6 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -243,7 +238,6 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -269,7 +263,6 @@ func TestLeader_ReapMember(t *testing.T) {
 	// anti-entropy will put it back.
 	reaped := false
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -367,7 +360,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		member.Tags["nonvoter"] = "1"
 		member.Tags["read_replica"] = "1"
 		member.Tags["build"] = versionToExpect
-		err := s1.handleAliveMember(member)
+		err := s1.handleAliveMember(member, nil)
 		if err != nil {
 			r.Fatalf("Unexpected error :%v", err)
 		}
@@ -439,7 +432,6 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(s3.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -454,14 +446,13 @@ func TestLeader_ReapServer(t *testing.T) {
 	knownMembers[s1.config.NodeName] = struct{}{}
 	knownMembers[s2.config.NodeName] = struct{}{}
 
-	err := s1.reconcileReaped(knownMembers)
+	err := s1.reconcileReaped(knownMembers, nil)
 
 	if err != nil {
 		t.Fatalf("Unexpected error :%v", err)
 	}
 	// s3 should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(s3.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -517,7 +508,6 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	// Node should be gone
 	state := s1.fsm.State()
-	// TODO(partitions)
 	_, node, err := state.GetNode("no-longer-around", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -551,7 +541,6 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	// TODO(partitions)
 	_, node, err := state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -562,7 +551,6 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -595,7 +583,6 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	state := s1.fsm.State()
 	var nodeAddr string
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -632,7 +619,6 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	if err := s1.reconcile(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	// TODO(partitions)
 	_, node, err := state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -657,7 +643,6 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	})
 
 	// Make sure the metadata didn't get clobbered.
-	// TODO(partitions)
 	_, node, err = state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -773,7 +758,6 @@ func TestLeader_LeftLeader(t *testing.T) {
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		// TODO(partitions)
 		_, node, err := state.GetNode(leader.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
