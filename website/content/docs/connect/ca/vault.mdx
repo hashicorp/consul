@@ -30,45 +30,80 @@ must be met:
 
 ## Configuration
 
-The Vault CA is enabled by setting the `ca_provider` to `"vault"` and
-setting the required configuration values. An example configuration
-is shown below:
+The Vault CA is enabled by setting the CA provider to `"vault"` and
+setting the required configuration values.
+
+The configuration may either be provided in the agent's configuration file using
+the [`ca_provider`] and [`ca_config`] options, or configured using the
+[`/connect/ca/configuration`] API endpoint.
+
+Example configurations are shown below:
+
+<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+
+<CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6-9">
 
 ```hcl
+# ...
 connect {
-    enabled = true
-    ca_provider = "vault"
-    ca_config {
-        address = "http://localhost:8200"
-        token = "..."
-        root_pki_path = "connect-root"
-        intermediate_pki_path = "connect-intermediate"
-    }
+  enabled = true
+  ca_provider = "vault"
+  ca_config {
+    address = "http://localhost:8200"
+    token = "..."
+    root_pki_path = "connect-root"
+    intermediate_pki_path = "connect-intermediate"
+  }
 }
 ```
 
-The configuration options are listed below. Note, the
-first key is the value used in API calls and the second key (after the `/`)
-is used if you're adding configuring to the agent's configuration file.
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="2,4-7">
+
+```json
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "http://localhost:8200",
+    "Token": "<token>",
+    "RootPKIPath": "connect-root",
+    "IntermediatePKIPath": "connect-intermediate"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+The configuration options are listed below.
+
+-> **Note**: The first key is the value used in API calls, and the second key
+   (after the `/`) is used if you are adding the configuration to the agent's
+   configuration file.
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
   server.
 
 - `Token` / `token` (`string: <required>`) - A token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
-  This token must have proper privileges for the PKI paths configured. In Consul
-  1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+  This token must have [proper privileges](#vault-acl-policies) for the PKI
+  paths configured. In Consul 1.8.5 and later, if the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
   flag set, Consul will attempt to renew its lease periodically after half the
   duration has expired.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
-  a PKI secrets engine for the root certificate. If the path doesn't
-  exist, Consul will attempt to mount and configure this automatically.
+  a PKI secrets engine for the root certificate. If the path does not
+  exist, Consul will mount a new PKI secrets engine at the specified path with
+  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
+  of 8760 hours, or 1 year. This TTL value specifies the expiry period of the
+  root certificate and is currently not configurable.
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.
   This certificate will be signed by the configured root PKI path. If this
-  path doesn't exist, Consul will attempt to mount and configure this
+  path does not exist, Consul will attempt to mount and configure this
   automatically.
 
 - `CAFile` / `ca_file` (`string: ""`) - Specifies an optional path to the CA
@@ -81,18 +116,20 @@ is used if you're adding configuring to the agent's configuration file.
   varies by OS and version.
 
 - `CertFile` / `cert_file` (`string: ""`) - Specifies the path to the
-  certificate used for Vault communication. If this is set then you need to
-  also set tls_key_file.
+  certificate used for Vault communication. If this is set, then you also need to
+  set `key_file`.
 
 - `KeyFile` / `key_file` (`string: ""`) - Specifies the path to the private
-  key used for Vault communication. If this is set then you need to also set
-  cert_file.
+  key used for Vault communication. If this is set, then you also need to set
+  `cert_file`.
 
 - `TLSServerName` / `tls_server_name` (`string: ""`) - Specifies an optional
   string used to set the SNI host when connecting to Vault via TLS.
 
 - `TLSSkipVerify` / `tls_skip_verify` (`bool: false`) - Specifies if SSL peer
   validation should be enforced.
+
+@include 'http_api_connect_ca_common_options.mdx'
 
 ## Root and Intermediate PKI Paths
 
@@ -124,6 +161,8 @@ granted full control of the Intermediate or Leaf CA for Connect clients.
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
 
+<CodeBlockConfig filename="vault-managed-pki-policy.hcl">
+
 ```hcl
 # Existing PKI Mounts
 path "/sys/mounts" {
@@ -149,7 +188,17 @@ path "/connect_root/root/sign-intermediate" {
 path "/connect_inter/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
+
+path "auth/token/renew-self" {
+	capabilities = [ "update" ]
+}
+
+path "auth/token/lookup-self" {
+	capabilities = [ "read" ]
+}
 ```
+
+</CodeBlockConfig>
 
 ### Consul Managed PKI Paths
 
@@ -159,6 +208,8 @@ control of the Root and Intermediate or Leaf CA for Connect clients.
 
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
+
+<CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
 ```hcl
 # Consul Managed PKI Mounts
@@ -182,3 +233,10 @@ path "/connect_inter/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 ```
+
+</CodeBlockConfig>
+
+<!-- Reference style links -->
+[`ca_config`]: /docs/agent/options#connect_ca_config
+[`ca_provider`]: /docs/agent/options#connect_ca_provider
+[`/connect/ca/configuration`]: /api-docs/connect/ca#update-ca-configuration
