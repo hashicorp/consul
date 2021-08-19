@@ -243,7 +243,7 @@ func xdsNewPublicTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, true, true, "", connect.SpiffeIDService{})
+	return xdsNewTransportSocket(t, snap, true, true, "")
 }
 
 func xdsNewUpstreamTransportSocket(
@@ -278,7 +278,7 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
-	if uri[0].Service != "" {
+	if len(uri) > 0 {
 		require.NoError(t, injectSANMatcher(commonTLSContext, uri...))
 	}
 
