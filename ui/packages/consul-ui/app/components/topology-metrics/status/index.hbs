@@ -1,10 +1,12 @@
-{{#if (eq @kind 'ingress-gateway')}}
-  <span class="topology-metrics-error">{{t "components.consul.topology-metrics.status.ingress-gateway"}}</span>
-{{else if @noMetricsReason}}
+{{#if (eq @noMetricsReason 'ingress-gateway')}}
+  <span class="topology-metrics-error">
+    {{t "components.consul.topology-metrics.status.ingress-gateway"}}
+  </span>
+{{else if (eq @noMetricsReason 'remote-dc')}}
   <span class="topology-metrics-error">
     {{t "components.consul.topology-metrics.status.error"}}
     <span>
-      <Tooltip>{{@noMetricsReason}}</Tooltip>
+      <Tooltip>{{t "components.consul.topology-metrics.status.remote-dc"}}</Tooltip>
     </span>
   </span>
 {{else if @error}}

@@ -158,6 +158,7 @@ topology-metrics:
       action: Documentation
   status:
     error: Unable to load metrics
+    remote-dc: Unable to fetch metrics for a remote datacenter
     loading: Loading metrics
     ingress-gateway: Viewing metrics for Ingress Gateways is not currently supported in the UI.
 source:
