@@ -51,13 +51,25 @@ func indexFromServiceNameAsString(arg interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// uuidStringToBytes is a modified version of memdb.UUIDFieldIndex.parseString
 func uuidStringToBytes(uuid string) ([]byte, error) {
-	l := len(uuid)
-	if l != 36 {
+	// Verify the length
+	if l := len(uuid); l != 36 {
 		return nil, fmt.Errorf("UUID must be 36 characters")
 	}
+	return parseUUIDString(uuid)
+}
 
+func variableLengthUUIDStringToBytes(uuid string) ([]byte, error) {
+	// Verify the length
+	if l := len(uuid); l > 36 {
+		return nil, fmt.Errorf("Invalid UUID length. UUID have 36 characters; got %d", l)
+	}
+	return parseUUIDString(uuid)
+}
+
+// parseUUIDString is a modified version of memdb.UUIDFieldIndex.parseString.
+// Callers should verify the length.
+func parseUUIDString(uuid string) ([]byte, error) {
 	hyphens := strings.Count(uuid, "-")
 	if hyphens > 4 {
 		return nil, fmt.Errorf(`UUID should have maximum of 4 "-"; got %d`, hyphens)
@@ -82,4 +94,37 @@ func uuidStringToBytes(uuid string) ([]byte, error) {
 type BoolQuery struct {
 	Value bool
 	structs.EnterpriseMeta
+}
+
+// KeyValueQuery is a type used to query for both a key and a value that may
+// include an enterprise identifier.
+type KeyValueQuery struct {
+	Key   string
+	Value string
+	structs.EnterpriseMeta
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q KeyValueQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q KeyValueQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
+func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
+	// NOTE: this is case-sensitive!
+	q, ok := arg.(KeyValueQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
+	}
+
+	var b indexBuilder
+	b.String(q.Key)
+	b.String(q.Value)
+	return b.Bytes(), nil
 }

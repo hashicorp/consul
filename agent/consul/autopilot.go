@@ -6,11 +6,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 var AutopilotGauges = []prometheus.GaugeDefinition{
@@ -127,7 +129,7 @@ func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.S
 	// populate the node meta if there is any. When a node first joins or if
 	// there are ACL issues then this could be empty if the server has not
 	// yet been able to register itself in the catalog
-	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID))
+	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID), structs.NodeEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving node from state store: %w", err)
 	}
