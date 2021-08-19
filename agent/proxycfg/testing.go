@@ -144,11 +144,11 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 	}
 }
 
-func TestPreparedQueryNodes(t testing.T, service string) structs.CheckServiceNodes {
-
-	// The service instances targeted by the prepared query are given the slightly different name
-	// "geo-cache-target" to ensure we don't use the prepared query's name for SAN validation.
-	// The name of prepared queries won't always match the name of the service they target.
+// TestPreparedQueryNodes returns instances of a service spread across two datacenters.
+// The service instance names use a "-target" suffix to ensure we don't use the
+// prepared query's name for SAN validation.
+// The name of prepared queries won't always match the name of the service they target.
+func TestPreparedQueryNodes(t testing.T, query string) structs.CheckServiceNodes {
 	nodes := structs.CheckServiceNodes{
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -159,10 +159,10 @@ func TestPreparedQueryNodes(t testing.T, service string) structs.CheckServiceNod
 			},
 			Service: &structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
-				Service: service + "-sidecar-proxy",
+				Service: query + "-sidecar-proxy",
 				Port:    8080,
 				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: service + "-target",
+					DestinationServiceName: query + "-target",
 				},
 			},
 		},
@@ -175,7 +175,7 @@ func TestPreparedQueryNodes(t testing.T, service string) structs.CheckServiceNod
 			},
 			Service: &structs.NodeService{
 				Kind:    structs.ServiceKindTypical,
-				Service: service + "-target",
+				Service: query + "-target",
 				Port:    8080,
 				Connect: structs.ServiceConnect{Native: true},
 			},
