@@ -105,8 +105,6 @@ export default class TopologyMetrics extends Component {
   calculate() {
     if (this.args.isRemoteDC) {
       this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
-    } else if (this.args.service.Service.Kind === 'ingress-gateway') {
-      this.noMetricsReason = 'Unable to fetch metrics for a ingress gateway';
     } else {
       this.noMetricsReason = null;
     }

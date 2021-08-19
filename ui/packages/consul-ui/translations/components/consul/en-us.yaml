@@ -158,8 +158,8 @@ topology-metrics:
       action: Documentation
   status:
     error: Unable to load metrics
-    loading: Loading Metrics
-    ingress-gateway: Viewing metrics for ingress gateways is not currently supported in the UI.
+    loading: Loading metrics
+    ingress-gateway: Viewing metrics for Ingress Gateways is not currently supported in the UI.
 source:
   header: This is not a registered Consul service. It’s a routing configuration that routes traffic to real services in Consul. For more information, read our documentation.
   menu-title: About Routing Configs
