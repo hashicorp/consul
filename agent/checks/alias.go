@@ -108,7 +108,7 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 	}
 
 	updateStatus := func() {
-		checks := c.Notify.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
+		checks := c.Notify.Checks(c.WildcardEnterpriseMetaForPartition())
 		checksList := make([]*structs.HealthCheck, 0, len(checks))
 		for _, chk := range checks {
 			checksList = append(checksList, chk)

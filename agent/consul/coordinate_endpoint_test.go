@@ -84,14 +84,12 @@ func TestCoordinate_Update(t *testing.T) {
 	// Make sure the updates did not yet apply because the update period
 	// hasn't expired.
 	state := s1.fsm.State()
-	// TODO(partitions)
 	_, c, err := state.Coordinate(nil, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	require.Equal(t, lib.CoordinateSet{}, c)
 
-	// TODO(partitions)
 	_, c, err = state.Coordinate(nil, "node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -107,7 +105,6 @@ func TestCoordinate_Update(t *testing.T) {
 
 	// Wait a while and the updates should get picked up.
 	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
-	// TODO(partitions)
 	_, c, err = state.Coordinate(nil, "node1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -117,7 +114,6 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 	require.Equal(t, expected, c)
 
-	// TODO(partitions)
 	_, c, err = state.Coordinate(nil, "node2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -157,7 +153,6 @@ func TestCoordinate_Update(t *testing.T) {
 	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	numDropped := 0
 	for i := 0; i < spamLen; i++ {
-		// TODO(partitions)
 		_, c, err = state.Coordinate(nil, fmt.Sprintf("bogusnode%d", i), nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)

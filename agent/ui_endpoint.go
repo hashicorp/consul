@@ -603,6 +603,9 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	s.clearTokenFromHeaders(req)
 
 	var entMeta structs.EnterpriseMeta
+	if err := parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
@@ -611,9 +614,8 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// This endpoint requires wildcard read on all services and all nodes.
 	//
 	// In enterprise it requires this _in all namespaces_ too.
-	wildMeta := structs.WildcardEnterpriseMetaInDefaultPartition()
 	var authzContext acl.AuthorizerContext
-	wildMeta.FillAuthzContext(&authzContext)
+	entMeta.WildcardEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
 
 	if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied

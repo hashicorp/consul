@@ -58,6 +58,7 @@ type Config struct {
 	DiscardCheckOutput  bool
 	NodeID              types.NodeID
 	NodeName            string
+	Partition           string // this defaults if empty
 	TaggedAddresses     map[string]string
 }
 
@@ -176,6 +177,8 @@ type State struct {
 	// Config is the agent config
 	config Config
 
+	agentEnterpriseMeta structs.EnterpriseMeta
+
 	// nodeInfoInSync tracks whether the server has our correct top-level
 	// node information in sync
 	nodeInfoInSync bool
@@ -208,14 +211,15 @@ type State struct {
 // NewState creates a new local state for the agent.
 func NewState(c Config, logger hclog.Logger, tokens *token.Store) *State {
 	l := &State{
-		config:         c,
-		logger:         logger,
-		services:       make(map[structs.ServiceID]*ServiceState),
-		checks:         make(map[structs.CheckID]*CheckState),
-		checkAliases:   make(map[structs.ServiceID]map[structs.CheckID]chan<- struct{}),
-		metadata:       make(map[string]string),
-		tokens:         tokens,
-		notifyHandlers: make(map[chan<- struct{}]struct{}),
+		config:              c,
+		logger:              logger,
+		services:            make(map[structs.ServiceID]*ServiceState),
+		checks:              make(map[structs.CheckID]*CheckState),
+		checkAliases:        make(map[structs.ServiceID]map[structs.CheckID]chan<- struct{}),
+		metadata:            make(map[string]string),
+		tokens:              tokens,
+		notifyHandlers:      make(map[chan<- struct{}]struct{}),
+		agentEnterpriseMeta: *structs.NodeEnterpriseMetaInPartition(c.Partition),
 	}
 	l.SetDiscardCheckOutput(c.DiscardCheckOutput)
 	return l
@@ -265,6 +269,10 @@ func (l *State) addServiceLocked(service *structs.NodeService, token string) err
 	// use the service name as id if the id was omitted
 	if service.ID == "" {
 		service.ID = service.Service
+	}
+
+	if l.agentEnterpriseMeta.PartitionOrDefault() != service.PartitionOrDefault() {
+		return fmt.Errorf("cannot add service %q to node in partition %q", service.CompoundServiceID(), l.config.Partition)
 	}
 
 	l.setServiceStateLocked(&ServiceState{
@@ -340,8 +348,8 @@ func (l *State) removeServiceLocked(id structs.ServiceID) error {
 	return nil
 }
 
-// Service returns the locally registered service that the
-// agent is aware of and are being kept in sync with the server
+// Service returns the locally registered service that the agent is aware of
+// with this ID and are being kept in sync with the server.
 func (l *State) Service(id structs.ServiceID) *structs.NodeService {
 	l.RLock()
 	defer l.RUnlock()
@@ -353,9 +361,43 @@ func (l *State) Service(id structs.ServiceID) *structs.NodeService {
 	return s.Service
 }
 
-// Services returns the locally registered services that the
+// ServicesByName returns all the locally registered service instances that the
+// agent is aware of with this name and are being kept in sync with the server
+func (l *State) ServicesByName(sn structs.ServiceName) []*structs.NodeService {
+	l.RLock()
+	defer l.RUnlock()
+
+	var found []*structs.NodeService
+	for id, s := range l.services {
+		if s.Deleted {
+			continue
+		}
+
+		if !sn.EnterpriseMeta.Matches(&id.EnterpriseMeta) {
+			continue
+		}
+		if s.Service.Service == sn.Name {
+			found = append(found, s.Service)
+		}
+	}
+	return found
+}
+
+// AllServices returns the locally registered services that the
 // agent is aware of and are being kept in sync with the server
+func (l *State) AllServices() map[structs.ServiceID]*structs.NodeService {
+	return l.listServices(false, nil)
+}
+
+// Services returns the locally registered services that the agent is aware of
+// and are being kept in sync with the server
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
+	return l.listServices(true, entMeta)
+}
+
+func (l *State) listServices(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.ServiceID]*structs.NodeService {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -365,7 +407,7 @@ func (l *State) Services(entMeta *structs.EnterpriseMeta) map[structs.ServiceID]
 			continue
 		}
 
-		if !entMeta.Matches(&id.EnterpriseMeta) {
+		if filtered && !entMeta.Matches(&id.EnterpriseMeta) {
 			continue
 		}
 		m[id] = s.Service
@@ -394,6 +436,10 @@ func (l *State) ServiceState(id structs.ServiceID) *ServiceState {
 func (l *State) SetServiceState(s *ServiceState) {
 	l.Lock()
 	defer l.Unlock()
+
+	if l.agentEnterpriseMeta.PartitionOrDefault() != s.Service.PartitionOrDefault() {
+		return
+	}
 
 	l.setServiceStateLocked(s)
 }
@@ -483,14 +529,18 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 		check.Output = ""
 	}
 
+	// hard-set the node name and partition
+	check.Node = l.config.NodeName
+	check.EnterpriseMeta = structs.NewEnterpriseMetaWithPartition(
+		l.agentEnterpriseMeta.PartitionOrEmpty(),
+		check.NamespaceOrEmpty(),
+	)
+
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
 	if _, ok := l.services[check.CompoundServiceID()]; check.ServiceID != "" && !ok {
 		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
 	}
-
-	// hard-set the node name
-	check.Node = l.config.NodeName
 
 	l.setCheckStateLocked(&CheckState{
 		Check: check,
@@ -509,6 +559,13 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.ServiceID, notifyCh chan<- struct{}) error {
 	l.Lock()
 	defer l.Unlock()
+
+	if l.agentEnterpriseMeta.PartitionOrDefault() != checkID.PartitionOrDefault() {
+		return fmt.Errorf("cannot add alias check %q to node in partition %q", checkID.String(), l.config.Partition)
+	}
+	if l.agentEnterpriseMeta.PartitionOrDefault() != srcServiceID.PartitionOrDefault() {
+		return fmt.Errorf("cannot add alias check for %q to node in partition %q", srcServiceID.String(), l.config.Partition)
+	}
 
 	m, ok := l.checkAliases[srcServiceID]
 	if !ok {
@@ -663,11 +720,23 @@ func (l *State) Check(id structs.CheckID) *structs.HealthCheck {
 	return c.Check
 }
 
+// AllChecks returns the locally registered checks that the
+// agent is aware of and are being kept in sync with the server
+func (l *State) AllChecks() map[structs.CheckID]*structs.HealthCheck {
+	return l.listChecks(false, nil)
+}
+
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) Checks(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
+	return l.listChecks(true, entMeta)
+}
+
+func (l *State) listChecks(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	m := make(map[structs.CheckID]*structs.HealthCheck)
-	for id, c := range l.CheckStates(entMeta) {
+	for id, c := range l.listCheckStates(filtered, entMeta) {
 		m[id] = c.Check
 	}
 	return m
@@ -719,6 +788,10 @@ func (l *State) SetCheckState(c *CheckState) {
 	l.Lock()
 	defer l.Unlock()
 
+	if l.agentEnterpriseMeta.PartitionOrDefault() != c.Check.PartitionOrDefault() {
+		return
+	}
+
 	l.setCheckStateLocked(c)
 }
 
@@ -737,11 +810,25 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	l.TriggerSyncChanges()
 }
 
+// AllCheckStates returns a shallow copy of all health check state records.
+// The map contains a shallow copy of the current check states.
+//
+// The defer timers still point to the original values and must not be modified.
+func (l *State) AllCheckStates() map[structs.CheckID]*CheckState {
+	return l.listCheckStates(false, nil)
+}
+
 // CheckStates returns a shallow copy of all health check state records.
 // The map contains a shallow copy of the current check states.
 //
 // The defer timers still point to the original values and must not be modified.
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+	return l.listCheckStates(true, entMeta)
+}
+
+func (l *State) listCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -750,7 +837,7 @@ func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID
 		if c.Deleted {
 			continue
 		}
-		if !entMeta.Matches(&id.EnterpriseMeta) {
+		if filtered && !entMeta.Matches(&id.EnterpriseMeta) {
 			continue
 		}
 		m[id] = c.Clone()
@@ -758,12 +845,27 @@ func (l *State) CheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID
 	return m
 }
 
+// AllCriticalCheckStates returns the locally registered checks that the
+// agent is aware of and are being kept in sync with the server.
+// The map contains a shallow copy of the current check states.
+//
+// The defer timers still point to the original values and must not be modified.
+func (l *State) AllCriticalCheckStates() map[structs.CheckID]*CheckState {
+	return l.listCriticalCheckStates(false, nil)
+}
+
 // CriticalCheckStates returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server.
 // The map contains a shallow copy of the current check states.
 //
 // The defer timers still point to the original values and must not be modified.
+//
+// Results are scoped to the provided namespace and partition.
 func (l *State) CriticalCheckStates(entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
+	return l.listCriticalCheckStates(true, entMeta)
+}
+
+func (l *State) listCriticalCheckStates(filtered bool, entMeta *structs.EnterpriseMeta) map[structs.CheckID]*CheckState {
 	l.RLock()
 	defer l.RUnlock()
 
@@ -772,7 +874,7 @@ func (l *State) CriticalCheckStates(entMeta *structs.EnterpriseMeta) map[structs
 		if c.Deleted || !c.Critical() {
 			continue
 		}
-		if !entMeta.Matches(&id.EnterpriseMeta) {
+		if filtered && !entMeta.Matches(&id.EnterpriseMeta) {
 			continue
 		}
 		m[id] = c.Clone()
@@ -887,7 +989,7 @@ func (l *State) updateSyncState() error {
 			AllowStale:       true,
 			MaxStaleDuration: fullSyncReadMaxStale,
 		},
-		EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: *l.agentEnterpriseMeta.WildcardEnterpriseMetaForPartition(),
 	}
 
 	var out1 structs.IndexedNodeServiceList
@@ -958,7 +1060,7 @@ func (l *State) updateSyncState() error {
 		if ls == nil {
 			// The consul service is managed automatically and does
 			// not need to be deregistered
-			if id == structs.ConsulCompoundServiceID {
+			if structs.IsConsulServiceID(id) {
 				continue
 			}
 
@@ -1002,7 +1104,7 @@ func (l *State) updateSyncState() error {
 		if lc == nil {
 			// The Serf check is created automatically and does not
 			// need to be deregistered.
-			if id == structs.SerfCompoundCheckID {
+			if structs.IsSerfCheckID(id) {
 				l.logger.Debug("Skipping remote check since it is managed automatically", "check", structs.SerfCheckID)
 				continue
 			}
@@ -1366,6 +1468,7 @@ func (l *State) syncNodeInfo() error {
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
 		NodeMeta:        l.metadata,
+		EnterpriseMeta:  l.agentEnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: at},
 	}
 	var out struct{}

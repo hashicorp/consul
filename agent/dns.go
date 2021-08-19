@@ -122,6 +122,8 @@ type DNSServer struct {
 	// recursorEnabled stores whever the recursor handler is enabled as an atomic flag.
 	// the recursor handler is only enabled if recursors are configured. This flag is used during config hot-reloading
 	recursorEnabled uint32
+
+	defaultEnterpriseMeta structs.EnterpriseMeta
 }
 
 func NewDNSServer(a *Agent) (*DNSServer, error) {
@@ -130,10 +132,11 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 	altDomain := dns.Fqdn(strings.ToLower(a.config.DNSAltDomain))
 
 	srv := &DNSServer{
-		agent:     a,
-		domain:    domain,
-		altDomain: altDomain,
-		logger:    a.logger.Named(logging.DNS),
+		agent:                 a,
+		domain:                domain,
+		altDomain:             altDomain,
+		logger:                a.logger.Named(logging.DNS),
+		defaultEnterpriseMeta: *a.agentEnterpriseMeta(),
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {
@@ -414,7 +417,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 				AllowStale: cfg.AllowStale,
 			},
 			ServiceAddress: serviceAddress,
-			EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
+			EnterpriseMeta: *d.defaultEnterpriseMeta.WildcardEnterpriseMetaForPartition(),
 		}
 
 		var sout structs.IndexedServiceNodes
@@ -548,7 +551,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 		Service:        structs.ConsulServiceName,
 		Connect:        false,
 		Ingress:        false,
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: d.defaultEnterpriseMeta,
 	})
 	if err != nil {
 		d.logger.Warn("Unable to get list of servers", "error", err)
@@ -645,8 +648,8 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
-	// have to deref to clone it so we don't modify
-	var entMeta structs.EnterpriseMeta
+	// have to deref to clone it so we don't modify (start from the agent's defaults)
+	var entMeta = d.defaultEnterpriseMeta
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
@@ -1316,9 +1319,10 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, datacenter, query string
 		// send the local agent's data through to allow distance sorting
 		// relative to ourself on the server side.
 		Agent: structs.QuerySource{
-			Datacenter: d.agent.config.Datacenter,
-			Segment:    d.agent.config.SegmentName,
-			Node:       d.agent.config.NodeName,
+			Datacenter:    d.agent.config.Datacenter,
+			Segment:       d.agent.config.SegmentName,
+			Node:          d.agent.config.NodeName,
+			NodePartition: d.agent.config.PartitionOrEmpty(),
 		},
 	}
 

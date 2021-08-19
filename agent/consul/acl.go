@@ -1457,6 +1457,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 	}
 
 	var authzContext acl.AuthorizerContext
+	// TODO(partitions): put partition into this wildcard?
 	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
@@ -1481,6 +1482,7 @@ func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
 	}
 
 	var authzContext acl.AuthorizerContext
+	// TODO(partitions): put partition into this wildcard?
 	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
@@ -1578,6 +1580,7 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	c := *coords
 	var authzContext acl.AuthorizerContext
+	// TODO(partitions): put partition into this wildcard?
 	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(c); i++ {
@@ -1619,6 +1622,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info := nd[i]
 
 		// Filter nodes
+		// TODO(partitions): put partition into this wildcard?
 		structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 		if node := info.Node; !f.allowNode(node, &authzContext) {
 			f.logger.Debug("dropping node from result due to ACLs", "node", node)
@@ -1687,6 +1691,7 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 	n := *nodes
 
 	var authzContext acl.AuthorizerContext
+	// TODO(partitions): put partition into this wildcard?
 	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(n); i++ {

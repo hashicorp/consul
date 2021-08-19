@@ -4180,7 +4180,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				resp.Body.String())
 
 			// Sanity the target service registration
-			svcs := a.State.Services(nil)
+			svcs := a.State.AllServices()
 
 			// Parse the expected definition into a ServiceDefinition
 			var sd structs.ServiceDefinition
@@ -4229,7 +4229,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				require.NoError(err)
 				require.Nil(obj)
 
-				svcs := a.State.Services(nil)
+				svcs := a.State.AllServices()
 				_, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 				if tt.wantSidecarIDLeftAfterDereg {
 					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)

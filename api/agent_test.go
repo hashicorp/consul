@@ -15,10 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestAPI_AgentSelf(t *testing.T) {
@@ -793,6 +794,7 @@ func TestAPI_AgentService(t *testing.T) {
 		},
 		Meta:       map[string]string{},
 		Namespace:  defaultNamespace,
+		Partition:  defaultPartition,
 		Datacenter: "dc1",
 	}
 	require.Equal(expect, got)

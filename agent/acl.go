@@ -87,6 +87,8 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 }
 
 func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *structs.HealthCheck) error {
+	// TODO(partitions)
+
 	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
 	// Vet the check itself.
@@ -147,7 +149,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	}
 
 	var authzContext acl.AuthorizerContext
-	structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	a.agentEnterpriseMeta().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
 	for i := 0; i < len(m); i++ {
@@ -188,7 +190,8 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		} else {
-			structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+			// TODO(partition): should this be a Default or Node flavored entmeta?
+			check.NodeEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
 			if authz.NodeRead(a.config.NodeName, &authzContext) == acl.Allow {
 				continue
 			}

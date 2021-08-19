@@ -82,6 +82,9 @@ func (s *HTTPHandlers) CoordinateNodes(resp http.ResponseWriter, req *http.Reque
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	if err := parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var out structs.IndexedCoordinates
 	defer setMeta(resp, &out.QueryMeta)
@@ -104,6 +107,9 @@ func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Reques
 	args := structs.NodeSpecificRequest{Node: node}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+	if err := parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
 	}
 
 	var out structs.IndexedCoordinates
@@ -157,6 +163,10 @@ func (s *HTTPHandlers) CoordinateUpdate(resp http.ResponseWriter, req *http.Requ
 	}
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
+
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
 	var reply struct{}
 	if err := s.agent.RPC("Coordinate.Update", &args, &reply); err != nil {

@@ -3,10 +3,11 @@ package consul
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/types"
 )
 
 // lanMergeDelegate is used to handle a cluster merge on the LAN gossip
@@ -17,6 +18,14 @@ type lanMergeDelegate struct {
 	nodeID   types.NodeID
 	nodeName string
 	segment  string
+
+	// TODO(partitions): use server and partition to reject gossip messages
+	// from nodes in the wrong partition depending upon the role the node is
+	// playing. For example servers will always be in the default partition,
+	// but all clients in all partitions should be aware of the servers so that
+	// general RPC routing works.
+	server    bool
+	partition string
 }
 
 // uniqueIDMinVersion is the lowest version where we insist that nodes

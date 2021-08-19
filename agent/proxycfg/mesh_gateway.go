@@ -29,12 +29,14 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 		return snap, err
 	}
 
+	wildcardEntMeta := s.proxyID.WildcardEnterpriseMetaForPartition()
+
 	// Watch for all services
 	err = s.cache.Notify(ctx, cachetype.CatalogServiceListName, &structs.DCSpecificRequest{
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		Source:         *s.source,
-		EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: *wildcardEntMeta,
 	}, serviceListWatchID, s.ch)
 
 	if err != nil {
@@ -85,7 +87,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 		Datacenter:     s.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: s.token},
 		Kind:           structs.ServiceResolver,
-		EnterpriseMeta: *structs.WildcardEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: *wildcardEntMeta,
 	}, serviceResolversWatchID, s.ch)
 	if err != nil {
 		s.logger.Named(logging.MeshGateway).

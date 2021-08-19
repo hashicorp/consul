@@ -434,6 +434,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
+		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
 	for k, v := range cfg.TaggedAddresses {
@@ -561,8 +562,9 @@ func (a *Agent) Start(ctx context.Context) error {
 		State:  a.State,
 		Tokens: a.baseDeps.Tokens,
 		Source: &structs.QuerySource{
-			Datacenter: a.config.Datacenter,
-			Segment:    a.config.SegmentName,
+			Datacenter:    a.config.Datacenter,
+			Segment:       a.config.SegmentName,
+			NodePartition: a.config.PartitionOrEmpty(),
 		},
 		DNSConfig: proxycfg.DNSConfig{
 			Domain:    a.config.DNSDomain,
@@ -1529,11 +1531,13 @@ func (a *Agent) LocalMember() serf.Member {
 
 // LANMembers is used to retrieve the LAN members
 func (a *Agent) LANMembers() []serf.Member {
+	// TODO(partitions): filter this by the partition?
 	return a.delegate.LANMembers()
 }
 
 // WANMembers is used to retrieve the WAN members
 func (a *Agent) WANMembers() []serf.Member {
+	// TODO(partitions): filter this by the partition by omitting wan results for now?
 	if srv, ok := a.delegate.(*consul.Server); ok {
 		return srv.WANMembers()
 	}
@@ -1646,11 +1650,12 @@ OUTER:
 			for segment, coord := range cs {
 				agentToken := a.tokens.AgentToken()
 				req := structs.CoordinateUpdateRequest{
-					Datacenter:   a.config.Datacenter,
-					Node:         a.config.NodeName,
-					Segment:      segment,
-					Coord:        coord,
-					WriteRequest: structs.WriteRequest{Token: agentToken},
+					Datacenter:     a.config.Datacenter,
+					Node:           a.config.NodeName,
+					Segment:        segment,
+					Coord:          coord,
+					EnterpriseMeta: *a.agentEnterpriseMeta(),
+					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
 				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
@@ -1674,7 +1679,7 @@ OUTER:
 // reapServicesInternal does a single pass, looking for services to reap.
 func (a *Agent) reapServicesInternal() {
 	reaped := make(map[structs.ServiceID]bool)
-	for checkID, cs := range a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()) {
+	for checkID, cs := range a.State.AllCriticalCheckStates() {
 		serviceID := cs.Check.CompoundServiceID()
 
 		// There's nothing to do if there's no service.
@@ -2004,7 +2009,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	// Agent.Start does not have a snapshot, and we don't want to query
 	// State.Checks each time.
 	if req.checkStateSnapshot == nil {
-		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
+		req.checkStateSnapshot = a.State.AllChecks()
 	}
 
 	// Create an associated health check
@@ -2458,6 +2463,8 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		// Need its config to know whether we should reroute checks to it
 		var proxy *structs.NodeService
 		if service != nil {
+			// NOTE: Both services must live in the same namespace and
+			// partition so this will correctly scope the results.
 			for _, svc := range a.State.Services(&service.EnterpriseMeta) {
 				if svc.Proxy.DestinationServiceID == service.ID {
 					proxy = svc
@@ -2719,6 +2726,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var rpcReq structs.NodeSpecificRequest
 			rpcReq.Datacenter = a.config.Datacenter
+			rpcReq.EnterpriseMeta = *a.agentEnterpriseMeta()
 
 			// The token to set is really important. The behavior below follows
 			// the same behavior as anti-entropy: we use the user-specified token
@@ -3297,7 +3305,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 // unloadServices will deregister all services.
 func (a *Agent) unloadServices() error {
-	for id := range a.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition()) {
+	for id := range a.State.AllServices() {
 		if err := a.removeServiceLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering service '%s': %v", id, err)
 		}
@@ -3411,7 +3419,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 // unloadChecks will deregister all checks known to the local agent.
 func (a *Agent) unloadChecks() error {
-	for id := range a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition()) {
+	for id := range a.State.AllChecks() {
 		if err := a.removeCheckLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering check '%s': %s", id, err)
 		}
@@ -3423,7 +3431,7 @@ func (a *Agent) unloadChecks() error {
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
 func (a *Agent) snapshotCheckState() map[structs.CheckID]*structs.HealthCheck {
-	return a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
+	return a.State.AllChecks()
 }
 
 // loadMetadata loads node metadata fields from the agent config and
