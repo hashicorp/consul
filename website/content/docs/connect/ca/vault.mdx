@@ -30,27 +30,57 @@ must be met:
 
 ## Configuration
 
-The Vault CA is enabled by setting the `ca_provider` to `"vault"` and
-setting the required configuration values. An example configuration
-is shown below:
+The Vault CA is enabled by setting the CA provider to `"vault"` and
+setting the required configuration values.
+
+The configuration may either be provided in the agent's configuration file using
+the [`ca_provider`] and [`ca_config`]options, or configured using the
+[`/connect/ca/configuration`] API endpoint.
+
+Example configurations are shown below:
+
+<CodeTabs heading="Connect CA configuration" tabs={["Agent configuration", "API"]}>
+
+<CodeBlockConfig filename="/etc/consul.d/config.hcl" highlight="4,6-9">
 
 ```hcl
+# ...
 connect {
-    enabled = true
-    ca_provider = "vault"
-    ca_config {
-        address = "http://localhost:8200"
-        token = "..."
-        root_pki_path = "connect-root"
-        intermediate_pki_path = "connect-intermediate"
-    }
+  enabled = true
+  ca_provider = "vault"
+  ca_config {
+    address = "http://localhost:8200"
+    token = "..."
+    root_pki_path = "connect-root"
+    intermediate_pki_path = "connect-intermediate"
+  }
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="2,4-7">
+
+```json
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "http://localhost:8200",
+    "Token": "<token>",
+    "RootPKIPath": "connect-root",
+    "IntermediatePKIPath": "connect-intermediate"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
 
 The configuration options are listed below.
 
 -> **Note**: The first key is the value used in API calls, and the second key
-   (after the `/`) is used if you're adding the configuration to the agent's
+   (after the `/`) is used if you are adding the configuration to the agent's
    configuration file.
 
 - `Address` / `address` (`string: <required>`) - The address of the Vault
@@ -128,6 +158,8 @@ granted full control of the Intermediate or Leaf CA for Connect clients.
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
 
+<CodeBlockConfig filename="vault-managed-pki-policy.hcl">
+
 ```hcl
 # Existing PKI Mounts
 path "/sys/mounts" {
@@ -163,6 +195,8 @@ path "auth/token/lookup-self" {
 }
 ```
 
+</CodeBlockConfig>
+
 ### Consul Managed PKI Paths
 
 The following Vault policy allows Consul to create and manage the PKI paths in Vault.
@@ -171,6 +205,8 @@ control of the Root and Intermediate or Leaf CA for Connect clients.
 
 In this example the `RootPKIPath` is `connect_root` and the `IntermediatePKIPath`
 is `connect_inter`. These values should be updated for your environment.
+
+<CodeBlockConfig filename="consul-managed-pki-policy.hcl">
 
 ```hcl
 # Consul Managed PKI Mounts
@@ -194,3 +230,9 @@ path "/connect_inter/*" {
   capabilities = [ "create", "read", "update", "delete", "list" ]
 }
 ```
+
+</CodeBlockConfig>
+
+[`ca_config`]: /docs/agent/options#connect_ca_config
+[`ca_provider`]: /docs/agent/options#connect_ca_provider
+[`/connect/ca/configuration`]: /api-docs/connect/ca#update-ca-configuration

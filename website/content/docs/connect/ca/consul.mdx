@@ -31,11 +31,16 @@ The built-in CA provider has no required configuration. Enabling Connect
 alone will configure the built-in CA provider, and will automatically generate
 a root certificate and private key:
 
+<CodeBlockConfig filename="/etc/consul.d/config.hcl">
+
 ```hcl
+# ...
 connect {
   enabled = true
 }
 ```
+
+</CodeBlockConfig>
 
 The configuration options are listed below.
 
