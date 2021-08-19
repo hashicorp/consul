@@ -268,7 +268,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 				coords = append(coords, &structs.Coordinate{
 					Node:      args.Node,
 					Segment:   segment,
-					Partition: args.PartitionOrDefault(),
+					Partition: args.PartitionOrEmpty(),
 					Coord:     coord,
 				})
 			}
