@@ -31,7 +31,7 @@ Feature: dc / acls / policies / as many / add new: Add new policy
         Rules: key {}
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@!namespace" from yaml
     ---
       body:
         Policies:
@@ -55,7 +55,7 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     And I click serviceIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@!namespace" from yaml
     ---
       body:
         ServiceIdentities:
@@ -78,7 +78,7 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     And I click nodeIdentity on the policies.form
     And I click submit on the policies.form
     And I submit
-    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@namespace" from yaml
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter&ns=@!namespace" from yaml
     ---
       body:
         NodeIdentities:

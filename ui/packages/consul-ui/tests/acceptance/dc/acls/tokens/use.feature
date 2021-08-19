@@ -6,6 +6,7 @@ Feature: dc / acls / tokens / use: Using an ACL token
     ---
       AccessorID: token
       SecretID: ee52203d-989f-4f7a-ab5a-2bef004164ca
+      Namespace: @!namespace
     ---
     And settings from yaml
     ---

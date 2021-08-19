@@ -21,7 +21,7 @@ Feature: dc / acls / roles / as-many / remove: Remove
     And I click confirmDelete on the roles.selectedOptions
     And I see 0 role models on the roles component
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@!namespace" from yaml
     ---
       body:
         Roles: []
