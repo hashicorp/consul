@@ -1177,7 +1177,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
     The following providers are supported:
 
-    #### AWS ACM CA Provider (`ca_provider = "aws-pca"`)
+    #### AWS ACM Private CA Provider (`ca_provider = "aws-pca"`)
 
     - `existing_arn` ((#aws_ca_existing_arn)) The Amazon Resource Name (ARN) of
       an existing private CA in your ACM account. If specified, Consul will
