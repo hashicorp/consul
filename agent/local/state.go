@@ -437,7 +437,7 @@ func (l *State) SetServiceState(s *ServiceState) {
 	l.Lock()
 	defer l.Unlock()
 
-	if l.config.Partition != s.Service.PartitionOrDefault() {
+	if l.agentEnterpriseMeta.PartitionOrDefault() != s.Service.PartitionOrDefault() {
 		return
 	}
 
@@ -532,7 +532,8 @@ func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 	// hard-set the node name and partition
 	check.Node = l.config.NodeName
 	check.EnterpriseMeta = structs.NewEnterpriseMetaWithPartition(
-		l.config.Partition, check.NamespaceOrEmpty(),
+		l.agentEnterpriseMeta.PartitionOrEmpty(),
+		check.NamespaceOrEmpty(),
 	)
 
 	// if there is a serviceID associated with the check, make sure it exists before adding it
@@ -559,10 +560,10 @@ func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.Serv
 	l.Lock()
 	defer l.Unlock()
 
-	if l.config.Partition != checkID.PartitionOrDefault() {
+	if l.agentEnterpriseMeta.PartitionOrDefault() != checkID.PartitionOrDefault() {
 		return fmt.Errorf("cannot add alias check %q to node in partition %q", checkID.String(), l.config.Partition)
 	}
-	if l.config.Partition != srcServiceID.PartitionOrDefault() {
+	if l.agentEnterpriseMeta.PartitionOrDefault() != srcServiceID.PartitionOrDefault() {
 		return fmt.Errorf("cannot add alias check for %q to node in partition %q", srcServiceID.String(), l.config.Partition)
 	}
 
@@ -787,7 +788,7 @@ func (l *State) SetCheckState(c *CheckState) {
 	l.Lock()
 	defer l.Unlock()
 
-	if l.config.Partition != c.Check.PartitionOrDefault() {
+	if l.agentEnterpriseMeta.PartitionOrDefault() != c.Check.PartitionOrDefault() {
 		return
 	}
 
