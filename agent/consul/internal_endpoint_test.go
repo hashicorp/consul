@@ -1948,15 +1948,11 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 			require.Empty(r, out.ServiceTopology.Upstreams)
 
 			expectUp := map[string]structs.IntentionDecisionSummary{
-				"counting":       {DefaultAllow: true, Allowed: true},
-				"counting-v2":    {DefaultAllow: true, Allowed: true},
 				"routing-config": {DefaultAllow: true, Allowed: true},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
 
 			expectUpstreamSources := map[string]string{
-				"counting":       structs.TopologySourceDefaultAllow,
-				"counting-v2":    structs.TopologySourceDefaultAllow,
 				"routing-config": structs.TopologySourceRoutingConfig,
 			}
 			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)

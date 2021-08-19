@@ -1585,6 +1585,40 @@ func TestUIServiceTopology(t *testing.T) {
 				FilteredByACLs: false,
 			},
 		},
+		{
+			name: "redis",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
+				Protocol:         "http",
+				TransparentProxy: false,
+				Upstreams:        []*ServiceTopologySummary{},
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "web",
+							Datacenter:     "dc1",
+							Nodes:          []string{"bar", "baz"},
+							InstanceCount:  2,
+							ChecksPassing:  3,
+							ChecksWarning:  1,
+							ChecksCritical: 2,
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
+							Allowed:        false,
+							HasPermissions: true,
+							HasExact:       true,
+						},
+						Source: structs.TopologySourceRegistration,
+					},
+				},
+				FilteredByACLs: false,
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -1857,6 +1891,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 					{
 						ServiceSummary: ServiceSummary{
 							Name:             "routing-config",
+							Datacenter:       "dc1",
 							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
 							TransparentProxy: false,
 						},
