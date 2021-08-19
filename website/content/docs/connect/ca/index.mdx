@@ -16,7 +16,7 @@ The CA provider abstraction enables Consul to support multiple systems for
 storing and signing certificates. Consul ships with a
 [built-in CA](/docs/connect/ca/consul) which generates and stores the
 root certificate and private key on the Consul servers. Consul also has
-built-in support for
+support for using
 [Vault as a CA](/docs/connect/ca/vault). With Vault, the root certificate
 and private key material remain with the Vault cluster.
 
@@ -24,8 +24,8 @@ and private key material remain with the Vault cluster.
 
 CA initialization happens automatically when a new Consul leader is elected
 as long as
-[Connect is enabled](/docs/connect/configuration#agent-configuration)
-and the CA system hasn't already been initialized. This initialization process
+[Connect is enabled](/docs/connect/configuration#agent-configuration),
+and the CA system has not already been initialized. This initialization process
 will generate the initial root certificates and setup the internal Consul server
 state.
 
