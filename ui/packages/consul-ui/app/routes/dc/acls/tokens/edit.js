@@ -5,18 +5,14 @@ import { hash } from 'rsvp';
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
 
 export default class EditRoute extends SingleRoute.extend(WithTokenActions) {
-  @service('repository/token')
-  repo;
-
-  @service('settings')
-  settings;
+  @service('repository/token') repo;
+  @service('settings') settings;
 
   model(params, transition) {
     return super.model(...arguments).then(model => {
       return hash({
         ...model,
         ...{
-          routeName: this.routeName,
           token: this.settings.findBySlug('token'),
         },
       });
