@@ -38,9 +38,9 @@ Below are details on the types of execution conditions that Consul-Terraform-Syn
 
 ### Services Condition
 
-The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on changes to a list of configured services.
+The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
 
-In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services). The task's `condition` block can be left unconfigured since it is the default. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
+In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services) or a regex must be configured in the task's `condition` block. Only one of these two options can be configured for a single task. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
 
 The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
 
@@ -61,6 +61,43 @@ The services condition operates by monitoring the [Health List Nodes For Service
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
+The services condition is the default behavior if no `condition` block is configured for a task. The two tasks below have equivalent behavior, which is to execute when any of the listed services have changes to the previously stated attributes.
+
+```hcl
+task {
+  name = "services_condition_task_1"
+  description = "execute on changes to api, db, and web services"
+  providers = ["my-provider"]
+  source = "path/to/services-condition-module"
+  services = ["api", "db", "web"]
+}
+
+task {
+  name = "services_condition_task_2"
+  description = "execute on changes to api, db, and web services"
+  providers = ["my-provider"]
+  source = "path/to/services-condition-module"
+  services = ["api", "db", "web"]
+
+  condition "services" {
+  }
+}
+```
+
+Below is an example configuration for a task that will execute when a service with a name that matches the regular expression has a change. Note that because `regexp` is set, `task.services` is omitted.
+
+```hcl
+task {
+  name = "services_condition_task"
+  description = "execute on changes to services whose name starts with web"
+  providers = ["my-provider"]
+  source = "path/to/services-condition-module"
+
+  condition "services" {
+    regexp = "^web.*"
+  }
+}
+```
 
 ### Catalog-Services Condition
 
