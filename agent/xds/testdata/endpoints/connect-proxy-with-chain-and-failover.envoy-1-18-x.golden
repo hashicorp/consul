@@ -89,7 +89,7 @@
               "endpoint": {
                 "address": {
                   "socketAddress": {
-                    "address": "10.10.1.2",
+                    "address": "10.20.1.2",
                     "portValue": 8080
                   }
                 }

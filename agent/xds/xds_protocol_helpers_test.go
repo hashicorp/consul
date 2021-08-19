@@ -43,7 +43,7 @@ func newTestSnapshot(
 ) *proxycfg.ConfigSnapshot {
 	snap := proxycfg.TestConfigSnapshotDiscoveryChainDefaultWithEntries(t, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[string]structs.CheckServiceNodes{
-		"prepared_query:geo-cache": proxycfg.TestUpstreamNodes(t, "geo-cache"),
+		"prepared_query:geo-cache": proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}
 	if prevSnap != nil {
 		snap.Roots = prevSnap.Roots
@@ -250,9 +250,9 @@ func xdsNewUpstreamTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 	sni string,
-	uri connect.SpiffeIDService,
+	uri ...connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, false, false, sni, uri)
+	return xdsNewTransportSocket(t, snap, false, false, sni, uri...)
 }
 
 func xdsNewTransportSocket(
@@ -261,7 +261,7 @@ func xdsNewTransportSocket(
 	downstream bool,
 	requireClientCert bool,
 	sni string,
-	uri connect.SpiffeIDService,
+	uri ...connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
@@ -278,8 +278,8 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
-	if uri.Service != "" {
-		require.NoError(t, injectSANMatcher(commonTLSContext, uri))
+	if uri[0].Service != "" {
+		require.NoError(t, injectSANMatcher(commonTLSContext, uri...))
 	}
 
 	var tlsContext proto.Message
@@ -371,12 +371,20 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			Service:    "db",
 		}
 
-		geocacheSNI = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
-		geocacheURI = connect.SpiffeIDService{
-			Host:       "11111111-2222-3333-4444-555555555555.consul",
-			Namespace:  "default",
-			Datacenter: "dc1",
-			Service:    "geo-cache",
+		geocacheSNI  = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
+		geocacheURIs = []connect.SpiffeIDService{
+			{
+				Host:       "11111111-2222-3333-4444-555555555555.consul",
+				Namespace:  "default",
+				Datacenter: "dc1",
+				Service:    "geo-cache-target",
+			},
+			{
+				Host:       "11111111-2222-3333-4444-555555555555.consul",
+				Namespace:  "default",
+				Datacenter: "dc2",
+				Service:    "geo-cache-target",
+			},
 		}
 	)
 
@@ -483,7 +491,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
 			ConnectTimeout:   ptypes.DurationProto(5 * time.Second),
-			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, geocacheSNI, geocacheURI),
+			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, geocacheSNI, geocacheURIs...),
 		}
 	default:
 		t.Fatalf("unexpected fixture name: %s", fixtureName)
@@ -535,7 +543,7 @@ func makeTestEndpoints(t *testing.T, _ *proxycfg.ConfigSnapshot, fixtureName str
 				{
 					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
 						xdsNewEndpointWithHealth("10.10.1.1", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
-						xdsNewEndpointWithHealth("10.10.1.2", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
+						xdsNewEndpointWithHealth("10.20.1.2", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
 					},
 				},
 			},
