@@ -34,7 +34,7 @@ The Vault CA is enabled by setting the CA provider to `"vault"` and
 setting the required configuration values.
 
 The configuration may either be provided in the agent's configuration file using
-the [`ca_provider`] and [`ca_config`]options, or configured using the
+the [`ca_provider`] and [`ca_config`] options, or configured using the
 [`/connect/ca/configuration`] API endpoint.
 
 Example configurations are shown below:
@@ -95,7 +95,10 @@ The configuration options are listed below.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
   a PKI secrets engine for the root certificate. If the path does not
-  exist, Consul will attempt to mount and configure this automatically.
+  exist, Consul will mount a new PKI secrets engine at the specified path with
+  a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
+  of 8760 hours, or 1 year. This TTL value specifies the expiry period of the
+  root certificate and is currently not configurable.
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.
