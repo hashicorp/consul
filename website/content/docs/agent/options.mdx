@@ -1166,7 +1166,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     through mesh gateways. Defaults to false. This was added in Consul 1.8.0.
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
-    use for Connect's CA. Currently only the `consul` and `vault` providers are supported.
+    use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
     use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
 
@@ -1176,6 +1176,12 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     Endpoint](/api/connect/ca#update-ca-configuration).
 
     The following providers are supported:
+
+    #### AWS ACM CA Provider (`ca_provider = "aws-pca"`)
+
+    - `existing_arn` ((#aws_ca_existing_arn)) The Amazon Resource Name (ARN) of
+      an existing private CA in your ACM account. If specified, Consul will
+      attempt to use the existing CA to issue certificates.
 
     #### Consul CA Provider (`ca_provider = "consul"`)
 
