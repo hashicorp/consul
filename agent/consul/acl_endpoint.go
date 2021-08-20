@@ -1379,6 +1379,8 @@ func makeACLETag(parent string, policy *acl.Policy) string {
 
 // GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
 // support a blocking query.
+//
+// TODO(ACL-Legacy): remove this
 func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 	if done, err := a.srv.ForwardRPC("ACL.GetPolicy", args, reply); done {
 		return err

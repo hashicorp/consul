@@ -26,6 +26,7 @@ func legacyPolicy(policy *Policy) *Policy {
 			PreparedQueryPrefixes: policy.PreparedQueries,
 			Keyring:               policy.Keyring,
 			Operator:              policy.Operator,
+			Mesh:                  policy.Mesh,
 		},
 	}
 }
@@ -106,6 +107,14 @@ func checkAllowNodeReadAll(t *testing.T, authz Authorizer, _ string, entCtx *Aut
 
 func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.NodeWrite(prefix, entCtx))
+}
+
+func checkAllowMeshRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.MeshRead(entCtx))
+}
+
+func checkAllowMeshWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.MeshWrite(entCtx))
 }
 
 func checkAllowOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -220,6 +229,14 @@ func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *A
 	require.Equal(t, Deny, authz.NodeWrite(prefix, entCtx))
 }
 
+func checkDenyMeshRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.MeshRead(entCtx))
+}
+
+func checkDenyMeshWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.MeshWrite(entCtx))
+}
+
 func checkDenyOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.OperatorRead(entCtx))
 }
@@ -332,6 +349,14 @@ func checkDefaultNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx
 	require.Equal(t, Default, authz.NodeWrite(prefix, entCtx))
 }
 
+func checkDefaultMeshRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.MeshRead(entCtx))
+}
+
+func checkDefaultMeshWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.MeshWrite(entCtx))
+}
+
 func checkDefaultOperatorRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.OperatorRead(entCtx))
 }
@@ -407,6 +432,8 @@ func TestACL(t *testing.T) {
 				{name: "DenyNodeRead", check: checkDenyNodeRead},
 				{name: "DenyNodeReadAll", check: checkDenyNodeReadAll},
 				{name: "DenyNodeWrite", check: checkDenyNodeWrite},
+				{name: "DenyMeshRead", check: checkDenyMeshRead},
+				{name: "DenyMeshWrite", check: checkDenyMeshWrite},
 				{name: "DenyOperatorRead", check: checkDenyOperatorRead},
 				{name: "DenyOperatorWrite", check: checkDenyOperatorWrite},
 				{name: "DenyPreparedQueryRead", check: checkDenyPreparedQueryRead},
@@ -439,6 +466,8 @@ func TestACL(t *testing.T) {
 				{name: "AllowNodeRead", check: checkAllowNodeRead},
 				{name: "AllowNodeReadAll", check: checkAllowNodeReadAll},
 				{name: "AllowNodeWrite", check: checkAllowNodeWrite},
+				{name: "AllowMeshRead", check: checkAllowMeshRead},
+				{name: "AllowMeshWrite", check: checkAllowMeshWrite},
 				{name: "AllowOperatorRead", check: checkAllowOperatorRead},
 				{name: "AllowOperatorWrite", check: checkAllowOperatorWrite},
 				{name: "AllowPreparedQueryRead", check: checkAllowPreparedQueryRead},
@@ -471,6 +500,8 @@ func TestACL(t *testing.T) {
 				{name: "AllowNodeRead", check: checkAllowNodeRead},
 				{name: "AllowNodeReadAll", check: checkAllowNodeReadAll},
 				{name: "AllowNodeWrite", check: checkAllowNodeWrite},
+				{name: "AllowMeshRead", check: checkAllowMeshRead},
+				{name: "AllowMeshWrite", check: checkAllowMeshWrite},
 				{name: "AllowOperatorRead", check: checkAllowOperatorRead},
 				{name: "AllowOperatorWrite", check: checkAllowOperatorWrite},
 				{name: "AllowPreparedQueryRead", check: checkAllowPreparedQueryRead},
@@ -859,6 +890,319 @@ func TestACL(t *testing.T) {
 			checks: []aclCheck{
 				{name: "ReadDenied", check: checkDenyKeyringRead},
 				{name: "WriteDenied", check: checkDenyKeyringWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultAllowPolicyDeny",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Mesh: PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultAllowPolicyRead",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Mesh: PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultAllowPolicyWrite",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Mesh: PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultAllowPolicyNone",
+			defaultPolicy: AllowAll(),
+			policyStack: []*Policy{
+				{},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultDenyPolicyDeny",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Mesh: PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultDenyPolicyRead",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Mesh: PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultDenyPolicyWrite",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Mesh: PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			name:          "MeshDefaultDenyPolicyNone",
+			defaultPolicy: DenyAll(),
+			policyStack: []*Policy{
+				{},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:deny, m:deny = deny
+			name:          "MeshOperatorDenyPolicyDeny",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+						Mesh:     PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:read, m:deny = deny
+			name:          "MeshOperatorReadPolicyDeny",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+						Mesh:     PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:write, m:deny = deny
+			name:          "MeshOperatorWritePolicyDeny",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+						Mesh:     PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:deny, m:read = read
+			name:          "MeshOperatorDenyPolicyRead",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+						Mesh:     PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:read, m:read = read
+			name:          "MeshOperatorReadPolicyRead",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+						Mesh:     PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:write, m:read = read
+			name:          "MeshOperatorWritePolicyRead",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+						Mesh:     PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:deny, m:write = write
+			name:          "MeshOperatorDenyPolicyWrite",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+						Mesh:     PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			// o:read, m:write = write
+			name:          "MeshOperatorReadPolicyWrite",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+						Mesh:     PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			// o:write, m:write = write
+			name:          "MeshOperatorWritePolicyWrite",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+						Mesh:     PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
+			},
+		},
+		{
+			// o:deny, m:<none> = deny
+			name:          "MeshOperatorDenyPolicyNone",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyDeny,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadDenied", check: checkDenyMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:read, m:<none> = read
+			name:          "MeshOperatorReadPolicyNone",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyRead,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteDenied", check: checkDenyMeshWrite},
+			},
+		},
+		{
+			// o:write, m:<none> = write
+			name:          "MeshOperatorWritePolicyNone",
+			defaultPolicy: nil, // test both
+			policyStack: []*Policy{
+				{
+					PolicyRules: PolicyRules{
+						Operator: PolicyWrite,
+					},
+				},
+			},
+			checks: []aclCheck{
+				{name: "ReadAllowed", check: checkAllowMeshRead},
+				{name: "WriteAllowed", check: checkAllowMeshWrite},
 			},
 		},
 		{
@@ -2002,23 +2346,36 @@ func TestACL(t *testing.T) {
 		},
 	}
 
+	run := func(t *testing.T, tcase aclTest, defaultPolicy Authorizer) {
+		acl := defaultPolicy
+		for _, policy := range tcase.policyStack {
+			newACL, err := NewPolicyAuthorizerWithDefaults(acl, []*Policy{policy}, nil)
+			require.NoError(t, err)
+			acl = newACL
+		}
+
+		for _, check := range tcase.checks {
+			checkName := check.name
+			if check.prefix != "" {
+				checkName = fmt.Sprintf("%s.Prefix(%s)", checkName, check.prefix)
+			}
+			t.Run(checkName, func(t *testing.T) {
+				check.check(t, acl, check.prefix, nil)
+			})
+		}
+	}
+
 	for _, tcase := range tests {
 		t.Run(tcase.name, func(t *testing.T) {
-			acl := tcase.defaultPolicy
-			for _, policy := range tcase.policyStack {
-				newACL, err := NewPolicyAuthorizerWithDefaults(acl, []*Policy{policy}, nil)
-				require.NoError(t, err)
-				acl = newACL
-			}
-
-			for _, check := range tcase.checks {
-				checkName := check.name
-				if check.prefix != "" {
-					checkName = fmt.Sprintf("%s.Prefix(%s)", checkName, check.prefix)
-				}
-				t.Run(checkName, func(t *testing.T) {
-					check.check(t, acl, check.prefix, nil)
+			if tcase.defaultPolicy == nil {
+				t.Run("default-allow", func(t *testing.T) {
+					run(t, tcase, AllowAll())
 				})
+				t.Run("default-deny", func(t *testing.T) {
+					run(t, tcase, DenyAll())
+				})
+			} else {
+				run(t, tcase, tcase.defaultPolicy)
 			}
 		})
 	}

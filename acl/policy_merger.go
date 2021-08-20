@@ -17,6 +17,7 @@ type policyRulesMergeContext struct {
 	keyringRule              string
 	keyRules                 map[string]*KeyRule
 	keyPrefixRules           map[string]*KeyRule
+	meshRule                 string
 	nodeRules                map[string]*NodeRule
 	nodePrefixRules          map[string]*NodeRule
 	operatorRule             string
@@ -37,6 +38,7 @@ func (p *policyRulesMergeContext) init() {
 	p.keyringRule = ""
 	p.keyRules = make(map[string]*KeyRule)
 	p.keyPrefixRules = make(map[string]*KeyRule)
+	p.meshRule = ""
 	p.nodeRules = make(map[string]*NodeRule)
 	p.nodePrefixRules = make(map[string]*NodeRule)
 	p.operatorRule = ""
@@ -121,6 +123,10 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 		if update {
 			p.keyPrefixRules[kp.Prefix] = kp
 		}
+	}
+
+	if takesPrecedenceOver(policy.Mesh, p.meshRule) {
+		p.meshRule = policy.Mesh
 	}
 
 	for _, np := range policy.Nodes {
@@ -234,6 +240,7 @@ func (p *policyRulesMergeContext) update(merged *PolicyRules) {
 	merged.ACL = p.aclRule
 	merged.Keyring = p.keyringRule
 	merged.Operator = p.operatorRule
+	merged.Mesh = p.meshRule
 
 	// All the for loop appends are ugly but Go doesn't have a way to get
 	// a slice of all values within a map so this is necessary

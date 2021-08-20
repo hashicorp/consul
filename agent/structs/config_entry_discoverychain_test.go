@@ -7,13 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	// This test tests both of these because they are related functions.
+
+	newAuthz := func(t *testing.T, src string) acl.Authorizer {
+		policy, err := acl.NewPolicyFromSource("", 0, src, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+		return authorizer
+	}
 
 	newServiceACL := func(t *testing.T, canRead, canWrite []string) acl.Authorizer {
 		var buf bytes.Buffer
@@ -32,12 +42,36 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 		return authorizer
 	}
 
-	type testACL struct {
-		name       string
-		authorizer acl.Authorizer
-		canRead    bool
-		canWrite   bool
+	newServiceAndOperatorACL := func(t *testing.T, service, operator string) acl.Authorizer {
+		switch {
+		case service != "" && operator != "":
+			return newAuthz(t, fmt.Sprintf(`service "test" { policy = %q } operator = %q`, service, operator))
+		case service == "" && operator != "":
+			return newAuthz(t, fmt.Sprintf(`operator = %q`, operator))
+		case service != "" && operator == "":
+			return newAuthz(t, fmt.Sprintf(`service "test" { policy = %q }`, service))
+		default:
+			t.Fatalf("one of these should be set")
+			return nil
+		}
 	}
+
+	newServiceAndMeshACL := func(t *testing.T, service, mesh string) acl.Authorizer {
+		switch {
+		case service != "" && mesh != "":
+			return newAuthz(t, fmt.Sprintf(`service "test" { policy = %q } mesh = %q`, service, mesh))
+		case service == "" && mesh != "":
+			return newAuthz(t, fmt.Sprintf(`mesh = %q`, mesh))
+		case service != "" && mesh == "":
+			return newAuthz(t, fmt.Sprintf(`service "test" { policy = %q }`, service))
+		default:
+			t.Fatalf("one of these should be set")
+			return nil
+		}
+	}
+
+	type testACL = configEntryTestACL
+	type testcase = configEntryACLTestCase
 
 	defaultDenyCase := testACL{
 		name:       "deny",
@@ -64,12 +98,7 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 		canWrite:   false,
 	}
 
-	for _, tc := range []struct {
-		name           string
-		entry          discoveryChainConfigEntry
-		expectServices []ServiceID
-		expectACLs     []testACL
-	}{
+	cases := []testcase{
 		{
 			name: "resolver: self",
 			entry: &ServiceResolverConfigEntry{
@@ -226,25 +255,261 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 				},
 			},
 		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			// sanity check inputs
-			require.NoError(t, tc.entry.Normalize())
-			require.NoError(t, tc.entry.Validate())
+		{
+			name:  "ingress-gateway",
+			entry: &IngressGatewayConfigEntry{Name: "test"},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
 
-			got := tc.entry.ListRelatedServices()
-			require.Equal(t, tc.expectServices, got)
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
 
-			for _, a := range tc.expectACLs {
-				a := a
-				t.Run(a.name, func(t *testing.T) {
-					require.Equal(t, a.canRead, tc.entry.CanRead(a.authorizer))
-					require.Equal(t, a.canWrite, tc.entry.CanWrite(a.authorizer))
-				})
-			}
-		})
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
+		{
+			name:  "terminating-gateway",
+			entry: &TerminatingGatewayConfigEntry{Name: "test"},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    false,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator deny",
+					authorizer: newServiceAndOperatorACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "deny", "deny"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "read", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh deny",
+					authorizer: newServiceAndMeshACL(t, "write", "deny"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator read",
+					authorizer: newServiceAndOperatorACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and operator read",
+					authorizer: newServiceAndOperatorACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and operator read",
+					authorizer: newServiceAndOperatorACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and operator write",
+					authorizer: newServiceAndOperatorACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and operator write",
+					authorizer: newServiceAndOperatorACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and operator write",
+					authorizer: newServiceAndOperatorACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+
+				{
+					name:       "service deny and mesh read",
+					authorizer: newServiceAndMeshACL(t, "deny", "read"),
+					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "service read and mesh read",
+					authorizer: newServiceAndMeshACL(t, "read", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "service write and mesh read",
+					authorizer: newServiceAndMeshACL(t, "write", "read"),
+					canRead:    true,
+					canWrite:   false,
+				},
+
+				{
+					name:       "service deny and mesh write",
+					authorizer: newServiceAndMeshACL(t, "deny", "write"),
+					canRead:    false,
+					canWrite:   true,
+				},
+				{
+					name:       "service read and mesh write",
+					authorizer: newServiceAndMeshACL(t, "read", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+				{
+					name:       "service write and mesh write",
+					authorizer: newServiceAndMeshACL(t, "write", "write"),
+					canRead:    true,
+					canWrite:   true,
+				},
+			},
+		},
 	}
+
+	testConfigEntries_ListRelatedServices_AndACLs(t, cases)
 }
 
 func TestServiceResolverConfigEntry(t *testing.T) {

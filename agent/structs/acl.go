@@ -73,6 +73,7 @@ node_prefix "" {
 	policy = "write"
 }
 operator = "write"
+mesh = "write"
 query_prefix "" {
 	policy = "write"
 }

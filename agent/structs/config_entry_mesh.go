@@ -71,7 +71,7 @@ func (e *MeshConfigEntry) CanRead(authz acl.Authorizer) bool {
 func (e *MeshConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *MeshConfigEntry) GetRaftIndex() *RaftIndex {
