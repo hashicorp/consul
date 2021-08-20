@@ -2,6 +2,9 @@
 
 This section is still a work in progress.
 
+[agent/checks](https://github.com/hashicorp/consul/tree/main/agent/checks) contains the logic for
+performing active [health checking](https://www.consul.io/docs/agent/checks.html).
+
 
 ## Check Registration flows
 

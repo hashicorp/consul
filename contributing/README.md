@@ -20,7 +20,6 @@ found in the public [user documentation].
 
 ## Contents 
 
-1. [Overview](./INTERNALS.md)
 1. [Command-Line Interface (CLI)](./cli)
 1. [HTTP API](./http-api)
 1. [Agent Configuration](./config)

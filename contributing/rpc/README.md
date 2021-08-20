@@ -40,11 +40,15 @@ This section is a work in progress, it will eventually cover topics like:
 - net/rpc - (in the stdlib)
 - new grpc endpoints
 - [Streaming](./streaming)
+- [agent/structs](https://github.com/hashicorp/consul/tree/main/agent/structs) - contains definitions of all the internal RPC protocol request and response structures.
 
 
 ## RPC connections and load balancing
 
 This section is a work in progress, it will eventually cover topics like:
 
-- agent/router
-- agent/pool
+Routing RPC request to Consul servers and for connection pooling.
+
+- [agent/router](https://github.com/hashicorp/consul/tree/main/agent/router)
+- [agent/pool](https://github.com/hashicorp/consul/tree/main/agent/pool)
+

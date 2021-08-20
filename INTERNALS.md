@@ -1,1 +1,1 @@
-Moved to [contributing/INTERNALS.md].
+Moved to [contributing/README.md](./contributing/README.md).
