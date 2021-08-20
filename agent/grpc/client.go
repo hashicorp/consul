@@ -209,7 +209,6 @@ func newDialer(cfg ClientConnPoolConfig, gwResolverDep *gatewayResolverDep) func
 			conn = tlsConn
 		}
 
-		// TODO: wanfed more like pool.ConnPool.DialTimeout
 		_, err = conn.Write([]byte{byte(pool.RPCGRPC)})
 		if err != nil {
 			conn.Close()

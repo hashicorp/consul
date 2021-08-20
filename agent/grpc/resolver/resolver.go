@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"google.golang.org/grpc/resolver"
 
 	"github.com/hashicorp/consul/agent/metadata"
@@ -35,21 +34,12 @@ type Config struct {
 	Authority string
 }
 
-func NewServerResolverBuilder(cfg Config) (*ServerResolverBuilder, error) {
-	if cfg.Authority == "" {
-		// Ensure that each resolver builder is isolated even if a unit test
-		// forgets to override the authority field.
-		var err error
-		cfg.Authority, err = uuid.GenerateUUID()
-		if err != nil {
-			return nil, err
-		}
-	}
+func NewServerResolverBuilder(cfg Config) *ServerResolverBuilder {
 	return &ServerResolverBuilder{
 		cfg:       cfg,
 		servers:   make(map[string]*metadata.Server),
 		resolvers: make(map[resolver.ClientConn]*serverResolver),
-	}, nil
+	}
 }
 
 // NewRebalancer returns a function which shuffles the server list for resolvers

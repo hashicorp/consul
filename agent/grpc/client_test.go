@@ -35,8 +35,7 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(logError(t, lis.Close))
 
-	builder, err := resolver.NewServerResolverBuilder(resolver.Config{})
-	require.NoError(t, err)
+	builder := resolver.NewServerResolverBuilder(newConfig(t))
 	builder.AddServer(&metadata.Server{
 		Name:       "server-1",
 		ID:         "ID1",
@@ -68,8 +67,7 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
-	res, err := resolver.NewServerResolverBuilder(newConfig(t))
-	require.NoError(t, err)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 
 	srv := newTestServer(t, "server-1", "dc1")
@@ -110,8 +108,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
-	res, err := resolver.NewServerResolverBuilder(newConfig(t))
-	require.NoError(t, err)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -146,9 +143,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 
 func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	count := 3
-	conf := newConfig(t)
-	res, err := resolver.NewServerResolverBuilder(conf)
-	require.NoError(t, err)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -199,8 +194,7 @@ func newConfig(t *testing.T) resolver.Config {
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	count := 5
-	res, err := resolver.NewServerResolverBuilder(newConfig(t))
-	require.NoError(t, err)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,
@@ -254,8 +248,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	dcs := []string{"dc1", "dc2", "dc3"}
 
-	res, err := resolver.NewServerResolverBuilder(newConfig(t))
-	require.NoError(t, err)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 	pool := NewClientConnPool(ClientConnPoolConfig{
 		Servers:               res,

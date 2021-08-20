@@ -362,8 +362,7 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 }
 
 func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
-	builder, err := resolver.NewServerResolverBuilder(resolver.Config{})
-	require.NoError(t, err)
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t))
 	resolver.Register(builder)
 	t.Cleanup(func() {
 		resolver.Deregister(builder.Authority())
