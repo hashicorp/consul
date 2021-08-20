@@ -26,7 +26,7 @@
       @noMetricsReason={{this.noMetricsReason}}
     >
     {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
-      {{!-- Only place in the app where it's acceptable to default to 'default' namespace --}}
+      {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
       <TopologyMetrics::Stats
         data-test-downstream-metrics-stats
         @nspace={{or item.Namespace 'default'}}
@@ -101,7 +101,7 @@
         @service={{@service.Service}}
       >
       {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
-        {{!-- Only place in the app where it's acceptable to default to 'default' namespace --}}
+        {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
         <TopologyMetrics::Stats
           @nspace={{or item.Namespace 'default'}}
           @dc={{item.Datacenter}}
