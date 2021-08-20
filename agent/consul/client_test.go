@@ -525,15 +525,13 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Tokens:          new(token.Store),
 		Router:          r,
 		ConnPool:        connPool,
-		GRPCConnPool: grpc.NewClientConnPool(
-			builder,
-			nil,
-			grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
-			nil,
-			tls.UseTLS,
-			true,
-			c.Datacenter,
-		),
+		GRPCConnPool: grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
+			UseTLSForDC:           tls.UseTLS,
+			DialingFromServer:     true,
+			DialingFromDatacenter: c.Datacenter,
+		}),
 		LeaderForwarder: builder,
 		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
 	}

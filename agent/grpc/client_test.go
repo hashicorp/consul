@@ -51,14 +51,14 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 		return conn, nil
 	}
 	dial := newDialer(
-		builder,
-		nil,
+		ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            wrapper,
+			UseTLSForDC:           useTLSForDcAlwaysTrue,
+			DialingFromServer:     true,
+			DialingFromDatacenter: "dc1",
+		},
 		&gatewayResolverDep{},
-		wrapper,
-		nil,
-		useTLSForDcAlwaysTrue,
-		true,
-		"dc1",
 	)
 	ctx := context.Background()
 	conn, err := dial(ctx, resolver.DCPrefix("dc1", lis.Addr().String()))
@@ -87,15 +87,13 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	res.AddServer(md)
 	t.Cleanup(srv.shutdown)
 
-	pool := NewClientConnPool(
-		res,
-		nil,
-		TLSWrapper(tlsConf.OutgoingRPCWrapper()),
-		nil,
-		tlsConf.UseTLS,
-		true,
-		"dc1",
-	)
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		TLSWrapper:            TLSWrapper(tlsConf.OutgoingRPCWrapper()),
+		UseTLSForDC:           tlsConf.UseTLS,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -115,15 +113,12 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	res, err := resolver.NewServerResolverBuilder(newConfig(t))
 	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(
-		res,
-		nil,
-		nil,
-		nil,
-		useTLSForDcAlwaysTrue,
-		true,
-		"dc1",
-	)
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		UseTLSForDC:           useTLSForDcAlwaysTrue,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -155,15 +150,12 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	res, err := resolver.NewServerResolverBuilder(conf)
 	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(
-		res,
-		nil,
-		nil,
-		nil,
-		useTLSForDcAlwaysTrue,
-		true,
-		"dc1",
-	)
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		UseTLSForDC:           useTLSForDcAlwaysTrue,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 
 	var servers []testServer
 	for i := 0; i < count; i++ {
@@ -210,15 +202,12 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	res, err := resolver.NewServerResolverBuilder(newConfig(t))
 	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(
-		res,
-		nil,
-		nil,
-		nil,
-		useTLSForDcAlwaysTrue,
-		true,
-		"dc1",
-	)
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		UseTLSForDC:           useTLSForDcAlwaysTrue,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -268,15 +257,12 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	res, err := resolver.NewServerResolverBuilder(newConfig(t))
 	require.NoError(t, err)
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(
-		res,
-		nil,
-		nil,
-		nil,
-		useTLSForDcAlwaysTrue,
-		true,
-		"dc1",
-	)
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		UseTLSForDC:           useTLSForDcAlwaysTrue,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 
 	for _, dc := range dcs {
 		name := "server-0-" + dc

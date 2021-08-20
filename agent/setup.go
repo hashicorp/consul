@@ -111,15 +111,15 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 	resolver.Register(builder)
-	d.GRPCConnPool = grpc.NewClientConnPool(
-		builder,
-		d.ConnPool.SrcAddr,
-		grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
-		grpc.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
-		d.TLSConfigurator.UseTLS,
-		cfg.ServerMode,
-		cfg.Datacenter,
-	)
+	d.GRPCConnPool = grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+		Servers:               builder,
+		SrcAddr:               d.ConnPool.SrcAddr,
+		TLSWrapper:            grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
+		ALPNWrapper:           grpc.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
+		UseTLSForDC:           d.TLSConfigurator.UseTLS,
+		DialingFromServer:     cfg.ServerMode,
+		DialingFromDatacenter: cfg.Datacenter,
+	})
 	d.LeaderForwarder = builder
 
 	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
