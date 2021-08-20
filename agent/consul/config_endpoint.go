@@ -479,7 +479,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					cfgMap := make(map[string]interface{})
 					upstreamDefaults.MergeInto(cfgMap)
 
-					wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
+					wildcard := structs.NewServiceID(structs.WildcardSpecifier, args.WildcardEnterpriseMetaForPartition())
 					usConfigs[wildcard] = cfgMap
 				}
 			}
