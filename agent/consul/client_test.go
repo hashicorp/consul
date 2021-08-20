@@ -492,11 +492,11 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
-func newTestResolverConfig(t *testing.T) resolver.Config {
+func newTestResolverConfig(t *testing.T, suffix string) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
-	return resolver.Config{Authority: strings.ToLower(s)}
+	return resolver.Config{Authority: strings.ToLower(s) + "-" + suffix}
 }
 
 // TODO(rb): add tests for the wanfed/alpn variations
@@ -512,7 +512,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.TLSConfig, logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t))
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
 	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
 	resolver.Register(builder)
 
