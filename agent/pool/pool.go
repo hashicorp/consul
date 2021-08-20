@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-const defaultDialTimeout = 10 * time.Second
+const DefaultDialTimeout = 10 * time.Second
 
 // muxSession is used to provide an interface for a stream multiplexer.
 type muxSession interface {
@@ -324,7 +324,7 @@ func (p *ConnPool) dial(
 	tlsRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: defaultDialTimeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: DefaultDialTimeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -403,12 +403,7 @@ func DialRPCViaMeshGateway(
 		return nil, nil, structs.ErrDCNotAvailable
 	}
 
-	var dialTimeout time.Duration
-	if nextProto != ALPN_RPCGRPC && dialTimeout == 0 {
-		// TODO(rb): do we want this?
-		dialTimeout = defaultDialTimeout
-	}
-	dialer := &net.Dialer{LocalAddr: srcAddr, Timeout: dialTimeout}
+	dialer := &net.Dialer{LocalAddr: srcAddr, Timeout: DefaultDialTimeout}
 
 	rawConn, err := dialer.DialContext(ctx, "tcp", gwAddr)
 	if err != nil {

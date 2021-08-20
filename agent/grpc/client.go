@@ -181,8 +181,7 @@ func newDialer(
 			return conn, err
 		}
 
-		// TODO(rb): should this get the standard rpc dial timeout of 10 seconds?
-		d := net.Dialer{LocalAddr: srcAddr}
+		d := net.Dialer{LocalAddr: srcAddr, Timeout: pool.DefaultDialTimeout}
 		conn, err := d.DialContext(ctx, "tcp", server.Addr.String())
 		if err != nil {
 			return nil, err
