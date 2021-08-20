@@ -162,6 +162,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		case structs.UpstreamDestTypeService:
 			fallthrough
 
+			// TODO (partition): pass Partition to DiscoveryChainRequest?
 		case "": // Treat unset as the default Service type
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,

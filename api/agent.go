@@ -278,9 +278,9 @@ type AgentServiceRegistration struct {
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
 type ServiceRegisterOpts struct {
-	//Missing healthchecks will be deleted from the agent.
-	//Using this parameter allows to idempotently register a service and its checks without
-	//having to manually deregister checks.
+	// Missing healthchecks will be deleted from the agent.
+	// Using this parameter allows to idempotently register a service and its checks without
+	// having to manually deregister checks.
 	ReplaceExistingChecks bool
 
 	// ctx is an optional context pass through to the underlying HTTP
@@ -409,9 +409,9 @@ type ConnectProxyConfig struct {
 
 // Upstream is the response structure for a proxy upstream configuration.
 type Upstream struct {
-	DestinationType UpstreamDestType `json:",omitempty"`
-	// DestinationPartition string `json:",omitempty"` // TODO(partitions)?
-	DestinationNamespace string `json:",omitempty"`
+	DestinationType      UpstreamDestType `json:",omitempty"`
+	DestinationPartition string           `json:",omitempty"`
+	DestinationNamespace string           `json:",omitempty"`
 	DestinationName      string
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
@@ -963,8 +963,8 @@ func (a *Agent) ForceLeave(node string) error {
 	return nil
 }
 
-//ForceLeavePrune is used to have an a failed agent removed
-//from the list of members
+// ForceLeavePrune is used to have an a failed agent removed
+// from the list of members
 func (a *Agent) ForceLeavePrune(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
 	r.params.Set("prune", "1")
@@ -1112,6 +1112,7 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	return a.monitor(loglevel, true, stopCh, q)
 }
+
 func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)

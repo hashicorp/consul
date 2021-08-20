@@ -366,7 +366,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// process/merge some complex values
 	//
 
-	var dnsServiceTTL = map[string]time.Duration{}
+	dnsServiceTTL := map[string]time.Duration{}
 	for k, v := range c.DNS.ServiceTTL {
 		dnsServiceTTL[k] = b.durationVal(fmt.Sprintf("dns_config.service_ttl[%q]", k), &v)
 	}
@@ -1181,10 +1181,9 @@ func validateBasicName(field, value string, allowEmpty bool) error {
 
 // validate performs semantic validation of the runtime configuration.
 func (b *builder) validate(rt RuntimeConfig) error {
-
 	// validContentPath defines a regexp for a valid content path name.
-	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
-	var hasVersion = regexp.MustCompile(`^/v\d+/$`)
+	validContentPath := regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
+	hasVersion := regexp.MustCompile(`^/v\d+/$`)
 	// ----------------------------------------------------------------
 	// check required params we cannot recover from first
 	//
@@ -1651,7 +1650,6 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		b.err = multierror.Append(
 			fmt.Errorf("service %s cannot have both socket path %s and address/port",
 				stringVal(v.Name), stringVal(v.SocketPath)), b.err)
-
 	}
 
 	return &structs.ServiceDefinition{
@@ -1718,6 +1716,7 @@ func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 		ups[i] = structs.Upstream{
 			DestinationType:      stringVal(u.DestinationType),
 			DestinationNamespace: stringVal(u.DestinationNamespace),
+			DestinationPartition: stringVal(u.DestinationPartition),
 			DestinationName:      stringVal(u.DestinationName),
 			Datacenter:           stringVal(u.Datacenter),
 			LocalBindAddress:     stringVal(u.LocalBindAddress),
@@ -2369,7 +2368,6 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	// build out the validator to ensure that the given configuration was valid
 	null := hclog.NewNullLogger()
 	validator, err := ssoauth.NewValidator(null, &authz.AuthMethod)
-
 	if err != nil {
 		return fmt.Errorf("auto_config.authorization.static has invalid configuration: %v", err)
 	}

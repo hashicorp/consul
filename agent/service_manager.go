@@ -398,6 +398,7 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 
 		remoteUpstreams[us.Upstream] = structs.Upstream{
 			DestinationNamespace: us.Upstream.NamespaceOrDefault(),
+			DestinationPartition: us.Upstream.PartitionOrDefault(),
 			DestinationName:      us.Upstream.ID,
 			Config:               us.Config,
 			MeshGateway:          parsed.MeshGateway,

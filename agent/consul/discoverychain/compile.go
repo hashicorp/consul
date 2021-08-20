@@ -15,6 +15,7 @@ import (
 type CompileRequest struct {
 	ServiceName           string
 	EvaluateInNamespace   string
+	EvaluateInPartition   string
 	EvaluateInDatacenter  string
 	EvaluateInTrustDomain string
 	UseInDatacenter       string // where the results will be used from
@@ -906,11 +907,9 @@ RESOLVE_AGAIN:
 	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
 	if target.Datacenter == c.useInDatacenter {
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
 	} else if target.External {
 		// Bypass mesh gateways if it is an external service.
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
 	} else {
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
