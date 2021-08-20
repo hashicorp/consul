@@ -55,6 +55,9 @@ func TestAddDefaultsToUpstreams(t testing.T, upstreams []Upstream, entMeta Enter
 		if ups[i].DestinationNamespace == "" {
 			ups[i].DestinationNamespace = entMeta.NamespaceOrEmpty()
 		}
+		if ups[i].DestinationPartition == "" {
+			ups[i].DestinationPartition = entMeta.PartitionOrEmpty()
+		}
 	}
 	return ups
 }

@@ -1343,6 +1343,7 @@ type DiscoveryChainRequest struct {
 	Name                 string
 	EvaluateInDatacenter string
 	EvaluateInNamespace  string
+	EvaluateInPartition  string
 
 	// NOTE: Partition is not represented here by design. Do not add it.
 
@@ -1386,6 +1387,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		Name                   string
 		EvaluateInDatacenter   string
 		EvaluateInNamespace    string
+		EvaluateInPartition    string
 		OverrideMeshGateway    MeshGatewayConfig
 		OverrideProtocol       string
 		OverrideConnectTimeout time.Duration
@@ -1394,6 +1396,7 @@ func (r *DiscoveryChainRequest) CacheInfo() cache.RequestInfo {
 		Name:                   r.Name,
 		EvaluateInDatacenter:   r.EvaluateInDatacenter,
 		EvaluateInNamespace:    r.EvaluateInNamespace,
+		EvaluateInPartition:    r.EvaluateInPartition,
 		OverrideMeshGateway:    r.OverrideMeshGateway,
 		OverrideProtocol:       r.OverrideProtocol,
 		OverrideConnectTimeout: r.OverrideConnectTimeout,

@@ -5656,6 +5656,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						{
 							DestinationType:      "service", // Default should be explicitly filled
 							DestinationName:      "KPtAj2cb",
+							DestinationPartition: defaultEntMeta.PartitionOrEmpty(),
 							DestinationNamespace: defaultEntMeta.NamespaceOrEmpty(),
 							LocalBindPort:        4051,
 							Config: map[string]interface{}{
@@ -5665,6 +5666,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						{
 							DestinationType:      "prepared_query",
 							DestinationNamespace: "9nakw0td",
+							DestinationPartition: "part-9nakw0td",
 							DestinationName:      "KSd8HsRl",
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
@@ -5672,6 +5674,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						{
 							DestinationType:      "prepared_query",
 							DestinationNamespace: "9nakw0td",
+							DestinationPartition: "part-9nakw0td",
 							DestinationName:      "placeholder",
 							LocalBindSocketPath:  "/foo/bar/upstream",
 							LocalBindSocketMode:  "0600",

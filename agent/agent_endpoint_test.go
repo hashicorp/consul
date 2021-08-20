@@ -635,7 +635,7 @@ func TestAgent_Service(t *testing.T) {
 			req, _ := http.NewRequest("GET", tt.url, nil)
 
 			// Inject the root token for tests that don't care about ACL
-			var token = "root"
+			token := "root"
 			if tt.tokenRules != "" {
 				// Create new token and use that.
 				token = testCreateToken(t, a, tt.tokenRules)
@@ -2131,7 +2131,6 @@ func TestAgent_ForceLeave(t *testing.T) {
 			r.Fatalf("got status %q want %q", got, want)
 		}
 	})
-
 }
 
 func TestOpenMetricsMimeTypeHeaders(t *testing.T) {
@@ -2185,7 +2184,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 	t.Run("operator write token", func(t *testing.T) {
 		// Create an ACL with operator read permissions.
-		var rules = `
+		rules := `
                     operator = "write"
                 `
 		opToken := testCreateToken(t, a, rules)
@@ -2226,7 +2225,6 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 				if member.Status != serf.StatusFailed {
 					r.Fatalf("got status %q want %q", member.Status, serf.StatusFailed)
 				}
-
 			}
 		}
 	})
@@ -2246,7 +2244,6 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 			r.Fatalf("want one member, got %v", m)
 		}
 	})
-
 }
 
 func TestAgent_RegisterCheck(t *testing.T) {
@@ -2646,7 +2643,6 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			require.NoError(r, err)
 		})
 	})
-
 }
 
 func TestAgent_DeregisterCheck(t *testing.T) {
@@ -3335,6 +3331,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				{
 					"destination_type": "service",
 					"destination_namespace": "default",
+					"destination_partition": "default",
 					"destination_name": "db",
 		      "local_bind_address": "` + tt.ip + `",
 		      "local_bind_port": 1234,
@@ -3363,6 +3360,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						{
 							"destination_type": "service",
 							"destination_namespace": "default",
+							"destination_partition": "default",
 							"destination_name": "db",
 							"local_bind_address": "` + tt.ip + `",
 							"local_bind_port": 1234,
@@ -3420,6 +3418,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 							DestinationType:      structs.UpstreamDestTypeService,
 							DestinationName:      "db",
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							LocalBindAddress:     tt.ip,
 							LocalBindPort:        1234,
 							Config: map[string]interface{}{
@@ -3463,6 +3462,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 							DestinationType:      structs.UpstreamDestTypeService,
 							DestinationName:      "db",
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							LocalBindAddress:     tt.ip,
 							LocalBindPort:        1234,
 							Config: map[string]interface{}{
@@ -3661,6 +3661,10 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 		if args.Proxy.Upstreams[i].DestinationNamespace == "" {
 			args.Proxy.Upstreams[i].DestinationNamespace =
 				structs.DefaultEnterpriseMetaInDefaultPartition().NamespaceOrEmpty()
+		}
+		if args.Proxy.Upstreams[i].DestinationPartition == "" {
+			args.Proxy.Upstreams[i].DestinationPartition =
+				structs.DefaultEnterpriseMetaInDefaultPartition().PartitionOrEmpty()
 		}
 	}
 

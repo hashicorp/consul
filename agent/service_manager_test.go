@@ -117,6 +117,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				{
 					DestinationName:      "redis",
 					DestinationNamespace: "default",
+					DestinationPartition: "default",
 					LocalBindPort:        5000,
 				},
 			},
@@ -147,6 +148,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 				{
 					DestinationName:      "redis",
 					DestinationNamespace: "default",
+					DestinationPartition: "default",
 					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -348,6 +350,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 					{
 						DestinationName:      "redis",
 						DestinationNamespace: "default",
+						DestinationPartition: "default",
 						LocalBindPort:        5000,
 					},
 				},
@@ -375,6 +378,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 				{
 					DestinationName:      "redis",
 					DestinationNamespace: "default",
+					DestinationPartition: "default",
 					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -567,6 +571,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			upstreams = [{
 			  destination_name = "redis"
 			  destination_namespace = "default"
+              destination_partition = "default"
 			  local_bind_port  = 5000
 			}]
 		  }
@@ -612,6 +617,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 					DestinationType:      "service",
 					DestinationName:      "redis",
 					DestinationNamespace: "default",
+					DestinationPartition: "default",
 					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
@@ -909,6 +915,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
+								DestinationPartition: "default",
 								DestinationName:      "zap",
 							},
 						},
@@ -924,6 +931,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							DestinationName:      "zap",
 							Config: map[string]interface{}{
 								"passive_health_check": map[string]interface{}{
@@ -970,6 +978,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
+								DestinationPartition: "default",
 								DestinationName:      "zip",
 								LocalBindPort:        8080,
 								Config: map[string]interface{}{
@@ -994,6 +1003,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							DestinationName:      "zip",
 							LocalBindPort:        8080,
 							Config: map[string]interface{}{
@@ -1002,6 +1012,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						},
 						structs.Upstream{
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							DestinationName:      "zap",
 							Config: map[string]interface{}{
 								"protocol": "grpc",
@@ -1038,6 +1049,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
+								DestinationPartition: "default",
 								DestinationName:      "zip",
 								LocalBindPort:        8080,
 								Config: map[string]interface{}{
@@ -1058,6 +1070,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							DestinationName:      "zip",
 							LocalBindPort:        8080,
 							Config: map[string]interface{}{
@@ -1098,6 +1111,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
+								DestinationPartition: "default",
 								DestinationName:      "zap",
 							},
 						},
@@ -1116,6 +1130,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							DestinationName:      "zap",
 							Config:               map[string]interface{}{},
 							MeshGateway: structs.MeshGatewayConfig{
@@ -1156,6 +1171,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 						Upstreams: structs.Upstreams{
 							structs.Upstream{
 								DestinationNamespace: "default",
+								DestinationPartition: "default",
 								DestinationName:      "zap",
 								MeshGateway: structs.MeshGatewayConfig{
 									Mode: structs.MeshGatewayModeNone,
@@ -1177,6 +1193,7 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 					Upstreams: structs.Upstreams{
 						structs.Upstream{
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							DestinationName:      "zap",
 							Config:               map[string]interface{}{},
 							MeshGateway: structs.MeshGatewayConfig{

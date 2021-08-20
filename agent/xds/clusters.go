@@ -537,11 +537,10 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 
 	spiffeID := connect.SpiffeIDService{
 		Host:       cfgSnap.Roots.TrustDomain,
+		Partition:  upstream.DestinationPartition,
 		Namespace:  upstream.DestinationNamespace,
 		Datacenter: dc,
 		Service:    upstream.DestinationName,
-
-		// TODO(partitions) Store partition
 	}
 
 	// Enable TLS upstream with the configured client certificate.

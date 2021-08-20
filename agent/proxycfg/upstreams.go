@@ -344,6 +344,7 @@ type discoveryChainWatchOpts struct {
 	id          string
 	name        string
 	namespace   string
+	partition   string
 	datacenter  string
 	cfg         reducedUpstreamConfig
 	meshGateway structs.MeshGatewayConfig

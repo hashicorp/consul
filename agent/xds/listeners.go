@@ -185,6 +185,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			u := structs.Upstream{
 				DestinationName:      sn.Name,
 				DestinationNamespace: sn.NamespaceOrDefault(),
+				DestinationPartition: sn.PartitionOrDefault(),
 			}
 
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
@@ -738,9 +739,7 @@ func injectHTTPFilterOnFilterChains(
 			)
 		}
 
-		var (
-			hcm envoy_http_v3.HttpConnectionManager
-		)
+		var hcm envoy_http_v3.HttpConnectionManager
 		tc, ok := hcmFilter.ConfigType.(*envoy_listener_v3.Filter_TypedConfig)
 		if !ok {
 			return fmt.Errorf(
