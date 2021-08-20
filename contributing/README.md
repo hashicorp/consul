@@ -36,6 +36,36 @@ found in the public [user documentation].
 
 Also see the [FAQ](./faq.md).
 
+## Important Directories
+
+Most top level directories contain Go source code. The directories listed below
+contain other important source related to Consul.
+
+* [ui] contains the source code for the Consul UI.
+* [website] contains the source for [consul.io](https://www.consul.io/). A pull requests
+  can update the source code and Consul's documentation at the same time.
+* [.circleci] and [.github] contain the source for our CI and GitHub repository
+  automation.
+* [.changelog] contains markdown files that are used by [hashicorp/go-changelog] to produce the
+  [CHANGELOG.md].
+* [build-support] contains bash functions and scripts used to automate.
+  development tasks. Generally these scripts are called from the [GNUmakefile].
+* [grafana] contains the source for a [Grafana dashboard] that can be used to
+  monitor Consul.
+
+[ui]: https://github.com/hashicorp/consul/tree/main/ui
+[website]: https://github.com/hashicorp/consul/tree/main/website
+[.circleci]: https://github.com/hashicorp/consul/tree/main/.circleci
+[.github]: https://github.com/hashicorp/consul/tree/main/.github
+[.changelog]: https://github.com/hashicorp/consul/tree/main/.changelog
+[hashicorp/go-changelog]: https://github.com/hashicorp/go-changelog
+[CHANGELOG.md]: https://github.com/hashicorp/consul/blob/main/CHANGELOG.md
+[build-support]: https://github.com/hashicorp/consul/tree/main/build-support
+[GNUmakefile]: https://github.com/hashicorp/consul/tree/main/GNUmakefile
+[Grafana dashboard]: https://grafana.com/grafana/dashboards
+[grafana]: https://github.com/hashicorp/consul/tree/main/grafana
+
+
 ## Contributing to these docs
 
 This section is meta documentation about contributing to these docs.
