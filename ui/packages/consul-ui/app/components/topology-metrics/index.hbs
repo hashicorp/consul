@@ -28,6 +28,7 @@
     {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
       <TopologyMetrics::Stats
         data-test-downstream-metrics-stats
+        {{!-- Only place in the app where it's acceptable to default to 'default' namespace --}}
         @nspace={{or item.Namespace 'default'}}
         @dc={{item.Datacenter}}
         @endpoint='downstream-summary-for-service'
@@ -101,6 +102,7 @@
       >
       {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
         <TopologyMetrics::Stats
+          {{!-- Only place in the app where it's acceptable to default to 'default' namespace --}}
           @nspace={{or item.Namespace 'default'}}
           @dc={{item.Datacenter}}
           @endpoint='upstream-summary-for-service'

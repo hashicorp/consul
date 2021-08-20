@@ -33,7 +33,7 @@ Feature: dc / services / show / topology / stats
     ---
     And I see topology on the tabs
     And I see the "[data-test-topology-metrics-stats]" element
-  Scenario: Given metrics is enabled, all metrics are disabled for an ingress gateway Topology
+  Scenario: Given metrics is enabled, metrics stats are disabled for an ingress gateway Topology
     Given 1 datacenter model with the value "dc1"
     Given a "prometheus" metrics provider
     And 1 node models
@@ -67,7 +67,7 @@ Feature: dc / services / show / topology / stats
       Upstreams: []
       Downstreams:
         - Name: db
-          Namespace: default
+          Namespace: @namespace
           Datacenter: dc1
           Intention: {}
     ---

@@ -1,16 +1,16 @@
-{{#if (eq @noMetricsReason 'ingress-gateway')}}
+{{#if (or @noMetricsReason @error)}}
   <span class="topology-metrics-error">
-    {{t "components.consul.topology-metrics.status.ingress-gateway"}}
+    {{#if (eq @noMetricsReason 'ingress-gateway')}}
+      {{t "components.consul.topology-metrics.status.ingress-gateway"}}
+    {{else if @error}}
+      {{t "components.consul.topology-metrics.status.error"}}
+    {{else if (eq @noMetricsReason 'remote-dc')}}
+      {{t "components.consul.topology-metrics.status.error"}}
+      <span
+        {{tooltip (t "components.consul.topology-metrics.status.remote-dc")}}
+      />
+    {{/if}}
   </span>
-{{else if (eq @noMetricsReason 'remote-dc')}}
-  <span class="topology-metrics-error">
-    {{t "components.consul.topology-metrics.status.error"}}
-    <span>
-      <Tooltip>{{t "components.consul.topology-metrics.status.remote-dc"}}</Tooltip>
-    </span>
-  </span>
-{{else if @error}}
-  <span class="topology-metrics-error">{{t "components.consul.topology-metrics.status.error"}}</span>
 {{else}}
   <span class="topology-metrics-loader">{{t "components.consul.topology-metrics.status.loading"}}</span>
 {{/if}}
