@@ -1015,7 +1015,7 @@ func aclTokenDeleteTxn(tx WriteTxn, idx uint64, value, index string, entMeta *st
 
 func aclTokenDeleteAllForAuthMethodTxn(tx WriteTxn, idx uint64, methodName string, methodGlobalLocality bool, methodMeta *structs.EnterpriseMeta) error {
 	// collect all the tokens linked with the given auth method.
-	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMetaInDefaultPartition())
+	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, methodMeta.WildcardEnterpriseMetaForPartition())
 	if err != nil {
 		return fmt.Errorf("failed acl token lookup: %v", err)
 	}

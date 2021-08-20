@@ -6,10 +6,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/mitchellh/copystructure"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // IsTemplate returns true if the given query is a template.
@@ -89,6 +90,7 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 	// prefix it will be expected to run with. The results might not make
 	// sense and create a valid service to lookup, but it should render
 	// without any errors.
+	// TODO(partitions) should this have a partition on it?
 	if _, err = ct.Render(ct.query.Name, structs.QuerySource{}); err != nil {
 		return nil, err
 	}
@@ -156,6 +158,7 @@ func (ct *CompiledTemplate) Render(name string, source structs.QuerySource) (*st
 					Type:  ast.TypeString,
 					Value: source.Segment,
 				},
+				// TODO(partitions): should NodePartition be projected here?
 			},
 			FuncMap: map[string]ast.Function{
 				"match": match,
