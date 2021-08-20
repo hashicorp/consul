@@ -2,10 +2,11 @@ import VerticalTextBlockList from '@hashicorp/react-vertical-text-block-list'
 import SectionHeader from '@hashicorp/react-section-header'
 import Head from 'next/head'
 import { productSlug } from 'data/metadata'
+import s from './style.module.css'
 
 export default function CommunityPage() {
   return (
-    <div id="p-community">
+    <div className={s.root}>
       <Head>
         <title key="title">Community | Consul by HashiCorp</title>
       </Head>
