@@ -40,11 +40,15 @@ func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
 	}
 }
 
-// TestNodeService returns a *NodeService representing a valid regular service.
+// TestNodeService returns a *NodeService representing a valid regular service: "web".
 func TestNodeService(t testing.T) *NodeService {
+	return TestNodeServiceWithName(t, "web")
+}
+
+func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
-		Service: "web",
+		Service: name,
 		Port:    8080,
 	}
 }

@@ -119,7 +119,7 @@ func TestIntentions() *structs.IndexedIntentionMatches {
 
 // TestUpstreamNodes returns a sample service discovery result useful to
 // mocking service discovery cache results.
-func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
+func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -129,7 +129,7 @@ func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeServiceWithName(t, service),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -139,9 +139,49 @@ func TestUpstreamNodes(t testing.T) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeService(t),
+			Service: structs.TestNodeServiceWithName(t, service),
 		},
 	}
+}
+
+// TestPreparedQueryNodes returns instances of a service spread across two datacenters.
+// The service instance names use a "-target" suffix to ensure we don't use the
+// prepared query's name for SAN validation.
+// The name of prepared queries won't always match the name of the service they target.
+func TestPreparedQueryNodes(t testing.T, query string) structs.CheckServiceNodes {
+	nodes := structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "test1",
+				Node:       "test1",
+				Address:    "10.10.1.1",
+				Datacenter: "dc1",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				Service: query + "-sidecar-proxy",
+				Port:    8080,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: query + "-target",
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "test2",
+				Node:       "test2",
+				Address:    "10.20.1.2",
+				Datacenter: "dc2",
+			},
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				Service: query + "-target",
+				Port:    8080,
+				Connect: structs.ServiceConnect{Native: true},
+			},
+		},
+	}
+	return nodes
 }
 
 func TestUpstreamNodesInStatus(t testing.T, status string) structs.CheckServiceNodes {
@@ -241,29 +281,6 @@ func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServi
 					Status:      status,
 				},
 			},
-		},
-	}
-}
-
-func TestUpstreamNodesDC3(t testing.T) structs.CheckServiceNodes {
-	return structs.CheckServiceNodes{
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				ID:         "test1",
-				Node:       "test1",
-				Address:    "10.30.1.1",
-				Datacenter: "dc3",
-			},
-			Service: structs.TestNodeService(t),
-		},
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				ID:         "test2",
-				Node:       "test2",
-				Address:    "10.30.1.2",
-				Datacenter: "dc3",
-			},
-			Service: structs.TestNodeService(t),
 		},
 	}
 }
@@ -684,12 +701,12 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 				},
 				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 					"db": {
-						"db.default.dc1": TestUpstreamNodes(t),
+						"db.default.dc1": TestUpstreamNodes(t, "db"),
 					},
 				},
 			},
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
-				"prepared_query:geo-cache": TestUpstreamNodes(t),
+				"prepared_query:geo-cache": TestPreparedQueryNodes(t, "geo-cache"),
 			},
 			Intentions:    nil, // no intentions defined
 			IntentionsSet: true,
@@ -803,6 +820,9 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
+			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
+				"prepared_query:geo-cache": TestPreparedQueryNodes(t, "geo-cache"),
+			},
 			Intentions:    nil, // no intentions defined
 			IntentionsSet: true,
 		},
@@ -1337,7 +1357,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		},
 		WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 			"db": {
-				"db.default.dc1": TestUpstreamNodes(t),
+				"db.default.dc1": TestUpstreamNodes(t, "db"),
 			},
 		},
 		UpstreamConfig: upstreams.ToMap(),
@@ -1404,7 +1424,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		}
 	case "splitter-with-resolver-redirect-multidc":
 		snap.WatchedUpstreamEndpoints["db"] = map[string]structs.CheckServiceNodes{
-			"v1.db.default.dc1": TestUpstreamNodes(t),
+			"v1.db.default.dc1": TestUpstreamNodes(t, "db"),
 			"v2.db.default.dc2": TestUpstreamNodesDC2(t),
 		}
 	case "chain-and-splitter":
@@ -1412,7 +1432,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "chain-and-router":
 	case "http-multiple-services":
 		snap.WatchedUpstreamEndpoints["foo"] = map[string]structs.CheckServiceNodes{
-			"foo.default.dc1": TestUpstreamNodes(t),
+			"foo.default.dc1": TestUpstreamNodes(t, "foo"),
 		}
 		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
 			"bar.default.dc1": TestUpstreamNodesAlternate(t),
@@ -1729,7 +1749,7 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 	}
 	if populateServices {
 		web := structs.NewServiceName("web", nil)
-		webNodes := TestUpstreamNodes(t)
+		webNodes := TestUpstreamNodes(t, web.Name)
 		webNodes[0].Service.Meta = map[string]string{
 			"version": "1",
 		}
