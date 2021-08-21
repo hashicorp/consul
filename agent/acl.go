@@ -84,7 +84,13 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 				structs.ServiceIDString(existing.Service, &existing.EnterpriseMeta))
 		}
 	} else {
-		return NotFoundError{Reason: fmt.Sprintf("Unknown service %q", serviceID)}
+		// Take care if modifying this error message.
+		// agent/local/state.go's deleteService assumes the Catalog.Deregister RPC call
+		// will include "Unknown service"in the error if deregistration fails due to a
+		// service with that ID not existing.
+		return NotFoundError{Reason: fmt.Sprintf(
+			"Unknown service ID %q. Ensure that the service ID is passed, not the service name.",
+			serviceID)}
 	}
 
 	return nil
@@ -143,7 +149,7 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 			}
 		}
 	} else {
-		return fmt.Errorf("Unknown check %q", checkID.String())
+		return fmt.Errorf("Unknown check ID %q. Ensure that the check ID is passed, not the check name.", checkID.String())
 	}
 
 	return nil

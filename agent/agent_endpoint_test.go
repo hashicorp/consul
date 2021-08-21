@@ -4751,7 +4751,7 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 		resp := httptest.NewRecorder()
 		a.srv.h.ServeHTTP(resp, req)
 		require.Equal(t, 404, resp.Code)
-		require.Contains(t, resp.Body.String(), `Unknown service "_nope_"`)
+		require.Contains(t, resp.Body.String(), `Unknown service ID "_nope_"`)
 	})
 }
 

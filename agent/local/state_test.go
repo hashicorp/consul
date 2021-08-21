@@ -1952,7 +1952,7 @@ func TestAgent_AddCheckFailure(t *testing.T) {
 		ServiceID: "redis",
 		Status:    api.HealthPassing,
 	}
-	wantErr := errors.New(`Check "redis:1" refers to non-existent service "redis"`)
+	wantErr := errors.New(`Check ID "redis:1" refers to non-existent service ID "redis"`)
 
 	got := l.AddCheck(chk, "")
 	require.Equal(t, wantErr, got)
@@ -2114,7 +2114,7 @@ func servicesInSync(state *local.State, wantServices int, entMeta *structs.Enter
 	}
 	for id, s := range services {
 		if !s.InSync {
-			return fmt.Errorf("service %q should be in sync %+v", id.String(), s)
+			return fmt.Errorf("service ID %q should be in sync %+v", id.String(), s)
 		}
 	}
 	return nil
@@ -2131,6 +2131,34 @@ func checksInSync(state *local.State, wantChecks int, entMeta *structs.Enterpris
 		}
 	}
 	return nil
+}
+
+func TestState_RemoveServiceErrorMessages(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), &token.Store{})
+
+	// Stub state syncing
+	state.TriggerSyncChanges = func() {}
+
+	require := require.New(t)
+
+	// Add 1 service
+	err := state.AddService(&structs.NodeService{
+		ID:      "web-id",
+		Service: "web-name",
+	}, "")
+	require.NoError(err)
+
+	// Attempt to remove service that doesn't exist
+	err = state.RemoveService(structs.NewServiceID("db", nil))
+	require.Contains(err.Error(), `Unknown service ID "db"`)
+
+	// Attempt to remove service by name (which isn't valid)
+	err = state.RemoveService(structs.NewServiceID("web-name", nil))
+	require.Contains(err.Error(), `Unknown service ID "web-name"`)
+
+	// Attempt to remove service by id (valid)
+	err = state.RemoveService(structs.NewServiceID("web-id", nil))
+	require.NoError(err)
 }
 
 func TestState_Notify(t *testing.T) {
