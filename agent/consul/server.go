@@ -640,7 +640,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
 			deps.Logger.Named("grpc-api.subscription")))
 	}
-	return agentgrpc.NewHandler(config.RPCAddr, register)
+	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {

@@ -545,15 +545,36 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
+// newPanicHandler returns a recovery.RecoveryHandlerFuncContext closure function
+// to handle panic in GRPC server's handlers.
+func newPanicHandler(logger hclog.Logger) recovery.RecoveryHandlerFuncContext {
+	return func(ctx context.Context, p interface{}) (err error) {
+		// Log the panic and the stack trace of the Goroutine that caused the panic.
+		stacktrace := hclog.Stacktrace()
+		logger.Error("panic serving grpc request",
+			"panic", p,
+			"stack", stacktrace,
+		)
+
+		return status.Errorf(codes.Internal, "grpc: panic serving request: %v", p)
+	}
+}
+
 // GRPCServer returns a server instance that can handle xDS requests.
 func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
+	recoveryOpts := []recovery.Option{
+		recovery.WithRecoveryHandlerContext(newPanicHandler(s.Logger)),
+	}
+
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 		middleware.WithUnaryServerChain(
-			recovery.UnaryServerInterceptor(),
+			// Add middlware interceptors to recover in case of panics.
+			recovery.UnaryServerInterceptor(recoveryOpts...),
 		),
 		middleware.WithStreamServerChain(
-			recovery.StreamServerInterceptor(),
+			// Add middlware interceptors to recover in case of panics.
+			recovery.StreamServerInterceptor(recoveryOpts...),
 		),
 	}
 	if tlsConfigurator != nil {
