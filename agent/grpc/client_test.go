@@ -126,7 +126,7 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	var servers []testServer
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1")
+		srv := newSimpleTestServer(t, name, "dc1")
 		res.AddServer(srv.Metadata())
 		servers = append(servers, srv)
 		t.Cleanup(srv.shutdown)

@@ -563,7 +563,7 @@ func newPanicHandler(logger hclog.Logger) recovery.RecoveryHandlerFuncContext {
 // NewGRPCServer creates a grpc.Server, registers the Server, and then returns
 // the grpc.Server.
 func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
-  recoveryOpts := []recovery.Option{
+	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandlerContext(newPanicHandler(s.Logger)),
 	}
 
