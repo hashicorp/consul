@@ -35,7 +35,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -106,8 +106,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Show information about an intention."
-const help = `
+const (
+	synopsis = "Show information about an intention."
+	help     = `
 Usage: consul intention get [options] SRC DST
 Usage: consul intention get [options] ID
 
@@ -117,3 +118,4 @@ Usage: consul intention get [options] ID
       $ consul intention get web db
 
 `
+)

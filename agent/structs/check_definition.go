@@ -156,6 +156,8 @@ func (c *CheckDefinition) HealthCheck(node string) *HealthCheck {
 		Status:         api.HealthCritical,
 		Notes:          c.Notes,
 		ServiceID:      c.ServiceID,
+		Interval:       c.Interval.String(),
+		Timeout:        c.Timeout.String(),
 		EnterpriseMeta: c.EnterpriseMeta,
 	}
 	if c.Status != "" {

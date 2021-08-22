@@ -7,14 +7,15 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-hclog"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/mitchellh/go-testing-interface"
 )
 
 // KeyTestCases is a list of the important CA key types that we should test
@@ -75,13 +76,9 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 
 // TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
 // Logger so that logging calls don't panic. If logging output is important
-// SetLogger can be called again with another logger to capture logs.
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
-	provider := &ConsulProvider{Delegate: d}
-	logger := hclog.New(&hclog.LoggerOptions{
-		Output: ioutil.Discard,
-	})
-	provider.SetLogger(logger)
+	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
+	provider := &ConsulProvider{Delegate: d, logger: logger}
 	return provider
 }
 
@@ -261,5 +258,14 @@ func ApplyCARequestToStore(store *state.Store, req *structs.CARequest) (interfac
 		return uint64(2), nil
 	default:
 		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	}
+}
+func requireTrailingNewline(t testing.T, leafPEM string) {
+	t.Helper()
+	if len(leafPEM) == 0 {
+		t.Fatalf("cert is empty")
+	}
+	if '\n' != rune(leafPEM[len(leafPEM)-1]) {
+		t.Fatalf("cert do not end with a new line")
 	}
 }

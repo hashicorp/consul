@@ -38,4 +38,9 @@ export default class Token extends Model {
   get isGlobalManagement() {
     return (this.Policies || []).find(item => item.ID === MANAGEMENT_ID);
   }
+
+  @computed('SecretID')
+  get hasSecretID() {
+    return this.SecretID !== '' && this.SecretID !== '<hidden>';
+  }
 }

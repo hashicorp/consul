@@ -396,14 +396,9 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
 		}
 
-		// Delete the mesh gateway key since this is the only place it is read from an opaque map.
-		// Later reads use Proxy.MeshGateway.
-		// Note that we use the "mesh_gateway" key and not other variants like "MeshGateway" because
-		// UpstreamConfig.MergeInto and ResolveServiceConfig only use "mesh_gateway".
-		delete(us.Config, "mesh_gateway")
-
 		remoteUpstreams[us.Upstream] = structs.Upstream{
 			DestinationNamespace: us.Upstream.NamespaceOrDefault(),
+			DestinationPartition: us.Upstream.PartitionOrDefault(),
 			DestinationName:      us.Upstream.ID,
 			Config:               us.Config,
 			MeshGateway:          parsed.MeshGateway,
@@ -425,7 +420,7 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		}
 		localUpstreams[us.DestinationID()] = struct{}{}
 
-		usCfg, ok := remoteUpstreams[us.DestinationID()]
+		remoteCfg, ok := remoteUpstreams[us.DestinationID()]
 		if !ok {
 			// No config defaults to merge
 			continue
@@ -433,13 +428,19 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 
 		// The local upstream config mode has the highest precedence, so only overwrite when it's set to the default
 		if us.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			us.MeshGateway.Mode = usCfg.MeshGateway.Mode
+			us.MeshGateway.Mode = remoteCfg.MeshGateway.Mode
 		}
 
 		// Merge in everything else that is read from the map
-		if err := mergo.Merge(&us.Config, usCfg.Config); err != nil {
+		if err := mergo.Merge(&us.Config, remoteCfg.Config); err != nil {
 			return nil, err
 		}
+
+		// Delete the mesh gateway key from opaque config since this is the value that was resolved from
+		// the servers and NOT the final merged value for this upstream.
+		// Note that we use the "mesh_gateway" key and not other variants like "MeshGateway" because
+		// UpstreamConfig.MergeInto and ResolveServiceConfig only use "mesh_gateway".
+		delete(us.Config, "mesh_gateway")
 	}
 
 	// Ensure upstreams present in central config are represented in the local configuration.

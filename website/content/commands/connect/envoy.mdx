@@ -54,7 +54,8 @@ proxy configuration needed.
 
 - `-proxy-id` - The [proxy service](/docs/connect/registration/service-registration) ID.
   This service ID must already be registered with the local agent unless a gateway is being
-  registered with the `-register` flag.
+  registered with the `-register` flag. As of Consul 1.8.0, this can also be
+  specified via the `CONNECT_PROXY_ID` environment variable.
 
 - `-envoy-binary` - The full path to a specific Envoy binary to exec. By
   default the current `$PATH` is searched for `envoy`.
@@ -110,6 +111,8 @@ proxy configuration needed.
   `proxy.destination_service_id` equal to the passed value must be present. If
   multiple proxy registrations targeting the same local service instance are
   present the command will error and `-proxy-id` should be used instead.
+  As of Consul 1.8.0, this can also be specified via the `CONNECT_SIDECAR_FOR`
+  environment variable.
 
   -> **Note:** If ACLs are enabled, a token granting `service:write` for the
   _target_ service (configured in `proxy.destination_service_name`) must be
@@ -133,12 +136,25 @@ proxy configuration needed.
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
+  If Envoy is configured as a terminating or mesh gateway, traffic from services
+  within the mesh will be received at the specified IP and port.
+
+  If Envoy is configured as an ingress gateway, a `/ready` HTTP endpoint will be
+  instantiated at the specified IP and port. Consul uses `/ready` HTTP endpoints
+  to check gateway health. The specified IP will also be used by the ingress
+  gateway when instantiating user-defined listeners configured in the
+  [ingress gateway](/docs/connect/gateways/ingress-gateway) configuration entry.
+
+  ~> **Note**: Ensure that user-defined ingress gateway listeners use a
+     different port than the port specified in `-address` so that they do not
+     conflict with the health check endpoint.
+
 - `-admin-access-log-path` The path to write the access log for the administration
   server. If no access log is desired specify `/dev/null`. By default it will
   use `/dev/null`.
 
-- `-bind-address` - The bind address to use instead of the default binding rules
-  given as `<name>=<ip>:<port>` pairs. This flag may be specified multiple times
+- `-bind-address` - The bind address to use instead of the default binding rules.
+  Specified as `<name>=<ip>:<port>` pairs. This flag may be used multiple times
   to add multiple bind addresses.
 
 - `-expose-servers` - Expose the servers for WAN federation via this mesh

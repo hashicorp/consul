@@ -76,6 +76,10 @@ const (
 	// HTTPNamespaceEnvVar defines an environment variable name which sets
 	// the HTTP Namespace to be used by default. This can still be overridden.
 	HTTPNamespaceEnvName = "CONSUL_NAMESPACE"
+
+	// HTTPPartitionEnvName defines an environment variable name which sets
+	// the HTTP Partition to be used by default. This can still be overridden.
+	HTTPPartitionEnvName = "CONSUL_PARTITION"
 )
 
 // QueryOptions are used to parameterize a query
@@ -83,6 +87,10 @@ type QueryOptions struct {
 	// Namespace overrides the `default` namespace
 	// Note: Namespaces are available only in Consul Enterprise
 	Namespace string
+
+	// Partition overrides the `default` partition
+	// Note: Partitions are available only in Consul Enterprise
+	Partition string
 
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
@@ -190,6 +198,10 @@ type WriteOptions struct {
 	// Namespace overrides the `default` namespace
 	// Note: Namespaces are available only in Consul Enterprise
 	Namespace string
+
+	// Partition overrides the `default` partition
+	// Note: Partitions are available only in Consul Enterprise
+	Partition string
 
 	// Providing a datacenter overwrites the DC provided
 	// by the Config
@@ -313,6 +325,10 @@ type Config struct {
 	// Namespace is the name of the namespace to send along for the request
 	// when no other Namespace is present in the QueryOptions
 	Namespace string
+
+	// Partition is the name of the partition to send along for the request
+	// when no other Partition is present in the QueryOptions
+	Partition string
 
 	TLSConfig TLSConfig
 }
@@ -464,6 +480,10 @@ func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Con
 
 	if v := os.Getenv(HTTPNamespaceEnvName); v != "" {
 		config.Namespace = v
+	}
+
+	if v := os.Getenv(HTTPPartitionEnvName); v != "" {
+		config.Partition = v
 	}
 
 	return config
@@ -732,6 +752,9 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	if q.Namespace != "" {
 		r.params.Set("ns", q.Namespace)
 	}
+	if q.Partition != "" {
+		r.params.Set("partition", q.Partition)
+	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}
@@ -834,6 +857,9 @@ func (r *request) setWriteOptions(q *WriteOptions) {
 	if q.Namespace != "" {
 		r.params.Set("ns", q.Namespace)
 	}
+	if q.Partition != "" {
+		r.params.Set("partition", q.Partition)
+	}
 	if q.Datacenter != "" {
 		r.params.Set("dc", q.Datacenter)
 	}
@@ -907,6 +933,9 @@ func (c *Client) newRequest(method, path string) *request {
 	}
 	if c.config.Namespace != "" {
 		r.params.Set("ns", c.config.Namespace)
+	}
+	if c.config.Partition != "" {
+		r.params.Set("partition", c.config.Partition)
 	}
 	if c.config.WaitTime != 0 {
 		r.params.Set("wait", durToMsec(r.config.WaitTime))

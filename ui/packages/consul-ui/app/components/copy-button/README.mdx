@@ -1,35 +1,43 @@
 # CopyButton
 
-```hbs preview-template
-<p>
-  Icon Only:
-</p>
-<CopyButton
-  @value={{stringToCopy}}
-  @name="Thing"
-/>
+Button component used for copy-to-clipboard functionality so the user can easily copy specified text to their clipboard, along with tooltip-like notifications so the user has some sort of feedback to know the value has been copied.
 
-<p>
-  Icon and text:
-</p>
-<CopyButton
-  @value={{stringToCopy}}
-  @name="Thing"
->
-  Copy me!
-</CopyButton>
+This component is essentially a composition of our `{{with-copyable}}` modifier, our `{{tooltip}}` modifier plus specific Consul-flavored visual treatment. This is all glued together with our `<StateChart />` component to manage states.
+
+Can be used inline to render only a small icon for the button with no other text.
+
+```hbs preview-template
+<figure>
+  <figcaption>Icon only</figcaption>
+
+  <CopyButton
+    @value={{'stringToCopy'}}
+    @name="Thing"
+  />
+
+</figure>
+
+<figure>
+  <figcaption>Icon and text</figcaption>
+
+  <CopyButton
+    @value={{'stringToCopy'}}
+    @name="Thing"
+  >
+    Copy me!
+  </CopyButton>
+</figure>
 ```
 
-### Arguments
+## Arguments
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
 | `value` | `String` | | The string to be copied to the clipboard on click |
-| `name` | `String` | | The 'Name' of the string to be copied. Mainly used for giving feedback to the user |
+| `name` | `String` | | The 'Name' of the string to be copied. Mainly used for accessibility reasons and giving feedback to the user |
 
-This component renders a simple button, when clicked copies the value (the `@value` attribute) to the users clipboard. A simple piece of feedback is given to the user in the form of a tooltip. When used inline an empty button is rendered.
 
-### See
+## See
 
 - [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)

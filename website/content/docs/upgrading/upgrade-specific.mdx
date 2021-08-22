@@ -21,7 +21,7 @@ upgrade flow.
 Consul Enterprise 1.10 has removed temporary licensing capabilities from the binaries
 found on https://releases.hashicorp.com. Servers will no longer load a license previously
 set through the CLI or API. Instead the license must be present in the server's configuration
-or environment prior to starting. See the [licensing documentation](/docs/enterprise/license/overview) 
+or environment prior to starting. See the [licensing documentation](/docs/enterprise/license/overview)
 for more information about how to configure the license. Client agents previously retrieved their
 license from the servers in the cluster within 30 minutes of starting and the snapshot agent
 would similarly retrieve its license from the server or client agent it was configured to use. As
@@ -542,12 +542,12 @@ upgrading. Here's the complete list of removed options and their equivalents:
 | `dogstatsd_tags`                                       | [`telemetry.dogstatsd_tags`](/docs/agent/options#telemetry-dogstatsd_tags)                                                                                             |
 | `http_api_response_headers`                            | [`http_config.response_headers`](/docs/agent/options#response_headers)                                                                                                 |
 | `ports.rpc`                                            | None, the RPC server for CLI commands is no longer supported.                                                                                                          |
-| `recursor`                                             | [`recursors`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#recursors)                                                          |
+| `recursor`                                             | [`recursors`](https://github.com/hashicorp/consul/blob/main/website/pages/docs/agent/options.mdx#recursors)                                                          |
 | `retry_join_azure`                                     | [`-retry-join`](/docs/agent/options#_retry_join)                                                                                                                       |
 | `retry_join_ec2`                                       | [`-retry-join`](/docs/agent/options#_retry_join)                                                                                                                       |
 | `retry_join_gce`                                       | [`-retry-join`](/docs/agent/options#_retry_join)                                                                                                                       |
-| `statsd_addr`                                          | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#telemetry-statsd_address)                            |
-| `statsite_addr`                                        | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/master/website/pages/docs/agent/options.mdx#telemetry-statsite_address)                        |
+| `statsd_addr`                                          | [`telemetry.statsd_address`](https://github.com/hashicorp/consul/blob/main/website/pages/docs/agent/options.mdx#telemetry-statsd_address)                            |
+| `statsite_addr`                                        | [`telemetry.statsite_address`](https://github.com/hashicorp/consul/blob/main/website/pages/docs/agent/options.mdx#telemetry-statsite_address)                        |
 | `statsite_prefix`                                      | [`telemetry.metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix)                                                                                             |
 | `telemetry.statsite_prefix`                            | [`telemetry.metrics_prefix`](/docs/agent/options#telemetry-metrics_prefix)                                                                                             |
 | (service definitions) `serviceid`                      | [`service_id`](/docs/agent/services)                                                                                                                                   |
@@ -820,7 +820,7 @@ defaulting [`allow_stale`](/docs/agent/options#allow_stale) to true for
 better utilization of available servers. If you want to retain the previous
 behavior, set the following configuration:
 
-```javascript
+```json
 {
   "dns_config": {
     "allow_stale": false
@@ -837,7 +837,7 @@ To continue to use the high-performance settings that were the default prior to
 Consul 0.7 (recommended for production servers), add the following
 configuration to all Consul servers when upgrading:
 
-```javascript
+```json
 {
   "performance": {
     "raft_multiplier": 1

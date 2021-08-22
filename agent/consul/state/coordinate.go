@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-memdb"
 
@@ -9,39 +10,88 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
+const tableCoordinates = "coordinates"
+
+func indexFromCoordinate(raw interface{}) ([]byte, error) {
+	c, ok := raw.(*structs.Coordinate)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Coordinate index", raw)
+	}
+
+	if c.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.Node))
+	b.String(strings.ToLower(c.Segment))
+	return b.Bytes(), nil
+}
+
+func indexNodeFromCoordinate(raw interface{}) ([]byte, error) {
+	c, ok := raw.(*structs.Coordinate)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Coordinate index", raw)
+	}
+
+	if c.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.Node))
+	return b.Bytes(), nil
+}
+
+func indexFromCoordinateQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(CoordinateQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for CoordinateQuery index", raw)
+	}
+
+	if q.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Node))
+	b.String(strings.ToLower(q.Segment))
+	return b.Bytes(), nil
+}
+
+type CoordinateQuery struct {
+	Node      string
+	Segment   string
+	Partition string
+}
+
+func (c CoordinateQuery) PartitionOrDefault() string {
+	return structs.PartitionOrDefault(c.Partition)
+}
+
 // coordinatesTableSchema returns a new table schema used for storing
 // network coordinates.
 func coordinatesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "coordinates",
+		Name: tableCoordinates,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					// AllowMissing is required since we allow
-					// Segment to be an empty string.
-					AllowMissing: true,
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "Segment",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromCoordinateQuery,
+					writeIndex:  indexFromCoordinate,
+					prefixIndex: prefixIndexFromQueryNoNamespace,
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexNodeFromCoordinate,
 				},
 			},
 		},
@@ -50,7 +100,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 
 // Coordinates is used to pull all the coordinates from the snapshot.
 func (s *Snapshot) Coordinates() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("coordinates", "id")
+	iter, err := s.tx.Get(tableCoordinates, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,13 +118,9 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 			continue
 		}
 
-		if err := s.tx.Insert("coordinates", update); err != nil {
+		if err := ensureCoordinateTxn(s.tx, idx, update); err != nil {
 			return fmt.Errorf("failed restoring coordinate: %s", err)
 		}
-	}
-
-	if err := indexUpdateMaxTxn(s.tx, idx, "coordinates"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	return nil
@@ -82,13 +128,21 @@ func (s *Restore) Coordinates(idx uint64, updates structs.Coordinates) error {
 
 // Coordinate returns a map of coordinates for the given node, indexed by
 // network segment.
-func (s *Store) Coordinate(node string, ws memdb.WatchSet) (uint64, lib.CoordinateSet, error) {
+func (s *Store) Coordinate(ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (uint64, lib.CoordinateSet, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	tableIdx := maxIndexTxn(tx, "coordinates")
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
 
-	iter, err := tx.Get("coordinates", "node", node)
+	tableIdx := coordinatesMaxIndex(tx, entMeta)
+
+	iter, err := tx.Get(tableCoordinates, indexNode, Query{
+		Value:          node,
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed coordinate lookup: %s", err)
 	}
@@ -103,15 +157,20 @@ func (s *Store) Coordinate(node string, ws memdb.WatchSet) (uint64, lib.Coordina
 }
 
 // Coordinates queries for all nodes with coordinates.
-func (s *Store) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates, error) {
+func (s *Store) Coordinates(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Coordinates, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	// Get the table index.
-	idx := maxIndexTxn(tx, "coordinates")
+	idx := coordinatesMaxIndex(tx, entMeta)
 
 	// Pull all the coordinates.
-	iter, err := tx.Get("coordinates", "id")
+	iter, err := tx.Get(tableCoordinates, indexID+"_prefix", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed coordinate lookup: %s", err)
 	}
@@ -138,6 +197,8 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 			continue
 		}
 
+		entMeta := update.GetEnterpriseMeta()
+
 		// Since the cleanup of coordinates is tied to deletion of
 		// nodes, we silently drop any updates for nodes that we don't
 		// know about. This might be possible during normal operation
@@ -146,7 +207,10 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 		// don't carefully sequence this, and since it will fix itself
 		// on the next coordinate update from that node, we don't return
 		// an error or log anything.
-		node, err := tx.First(tableNodes, indexID, Query{Value: update.Node})
+		node, err := tx.First(tableNodes, indexID, Query{
+			Value:          update.Node,
+			EnterpriseMeta: *entMeta,
+		})
 		if err != nil {
 			return fmt.Errorf("failed node lookup: %s", err)
 		}
@@ -154,15 +218,22 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 			continue
 		}
 
-		if err := tx.Insert("coordinates", update); err != nil {
+		if err := ensureCoordinateTxn(tx, idx, update); err != nil {
 			return fmt.Errorf("failed inserting coordinate: %s", err)
 		}
 	}
 
-	// Update the index.
-	if err := tx.Insert(tableIndex, &IndexEntry{"coordinates", idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
+	return tx.Commit()
+}
+
+func deleteCoordinateTxn(tx WriteTxn, idx uint64, coord *structs.Coordinate) error {
+	if err := tx.Delete(tableCoordinates, coord); err != nil {
+		return fmt.Errorf("failed deleting coordinate: %s", err)
 	}
 
-	return tx.Commit()
+	if err := updateCoordinatesIndexes(tx, idx, coord.GetEnterpriseMeta()); err != nil {
+		return fmt.Errorf("failed updating coordinate index: %s", err)
+	}
+
+	return nil
 }

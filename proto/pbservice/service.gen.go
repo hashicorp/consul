@@ -144,6 +144,7 @@ func UpstreamToStructs(s Upstream) structs.Upstream {
 	var t structs.Upstream
 	t.DestinationType = s.DestinationType
 	t.DestinationNamespace = s.DestinationNamespace
+	t.DestinationPartition = s.DestinationPartition
 	t.DestinationName = s.DestinationName
 	t.Datacenter = s.Datacenter
 	t.LocalBindAddress = s.LocalBindAddress
@@ -159,6 +160,7 @@ func NewUpstreamFromStructs(t structs.Upstream) Upstream {
 	var s Upstream
 	s.DestinationType = t.DestinationType
 	s.DestinationNamespace = t.DestinationNamespace
+	s.DestinationPartition = t.DestinationPartition
 	s.DestinationName = t.DestinationName
 	s.Datacenter = t.Datacenter
 	s.LocalBindAddress = t.LocalBindAddress

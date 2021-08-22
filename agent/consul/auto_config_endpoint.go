@@ -109,7 +109,6 @@ type AutoConfigBackend interface {
 	CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error)
 	DatacenterJoinAddresses(segment string) ([]string, error)
 	ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error)
-
 	GetCARoots() (*structs.IndexedCARoots, error)
 	SignCertificate(csr *x509.CertificateRequest, id connect.CertURI) (*structs.IssuedCert, error)
 }
@@ -189,12 +188,11 @@ func (ac *AutoConfig) updateTLSCertificatesInConfig(opts AutoConfigOptions, resp
 func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautoconf.AutoConfigResponse) error {
 	acl := &pbconfig.ACL{
 		Enabled:             ac.config.ACLsEnabled,
-		PolicyTTL:           ac.config.ACLPolicyTTL.String(),
-		RoleTTL:             ac.config.ACLRoleTTL.String(),
-		TokenTTL:            ac.config.ACLTokenTTL.String(),
-		DisabledTTL:         ac.config.ACLDisabledTTL.String(),
-		DownPolicy:          ac.config.ACLDownPolicy,
-		DefaultPolicy:       ac.config.ACLDefaultPolicy,
+		PolicyTTL:           ac.config.ACLResolverSettings.ACLPolicyTTL.String(),
+		RoleTTL:             ac.config.ACLResolverSettings.ACLRoleTTL.String(),
+		TokenTTL:            ac.config.ACLResolverSettings.ACLTokenTTL.String(),
+		DownPolicy:          ac.config.ACLResolverSettings.ACLDownPolicy,
+		DefaultPolicy:       ac.config.ACLResolverSettings.ACLDefaultPolicy,
 		EnableKeyListPolicy: ac.config.ACLEnableKeyListPolicy,
 	}
 
@@ -210,7 +208,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 					Datacenter: ac.config.Datacenter,
 				},
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		}
 
 		token, err := ac.backend.CreateACLToken(&template)

@@ -28,18 +28,25 @@ CA providers.
 ## Configuration
 
 The built-in CA provider has no required configuration. Enabling Connect
-alone will configure the built-in CA provider and will automatically generate
+alone will configure the built-in CA provider, and will automatically generate
 a root certificate and private key:
 
+<CodeBlockConfig filename="/etc/consul.d/config.hcl">
+
 ```hcl
+# ...
 connect {
   enabled = true
 }
 ```
 
-The configuration options are listed below. Note, the
-first key is the value used in API calls and the second key (after the `/`)
-is used if you're adding configuring to the agent's configuration file.
+</CodeBlockConfig>
+
+The configuration options are listed below.
+
+-> **Note**: The first key is the value used in API calls, and the second key
+   (after the `/`) is used if you are adding the configuration to the agent's
+   configuration file.
 
 - `PrivateKey` / `private_key` (`string: ""`) - A PEM-encoded private key
   for signing operations. This must match the private key used for the root
@@ -55,8 +62,7 @@ is used if you're adding configuring to the agent's configuration file.
   bootstrap with the ".consul" TLD. The cluster identifier can be found
   using the [CA List Roots endpoint](/api/connect/ca#list-ca-root-certificates).
 
-There are also [common CA configuration options](/docs/agent/options#common-ca-config-options)
-that are supported by all CA providers.
+@include 'http_api_connect_ca_common_options.mdx'
 
 ## Specifying a Custom Private Key and Root Certificate
 
@@ -74,7 +80,6 @@ $ curl localhost:8500/v1/connect/ca/configuration
     "Provider": "consul",
     "Config": {
         "LeafCertTTL": "72h",
-        "RotationPeriod": "2160h",
         "IntermediateCertTTL": "8760h"
     },
     "CreateIndex": 5,
@@ -90,7 +95,7 @@ There are two ways to have the Consul CA use a custom private key and root certi
 either through the `ca_config` section of the [Agent configuration](/docs/agent/options#connect_ca_config) (which can only be used during the cluster's
 initial bootstrap) or through the [Update CA Configuration endpoint](/api/connect/ca#update-ca-configuration).
 
-Currently consul requires that root certificates are valid [SPIFFE SVID Signing certificates](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
+Currently Consul requires that root certificates are valid [SPIFFE SVID Signing certificates](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
 in the SAN is the cluster identifier created at bootstrap with the ".consul" TLD. In this
 example, we will set the URI SAN to `spiffe://36cb52cd-4058-f811-0432-6798a240c5d3.consul`.
 
@@ -105,7 +110,6 @@ $ jq -n --arg key "$(cat root.key)"  --arg cert "$(cat root.crt)" '
         "LeafCertTTL": "72h",
         "PrivateKey": $key,
         "RootCert": $cert,
-        "RotationPeriod": "2160h",
         "IntermediateCertTTL": "8760h"
     }
 }' > ca_config.json
@@ -121,7 +125,6 @@ $ cat ca_config.json
     "LeafCertTTL": "72h",
     "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEArqiy1c3pbT3cSkjdEM1APALUareU...",
     "RootCert": "-----BEGIN CERTIFICATE-----\nMIIDijCCAnKgAwIBAgIJAOFZ66em1qC7MA0GCSqGSIb3...",
-    "RotationPeriod": "2160h",
     "IntermediateCertTTL": "8760h"
   }
 }

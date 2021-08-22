@@ -45,7 +45,7 @@ This guide makes the following assumptions:
 
 There are quite a number of changes between releases. Notable changes
 are called out in our [Specific Version Details](/docs/upgrading/upgrade-specific#consul-1-6-3)
-page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/master/CHANGELOG.md#124-november-27-2018).
+page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#124-november-27-2018).
 Looking through these changes prior to upgrading is highly recommended.
 
 Two very notable items are:
@@ -125,6 +125,8 @@ Take note of the `ReplicatedIndex` value.
 Create a new file containing the payload for creating a new token named `test-ui-token.json`
 with the following contents:
 
+<CodeBlockConfig filename="test-ui-token.json">
+
 ```json
 {
   "Name": "UI Token",
@@ -132,6 +134,8 @@ with the following contents:
   "Rules": "key \"\" { policy = \"write\" } node \"\" { policy = \"read\" } service \"\" { policy = \"read\" }"
 }
 ```
+
+</CodeBlockConfig>
 
 From a Consul server in DC1, create a new token using that file:
 
@@ -220,7 +224,7 @@ These are the changes you will need to make:
   ```
 
 You can make sure your config changes are valid by copying your existing configuration files,
-making the changes, and then verifing them by using `consul validate $CONFIG_FILE1_PATH $CONFIG_FILE2_PATH ...`.
+making the changes, and then verifying them by using `consul validate $CONFIG_FILE1_PATH $CONFIG_FILE2_PATH ...`.
 
 Once your config is passing the validation check, replace your old config files with the new ones
 and slowly roll your cluster again one server at a time – leaving the leader agent for last in each

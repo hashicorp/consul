@@ -74,6 +74,14 @@ func (q *QueryOptions) SetStaleIfError(staleIfError time.Duration) {
 	q.StaleIfError = staleIfError
 }
 
+func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	o := structs.QueryOptions{
+		MaxQueryTime:  q.MaxQueryTime,
+		MinQueryIndex: q.MinQueryIndex,
+	}
+	return o.HasTimedOut(start, rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+}
+
 // SetFilter is needed to implement the structs.QueryOptionsCompat interface
 func (q *QueryOptions) SetFilter(filter string) {
 	q.Filter = filter
@@ -119,6 +127,10 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // AllowStaleRead returns whether a stale read should be allowed
 func (w WriteRequest) AllowStaleRead() bool {
 	return false
+}
+
+func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, _, _ time.Duration) bool {
+	return time.Since(start) > rpcHoldTimeout
 }
 
 func (td TargetDatacenter) RequestDatacenter() string {

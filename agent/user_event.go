@@ -187,7 +187,8 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 		}
 
 		// Scan for a match
-		services := a.State.Services(structs.DefaultEnterpriseMeta())
+		// NOTE: this only works in the default partition and default namespace
+		services := a.State.Services(structs.DefaultEnterpriseMetaInDefaultPartition())
 		found := false
 	OUTER:
 		for name, info := range services {

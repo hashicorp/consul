@@ -40,10 +40,6 @@ func (a *Agent) vetServiceRegister(token string, service *structs.NodeService) e
 }
 
 func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *structs.NodeService) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	service.FillAuthzContext(&authzContext)
 	// Vet the service itself.
@@ -73,23 +69,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	return nil
 }
 
-// vetServiceUpdate makes sure the service update action is allowed by the given
-// token.
-func (a *Agent) vetServiceUpdate(token string, serviceID structs.ServiceID) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.vetServiceUpdateWithAuthorizer(authz, serviceID)
-}
-
 func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID structs.ServiceID) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 
 	// Vet any changes based on the existing services's info.
@@ -100,28 +80,14 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 		}
 	} else {
-		return fmt.Errorf("Unknown service %q", serviceID)
+		return NotFoundError{Reason: fmt.Sprintf("Unknown service %q", serviceID)}
 	}
 
 	return nil
 }
 
-// vetCheckRegister makes sure the check registration action is allowed by the
-// given token.
-func (a *Agent) vetCheckRegister(token string, check *structs.HealthCheck) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.vetCheckRegisterWithAuthorizer(authz, check)
-}
-
 func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *structs.HealthCheck) error {
-	if authz == nil {
-		return nil
-	}
+	// TODO(partitions)
 
 	var authzContext acl.AuthorizerContext
 	check.FillAuthzContext(&authzContext)
@@ -152,22 +118,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 	return nil
 }
 
-// vetCheckUpdate makes sure that a check update is allowed by the given token.
-func (a *Agent) vetCheckUpdate(token string, checkID structs.CheckID) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.vetCheckUpdateWithAuthorizer(authz, checkID)
-}
-
 func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID structs.CheckID) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	checkID.FillAuthzContext(&authzContext)
 
@@ -192,21 +143,18 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 // filterMembers redacts members that the token doesn't have access to.
 func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	// Resolve the token and bail if ACLs aren't enabled.
-	rule, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return err
 	}
-	if rule == nil {
-		return nil
-	}
 
 	var authzContext acl.AuthorizerContext
-	structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+	a.agentEnterpriseMeta().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
 	for i := 0; i < len(m); i++ {
 		node := m[i].Name
-		if rule.NodeRead(node, &authzContext) == acl.Allow {
+		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
 		accessorID := a.aclAccessorID(token)
@@ -218,21 +166,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	return nil
 }
 
-// filterServices redacts services that the token doesn't have access to.
-func (a *Agent) filterServices(token string, services *map[structs.ServiceID]*structs.NodeService) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.filterServicesWithAuthorizer(authz, services)
-}
-
 func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map[structs.ServiceID]*structs.NodeService) error {
-	if authz == nil {
-		return nil
-	}
 	var authzContext acl.AuthorizerContext
 	// Filter out services based on the service policy.
 	for id, service := range *services {
@@ -246,22 +180,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services *map
 	return nil
 }
 
-// filterChecks redacts checks that the token doesn't have access to.
-func (a *Agent) filterChecks(token string, checks *map[structs.CheckID]*structs.HealthCheck) error {
-	// Resolve the token and bail if ACLs aren't enabled.
-	authz, err := a.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return err
-	}
-
-	return a.filterChecksWithAuthorizer(authz, checks)
-}
-
 func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[structs.CheckID]*structs.HealthCheck) error {
-	if authz == nil {
-		return nil
-	}
-
 	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
 	for id, check := range *checks {
@@ -271,7 +190,8 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 				continue
 			}
 		} else {
-			structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
+			// TODO(partition): should this be a Default or Node flavored entmeta?
+			check.NodeEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
 			if authz.NodeRead(a.config.NodeName, &authzContext) == acl.Allow {
 				continue
 			}

@@ -329,7 +329,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
-		return s.checkStreamACLs(stream.Context(), cfgSnap)
+		return s.authorize(stream.Context(), cfgSnap)
 	}
 
 	for {
@@ -560,9 +560,10 @@ func newPanicHandler(logger hclog.Logger) recovery.RecoveryHandlerFuncContext {
 	}
 }
 
-// GRPCServer returns a server instance that can handle xDS requests.
-func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
-	recoveryOpts := []recovery.Option{
+// NewGRPCServer creates a grpc.Server, registers the Server, and then returns
+// the grpc.Server.
+func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
+  recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandlerContext(newPanicHandler(s.Logger)),
 	}
 
@@ -579,7 +580,7 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	}
 	if tlsConfigurator != nil {
 		if tlsConfigurator.Cert() != nil {
-			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
+			creds := credentials.NewTLS(tlsConfigurator.IncomingXDSConfig())
 			opts = append(opts, grpc.Creds(creds))
 		}
 	}
@@ -589,17 +590,25 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	if !s.DisableV2Protocol {
 		envoy_discovery_v2.RegisterAggregatedDiscoveryServiceServer(srv, &adsServerV2Shim{srv: s})
 	}
-
-	return srv, nil
+	return srv
 }
 
-func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
+// authorize the xDS request using the token stored in ctx. This authorization is
+// a bit different from most interfaces. Instead of explicitly authorizing or
+// filtering each piece of data in the response, the request is authorized
+// by checking the token has `service:write` for the service ID of the destination
+// service (for kind=ConnectProxy), or the gateway service (for other kinds).
+// This authorization strategy requires that agent/proxycfg only fetches data
+// using a token with the same permissions, and that it stores the data by
+// proxy ID. We assume that any data in the snapshot was already filtered,
+// which allows this authorization to be a shallow authorization check
+// for all the data in a ConfigSnapshot.
+func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
 	if cfgSnap == nil {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	rule, err := s.ResolveToken(tokenFromContext(streamCtx))
-
+	authz, err := s.ResolveToken(tokenFromContext(ctx))
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {
@@ -612,12 +621,12 @@ func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.Co
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
 		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
 			return status.Errorf(codes.PermissionDenied, "permission denied")
 		}
 	default:

@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -366,6 +367,10 @@ func (f fakeGRPCConnPool) ClientConn(_ string) (*grpc.ClientConn, error) {
 	return nil, nil
 }
 
+func (f fakeGRPCConnPool) ClientConnLeader() (*grpc.ClientConn, error) {
+	return nil, nil
+}
+
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -421,7 +426,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
 			func(ns *structs.NodeService) {
@@ -449,7 +454,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname1",
 					ServiceTags:    []string{"tag1"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -464,7 +469,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				},
 				Tags:           []string{"tag2"},
 				Port:           8200,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			nil, // No change expected
 			[]*structs.CheckType{
@@ -497,7 +502,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"check-noname": {
 					Node:           "node1",
@@ -508,7 +513,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"service:svcid2:3": {
 					Node:           "node1",
@@ -519,7 +524,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				"service:svcid2:4": {
 					Node:           "node1",
@@ -530,7 +535,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 					ServiceName:    "svcname2",
 					ServiceTags:    []string{"tag2"},
 					Type:           "ttl",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -695,11 +700,11 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 	return func(r *retry.R) {
 		t.Helper()
 		found := false
-		for _, c := range agent.State.CheckStates(structs.WildcardEnterpriseMeta()) {
+		for _, c := range agent.State.CheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 			if c.Check.CheckID == chk.CheckID {
 				found = true
 				assert.Equal(t, expectedResult, c.Check.Status, "Check state should be %s, was %s in %#v", expectedResult, c.Check.Status, c.Check)
-				srvID := structs.NewServiceID(srv.ID, structs.WildcardEnterpriseMeta())
+				srvID := structs.NewServiceID(srv.ID, structs.WildcardEnterpriseMetaInDefaultPartition())
 				if err := agent.Agent.State.RemoveService(srvID); err != nil {
 					fmt.Println("[DEBUG] Fail to remove service", srvID, ", err:=", err)
 				}
@@ -765,7 +770,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		err := a.RPC("Catalog.NodeServices", &args, &out)
 		assert.NoError(r, err)
 		foundService := false
-		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMeta())
+		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMetaInDefaultPartition())
 		for _, srv := range out.NodeServices.Services {
 			if lookup.Matches(srv.CompoundServiceID()) {
 				foundService = true
@@ -803,7 +808,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		for i := 0; i < 50; i++ {
 			unlockIndexOnNode()
 			allNonWarning := true
-			for _, chk := range a.State.Checks(structs.WildcardEnterpriseMeta()) {
+			for _, chk := range a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition()) {
 				if chk.Status == api.HealthWarning {
 					allNonWarning = false
 				}
@@ -1216,7 +1221,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		node_name = "node1"
 	`+extraHCL)
 	defer a.Shutdown()
-	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000, EnterpriseMeta: *structs.DefaultEnterpriseMeta()}
+	svc := &structs.NodeService{ID: "redis", Service: "redis", Port: 8000, EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()}
 	chk1 := &structs.CheckType{CheckID: "chk1", Name: "chk1", TTL: time.Minute}
 	chk2 := &structs.CheckType{CheckID: "chk2", Name: "chk2", TTL: 2 * time.Minute}
 	hchk1 := &structs.HealthCheck{
@@ -1227,7 +1232,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceID:      "redis",
 		ServiceName:    "redis",
 		Type:           "ttl",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	hchk2 := &structs.HealthCheck{Node: "node1",
 		CheckID:        "chk2",
@@ -1236,7 +1241,7 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 		ServiceID:      "redis",
 		ServiceName:    "redis",
 		Type:           "ttl",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// register service with chk1
@@ -2320,7 +2325,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 		Port:            8000,
 		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Weights:         &structs.Weights{Passing: 1, Warning: 1},
-		EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Encode the NodeService directly. This is what previous versions
@@ -2606,7 +2611,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		CheckID:        "mem",
 		Name:           "memory check",
 		Status:         api.HealthPassing,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// First persist the check
@@ -2631,6 +2636,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 			notes = "my cool notes"
 			args = ["/bin/check-redis.py"]
 			interval = "30s"
+			timeout = "5s"
 		}
 	`})
 	defer a2.Shutdown()
@@ -2647,7 +2653,9 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		Name:           "memory check",
 		Status:         api.HealthCritical,
 		Notes:          "my cool notes",
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		Interval:       "30s",
+		Timeout:        "5s",
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	require.Equal(t, expected, result)
 }
@@ -2678,7 +2686,7 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 		},
 		Tags:           []string{"tag2"},
 		Port:           8200,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 
 		Connect: structs.ServiceConnect{
 			SidecarService: &structs.ServiceDefinition{},
@@ -3050,7 +3058,7 @@ func testAgent_unloadServices(t *testing.T, extraHCL string) {
 	if err := a.unloadServices(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if len(a.State.Services(structs.WildcardEnterpriseMeta())) != 0 {
+	if len(a.State.Services(structs.WildcardEnterpriseMetaInDefaultPartition())) != 0 {
 		t.Fatalf("should have unloaded services")
 	}
 }
@@ -3159,7 +3167,7 @@ func TestAgent_Service_Reap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0, "should not have critical checks")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
 
 	// Wait for the check TTL to fail but before the check is reaped.
 	time.Sleep(100 * time.Millisecond)
@@ -3171,17 +3179,17 @@ func TestAgent_Service_Reap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0, "should not have critical checks")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
 
 	// Wait for the check TTL to fail again.
 	time.Sleep(100 * time.Millisecond)
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 1, "should have 1 critical check")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 1, "should have 1 critical check")
 
 	// Wait for the reap.
 	time.Sleep(400 * time.Millisecond)
 	requireServiceMissing(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0, "should not have critical checks")
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0, "should not have critical checks")
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
@@ -3216,17 +3224,17 @@ func TestAgent_Service_NoReap(t *testing.T) {
 
 	// Make sure it's there and there's no critical check yet.
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 0)
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 0)
 
 	// Wait for the check TTL to fail.
 	time.Sleep(200 * time.Millisecond)
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 1)
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 1)
 
 	// Wait a while and make sure it doesn't reap.
 	time.Sleep(200 * time.Millisecond)
 	requireServiceExists(t, a, "redis")
-	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()), 1)
+	require.Len(t, a.State.CriticalCheckStates(structs.WildcardEnterpriseMetaInDefaultPartition()), 1)
 }
 
 func TestAgent_AddService_restoresSnapshot(t *testing.T) {
@@ -3729,10 +3737,27 @@ func TestAgent_SecurityChecks(t *testing.T) {
 	defer a.Shutdown()
 
 	data := make([]byte, 0, 8192)
-	bytesBuffer := bytes.NewBuffer(data)
-	a.LogOutput = bytesBuffer
+	buf := &syncBuffer{b: bytes.NewBuffer(data)}
+	a.LogOutput = buf
 	assert.NoError(t, a.Start(t))
-	assert.Contains(t, bytesBuffer.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+	assert.Contains(t, buf.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
+}
+
+type syncBuffer struct {
+	lock sync.RWMutex
+	b    *bytes.Buffer
+}
+
+func (b *syncBuffer) Write(data []byte) (int, error) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.b.Write(data)
+}
+
+func (b *syncBuffer) String() string {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.b.String()
 }
 
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
@@ -4909,7 +4934,6 @@ func TestAutoConfig_Integration(t *testing.T) {
 				"LeafCertTTL":         "1h",
 				"PrivateKey":          ca.SigningKey,
 				"RootCert":            ca.RootCert,
-				"RotationPeriod":      "6h",
 				"IntermediateCertTTL": "3h",
 			},
 		},

@@ -27,6 +27,8 @@ const (
 	indexUpstream    = "upstream"
 	indexDownstream  = "downstream"
 	indexGateway     = "gateway"
+	indexUUID        = "uuid"
+	indexMeta        = "meta"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -38,24 +40,29 @@ func nodesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  indexFromQuery,
-					writeIndex: indexFromNode,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromQuery,
+					writeIndex:  indexFromNode,
+					prefixIndex: prefixIndexFromQueryNoNamespace,
 				},
 			},
-			"uuid": {
-				Name:         "uuid",
+			indexUUID: {
+				Name:         indexUUID,
 				AllowMissing: true,
 				Unique:       true,
-				Indexer:      &memdb.UUIDFieldIndex{Field: "ID"},
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   indexFromUUIDQuery,
+					writeIndex:  indexIDFromNode,
+					prefixIndex: prefixIndexFromUUIDQuery,
+				},
 			},
-			"meta": {
-				Name:         "meta",
+			indexMeta: {
+				Name:         indexMeta,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringMapFieldIndex{
-					Field:     "Meta",
-					Lowercase: false,
+				Indexer: indexerMulti{
+					readIndex:       indexFromKeyValueQuery,
+					writeIndexMulti: indexMetaFromNode,
 				},
 			},
 		},
@@ -75,6 +82,50 @@ func indexFromNode(raw interface{}) ([]byte, error) {
 	var b indexBuilder
 	b.String(strings.ToLower(n.Node))
 	return b.Bytes(), nil
+}
+
+func indexIDFromNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	if n.ID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	v, err := uuidStringToBytes(string(n.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+func indexMetaFromNode(raw interface{}) ([][]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	// NOTE: this is case-sensitive!
+
+	vals := make([][]byte, 0, len(n.Meta))
+	for key, val := range n.Meta {
+		if key == "" {
+			continue
+		}
+
+		var b indexBuilder
+		b.String(key)
+		b.String(val)
+		vals = append(vals, b.Bytes())
+	}
+	if len(vals) == 0 {
+		return nil, errMissingValueForIndex
+	}
+
+	return vals, nil
 }
 
 // servicesTableSchema returns a new table schema used to store information
@@ -539,4 +590,10 @@ type NodeCheckQuery struct {
 // receiver for this method. Remove once that is fixed.
 func (q NodeCheckQuery) NamespaceOrDefault() string {
 	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q NodeCheckQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
 }

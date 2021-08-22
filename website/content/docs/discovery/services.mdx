@@ -33,7 +33,7 @@ using the [HTTP API](/api).
 A service definition is a configuration that looks like the following. This
 example shows all possible fields, but note that only a few are required.
 
-```javascript
+```json
 {
   "service": {
     "id": "redis",
@@ -275,13 +275,267 @@ For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
 supports both `enable_tag_override` and `enableTagOverride` but the latter is
 deprecated and has been removed as of Consul 1.1.
 
+### Tagged Addresses
+
+Tagged addresses are additional addresses which may be defined for a node or
+service. Tagged addresses can be used by remote agents and services as alternative
+addresses for communicating with the given node or service. Multiple tagged
+addresses may be configured on a node or service.
+
+The syntax for defining a tagged address is as follows.
+
+<CodeTabs heading="Tagged address format">
+
+```hcl
+service {
+  name = "redis"
+  port = 80
+  tagged_addresses {
+    <tag> = {
+      address = "<address>"
+      port = port
+    }
+  }
+}
+```
+
+```json
+{
+  "service": {
+    "name": "redis",
+    "port": 80,
+    "tagged_addresses": {
+      "<tag>": {
+        "address": "<address>",
+        "port": port
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+Consul supports several tagged address types. The various types and their use
+cases are detailed below.
+
+#### LAN
+
+LAN addresses are intended to be directly accessible only from services within
+the same Consul data center.
+
+##### Supported tags
+
+* `lan` - The IPv4 LAN address at which the node or service is accessible.
+* `lan_ipv4` - The IPv4 LAN address at which the node or service is accessible.
+* `lan_ipv6` - The IPv6 LAN address at which the node or service is accessible.
+
+<CodeTabs heading="Example LAN tagged address configuration">
+
+<CodeBlockConfig filename="redis-service.hcl">
+
+```hcl
+service {
+  name = "redis"
+  address = "192.0.2.10"
+  port = 80
+  tagged_addresses {
+    lan = {
+      address = "192.0.2.10"
+      port = 80
+    }
+    lan_ipv4 = {
+      address = "192.0.2.10"
+      port = 80
+    }
+    lan_ipv6 = {
+      address = "2001:db8:1:2:cafe::1337"
+      port = 80
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="redis-service.json">
+
+```json
+{
+  "service": {
+    "name": "redis",
+    "address": "192.0.2.10",
+    "port": 80,
+    "tagged_addresses": {
+      "lan": {
+        "address": "192.0.2.10",
+        "port": 80
+      },
+      "lan_ipv4": {
+        "address": "192.0.2.10",
+        "port": 80
+      },
+      "lan_ipv6": {
+        "address": "2001:db8:1:2:cafe::1337",
+        "port": 80
+      }
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+#### Virtual
+
+Virtual tagged addresses are logical address types which can be configured on
+[Connect](/docs/connect)-enabled services. The virtual address provides a fixed
+IP address that can be used by downstream services when connecting to an
+upstream service. Connections to the virtual address are load balanced across
+available instances of a service, provided the following conditions are satisfied:
+
+1. [Transparent proxy](/docs/connect/transparent-proxy) is enabled for the
+   downstream and upstream services.
+1. The upstream service is not configured for individual instances to be
+   [dialed directly](/docs/connect/config-entries/service-defaults#dialeddirectly).
+
+-> **Note**: Virtual addresses are not required to be routable IPs within the
+network. They are strictly a control plane construct used to provide a fixed
+address for the instances of a given logical service. Egress connections from
+the proxy to an upstream service will be destined to the IP address of an
+individual service instance, not the virtual address of the logical service.
+
+##### Supported tags
+
+Use the following address tag to specify the logical address at which the
+service can be reached by other services in the mesh.
+
+- `virtual` - The virtual IP address at which a logical service is reachable.
+
+<CodeTabs heading="Example virtual tagged address configuration">
+
+<CodeBlockConfig filename="redis-service.hcl">
+
+```hcl
+service {
+  name = "redis"
+  address = "192.0.2.10"
+  port = 80
+  tagged_addresses {
+    virtual = {
+      address = "203.0.113.50"
+      port = 80
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="redis-service.json">
+
+```json
+{
+  "service": {
+    "name": "redis",
+    "address": "192.0.2.10",
+    "port": 80,
+    "tagged_addresses": {
+      "virtual": {
+        "address": "203.0.113.50",
+        "port": 80
+      }
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+#### WAN
+
+Define a WAN address for the service or node when it should be accessed at an
+alternate address by services in a remote datacenter.
+
+##### Supported tags
+
+One or more of the following address tags can be configured for a node or service
+to advertise how it should be accessed over the WAN.
+
+- `wan` - The IPv4 WAN address at which the node or service is accessible when
+  being dialed from a remote data center.
+- `wan_ipv4` - The IPv4 WAN address at which the node or service is accessible
+  when being dialed from a remote data center.
+- `wan_ipv6` - The IPv6 WAN address at which the node or service is accessible
+  when being dialed from a remote data center.
+
+<CodeTabs heading="Example WAN tagged address configuration">
+
+<CodeBlockConfig filename="redis-service.hcl">
+
+```hcl
+service {
+  name = "redis"
+  address = "192.0.2.10"
+  port = 80
+  tagged_addresses {
+    wan = {
+      address = "198.51.100.200"
+      port = 80
+    }
+    wan_ipv4 = {
+      address = "198.51.100.200"
+      port = 80
+    }
+    wan_ipv6 = {
+      address = "2001:db8:5:6:1337::1eaf"
+      port = 80
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="redis-service.json">
+
+```json
+{
+  "service": {
+    "name": "redis",
+    "address": "192.0.2.10",
+    "port": 80,
+    "tagged_addresses": {
+      "wan": {
+        "address": "198.51.100.200",
+        "port": 80
+      },
+      "wan_ipv4": {
+        "address": "198.51.100.200",
+        "port": 80
+      },
+      "wan_ipv6": {
+        "address": "2001:db8:5:6:1337::1eaf",
+        "port": 80
+      }
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+
 ## Multiple Service Definitions
 
 Multiple services definitions can be provided at once when registering services
 via the agent configuration by using the plural `services` key (registering
 multiple services in this manner is not supported using the HTTP API).
 
-```javascript
+```json
 {
   "services": [
     {

@@ -1,0 +1,8 @@
+@import './skin';
+@import './layout';
+%copy-button {
+  @extend %button;
+}
+.copy-button button {
+  @extend %copy-button;
+}

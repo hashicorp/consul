@@ -27,8 +27,9 @@ example above, a fake [cloud auto-join](/docs/agent/cloud-auto-join)
 value is specified. This should be set to resolve to the proper addresses of
 your existing Consul cluster.
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
-# config.yaml
 global:
   enabled: false
 
@@ -40,6 +41,8 @@ client:
   join:
     - 'provider=my-cloud config=val ...'
 ```
+
+</CodeBlockConfig>
 
 -> **Networking:** Note that for the Kubernetes nodes to join an existing
 cluster, the nodes (and specifically the agent pods) must be able to connect
@@ -63,6 +66,8 @@ If you would like to use this feature with external Consul servers, you need to 
 so that it can retrieve the clients' CA to use for securing the rest of the cluster.
 To do that, you must add the following values, in addition to the values mentioned above:
 
+<CodeBlockConfig filename="config.yaml" highlight="2-8">
+
 ```yaml
 global:
   tls:
@@ -73,6 +78,8 @@ externalServers:
   hosts:
     - 'provider=my-cloud config=val ...'
 ```
+
+</CodeBlockConfig>
 
 In most cases, `externalServers.hosts` will be the same as `client.join`, however, both keys must be set because
 they are used for different purposes: one for Serf LAN and the other for HTTPS connections.
@@ -99,6 +106,8 @@ kubectl create secret generic bootstrap-token --from-literal='token=<your bootst
 
 Then provide that secret to the Helm chart:
 
+<CodeBlockConfig filename="config.yaml" highlight="4-6">
+
 ```yaml
 global:
   acls:
@@ -107,6 +116,8 @@ global:
       secretName: bootstrap-token
       secretKey: token
 ```
+
+</CodeBlockConfig>
 
 The bootstrap token requires the following minimal permissions:
 
@@ -120,6 +131,8 @@ to create policies, tokens, and an auth method. If you are [enabling Consul Conn
 so that the Consul servers can validate a Kubernetes service account token when using the [Kubernetes auth method](/docs/acl/auth-methods/kubernetes)
 with `consul login`.
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
 externalServers:
   enabled: true
@@ -128,7 +141,11 @@ externalServers:
   k8sAuthMethodHost: 'https://kubernetes.example.com:443'
 ```
 
+</CodeBlockConfig>
+
 Your resulting Helm configuration will end up looking similar to this:
+
+<CodeBlockConfig filename="config.yaml">
 
 ```yaml
 global:
@@ -152,10 +169,14 @@ externalServers:
   k8sAuthMethodHost: 'https://kubernetes.example.com:443'
 ```
 
+</CodeBlockConfig>
+
 ### Bootstrapping ACLs via the Helm chart
 
 If you would like the Helm chart to call the bootstrapping API and set the server tokens for you, then the steps are similar.
 The only difference is that you don't need to set the bootstrap token. The Helm chart will save the bootstrap token as a Kubernetes secret.
+
+<CodeBlockConfig filename="config.yaml">
 
 ```yaml
 global:
@@ -175,3 +196,5 @@ externalServers:
     - 'provider=my-cloud config=val ...'
   k8sAuthMethodHost: 'https://kubernetes.example.com:443'
 ```
+
+</CodeBlockConfig>

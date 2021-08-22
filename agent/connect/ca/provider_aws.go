@@ -12,13 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/acmpca"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 const (
@@ -78,12 +77,9 @@ type AWSProvider struct {
 	logger          hclog.Logger
 }
 
-// SetLogger implements NeedsLogger
-func (a *AWSProvider) SetLogger(logger hclog.Logger) {
-	a.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.AWS)
+// NewAWSProvider returns a new AWSProvider
+func NewAWSProvider(logger hclog.Logger) *AWSProvider {
+	return &AWSProvider{logger: logger}
 }
 
 // Configure implements Provider

@@ -18,8 +18,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/hashstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
@@ -42,20 +45,29 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
-	args := map[string]interface{}{
-		"Name":  "User Token",
-		"Type":  "client",
-		"Rules": `agent "" { policy = "read" }`,
+func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
+	policyReq := &structs.ACLPolicy{
+		Name:  "agent-read",
+		Rules: `agent_prefix "" { policy = "read" }`,
 	}
-	req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
+
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
 	resp := httptest.NewRecorder()
-	obj, err := srv.ACLCreate(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	_, err := srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	tokenReq := &structs.ACLToken{
+		Description: "agent-read-token-for-test",
+		Policies:    []structs.ACLTokenPolicyLink{{Name: "agent-read"}},
 	}
-	aclResp := obj.(aclCreateResponse)
-	return aclResp.ID
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err := srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	svcToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	return svcToken.SecretID
 }
 
 func TestAgent_Services(t *testing.T) {
@@ -380,7 +392,7 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Define an updated version. Be careful to copy it.
@@ -391,15 +403,14 @@ func TestAgent_Service(t *testing.T) {
 	// API struct types.
 	expectProxy := proxy
 	expectProxy.Upstreams =
-		structs.TestAddDefaultsToUpstreams(t, sidecarProxy.Proxy.Upstreams)
+		structs.TestAddDefaultsToUpstreams(t, sidecarProxy.Proxy.Upstreams, *structs.DefaultEnterpriseMetaInDefaultPartition())
 
 	expectedResponse := &api.AgentService{
-		Kind:        api.ServiceKindConnectProxy,
-		ID:          "web-sidecar-proxy",
-		Service:     "web-sidecar-proxy",
-		Port:        8000,
-		Proxy:       expectProxy.ToAPI(),
-		ContentHash: "854327a458fe02a6",
+		Kind:    api.ServiceKindConnectProxy,
+		ID:      "web-sidecar-proxy",
+		Service: "web-sidecar-proxy",
+		Port:    8000,
+		Proxy:   expectProxy.ToAPI(),
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -408,19 +419,24 @@ func TestAgent_Service(t *testing.T) {
 		Tags:       []string{},
 		Datacenter: "dc1",
 	}
-	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMeta())
+	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
+	hash1, err := hashstructure.Hash(expectedResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	expectedResponse.ContentHash = fmt.Sprintf("%x", hash1)
 
 	// Copy and modify
 	updatedResponse := *expectedResponse
 	updatedResponse.Port = 9999
-	updatedResponse.ContentHash = "b80a4d9370ed1104"
+	updatedResponse.ContentHash = "" // clear field before hashing
+	hash2, err := hashstructure.Hash(updatedResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	updatedResponse.ContentHash = fmt.Sprintf("%x", hash2)
 
 	// Simple response for non-proxy service registered in TestAgent config
 	expectWebResponse := &api.AgentService{
-		ID:          "web",
-		Service:     "web",
-		Port:        8181,
-		ContentHash: "f012740ee2d8ce60",
+		ID:      "web",
+		Service: "web",
+		Port:    8181,
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
@@ -435,7 +451,10 @@ func TestAgent_Service(t *testing.T) {
 		Tags:       []string{},
 		Datacenter: "dc1",
 	}
-	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMeta())
+	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMetaInDefaultPartition())
+	hash3, err := hashstructure.Hash(expectWebResponse, nil)
+	require.NoError(t, err, "failed to generate hash")
+	expectWebResponse.ContentHash = fmt.Sprintf("%x", hash3)
 
 	tests := []struct {
 		name       string
@@ -616,7 +635,7 @@ func TestAgent_Service(t *testing.T) {
 			req, _ := http.NewRequest("GET", tt.url, nil)
 
 			// Inject the root token for tests that don't care about ACL
-			var token = "root"
+			token := "root"
 			if tt.tokenRules != "" {
 				// Create new token and use that.
 				token = testCreateToken(t, a, tt.tokenRules)
@@ -670,10 +689,12 @@ func TestAgent_Checks(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	chk1 := &structs.HealthCheck{
-		Node:    a.Config.NodeName,
-		CheckID: "mysql",
-		Name:    "mysql",
-		Status:  api.HealthPassing,
+		Node:     a.Config.NodeName,
+		CheckID:  "mysql",
+		Name:     "mysql",
+		Interval: "30s",
+		Timeout:  "5s",
+		Status:   api.HealthPassing,
 	}
 	a.State.AddCheck(chk1, "")
 
@@ -687,6 +708,15 @@ func TestAgent_Checks(t *testing.T) {
 		t.Fatalf("bad checks: %v", obj)
 	}
 	if val["mysql"].Status != api.HealthPassing {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Node != chk1.Node {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Interval != chk1.Interval {
+		t.Fatalf("bad check: %v", obj)
+	}
+	if val["mysql"].Timeout != chk1.Timeout {
 		t.Fatalf("bad check: %v", obj)
 	}
 }
@@ -1365,7 +1395,7 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/self?token=%s", ro), nil)
 		if _, err := a.srv.AgentSelf(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1398,12 +1428,97 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/metrics?token=%s", ro), nil)
 		if _, err := a.srv.AgentMetrics(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	})
+}
+
+func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
+	bd := BaseDeps{}
+	bd.Tokens = new(tokenStore.Store)
+	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
+	bd.MetricsHandler = sink
+	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
+	agent := &Agent{
+		baseDeps: bd,
+		delegate: d,
+		tokens:   bd.Tokens,
+		config:   &config.RuntimeConfig{NodeName: "the-node"},
+		logger:   hclog.NewInterceptLogger(nil),
+	}
+	h := HTTPHandlers{agent: agent, denylist: NewDenylist(nil)}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
+	require.NoError(t, err)
+	handle := h.handler(false)
+	handle.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusForbidden, resp.Code)
+	require.Contains(t, resp.Body.String(), "Permission denied")
+}
+
+func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
+	bd := BaseDeps{}
+	bd.Tokens = new(tokenStore.Store)
+	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
+	bd.MetricsHandler = sink
+	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
+	agent := &Agent{
+		baseDeps: bd,
+		delegate: d,
+		tokens:   bd.Tokens,
+		config:   &config.RuntimeConfig{NodeName: "the-node"},
+		logger:   hclog.NewInterceptLogger(nil),
+	}
+	h := HTTPHandlers{agent: agent, denylist: NewDenylist(nil)}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Millisecond)
+	defer cancel()
+
+	// produce some metrics
+	go func() {
+		for ctx.Err() == nil {
+			sink.SetGauge([]string{"the-key"}, 12)
+			time.Sleep(5 * time.Millisecond)
+		}
+	}()
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
+	require.NoError(t, err)
+	handle := h.handler(false)
+	handle.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	decoder := json.NewDecoder(resp.Body)
+	var summary metrics.MetricsSummary
+	err = decoder.Decode(&summary)
+	require.NoError(t, err)
+
+	expected := []metrics.GaugeValue{
+		{Name: "the-key", Value: 12, DisplayLabels: map[string]string{}},
+	}
+	require.Equal(t, expected, summary.Gauges)
+
+	// There should be at least two intervals worth of metrics
+	err = decoder.Decode(&summary)
+	require.NoError(t, err)
+	require.Equal(t, expected, summary.Gauges)
+}
+
+type fakeResolveTokenDelegate struct {
+	delegate
+	authorizer acl.Authorizer
+}
+
+func (f fakeResolveTokenDelegate) ResolveTokenAndDefaultMeta(_ string, _ *structs.EnterpriseMeta, _ *acl.AuthorizerContext) (acl.Authorizer, error) {
+	return f.authorizer, nil
 }
 
 func TestAgent_Reload(t *testing.T) {
@@ -1655,7 +1770,7 @@ func TestAgent_Reload_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/reload?token=%s", ro), nil)
 		if _, err := a.srv.AgentReload(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -1852,7 +1967,7 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a1.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a1.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=%s", addr, ro), nil)
 		if _, err := a1.srv.AgentJoin(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -1955,7 +2070,7 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
 		if _, err := a.srv.AgentLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -2016,7 +2131,6 @@ func TestAgent_ForceLeave(t *testing.T) {
 			r.Fatalf("got status %q want %q", got, want)
 		}
 	})
-
 }
 
 func TestOpenMetricsMimeTypeHeaders(t *testing.T) {
@@ -2061,7 +2175,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
-		ro := makeReadOnlyAgentACL(t, a.srv)
+		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", ro), nil)
 		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
@@ -2070,7 +2184,7 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 	t.Run("operator write token", func(t *testing.T) {
 		// Create an ACL with operator read permissions.
-		var rules = `
+		rules := `
                     operator = "write"
                 `
 		opToken := testCreateToken(t, a, rules)
@@ -2111,7 +2225,6 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 				if member.Status != serf.StatusFailed {
 					r.Fatalf("got status %q want %q", member.Status, serf.StatusFailed)
 				}
-
 			}
 		}
 	})
@@ -2131,7 +2244,6 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 			r.Fatalf("want one member, got %v", m)
 		}
 	})
-
 }
 
 func TestAgent_RegisterCheck(t *testing.T) {
@@ -2531,7 +2643,6 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 			require.NoError(r, err)
 		})
 	})
-
 }
 
 func TestAgent_DeregisterCheck(t *testing.T) {
@@ -2973,7 +3084,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 	}
 
 	// Ensure we have a check mapping
-	checks := a.State.Checks(structs.WildcardEnterpriseMeta())
+	checks := a.State.Checks(structs.WildcardEnterpriseMetaInDefaultPartition())
 	if len(checks) != 3 {
 		t.Fatalf("bad: %v", checks)
 	}
@@ -3063,7 +3174,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Equal(t, 3, len(checks))
 
 	checkIDs := []string{}
@@ -3142,7 +3253,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 	_, err = a.srv.AgentRegisterService(nil, req)
 	require.NoError(t, err)
 
-	checks := a.State.Checks(structs.DefaultEnterpriseMeta())
+	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Len(t, checks, 2)
 
 	checkIDs := []string{}
@@ -3220,6 +3331,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 				{
 					"destination_type": "service",
 					"destination_namespace": "default",
+					"destination_partition": "default",
 					"destination_name": "db",
 		      "local_bind_address": "` + tt.ip + `",
 		      "local_bind_port": 1234,
@@ -3248,6 +3360,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						{
 							"destination_type": "service",
 							"destination_namespace": "default",
+							"destination_partition": "default",
 							"destination_name": "db",
 							"local_bind_address": "` + tt.ip + `",
 							"local_bind_port": 1234,
@@ -3305,6 +3418,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 							DestinationType:      structs.UpstreamDestTypeService,
 							DestinationName:      "db",
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							LocalBindAddress:     tt.ip,
 							LocalBindPort:        1234,
 							Config: map[string]interface{}{
@@ -3319,7 +3433,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 					// there worked by inspecting the registered sidecar below.
 					SidecarService: nil,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 
 			got := a.State.Service(structs.NewServiceID("test", nil))
@@ -3348,6 +3462,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 							DestinationType:      structs.UpstreamDestTypeService,
 							DestinationName:      "db",
 							DestinationNamespace: "default",
+							DestinationPartition: "default",
 							LocalBindAddress:     tt.ip,
 							LocalBindPort:        1234,
 							Config: map[string]interface{}{
@@ -3356,7 +3471,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 						},
 					},
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			gotSidecar := a.State.Service(structs.NewServiceID("test-sidecar-proxy", nil))
 			hasNoCorrectTCPCheck := true
@@ -3537,8 +3652,22 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 	svc := a.State.Service(sid)
 	require.NotNil(t, svc, "has service")
 	require.Equal(t, structs.ServiceKindConnectProxy, svc.Kind)
-	// Registration must set that default type
-	args.Proxy.Upstreams[0].DestinationType = api.UpstreamDestTypeService
+
+	// Registration sets default types and namespaces
+	for i := range args.Proxy.Upstreams {
+		if args.Proxy.Upstreams[i].DestinationType == "" {
+			args.Proxy.Upstreams[i].DestinationType = api.UpstreamDestTypeService
+		}
+		if args.Proxy.Upstreams[i].DestinationNamespace == "" {
+			args.Proxy.Upstreams[i].DestinationNamespace =
+				structs.DefaultEnterpriseMetaInDefaultPartition().NamespaceOrEmpty()
+		}
+		if args.Proxy.Upstreams[i].DestinationPartition == "" {
+			args.Proxy.Upstreams[i].DestinationPartition =
+				structs.DefaultEnterpriseMetaInDefaultPartition().PartitionOrEmpty()
+		}
+	}
+
 	require.Equal(t, args.Proxy, svc.Proxy.ToAPI())
 
 	// Ensure the token was configured
@@ -3567,7 +3696,7 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 			LocalServiceAddress:    "127.0.0.1",
 			LocalServicePort:       port,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 	for _, fn := range fns {
 		fn(ns)
@@ -3925,7 +4054,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// After we deregister the web service above, the fake sidecar with
 			// clashing ID SHOULD NOT have been removed since it wasn't part of the
@@ -3972,7 +4101,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 					LocalServiceAddress:    "127.0.0.1",
 					LocalServicePort:       1111,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		{
@@ -4055,7 +4184,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				resp.Body.String())
 
 			// Sanity the target service registration
-			svcs := a.State.Services(nil)
+			svcs := a.State.AllServices()
 
 			// Parse the expected definition into a ServiceDefinition
 			var sd structs.ServiceDefinition
@@ -4104,7 +4233,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				require.NoError(err)
 				require.Nil(obj)
 
-				svcs := a.State.Services(nil)
+				svcs := a.State.AllServices()
 				_, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 				if tt.wantSidecarIDLeftAfterDereg {
 					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
@@ -4417,12 +4546,9 @@ func TestAgent_ServiceMaintenance_BadRequest(t *testing.T) {
 	t.Run("bad service id", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/_nope_?enable=true", nil)
 		resp := httptest.NewRecorder()
-		if _, err := a.srv.AgentServiceMaintenance(resp, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if resp.Code != 404 {
-			t.Fatalf("expected 404, got %d", resp.Code)
-		}
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, 404, resp.Code)
+		require.Contains(t, resp.Body.String(), `Unknown service "_nope_"`)
 	})
 }
 
@@ -5486,23 +5612,7 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	// Create an ACL with service:write for our service
-	var token string
-	{
-		args := map[string]interface{}{
-			"Name":  "User Token",
-			"Type":  "client",
-			"Rules": `service "test" { policy = "write" }`,
-		}
-		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		token = aclResp.ID
-	}
+	token := createACLTokenWithServicePolicy(t, a.srv, "write")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
@@ -5512,6 +5622,31 @@ func TestAgentConnectCALeafCert_aclServiceWrite(t *testing.T) {
 	// Get the issued cert
 	_, ok := obj.(*structs.IssuedCert)
 	require.True(ok)
+}
+
+func createACLTokenWithServicePolicy(t *testing.T, srv *HTTPHandlers, policy string) string {
+	policyReq := &structs.ACLPolicy{
+		Name:  "service-test-write",
+		Rules: fmt.Sprintf(`service "test" { policy = "%v" }`, policy),
+	}
+
+	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
+	resp := httptest.NewRecorder()
+	_, err := srv.ACLPolicyCreate(resp, req)
+	require.NoError(t, err)
+
+	tokenReq := &structs.ACLToken{
+		Description: "token-for-test",
+		Policies:    []structs.ACLTokenPolicyLink{{Name: "service-test-write"}},
+	}
+
+	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
+	resp = httptest.NewRecorder()
+	tokInf, err := srv.ACLTokenCreate(resp, req)
+	require.NoError(t, err)
+	svcToken, ok := tokInf.(*structs.ACLToken)
+	require.True(t, ok)
+	return svcToken.SecretID
 }
 
 func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
@@ -5547,23 +5682,7 @@ func TestAgentConnectCALeafCert_aclServiceReadDeny(t *testing.T) {
 		require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 	}
 
-	// Create an ACL with service:read for our service
-	var token string
-	{
-		args := map[string]interface{}{
-			"Name":  "User Token",
-			"Type":  "client",
-			"Rules": `service "test" { policy = "read" }`,
-		}
-		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		token = aclResp.ID
-	}
+	token := createACLTokenWithServicePolicy(t, a.srv, "read")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?token="+token, nil)
 	resp := httptest.NewRecorder()
@@ -6552,26 +6671,10 @@ func TestAgentConnectAuthorize_serviceWrite(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Create an ACL
-	var token string
-	{
-		args := map[string]interface{}{
-			"Name":  "User Token",
-			"Type":  "client",
-			"Rules": `service "foo" { policy = "read" }`,
-		}
-		req, _ := http.NewRequest("PUT", "/v1/acl/create?token=root", jsonReader(args))
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ACLCreate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		aclResp := obj.(aclCreateResponse)
-		token = aclResp.ID
-	}
+	token := createACLTokenWithServicePolicy(t, a.srv, "read")
 
 	args := &structs.ConnectAuthorizeRequest{
-		Target:        "foo",
+		Target:        "test",
 		ClientCertURI: connect.TestSpiffeIDService(t, "web").URI().String(),
 	}
 	req, _ := http.NewRequest("POST",

@@ -59,11 +59,11 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	defer metrics.MeasureSince([]string{"federation_state", "apply"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -105,11 +105,11 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 	defer metrics.MeasureSince([]string{"federation_state", "get"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -146,11 +146,11 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 	defer metrics.MeasureSince([]string{"federation_state", "list"}, time.Now())
 
 	// Fetch the ACL token, if any.
-	rule, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

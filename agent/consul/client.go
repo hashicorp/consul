@@ -10,6 +10,10 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,9 +21,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
 )
 
 var ClientCounters = []prometheus.CounterDefinition{
@@ -122,13 +123,13 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 
 	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
-		Delegate:    c,
-		Logger:      c.logger,
-		AutoDisable: true,
-		CacheConfig: clientACLCacheConfig,
-		ACLConfig:   newACLConfig(c.logger),
-		Tokens:      deps.Tokens,
+		Config:          config.ACLResolverSettings,
+		Delegate:        c,
+		Logger:          c.logger,
+		DisableDuration: aclClientDisabledTTL,
+		CacheConfig:     clientACLCacheConfig,
+		ACLConfig:       newACLConfig(c.logger),
+		Tokens:          deps.Tokens,
 	}
 	var err error
 	if c.acls, err = NewACLResolver(&aclConfig); err != nil {

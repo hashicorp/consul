@@ -1,0 +1,4 @@
+```release-note:bug
+cli: Fix a bug which prevented initializing a watch when using a namespaced
+token.
+```

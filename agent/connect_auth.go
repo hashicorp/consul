@@ -65,7 +65,7 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(err)
 	}
 
-	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
+	if authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
@@ -132,14 +132,6 @@ func (a *Agent) ConnectAuthorize(token string,
 		return false, reason, &meta, nil
 	}
 
-	// No match, we need to determine the default behavior. We do this by
-	// fetching the default intention behavior from the resolved authorizer. The
-	// default behavior if ACLs are disabled is to allow connections to mimic the
-	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	if authz == nil {
-		// ACLs not enabled at all, the default is allow all.
-		return true, "ACLs disabled, access is allowed by default", &meta, nil
-	}
 	reason = "Default behavior configured by ACLs"
 	return authz.IntentionDefaultAllow(nil) == acl.Allow, reason, &meta, nil
 }

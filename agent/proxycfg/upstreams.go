@@ -94,9 +94,18 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 					snap.Datacenter,
 					snap.Roots.TrustDomain)
 
+				spiffeID := connect.SpiffeIDService{
+					Host:       snap.Roots.TrustDomain,
+					Partition:  svc.PartitionOrDefault(),
+					Namespace:  svc.NamespaceOrDefault(),
+					Datacenter: snap.Datacenter,
+					Service:    svc.Name,
+				}
+
 				if _, ok := upstreamsSnapshot.PassthroughUpstreams[svc.String()]; !ok {
 					upstreamsSnapshot.PassthroughUpstreams[svc.String()] = ServicePassthroughAddrs{
-						SNI: sni,
+						SNI:      sni,
+						SpiffeID: spiffeID,
 
 						// Stored in a set because it's possible for these to be duplicated
 						// when the upstream-target is targeted by multiple discovery chains.
@@ -220,7 +229,8 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
 	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
-		chainEntMeta := structs.NewEnterpriseMeta(chain.Namespace)
+		// TODO(partitions): add partition to the disco chain
+		chainEntMeta := structs.NewEnterpriseMetaWithPartition("" /*TODO*/, chain.Namespace)
 
 		opts := targetWatchOpts{
 			upstreamID: id,
@@ -290,7 +300,7 @@ func (s *handlerUpstreams) watchMeshGateway(ctx context.Context, dc string, upst
 		ServiceKind:    structs.ServiceKindMeshGateway,
 		UseServiceKind: true,
 		Source:         *s.source,
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}, "mesh-gateway:"+dc+":"+upstreamID, s.ch)
 }
 
@@ -335,6 +345,7 @@ type discoveryChainWatchOpts struct {
 	id          string
 	name        string
 	namespace   string
+	partition   string
 	datacenter  string
 	cfg         reducedUpstreamConfig
 	meshGateway structs.MeshGatewayConfig

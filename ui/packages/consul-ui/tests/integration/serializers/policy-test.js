@@ -49,7 +49,7 @@ module('Integration | Serializer | policy', function(hooks) {
           Datacenter: dc,
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: payload.Namespace || undefinedNspace,
+            [NSPACE.toLowerCase()]: nspace || '',
           },
           Namespace: payload.Namespace || undefinedNspace,
           uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,

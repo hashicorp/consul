@@ -21,6 +21,8 @@ Adding a terminating gateway is a multi-step process:
 
 Minimum required Helm options:
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
 global:
   name: consul
@@ -31,6 +33,8 @@ controller:
 terminatingGateways:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 ## Deploying the Helm chart
 
@@ -69,7 +73,7 @@ $ export CONSUL_HTTP_SSL_VERIFY=false
 If ACLs are enabled also set:
 
 ```shell-session
-$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token -o jsonpath={.data.token} | base64 -D)
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token -o jsonpath={.data.token} | base64 --decode)
 ```
 
 ## Register external services with Consul
@@ -91,6 +95,8 @@ service to that node.
 
 Create a sample external service and register it with Consul.
 
+<CodeBlockConfig filename="external.json">
+
 ```json
 {
   "Node": "example_com",
@@ -107,6 +113,8 @@ Create a sample external service and register it with Consul.
   }
 }
 ```
+
+</CodeBlockConfig>
 
 - `"Node": "example_com"` is our made up node name.
 - `"Address": "example.com"` is the address of our node. Services registered to that node will use this address if
@@ -141,11 +149,15 @@ being represented by the gateway:
 ~> The CLI command should be run with the `-merge-policies`, `-merge-roles` and `-merge-service-identities` so
 nothing is removed from the terminating gateway token
 
+<CodeBlockConfig filename="write-policy.hcl">
+
 ```hcl
 service "example-https" {
   policy = "write"
 }
 ```
+
+</CodeBlockConfig>
 
 ```shell-session
 $ consul acl policy create -name "example-https-write-policy" -rules @write-policy.hcl
@@ -186,7 +198,9 @@ Policies:
 Once the tokens have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
 resource to configure the terminating gateway:
 
-```hcl
+<CodeBlockConfig filename="terminating-gateway.yaml">
+
+```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: TerminatingGateway
 metadata:
@@ -196,6 +210,8 @@ spec:
     - name: example-https
       caFile: /etc/ssl/cert.pem
 ```
+
+</CodeBlockConfig>
 
 ~> If TLS is enabled a `caFile` must be provided, it must point to the system trust store of the terminating gateway
 container (`/etc/ssl/cert.pem`).
@@ -207,6 +223,8 @@ $ kubectl apply -f terminating-gateway.yaml
 ```
 
 If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service
+
+<CodeBlockConfig filename="service-intentions.yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -221,6 +239,8 @@ spec:
       action: allow
 ```
 
+</CodeBlockConfig>
+
 Apply the `ServiceIntentions` resource with `kubectl apply`:
 
 ```shell-session
@@ -231,6 +251,8 @@ $ kubectl apply -f service-intentions.yaml
 
 Finally define and deploy the external services as upstreams for the internal mesh services that wish to talk to them.
 An example deployment is provided which will serve as a static client for the terminating gateway service.
+
+<CodeBlockConfig filename="static-client.yaml">
 
 ```yaml
 apiVersion: v1
@@ -273,6 +295,8 @@ spec:
           args: ['while true; do sleep 30; done;']
       serviceAccountName: static-client
 ```
+
+</CodeBlockConfig>
 
 Run the service via `kubectl apply`:
 

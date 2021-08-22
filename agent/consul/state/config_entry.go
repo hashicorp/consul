@@ -401,8 +401,8 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 
 	var resp []structs.ServiceName
 	for _, t := range chain.Targets {
-		em := structs.NewEnterpriseMeta(t.Namespace)
-		target := structs.NewServiceName(t.Service, &em)
+		em := entMeta.NewEnterpriseMetaInPartition(t.Namespace)
+		target := structs.NewServiceName(t.Service, em)
 
 		// TODO (freddy): Allow upstream DC and encode in response
 		if t.Datacenter == dc {
@@ -457,8 +457,8 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 		}
 
 		for _, t := range chain.Targets {
-			em := structs.NewEnterpriseMeta(t.Namespace)
-			candidate := structs.NewServiceName(t.Service, &em)
+			em := sn.NewEnterpriseMetaInPartition(t.Namespace)
+			candidate := structs.NewServiceName(t.Service, em)
 
 			if !candidate.Matches(destination) {
 				continue
@@ -489,13 +489,15 @@ func validateProposedConfigEntryInServiceGraph(
 		enforceIngressProtocolsMatch bool
 	)
 
+	wildcardEntMeta := kindName.WildcardEnterpriseMetaForPartition()
+
 	switch kindName.Kind {
 	case structs.ProxyDefaults:
 		// Check anything that has a discovery chain entry. In the future we could
 		// somehow omit the ones that have a default protocol configured.
 
 		for _, kind := range serviceGraphKinds {
-			_, entries, err := configEntriesByKindTxn(tx, nil, kind, structs.WildcardEnterpriseMeta())
+			_, entries, err := configEntriesByKindTxn(tx, nil, kind, wildcardEntMeta)
 			if err != nil {
 				return err
 			}
@@ -504,7 +506,7 @@ func validateProposedConfigEntryInServiceGraph(
 			}
 		}
 
-		_, ingressEntries, err := configEntriesByKindTxn(tx, nil, structs.IngressGateway, structs.WildcardEnterpriseMeta())
+		_, ingressEntries, err := configEntriesByKindTxn(tx, nil, structs.IngressGateway, wildcardEntMeta)
 		if err != nil {
 			return err
 		}
@@ -516,7 +518,7 @@ func validateProposedConfigEntryInServiceGraph(
 			checkIngress = append(checkIngress, ingress)
 		}
 
-		_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
+		_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, wildcardEntMeta)
 		if err != nil {
 			return err
 		}
@@ -573,7 +575,7 @@ func validateProposedConfigEntryInServiceGraph(
 			checkIntentions = append(checkIntentions, ixn)
 		}
 
-		_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
+		_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, wildcardEntMeta)
 		if err != nil {
 			return err
 		}
@@ -1232,7 +1234,7 @@ func NewConfigEntryKindName(kind, name string, entMeta *structs.EnterpriseMeta) 
 		Name: name,
 	}
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	ret.EnterpriseMeta = *entMeta

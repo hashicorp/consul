@@ -6,6 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -13,9 +17,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
@@ -559,11 +560,11 @@ func TestInternal_EventFire_Token(t *testing.T) {
 
 	t.Parallel()
 	dir, srv := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDownPolicy = "deny"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDownPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -875,6 +876,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "baz",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.3",
 				Datacenter: "dc1",
 			},
@@ -885,7 +887,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -895,7 +897,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Status:         "passing",
 					ServiceID:      "db2",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -907,6 +909,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "bar",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.2",
 				Datacenter: "dc1",
 			},
@@ -917,7 +920,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -927,7 +930,7 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 					Status:         "warning",
 					ServiceID:      "db",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -958,10 +961,10 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1214,6 +1217,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "bar",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.2",
 				Datacenter: "dc1",
 			},
@@ -1225,7 +1229,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -1235,7 +1239,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Status:         "warning",
 					ServiceID:      "db",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -1249,6 +1253,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 		{
 			Node: &structs.Node{
 				Node:       "baz",
+				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				Address:    "127.0.0.3",
 				Datacenter: "dc1",
 			},
@@ -1259,7 +1264,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Passing: 1,
 					Warning: 1,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: structs.HealthChecks{
 				{
@@ -1269,7 +1274,7 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 					Status:         "passing",
 					ServiceID:      "db2",
 					ServiceName:    "db",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			GatewayService: &structs.GatewayService{
@@ -1301,10 +1306,10 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1706,10 +1711,10 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	registerTestTopologyEntries(t, codec, "")
 
 	var (
-		ingress = structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
-		api     = structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
-		web     = structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
-		redis   = structs.NewServiceName("redis", structs.DefaultEnterpriseMeta())
+		ingress = structs.NewServiceName("ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
+		api     = structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition())
+		web     = structs.NewServiceName("web", structs.DefaultEnterpriseMetaInDefaultPartition())
+		redis   = structs.NewServiceName("redis", structs.DefaultEnterpriseMetaInDefaultPartition())
 	)
 
 	t.Run("ingress", func(t *testing.T) {
@@ -1904,10 +1909,10 @@ func TestInternal_ServiceTopology_ACL(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2027,7 +2032,7 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 			require.Len(r, out.Services, 1)
 
 			expectUp := structs.ServiceList{
-				structs.NewServiceName("api", structs.DefaultEnterpriseMeta()),
+				structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()),
 			}
 			require.Equal(r, expectUp, out.Services)
 		})
@@ -2041,10 +2046,10 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2083,7 +2088,7 @@ service_prefix "api" { policy = "read" }
 			require.Len(r, out.Services, 1)
 
 			expectUp := structs.ServiceList{
-				structs.NewServiceName("api", structs.DefaultEnterpriseMeta()),
+				structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()),
 			}
 			require.Equal(r, expectUp, out.Services)
 		})

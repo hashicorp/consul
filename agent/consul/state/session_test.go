@@ -9,10 +9,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
 )
 
 func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
@@ -552,7 +553,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteNode(15, "foo"); err != nil {
+	if err := s.DeleteNode(15, "foo", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -776,7 +777,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteNode(6, "foo"); err != nil {
+	if err := s.DeleteNode(6, "foo", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -858,7 +859,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.DeleteNode(6, "foo"); err != nil {
+	if err := s.DeleteNode(6, "foo", nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {

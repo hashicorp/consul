@@ -49,6 +49,8 @@ Update Complete. ⎈Happy Helming!⎈
 Next, you must configure consul-helm via your `values.yaml` to install the custom resource definitions
 and enable the controller that acts on them:
 
+<CodeBlockConfig filename="values.yaml" highlight="4-5,7-8">
+
 ```yaml
 global:
   name: consul
@@ -59,6 +61,8 @@ controller:
 connectInject:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 Note that:
 
@@ -215,6 +219,8 @@ name of the resource doesn't matter. For other resources, the name of the resour
 determines which service it configures. For example, this resource configures
 the service `web`:
 
+<CodeBlockConfig highlight="4">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
@@ -224,10 +230,14 @@ spec:
   protocol: http
 ```
 
+</CodeBlockConfig>
+
 For `ServiceIntentions`, because we need to support the ability to create
 wildcard intentions (e.g. `foo => * (allow)` meaning that `foo` can talk to **any** service),
 and because `*` is not a valid Kubernetes resource name, we instead use the field `spec.destination.name`
 to configure the destination service for the intention:
+
+<CodeBlockConfig highlight="6-8,18-20">
 
 ```yaml
 # foo => * (allow)
@@ -254,6 +264,8 @@ spec:
     - name: foo
       action: allow
 ```
+
+</CodeBlockConfig>
 
 ~> **NOTE:** If two `ServiceIntentions` resources set the same `spec.destination.name`, the
 last one created will not be synced.
@@ -275,6 +287,8 @@ The details on each configuration are:
 
    This is configured via [`connectInject.consulNamespaces`](/docs/k8s/helm#v-connectinject-consulnamespaces):
 
+   <CodeBlockConfig highlight="6-7">
+
    ```yaml
    global:
      name: consul
@@ -285,6 +299,8 @@ The details on each configuration are:
        mirroringK8S: true
    ```
 
+   </CodeBlockConfig>
+
 1. **Mirroring with prefix** - The Kubernetes namespace will be "mirrored" into Consul
    with a prefix added to the Consul namespace, i.e.
    if the prefix is `k8s-` then service `web` in Kubernetes namespace `web-ns` will be registered as service `web`
@@ -292,6 +308,8 @@ The details on each configuration are:
    name `web` in Kubernetes namespace `web-ns` will configure that same service.
 
    This is configured via [`connectInject.consulNamespaces`](/docs/k8s/helm#v-connectinject-consulnamespaces):
+
+   <CodeBlockConfig highlight="8">
 
    ```yaml
    global:
@@ -303,6 +321,8 @@ The details on each configuration are:
        mirroringK8S: true
        mirroringK8SPrefix: k8s-
    ```
+
+   </CodeBlockConfig>
 
 1. **Single destination namespace** - The Kubernetes namespace is ignored and all services
    will be registered into the same Consul namespace, i.e. if the destination Consul
@@ -317,6 +337,8 @@ The details on each configuration are:
 
    This is configured via [`connectInject.consulNamespaces`](/docs/k8s/helm#v-connectinject-consulnamespaces):
 
+   <CodeBlockConfig highlight="7">
+
    ```yaml
    global:
      name: consul
@@ -326,6 +348,8 @@ The details on each configuration are:
      consulNamespaces:
        consulDestinationNamespace: 'my-ns'
    ```
+
+   </CodeBlockConfig>
 
    ~> **NOTE:** In this configuration, if two custom resources of the same kind **and** the same name are attempted to
    be created in two Kubernetes namespaces, the last one created will not be synced.
@@ -337,6 +361,8 @@ name of the resource doesn't matter. For other resources, the name of the resour
 determines which service it configures. For example, this resource configures
 the service `web`:
 
+<CodeBlockConfig highlight="4">
+
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
@@ -346,10 +372,14 @@ spec:
   protocol: http
 ```
 
+</CodeBlockConfig>
+
 For `ServiceIntentions`, because we need to support the ability to create
 wildcard intentions (e.g. `foo => * (allow)` meaning that `foo` can talk to **any** service),
 and because `*` is not a valid Kubernetes resource name, we instead use the field `spec.destination.name`
 to configure the destination service for the intention:
+
+<CodeBlockConfig highlight="6-8,18-20">
 
 ```yaml
 # foo => * (allow)
@@ -376,6 +406,8 @@ spec:
     - name: foo
       action: allow
 ```
+
+</CodeBlockConfig>
 
 In addition, we support the field `spec.destination.namespace` to configure
 the destination service's Consul namespace. If `spec.destination.namespace`

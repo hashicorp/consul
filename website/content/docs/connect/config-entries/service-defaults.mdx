@@ -18,10 +18,15 @@ service, such as its protocol.
 
 ### Default protocol
 
-<Tabs>
-<Tab heading="HCL">
+-> **NOTE**: The default protocol can also be configured globally for all proxies
+using the [proxy defaults](/docs/connect/config-entries/proxy-defaults#default-protocol)
+config entry. However, if the protocol value is specified in a service defaults
+config entry for a given service, that value will take precedence over the
+globally configured value from proxy defaults.
 
 Set the default protocol for a service in the default namespace to HTTP:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind      = "service-defaults"
@@ -29,11 +34,6 @@ Name      = "web"
 Namespace = "default"
 Protocol  = "http"
 ```
-
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Set the default protocol for a service in the default namespace to HTTP:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -44,19 +44,27 @@ spec:
   protocol: http
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "web",
+  "Namespace": "default",
+  "Protocol": "http"
+}
+```
+
+</CodeTabs>
 
 ### Upstream configuration
 
 <Tabs>
-<Tab heading="HCL">
-<Tabs>
 <Tab heading="Consul OSS">
 
 Set default connection limits and mesh gateway mode across all upstreams
-of "counting" and also override the mesh gateway mode used when dialing
+of "counting", and also override the mesh gateway mode used when dialing
 the "dashboard" service.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-defaults"
@@ -85,12 +93,63 @@ UpstreamConfig = {
 }
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: counting
+spec:
+  upstreamConfig:
+    defaults:
+      meshGateway:
+        mode: local
+      limits:
+        maxConnections: 512
+        maxPendingRequests: 512
+        maxConcurrentRequests: 512
+    overrides:
+      - name: dashboard
+        meshGateway:
+          mode: remote
+```
+
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "counting",
+  "UpstreamConfig": {
+    "Defaults": {
+      "MeshGateway": {
+        "Mode": "local"
+      },
+      "Limits": {
+        "MaxConnections": 512,
+        "MaxPendingRequests": 512,
+        "MaxConcurrentRequests": 512
+      }
+    },
+    "Overrides": [
+      {
+        "Name": "dashboard",
+        "MeshGateway": {
+          "Mode": "remote"
+        }
+      }
+    ]
+  }
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
 Set default connection limits and mesh gateway mode across all upstreams
 of "counting" and also override the mesh gateway mode used when dialing
 the "dashboard" service in the "frontend" namespace.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-defaults"
@@ -121,46 +180,6 @@ UpstreamConfig = {
 }
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-
-<Tab heading="Kubernetes YAML">
-
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set default connection limits and mesh gateway mode across all upstreams
-of "counting" and also override the mesh gateway mode used when dialing
-the "dashboard" service.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceDefaults
-metadata:
-  name: counting
-spec:
-  upstreamConfig:
-    defaults:
-      meshGateway:
-        mode: local
-      limits:
-        maxConnections: 512
-        maxPendingRequests: 512
-        maxConcurrentRequests: 512
-    overrides:
-      - name: dashboard
-        meshGateway:
-          mode: remote
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set default connection limits and mesh gateway mode across all upstreams
-of "counting" and also override the mesh gateway mode used when dialing
-the "dashboard" service in the "frontend" namespace.
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
@@ -183,8 +202,36 @@ spec:
           mode: remote
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "counting",
+  "Namespace": "product",
+  "UpstreamConfig": {
+    "Defaults": {
+      "MeshGateway": {
+        "Mode": "local"
+      },
+      "Limits": {
+        "MaxConnections": 512,
+        "MaxPendingRequests": 512,
+        "MaxConcurrentRequests": 512
+      }
+    },
+    "Overrides": [
+      {
+        "Name": "dashboard",
+        "Namespace": "frontend",
+        "MeshGateway": {
+          "Mode": "remote"
+        }
+      }
+    ]
+  }
+}
+```
+</CodeTabs>
+
 </Tab>
 </Tabs>
 

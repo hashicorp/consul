@@ -3,12 +3,15 @@
     @extend %composite-row;
   }
   dl {
-    @extend %icon-definition;
+    @extend %horizontal-kv-list;
   }
   dl.datacenter dt::before {
     @extend %with-user-organization-mask, %as-pseudo;
   }
   dl.nspace dt::before {
     @extend %with-folder-outline-mask, %as-pseudo;
+  }
+  dl.local-bind-mode dt {
+    font-weight: $typo-weight-semibold;
   }
 }

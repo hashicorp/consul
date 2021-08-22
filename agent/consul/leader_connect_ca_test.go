@@ -1,22 +1,31 @@
 package consul
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -59,15 +68,61 @@ func (m *mockCAServerDelegate) CheckServers(datacenter string, fn func(*metadata
 	})
 }
 
-func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	return ca.ApplyCARequestToStore(m.store, req)
+func (m *mockCAServerDelegate) ApplyCALeafRequest() (uint64, error) {
+	return 3, nil
 }
 
-func (m *mockCAServerDelegate) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error) {
-	return &mockCAProvider{
-		callbackCh: m.callbackCh,
-		rootPEM:    m.primaryRoot.RootCert,
-	}, nil
+// ApplyCARequest mirrors FSM.applyConnectCAOperation because that functionality
+// is not exported.
+func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
+	idx, _, err := m.store.CAConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	m.callbackCh <- fmt.Sprintf("raftApply/ConnectCA")
+
+	switch req.Op {
+	case structs.CAOpSetConfig:
+		if req.Config.ModifyIndex != 0 {
+			act, err := m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
+			if err != nil {
+				return nil, err
+			}
+
+			return act, nil
+		}
+
+		return nil, m.store.CASetConfig(idx+1, req.Config)
+	case structs.CAOpSetRootsAndConfig:
+		act, err := m.store.CARootSetCAS(idx, req.Index, req.Roots)
+		if err != nil || !act {
+			return act, err
+		}
+
+		act, err = m.store.CACheckAndSetConfig(idx+1, req.Config.ModifyIndex, req.Config)
+		if err != nil {
+			return nil, err
+		}
+		return act, nil
+	case structs.CAOpSetProviderState:
+		_, err := m.store.CASetProviderState(idx+1, req.ProviderState)
+		if err != nil {
+			return nil, err
+		}
+
+		return true, nil
+	case structs.CAOpDeleteProviderState:
+		if err := m.store.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
+			return nil, err
+		}
+
+		return true, nil
+	case structs.CAOpIncrementProviderSerialNumber:
+		return uint64(2), nil
+	default:
+		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
+	}
 }
 
 func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, reply interface{}) error {
@@ -96,34 +151,20 @@ func (m *mockCAServerDelegate) generateCASignRequest(csr string) *structs.CASign
 	}
 }
 
-func (m *mockCAServerDelegate) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
-	if t == structs.ConnectCARequestType {
-		req := msg.(*structs.CARequest)
-		act, err := m.store.CARootSetCAS(1, req.Index, req.Roots)
-		require.NoError(m.t, err)
-		require.True(m.t, act)
-
-		act, err = m.store.CACheckAndSetConfig(1, req.Config.ModifyIndex, req.Config)
-		require.NoError(m.t, err)
-		require.True(m.t, act)
-	} else {
-		return nil, fmt.Errorf("got invalid MessageType %v", t)
-	}
-	m.callbackCh <- fmt.Sprintf("raftApply/%s", t)
-	return nil, nil
-}
-
 // mockCAProvider mocks an empty provider implementation with a channel in order to coordinate
 // waiting for certain methods to be called.
 type mockCAProvider struct {
-	callbackCh chan string
-	rootPEM    string
+	callbackCh      chan string
+	rootPEM         string
+	intermediatePem string
 }
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
 func (m *mockCAProvider) GenerateRoot() error                   { return nil }
-func (m *mockCAProvider) ActiveRoot() (string, error)           { return m.rootPEM, nil }
+func (m *mockCAProvider) ActiveRoot() (string, error) {
+	return m.rootPEM, nil
+}
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
 	return "", nil
@@ -132,7 +173,12 @@ func (m *mockCAProvider) SetIntermediate(intermediatePEM, rootPEM string) error 
 	m.callbackCh <- "provider/SetIntermediate"
 	return nil
 }
-func (m *mockCAProvider) ActiveIntermediate() (string, error)                       { return m.rootPEM, nil }
+func (m *mockCAProvider) ActiveIntermediate() (string, error) {
+	if m.intermediatePem == "" {
+		return m.rootPEM, nil
+	}
+	return m.intermediatePem, nil
+}
 func (m *mockCAProvider) GenerateIntermediate() (string, error)                     { return "", nil }
 func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)             { return "", nil }
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
@@ -141,6 +187,7 @@ func (m *mockCAProvider) SupportsCrossSigning() (bool, error)                   
 func (m *mockCAProvider) Cleanup(_ bool, _ map[string]interface{}) error            { return nil }
 
 func waitForCh(t *testing.T, ch chan string, expected string) {
+	t.Helper()
 	select {
 	case op := <-ch:
 		if op != expected {
@@ -173,6 +220,7 @@ func testCAConfig() *structs.CAConfiguration {
 // initTestManager initializes a CAManager with a mockCAServerDelegate, consuming
 // the ops that come through the channels and returning when initialization has finished.
 func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDelegate) {
+	t.Helper()
 	initCh := make(chan struct{})
 	go func() {
 		require.NoError(t, manager.InitializeCA())
@@ -193,9 +241,6 @@ func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDel
 }
 
 func TestCAManager_Initialize(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 
 	conf := DefaultConfig()
 	conf.ConnectEnabled = true
@@ -203,13 +248,19 @@ func TestCAManager_Initialize(t *testing.T) {
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+	manager.providerShim = &mockCAProvider{
+		callbackCh: delegate.callbackCh,
+		rootPEM:    delegate.primaryRoot.RootCert,
+	}
 
 	// Call InitializeCA and then confirm the RPCs and provider calls
 	// happen in the expected order.
-	require.EqualValues(t, caStateUninitialized, manager.state)
+	require.Equal(t, caStateUninitialized, manager.state)
 	errCh := make(chan error)
 	go func() {
-		errCh <- manager.InitializeCA()
+		err := manager.InitializeCA()
+		assert.NoError(t, err)
+		errCh <- err
 	}()
 
 	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.Roots")
@@ -228,13 +279,10 @@ func TestCAManager_Initialize(t *testing.T) {
 		t.Fatal("never got result from errCh")
 	}
 
-	require.EqualValues(t, caStateInitialized, manager.state)
+	require.Equal(t, caStateInitialized, manager.state)
 }
 
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 
 	// No parallel execution because we change globals
 	// Set the interval and drift buffer low for renewing the cert.
@@ -253,10 +301,16 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+	manager.providerShim = &mockCAProvider{
+		callbackCh: delegate.callbackCh,
+		rootPEM:    delegate.primaryRoot.RootCert,
+	}
 	initTestManager(t, manager, delegate)
 
-	// Wait half the TTL for the cert to need renewing.
-	time.Sleep(500 * time.Millisecond)
+	// Simulate Wait half the TTL for the cert to need renewing.
+	manager.timeNow = func() time.Time {
+		return time.Now().Add(500 * time.Millisecond)
+	}
 
 	// Call RenewIntermediate and then confirm the RPCs and provider calls
 	// happen in the expected order.
@@ -288,4 +342,125 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	}
 
 	require.EqualValues(t, caStateInitialized, manager.state)
+}
+
+func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	args := []struct {
+		testName              string
+		notBeforeRoot         time.Time
+		notAfterRoot          time.Time
+		notBeforeIntermediate time.Time
+		notAfterIntermediate  time.Time
+		isError               bool
+		errorMsg              string
+	}{
+		{"intermediate valid", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"intermediate expired", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), true, "intermediate expired: certificate expired, expiration date"},
+		{"root expired", time.Now().AddDate(-2, 0, 0), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), true, "root expired: certificate expired, expiration date"},
+		// a cert that is not yet valid is ok, assume it will be valid soon enough
+		{"intermediate in the future", time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), false, ""},
+		{"root in the future", time.Now().AddDate(0, 0, 1), time.Now().AddDate(0, 0, 2), time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2), false, ""},
+	}
+
+	for _, arg := range args {
+
+		t.Run(arg.testName, func(t *testing.T) {
+			// No parallel execution because we change globals
+			// Set the interval and drift buffer low for renewing the cert.
+			origInterval := structs.IntermediateCertRenewInterval
+			origDriftBuffer := ca.CertificateTimeDriftBuffer
+			defer func() {
+				structs.IntermediateCertRenewInterval = origInterval
+				ca.CertificateTimeDriftBuffer = origDriftBuffer
+			}()
+			structs.IntermediateCertRenewInterval = time.Millisecond
+			ca.CertificateTimeDriftBuffer = 0
+
+			conf := DefaultConfig()
+			conf.ConnectEnabled = true
+			conf.PrimaryDatacenter = "dc1"
+			conf.Datacenter = "dc2"
+			delegate := NewMockCAServerDelegate(t, conf)
+			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
+
+			err, rootPEM := generatePem(arg.notBeforeRoot, arg.notAfterRoot)
+			require.NoError(t, err)
+			err, intermediatePEM := generatePem(arg.notBeforeIntermediate, arg.notAfterIntermediate)
+			require.NoError(t, err)
+			manager.providerShim = &mockCAProvider{
+				callbackCh:      delegate.callbackCh,
+				rootPEM:         rootPEM,
+				intermediatePem: intermediatePEM,
+			}
+			initTestManager(t, manager, delegate)
+
+			// Simulate Wait half the TTL for the cert to need renewing.
+			manager.timeNow = func() time.Time {
+				return time.Now().Add(500 * time.Millisecond)
+			}
+
+			// Call RenewIntermediate and then confirm the RPCs and provider calls
+			// happen in the expected order.
+
+			_, err = manager.SignCertificate(&x509.CertificateRequest{}, &connect.SpiffeIDAgent{})
+
+			if arg.isError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), arg.errorMsg)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func generatePem(notBefore time.Time, notAfter time.Time) (error, string) {
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Company, INC."},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{"Golden Gate Bridge"},
+			PostalCode:    []string{"94016"},
+		},
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return err, ""
+	}
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		return err, ""
+	}
+	caPEM := new(bytes.Buffer)
+	pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	caPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(caPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+	})
+	return err, caPEM.String()
+}
+
+func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {
+	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
+	d := &caDelegateWithState{Server: &s}
+	req := d.generateCASignRequest("A")
+	require.Equal(t, "east", req.RequestDatacenter())
 }

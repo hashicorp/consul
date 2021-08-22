@@ -9,12 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
-
+	"github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/consul/agent/grpc/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -24,6 +20,11 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 func testClientConfig(t *testing.T) (string, *Config) {
@@ -169,6 +170,10 @@ func TestClient_LANReap(t *testing.T) {
 }
 
 func TestClient_JoinLAN_Invalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -437,8 +442,8 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.VerifyIncoming = true
-	conf1.VerifyOutgoing = true
+	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -447,7 +452,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	_, conf2 := testClientConfig(t)
-	conf2.VerifyOutgoing = true
+	conf2.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1 := newClient(t, conf2)
 
@@ -494,10 +499,12 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Output: testutil.NewLogBuffer(t),
 	})
 
-	tls, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	tls, err := tlsutil.NewConfigurator(c.TLSConfig, logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), nil)
+	builder := resolver.NewServerResolverBuilder(resolver.Config{Authority: c.NodeName})
+	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
+	resolver.Register(builder)
 
 	connPool := &pool.ConnPool{
 		Server:          false,
@@ -515,6 +522,8 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Tokens:          new(token.Store),
 		Router:          r,
 		ConnPool:        connPool,
+		GRPCConnPool:    grpc.NewClientConnPool(builder, grpc.TLSWrapper(tls.OutgoingRPCWrapper()), tls.UseTLS),
+		LeaderForwarder: builder,
 		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
 	}
 }
@@ -633,8 +642,8 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.VerifyIncoming = true
-	conf1.VerifyOutgoing = true
+	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -643,7 +652,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 	defer s1.Shutdown()
 
 	_, conf2 := testClientConfig(t)
-	conf2.VerifyOutgoing = true
+	conf2.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1 := newClient(t, conf2)
 

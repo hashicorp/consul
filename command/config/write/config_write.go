@@ -45,7 +45,7 @@ func (c *cmd) init() {
 			"This is used in combination with the -cas flag.")
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -179,8 +179,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Create or update a centralized config entry"
-const help = `
+const (
+	synopsis = "Create or update a centralized config entry"
+	help     = `
 Usage: consul config write [options] <configuration>
 
   Request a config entry to be created or updated. The configuration
@@ -196,3 +197,4 @@ Usage: consul config write [options] <configuration>
 
     $ consul config write -
 `
+)

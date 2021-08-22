@@ -141,6 +141,8 @@ in full cluster rebuilds.
 To verify DNS works, run a simple job to query DNS. Save the following
 job to the file `job.yaml` and run it:
 
+<CodeBlockConfig filename="job.yaml">
+
 ```yaml
 apiVersion: batch/v1
 kind: Job
@@ -156,6 +158,8 @@ spec:
       restartPolicy: Never
   backoffLimit: 4
 ```
+
+</CodeBlockConfig>
 
 ```shell-session
 $ kubectl apply -f job.yaml

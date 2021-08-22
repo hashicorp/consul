@@ -64,8 +64,8 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 	// in legacy mode the clients should directly query the
 	// ACL Datacenter. When no ACL datacenter has been set
 	// then we assume that the local DC is the ACL DC
-	if legacy && c.config.ACLDatacenter != "" {
-		return c.config.ACLDatacenter
+	if legacy && c.config.PrimaryDatacenter != "" {
+		return c.config.PrimaryDatacenter
 	}
 
 	return c.config.Datacenter
@@ -93,6 +93,7 @@ func (c *Client) ResolveTokenToIdentity(token string) (structs.ACLIdentity, erro
 	return c.acls.ResolveTokenToIdentity(token)
 }
 
+// TODO: Server has an identical implementation, remove duplication
 func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
@@ -104,7 +105,7 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 	if identity != nil {
 		entMeta.Merge(identity.EnterpriseMetadata())
 	} else {
-		entMeta.Merge(structs.DefaultEnterpriseMeta())
+		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
 	}
 
 	// Use the meta to fill in the ACL authorization context

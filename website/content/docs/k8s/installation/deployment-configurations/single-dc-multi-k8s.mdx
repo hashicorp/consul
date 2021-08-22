@@ -21,8 +21,9 @@ to pods or nodes in another.
 First, we will deploy the Consul servers with Consul clients in the first cluster.
 For that, we will use the following Helm configuration:
 
+<CodeBlockConfig filename="cluster1-config.yaml">
+
 ```yaml
-# cluster1-config.yaml
 global:
   datacenter: dc1
   tls:
@@ -41,6 +42,8 @@ ui:
   service:
     type: NodePort
 ```
+
+</CodeBlockConfig>
 
 Note that we are deploying in a secure configuration, with gossip encryption,
 TLS for all components, and ACLs. We are enabling the Consul Service Mesh and the controller for CRDs
@@ -88,8 +91,9 @@ $ kubectl apply -f cluster1-credentials.yaml
 ```
 To deploy in the second cluster, we will use the following Helm configuration:
 
+<CodeBlockConfig filename="cluster2-config.yaml" highlight="6-11,15-17">
+
 ```yaml
-# cluster2-config.yaml
 global:
   enabled: false
   datacenter: dc1
@@ -126,6 +130,8 @@ client:
 connectInject:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 Note that we're referencing secrets from the first cluster in ACL, gossip, and TLS configuration.
 
@@ -182,10 +188,14 @@ helm install cluster2 -f cluster2-config.yaml hashicorp/consul
 
 ## Verifying the Consul Service Mesh works
 
+~> When Transparent proxy is enabled, services in one Kubernetes cluster that need to communicate with a service in another Kubernetes cluster must have a explicit upstream configured through the ["consul.hashicorp.com/connect-service-upstreams"](https://www.consul.io/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation.
+
 Now that we have our Consul cluster in multiple k8s clusters up and running, we will
 deploy two services and verify that they can connect to each other.
 
 First, we'll deploy `static-server` service in the first cluster:
+
+<CodeBlockConfig filename="static-server.yaml">
 
 ```yaml
 ---
@@ -244,12 +254,16 @@ spec:
           ports:
             - containerPort: 8080
               name: http
-      serviceAccountName: static-serve
+      serviceAccountName: static-server
 ```
+
+</CodeBlockConfig>
 
 Note that we're defining a Service intention so that our services are allowed to talk to each other.
 
 Then we'll deploy `static-client` in the second cluster with the following configuration:
+
+<CodeBlockConfig filename="static-client.yaml">
 
 ```yaml
 apiVersion: v1
@@ -292,6 +306,8 @@ spec:
           args: [ "while true; do sleep 30; done;" ]
       serviceAccountName: static-client
 ```
+
+</CodeBlockConfig>
 
 Once both services are up and running, we can connect to the `static-server` from `static-client`:
 

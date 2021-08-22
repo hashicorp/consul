@@ -4,7 +4,7 @@ page_title: Consul Enterprise License FAQ
 description: Frequently Asked Questions pertaining to Consul Enterprise Licensing.
 ---
 
-# Licensing Frequently Asked Questions (FAQ)
+# Frequently Asked Questions (FAQ)
 
 This FAQ is for the license changes introduced in Consul Enterprise version 1.10.0.
 Consul Enterprise automatically loads Consul licenses when the server agent starts.
@@ -52,7 +52,7 @@ The license changes do not impact customers with the baked-in licensed binaries.
 ## Q: What is the product behavior change introduced by the licensing changes?
 
 Starting with Consul Enterprise 1.10.0, a valid license is required on-disk (auto-loading) or as an environment variable for Consul Enterprise to successfully boot-up.
-The in-storage license feature will not be supported starting with Consul Enteprise 1.10.0+ent. All Consul Enterprise clusters using 1.10.0+ent must ensure that there is a valid license on-disk (auto-loaded) or as an environment variable.
+The in-storage license feature will not be supported starting with Consul Enterprise 1.10.0+ent. All Consul Enterprise clusters using 1.10.0+ent must ensure that there is a valid license on-disk (auto-loaded) or as an environment variable.
 
 ## Q: What is the impact on evaluation licenses due to this change?
 
@@ -62,7 +62,7 @@ Failure to provide a valid license key will result in the Consul server agent no
 
 ## Q: Is there a grace period when licenses expire?
 
-A license includes an `expiration_date` and a `termination_date`. An enteprise binary will cease to function once the `termination_date` has passed.
+A license includes an `expiration_date` and a `termination_date`. An enterprise binary will cease to function once the `termination_date` has passed.
 Licenses will now have a 24 hrs grace period. The grace period is the time between license expiry until the time it terminates.
 As Consul Enterprise approaches the expiration date, warnings will be issued in the system logs.
 
@@ -123,7 +123,7 @@ Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 1. Run [`consul license get -signed`](/commands/license#get) to extract the license from their running cluster. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have access to the required license. This could be via the client agent configuration file or an environment variable.
 1. Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-1. Follow the Consul upgrade [docummentation](/docs/upgrading).
+1. Follow the Consul upgrade [documentation](/docs/upgrading).
 
 ### Kubernetes
 
@@ -143,7 +143,7 @@ Please see the [upgrade requirements](faq#q-what-are-the-upgrade-requirements).
 1. Store the license in a secure location on disk.
 1. Set up the necessary configuration so that when Consul Enterprise reboots it will have the required license. This could be via the client agent configuration file or an environment variable.
    Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
-1. Follow the Consul upgrade [docummentation](/docs/upgrading).
+1. Follow the Consul upgrade [documentation](/docs/upgrading).
 
 ### Kubernetes
 

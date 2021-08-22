@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 )
@@ -111,6 +112,15 @@ func newIndexBuilder(cap int) *indexBuilder {
 func (b *indexBuilder) String(v string) {
 	(*bytes.Buffer)(b).WriteString(v)
 	(*bytes.Buffer)(b).WriteString(null)
+}
+
+func (b *indexBuilder) Int64(v int64) {
+	const size = binary.MaxVarintLen64
+
+	// Get the value and encode it
+	buf := make([]byte, size)
+	binary.PutVarint(buf, v)
+	b.Raw(buf)
 }
 
 // Raw appends the bytes without a null terminator to the buffer. Raw should

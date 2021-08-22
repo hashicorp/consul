@@ -80,7 +80,7 @@ module('Integration | Serializer | node', function(hooks) {
         Port: '8500',
         [META]: {
           [DC.toLowerCase()]: dc,
-          [NSPACE.toLowerCase()]: nspace,
+          [NSPACE.toLowerCase()]: '',
         },
       };
       const actual = serializer.respondForQueryLeader(

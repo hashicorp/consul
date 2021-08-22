@@ -18,7 +18,6 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 			name: "basic defaults",
 			cfg: &CAConfiguration{
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "4320h",
 					"CSRMaxPerSecond":     "50",
@@ -40,7 +39,6 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 			name: "basic defaults after encoding fun",
 			cfg: &CAConfiguration{
 				Config: map[string]interface{}{
-					"RotationPeriod":      []uint8("2160h"),
 					"LeafCertTTL":         []uint8("72h"),
 					"IntermediateCertTTL": []uint8("4320h"),
 				},

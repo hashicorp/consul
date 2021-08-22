@@ -32,7 +32,7 @@
           <dd>{{or api.data.TTL '-'}}</dd>
           <dt>Behavior</dt>
           <dd>{{api.data.Behavior}}</dd>
-{{#let (union api.data.NodeChecks api.data.ServiceChecks) as |checks|}}
+{{#let api.data.checks as |checks|}}
           <dt>Health Checks</dt>
           <dd>
   {{#if (gt checks.length 0)}}

@@ -38,6 +38,32 @@ const (
     ]
   }
 }`
+	expectedSelfAdminClusterNonLoopbackIP = `{
+  "name": "self_admin",
+  "ignore_health_on_host_removal": false,
+  "connect_timeout": "5s",
+  "type": "STATIC",
+  "http_protocol_options": {},
+  "loadAssignment": {
+    "clusterName": "self_admin",
+    "endpoints": [
+      {
+        "lbEndpoints": [
+          {
+            "endpoint": {
+              "address": {
+                "socket_address": {
+                  "address": "192.0.2.10",
+                  "port_value": 19002
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}`
 	expectedPrometheusBackendCluster = `{
   "name": "prometheus_backend",
   "ignore_health_on_host_removal": false,
@@ -642,6 +668,28 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				AdminBindPort:    "19000",
 				// Should add a static cluster for the self-proxy to admin
 				StaticClustersJSON: expectedSelfAdminCluster,
+				// Should add a static http listener too
+				StaticListenersJSON:  expectedPromListener,
+				StatsConfigJSON:      defaultStatsConfigJSON,
+				PrometheusScrapePath: "/metrics",
+			},
+			wantErr: false,
+		},
+		{
+			name: "prometheus-bind-addr-non-loopback-ip",
+			input: BootstrapConfig{
+				PrometheusBindAddr: "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress:     "192.0.2.10",
+				AdminBindPort:        "19002",
+				PrometheusScrapePath: "/metrics",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "192.0.2.10",
+				AdminBindPort:    "19002",
+				// Should add a static cluster for the self-proxy to admin
+				StaticClustersJSON: expectedSelfAdminClusterNonLoopbackIP,
 				// Should add a static http listener too
 				StaticListenersJSON:  expectedPromListener,
 				StatsConfigJSON:      defaultStatsConfigJSON,

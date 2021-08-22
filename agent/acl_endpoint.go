@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
@@ -40,40 +39,18 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 	args := structs.DCSpecificRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
-
-	legacy := false
-	legacyStr := req.URL.Query().Get("legacy")
-	if legacyStr != "" {
-		legacy, _ = strconv.ParseBool(legacyStr)
-	}
-
-	if legacy && s.agent.delegate.UseLegacyACLs() {
-		var out structs.ACL
-		err := s.agent.RPC("ACL.Bootstrap", &args, &out)
-		if err != nil {
-			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
-				resp.WriteHeader(http.StatusForbidden)
-				fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
-				return nil, nil
-			} else {
-				return nil, err
-			}
+	var out structs.ACLToken
+	err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
+	if err != nil {
+		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
+			resp.WriteHeader(http.StatusForbidden)
+			fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
+			return nil, nil
+		} else {
+			return nil, err
 		}
-		return &aclBootstrapResponse{ID: out.ID}, nil
-	} else {
-		var out structs.ACLToken
-		err := s.agent.RPC("ACL.BootstrapTokens", &args, &out)
-		if err != nil {
-			if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
-				resp.WriteHeader(http.StatusForbidden)
-				fmt.Fprint(resp, acl.PermissionDeniedError{Cause: err.Error()}.Error())
-				return nil, nil
-			} else {
-				return nil, err
-			}
-		}
-		return &aclBootstrapResponse{ID: out.SecretID, ACLToken: out}, nil
 	}
+	return &aclBootstrapResponse{ID: out.SecretID, ACLToken: out}, nil
 }
 
 func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -104,13 +81,13 @@ func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Req
 
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	// Should this require lesser permissions? Really the only reason to require authorization at all is
 	// to prevent external entities from DoS Consul with repeated rule translation requests
-	if rule != nil && rule.ACLRead(nil) != acl.Allow {
+	if authz.ACLRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -122,55 +99,6 @@ func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Req
 	translated, err := acl.TranslateLegacyRules(policyBytes)
 	if err != nil {
 		return nil, BadRequestError{Reason: err.Error()}
-	}
-
-	resp.Write(translated)
-	return nil, nil
-}
-
-func (s *HTTPHandlers) ACLRulesTranslateLegacyToken(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	tokenID := strings.TrimPrefix(req.URL.Path, "/v1/acl/rules/translate/")
-	if tokenID == "" {
-		return nil, BadRequestError{Reason: "Missing token ID"}
-	}
-
-	args := structs.ACLTokenGetRequest{
-		Datacenter:  s.agent.config.Datacenter,
-		TokenID:     tokenID,
-		TokenIDType: structs.ACLTokenAccessor,
-	}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return nil, nil
-	}
-
-	if args.Datacenter == "" {
-		args.Datacenter = s.agent.config.Datacenter
-	}
-
-	// Do not allow blocking
-	args.QueryOptions.MinQueryIndex = 0
-
-	var out structs.ACLTokenResponse
-	defer setMeta(resp, &out.QueryMeta)
-	if err := s.agent.RPC("ACL.TokenRead", &args, &out); err != nil {
-		return nil, err
-	}
-
-	if out.Token == nil {
-		return nil, acl.ErrNotFound
-	}
-
-	if out.Token.Rules == "" {
-		return nil, fmt.Errorf("The specified token does not have any rules set")
-	}
-
-	translated, err := acl.TranslateLegacyRules([]byte(out.Token.Rules))
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse legacy rules: %v", err)
 	}
 
 	resp.Write(translated)
@@ -459,7 +387,7 @@ func (s *HTTPHandlers) ACLTokenCreate(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
-	return s.aclTokenSetInternal(resp, req, "", true)
+	return s.aclTokenSetInternal(req, "", true)
 }
 
 func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
@@ -494,11 +422,11 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	return out.Token, nil
 }
 
-func (s *HTTPHandlers) ACLTokenSet(resp http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
-	return s.aclTokenSetInternal(resp, req, tokenID, false)
+func (s *HTTPHandlers) ACLTokenSet(_ http.ResponseWriter, req *http.Request, tokenID string) (interface{}, error) {
+	return s.aclTokenSetInternal(req, tokenID, false)
 }
 
-func (s *HTTPHandlers) aclTokenSetInternal(_resp http.ResponseWriter, req *http.Request, tokenID string, create bool) (interface{}, error) {
+func (s *HTTPHandlers) aclTokenSetInternal(req *http.Request, tokenID string, create bool) (interface{}, error) {
 	args := structs.ACLTokenSetRequest{
 		Datacenter: s.agent.config.Datacenter,
 		Create:     create,
@@ -1156,8 +1084,6 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 		authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(request.Token, nil, nil)
 		if err != nil {
 			return nil, err
-		} else if authz == nil {
-			return nil, fmt.Errorf("Failed to initialize authorizer")
 		}
 
 		responses, err = structs.CreateACLAuthorizationResponses(authz, request.Requests)

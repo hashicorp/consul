@@ -12,43 +12,43 @@ description: >-
 # Gossip Protocol
 
 Consul uses a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol)
-to manage membership and broadcast messages to the cluster. All of this is provided
-through the use of the [Serf library](https://www.serf.io/). The gossip protocol
-used by Serf is based on
-["SWIM: Scalable Weakly-consistent Infection-style Process Group Membership Protocol"](http://www.cs.cornell.edu/info/projects/spinglass/public_pdfs/swim.pdf),
-with a few minor adaptations. There are more details about [Serf's protocol here](https://www.serf.io/docs/internals/gossip.html).
+to manage membership and broadcast messages to the cluster. The protocol, membership management, and message broadcasting is provided
+through the [Serf library](https://www.serf.io/). The gossip protocol
+used by Serf is based on a modified version of the
+[SWIM (Scalable Weakly-consistent Infection-style Process Group Membership)](https://www.cs.cornell.edu/projects/Quicksilver/public_pdfs/SWIM.pdf) protocol.
+Refer to the [Serf documentation](https://www.serf.io/docs/internals/gossip.html) for additional information about the gossip protocol.
 
 ## Gossip in Consul
 
-Consul makes use of two different gossip pools. We refer to each pool as the
-LAN or WAN pool respectively. Each datacenter Consul operates in has a LAN gossip pool
-containing all members of the datacenter, both clients and servers. The LAN pool is
-used for a few purposes. Membership information allows clients to automatically discover
-servers, reducing the amount of configuration needed. The distributed failure detection
-allows the work of failure detection to be shared by the entire cluster instead of
-concentrated on a few servers. Lastly, the gossip pool allows for reliable and fast
-event broadcasts.
+Consul uses a LAN gossip pool and a WAN gossip pool to perform different functions. The pools
+are able to perform their functions by leveraging an embedded [Serf](https://www.serf.io/)
+library. The library is abstracted and masked by Consul to simplify the user experience,
+but developers may find it useful to understand how the library is leveraged.
 
-The WAN pool is globally unique, as all servers should participate in the WAN pool
+### LAN Gossip Pool
+
+Each datacenter that Consul operates in has a LAN gossip pool containing all members
+of the datacenter (clients _and_ servers). Membership information provided by the
+LAN pool allows clients to automatically discover servers, reducing the amount of
+configuration needed. Failure detection is also distributed and shared by the entire cluster,
+instead of concentrated on a few servers. Lastly, the gossip pool allows for fast and
+reliable event broadcasts.
+
+### WAN Gossip Pool
+
+The WAN pool is globally unique. All servers should participate in the WAN pool,
 regardless of datacenter. Membership information provided by the WAN pool allows
-servers to perform cross datacenter requests. The integrated failure detection
-allows Consul to gracefully handle an entire datacenter losing connectivity, or just
-a single server in a remote datacenter.
-
-All of these features are provided by leveraging [Serf](https://www.serf.io/). It
-is used as an embedded library to provide these features. From a user perspective,
-this is not important, since the abstraction should be masked by Consul. It can be useful
-however as a developer to understand how this library is leveraged.
+servers to perform cross-datacenter requests. The integrated failure detection
+allows Consul to gracefully handle loss of connectivity--whether the loss is for
+an entire datacenter, or a single server in a remote datacenter.
 
 ## Lifeguard Enhancements ((#lifeguard))
 
-SWIM makes the assumption that the local node is healthy in the sense
-that soft real-time processing of packets is possible. However, in cases
-where the local node is experiencing CPU or network exhaustion this assumption
-can be violated. The result is that the `serfHealth` check status can
-occasionally flap, resulting in false monitoring alarms, adding noise to
-telemetry, and simply causing the overall cluster to waste CPU and network
-resources diagnosing a failure that may not truly exist.
+SWIM assumes that the local node is healthy, meaning that soft real-time packet
+processing is possible. The assumption may be violated, however, if the local node
+experiences CPU or network exhaustion. In these cases, the `serfHealth` check status
+can flap. This can result in false monitoring alarms, additional telemetry noise, and
+CPU and network resources being wasted as they attempt to diagnose non-existent failures.
 
 Lifeguard completely resolves this issue with novel enhancements to SWIM.
 

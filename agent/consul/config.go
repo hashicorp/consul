@@ -104,9 +104,6 @@ type Config struct {
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
 
-	// Domain is the DNS domain for the records. Defaults to "consul."
-	Domain string
-
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
@@ -161,57 +158,7 @@ type Config struct {
 	// ProtocolVersionMin and ProtocolVersionMax.
 	ProtocolVersion uint8
 
-	// VerifyIncoming is used to verify the authenticity of incoming connections.
-	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
-	// must match a provided certificate authority. This can be used to force client auth.
-	VerifyIncoming bool
-
-	// VerifyOutgoing is used to force verification of the authenticity of outgoing connections.
-	// This means that TLS requests are used, and TCP requests are not made. TLS connections
-	// must match a provided certificate authority.
-	VerifyOutgoing bool
-
-	// UseTLS is used to enable TLS for outgoing connections to other TLS-capable Consul
-	// servers. This doesn't imply any verification, it only enables TLS if possible.
-	UseTLS bool
-
-	// VerifyServerHostname is used to enable hostname verification of servers. This
-	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
-	// This prevents a compromised client from being restarted as a server, and then
-	// intercepting request traffic as well as being added as a raft peer. This should be
-	// enabled by default with VerifyOutgoing, but for legacy reasons we cannot break
-	// existing clients.
-	VerifyServerHostname bool
-
-	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
-	// or VerifyOutgoing to verify the TLS connection.
-	CAFile string
-
-	// CAPath is a path to a directory of certificate authority files. This is used with
-	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
-	CAPath string
-
-	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
-	// Must be provided to serve TLS connections.
-	CertFile string
-
-	// KeyFile is used to provide a TLS key that is used for serving TLS connections.
-	// Must be provided to serve TLS connections.
-	KeyFile string
-
-	// ServerName is used with the TLS certificate to ensure the name we
-	// provide matches the certificate
-	ServerName string
-
-	// TLSMinVersion is used to set the minimum TLS version used for TLS connections.
-	TLSMinVersion string
-
-	// TLSCipherSuites is used to specify the list of supported ciphersuites.
-	TLSCipherSuites []uint16
-
-	// TLSPreferServerCipherSuites specifies whether to prefer the server's ciphersuite
-	// over the client ciphersuites.
-	TLSPreferServerCipherSuites bool
+	TLSConfig tlsutil.Config
 
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
@@ -228,36 +175,15 @@ type Config struct {
 	// operators track which versions are actively deployed
 	Build string
 
+	ACLResolverSettings ACLResolverSettings
+
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	ACLMasterToken string
-
-	// ACLDatacenter provides the authoritative datacenter for ACL
-	// tokens. If not provided, ACL verification is disabled.
-	ACLDatacenter string
-
-	// ACLTokenTTL controls the time-to-live of cached ACL tokens.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL controls the time-to-live of cached ACL policies.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL controls the time-to-live of cached ACL roles.
-	// It can be set to zero to disable caching, but this adds
-	// a substantial cost.
-	ACLRoleTTL time.Duration
-
-	// ACLDisabledTTL is the time between checking if ACLs should be
-	// enabled. This
-	ACLDisabledTTL time.Duration
 
 	// ACLTokenReplication is used to enabled token replication.
 	//
@@ -265,20 +191,6 @@ type Config struct {
 	// replication is off and the primary datacenter is not
 	// yet upgraded to the new ACLs no replication will be performed
 	ACLTokenReplication bool
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
-	// cannot be contacted. It can be either "deny" to deny all requests,
-	// "extend-cache" or "async-cache" which ignores the ACLCacheInterval and
-	// uses cached policies.
-	// If a policy is not in the cache, it acts like deny.
-	// "allow" can be used to allow all requests. This is not recommended.
-	ACLDownPolicy string
 
 	// ACLReplicationRate is the max number of replication rounds that can
 	// be run per second. Note that either 1 or 2 RPCs are used during each replication
@@ -483,26 +395,6 @@ type Config struct {
 	*EnterpriseConfig
 }
 
-// ToTLSUtilConfig is only used by tests, usually the config is being passed
-// down from the agent.
-func (c *Config) ToTLSUtilConfig() tlsutil.Config {
-	return tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
-		VerifyOutgoing:           c.VerifyOutgoing,
-		VerifyServerHostname:     c.VerifyServerHostname,
-		CAFile:                   c.CAFile,
-		CAPath:                   c.CAPath,
-		CertFile:                 c.CertFile,
-		KeyFile:                  c.KeyFile,
-		NodeName:                 c.NodeName,
-		Domain:                   c.Domain,
-		ServerName:               c.ServerName,
-		TLSMinVersion:            c.TLSMinVersion,
-		CipherSuites:             c.TLSCipherSuites,
-		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
-	}
-}
-
 // CheckProtocolVersion validates the protocol version.
 func (c *Config) CheckProtocolVersion() error {
 	if c.ProtocolVersion < ProtocolVersionMin {
@@ -515,19 +407,20 @@ func (c *Config) CheckProtocolVersion() error {
 }
 
 // CheckACL validates the ACL configuration.
+// TODO: move this to ACLResolverSettings
 func (c *Config) CheckACL() error {
-	switch c.ACLDefaultPolicy {
+	switch c.ACLResolverSettings.ACLDefaultPolicy {
 	case "allow":
 	case "deny":
 	default:
-		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLDefaultPolicy)
+		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLResolverSettings.ACLDefaultPolicy)
 	}
-	switch c.ACLDownPolicy {
+	switch c.ACLResolverSettings.ACLDownPolicy {
 	case "allow":
 	case "deny":
 	case "async-cache", "extend-cache":
 	default:
-		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLDownPolicy)
+		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLResolverSettings.ACLDownPolicy)
 	}
 	return nil
 }
@@ -540,21 +433,26 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Build:                                version.Version,
-		Datacenter:                           DefaultDC,
-		NodeName:                             hostname,
-		RPCAddr:                              DefaultRPCAddr,
-		RaftConfig:                           raft.DefaultConfig(),
-		SerfLANConfig:                        libserf.DefaultConfig(),
-		SerfWANConfig:                        libserf.DefaultConfig(),
-		SerfFloodInterval:                    60 * time.Second,
-		ReconcileInterval:                    60 * time.Second,
-		ProtocolVersion:                      ProtocolVersion2Compatible,
-		ACLRoleTTL:                           30 * time.Second,
-		ACLPolicyTTL:                         30 * time.Second,
-		ACLTokenTTL:                          30 * time.Second,
-		ACLDefaultPolicy:                     "allow",
-		ACLDownPolicy:                        "extend-cache",
+		Build:             version.Version,
+		Datacenter:        DefaultDC,
+		NodeName:          hostname,
+		RPCAddr:           DefaultRPCAddr,
+		RaftConfig:        raft.DefaultConfig(),
+		SerfLANConfig:     libserf.DefaultConfig(),
+		SerfWANConfig:     libserf.DefaultConfig(),
+		SerfFloodInterval: 60 * time.Second,
+		ReconcileInterval: 60 * time.Second,
+		ProtocolVersion:   ProtocolVersion2Compatible,
+		ACLResolverSettings: ACLResolverSettings{
+			ACLsEnabled:      false,
+			Datacenter:       DefaultDC,
+			NodeName:         hostname,
+			ACLPolicyTTL:     30 * time.Second,
+			ACLTokenTTL:      30 * time.Second,
+			ACLRoleTTL:       30 * time.Second,
+			ACLDownPolicy:    "extend-cache",
+			ACLDefaultPolicy: "allow",
+		},
 		ACLReplicationRate:                   1,
 		ACLReplicationBurst:                  5,
 		ACLReplicationApplyLimit:             100, // ops / sec
@@ -582,8 +480,6 @@ func DefaultConfig() *Config {
 		RPCRateLimit: rate.Inf,
 		RPCMaxBurst:  1000,
 
-		TLSMinVersion: "tls10",
-
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/config/default.go.
 		AutopilotConfig: &structs.AutopilotConfig{
@@ -596,7 +492,6 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod":      structs.DefaultCARotationPeriod,
 				"LeafCertTTL":         structs.DefaultLeafCertTTL,
 				"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
 			},

@@ -7,7 +7,7 @@ import CalloutBlade from 'components/callout-blade'
 import CaseStudyCarousel from 'components/case-study-carousel'
 import HomepageHero from 'components/homepage-hero'
 import StaticDynamicDiagram from 'components/static-dynamic-diagram'
-import highlightString from '@hashicorp/nextjs-scripts/prism/highlight-string'
+import highlightString from '@hashicorp/platform-code-highlighting/highlight-string'
 
 export default function HomePage({ serviceMeshIngressGatewayCode }) {
   return (

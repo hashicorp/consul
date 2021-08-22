@@ -33,6 +33,7 @@ be supported using a new and experimental JavaScript API. See [Custom Metrics
 Providers](#custom-metrics-providers).
 
 ## Kubernetes
+
 If running Consul in Kubernetes, the Helm chart can automatically configure Consul's UI to display topology
 visualizations. See our [Kubernetes observability docs](/docs/k8s/connect/observability/metrics) for more information.
 
@@ -92,6 +93,9 @@ to the relevant information.
 
 An example with Grafana is shown below.
 
+<Tabs>
+<Tab heading="HCL">
+
 ```hcl
 ui_config {
   enabled = true
@@ -106,6 +110,32 @@ ui_config {
 -> **Note**: the URL is wrapped over multiple lines to make it easier to read
 without horizontal scrolling in the example above however this needs to be a
 normal single-line string value in an HCL configuration file.
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+On Kubernetes, Consul Server configuration is set in your Helm config via the
+[`server.extraConfig`](/docs/k8s/helm#v-server-extraconfig) key as JSON:
+
+```yaml
+# The UI is enabled by default so this stanza is not required.
+ui:
+  enabled: true
+server:
+  extraConfig: |
+    {
+      "ui_config": {
+        "dashboard_url_templates": {
+          "service": "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1&var-service={{ "{{" }}Service.Name}}&var-namespace={{ "{{" }}Service.Namespace}}&var-dc={{ "{{" }}Datacenter}}"
+        }
+      }
+    }
+```
+
+-> **Note**: The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm doesn't try to template them.
+
+</Tab>
+</Tabs>
 
 ![Consul UI Service Dashboard Link](/img/ui-dashboard-url-template.png)
 
@@ -440,7 +470,7 @@ The template for a complete provider JavaScript file is given below.
 ```
 
 Additionally, the built in [Prometheus
-provider code](https://github.com/hashicorp/consul/blob/master/ui/packages/consul-ui/vendor/metrics-providers/prometheus.js)
+provider code](https://github.com/hashicorp/consul/blob/main/ui/packages/consul-ui/vendor/metrics-providers/prometheus.js)
 can be used as a reference.
 
 ### Configuring the Agent With a Custom Metrics Provider.

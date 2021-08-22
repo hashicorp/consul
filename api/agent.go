@@ -66,6 +66,7 @@ type AgentCheck struct {
 	ExposedPort int
 	Definition  HealthCheckDefinition
 	Namespace   string `json:",omitempty"`
+	Partition   string `json:",omitempty"`
 }
 
 // AgentWeights represent optional weights for a service
@@ -96,6 +97,7 @@ type AgentService struct {
 	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
 	// For now though, ignoring it works well enough.
 	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Partition string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	// Datacenter is only ever returned and is ignored if presented.
 	Datacenter string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
@@ -261,6 +263,7 @@ type AgentServiceRegistration struct {
 	Tags              []string                  `json:",omitempty"`
 	Port              int                       `json:",omitempty"`
 	Address           string                    `json:",omitempty"`
+	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	EnableTagOverride bool                      `json:",omitempty"`
 	Meta              map[string]string         `json:",omitempty"`
@@ -270,13 +273,14 @@ type AgentServiceRegistration struct {
 	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
 type ServiceRegisterOpts struct {
-	//Missing healthchecks will be deleted from the agent.
-	//Using this parameter allows to idempotently register a service and its checks without
-	//having to manually deregister checks.
+	// Missing healthchecks will be deleted from the agent.
+	// Using this parameter allows to idempotently register a service and its checks without
+	// having to manually deregister checks.
 	ReplaceExistingChecks bool
 
 	// ctx is an optional context pass through to the underlying HTTP
@@ -299,6 +303,7 @@ type AgentCheckRegistration struct {
 	ServiceID string `json:",omitempty"`
 	AgentServiceCheck
 	Namespace string `json:",omitempty"`
+	Partition string `json:",omitempty"`
 }
 
 // AgentServiceCheck is used to define a node or service level check
@@ -405,6 +410,7 @@ type ConnectProxyConfig struct {
 // Upstream is the response structure for a proxy upstream configuration.
 type Upstream struct {
 	DestinationType      UpstreamDestType `json:",omitempty"`
+	DestinationPartition string           `json:",omitempty"`
 	DestinationNamespace string           `json:",omitempty"`
 	DestinationName      string
 	Datacenter           string                 `json:",omitempty"`
@@ -480,6 +486,19 @@ func (a *Agent) Metrics() (*MetricsInfo, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// MetricsStream returns an io.ReadCloser which will emit a stream of metrics
+// until the context is cancelled. The metrics are json encoded.
+// The caller is responsible for closing the returned io.ReadCloser.
+func (a *Agent) MetricsStream(ctx context.Context) (io.ReadCloser, error) {
+	r := a.c.newRequest("GET", "/v1/agent/metrics/stream")
+	r.ctx = ctx
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
 }
 
 // Reload triggers a configuration reload for the agent we are connected to.
@@ -573,8 +592,13 @@ func (a *Agent) ServicesWithFilterOpts(filter string, q *QueryOptions) (map[stri
 // - If the service is found, will return (critical|passing|warning), AgentServiceChecksInfo, nil)
 // - In all other cases, will return an error
 func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceChecksInfo, error) {
+	return a.AgentHealthServiceByIDOpts(serviceID, nil)
+}
+
+func (a *Agent) AgentHealthServiceByIDOpts(serviceID string, q *QueryOptions) (string, *AgentServiceChecksInfo, error) {
 	path := fmt.Sprintf("/v1/agent/health/service/id/%v", url.PathEscape(serviceID))
 	r := a.c.newRequest("GET", path)
+	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
 	_, resp, err := a.c.doRequest(r)
@@ -607,8 +631,13 @@ func (a *Agent) AgentHealthServiceByID(serviceID string) (string, *AgentServiceC
 // - If the service is found, will return (critical|passing|warning), []api.AgentServiceChecksInfo, nil)
 // - In all other cases, will return an error
 func (a *Agent) AgentHealthServiceByName(service string) (string, []AgentServiceChecksInfo, error) {
+	return a.AgentHealthServiceByNameOpts(service, nil)
+}
+
+func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (string, []AgentServiceChecksInfo, error) {
 	path := fmt.Sprintf("/v1/agent/health/service/name/%v", url.PathEscape(service))
 	r := a.c.newRequest("GET", path)
+	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
 	_, resp, err := a.c.doRequest(r)
@@ -934,8 +963,8 @@ func (a *Agent) ForceLeave(node string) error {
 	return nil
 }
 
-//ForceLeavePrune is used to have an a failed agent removed
-//from the list of members
+// ForceLeavePrune is used to have an a failed agent removed
+// from the list of members
 func (a *Agent) ForceLeavePrune(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
 	r.params.Set("prune", "1")
@@ -1010,7 +1039,12 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *Qu
 // EnableServiceMaintenance toggles service maintenance mode on
 // for the given service ID.
 func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
+	return a.EnableServiceMaintenanceOpts(serviceID, reason, nil)
+}
+
+func (a *Agent) EnableServiceMaintenanceOpts(serviceID, reason string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r.setQueryOptions(q)
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
 	_, resp, err := requireOK(a.c.doRequest(r))
@@ -1024,7 +1058,12 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 // DisableServiceMaintenance toggles service maintenance mode off
 // for the given service ID.
 func (a *Agent) DisableServiceMaintenance(serviceID string) error {
+	return a.DisableServiceMaintenanceOpts(serviceID, nil)
+}
+
+func (a *Agent) DisableServiceMaintenanceOpts(serviceID string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r.setQueryOptions(q)
 	r.params.Set("enable", "false")
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
@@ -1073,6 +1112,7 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	return a.monitor(loglevel, true, stopCh, q)
 }
+
 func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)

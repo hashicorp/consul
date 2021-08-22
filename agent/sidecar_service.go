@@ -18,7 +18,7 @@ func sidecarServiceID(serviceID string) string {
 // config.
 //
 // It assumes the ns has been validated already which means the nested
-// SidecarService is also already validated.It also assumes that any check
+// SidecarService is also already validated. It also assumes that any check
 // definitions within the sidecar service definition have been validated if
 // necessary. If no sidecar service is defined in ns, then nil is returned with
 // nil error.
@@ -35,15 +35,15 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		return nil, nil, "", nil
 	}
 
+	// for now at least these must be identical
+	ns.Connect.SidecarService.EnterpriseMeta = ns.EnterpriseMeta
+
 	// Start with normal conversion from service definition
 	sidecar := ns.Connect.SidecarService.NodeService()
 
 	// Override the ID which must always be consistent for a given outer service
 	// ID. We rely on this for lifecycle management of the nested definition.
 	sidecar.ID = sidecarServiceID(ns.ID)
-
-	// for now at least these must be identical
-	sidecar.EnterpriseMeta = ns.EnterpriseMeta
 
 	// Set some meta we can use to disambiguate between service instances we added
 	// later and are responsible for deregistering.
@@ -80,7 +80,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		token = ns.Connect.SidecarService.Token
 	}
 
-	// Setup some sane connect proxy defaults.
+	// Setup some reasonable connect proxy defaults.
 	if sidecar.Kind == "" {
 		sidecar.Kind = structs.ServiceKindConnectProxy
 	}
@@ -126,7 +126,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		// it doesn't seem to be necessary - even with thousands of services this is
 		// not expensive to compute.
 		usedPorts := make(map[int]struct{})
-		for _, otherNS := range a.State.Services(structs.WildcardEnterpriseMeta()) {
+		for _, otherNS := range a.State.AllServices() {
 			// Check if other port is in auto-assign range
 			if otherNS.Port >= a.config.ConnectSidecarMinPort &&
 				otherNS.Port <= a.config.ConnectSidecarMaxPort {

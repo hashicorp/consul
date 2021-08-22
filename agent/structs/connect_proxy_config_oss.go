@@ -3,7 +3,7 @@
 package structs
 
 func (us *Upstream) GetEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (us *Upstream) DestinationID() ServiceID {

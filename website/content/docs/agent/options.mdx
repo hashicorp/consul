@@ -242,8 +242,12 @@ The options below are all specified on the command-line.
   If it is provided after Consul has been initialized with an encryption key, then
   the provided key is ignored and a warning will be displayed.
 
-- `-grpc-port` ((#\_grpc_port)) - the gRPC API port to listen on. Default
-  -1 (gRPC disabled). See [ports](#ports) documentation for more detail.
+- `-xds-port` - the xDS gRPC port to listen on. Default
+  -1 (disabled). See [ports](#ports) documentation for more detail.
+
+- `-grpc-port` ((#\_grpc_port)) - **Deprecated in Consul 1.11**.
+  Use `-xds-port` instead. The xDS gRPC port to listen on. Default
+  -1 (disabled). See [ports](#ports) documentation for more detail.
 
 - `-hcl` ((#\_hcl)) - A HCL configuration fragment. This HCL configuration
   fragment is appended to the configuration and allows to specify the full range
@@ -261,7 +265,7 @@ The options below are all specified on the command-line.
 - `-log-file` ((#\_log_file)) - writes all the Consul agent log messages
   to a file. This value is used as a prefix for the log file name. The current timestamp
   is appended to the file name. If the value ends in a path separator, `consul-`
-  will be appened to the value. If the file name is missing an extension, `.log`
+  will be appended to the value. If the file name is missing an extension, `.log`
   is appended. For example, setting `log-file` to `/var/log/` would result in a log
   file path of `/var/log/consul-{timestamp}.log`. `log-file` can be combined with
   [`-log-rotate-bytes`](#_log_rotate_bytes) and [-log-rotate-duration](#_log_rotate_duration)
@@ -455,7 +459,7 @@ The options below are all specified on the command-line.
   segment.
 
 - `-serf-lan-allowed-cidrs` ((#\_serf_lan_allowed_cidrs)) - The Serf LAN allowed CIDRs allow to accept incoming
-  connections for Serf only from several networks (mutiple values are supported).
+  connections for Serf only from several networks (multiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
 
@@ -464,7 +468,7 @@ The options below are all specified on the command-line.
   and later.
 
 - `-serf-wan-allowed-cidrs` ((#\_serf_wan_allowed_cidrs)) - The Serf WAN allowed CIDRs allow to accept incoming
-  connections for Serf only from several networks (mutiple values are supported).
+  connections for Serf only from several networks (multiple values are supported).
   Those networks are specified with CIDR notation (eg: 192.168.1.0/24).
   This is available in Consul 1.8 and later.
 
@@ -534,7 +538,7 @@ definitions support being updated during a reload.
 
 #### Example Configuration File
 
-```javascript
+```json
 {
   "datacenter": "east-aws",
   "data_dir": "/opt/consul",
@@ -552,39 +556,6 @@ definitions support being updated during a reload.
   }
 }
 ```
-
-#### Example Configuration File, with TLS
-
-```javascript
-{
-  "datacenter": "east-aws",
-  "data_dir": "/opt/consul",
-  "log_level": "INFO",
-  "node_name": "foobar",
-  "server": true,
-  "addresses": {
-    "https": "0.0.0.0"
-  },
-  "ports": {
-    "https": 8501
-  },
-  "key_file": "/etc/pki/tls/private/my.key",
-  "cert_file": "/etc/pki/tls/certs/my.crt",
-  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt"
-}
-```
-
-See, especially, the use of the `ports` setting:
-
-```javascript
-"ports": {
-  "https": 8501
-}
-```
-
-Consul will not enable TLS for the HTTP API unless the `https` port has been
-assigned a port number `> 0`. We recommend using `8501` for `https` as this
-default will automatically work with some tooling.
 
 #### Configuration Key Reference
 
@@ -638,10 +609,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     In "deny" mode, ACLs are an allowlist: any operation not specifically
     allowed is blocked. **Note**: this will not take effect until you've enabled ACLs.
 
-  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Either "enabled"
-    or "disabled", defaults to "disabled". When enabled, the `list` permission will
-    be required on the prefix being recursively read from the KV store. Regardless
-    of being enabled, the full set of KV entries under the prefix will be filtered
+  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Boolean value, defaults to false. 
+    When true, the `list` permission will be required on the prefix being recursively read from the KV store. 
+    Regardless of being enabled, the full set of KV entries under the prefix will be filtered
     to remove any entries that the request's ACL token does not grant at least read
     permissions. This option is only available in Consul 1.0 and newer.
 
@@ -809,7 +779,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
   of addresses to bind to, or a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that can potentially resolve to multiple addresses.
 
-  `http`, `https` and `grpc` all support binding to a Unix domain socket. A
+  `http`, `https` and `xds` all support binding to a Unix domain socket. A
   socket can be specified in the form `unix:///path/to/socket`. A new domain
   socket will be created at the given path. If the specified file path already
   exists, Consul will attempt to clear the file and create the domain socket
@@ -830,7 +800,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `dns` - The DNS server. Defaults to `client_addr`
   - `http` - The HTTP API. Defaults to `client_addr`
   - `https` - The HTTPS API. Defaults to `client_addr`
-  - `grpc` - The gRPC API. Defaults to `client_addr`
+  - `xds` - The xDS gRPC API. Defaults to `client_addr`
+  - `grpc` - **Deprecated in Consul 1.11**. Use `xds` instead. The xDS gRPC API. Defaults to `client_addr`
 
 - `advertise_addr` Equivalent to the [`-advertise` command-line flag](#_advertise).
 
@@ -847,7 +818,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `advertise_reconnect_timeout` This is a per-agent setting of the [`reconnect_timeout`](#reconnect_timeout) parameter.
   This agent will advertise to all other nodes in the cluster that after this timeout, the node may be completely
   removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
-  `reconnect_timeout` setting when determing when this node may be removed from the cluster.
+  `reconnect_timeout` setting when determining when this node may be removed from the cluster.
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
@@ -895,6 +866,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       the rules governing how audit events are written.
       The following keys are valid:
       - `best-effort` - Consul only supports `best-effort` event delivery.
+    - `mode` - The permissions to set on the audit log files.
     - `rotate_duration` - Specifies the
       interval by which the system rotates to a new log file. At least one of `rotate_duration` or `rotate_bytes`
       must be configured to enable audit logging.
@@ -986,7 +958,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     client agent's TLS certificate. The `localhost` DNS SAN is always requested.
 
   - `ip_sans` (Defaults to `[]`) This is a list of extra IP SANs to request in the
-    client agent's TLS certficate. The `::1` and `127.0.0.1` IP SANs are always requested.
+    client agent's TLS certificate. The `::1` and `127.0.0.1` IP SANs are always requested.
 
   - `authorization` This object controls how a Consul server will authorize `auto_config`
     requests and in particular how to verify the JWT intro token.
@@ -1122,19 +1094,15 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `bind_addr` Equivalent to the [`-bind` command-line flag](#_bind).
 
   This parameter can be set to a go-sockaddr template that resolves to a single
-  address. Special characters such as blackslashes `\` or double quotes `"`
+  address. Special characters such as backslashes `\` or double quotes `"`
   within a double quoted string value must be escaped with a backslash `\`.
   Some example templates:
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
 ```
-
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -1142,8 +1110,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 - `cache` configuration for client agents. The configurable values are the following:
 
@@ -1162,19 +1129,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     1 means 1 query per second, 0.1 mean 1 request every 10s maximum.
     The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
-
-- `ca_file` This provides a file path to a PEM-encoded certificate
-  authority. The certificate authority is used to check the authenticity of client
-  and server connections with the appropriate [`verify_incoming`](#verify_incoming)
-  or [`verify_outgoing`](#verify_outgoing) flags.
-
-- `ca_path` This provides a path to a directory of PEM-encoded
-  certificate authority files. These certificate authorities are used to check the
-  authenticity of client and server connections with the appropriate [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) flags.
-
-- `cert_file` This provides a file path to a PEM-encoded
-  certificate. The certificate is provided to clients or servers to verify the agent's
-  authenticity. It must be provided along with [`key_file`](#key_file).
 
 - `check_update_interval` ((#check_update_interval))
   This interval controls how often check output from checks in a steady state is
@@ -1211,7 +1165,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     through mesh gateways. Defaults to false. This was added in Consul 1.8.0.
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
-    use for Connect's CA. Currently only the `consul` and `vault` providers are supported.
+    use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
     use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
 
@@ -1221,6 +1175,12 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     Endpoint](/api/connect/ca#update-ca-configuration).
 
     The following providers are supported:
+
+    #### AWS ACM Private CA Provider (`ca_provider = "aws-pca"`)
+
+    - `existing_arn` ((#aws_ca_existing_arn)) The Amazon Resource Name (ARN) of
+      an existing private CA in your ACM account. If specified, Consul will
+      attempt to use the existing CA to issue certificates.
 
     #### Consul CA Provider (`ca_provider = "consul"`)
 
@@ -1258,34 +1218,33 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
     There are also a number of common configuration options supported by all providers:
 
-    - `csr_max_concurrent` ((#ca_csr_max_concurrent)) Sets a limit on how
-      many Certificate Signing Requests will be processed concurrently. Defaults
-      to 0 (disabled). This is useful when you have more than one or two cores available
-      to the server. For example on an 8 core server, setting this to 1 will ensure
-      that even during a CA rotation no more than one server core on the leader will
-      be consumed at a time with generating new certificates. Setting this is recommended
-      **instead** of `csr_max_per_second` where you know there are multiple cores available
-      since it is simpler to reason about limiting CSR resources this way without
-      artificially slowing down rotations. Added in 1.4.1.
+    - `csr_max_concurrent` ((#ca_csr_max_concurrent)) Sets a limit on the number
+      of Certificate Signing Requests that can be processed concurrently. Defaults
+      to 0 (disabled). This is useful when you want to limit the number of CPU cores
+      available to the server for certificate signing operations. For example, on an
+      8 core server, setting this to 1 will ensure that no more than one CPU core
+      will be consumed when generating or rotating certificates. Setting this is
+      recommended **instead** of `csr_max_per_second` when you want to limit the
+      number of cores consumed since it is simpler to reason about limiting CSR
+      resources this way without artificially slowing down rotations. Added in 1.4.1.
 
     - `csr_max_per_second` ((#ca_csr_max_per_second)) Sets a rate limit
       on the maximum number of Certificate Signing Requests (CSRs) the servers will
       accept. This is used to prevent CA rotation from causing unbounded CPU usage
-      on servers. It defaults to 50 which is conservative - a 2017 Macbook can process
-      about 100 per second using only ~40% of one CPU core - but sufficient for deployments
+      on servers. It defaults to 50 which is conservative – a 2017 Macbook can process
+      about 100 per second using only ~40% of one CPU core – but sufficient for deployments
       up to ~1500 service instances before the time it takes to rotate is impacted.
       For larger deployments we recommend increasing this based on the expected number
       of server instances and server resources, or use `csr_max_concurrent` instead
-      if servers have more than one core. Setting this to zero disables rate limiting.
+      if servers have more than one CPU core. Setting this to zero disables rate limiting.
       Added in 1.4.1.
 
     - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) The upper bound on the lease
       duration of a leaf certificate issued for a service. In most cases a new leaf
       certificate will be requested by a proxy before this limit is reached. This
       is also the effective limit on how long a server outage can last (with no leader)
-      before network connections will start being rejected, and as a result the defaults
-      is `72h` to last through a weekend without intervention. This value cannot
-      be lower than 1 hour or higher than 1 year.
+      before network connections will start being rejected. Defaults to `72h`.
+      This value cannot be lower than 1 hour or higher than 1 year.
 
       This value is also used when rotating out old root certificates from
       the cluster. When a root certificate has been inactive (rotated out)
@@ -1298,9 +1257,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       PKI paths given for Vault then this will be ignored. Currently supported options
       are `ec` or `rsa`. Default is `ec`.
 
-      It is required that all servers in a Datacenter have
+      It is required that all servers in a datacenter have
       the same config for the CA. It is recommended that servers in
-      different Datacenters have the same CA config for key type and size
+      different datacenters use the same key type and size,
       although the built-in CA and Vault provider will both allow mixed CA
       key types.
 
@@ -1337,7 +1296,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `disable_host_node_id` Equivalent to the [`-disable-host-node-id` command-line flag](#_disable_host_node_id).
 
-- `disable_http_unprintable_char_filter` Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where malicious users could craft KV keys with unprintable chars that would confuse operators using the CLI or UI into taking wrong actions. Users who had data written in older versions of Consul that did not have this restriction will be unable to deletethose values by default in 1.0.3 or later. This setting enables those users to **temporarily** disable the filter such that delete operations can work on those keys again to get back to a healthy state. It is strongly recommended that this filter is not disabled permanently as it exposes the original security vulnerability.
+- `disable_http_unprintable_char_filter` Defaults to false. Consul 1.0.3 fixed a potential security vulnerability where malicious users could craft KV keys with unprintable chars that would confuse operators using the CLI or UI into taking wrong actions. Users who had data written in older versions of Consul that did not have this restriction will be unable to delete those values by default in 1.0.3 or later. This setting enables those users to **temporarily** disable the filter such that delete operations can work on those keys again to get back to a healthy state. It is strongly recommended that this filter is not disabled permanently as it exposes the original security vulnerability.
 
 - `disable_remote_exec` Disables support for remote execution. When set to true, the agent will ignore
   any incoming remote exec requests. In versions of Consul prior to 0.8, this defaulted
@@ -1392,11 +1351,16 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `only_passing` - If set to true, any nodes whose
     health checks are warning or critical will be excluded from DNS results. If false,
-    the default, only nodes whose healthchecks are failing as critical will be excluded.
+    the default, only nodes whose health checks are failing as critical will be excluded.
     For service lookups, the health checks of the node itself, as well as the service-specific
     checks are considered. For example, if a node has a health check that is critical
     then all services on that node will be excluded because they are also considered
     critical.
+
+  - `recursor_strategy` - If set to `sequential`, Consul will query recursors in the
+    order listed in the [`recursors`](#recursors) option. If set to `random`,
+    Consul will query an upstream DNS resolvers in a random order. Defaults to
+    `sequential`.
 
   - `recursor_timeout` - Timeout used by Consul when
     recursively querying an upstream DNS server. See [`recursors`](#recursors) for more details. Default is 2s. This is available in Consul 0.7 and later.
@@ -1482,8 +1446,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `enable_agent_tls_for_checks` When set, uses a subset of the agent's TLS configuration (`key_file`,
   `cert_file`, `ca_file`, `ca_path`, and `server_name`) to set up the client for HTTP or gRPC health checks. This allows services requiring 2-way TLS to be checked using the agent's credentials. This was added in Consul 1.0.1 and defaults to false.
 
-- `enable_central_service_config` When set, the Consul agent will look for any centralized service
-  configurations that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
+- `enable_central_service_config` When set, the Consul agent will look for any
+  [centralized service configuration](/docs/agent/config-entries)
+  that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
   This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
 - `enable_debug` When set, enables some additional debugging features. Currently, this is only used to
@@ -1517,6 +1482,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `disable_keyring_file` - Equivalent to the
   [`-disable-keyring-file` command-line flag](#_disable_keyring_file).
+
+- `disable_coordinates` - Disables sending of [network coordinates](/docs/architecture/coordinates).
+  When network coordinates are disabled the `near` query param will not work to sort the nodes,
+  and the [`consul rtt`](/commands/rtt) command will not be able to provide round trip time between nodes.
 
 - `gossip_lan` - **(Advanced)** This object contains a
   number of sub-keys which can be set to tune the LAN gossip communications. These
@@ -1602,10 +1571,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     part of the cluster before declaring it dead, giving that suspect node more time
     to refute if it is indeed still alive. The default is 6.
 
-- `key_file` This provides a the file path to a PEM-encoded
-  private key. The key is used with the certificate to verify the agent's authenticity.
-  This must be provided along with [`cert_file`](#cert_file).
-
 - `http_config` This object allows setting options for the HTTP API and UI.
 
   The following sub-keys are available:
@@ -1644,7 +1609,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
-- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to faciliate forwards compatibility with 1.10 but will only actually be used by client agents.
+- `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
 - `limits` Available in Consul 0.9.3 and later, this is a nested
   object that configures limits that are enforced by the agent. Prior to Consul 1.5.2,
@@ -1712,6 +1677,8 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     This was added in Consul 1.0. Must be a duration value such as 10s. Defaults
     to 7s.
 
+- `pid_file` Equivalent to the [`-pid-file` command line flag](#_pid_file).
+
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
 
   - `dns` ((#dns_port)) - The DNS server, -1 to disable. Default 8600.
@@ -1721,10 +1688,16 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   - `https` ((#https_port)) - The HTTPS API, -1 to disable. Default -1
     (disabled). **We recommend using `8501`** for `https` by convention as some tooling
     will work automatically with this.
-  - `grpc` ((#grpc_port)) - The gRPC API, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `grpc` by convention as some tooling will work
+  - `xds` - The xDS gRPC API, -1 to disable. Default -1 (disabled).
+    **We recommend using `8502`** for `xds` by convention as some tooling will work
     automatically with this. This is set to `8502` by default when the agent runs
-    in `-dev` mode. Currently gRPC is only used to expose Envoy xDS API to Envoy
+    in `-dev` mode. Currently xDS is only used to expose Envoy xDS API to Envoy
+    proxies.
+  - `grpc` ((#grpc_port)) - **Deprecated in Consul 1.11**. Use `xds` instead.
+    The xDS gRPC API, -1 to disable. Default -1 (disabled).
+    **We recommend using `8502`** for `xds` by convention as some tooling will work
+    automatically with this. This is set to `8502` by default when the agent runs
+    in `-dev` mode. Currently xDS is only used to expose Envoy xDS API to Envoy
     proxies.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
     and UDP. Equivalent to the [`-serf-lan-port` command line flag](#_serf_lan_port).
@@ -1784,7 +1757,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   failover if this is increased significantly as more logs will need to be
   replayed. In Consul 1.1.0 and later this defaults to 16384, and in prior
   versions it was set to 8192.
-  
+
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
   in emergencies.
@@ -1800,7 +1773,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   is increased significantly as more logs will need to be replayed. In Consul
   1.1.0 and later this defaults to `30s`, and in prior versions it was set to
   `5s`.
-  
+
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
   in emergencies.
@@ -1813,10 +1786,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   consider reducing write throughput or the amount of data stored on Consul as
   it is likely under a load it is not designed to handle. The default value is
   10000 which is suitable for all normal workloads. Added in Consul 1.5.3.
-  
+
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow recovery without downtime when followers can't keep
-  up. 
+  up.
 
 - `reap` This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't
@@ -1895,10 +1868,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `read_replica` - Equivalent to the [`-read-replica` command-line flag](#_read_replica).
 
-- `server_name` When provided, this overrides the [`node_name`](#_node)
-  for the TLS certificate. It can be used to ensure that the certificate name matches
-  the hostname we declare.
-
 - `session_ttl_min` The minimum allowed session TTL. This ensures sessions are not created with TTL's
   shorter than the specified limit. It is recommended to keep this limit at or above
   the default to encourage clients to send infrequent heartbeats. Defaults to 10s.
@@ -1940,10 +1909,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `circonus_submission_url` ((#telemetry-circonus_submission_url))
     The `check.config.submission_url` field, of a Check API object, from a previously
-    created HTTPTRAP check.
+    created HTTPTrap check.
 
   - `circonus_check_id` ((#telemetry-circonus_check_id))
-    The Check ID (not **check bundle**) from a previously created HTTPTRAP check.
+    The Check ID (not **check bundle**) from a previously created HTTPTrap check.
     The numeric portion of the `check._cid` field in the Check API object.
 
   - `circonus_check_force_metric_activation` ((#telemetry-circonus_check_force_metric_activation)) Force activation of metrics which already exist and are not currently active.
@@ -1973,7 +1942,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     portion of `broker._cid` field in a Broker API object. If metric management is
     enabled and neither a Submission URL nor Check ID is provided, an attempt will
     be made to search for an existing check using Instance ID and Search Tag. If
-    one is not found, a new HTTPTRAP check will be created. By default, this is not
+    one is not found, a new HTTPTrap check will be created. By default, this is not
     used and a random Enterprise Broker is selected, or the default Circonus Public
     Broker.
 
@@ -2057,19 +2026,6 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 - `syslog_facility` When [`enable_syslog`](#enable_syslog)
   is provided, this controls to which facility messages are sent. By default, `LOCAL0`
   will be used.
-
-- `tls_min_version` Added in Consul 0.7.4, this specifies
-  the minimum supported version of TLS. Accepted values are "tls10", "tls11", "tls12",
-  or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
-  considered less secure; avoid using these if possible.
-
-- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
-  supported ciphersuites as a comma-separated-list. The list of all supported
-  ciphersuites is available through
-  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
-
-- `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
-  will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
 
 - `translate_wan_addrs` If set to true, Consul
   will prefer a node's configured [WAN address](#_advertise-wan)
@@ -2245,6 +2201,57 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   streaming. All servers must have [`rpc.enable_streaming`](#rpc_enable_streaming)
   enabled before any client can enable `use_streaming_backend`.
 
+- `watches` - Watches is a list of watch specifications which
+  allow an external process to be automatically invoked when a particular data view
+  is updated. See the [watch documentation](/docs/agent/watches) for more detail.
+  Watches can be modified when the configuration is reloaded.
+
+## TLS Configuration Reference
+
+This section documents all of the configuration settings that apply to Agent TLS. Agent
+TLS is used by the HTTP API, server RPC, and xDS interfaces. Some of these settings may also be
+applied automatically by [auto_config](#auto_config) or [auto_encrypt](#auto_encrypt).
+
+~> **Security Note:** The Certificate Authority (CA) specified by `ca_file` or `ca_path`
+should be a private CA, not a public one. We recommend using a dedicated CA
+which should not be used with any other systems. Any certificate signed by the
+CA will be allowed to communicate with the cluster and a specially crafted certificate
+signed by the CA can be used to gain full access to Consul.
+
+- `ca_file` This provides a file path to a PEM-encoded certificate
+  authority. The certificate authority is used to check the authenticity of client
+  and server connections with the appropriate [`verify_incoming`](#verify_incoming)
+  or [`verify_outgoing`](#verify_outgoing) flags.
+
+- `ca_path` This provides a path to a directory of PEM-encoded
+  certificate authority files. These certificate authorities are used to check the
+  authenticity of client and server connections with the appropriate [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing) flags.
+
+- `cert_file` This provides a file path to a PEM-encoded
+  certificate. The certificate is provided to clients or servers to verify the agent's
+  authenticity. It must be provided along with [`key_file`](#key_file).
+
+- `key_file` This provides a the file path to a PEM-encoded
+  private key. The key is used with the certificate to verify the agent's authenticity.
+  This must be provided along with [`cert_file`](#cert_file).
+
+- `server_name` When provided, this overrides the [`node_name`](#_node)
+  for the TLS certificate. It can be used to ensure that the certificate name matches
+  the hostname we declare.
+
+- `tls_min_version` Added in Consul 0.7.4, this specifies
+  the minimum supported version of TLS. Accepted values are "tls10", "tls11", "tls12",
+  or "tls13". This defaults to "tls12". WARNING: TLS 1.1 and lower are generally
+  considered less secure; avoid using these if possible.
+
+- `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
+  supported ciphersuites as a comma-separated-list. The list of all supported
+  ciphersuites is available through
+  [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+
+- `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
+  will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
+
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client
   provides a certificate signed by a Certificate Authority from the
@@ -2298,10 +2305,45 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653)
   for more details. For those versions you **must also set `verify_outgoing = true`** to ensure encrypted RPC connections.
 
-- `watches` - Watches is a list of watch specifications which
-  allow an external process to be automatically invoked when a particular data view
-  is updated. See the [watch documentation](/docs/agent/watches) for more detail.
-  Watches can be modified when the configuration is reloaded.
+### Example Configuration File, with TLS
+
+~> **Security Note:** all three verify options should be set as `true` to enable secure mTLS communication, enabling both
+encryption and authentication. Failing to set [`verify_incoming`](#verify_incoming) or [`verify_outgoing`](#verify_outgoing)
+will result in TLS not being enabled at all, even when specifying a [`ca_file`](#ca_file), [`cert_file`](#cert_file), and [`key_file`](#key_file).
+
+```json
+{
+  "datacenter": "east-aws",
+  "data_dir": "/opt/consul",
+  "log_level": "INFO",
+  "node_name": "foobar",
+  "server": true,
+  "addresses": {
+    "https": "0.0.0.0"
+  },
+  "ports": {
+    "https": 8501
+  },
+  "key_file": "/etc/pki/tls/private/my.key",
+  "cert_file": "/etc/pki/tls/certs/my.crt",
+  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt",
+  "verify_incoming": true,
+  "verify_outgoing": true,
+  "verify_server_hostname": true
+}
+```
+
+See, especially, the use of the `ports` setting:
+
+```json
+"ports": {
+  "https": 8501
+}
+```
+
+Consul will not enable TLS for the HTTP API unless the `https` port has been
+assigned a port number `> 0`. We recommend using `8501` for `https` as this
+default will automatically work with some tooling.
 
 ## Ports Used
 

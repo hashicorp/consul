@@ -1,33 +1,50 @@
-import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash } from 'rsvp';
-import { get, set, action } from '@ember/object';
+import { inject as service } from '@ember/service';
+import { get, action } from '@ember/object';
 
 export default class SettingsRoute extends Route {
-  @service('client/http')
-  client;
+  @service('client/http') client;
 
-  @service('settings')
-  repo;
+  @service('settings') repo;
+  @service('repository/dc') dcRepo;
+  @service('repository/permission') permissionsRepo;
+  @service('repository/nspace/disabled') nspacesRepo;
 
-  @service('repository/dc')
-  dcRepo;
+  async model(params) {
+    // reach up and grab things from the application route/controller
+    const app = this.controllerFor('application');
 
-  @service('repository/nspace/disabled')
-  nspacesRepo;
+    // figure out if we have anything missing for menus etc and get them if
+    // so, otherwise just use what they already are
+    const [item, dc] = await Promise.all([
+      this.repo.findAll(),
+      typeof app.dc === 'undefined' ? this.dcRepo.getActive() : app.dc,
+    ]);
+    const nspace =
+      typeof app.nspace === 'undefined'
+        ? await this.nspacesRepo.getActive(item.nspace)
+        : app.nspace;
+    const permissions =
+      typeof app.permissions === 'undefined'
+        ? await this.permissionsRepo.findAll({
+            dc: dc.Name,
+            ns: nspace.Name,
+          })
+        : app.permissions;
 
-  model(params) {
-    const app = this.modelFor('application');
-    return hash({
-      item: this.repo.findAll(),
-      dc: this.dcRepo.getActive(undefined, app.dcs),
-      nspace: this.nspacesRepo.getActive(),
-    }).then(model => {
-      if (typeof get(model.item, 'client.blocking') === 'undefined') {
-        set(model, 'item.client', { blocking: true });
-      }
-      return model;
+    // reset the things higher up in the application if they were already set
+    // this won't do anything
+    this.controllerFor('application').setProperties({
+      dc: dc,
+      nspace: nspace,
+      token: item.token,
+      permissions: permissions,
     });
+
+    if (typeof get(item, 'client.blocking') === 'undefined') {
+      item.client = { blocking: true };
+    }
+    return { item };
   }
 
   setupController(controller, model) {

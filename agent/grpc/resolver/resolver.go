@@ -16,13 +16,15 @@ import (
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {
 	cfg Config
+	// leaderResolver is used to track the address of the leader in the local DC.
+	leaderResolver leaderResolver
 	// servers is an index of Servers by Server.ID. The map contains server IDs
 	// for all datacenters.
 	servers map[string]*metadata.Server
 	// resolvers is an index of connections to the serverResolver which manages
 	// addresses of servers for that connection.
 	resolvers map[resolver.ClientConn]*serverResolver
-	// lock for servers and resolvers.
+	// lock for all stateful fields (excludes config which is immutable).
 	lock sync.RWMutex
 }
 
@@ -89,9 +91,23 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 	if resolver, ok := s.resolvers[cc]; ok {
 		return resolver, nil
 	}
+	if cc == s.leaderResolver.clientConn {
+		return s.leaderResolver, nil
+	}
+
+	serverType, datacenter, err := parseEndpoint(target.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	if serverType == "leader" {
+		// TODO: is this safe? can we ever have multiple CC for the leader? Seems
+		// like we can only have one given the caching in ClientConnPool.Dial
+		s.leaderResolver.clientConn = cc
+		s.leaderResolver.updateClientConn()
+		return s.leaderResolver, nil
+	}
 
 	// Make a new resolver for the dc and add it to the list of active ones.
-	datacenter := strings.TrimPrefix(target.Endpoint, "server.")
 	resolver := &serverResolver{
 		datacenter: datacenter,
 		clientConn: cc,
@@ -105,6 +121,16 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 
 	s.resolvers[cc] = resolver
 	return resolver, nil
+}
+
+// parseEndpoint parses a string, expecting a format of "serverType.datacenter"
+func parseEndpoint(target string) (string, string, error) {
+	parts := strings.SplitN(target, ".", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("unexpected endpoint address: %v", target)
+	}
+
+	return parts[0], parts[1], nil
 }
 
 func (s *ServerResolverBuilder) Authority() string {
@@ -168,6 +194,15 @@ func (s *ServerResolverBuilder) getDCAddrs(dc string) []resolver.Address {
 	return addrs
 }
 
+// UpdateLeaderAddr updates the leader address in the local DC's resolver.
+func (s *ServerResolverBuilder) UpdateLeaderAddr(leaderAddr string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.leaderResolver.addr = leaderAddr
+	s.leaderResolver.updateClientConn()
+}
+
 // serverResolver is a grpc Resolver that will keep a grpc.ClientConn up to date
 // on the list of server addresses to use.
 type serverResolver struct {
@@ -224,4 +259,29 @@ func (r *serverResolver) Close() {
 }
 
 // ResolveNow is not used
-func (*serverResolver) ResolveNow(_ resolver.ResolveNowOption) {}
+func (*serverResolver) ResolveNow(resolver.ResolveNowOption) {}
+
+type leaderResolver struct {
+	addr       string
+	clientConn resolver.ClientConn
+}
+
+func (l leaderResolver) ResolveNow(resolver.ResolveNowOption) {}
+
+func (l leaderResolver) Close() {}
+
+func (l leaderResolver) updateClientConn() {
+	if l.addr == "" || l.clientConn == nil {
+		return
+	}
+	addrs := []resolver.Address{
+		{
+			Addr:       l.addr,
+			Type:       resolver.Backend,
+			ServerName: "leader",
+		},
+	}
+	l.clientConn.UpdateState(resolver.State{Addresses: addrs})
+}
+
+var _ resolver.Resolver = (*leaderResolver)(nil)

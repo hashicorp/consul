@@ -40,7 +40,7 @@ You are still responsible for learning how to monitor, backup,
 upgrade, etc. the Consul cluster.
 
 The Helm chart has no required configuration and will install a Consul
-cluster with sane defaults out of the box. Prior to going to production,
+cluster with reasonable defaults out of the box. Prior to going to production,
 it is highly recommended that you
 [learn about the configuration options](/docs/k8s/helm#configuration-values).
 
@@ -98,8 +98,9 @@ or by reading the [Helm Chart Reference](/docs/k8s/helm).
 For example, if you want to enable the [Consul Connect](/docs/k8s/connect) feature,
 use the following config file:
 
+<CodeBlockConfig filename="config.yaml">
+
 ```yaml
-# config.yaml
 global:
   name: consul
 connectInject:
@@ -107,6 +108,8 @@ connectInject:
 controller:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
 
@@ -158,7 +161,7 @@ to see all resources and make modifications.
 To retrieve the bootstrap token that has full permissions, run:
 
 ```shell-session
-$ kubectl get secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 -D
+$ kubectl get secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 --decode
 e7924dd1-dc3f-f644-da54-81a73ba0a178%
 ```
 
@@ -218,6 +221,8 @@ spec:
 An example `Deployment` is also shown below to show how the host IP can
 be accessed from nested pod specifications:
 
+<CodeBlockConfig highlight="18-28">
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -248,6 +253,8 @@ spec:
               export CONSUL_HTTP_ADDR="${HOST_IP}:8500"
               consul kv put hello world
 ```
+
+</CodeBlockConfig>
 
 ## Architecture
 

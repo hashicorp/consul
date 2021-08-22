@@ -21,65 +21,8 @@ var ACLEndpointLegacySummaries = []prometheus.SummaryDefinition{
 	},
 }
 
-// Bootstrap is used to perform a one-time ACL bootstrap operation on
-// a cluster to get the first management token.
-func (a *ACL) Bootstrap(args *structs.DCSpecificRequest, reply *structs.ACL) error {
-	if done, err := a.srv.ForwardRPC("ACL.Bootstrap", args, reply); done {
-		return err
-	}
-
-	// Verify we are allowed to serve this request
-	if !a.srv.InACLDatacenter() {
-		return acl.ErrDisabled
-	}
-
-	if err := a.srv.aclBootstrapAllowed(); err != nil {
-		return err
-	}
-
-	// By doing some pre-checks we can head off later bootstrap attempts
-	// without having to run them through Raft, which should curb abuse.
-	state := a.srv.fsm.State()
-	allowed, _, err := state.CanBootstrapACLToken()
-	if err != nil {
-		return err
-	}
-	if !allowed {
-		return structs.ACLBootstrapNotAllowedErr
-	}
-
-	// Propose a new token.
-	token, err := lib.GenerateUUID(a.srv.checkTokenUUID)
-	if err != nil {
-		return fmt.Errorf("failed to make random token: %v", err)
-	}
-
-	// Attempt a bootstrap.
-	req := structs.ACLRequest{
-		Datacenter: a.srv.config.ACLDatacenter,
-		Op:         structs.ACLBootstrapNow,
-		ACL: structs.ACL{
-			ID:   token,
-			Name: "Bootstrap Token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-	}
-	resp, err := a.srv.raftApply(structs.ACLRequestType, &req)
-	if err != nil {
-		return err
-	}
-	switch v := resp.(type) {
-	case *structs.ACL:
-		*reply = *v
-
-	default:
-		// Just log this, since it looks like the bootstrap may have
-		// completed.
-		a.logger.Error("Unexpected response during bootstrap", "type", fmt.Sprintf("%T", v))
-	}
-
-	a.logger.Info("ACL bootstrap completed")
-	return nil
+func (a *ACL) Bootstrap(*structs.DCSpecificRequest, *structs.ACL) error {
+	return fmt.Errorf("ACL.Bootstrap: the legacy ACL system has been removed")
 }
 
 // aclApplyInternal is used to apply an ACL request after it has been vetted that
@@ -167,9 +110,9 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 
 	// Verify token is permitted to modify ACLs
 	// NOTE: We will not support enterprise authorizer contexts with legacy ACLs
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	if authz, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if authz.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -259,9 +202,9 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	// Verify token is permitted to list ACLs
 	// NOTES: Previously with legacy ACL there was no read-only ACL permissions
 	// and this check for ACLWrite is basically what it did before.
-	if rule, err := a.srv.ResolveToken(args.Token); err != nil {
+	if authz, err := a.srv.ResolveToken(args.Token); err != nil {
 		return err
-	} else if rule == nil || rule.ACLWrite(nil) != acl.Allow {
+	} else if authz.ACLWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

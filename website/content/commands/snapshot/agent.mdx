@@ -33,7 +33,7 @@ leader and starting saving snapshots.
 
 As snapshots are saved, they will be reported in the log produced by the agent:
 
-```text
+```log
 2016/11/16 21:21:13 [INFO] Snapshot agent running
 2016/11/16 21:21:13 [INFO] Waiting to obtain leadership...
 2016/11/16 21:21:13 [INFO] Obtained leadership
@@ -67,8 +67,7 @@ If ACLs are enabled the following privileges are required:
 The following is a example least privilege policy which allows the snapshot agent
 to run on a node named `server-1234`.
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 # Required to read and snapshot ACL data
@@ -88,9 +87,6 @@ service "consul-snapshot" {
   policy = "write"
 }
 ```
-
-</Tab>
-<Tab heading="JSON">
 
 ```json
 {
@@ -113,11 +109,10 @@ service "consul-snapshot" {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 Additional `session` rules should be created, or `session_prefix` used, if the
-snapshot agent is deployed across more than one hosts.
+snapshot agent is deployed across more than one host.
 
 ## Usage
 
@@ -281,7 +276,7 @@ Note that despite the AWS references, any S3-compatible endpoint can be specifie
 
 - `-aws-s3-server-side-encryption` - Enables saving snapshots to S3 using server side encryption with [Amazon S3-Managed Encryption Keys](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
 
-- `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or versionize snapshots, and will save them with the same name each time.
+- `-aws-s3-static-snapshot-name` - If this is given, all snapshots are saved with the same file name. The agent will not rotate or version snapshots, and will save them with the same name each time.
   Use this if you want to rely on [S3's versioning capabilities](http://docs.aws.amazon.com/AmazonS3/latest/dev/Versioning.html) instead of the agent handling it for you.
 
 - `-aws-s3-enable-kms` - Enables using [Amazon KMS](https://aws.amazon.com/kms/) for encrypting snapshots.

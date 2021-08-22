@@ -178,7 +178,7 @@ func (a *ACL) aclPreCheck() error {
 	return nil
 }
 
-// Bootstrap is used to perform a one-time ACL bootstrap operation on
+// BootstrapTokens is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.
 func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.ACLToken) error {
 	if err := a.aclPreCheck(); err != nil {
@@ -244,7 +244,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 			Local:      false,
 			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
 			Type:           structs.ACLTokenTypeManagement,
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		ResetIndex: specifiedIndex,
 	}
@@ -256,7 +256,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 		return err
 	}
 
-	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor, structs.DefaultEnterpriseMeta()); err == nil {
+	if _, token, err := state.ACLTokenGetByAccessor(nil, accessor, structs.DefaultEnterpriseMetaInDefaultPartition()); err == nil {
 		*reply = *token
 	}
 
@@ -276,7 +276,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenRead", args, reply); done {
@@ -293,7 +293,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		// secrets will be redacted
 		if authz, err = a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 			return err
-		} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+		} else if authz.ACLRead(&authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -345,7 +345,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	// clients will not know whether the server has local token store. In the case
 	// where it doesn't we will transparently forward requests.
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenClone", args, reply); done {
@@ -358,7 +358,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.ACLToken.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -369,8 +369,8 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		return acl.ErrNotFound
 	} else if !a.srv.InACLDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.ACLDatacenter, args, reply)
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+		return a.srv.forwardDC("ACL.TokenClone", a.srv.config.PrimaryDatacenter, args, reply)
 	}
 
 	if token.AuthMethod != "" {
@@ -414,7 +414,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 
 	// Global token creation/modification always goes to the ACL DC
 	if !args.ACLToken.Local {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	} else if !a.srv.LocalTokensEnabled() {
 		return fmt.Errorf("Local tokens are disabled")
 	}
@@ -429,7 +429,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 	var authzContext acl.AuthorizerContext
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.ACLToken.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -822,7 +822,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	}
 
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenDelete", args, reply); done {
@@ -835,7 +835,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 	var authzContext acl.AuthorizerContext
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -862,13 +862,13 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 
 		// token found in secondary DC but its not local so it must be deleted in the primary
 		if !a.srv.InACLDatacenter() && !token.Local {
-			args.Datacenter = a.srv.config.ACLDatacenter
-			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+			args.Datacenter = a.srv.config.PrimaryDatacenter
+			return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 		}
 	} else if !a.srv.InACLDatacenter() {
 		// token not found in secondary DC - attempt to delete within the primary
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.ACLDatacenter, args, reply)
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+		return a.srv.forwardDC("ACL.TokenDelete", a.srv.config.PrimaryDatacenter, args, reply)
 	} else {
 		// in Primary Datacenter but the token does not exist - return early as there is nothing to do.
 		return nil
@@ -903,12 +903,12 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	if !a.srv.LocalTokensEnabled() {
-		if args.Datacenter != a.srv.config.ACLDatacenter {
-			args.Datacenter = a.srv.config.ACLDatacenter
+		if args.Datacenter != a.srv.config.PrimaryDatacenter {
+			args.Datacenter = a.srv.config.PrimaryDatacenter
 			args.IncludeLocal = false
 			args.IncludeGlobal = true
 		}
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenList", args, reply); done {
@@ -924,7 +924,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	// merge the token default meta into the requests meta
 	args.EnterpriseMeta.Merge(&requestMeta)
 	args.EnterpriseMeta.FillAuthzContext(&authzContext)
-	if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -956,9 +956,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 			}
 
 			// filter down to just the tokens that the requester has permissions to read
-			if err := a.srv.filterACLWithAuthorizer(authz, &stubs); err != nil {
-				return err
-			}
+			a.srv.filterACLWithAuthorizer(authz, &stubs)
 
 			reply.Index, reply.Tokens = index, stubs
 			return nil
@@ -971,7 +969,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 	}
 
 	if !a.srv.LocalTokensEnabled() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.TokenBatchRead", args, reply); done {
@@ -981,8 +979,6 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1035,7 +1031,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 	var authzContext acl.AuthorizerContext
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1073,8 +1069,6 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1101,7 +1095,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.PolicySet", args, reply); done {
@@ -1115,7 +1109,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.Policy.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1232,7 +1226,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.PolicyDelete", args, reply); done {
@@ -1246,7 +1240,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1297,7 +1291,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1391,12 +1385,12 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 	}
 
 	// Verify we are allowed to serve this request
-	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+	if a.srv.config.PrimaryDatacenter != a.srv.config.Datacenter {
 		return acl.ErrDisabled
 	}
 
 	// Get the policy via the cache
-	parent := a.srv.config.ACLDefaultPolicy
+	parent := a.srv.config.ACLResolverSettings.ACLDefaultPolicy
 
 	ident, policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
 	if err != nil {
@@ -1415,7 +1409,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 
 	// Setup the response
 	reply.ETag = etag
-	reply.TTL = a.srv.config.ACLTokenTTL
+	reply.TTL = a.srv.config.ACLResolverSettings.ACLTokenTTL
 	a.srv.setQueryMeta(&reply.QueryMeta)
 
 	// Only send the policy on an Etag mis-match
@@ -1469,7 +1463,7 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1507,8 +1501,6 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return acl.ErrPermissionDenied
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
@@ -1535,7 +1527,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.RoleSet", args, reply); done {
@@ -1549,7 +1541,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.Role.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1693,7 +1685,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 	}
 
 	if !a.srv.InACLDatacenter() {
-		args.Datacenter = a.srv.config.ACLDatacenter
+		args.Datacenter = a.srv.config.PrimaryDatacenter
 	}
 
 	if done, err := a.srv.ForwardRPC("ACL.RoleDelete", args, reply); done {
@@ -1707,7 +1699,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1754,7 +1746,7 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1853,7 +1845,7 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -1894,7 +1886,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 	// Verify token is permitted to modify ACLs
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.BindingRule.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2023,16 +2015,15 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 	// Verify token is permitted to modify ACLs
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
 	_, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, args.BindingRuleID, &args.EnterpriseMeta)
-	if err != nil {
+	switch {
+	case err != nil:
 		return err
-	}
-
-	if rule == nil {
+	case rule == nil:
 		return nil
 	}
 
@@ -2072,7 +2063,7 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2111,7 +2102,7 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2156,7 +2147,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.AuthMethod.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2268,7 +2259,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 
 	if authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
 		return err
-	} else if authz == nil || authz.ACLWrite(&authzContext) != acl.Allow {
+	} else if authz.ACLWrite(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2322,7 +2313,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 	authz, err := a.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return err
-	} else if authz == nil || authz.ACLRead(&authzContext) != acl.Allow {
+	} else if authz.ACLRead(&authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -2531,8 +2522,8 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 
 	} else if !a.srv.InACLDatacenter() && !token.Local {
 		// global token writes must be forwarded to the primary DC
-		args.Datacenter = a.srv.config.ACLDatacenter
-		return a.srv.forwardDC("ACL.Logout", a.srv.config.ACLDatacenter, args, reply)
+		args.Datacenter = a.srv.config.PrimaryDatacenter
+		return a.srv.forwardDC("ACL.Logout", a.srv.config.PrimaryDatacenter, args, reply)
 	}
 
 	// No need to check expiration time because it's being deleted.
@@ -2566,8 +2557,6 @@ func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]st
 	authz, err := a.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
-	} else if authz == nil {
-		return fmt.Errorf("Failed to initialize authorizer")
 	}
 
 	responses, err := structs.CreateACLAuthorizationResponses(authz, args.Requests)

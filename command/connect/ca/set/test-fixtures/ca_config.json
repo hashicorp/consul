@@ -3,7 +3,6 @@
 	"Config": {
 		"PrivateKey": "",
 		"RootCert": "",
-		"RotationPeriod": "24h",
 		"IntermediateCertTTL": "288h"
 	}
 }

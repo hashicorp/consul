@@ -43,5 +43,6 @@
     "ExpirationTime": "2020-05-22T19:52:31Z",
     "CreateTime": "2020-05-22T18:52:31Z",
     "Hash": "YWJjZGVmZ2g=",
-    "Namespace": "foo"
+    "Namespace": "foo",
+    "AuthMethodNamespace": "baz"
 }

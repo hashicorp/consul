@@ -130,7 +130,7 @@ export const routes = {
     acls: {
       _options: {
         path: '/acls',
-        abilities: ['read acls'],
+        abilities: ['access acls'],
       },
       edit: {
         _options: { path: '/:id' },
@@ -204,6 +204,9 @@ export const routes = {
           },
         },
       },
+    },
+    'routing-config': {
+      _options: { path: '/routing-config/:name' },
     },
   },
   // Shows a datacenter picker. If you only have one

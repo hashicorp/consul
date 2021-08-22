@@ -84,6 +84,8 @@ func HealthCheckToStructs(s HealthCheck) structs.HealthCheck {
 	t.Definition = HealthCheckDefinitionToStructs(s.Definition)
 	t.EnterpriseMeta = EnterpriseMetaToStructs(s.EnterpriseMeta)
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
+	t.Interval = s.Interval
+	t.Timeout = s.Timeout
 	return t
 }
 func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
@@ -102,6 +104,8 @@ func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 	s.Definition = NewHealthCheckDefinitionFromStructs(t.Definition)
 	s.EnterpriseMeta = NewEnterpriseMetaFromStructs(t.EnterpriseMeta)
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
+	s.Interval = t.Interval
+	s.Timeout = t.Timeout
 	return s
 }
 func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheckDefinition {

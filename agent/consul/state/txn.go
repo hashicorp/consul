@@ -149,11 +149,13 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 	var entry *structs.Node
 	var err error
 
+	// TODO(partitions): change these errors to include node partitions when printing
+
 	getNode := func() (*structs.Node, error) {
 		if op.Node.ID != "" {
-			return getNodeIDTxn(tx, op.Node.ID)
+			return getNodeIDTxn(tx, op.Node.ID, op.Node.GetEnterpriseMeta())
 		} else {
-			return getNodeTxn(tx, op.Node.Node)
+			return getNodeTxn(tx, op.Node.Node, op.Node.GetEnterpriseMeta())
 		}
 	}
 
@@ -180,11 +182,11 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 		entry, err = getNode()
 
 	case api.NodeDelete:
-		err = s.deleteNodeTxn(tx, idx, op.Node.Node)
+		err = s.deleteNodeTxn(tx, idx, op.Node.Node, op.Node.GetEnterpriseMeta())
 
 	case api.NodeDeleteCAS:
 		var ok bool
-		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node)
+		ok, err = s.deleteNodeCASTxn(tx, idx, op.Node.ModifyIndex, op.Node.Node, op.Node.GetEnterpriseMeta())
 		if !ok && err == nil {
 			err = fmt.Errorf("failed to delete node %q, index is stale", op.Node.Node)
 		}

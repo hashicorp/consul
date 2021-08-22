@@ -1,0 +1,34 @@
+graph TB
+
+    requestLeader[request] --> RPCLeader
+    requestFollower[request] --> RPCFollower
+
+    class requestLeader,requestFollower req;
+    classDef req fill:transparent,color:#000,stroke-width:1;
+
+    subgraph Leader
+        RPCLeader[RPC]
+        RaftLeader[Raft]
+        StateStoreLeader[State Store]
+        FSMLeader[FSM]
+    end
+
+    RPCLeader -->|write| RaftLeader
+    RPCLeader -->|read| StateStoreLeader
+    RaftLeader ---> FSMLeader
+    FSMLeader --> StateStoreLeader
+
+    subgraph Follower
+        RPCFollower[RPC]
+        RaftFollower[Raft]
+        StateStoreFollower[State Store]
+        FSMFollower[FSM]
+    end
+
+    RaftLeader <-.->|consensus and replication| RaftFollower
+
+    RPCFollower -->|forward write to leader| RPCLeader
+    RPCFollower -->|read| StateStoreFollower
+    RaftFollower --> FSMFollower
+    FSMFollower --> StateStoreFollower
+

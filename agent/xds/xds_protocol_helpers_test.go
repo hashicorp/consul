@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 	"sync"
 	"testing"
@@ -42,7 +43,7 @@ func newTestSnapshot(
 ) *proxycfg.ConfigSnapshot {
 	snap := proxycfg.TestConfigSnapshotDiscoveryChainDefaultWithEntries(t, additionalEntries...)
 	snap.ConnectProxy.PreparedQueryEndpoints = map[string]structs.CheckServiceNodes{
-		"prepared_query:geo-cache": proxycfg.TestUpstreamNodes(t),
+		"prepared_query:geo-cache": proxycfg.TestPreparedQueryNodes(t, "geo-cache"),
 	}
 	if prevSnap != nil {
 		snap.Roots = prevSnap.Roots
@@ -249,8 +250,9 @@ func xdsNewUpstreamTransportSocket(
 	t *testing.T,
 	snap *proxycfg.ConfigSnapshot,
 	sni string,
+	uri ...connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
-	return xdsNewTransportSocket(t, snap, false, false, sni)
+	return xdsNewTransportSocket(t, snap, false, false, sni, uri...)
 }
 
 func xdsNewTransportSocket(
@@ -259,11 +261,12 @@ func xdsNewTransportSocket(
 	downstream bool,
 	requireClientCert bool,
 	sni string,
+	uri ...connect.SpiffeIDService,
 ) *envoy_core_v3.TransportSocket {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 
-	commonTlsContext := &envoy_tls_v3.CommonTlsContext{
+	commonTLSContext := &envoy_tls_v3.CommonTlsContext{
 		TlsParams: &envoy_tls_v3.TlsParameters{},
 		TlsCertificates: []*envoy_tls_v3.TlsCertificate{{
 			CertificateChain: xdsNewInlineString(snap.Leaf().CertPEM),
@@ -275,6 +278,9 @@ func xdsNewTransportSocket(
 			},
 		},
 	}
+	if len(uri) > 0 {
+		require.NoError(t, injectSANMatcher(commonTLSContext, uri...))
+	}
 
 	var tlsContext proto.Message
 	if downstream {
@@ -284,12 +290,12 @@ func xdsNewTransportSocket(
 		}
 
 		tlsContext = &envoy_tls_v3.DownstreamTlsContext{
-			CommonTlsContext:         commonTlsContext,
+			CommonTlsContext:         commonTLSContext,
 			RequireClientCertificate: requireClientCertPB,
 		}
 	} else {
 		tlsContext = &envoy_tls_v3.UpstreamTlsContext{
-			CommonTlsContext: commonTlsContext,
+			CommonTlsContext: commonTLSContext,
 			Sni:              sni,
 		}
 	}
@@ -356,6 +362,32 @@ func makeTestResource(t *testing.T, raw interface{}) *envoy_discovery_v3.Resourc
 }
 
 func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_cluster_v3.Cluster {
+	var (
+		dbSNI = "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+		dbURI = connect.SpiffeIDService{
+			Host:       "11111111-2222-3333-4444-555555555555.consul",
+			Namespace:  "default",
+			Datacenter: "dc1",
+			Service:    "db",
+		}
+
+		geocacheSNI  = "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
+		geocacheURIs = []connect.SpiffeIDService{
+			{
+				Host:       "11111111-2222-3333-4444-555555555555.consul",
+				Namespace:  "default",
+				Datacenter: "dc1",
+				Service:    "geo-cache-target",
+			},
+			{
+				Host:       "11111111-2222-3333-4444-555555555555.consul",
+				Namespace:  "default",
+				Datacenter: "dc2",
+				Service:    "geo-cache-target",
+			},
+		}
+	)
+
 	switch fixtureName {
 	case "tcp:local_app":
 		return &envoy_cluster_v3.Cluster{
@@ -375,7 +407,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 		}
 	case "tcp:db":
 		return &envoy_cluster_v3.Cluster{
-			Name: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			Name: dbSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
 			},
@@ -384,16 +416,16 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			},
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
-			AltStatName:      "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			AltStatName:      dbSNI,
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
 			ConnectTimeout:  ptypes.DurationProto(5 * time.Second),
-			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"),
+			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
 	case "tcp:db:timeout":
 		return &envoy_cluster_v3.Cluster{
-			Name: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			Name: dbSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
 			},
@@ -402,16 +434,16 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			},
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
-			AltStatName:      "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			AltStatName:      dbSNI,
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
 			ConnectTimeout:  ptypes.DurationProto(1337 * time.Second),
-			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"),
+			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 		}
 	case "http2:db":
 		return &envoy_cluster_v3.Cluster{
-			Name: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			Name: dbSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
 			},
@@ -420,17 +452,17 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			},
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
-			AltStatName:      "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			AltStatName:      dbSNI,
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
 			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			TransportSocket:      xdsNewUpstreamTransportSocket(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"),
+			TransportSocket:      xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 			Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
 		}
 	case "http:db":
 		return &envoy_cluster_v3.Cluster{
-			Name: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			Name: dbSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
 			},
@@ -439,17 +471,17 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			},
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
-			AltStatName:      "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+			AltStatName:      dbSNI,
 			CommonLbConfig: &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{Value: 0},
 			},
 			ConnectTimeout:  ptypes.DurationProto(5 * time.Second),
-			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"),
+			TransportSocket: xdsNewUpstreamTransportSocket(t, snap, dbSNI, dbURI),
 			// HttpProtocolOptions: &envoy_core_v3.Http1ProtocolOptions{},
 		}
 	case "tcp:geo-cache":
 		return &envoy_cluster_v3.Cluster{
-			Name: "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+			Name: geocacheSNI,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{
 				Type: envoy_cluster_v3.Cluster_EDS,
 			},
@@ -459,7 +491,7 @@ func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName st
 			CircuitBreakers:  &envoy_cluster_v3.CircuitBreakers{},
 			OutlierDetection: &envoy_cluster_v3.OutlierDetection{},
 			ConnectTimeout:   ptypes.DurationProto(5 * time.Second),
-			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"),
+			TransportSocket:  xdsNewUpstreamTransportSocket(t, snap, geocacheSNI, geocacheURIs...),
 		}
 	default:
 		t.Fatalf("unexpected fixture name: %s", fixtureName)
@@ -511,7 +543,7 @@ func makeTestEndpoints(t *testing.T, _ *proxycfg.ConfigSnapshot, fixtureName str
 				{
 					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
 						xdsNewEndpointWithHealth("10.10.1.1", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
-						xdsNewEndpointWithHealth("10.10.1.2", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
+						xdsNewEndpointWithHealth("10.20.1.2", 8080, envoy_core_v3.HealthStatus_HEALTHY, 1),
 					},
 				},
 			},

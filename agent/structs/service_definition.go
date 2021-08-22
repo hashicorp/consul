@@ -80,10 +80,19 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 	}
 	if s.Proxy != nil {
 		ns.Proxy = *s.Proxy
-		// Ensure the Upstream type is defaulted
 		for i := range ns.Proxy.Upstreams {
+			// Ensure the Upstream type is defaulted
 			if ns.Proxy.Upstreams[i].DestinationType == "" {
 				ns.Proxy.Upstreams[i].DestinationType = UpstreamDestTypeService
+			}
+
+			// If a proxy's namespace is not defined, inherit the proxied service's namespace.
+			// Applicable only to Consul Enterprise.
+			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
+				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()
+			}
+			if ns.Proxy.Upstreams[i].DestinationPartition == "" {
+				ns.Proxy.Upstreams[i].DestinationPartition = ns.EnterpriseMeta.PartitionOrEmpty()
 			}
 		}
 		ns.Proxy.Expose = s.Proxy.Expose

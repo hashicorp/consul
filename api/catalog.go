@@ -19,6 +19,7 @@ type Node struct {
 	Meta            map[string]string
 	CreateIndex     uint64
 	ModifyIndex     uint64
+	Partition       string `json:",omitempty"`
 }
 
 type ServiceAddress struct {
@@ -47,6 +48,7 @@ type CatalogService struct {
 	Checks                   HealthChecks
 	ModifyIndex              uint64
 	Namespace                string `json:",omitempty"`
+	Partition                string `json:",omitempty"`
 }
 
 type CatalogNode struct {
@@ -70,6 +72,7 @@ type CatalogRegistration struct {
 	Check           *AgentCheck
 	Checks          HealthChecks
 	SkipNodeUpdate  bool
+	Partition       string `json:",omitempty"`
 }
 
 type CatalogDeregistration struct {
@@ -79,6 +82,7 @@ type CatalogDeregistration struct {
 	ServiceID  string
 	CheckID    string
 	Namespace  string `json:",omitempty"`
+	Partition  string `json:",omitempty"`
 }
 
 type CompoundServiceName struct {
@@ -86,6 +90,8 @@ type CompoundServiceName struct {
 
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 // GatewayService associates a gateway with a linked service.

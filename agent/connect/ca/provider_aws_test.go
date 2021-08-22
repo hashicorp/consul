@@ -7,9 +7,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/acmpca"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 // skipIfAWSNotConfigured skips the test unless ENABLE_AWS_PCA_TESTS=true.
@@ -83,6 +84,7 @@ func testSignAndValidate(t *testing.T, p Provider, rootPEM string, intermediateP
 
 	err = connect.ValidateLeaf(rootPEM, leafPEM, intermediatePEMs)
 	require.NoError(t, err)
+	requireTrailingNewline(t, leafPEM)
 }
 
 func TestAWSBootstrapAndSignSecondary(t *testing.T) {
@@ -374,9 +376,7 @@ func TestAWSProvider_Cleanup(t *testing.T) {
 }
 
 func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
-	p := &AWSProvider{}
-	logger := testutil.Logger(t)
-	p.SetLogger(logger)
+	p := NewAWSProvider(testutil.Logger(t))
 	require.NoError(t, p.Configure(cfg))
 	return p
 }

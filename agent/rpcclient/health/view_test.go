@@ -51,7 +51,7 @@ func TestSortCheckServiceNodes_OrderIsConsistentWithRPCResponse(t *testing.T) {
 					CreateIndex: index,
 					ModifyIndex: index,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			Checks: []*structs.HealthCheck{},
 		}
@@ -92,7 +92,7 @@ func TestHealthView_IntegrationWithStore_WithEmptySnapshot(t *testing.T) {
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
 				Datacenter:     "dc1",
 				ServiceName:    "web",
-				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
 				QueryOptions:   structs.QueryOptions{MaxQueryTime: time.Second},
 			},
 		},
@@ -277,7 +277,7 @@ func TestHealthView_IntegrationWithStore_WithFullSnapshot(t *testing.T) {
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
 				Datacenter:     "dc1",
 				ServiceName:    "web",
-				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
 				QueryOptions:   structs.QueryOptions{MaxQueryTime: time.Second},
 			},
 		},
@@ -429,7 +429,7 @@ func TestHealthView_IntegrationWithStore_EventBatches(t *testing.T) {
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
 				Datacenter:     "dc1",
 				ServiceName:    "web",
-				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
 				QueryOptions:   structs.QueryOptions{MaxQueryTime: time.Second},
 			},
 		},
@@ -486,7 +486,7 @@ func TestHealthView_IntegrationWithStore_Filtering(t *testing.T) {
 			ServiceSpecificRequest: structs.ServiceSpecificRequest{
 				Datacenter:     "dc1",
 				ServiceName:    "web",
-				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(namespace),
 				QueryOptions: structs.QueryOptions{
 					Filter:       `Node.Node == "node2"`,
 					MaxQueryTime: time.Second,
@@ -659,7 +659,7 @@ func newNewSnapshotToFollowEvent() *pbsubscribe.Event {
 // returns the empty string. It allows the same tests to work in both oss and ent
 // without duplicating the tests.
 func getNamespace(ns string) string {
-	meta := structs.NewEnterpriseMeta(ns)
+	meta := structs.NewEnterpriseMetaInDefaultPartition(ns)
 	return meta.NamespaceOrEmpty()
 }
 

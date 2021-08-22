@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -38,22 +39,23 @@ type Self struct {
 	Member      serf.Member
 	Stats       map[string]map[string]string
 	Meta        map[string]string
-	XDS         *xdsSelf `json:"xDS,omitempty"`
+	XDS         *XDSSelf `json:"xDS,omitempty"`
 }
 
-type xdsSelf struct {
+type XDSSelf struct {
 	SupportedProxies map[string][]string
+	Port             int
 }
 
 func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -65,12 +67,13 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
-	var xds *xdsSelf
+	var xds *XDSSelf
 	if s.agent.grpcServer != nil {
-		xds = &xdsSelf{
+		xds = &XDSSelf{
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
 			},
+			Port: s.agent.config.XDSPort,
 		}
 	}
 
@@ -79,6 +82,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		PrimaryDatacenter string
 		NodeName          string
 		NodeID            string
+		Partition         string `json:",omitempty"`
 		Revision          string
 		Server            bool
 		Version           string
@@ -87,13 +91,19 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		PrimaryDatacenter: s.agent.config.PrimaryDatacenter,
 		NodeName:          s.agent.config.NodeName,
 		NodeID:            string(s.agent.config.NodeID),
+		Partition:         s.agent.config.PartitionOrEmpty(),
 		Revision:          s.agent.config.Revision,
 		Server:            s.agent.config.ServerMode,
 		Version:           s.agent.config.Version,
 	}
+	debugConfig := s.agent.config.Sanitized()
+	// Backwards compat for the envoy command. Never use DebugConfig for
+	// programmatic access to data.
+	debugConfig["GRPCPort"] = s.agent.config.XDSPort
+
 	return Self{
 		Config:      config,
-		DebugConfig: s.agent.config.Sanitized(),
+		DebugConfig: debugConfig,
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
 		Stats:       s.agent.Stats(),
@@ -132,11 +142,11 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
@@ -159,15 +169,64 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
 }
 
+func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Fetch the ACL token, if any, and enforce agent policy.
+	var token string
+	s.parseToken(req, &token)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	switch {
+	case err != nil:
+		return nil, err
+	case authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow:
+		return nil, acl.ErrPermissionDenied
+	}
+
+	flusher, ok := resp.(http.Flusher)
+	if !ok {
+		return nil, fmt.Errorf("streaming not supported")
+	}
+
+	resp.WriteHeader(http.StatusOK)
+
+	// 0 byte write is needed before the Flush call so that if we are using
+	// a gzip stream it will go ahead and write out the HTTP response header
+	resp.Write([]byte(""))
+	flusher.Flush()
+
+	enc := metricsEncoder{
+		logger:  s.agent.logger,
+		encoder: json.NewEncoder(resp),
+		flusher: flusher,
+	}
+	enc.encoder.SetIndent("", "    ")
+	s.agent.baseDeps.MetricsHandler.Stream(req.Context(), enc)
+	return nil, nil
+}
+
+type metricsEncoder struct {
+	logger  hclog.Logger
+	encoder *json.Encoder
+	flusher http.Flusher
+}
+
+func (m metricsEncoder) Encode(summary interface{}) error {
+	if err := m.encoder.Encode(summary); err != nil {
+		m.logger.Error("failed to encode metrics summary", "error", err)
+		return err
+	}
+	m.flusher.Flush()
+	return nil
+}
+
 func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -199,6 +258,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		Meta:              s.Meta,
 		Port:              s.Port,
 		Address:           s.Address,
+		SocketPath:        s.SocketPath,
 		TaggedAddresses:   taggedAddrs,
 		EnableTagOverride: s.EnableTagOverride,
 		CreateIndex:       s.CreateIndex,
@@ -247,6 +307,12 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
+	// NOTE: we're explicitly fetching things in the requested partition and
+	// namespace here.
 	services := s.agent.State.Services(&entMeta)
 	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
 		return nil, err
@@ -310,6 +376,10 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 	sid := structs.NewServiceID(id, &entMeta)
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	dc := s.agent.config.Datacenter
 
 	resultHash, service, err := s.agent.LocalBlockingQuery(false, hash, queryOpts.MaxQueryTime,
@@ -334,7 +404,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			}
 			var authzContext acl.AuthorizerContext
 			svc.FillAuthzContext(&authzContext)
-			if authz != nil && authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
+			if authz.ServiceRead(svc.Service, &authzContext) != acl.Allow {
 				return "", nil, acl.ErrPermissionDenied
 			}
 
@@ -342,6 +412,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			aSvc := buildAgentService(svc, dc)
 			reply := &aSvc
 
+			// TODO(partitions): do we need to do anything here?
 			rawHash, err := hashstructure.Hash(reply, nil)
 			if err != nil {
 				return "", nil, err
@@ -374,6 +445,10 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 	filter, err := bexpr.CreateFilter(filterExpression, nil, nil)
@@ -381,6 +456,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	// NOTE(partitions): this works because nodes exist in ONE partition
 	checks := s.agent.State.Checks(&entMeta)
 	if err := s.agent.filterChecksWithAuthorizer(authz, &checks); err != nil {
 		return nil, err
@@ -427,6 +503,8 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 	}
 
+	// TODO(partitions): likely partitions+segment integration will take care of this
+
 	var members []serf.Member
 	if wan {
 		members = s.agent.WANMembers()
@@ -451,11 +529,11 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -463,6 +541,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	wan := false
 	if other := req.URL.Query().Get("wan"); other != "" {
 		wan = true
+		// TODO(partitions) : block wan join
 	}
 
 	// Get the address
@@ -483,11 +562,11 @@ func (s *HTTPHandlers) AgentLeave(resp http.ResponseWriter, req *http.Request) (
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -501,11 +580,11 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -556,6 +635,10 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	// Construct the health check.
@@ -614,6 +697,10 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 
 	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
@@ -682,7 +769,7 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
 }
 
-func (s *HTTPHandlers) agentCheckUpdate(_resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
+func (s *HTTPHandlers) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
 	cid := structs.NewCheckID(checkID, nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -702,6 +789,10 @@ func (s *HTTPHandlers) agentCheckUpdate(_resp http.ResponseWriter, req *http.Req
 
 	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, cid); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &cid.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.updateTTLCheck(cid, status, output); err != nil {
@@ -775,12 +866,16 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	sid := structs.NewServiceID(serviceID, &entMeta)
 
 	dc := s.agent.config.Datacenter
 
 	if service := s.agent.State.Service(sid); service != nil {
-		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
 			return nil, acl.ErrPermissionDenied
 		}
 		code, status, healthChecks := agentHealthService(sid, s)
@@ -829,39 +924,42 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	if authz != nil && authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(serviceName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
+	}
+
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
 	}
 
 	dc := s.agent.config.Datacenter
 
 	code := http.StatusNotFound
 	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
-	services := s.agent.State.Services(&entMeta)
+
+	services := s.agent.State.ServicesByName(structs.NewServiceName(serviceName, &entMeta))
 	result := make([]api.AgentServiceChecksInfo, 0, 16)
 	for _, service := range services {
-		if service.Service == serviceName {
-			sid := structs.NewServiceID(service.ID, &entMeta)
+		sid := structs.NewServiceID(service.ID, &entMeta)
 
-			scode, sstatus, healthChecks := agentHealthService(sid, s)
-			serviceInfo := buildAgentService(service, dc)
-			res := api.AgentServiceChecksInfo{
-				AggregatedStatus: sstatus,
-				Checks:           healthChecks,
-				Service:          &serviceInfo,
-			}
-			result = append(result, res)
-			// When service is not found, we ignore it and keep existing HTTP status
-			if code == http.StatusNotFound {
-				code = scode
-				status = sstatus
-			}
-			// We take the worst of all statuses, so we keep iterating
-			// passing: 200 < warning: 429 < critical: 503
-			if code < scode {
-				code = scode
-				status = sstatus
-			}
+		scode, sstatus, healthChecks := agentHealthService(sid, s)
+		serviceInfo := buildAgentService(service, dc)
+		res := api.AgentServiceChecksInfo{
+			AggregatedStatus: sstatus,
+			Checks:           healthChecks,
+			Service:          &serviceInfo,
+		}
+		result = append(result, res)
+		// When service is not found, we ignore it and keep existing HTTP status
+		if code == http.StatusNotFound {
+			code = scode
+			status = sstatus
+		}
+		// We take the worst of all statuses, so we keep iterating
+		// passing: 200 < warning: 429 < critical: 503
+		if code < scode {
+			code = scode
+			status = sstatus
 		}
 	}
 	if returnTextPlain(req) {
@@ -905,6 +1003,10 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	// Get the node service.
@@ -1046,6 +1148,10 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
+		return nil, nil
+	}
+
 	if err := s.agent.RemoveService(sid); err != nil {
 		return nil, err
 	}
@@ -1137,11 +1243,11 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	// Get the provided token, if any, and vet against any ACL policies.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1158,11 +1264,11 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1237,11 +1343,11 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	if rule != nil && rule.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1345,6 +1451,10 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	args.MaxQueryTime = qOpts.MaxQueryTime
 	args.Token = qOpts.Token
 
+	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
+		return nil, nil
+	}
+
 	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
 	if err != nil {
 		return nil, err
@@ -1384,6 +1494,10 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
+	if !s.validateRequestPartition(resp, &authReq.EnterpriseMeta) {
+		return nil, nil
+	}
+
 	authz, reason, cacheMeta, err := s.agent.ConnectAuthorize(token, &authReq)
 	if err != nil {
 		return nil, err
@@ -1414,12 +1528,12 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 	// Fetch the ACL token, if any, and enforce agent policy.
 	var token string
 	s.parseToken(req, &token)
-	rule, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 

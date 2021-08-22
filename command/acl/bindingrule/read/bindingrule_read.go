@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/bindingrule"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -58,7 +59,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -85,10 +86,11 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	rule, _, err := client.ACL().BindingRuleRead(ruleID, nil)
-	if err != nil {
+	switch {
+	case err != nil:
 		c.UI.Error(fmt.Sprintf("Error reading binding rule %q: %v", ruleID, err))
 		return 1
-	} else if rule == nil {
+	case rule == nil:
 		c.UI.Error(fmt.Sprintf("Binding rule not found with ID %q", ruleID))
 		return 1
 	}
@@ -119,8 +121,9 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL binding rule"
-const help = `
+const (
+	synopsis = "Read an ACL binding rule"
+	help     = `
 Usage: consul acl binding-rule read -id ID [options]
 
   This command will retrieve and print out the details of a single binding
@@ -130,3 +133,4 @@ Usage: consul acl binding-rule read -id ID [options]
 
     $ consul acl binding-rule read -id fdabbcb5-9de5-4b1a-961f-77214ae88cba
 `
+)

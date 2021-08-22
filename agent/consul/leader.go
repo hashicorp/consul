@@ -387,9 +387,6 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConnectLeader()
 
-	s.caManager.setCAProvider(nil, nil)
-	s.caManager.setState(caStateUninitialized, false)
-
 	s.stopACLTokenReaping()
 
 	s.stopACLUpgrade()
@@ -407,7 +404,7 @@ func (s *Server) initializeLegacyACL() error {
 		return nil
 	}
 
-	authDC := s.config.ACLDatacenter
+	authDC := s.config.PrimaryDatacenter
 
 	// Create anonymous token if missing.
 	state := s.fsm.State()
@@ -535,8 +532,10 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 
 		s.logger.Info("initializing acls")
 
+		// TODO(partitions): initialize acls in all of the partitions?
+
 		// Create/Upgrade the builtin global-management policy
-		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return fmt.Errorf("failed to get the builtin global-management policy")
 		}
@@ -547,7 +546,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 				Description:    "Builtin Policy that grants unlimited access",
 				Rules:          structs.ACLPolicyGlobalManagement,
 				Syntax:         acl.SyntaxCurrent,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			}
 			if policy != nil {
 				newPolicy.Name = policy.Name
@@ -598,7 +597,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 
 					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
 					Type:           structs.ACLTokenTypeManagement,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 
 				token.SetHash(true)
@@ -657,7 +656,7 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 					SecretID:       anonymousToken,
 					Description:    "Anonymous Token",
 					CreateTime:     time.Now(),
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 				token.SetHash(true)
 
@@ -810,7 +809,7 @@ func (s *Server) runLegacyACLReplication(ctx context.Context) error {
 				0,
 			)
 			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError()
+			s.updateACLReplicationStatusError(err.Error())
 			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
 		} else {
 			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
@@ -927,7 +926,7 @@ func (s *Server) runACLReplicator(
 				0,
 			)
 			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError()
+			s.updateACLReplicationStatusError(err.Error())
 			logger.Warn("ACL replication error (will retry if still leader)",
 				"error", err,
 			)
@@ -1113,9 +1112,13 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for unknown nodes with serfHealth checks registered.
 // We generate a "reap" event to cause the node to be cleaned up.
-func (s *Server) reconcileReaped(known map[string]struct{}) error {
+func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *structs.EnterpriseMeta) error {
+	if nodeEntMeta == nil {
+		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	state := s.fsm.State()
-	_, checks, err := state.ChecksInState(nil, api.HealthAny, structs.DefaultEnterpriseMeta())
+	_, checks, err := state.ChecksInState(nil, api.HealthAny, nodeEntMeta)
 	if err != nil {
 		return err
 	}
@@ -1131,7 +1134,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services, err := state.NodeServices(nil, check.Node, structs.DefaultEnterpriseMeta())
+		_, services, err := state.NodeServices(nil, check.Node, nodeEntMeta)
 		if err != nil {
 			return err
 		}
@@ -1142,7 +1145,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	CHECKS:
 		for _, service := range services.Services {
 			if service.ID == structs.ConsulServiceID {
-				_, node, err := state.GetNode(check.Node)
+				_, node, err := state.GetNode(check.Node, nodeEntMeta)
 				if err != nil {
 					s.logger.Error("Unable to look up node with name", "name", check.Node, "error", err)
 					continue CHECKS
@@ -1167,6 +1170,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 				"role": "node",
 			},
 		}
+		addEnterpriseSerfTags(member.Tags, nodeEntMeta)
 
 		// Create the appropriate tags if this was a server node
 		if serverPort > 0 {
@@ -1177,7 +1181,7 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Attempt to reap this member
-		if err := s.handleReapMember(member); err != nil {
+		if err := s.handleReapMember(member, nodeEntMeta); err != nil {
 			return err
 		}
 	}
@@ -1189,23 +1193,28 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 func (s *Server) reconcileMember(member serf.Member) error {
 	// Check if this is a member we should handle
 	if !s.shouldHandleMember(member) {
+		// TODO(partition): log the partition name
 		s.logger.Warn("skipping reconcile of node", "member", member)
 		return nil
 	}
 	defer metrics.MeasureSince([]string{"leader", "reconcileMember"}, time.Now())
+
+	nodeEntMeta := getSerfMemberEnterpriseMeta(member)
+
 	var err error
 	switch member.Status {
 	case serf.StatusAlive:
-		err = s.handleAliveMember(member)
+		err = s.handleAliveMember(member, nodeEntMeta)
 	case serf.StatusFailed:
-		err = s.handleFailedMember(member)
+		err = s.handleFailedMember(member, nodeEntMeta)
 	case serf.StatusLeft:
-		err = s.handleLeftMember(member)
+		err = s.handleLeftMember(member, nodeEntMeta)
 	case StatusReap:
-		err = s.handleReapMember(member)
+		err = s.handleReapMember(member, nodeEntMeta)
 	}
 	if err != nil {
 		s.logger.Error("failed to reconcile member",
+			// TODO(partition): log the partition name
 			"member", member,
 			"error", err,
 		)
@@ -1233,7 +1242,11 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 
 // handleAliveMember is used to ensure the node
 // is registered, with a passing health check.
-func (s *Server) handleAliveMember(member serf.Member) error {
+func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	if nodeEntMeta == nil {
+		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	// Register consul service if a server
 	var service *structs.NodeService
 	if valid, parts := metadata.IsConsulServer(member); valid {
@@ -1245,6 +1258,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				Passing: 1,
 				Warning: 1,
 			},
+			EnterpriseMeta: *nodeEntMeta,
 			Meta: map[string]string{
 				// DEPRECATED - remove nonvoter in favor of read_replica in a future version of consul
 				"non_voter":             strconv.FormatBool(member.Tags["nonvoter"] == "1"),
@@ -1265,7 +1279,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta)
 	if err != nil {
 		return err
 	}
@@ -1273,7 +1287,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services, err := state.NodeServices(nil, member.Name, structs.DefaultEnterpriseMeta())
+			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta)
 			if err != nil {
 				return err
 			}
@@ -1291,7 +1305,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
+		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta)
 		if err != nil {
 			return err
 		}
@@ -1318,6 +1332,7 @@ AFTER_CHECK:
 			Status:  api.HealthPassing,
 			Output:  structs.SerfCheckAliveOutput,
 		},
+		EnterpriseMeta: *nodeEntMeta,
 	}
 	if node != nil {
 		req.TaggedAddresses = node.TaggedAddresses
@@ -1330,10 +1345,14 @@ AFTER_CHECK:
 
 // handleFailedMember is used to mark the node's status
 // as being critical, along with all checks as unknown.
-func (s *Server) handleFailedMember(member serf.Member) error {
+func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	if nodeEntMeta == nil {
+		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	// Check if the node exists
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta)
 	if err != nil {
 		return err
 	}
@@ -1343,9 +1362,11 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		return nil
 	}
 
+	// TODO(partitions): get the ent meta by parsing serf tags
+
 	if node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, structs.DefaultEnterpriseMeta())
+		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta)
 		if err != nil {
 			return err
 		}
@@ -1359,10 +1380,11 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 
 	// Register with the catalog
 	req := structs.RegisterRequest{
-		Datacenter: s.config.Datacenter,
-		Node:       member.Name,
-		ID:         types.NodeID(member.Tags["id"]),
-		Address:    member.Addr.String(),
+		Datacenter:     s.config.Datacenter,
+		Node:           member.Name,
+		EnterpriseMeta: *nodeEntMeta,
+		ID:             types.NodeID(member.Tags["id"]),
+		Address:        member.Addr.String(),
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
 			CheckID: structs.SerfCheckID,
@@ -1381,18 +1403,22 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 
 // handleLeftMember is used to handle members that gracefully
 // left. They are deregistered if necessary.
-func (s *Server) handleLeftMember(member serf.Member) error {
-	return s.handleDeregisterMember("left", member)
+func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	return s.handleDeregisterMember("left", member, nodeEntMeta)
 }
 
 // handleReapMember is used to handle members that have been
 // reaped after a prolonged failure. They are deregistered.
-func (s *Server) handleReapMember(member serf.Member) error {
-	return s.handleDeregisterMember("reaped", member)
+func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	return s.handleDeregisterMember("reaped", member, nodeEntMeta)
 }
 
 // handleDeregisterMember is used to deregister a member of a given reason
-func (s *Server) handleDeregisterMember(reason string, member serf.Member) error {
+func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *structs.EnterpriseMeta) error {
+	if nodeEntMeta == nil {
+		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	// Do not deregister ourself. This can only happen if the current leader
 	// is leaving. Instead, we should allow a follower to take-over and
 	// deregister us later.
@@ -1410,7 +1436,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 	// Check if the node does not exist
 	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name)
+	_, node, err := state.GetNode(member.Name, nodeEntMeta)
 	if err != nil {
 		return err
 	}
@@ -1421,8 +1447,9 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	// Deregister the node
 	s.logger.Info("deregistering member", "member", member.Name, "reason", reason)
 	req := structs.DeregisterRequest{
-		Datacenter: s.config.Datacenter,
-		Node:       member.Name,
+		Datacenter:     s.config.Datacenter,
+		Node:           member.Name,
+		EnterpriseMeta: *nodeEntMeta,
 	}
 	_, err = s.raftApply(structs.DeregisterRequestType, &req)
 	return err

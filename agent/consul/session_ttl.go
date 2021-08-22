@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -46,7 +47,8 @@ func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
 
-	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMeta())
+	// TODO(partitions): track all session timers in all partitions
+	_, sessions, err := state.SessionList(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
 	if err != nil {
 		return err
 	}

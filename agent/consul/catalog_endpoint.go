@@ -85,7 +85,7 @@ func nodePreApply(nodeName, nodeID string) error {
 	return nil
 }
 
-func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
+func servicePreApply(service *structs.NodeService, authz acl.Authorizer, authzCtxFill func(*acl.AuthorizerContext)) error {
 	// Validate the service. This is in addition to the below since
 	// the above just hasn't been moved over yet. We should move it over
 	// in time.
@@ -110,7 +110,7 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 	}
 
 	var authzContext acl.AuthorizerContext
-	service.FillAuthzContext(&authzContext)
+	authzCtxFill(&authzContext)
 
 	// Apply the ACL policy if any. The 'consul' service is excluded
 	// since it is managed automatically internally (that behavior
@@ -118,14 +118,14 @@ func servicePreApply(service *structs.NodeService, authz acl.Authorizer) error {
 	// later if version 0.8 is enabled, so we can eventually just
 	// delete this and do all the ACL checks down there.
 	if service.Service != structs.ConsulServiceName {
-		if authz != nil && authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
 	// Proxies must have write permission on their destination
 	if service.Kind == structs.ServiceKindConnectProxy {
-		if authz != nil && authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
@@ -175,7 +175,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	// Handle a service registration.
 	if args.Service != nil {
-		if err := servicePreApply(args.Service, authz); err != nil {
+		if err := servicePreApply(args.Service, authz, args.Service.FillAuthzContext); err != nil {
 			return err
 		}
 	}
@@ -200,19 +200,134 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	if authz != nil {
-		state := c.srv.fsm.State()
-		_, ns, err := state.NodeServices(nil, args.Node, entMeta)
-		if err != nil {
-			return fmt.Errorf("Node lookup failed: %v", err)
-		}
-		if err := vetRegisterWithACL(authz, args, ns); err != nil {
-			return err
-		}
+	_, ns, err := state.NodeServices(nil, args.Node, entMeta)
+	if err != nil {
+		return fmt.Errorf("Node lookup failed: %v", err)
+	}
+	if err := vetRegisterWithACL(authz, args, ns); err != nil {
+		return err
 	}
 
 	_, err = c.srv.raftApply(structs.RegisterRequestType, args)
 	return err
+}
+
+// vetRegisterWithACL applies the given ACL's policy to the catalog update and
+// determines if it is allowed. Since the catalog register request is so
+// dynamic, this is a pretty complex algorithm and was worth breaking out of the
+// endpoint. The NodeServices record for the node must be supplied, and can be
+// nil.
+//
+// This is a bit racy because we have to check the state store outside of a
+// transaction. It's the best we can do because we don't want to flow ACL
+// checking down there. The node information doesn't change in practice, so this
+// will be fine. If we expose ways to change node addresses in a later version,
+// then we should split the catalog API at the node and service level so we can
+// address this race better (even then it would be super rare, and would at
+// worst let a service update revert a recent node update, so it doesn't open up
+// too much abuse).
+func vetRegisterWithACL(
+	authz acl.Authorizer,
+	subj *structs.RegisterRequest,
+	ns *structs.NodeServices,
+) error {
+	var authzContext acl.AuthorizerContext
+	subj.FillAuthzContext(&authzContext)
+
+	// Vet the node info. This allows service updates to re-post the required
+	// node info for each request without having to have node "write"
+	// privileges.
+	needsNode := ns == nil || subj.ChangesNode(ns.Node)
+
+	if needsNode && authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	// Vet the service change. This includes making sure they can register
+	// the given service, and that we can write to any existing service that
+	// is being modified by id (if any).
+	if subj.Service != nil {
+		if authz.ServiceWrite(subj.Service.Service, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+
+		if ns != nil {
+			other, ok := ns.Services[subj.Service.ID]
+
+			if ok {
+				// This is effectively a delete, so we DO NOT apply the
+				// sentinel scope to the service we are overwriting, just
+				// the regular ACL policy.
+				var secondaryCtx acl.AuthorizerContext
+				other.FillAuthzContext(&secondaryCtx)
+
+				if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
+					return acl.ErrPermissionDenied
+				}
+			}
+		}
+	}
+
+	// Make sure that the member was flattened before we got there. This
+	// keeps us from having to verify this check as well.
+	if subj.Check != nil {
+		return fmt.Errorf("check member must be nil")
+	}
+
+	// Vet the checks. Node-level checks require node write, and
+	// service-level checks require service write.
+	for _, check := range subj.Checks {
+		// Make sure that the node matches - we don't allow you to mix
+		// checks from other nodes because we'd have to pull a bunch
+		// more state store data to check this. If ACLs are enabled then
+		// we simply require them to match in a given request. There's a
+		// note in state_store.go to ban this down there in Consul 0.8,
+		// but it's good to leave this here because it's required for
+		// correctness wrt. ACLs.
+		if check.Node != subj.Node {
+			return fmt.Errorf("Node '%s' for check '%s' doesn't match register request node '%s'",
+				check.Node, check.CheckID, subj.Node)
+		}
+
+		// Node-level check.
+		if check.ServiceID == "" {
+			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
+				return acl.ErrPermissionDenied
+			}
+			continue
+		}
+
+		// Service-level check, check the common case where it
+		// matches the service part of this request, which has
+		// already been vetted above, and might be being registered
+		// along with its checks.
+		if subj.Service != nil && subj.Service.ID == check.ServiceID {
+			continue
+		}
+
+		// Service-level check for some other service. Make sure they've
+		// got write permissions for that service.
+		if ns == nil {
+			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
+		}
+
+		other, ok := ns.Services[check.ServiceID]
+		if !ok {
+			return fmt.Errorf("Unknown service '%s' for check '%s'", check.ServiceID, check.CheckID)
+		}
+
+		// We are only adding a check here, so we don't add the scope,
+		// since the sentinel policy doesn't apply to adding checks at
+		// this time.
+		var secondaryCtx acl.AuthorizerContext
+		other.FillAuthzContext(&secondaryCtx)
+
+		if authz.ServiceWrite(other.Service, &secondaryCtx) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	}
+
+	return nil
 }
 
 // Deregister is used to remove a service registration for a given node.
@@ -238,33 +353,94 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Check the complete deregister request against the given ACL policy.
-	if authz != nil {
-		state := c.srv.fsm.State()
+	state := c.srv.fsm.State()
 
-		var ns *structs.NodeService
-		if args.ServiceID != "" {
-			_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Service lookup failed: %v", err)
-			}
+	var ns *structs.NodeService
+	if args.ServiceID != "" {
+		_, ns, err = state.NodeService(args.Node, args.ServiceID, &args.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Service lookup failed: %v", err)
 		}
+	}
 
-		var nc *structs.HealthCheck
-		if args.CheckID != "" {
-			_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("Check lookup failed: %v", err)
-			}
+	var nc *structs.HealthCheck
+	if args.CheckID != "" {
+		_, nc, err = state.NodeCheck(args.Node, args.CheckID, &args.EnterpriseMeta)
+		if err != nil {
+			return fmt.Errorf("Check lookup failed: %v", err)
 		}
+	}
 
-		if err := vetDeregisterWithACL(authz, args, ns, nc); err != nil {
-			return err
-		}
-
+	if err := vetDeregisterWithACL(authz, args, ns, nc); err != nil {
+		return err
 	}
 
 	_, err = c.srv.raftApply(structs.DeregisterRequestType, args)
 	return err
+}
+
+// vetDeregisterWithACL applies the given ACL's policy to the catalog update and
+// determines if it is allowed. Since the catalog deregister request is so
+// dynamic, this is a pretty complex algorithm and was worth breaking out of the
+// endpoint. The NodeService for the referenced service must be supplied, and can
+// be nil; similar for the HealthCheck for the referenced health check.
+func vetDeregisterWithACL(
+	authz acl.Authorizer,
+	subj *structs.DeregisterRequest,
+	ns *structs.NodeService,
+	nc *structs.HealthCheck,
+) error {
+	// We don't apply sentinel in this path, since at this time sentinel
+	// only applies to create and update operations.
+
+	var authzContext acl.AuthorizerContext
+	// fill with the defaults for use with the NodeWrite check
+	subj.FillAuthzContext(&authzContext)
+
+	// Allow service deregistration if the token has write permission for the node.
+	// This accounts for cases where the agent no longer has a token with write permission
+	// on the service to deregister it.
+	if authz.NodeWrite(subj.Node, &authzContext) == acl.Allow {
+		return nil
+	}
+
+	// This order must match the code in applyDeregister() in
+	// fsm/commands_oss.go since it also evaluates things in this order,
+	// and will ignore fields based on this precedence. This lets us also
+	// ignore them from an ACL perspective.
+	if subj.ServiceID != "" {
+		if ns == nil {
+			return fmt.Errorf("Unknown service '%s'", subj.ServiceID)
+		}
+
+		ns.FillAuthzContext(&authzContext)
+
+		if authz.ServiceWrite(ns.Service, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	} else if subj.CheckID != "" {
+		if nc == nil {
+			return fmt.Errorf("Unknown check '%s'", subj.CheckID)
+		}
+
+		nc.FillAuthzContext(&authzContext)
+
+		if nc.ServiceID != "" {
+			if authz.ServiceWrite(nc.ServiceName, &authzContext) != acl.Allow {
+				return acl.ErrPermissionDenied
+			}
+		} else {
+			if authz.NodeWrite(subj.Node, &authzContext) != acl.Allow {
+				return acl.ErrPermissionDenied
+			}
+		}
+	} else {
+		// Since NodeWrite is not given - otherwise the earlier check
+		// would've returned already - we can deny here.
+		return acl.ErrPermissionDenied
+	}
+
+	return nil
 }
 
 // ListDatacenters is used to query for the list of known datacenters
@@ -299,9 +475,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		func(ws memdb.WatchSet, state *state.Store) error {
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
 			} else {
-				reply.Index, reply.Nodes, err = state.Nodes(ws)
+				reply.Index, reply.Nodes, err = state.Nodes(ws, &args.EnterpriseMeta)
 			}
 			if err != nil {
 				return err
@@ -368,7 +544,8 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				return nil
 			}
 
-			return c.srv.filterACLWithAuthorizer(authz, reply)
+			c.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
 		})
 }
 
@@ -396,7 +573,8 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 			}
 
 			reply.Index, reply.Services = index, services
-			return c.srv.filterACLWithAuthorizer(authz, reply)
+			c.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
 		})
 }
 
@@ -455,7 +633,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// If we're doing a connect query, we need read access to the service
 	// we're trying to find proxies for, so check that.
 	if args.Connect {
-		if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 			// Just return nil, which will return an empty response (tested)
 			return nil
 		}
@@ -658,7 +836,7 @@ func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *s
 		return err
 	}
 
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

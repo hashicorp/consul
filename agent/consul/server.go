@@ -103,6 +103,7 @@ const (
 	aclUpgradeRoutineName                 = "legacy ACL token upgrade"
 	caRootPruningRoutineName              = "CA root pruning"
 	caRootMetricRoutineName               = "CA root expiration metric"
+	caSigningMetricRoutineName            = "CA signing expiration metric"
 	configReplicationRoutineName          = "config entry replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
@@ -260,6 +261,10 @@ type Server struct {
 	// Used to do leader forwarding and provide fast lookup by server id and address
 	serverLookup *ServerLookup
 
+	// grpcLeaderForwarder is notified on leader change in order to keep the grpc
+	// resolver up to date.
+	grpcLeaderForwarder LeaderForwarder
+
 	// floodLock controls access to floodCh.
 	floodLock sync.RWMutex
 	floodCh   []chan struct{}
@@ -324,24 +329,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	}
 	if err := config.CheckACL(); err != nil {
 		return nil, err
-	}
-
-	// Check if TLS is enabled
-	if config.CAFile != "" || config.CAPath != "" {
-		config.UseTLS = true
-	}
-
-	// Set the primary DC if it wasn't set.
-	if config.PrimaryDatacenter == "" {
-		if config.ACLDatacenter != "" {
-			config.PrimaryDatacenter = config.ACLDatacenter
-		} else {
-			config.PrimaryDatacenter = config.Datacenter
-		}
-	}
-
-	if config.PrimaryDatacenter != "" {
-		config.ACLDatacenter = config.PrimaryDatacenter
 	}
 
 	// Create the tombstone GC.
@@ -439,10 +426,9 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	s.aclConfig = newACLConfig(logger)
 	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
-		Config:      config,
+		Config:      config.ACLResolverSettings,
 		Delegate:    s,
 		CacheConfig: serverACLCacheConfig,
-		AutoDisable: false,
 		Logger:      logger,
 		ACLConfig:   s.aclConfig,
 		Tokens:      flat.Tokens,
@@ -472,7 +458,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	s.caManager = NewCAManager(&caDelegateWithState{s}, s.leaderRoutineManager, s.loggers.Named(logging.Connect), s.config)
+	s.caManager = NewCAManager(&caDelegateWithState{s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
 		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
@@ -587,6 +573,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
+	s.grpcLeaderForwarder = flat.LeaderForwarder
+	go s.trackLeaderChanges()
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -631,15 +619,15 @@ func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
-	if !config.RPCConfig.EnableStreaming {
-		return agentgrpc.NoOpHandler{Logger: deps.Logger}
+	register := func(srv *grpc.Server) {
+		if config.RPCConfig.EnableStreaming {
+			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+				&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+				deps.Logger.Named("grpc-api.subscription")))
+		}
+		s.registerEnterpriseGRPCServices(deps, srv)
 	}
 
-	register := func(srv *grpc.Server) {
-		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
-			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
-			deps.Logger.Named("grpc-api.subscription")))
-	}
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register)
 }
 
@@ -877,7 +865,7 @@ func (s *Server) setupRPC() error {
 		authz = &disabledAuthorizer{}
 	}
 	// now register with the insecure RPC server
-	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, s, authz))
+	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, autoConfigBackend{Server: s}, authz))
 
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -1002,7 +990,7 @@ func (s *Server) Leave() error {
 	// If we are the current leader, and we have any other peers (cluster has multiple
 	// servers), we should do a RemoveServer/RemovePeer to safely reduce the quorum size.
 	// If we are not the leader, then we should issue our leave intention and wait to be
-	// removed for some sane period of time.
+	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
 		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
@@ -1265,7 +1253,7 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	// internal server API. It's odd that the same request directed to a server is
 	// recorded differently. On the other hand this possibly masks the different
 	// between regular client requests that traverse the network and these which
-	// don't (unless forwarded). This still seems most sane.
+	// don't (unless forwarded). This still seems most reasonable.
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
@@ -1288,7 +1276,7 @@ func (s *Server) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io
 	// internal server API. It's odd that the same request directed to a server is
 	// recorded differently. On the other hand this possibly masks the different
 	// between regular client requests that traverse the network and these which
-	// don't (unless forwarded). This still seems most sane.
+	// don't (unless forwarded). This still seems most reasonable.
 	metrics.IncrCounter([]string{"client", "rpc"}, 1)
 	if !s.rpcLimiter.Load().(*rate.Limiter).Allow() {
 		metrics.IncrCounter([]string{"client", "rpc", "exceeded"}, 1)
@@ -1454,70 +1442,31 @@ func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
 }
 
-// CreateACLToken will create an ACL token from the given template
-func (s *Server) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error) {
-	// we have to require local tokens or else it would require having these servers use a token with acl:write to make a
-	// token create RPC to the servers in the primary DC.
-	if !s.LocalTokensEnabled() {
-		return nil, fmt.Errorf("Agent Auto Configuration requires local token usage to be enabled in this datacenter: %s", s.config.Datacenter)
-	}
+// trackLeaderChanges registers an Observer with raft in order to receive updates
+// about leader changes, in order to keep the grpc resolver up to date for leader forwarding.
+func (s *Server) trackLeaderChanges() {
+	obsCh := make(chan raft.Observation, 16)
+	observer := raft.NewObserver(obsCh, false, func(o *raft.Observation) bool {
+		_, ok := o.Data.(raft.LeaderObservation)
+		return ok
+	})
+	s.raft.RegisterObserver(observer)
 
-	newToken := *template
+	for {
+		select {
+		case obs := <-obsCh:
+			leaderObs, ok := obs.Data.(raft.LeaderObservation)
+			if !ok {
+				s.logger.Debug("got unknown observation type from raft", "type", reflect.TypeOf(obs.Data))
+				continue
+			}
 
-	// generate the accessor id
-	if newToken.AccessorID == "" {
-		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
-		if err != nil {
-			return nil, err
-		}
-
-		newToken.AccessorID = accessor
-	}
-
-	// generate the secret id
-	if newToken.SecretID == "" {
-		secret, err := lib.GenerateUUID(s.checkTokenUUID)
-		if err != nil {
-			return nil, err
-		}
-
-		newToken.SecretID = secret
-	}
-
-	newToken.CreateTime = time.Now()
-
-	req := structs.ACLTokenBatchSetRequest{
-		Tokens: structs.ACLTokens{&newToken},
-		CAS:    false,
-	}
-
-	// perform the request to mint the new token
-	if _, err := s.raftApplyMsgpack(structs.ACLTokenSetRequestType, &req); err != nil {
-		return nil, err
-	}
-
-	// return the full token definition from the FSM
-	_, token, err := s.fsm.State().ACLTokenGetByAccessor(nil, newToken.AccessorID, &newToken.EnterpriseMeta)
-	return token, err
-}
-
-// DatacenterJoinAddresses will return all the strings suitable for usage in
-// retry join operations to connect to the the LAN or LAN segment gossip pool.
-func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
-	members, err := s.LANSegmentMembers(segment)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve members for segment %s - %w", segment, err)
-	}
-
-	var joinAddrs []string
-	for _, m := range members {
-		if ok, _ := metadata.IsConsulServer(m); ok {
-			serfAddr := net.TCPAddr{IP: m.Addr, Port: int(m.Port)}
-			joinAddrs = append(joinAddrs, serfAddr.String())
+			s.grpcLeaderForwarder.UpdateLeaderAddr(string(leaderObs.Leader))
+		case <-s.shutdownCh:
+			s.raft.DeregisterObserver(observer)
+			return
 		}
 	}
-
-	return joinAddrs, nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the

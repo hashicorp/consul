@@ -594,13 +594,17 @@ $ curl -X GET http://127.0.0.1:8500/v1/acl/tokens
 
 ### Sample Response
 
--> **Note** - The token secret IDs are not included in the listing and must be
-retrieved by the [token reading endpoint](#read-a-token)
+-> **Note** If the token used for accessing the API has `acl:write` permissions,
+then the `SecretID` will contain the tokens real value. Only when accessed with
+a token with only `acl:read` permissions will the `SecretID` be redacted. This
+is to prevent privilege escalation whereby having `acl:read` privileges allows
+for reading other secrets which given even more permissions.
 
 ```json
 [
   {
     "AccessorID": "6a1253d2-1785-24fd-91c2-f8e78c745511",
+    "SecretID": "<hidden>",
     "Description": "Agent token for 'my-agent'",
     "Policies": [
       {
@@ -620,6 +624,7 @@ retrieved by the [token reading endpoint](#read-a-token)
   },
   {
     "AccessorID": "00000000-0000-0000-0000-000000000002",
+    "SecretID": "<hidden>",
     "Description": "Anonymous Token",
     "Policies": null,
     "Local": false,
@@ -630,6 +635,7 @@ retrieved by the [token reading endpoint](#read-a-token)
   },
   {
     "AccessorID": "3328f9a6-433c-02d0-6649-7d07268dfec7",
+    "SecretID": "<hidden>",
     "Description": "Bootstrap Token (Global Management)",
     "Policies": [
       {

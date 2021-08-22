@@ -64,7 +64,7 @@ token is more restrictive than can be currently expressed manually in
 an ACL policy.
 
 The default managed proxy is a basic proxy built-in to Consul and written
-in Go. Having a basic built-in proxy allows Consul to have a sane default
+in Go. Having a basic built-in proxy allows Consul to have a reasonable default
 with performance that is good enough for most workloads. In some basic
 benchmarks, the service-to-service communication over the built-in proxy
 could sustain 5 Gbps with sub-millisecond latency. Therefore,
@@ -88,7 +88,7 @@ restarting them if they crash. The lifecycle of the proxy process is decoupled
 from the agent so if the agent crashes or is restarted for an upgrade, the
 managed proxy instances will _not_ be stopped.
 
-Note that this behaviour while desirable in production might leave proxy
+Note that this behavior while desirable in production might leave proxy
 processes running indefinitely if you manually stop the agent and clear its
 data dir during testing.
 
@@ -164,7 +164,7 @@ use namespacing techniques provided by your operating system.
 
 -> **Deprecation Note:** versions 1.2.0 to 1.3.0 required specifying `upstreams`
 as part of the opaque `config` that is passed to the proxy. However, since
-1.3.0, the `upstreams` configuration is now specified directily under the
+1.3.0, the `upstreams` configuration is now specified directly under the
 `proxy` key. Old service definitions using the nested config will continue to
 work and have the values copied into the new location. This allows the upstreams
 to be registered centrally rather than being part of the local-only config

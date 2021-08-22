@@ -86,10 +86,13 @@ func (c *Coordinate) batchApplyUpdates() error {
 			break
 		}
 
+		update.EnterpriseMeta.Normalize()
+
 		updates[i] = &structs.Coordinate{
-			Node:    update.Node,
-			Segment: update.Segment,
-			Coord:   update.Coord,
+			Node:      update.Node,
+			Segment:   update.Segment,
+			Coord:     update.Coord,
+			Partition: update.PartitionOrEmpty(),
 		}
 		i++
 	}
@@ -138,16 +141,19 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
-	authz, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
 	}
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	args.DefaultEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
+	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
 	}
 
 	// Add the coordinate to the map of pending updates.
@@ -167,6 +173,8 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 	if err != nil {
 		return err
 	}
+
+	// TODO(partitions):
 
 	var out []structs.DatacenterMap
 
@@ -196,10 +204,19 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
+	_, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, coords, err := state.Coordinates(ws)
+			index, coords, err := state.Coordinates(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -221,22 +238,27 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 
 	// Fetch the ACL token, if any, and enforce the node policy if enabled.
 
-	authz, err := c.srv.ResolveToken(args.Token)
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return err
 	}
-	if authz != nil {
-		var authzContext acl.AuthorizerContext
-		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
-		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
-		}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
 	}
+
+	var authzContext acl.AuthorizerContext
+	args.WildcardEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
+	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	// TODO(partitions): do we have to add EnterpriseMeta to the reply like in Catalog.ListServices?
 
 	return c.srv.blockingQuery(&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodeCoords, err := state.Coordinate(args.Node, ws)
+			index, nodeCoords, err := state.Coordinate(ws, args.Node, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -244,9 +266,10 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 			var coords structs.Coordinates
 			for segment, coord := range nodeCoords {
 				coords = append(coords, &structs.Coordinate{
-					Node:    args.Node,
-					Segment: segment,
-					Coord:   coord,
+					Node:      args.Node,
+					Segment:   segment,
+					Partition: args.PartitionOrEmpty(),
+					Coord:     coord,
 				})
 			}
 			reply.Index, reply.Coordinates = index, coords

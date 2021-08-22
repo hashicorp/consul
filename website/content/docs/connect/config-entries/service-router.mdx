@@ -40,10 +40,9 @@ service of the same name.
 
 ### Path prefix matching
 
-<Tabs>
-<Tab heading="HCL">
-
 Route HTTP requests with a path starting with `/admin` to a different service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -64,11 +63,6 @@ Routes = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Route HTTP requests with a path starting with `/admin` to a different service:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceRouter
@@ -84,15 +78,32 @@ spec:
   # NOTE: a default catch-all will send unmatched traffic to "web"
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-router",
+  "Name": "web",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/admin"
+        }
+      },
+      "Destination": {
+        "Service": "admin"
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### Header/query parameter matching
 
-<Tabs>
-<Tab heading="HCL">
+Route HTTP requests with a special URL parameter or header to a canary subset:
 
-Route HTTP requests with a special url parameter or header to a canary subset:
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -134,11 +145,6 @@ Routes = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Route HTTP requests with a special url parameter or header to a canary subset:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceRouter
@@ -165,16 +171,55 @@ spec:
   # NOTE: a default catch-all will send unmatched traffic to "web"
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-router",
+  "Name": "web",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "Header": [
+            {
+              "Name": "x-debug",
+              "Exact": "1"
+            }
+          ]
+        }
+      },
+      "Destination": {
+        "Service": "web",
+        "ServiceSubset": "canary"
+      }
+    },
+    {
+      "Match": {
+        "HTTP": {
+          "QueryParam": [
+            {
+              "Name": "x-debug",
+              "Exact": "1"
+            }
+          ]
+        }
+      },
+      "Destination": {
+        "Service": "web",
+        "ServiceSubset": "canary"
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ### gRPC routing
 
-<Tabs>
-<Tab heading="HCL">
-
 Re-route a gRPC method to another service. Since gRPC method calls [are
 HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -195,12 +240,6 @@ Routes = [
 ]
 ```
 
-</Tab>
-<Tab heading="Kubernetes YAML">
-
-Re-route a gRPC method to another service. Since gRPC method calls [are
-HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceRouter
@@ -216,8 +255,26 @@ spec:
   # NOTE: a default catch-all will send unmatched traffic to "billing"
 ```
 
-</Tab>
-</Tabs>
+```json
+{
+  "Kind": "service-router",
+  "Name": "billing",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathExact": "/mycompany.BillingService/GenerateInvoice"
+        }
+      },
+      "Destination": {
+        "Service": "invoice-generator"
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
 
 ## Available Fields
 

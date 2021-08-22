@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_ConnectCARoots_empty(t *testing.T) {
@@ -62,7 +63,6 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 
 	s.WaitForSerfCheck(t)
 	expected := &ConsulCAProviderConfig{
-		RotationPeriod:      90 * 24 * time.Hour,
 		IntermediateCertTTL: 365 * 24 * time.Hour,
 	}
 	expected.LeafCertTTL = 72 * time.Hour
@@ -83,7 +83,6 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 
 		// Change a config value and update
 		conf.Config["PrivateKey"] = ""
-		conf.Config["RotationPeriod"] = 120 * 24 * time.Hour
 		conf.Config["IntermediateCertTTL"] = 300 * 24 * time.Hour
 
 		// Pass through some state as if the provider stored it so we can make sure
@@ -95,7 +94,6 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 
 		updated, _, err := connect.CAGetConfig(nil)
 		r.Check(err)
-		expected.RotationPeriod = 120 * 24 * time.Hour
 		expected.IntermediateCertTTL = 300 * 24 * time.Hour
 		parsed, err = ParseConsulCAConfig(updated.Config)
 		r.Check(err)

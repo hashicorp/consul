@@ -1,14 +1,17 @@
 {
-    "ACLDatacenter": "",
-    "ACLDefaultPolicy": "",
-    "ACLDisabledTTL": "0s",
-    "ACLDownPolicy": "",
     "ACLEnableKeyListPolicy": false,
     "ACLMasterToken": "hidden",
-    "ACLPolicyTTL": "0s",
-    "ACLRoleTTL": "0s",
+    "ACLResolverSettings": {
+        "ACLDefaultPolicy": "",
+        "ACLDownPolicy": "",
+        "ACLPolicyTTL": "0s",
+        "ACLRoleTTL": "0s",
+        "ACLTokenTTL": "0s",
+        "ACLsEnabled": false,
+        "Datacenter": "",
+        "NodeName": ""
+    },
     "ACLTokenReplication": false,
-    "ACLTokenTTL": "0s",
     "ACLTokens": {
         "ACLAgentMasterToken": "hidden",
         "ACLAgentToken": "hidden",
@@ -147,6 +150,7 @@
     "DNSNodeTTL": "0s",
     "DNSOnlyPassing": false,
     "DNSPort": 0,
+    "DNSRecursorStrategy": "",
     "DNSRecursorTimeout": "0s",
     "DNSRecursors": [],
     "DNSSOA": {
@@ -182,8 +186,6 @@
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
-    "GRPCAddrs": [],
-    "GRPCPort": 0,
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",
@@ -410,5 +412,7 @@
     "VerifyServerHostname": false,
     "Version": "",
     "VersionPrerelease": "",
-    "Watches": []
+    "Watches": [],
+    "XDSAddrs": [],
+    "XDSPort": 0
 }

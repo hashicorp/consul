@@ -141,6 +141,7 @@
     "eslint": "^7.12.1",
     "eslint-plugin-ember": "^7.7.2",
     "eslint-plugin-node": "^11.0.0",
+    "faker": "^5.5.3",
     "flat": "^5.0.0",
     "husky": "^4.2.5",
     "ivy-codemirror": "^2.1.0",

@@ -152,10 +152,10 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -281,10 +281,10 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -494,10 +494,10 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -579,10 +579,10 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -738,10 +738,10 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1020,9 +1020,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	}
 	t.Parallel()
 
-	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMeta())
-	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMeta())
-	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMetaInDefaultPartition())
+	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMetaInDefaultPartition())
+	wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
 
 	tt := []struct {
 		name     string
@@ -1117,7 +1117,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 					{
 						Upstream: structs.ServiceID{
 							ID:             "mysql",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 						},
 						Config: map[string]interface{}{
 							"protocol": "http",
@@ -1960,10 +1960,10 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	require := require.New(t)
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

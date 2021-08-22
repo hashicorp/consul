@@ -36,7 +36,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -73,11 +73,13 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Delete an ACL auth method"
-const help = `
+const (
+	synopsis = "Delete an ACL auth method"
+	help     = `
 Usage: consul acl auth-method delete -name NAME [options]
 
   Delete an auth method:
 
     $ consul acl auth-method delete -name "my-auth-method"
 `
+)

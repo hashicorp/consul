@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -16,9 +20,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCatalog_Register(t *testing.T) {
@@ -179,10 +180,10 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -425,10 +426,10 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	assert := assert.New(t)
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -554,10 +555,10 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1294,10 +1295,10 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1635,7 +1636,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir1)
@@ -1643,7 +1644,7 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.PrimaryDatacenter = "dc1" // Enable ACLs!
 		c.ACLsEnabled = true
 		c.Bootstrap = false // Disable bootstrap
 	})
@@ -2412,10 +2413,10 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -2707,10 +2708,10 @@ func TestCatalog_Register_FailedCase1(t *testing.T) {
 
 func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rpc.ClientCodec) {
 	dir, srv = testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 
 	codec = rpcClient(t, srv)
@@ -2870,10 +2871,10 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -3283,10 +3284,10 @@ func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -3465,4 +3466,486 @@ service "gateway" {
 		}
 		assert.Equal(r, expect, resp.Services)
 	})
+}
+
+func TestVetRegisterWithACL(t *testing.T) {
+	t.Parallel()
+	args := &structs.RegisterRequest{
+		Node:    "nope",
+		Address: "127.0.0.1",
+	}
+
+	// With an "allow all" authorizer the update should be allowed.
+	if err := vetRegisterWithACL(acl.ManageAll(), args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a basic node policy.
+	policy, err := acl.NewPolicyFromSource("", 0, `
+node "node" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// With that policy, the update should now be blocked for node reasons.
+	err = vetRegisterWithACL(perms, args, nil)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now use a permitted node name.
+	args.Node = "node"
+	if err := vetRegisterWithACL(perms, args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Build some node info that matches what we have now.
+	ns := &structs.NodeServices{
+		Node: &structs.Node{
+			Node:    "node",
+			Address: "127.0.0.1",
+		},
+		Services: make(map[string]*structs.NodeService),
+	}
+
+	// Try to register a service, which should be blocked.
+	args.Service = &structs.NodeService{
+		Service: "service",
+		ID:      "my-id",
+	}
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Chain on a basic service policy.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+service "service" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// With the service ACL, the update should go through.
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add an existing service that they are clobbering and aren't allowed
+	// to write to.
+	ns.Services["my-id"] = &structs.NodeService{
+		Service: "other",
+		ID:      "my-id",
+	}
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Chain on a policy that allows them to write to the other service.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+service "other" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now it should go through.
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try creating the node and the service at once by having no existing
+	// node record. This should be ok since we have node and service
+	// permissions.
+	if err := vetRegisterWithACL(perms, args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add a node-level check to the member, which should be rejected.
+	args.Check = &structs.HealthCheck{
+		Node: "node",
+	}
+	err = vetRegisterWithACL(perms, args, ns)
+	if err == nil || !strings.Contains(err.Error(), "check member must be nil") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Move the check into the slice, but give a bad node name.
+	args.Check.Node = "nope"
+	args.Checks = append(args.Checks, args.Check)
+	args.Check = nil
+	err = vetRegisterWithACL(perms, args, ns)
+	if err == nil || !strings.Contains(err.Error(), "doesn't match register request node") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Fix the node name, which should now go through.
+	args.Checks[0].Node = "node"
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add a service-level check.
+	args.Checks = append(args.Checks, &structs.HealthCheck{
+		Node:      "node",
+		ServiceID: "my-id",
+	})
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try creating everything at once. This should be ok since we have all
+	// the permissions we need. It also makes sure that we can register a
+	// new node, service, and associated checks.
+	if err := vetRegisterWithACL(perms, args, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nil out the service registration, which'll skip the special case
+	// and force us to look at the ns data (it will look like we are
+	// writing to the "other" service which also has "my-id").
+	args.Service = nil
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Chain on a policy that forbids them to write to the other service.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+service "other" {
+  policy = "deny"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This should get rejected.
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Change the existing service data to point to a service name they
+	// car write to. This should go through.
+	ns.Services["my-id"] = &structs.NodeService{
+		Service: "service",
+		ID:      "my-id",
+	}
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Chain on a policy that forbids them to write to the node.
+	policy, err = acl.NewPolicyFromSource("", 0, `
+node "node" {
+  policy = "deny"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	perms, err = acl.NewPolicyAuthorizerWithDefaults(perms, []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This should get rejected because there's a node-level check in here.
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Change the node-level check into a service check, and then it should
+	// go through.
+	args.Checks[0].ServiceID = "my-id"
+	if err := vetRegisterWithACL(perms, args, ns); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Finally, attempt to update the node part of the data and make sure
+	// that gets rejected since they no longer have permissions.
+	args.Address = "127.0.0.2"
+	err = vetRegisterWithACL(perms, args, ns)
+	if !acl.IsErrPermissionDenied(err) {
+		t.Fatalf("bad: %v", err)
+	}
+}
+
+func TestVetDeregisterWithACL(t *testing.T) {
+	t.Parallel()
+	args := &structs.DeregisterRequest{
+		Node: "nope",
+	}
+
+	// With an "allow all" authorizer the update should be allowed.
+	if err := vetDeregisterWithACL(acl.ManageAll(), args, nil, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create a basic node policy.
+	policy, err := acl.NewPolicyFromSource("", 0, `
+node "node" {
+  policy = "write"
+}
+`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	nodePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	policy, err = acl.NewPolicyFromSource("", 0, `
+	service "my-service" {
+	  policy = "write"
+	}
+	`, acl.SyntaxLegacy, nil, nil)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	servicePerms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, args := range []struct {
+		DeregisterRequest structs.DeregisterRequest
+		Service           *structs.NodeService
+		Check             *structs.HealthCheck
+		Perms             acl.Authorizer
+		Expected          bool
+		Name              string
+	}{
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "nope",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "nope",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "right on service but node dergister request",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no rights on node nor service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "no rights on node but rights on service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node nor service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "nope",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "no rights on node but rights on service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "nope",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: false,
+			Name:     "no right on node for node check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "nope",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service but no right on node for node check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "node",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node: "node",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service but not on node for node",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "rights on service for service",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "right on node for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:      "node",
+				ServiceID: "my-service-id",
+				CheckID:   "my-check",
+			},
+			Service: &structs.NodeService{
+				Service: "my-service",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: true,
+			Name:     "rights on service for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "node",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    nodePerms,
+			Expected: true,
+			Name:     "rights on node for check",
+		},
+		{
+			DeregisterRequest: structs.DeregisterRequest{
+				Node:    "node",
+				CheckID: "my-check",
+			},
+			Check: &structs.HealthCheck{
+				CheckID: "my-check",
+			},
+			Perms:    servicePerms,
+			Expected: false,
+			Name:     "rights on service for node check",
+		},
+	} {
+		t.Run(args.Name, func(t *testing.T) {
+			err = vetDeregisterWithACL(args.Perms, &args.DeregisterRequest, args.Service, args.Check)
+			if !args.Expected {
+				if err == nil {
+					t.Errorf("expected error with %+v", args.DeregisterRequest)
+				}
+				if !acl.IsErrPermissionDenied(err) {
+					t.Errorf("expected permission denied error with %+v, instead got %+v", args.DeregisterRequest, err)
+				}
+			} else if err != nil {
+				t.Errorf("expected no error with %+v", args.DeregisterRequest)
+			}
+		})
+	}
 }

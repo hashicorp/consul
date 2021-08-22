@@ -12,17 +12,18 @@ optionally exposing a gRPC service on the local agent that serves [Envoy's xDS
 configuration
 API](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-docs/xds_protocol).
 
-Consul can configure Envoy sidecars to proxy http/1.1, http2, or gRPC traffic at
-L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
-could only proxy tcp at L4.
+Consul can configure Envoy sidecars to proxy traffic over the following protocols:
 
-Configuration of some [L7 features](/docs/connect/l7-traffic-management)
-is possible via [configuration entries](/docs/agent/config-entries). If
-you wish to use an Envoy feature not currently exposed through these config
-entries as an interim solution, you can add [custom Envoy
-configuration](#advanced-configuration) in the [proxy service
-definition](/docs/connect/registration/service-registration) allowing you
-to use the more powerful features of Envoy.
+| Protocol                | Service network support |
+| ----------------------- | ----------------------- |
+| HTTP/1.1                | L7                      |
+| HTTP2                   | L7                      |
+| gRPC                    | L7                      |
+| All TCP-based protocols | L4                      |
+
+On Consul 1.5.0 and older, Envoy proxies can only proxy TCP traffic at L4.
+
+Some [L7 features](/docs/connect/l7-traffic-management) can be configured using [configuration entries](/docs/agent/config-entries). You can add [custom Envoy configurations](#advanced-configuration) to the [proxy service definition](/docs/connect/registration/service-registration) to use Envoy features that are not currently exposed through configuration entries. Adding custom Envoy configurations to the service definition is an interim solution that enables you to use the more powerful features of Envoy.
 
 ~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/commands/connect/envoy)
 Envoy must be run with the `--max-obj-name-len` option set to `256` or greater for Envoy versions prior to 1.11.0.
@@ -32,26 +33,19 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 Consul's Envoy support was added in version 1.3.0. The following table shows
 compatible Envoy versions.
 
-| Consul Version      | Compatible Envoy Versions        |
-| ------------------- | -------------------------------- |
-| 1.10.x              | 1.18.3, 1.17.3, 1.16.4, 1.15.5   |
-| 1.9.x               | 1.16.4, 1.15.5, 1.14.7‡, 1.13.7‡ |
-| 1.8.x               | 1.14.7, 1.13.7, 1.12.7, 1.11.2   |
-| 1.7.x               | 1.13.7, 1.12.7, 1.11.2, 1.10.0\* |
-| 1.6.x, 1.5.3, 1.5.2 | 1.11.1, 1.10.0, 1.9.1, 1.8.0†    |
-| 1.5.1, 1.5.0        | 1.9.1, 1.8.0†                    |
-| 1.4.x, 1.3.x        | 1.9.1, 1.8.0†, 1.7.0†            |
+| Consul Version      | Compatible Envoy Versions                              |
+| ------------------- | ------------------------------------------------------ |
+| 1.10.x              | 1.18.3, 1.17.3, 1.16.4, 1.15.5                         |
+| 1.9.x               | 1.16.4, 1.15.5, 1.14.7<sup>1</sup>, 1.13.7<sup>1</sup> |
+| 1.8.x               | 1.14.7, 1.13.7, 1.12.7, 1.11.2                         |
+| 1.7.x               | 1.13.7, 1.12.7, 1.11.2, 1.10.0<sup>2</sup>             |
+| 1.6.x, 1.5.3, 1.5.2 | 1.11.1, 1.10.0, 1.9.1, 1.8.0<sup>3</sup>               |
+| 1.5.1, 1.5.0        | 1.9.1, 1.8.0<sup>3</sup>                               |
+| 1.4.x, 1.3.x        | 1.9.1, 1.8.0†, 1.7.0<sup>3</sup>                       |
 
-~> ‡ To ensure that intention enforcement is updated as quickly as possible
-after any changes, it is advised to run Consul 1.9.0+ with Envoy 1.15.0+ due to a
-[listener update improvement](https://github.com/envoyproxy/envoy/pull/10662).<br/><br/>
-† Envoy versions lower than 1.9.1 are vulnerable to
-[CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
-[CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
-related to HTTP request parsing and so only affect Consul Connect users if they
-have configured HTTP routing rules. Still, we recommend that you use the most
-recent supported Envoy for your Consul version where possible.<br/><br/> \* Envoy 1.10.0 requires setting
-[`-envoy-version`](/commands/connect/envoy#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
+1. Use Consul 1.9.0+ with Envoy 1.15.0+ to ensure that intention enforcement is updated as quickly as possible after any changes. [Additional information](https://github.com/envoyproxy/envoy/pull/10662).
+1. Envoy 1.10.0 requires setting [`-envoy-version`](/commands/connect/envoy#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
+1. Envoy 1.9.1 and older are vulnerable to [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both issues are related to parsing HTTP requests and only affect Consul Connect users if they have configured HTTP routing rules. We recommend that you use the most recent supported Envoy for your version of Consul when possible.
 
 ## Getting Started
 
@@ -61,7 +55,7 @@ Envoy with Connect](https://learn.hashicorp.com/tutorials/consul/service-mesh-wi
 ## Configuration
 
 Envoy proxies require two types of configuration: an initial _bootstrap
-configuration_ and dynamic configuration that is discovered from a "management
+configuration_ and a _dynamic configuration_ that is discovered from a "management
 server", in this case Consul.
 
 The bootstrap configuration at a minimum needs to configure the proxy with an
@@ -93,28 +87,41 @@ responsibility for correctly configuring Envoy and ensuring version support etc.
 
 ## Intention Enforcement
 
-[Intentions] are enforced using Envoy's RBAC filters. Depending upon the
-configured [protocol] of the proxied service these are either enforced
-per-connection (L4) using a network filter or per-request (L7) using an HTTP
+[Intentions] are enforced using Envoy's RBAC filters. Depending on the
+configured [protocol] of the proxied service, intentions are either enforced
+per-connection (L4) using a network filter, or per-request (L7) using an HTTP
 filter.
 
 -> **Note:** Prior to Consul 1.9.0 intentions were exclusively enforced
 per-connection (L4) using an `ext_authz` network filter.
+
+## Fetching Certificates
+
+Envoy will use the [`CONSUL_HTTP_TOKEN`](/commands#consul_http_token) and [`CONSUL_HTTP_ADDR`](/commands#consul_http_addr) environment variables to contact Consul to fetch certificates if the following conditions are met:
+
+- The `CONSUL_HTTP_TOKEN` environment variable contains a Consul ACL token.
+- The Consul ACL token has the necessary permissions to read configuration for that service.
+
+If TLS is enabled on Consul, you will also need to add the following environment variables _prior_ to starting Envoy:
+
+- [`CONSUL_CACERT`](/commands#consul_cacert)
+- [`CONSUL_CLIENT_CERT`](/commands#consul_client_cert)
+- [`CONSUL_CLIENT_KEY`](/commands#consul_client_key)
+- [`CONSUL_HTTP_SSL`](/commands#consul_http_ssl)
 
 ## Bootstrap Configuration
 
 Envoy requires an initial bootstrap configuration file. The easiest way to
 create this is using the [`consul connect envoy`
 command](/commands/connect/envoy). The command can either output the
-bootstrap configuration directly to stdout or can generate it and then `exec`
-the Envoy binary as a convenience wrapper.
+bootstrap configuration directly to stdout, or generate the configuration and issue an `exec` command
+to the Envoy binary as a convenience wrapper.
 
-Because some Envoy configuration options like metrics and tracing sinks can only be
+Because some Envoy configuration options, such as metrics and tracing sinks, can only be
 specified via the bootstrap configuration, Connect as of Consul 1.5.0 adds
-the ability to control some parts of the bootstrap config via proxy
-configuration options.
+the ability to control some parts of the bootstrap config via proxy configuration options.
 
-Users can add the following configuration items to the [global `proxy-defaults`
+Add the following configuration items to the [global `proxy-defaults`
 configuration entry](/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/registration/service-registration) or
@@ -168,9 +175,7 @@ definition](/docs/connect/registration/service-registration) or
 - `envoy_stats_flush_interval` - Configures Envoy's
   [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval).
 
-There are more possibilities available in the [Advanced
-Configuration](#advanced-configuration) section that allow incremental or
-complete control over the bootstrap configuration generated.
+The [Advanced Configuration](#advanced-configuration) section describes additional configurations that allow incremental or complete control over the bootstrap configuration generated.
 
 ## Dynamic Configuration
 
@@ -345,7 +350,7 @@ will continue to be supported.
   Must be one of `STRICT_DNS` or `LOGICAL_DNS`. Details for each type are available in
   the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/intro/arch_overview/upstream/service_discovery).
   This option applies to terminating gateways that route to services
-  addressed by a hostname, such as a managed databased. It also applies to mesh gateways,
+  addressed by a hostname, such as a managed database. It also applies to mesh gateways,
   such as when gateways in other Consul datacenters are behind a load balancer that is addressed by a hostname.
 
 ## Advanced Configuration
@@ -525,8 +530,8 @@ definition](/docs/connect/registration/service-registration) or
     overridden by the Connect TLS certificates and validation context. This
     means there is no way to override Connect's mutual TLS for the public
     listener.
-  - Every `FilterChain` will have the `envoy.filters.{network|http}.rbac` filter 
-    prepended to the filters array to ensure that all inbound connections are 
+  - Every `FilterChain` will have the `envoy.filters.{network|http}.rbac` filter
+    prepended to the filters array to ensure that all inbound connections are
     authorized by Connect. Before Consul 1.9.0 `envoy.ext_authz` was inserted instead.
 
 - `envoy_local_cluster_json` - Specifies a complete [Envoy cluster][pb-cluster]

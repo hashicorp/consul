@@ -1148,6 +1148,16 @@
   mask-image: var(--logo-terraform-color-svg);
 }
 
+%with-logo-vault-color-icon {
+  @extend %with-icon, %logo-vault-color-svg-prop;
+  background-image: var(--logo-vault-color-svg);
+}
+%with-logo-vault-color-mask {
+  @extend %with-mask, %logo-vault-color-svg-prop;
+  -webkit-mask-image: var(--logo-vault-color-svg);
+  mask-image: var(--logo-vault-color-svg);
+}
+
 %with-logo-vmware-color-icon {
   @extend %with-icon, %logo-vmware-color-svg-prop;
   background-image: var(--logo-vmware-color-svg);
@@ -1586,6 +1596,16 @@
   @extend %with-mask, %settings-svg-prop;
   -webkit-mask-image: var(--settings-svg);
   mask-image: var(--settings-svg);
+}
+
+%with-socket-icon {
+  @extend %with-icon, %socket-svg-prop;
+  background-image: var(--socket-svg);
+}
+%with-socket-mask {
+  @extend %with-mask, %socket-svg-prop;
+  -webkit-mask-image: var(--socket-svg);
+  mask-image: var(--socket-svg);
 }
 
 %with-sort-icon {

@@ -35,6 +35,7 @@ message Node {
   string ID = 1 [(gogoproto.casttype) = "github.com/hashicorp/consul/types.NodeID"];
 
   string Node = 2;
+  string Partition = 8;
   string Address = 3;
   string Datacenter = 4;
   map<string, string> TaggedAddresses = 5;

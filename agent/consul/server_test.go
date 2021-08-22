@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/ipaddr"
 
 	"github.com/hashicorp/go-uuid"
@@ -75,10 +74,10 @@ func testTLSCertificates(serverName string) (cert string, key string, cacert str
 // up all of the ACL configurations (so they can still be overridden)
 func testServerACLConfig(cb func(*Config)) func(*Config) {
 	return func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = TestDefaultMasterToken
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 
 		if cb != nil {
 			cb(c)
@@ -87,9 +86,9 @@ func testServerACLConfig(cb func(*Config)) func(*Config) {
 }
 
 func configureTLS(config *Config) {
-	config.CAFile = "../../test/ca/root.cer"
-	config.CertFile = "../../test/key/ourdomain.cer"
-	config.KeyFile = "../../test/key/ourdomain.key"
+	config.TLSConfig.CAFile = "../../test/ca/root.cer"
+	config.TLSConfig.CertFile = "../../test/key/ourdomain.cer"
+	config.TLSConfig.KeyFile = "../../test/key/ourdomain.key"
 }
 
 var id int64
@@ -126,6 +125,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
+	config.PrimaryDatacenter = "dc1"
 	config.DataDir = dir
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
@@ -186,7 +186,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 		Config: map[string]interface{}{
 			"PrivateKey":          "",
 			"RootCert":            "",
-			"RotationPeriod":      "2160h",
 			"LeafCertTTL":         "72h",
 			"IntermediateCertTTL": "288h",
 		},
@@ -197,6 +196,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 func testServer(t *testing.T) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 	})
 }
@@ -211,6 +211,7 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
 	return testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = dc
+		c.PrimaryDatacenter = dc
 		c.Bootstrap = bootstrap
 	})
 }
@@ -243,6 +244,12 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 		if cb != nil {
 			cb(config)
 		}
+
+		// Apply config to copied fields because many tests only set the old
+		//values.
+		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
+		config.ACLResolverSettings.NodeName = config.NodeName
+		config.ACLResolverSettings.Datacenter = config.Datacenter
 
 		var err error
 		srv, err = newServer(t, config)
@@ -351,11 +358,11 @@ func TestServer_fixupACLDatacenter(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "bee")
 
 	require.Equal(t, "aye", s1.config.Datacenter)
-	require.Equal(t, "aye", s1.config.ACLDatacenter)
+	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
 	require.Equal(t, "aye", s1.config.PrimaryDatacenter)
 
 	require.Equal(t, "bee", s2.config.Datacenter)
-	require.Equal(t, "aye", s2.config.ACLDatacenter)
+	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 	require.Equal(t, "aye", s2.config.PrimaryDatacenter)
 }
 
@@ -644,18 +651,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", gwPort[0])
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.NodeName = "bob"
 		c.Datacenter = "dc1"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Bob.crt"
-		c.KeyFile = "../../test/hostname/Bob.key"
-		c.VerifyIncoming = true
-		c.VerifyOutgoing = true
-		c.VerifyServerHostname = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Bob.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Bob.key"
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -663,18 +670,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.NodeName = "betty"
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Betty.crt"
-		c.KeyFile = "../../test/hostname/Betty.key"
-		c.VerifyIncoming = true
-		c.VerifyOutgoing = true
-		c.VerifyServerHostname = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Betty.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Betty.key"
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -682,18 +689,18 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.Domain = "consul"
+		c.TLSConfig.Domain = "consul"
 		c.NodeName = "bonnie"
 		c.Datacenter = "dc3"
 		c.PrimaryDatacenter = "dc1"
 		c.Bootstrap = true
 		// tls
-		c.CAFile = "../../test/hostname/CertAuth.crt"
-		c.CertFile = "../../test/hostname/Bonnie.crt"
-		c.KeyFile = "../../test/hostname/Bonnie.key"
-		c.VerifyIncoming = true
-		c.VerifyOutgoing = true
-		c.VerifyServerHostname = true
+		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
+		c.TLSConfig.CertFile = "../../test/hostname/Bonnie.crt"
+		c.TLSConfig.KeyFile = "../../test/hostname/Bonnie.key"
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyOutgoing = true
+		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
 		c.ConnectMeshGatewayWANFederationEnabled = true
 	})
@@ -1077,8 +1084,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.VerifyIncoming = true
-	conf1.VerifyOutgoing = true
+	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
 	if err != nil {
@@ -1089,8 +1096,8 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
-	conf2.VerifyIncoming = true
-	conf2.VerifyOutgoing = true
+	conf2.TLSConfig.VerifyIncoming = true
+	conf2.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf2)
 	s2, err := newServer(t, conf2)
 	if err != nil {
@@ -1347,9 +1354,9 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1379,10 +1386,10 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 	// Add a second server with TLS and VerifyOutgoing set
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
-		c.VerifyOutgoing = true
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1401,10 +1408,10 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
-		c.VerifyOutgoing = true
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.VerifyOutgoing = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1414,9 +1421,9 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 	// Add a second server with TLS configured
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
-		c.CAFile = "../../test/client_certs/rootca.crt"
-		c.CertFile = "../../test/client_certs/server.crt"
-		c.KeyFile = "../../test/client_certs/server.key"
+		c.TLSConfig.CAFile = "../../test/client_certs/rootca.crt"
+		c.TLSConfig.CertFile = "../../test/client_certs/server.crt"
+		c.TLSConfig.KeyFile = "../../test/client_certs/server.key"
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -1495,7 +1502,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	}
 	require.NoError(t, s.ReloadConfig(rc))
 
-	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.NotNil(t, entry)
 	global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1646,10 +1653,6 @@ func TestServer_CALogging(t *testing.T) {
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	if _, ok := s1.caManager.provider.(ca.NeedsLogger); !ok {
-		t.Fatalf("provider does not implement NeedsLogger")
-	}
-
 	// Wait til CA root is setup
 	retry.Run(t, func(r *retry.R) {
 		var out structs.IndexedCARoots
@@ -1659,106 +1662,4 @@ func TestServer_CALogging(t *testing.T) {
 	})
 
 	require.Contains(t, buf.String(), "consul CA provider configured")
-}
-
-func TestServer_DatacenterJoinAddresses(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	conf := testClusterConfig{
-		Datacenter: "primary",
-		Servers:    3,
-	}
-
-	nodes := newTestCluster(t, &conf)
-
-	var expected []string
-	for _, srv := range nodes.Servers {
-		expected = append(expected, fmt.Sprintf("127.0.0.1:%d", srv.config.SerfLANConfig.MemberlistConfig.BindPort))
-	}
-
-	actual, err := nodes.Servers[0].DatacenterJoinAddresses("")
-	require.NoError(t, err)
-	require.ElementsMatch(t, expected, actual)
-}
-
-func TestServer_CreateACLToken(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-
-	waitForLeaderEstablishment(t, srv)
-
-	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
-	require.NoError(t, err)
-
-	t.Run("predefined-ids", func(t *testing.T) {
-		accessor := "554cd3ab-5d4e-4d6e-952e-4e8b6c77bfb3"
-		secret := "ef453f31-ad58-4ec8-8bf8-342e99763026"
-		in := &structs.ACLToken{
-			AccessorID:  accessor,
-			SecretID:    secret,
-			Description: "test",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-			NodeIdentities: []*structs.ACLNodeIdentity{
-				{
-					NodeName:   "foo",
-					Datacenter: "bar",
-				},
-			},
-			ServiceIdentities: []*structs.ACLServiceIdentity{
-				{
-					ServiceName: "web",
-				},
-			},
-			Roles: []structs.ACLTokenRoleLink{
-				{
-					ID: r1.ID,
-				},
-			},
-		}
-
-		out, err := srv.CreateACLToken(in)
-		require.NoError(t, err)
-		require.Equal(t, accessor, out.AccessorID)
-		require.Equal(t, secret, out.SecretID)
-		require.Equal(t, "test", out.Description)
-		require.NotZero(t, out.CreateTime)
-		require.Len(t, out.Policies, 1)
-		require.Len(t, out.Roles, 1)
-		require.Len(t, out.NodeIdentities, 1)
-		require.Len(t, out.ServiceIdentities, 1)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, out.Policies[0].ID)
-		require.Equal(t, "foo", out.NodeIdentities[0].NodeName)
-		require.Equal(t, "web", out.ServiceIdentities[0].ServiceName)
-		require.Equal(t, r1.ID, out.Roles[0].ID)
-	})
-
-	t.Run("autogen-ids", func(t *testing.T) {
-		in := &structs.ACLToken{
-			Description: "test",
-			NodeIdentities: []*structs.ACLNodeIdentity{
-				{
-					NodeName:   "foo",
-					Datacenter: "bar",
-				},
-			},
-		}
-
-		out, err := srv.CreateACLToken(in)
-		require.NoError(t, err)
-		require.NotEmpty(t, out.AccessorID)
-		require.NotEmpty(t, out.SecretID)
-		require.Equal(t, "test", out.Description)
-		require.NotZero(t, out.CreateTime)
-		require.Len(t, out.NodeIdentities, 1)
-		require.Equal(t, "foo", out.NodeIdentities[0].NodeName)
-	})
 }

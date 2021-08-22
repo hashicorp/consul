@@ -408,7 +408,7 @@ here, with examples:
   access that query name. Clients can list or read queries for
   which they have "read" access based on their prefix, and similar they can
   update any queries for which they have "write" access. An example use for
-  this type is a query with a well-known name (eg. `prod-master-customer-db`)
+  this type is a query with a well-known name (eg. `prod-primary-customer-db`)
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
@@ -512,7 +512,19 @@ In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured wit
 [`enable_local_script_checks`](/docs/agent/options#_enable_local_script_checks)
 set to `true` in order to enable script checks.
 
--> Note: [Intention privileges](/docs/connect/intentions#intention-management-permissions) are managed with service rules.
+Service rules are also used to grant read or write access to intentions. The
+following policy provides read-write access to the "app" service, and explicitly
+grants `intentions:read` access to view intentions associated with the "app" service.
+
+```hcl
+service "app" {
+  policy = "write"
+  intentions = "read"
+}
+```
+
+Refer to [Intention Management Permissions](/docs/connect/intentions#intention-management-permissions)
+for more information about managing intentions access with service rules.
 
 #### Session Rules
 

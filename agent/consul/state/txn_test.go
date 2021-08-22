@@ -5,10 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 //nolint:staticcheck
@@ -195,7 +196,7 @@ func TestStateStore_Txn_Node(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.Nodes(nil)
+	idx, actual, err := s.Nodes(nil, nil)
 	require.NoError(t, err)
 	if idx != 8 {
 		t.Fatalf("bad index: %d", idx)
@@ -279,7 +280,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Meta:           map[string]string{},
 			},
 		},
@@ -291,7 +292,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		&structs.TxnResult{
@@ -303,7 +304,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 	}
@@ -319,7 +320,8 @@ func TestStateStore_Txn_Service(t *testing.T) {
 	// Make sure it looks as expected.
 	expectedServices := &structs.NodeServices{
 		Node: &structs.Node{
-			Node: "node1",
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 1,
@@ -336,7 +338,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					ModifyIndex: 2,
 				},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				Meta:           map[string]string{},
 			},
 			"svc5": {
@@ -346,7 +348,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					ModifyIndex: 6,
 				},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			"svc2": {
 				ID:   "svc2",
@@ -356,7 +358,7 @@ func TestStateStore_Txn_Service(t *testing.T) {
 					ModifyIndex: 6,
 				},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 	}
@@ -431,7 +433,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 2,
 					ModifyIndex: 2,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		&structs.TxnResult{
@@ -443,7 +445,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 6,
 					ModifyIndex: 6,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 		&structs.TxnResult{
@@ -455,7 +457,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 					CreateIndex: 3,
 					ModifyIndex: 6,
 				},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		},
 	}
@@ -478,7 +480,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 2,
 				ModifyIndex: 2,
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		&structs.HealthCheck{
 			Node:    "node1",
@@ -488,7 +490,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 3,
 				ModifyIndex: 6,
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		&structs.HealthCheck{
 			Node:    "node1",
@@ -498,7 +500,7 @@ func TestStateStore_Txn_Checks(t *testing.T) {
 				CreateIndex: 6,
 				ModifyIndex: 6,
 			},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	require.Equal(t, expectedChecks, actual)

@@ -6,11 +6,380 @@ import (
 	"sort"
 	"testing"
 
+	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
+	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+func TestRemoveIntentionPrecedence(t *testing.T) {
+	testIntention := func(t *testing.T, src, dst string, action structs.IntentionAction) *structs.Intention {
+		t.Helper()
+		ixn := structs.TestIntention(t)
+		ixn.SourceName = src
+		ixn.DestinationName = dst
+		ixn.Action = action
+		//nolint:staticcheck
+		ixn.UpdatePrecedence()
+		return ixn
+	}
+	testSourceIntention := func(src string, action structs.IntentionAction) *structs.Intention {
+		return testIntention(t, src, "api", action)
+	}
+	testSourcePermIntention := func(src string, perms ...*structs.IntentionPermission) *structs.Intention {
+		ixn := testIntention(t, src, "api", "")
+		ixn.Permissions = perms
+		return ixn
+	}
+	sorted := func(ixns ...*structs.Intention) structs.Intentions {
+		sort.SliceStable(ixns, func(i, j int) bool {
+			return ixns[j].Precedence < ixns[i].Precedence
+		})
+		return structs.Intentions(ixns)
+	}
+
+	var (
+		nameWild        = structs.NewServiceName("*", nil)
+		nameWeb         = structs.NewServiceName("web", nil)
+		permSlashPrefix = &structs.IntentionPermission{
+			Action: structs.IntentionActionAllow,
+			HTTP: &structs.IntentionHTTPPermission{
+				PathPrefix: "/",
+			},
+		}
+		permDenySlashPrefix = &structs.IntentionPermission{
+			Action: structs.IntentionActionDeny,
+			HTTP: &structs.IntentionHTTPPermission{
+				PathPrefix: "/",
+			},
+		}
+		xdsPermSlashPrefix = &envoy_rbac_v3.Permission{
+			Rule: &envoy_rbac_v3.Permission_UrlPath{
+				UrlPath: &envoy_matcher_v3.PathMatcher{
+					Rule: &envoy_matcher_v3.PathMatcher_Path{
+						Path: &envoy_matcher_v3.StringMatcher{
+							MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+								Prefix: "/",
+							},
+						},
+					},
+				},
+			},
+		}
+	)
+
+	// NOTE: these default=(allow|deny) wild=(allow|deny) path=(allow|deny)
+	// tests below are meant to verify some of the behaviors work as expected
+	// when the default acl mode changes for the system
+	tests := map[string]struct {
+		intentionDefaultAllow bool
+		http                  bool
+		intentions            structs.Intentions
+		expect                []*rbacIntention
+	}{
+		"default-allow-path-allow": {
+			intentionDefaultAllow: true,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+			),
+			expect: []*rbacIntention{}, // EMPTY, just use the defaults
+		},
+		"default-deny-path-allow": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWeb,
+					Action: intentionActionLayer7,
+					Permissions: []*rbacPermission{
+						{
+							Definition:         permSlashPrefix,
+							Action:             intentionActionAllow,
+							Perm:               xdsPermSlashPrefix,
+							NotPerms:           nil,
+							Skip:               false,
+							ComputedPermission: xdsPermSlashPrefix,
+						},
+					},
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWeb),
+				},
+			},
+		},
+		"default-allow-path-deny": {
+			intentionDefaultAllow: true,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWeb,
+					Action: intentionActionLayer7,
+					Permissions: []*rbacPermission{
+						{
+							Definition:         permDenySlashPrefix,
+							Action:             intentionActionDeny,
+							Perm:               xdsPermSlashPrefix,
+							NotPerms:           nil,
+							Skip:               false,
+							ComputedPermission: xdsPermSlashPrefix,
+						},
+					},
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWeb),
+				},
+			},
+		},
+		"default-deny-path-deny": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+			),
+			expect: []*rbacIntention{},
+		},
+		// ========================
+		"default-allow-deny-all-and-path-allow": {
+			intentionDefaultAllow: true,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWild,
+					NotSources: []structs.ServiceName{
+						nameWeb,
+					},
+					Action:      intentionActionDeny,
+					Permissions: nil,
+					Precedence:  8,
+					Skip:        false,
+					ComputedPrincipal: andPrincipals(
+						[]*envoy_rbac_v3.Principal{
+							idPrincipal(nameWild),
+							notPrincipal(
+								idPrincipal(nameWeb),
+							),
+						},
+					),
+				},
+			},
+		},
+		"default-deny-deny-all-and-path-allow": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWeb,
+					Action: intentionActionLayer7,
+					Permissions: []*rbacPermission{
+						{
+							Definition:         permSlashPrefix,
+							Action:             intentionActionAllow,
+							Perm:               xdsPermSlashPrefix,
+							NotPerms:           nil,
+							Skip:               false,
+							ComputedPermission: xdsPermSlashPrefix,
+						},
+					},
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWeb),
+				},
+			},
+		},
+		"default-allow-deny-all-and-path-deny": {
+			intentionDefaultAllow: true,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWeb,
+					Action: intentionActionLayer7,
+					Permissions: []*rbacPermission{
+						{
+							Definition:         permDenySlashPrefix,
+							Action:             intentionActionDeny,
+							Perm:               xdsPermSlashPrefix,
+							NotPerms:           nil,
+							Skip:               false,
+							ComputedPermission: xdsPermSlashPrefix,
+						},
+					},
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWeb),
+				},
+				{
+					Source: nameWild,
+					NotSources: []structs.ServiceName{
+						nameWeb,
+					},
+					Action:      intentionActionDeny,
+					Permissions: nil,
+					Precedence:  8,
+					Skip:        false,
+					ComputedPrincipal: andPrincipals(
+						[]*envoy_rbac_v3.Principal{
+							idPrincipal(nameWild),
+							notPrincipal(
+								idPrincipal(nameWeb),
+							),
+						},
+					),
+				},
+			},
+		},
+		"default-deny-deny-all-and-path-deny": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+			expect: []*rbacIntention{},
+		},
+		// ========================
+		"default-allow-allow-all-and-path-allow": {
+			intentionDefaultAllow: true,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+				testSourceIntention("*", structs.IntentionActionAllow),
+			),
+			expect: []*rbacIntention{},
+		},
+		"default-deny-allow-all-and-path-allow": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+				testSourceIntention("*", structs.IntentionActionAllow),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWeb,
+					Action: intentionActionLayer7,
+					Permissions: []*rbacPermission{
+						{
+							Definition:         permSlashPrefix,
+							Action:             intentionActionAllow,
+							Perm:               xdsPermSlashPrefix,
+							NotPerms:           nil,
+							Skip:               false,
+							ComputedPermission: xdsPermSlashPrefix,
+						},
+					},
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWeb),
+				},
+				{
+					Source: nameWild,
+					NotSources: []structs.ServiceName{
+						nameWeb,
+					},
+					Action:      intentionActionAllow,
+					Permissions: nil,
+					Precedence:  8,
+					Skip:        false,
+					ComputedPrincipal: andPrincipals(
+						[]*envoy_rbac_v3.Principal{
+							idPrincipal(nameWild),
+							notPrincipal(
+								idPrincipal(nameWeb),
+							),
+						},
+					),
+				},
+			},
+		},
+		"default-allow-allow-all-and-path-deny": {
+			intentionDefaultAllow: true,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+				testSourceIntention("*", structs.IntentionActionAllow),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWeb,
+					Action: intentionActionLayer7,
+					Permissions: []*rbacPermission{
+						{
+							Definition:         permDenySlashPrefix,
+							Action:             intentionActionDeny,
+							Perm:               xdsPermSlashPrefix,
+							NotPerms:           nil,
+							Skip:               false,
+							ComputedPermission: xdsPermSlashPrefix,
+						},
+					},
+					Precedence:        9,
+					Skip:              false,
+					ComputedPrincipal: idPrincipal(nameWeb),
+				},
+			},
+		},
+		"default-deny-allow-all-and-path-deny": {
+			intentionDefaultAllow: false,
+			http:                  true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+				testSourceIntention("*", structs.IntentionActionAllow),
+			),
+			expect: []*rbacIntention{
+				{
+					Source: nameWild,
+					NotSources: []structs.ServiceName{
+						nameWeb,
+					},
+					Action:      intentionActionAllow,
+					Permissions: nil,
+					Precedence:  8,
+					Skip:        false,
+					ComputedPrincipal: andPrincipals(
+						[]*envoy_rbac_v3.Principal{
+							idPrincipal(nameWild),
+							notPrincipal(
+								idPrincipal(nameWeb),
+							),
+						},
+					),
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			rbacIxns := intentionListToIntermediateRBACForm(tt.intentions, tt.http)
+			intentionDefaultAction := intentionActionFromBool(tt.intentionDefaultAllow)
+			rbacIxns = removeIntentionPrecedence(rbacIxns, intentionDefaultAction)
+
+			require.Equal(t, tt.expect, rbacIxns)
+		})
+	}
+}
 
 func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 	testIntention := func(t *testing.T, src, dst string, action structs.IntentionAction) *structs.Intention {
@@ -37,6 +406,21 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		})
 		return structs.Intentions(ixns)
 	}
+
+	var (
+		permSlashPrefix = &structs.IntentionPermission{
+			Action: structs.IntentionActionAllow,
+			HTTP: &structs.IntentionHTTPPermission{
+				PathPrefix: "/",
+			},
+		}
+		permDenySlashPrefix = &structs.IntentionPermission{
+			Action: structs.IntentionActionDeny,
+			HTTP: &structs.IntentionHTTPPermission{
+				PathPrefix: "/",
+			},
+		}
+	)
 
 	tests := map[string]struct {
 		intentionDefaultAllow bool
@@ -88,7 +472,6 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("web", structs.IntentionActionAllow),
 				testSourceIntention("unsafe", structs.IntentionActionDeny),
 				testSourceIntention("cron", structs.IntentionActionAllow),
-				// and we invert the default-ness of the whole thing
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
 		},
@@ -99,10 +482,92 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("web", structs.IntentionActionDeny),
 				testSourceIntention("unsafe", structs.IntentionActionAllow),
 				testSourceIntention("cron", structs.IntentionActionDeny),
-				// and we invert the default-ness of the whole thing
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
 		},
+		// ========================
+		"default-allow-path-allow": {
+			intentionDefaultAllow: true,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+			),
+		},
+		"default-deny-path-allow": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourcePermIntention("web", permSlashPrefix),
+			),
+		},
+		"default-allow-path-deny": {
+			intentionDefaultAllow: true,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+			),
+		},
+		"default-deny-path-deny": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourcePermIntention("web", permDenySlashPrefix),
+			),
+		},
+		// ========================
+		"default-allow-deny-all-and-path-allow": {
+			intentionDefaultAllow: true,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/",
+						},
+					},
+				),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+		},
+		"default-deny-deny-all-and-path-allow": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/",
+						},
+					},
+				),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+		},
+		"default-allow-deny-all-and-path-deny": {
+			intentionDefaultAllow: true,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/",
+						},
+					},
+				),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+		},
+		"default-deny-deny-all-and-path-deny": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/",
+						},
+					},
+				),
+				testSourceIntention("*", structs.IntentionActionDeny),
+			),
+		},
+		// ========================
 		"default-deny-two-path-deny-and-path-allow": {
 			intentionDefaultAllow: false,
 			intentions: sorted(

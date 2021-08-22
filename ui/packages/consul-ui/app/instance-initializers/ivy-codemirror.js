@@ -3,17 +3,19 @@ export function initialize(application) {
   const appName = application.application.name;
   const doc = application.lookup('service:-document');
   // pick codemirror syntax highlighting paths out of index.html
-  const fs = JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent);
+  const fs = new Map(
+    Object.entries(JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent))
+  );
   // configure syntax highlighting for CodeMirror
   CodeMirror.modeURL = {
     replace: function(n, mode) {
-      switch (mode) {
+      switch (mode.trim()) {
         case 'javascript':
-          return fs['codemirror/mode/javascript/javascript.js'];
+          return fs.get(['codemirror', 'mode', 'javascript', 'javascript.js'].join('/'));
         case 'ruby':
-          return fs['codemirror/mode/ruby/ruby.js'];
+          return fs.get(['codemirror', 'mode', 'ruby', 'ruby.js'].join('/'));
         case 'yaml':
-          return fs['codemirror/mode/yaml/yaml.js'];
+          return fs.get(['codemirror', 'mode', 'yaml', 'yaml.js'].join('/'));
       }
     },
   };

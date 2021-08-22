@@ -9,12 +9,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 // ServiceSummary is used to summarize a service
@@ -602,22 +603,22 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	s.clearTokenFromHeaders(req)
 
 	var entMeta structs.EnterpriseMeta
+	if err := parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &entMeta, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if authz != nil {
-		// This endpoint requires wildcard read on all services and all nodes.
-		//
-		// In enterprise it requires this _in all namespaces_ too.
-		wildMeta := structs.WildcardEnterpriseMeta()
-		var authzContext acl.AuthorizerContext
-		wildMeta.FillAuthzContext(&authzContext)
+	// This endpoint requires wildcard read on all services and all nodes.
+	//
+	// In enterprise it requires this _in all namespaces_ too.
+	var authzContext acl.AuthorizerContext
+	entMeta.WildcardEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
 
-		if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
-			return nil, acl.ErrPermissionDenied
-		}
+	if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
+		return nil, acl.ErrPermissionDenied
 	}
 
 	log := s.agent.logger.Named(logging.UIMetricsProxy)

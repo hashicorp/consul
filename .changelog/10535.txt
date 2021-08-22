@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Send service name down to Stats to properly call endpoint for Upstreams and Downstreams metrics
+```

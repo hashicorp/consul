@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fix Health Checks in K/V form Lock Sessions Info section
+```

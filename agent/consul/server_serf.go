@@ -68,7 +68,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["nonvoter"] = "1"
 		conf.Tags["read_replica"] = "1"
 	}
-	if s.config.UseTLS {
+	if s.config.TLSConfig.CAPath != "" || s.config.TLSConfig.CAFile != "" {
 		conf.Tags["use_tls"] = "1"
 	}
 
@@ -117,6 +117,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 			nodeID:   s.config.NodeID,
 			nodeName: s.config.NodeName,
 			segment:  segment,
+			server:   true,
 		}
 	}
 
@@ -175,7 +176,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
 
-	addEnterpriseSerfTags(conf.Tags)
+	addEnterpriseSerfTags(conf.Tags, s.config.agentEnterpriseMeta())
 
 	if s.config.OverrideInitialSerfTags != nil {
 		s.config.OverrideInitialSerfTags(conf.Tags)

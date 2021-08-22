@@ -9,16 +9,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -28,10 +29,10 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -48,7 +49,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -77,7 +78,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Server should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s1.config.NodeName)
+		_, node, err := state.GetNode(s1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -103,10 +104,10 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -126,7 +127,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -168,10 +169,10 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -187,7 +188,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -202,7 +203,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -218,10 +219,10 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -237,7 +238,7 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -262,7 +263,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	// anti-entropy will put it back.
 	reaped := false
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -283,30 +284,30 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir3)
@@ -359,7 +360,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		member.Tags["nonvoter"] = "1"
 		member.Tags["read_replica"] = "1"
 		member.Tags["build"] = versionToExpect
-		err := s1.handleAliveMember(member)
+		err := s1.handleAliveMember(member, nil)
 		if err != nil {
 			r.Fatalf("Unexpected error :%v", err)
 		}
@@ -391,30 +392,30 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "allow"
+		c.ACLResolverSettings.ACLDefaultPolicy = "allow"
 		c.Bootstrap = false
 	})
 	defer os.RemoveAll(dir3)
@@ -431,7 +432,7 @@ func TestLeader_ReapServer(t *testing.T) {
 
 	// s3 should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName)
+		_, node, err := state.GetNode(s3.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -445,14 +446,14 @@ func TestLeader_ReapServer(t *testing.T) {
 	knownMembers[s1.config.NodeName] = struct{}{}
 	knownMembers[s2.config.NodeName] = struct{}{}
 
-	err := s1.reconcileReaped(knownMembers)
+	err := s1.reconcileReaped(knownMembers, nil)
 
 	if err != nil {
 		t.Fatalf("Unexpected error :%v", err)
 	}
 	// s3 should be deregistered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(s3.config.NodeName)
+		_, node, err := state.GetNode(s3.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -470,10 +471,10 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -507,7 +508,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	// Node should be gone
 	state := s1.fsm.State()
-	_, node, err := state.GetNode("no-longer-around")
+	_, node, err := state.GetNode("no-longer-around", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -523,10 +524,10 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -540,7 +541,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	_, node, err := state.GetNode(c1.config.NodeName)
+	_, node, err := state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -550,7 +551,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should be registered
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -582,7 +583,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	state := s1.fsm.State()
 	var nodeAddr string
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -618,7 +619,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	if err := s1.reconcile(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	_, node, err := state.GetNode(c1.config.NodeName)
+	_, node, err := state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -642,7 +643,7 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 	})
 
 	// Make sure the metadata didn't get clobbered.
-	_, node, err = state.GetNode(c1.config.NodeName)
+	_, node, err = state.GetNode(c1.config.NodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -757,7 +758,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	retry.Run(t, func(r *retry.R) {
-		_, node, err := state.GetNode(leader.config.NodeName)
+		_, node, err := state.GetNode(leader.config.NodeName, nil)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -872,10 +873,10 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		c.TombstoneTTL = 50 * time.Millisecond
 		c.TombstoneTTLGranularity = 10 * time.Millisecond
 	})
@@ -1177,7 +1178,7 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.Build = tt.build
 				c.Bootstrap = true
 				c.Datacenter = "dc1"
-				c.ACLDatacenter = "dc1"
+				c.PrimaryDatacenter = "dc1"
 				c.ACLsEnabled = true
 				c.ACLMasterToken = tt.master
 			}
@@ -1215,6 +1216,7 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLsEnabled = true
+		c.PrimaryDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
@@ -1288,7 +1290,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
@@ -1301,7 +1303,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = false
 		c.ACLReplicationRate = 100
@@ -1329,11 +1331,11 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	// Everybody has the management policy.
 	retry.Run(t, func(r *retry.R) {
-		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(r, err)
 		require.NotNil(r, policy1)
 
-		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(r, err)
 		require.NotNil(r, policy2)
 	})
@@ -1346,7 +1348,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 
 	dir2new, s2new := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = false
 		c.ACLReplicationRate = 100
@@ -1392,7 +1394,7 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	retry.Run(t, func(t *retry.R) {
-		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
+		_, entry, err := s1.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMetaInDefaultPartition())
 		require.NoError(t, err)
 		require.NotNil(t, entry)
 		global, ok := entry.(*structs.ProxyConfigEntry)
@@ -1917,7 +1919,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 		tags["ft_si"] = "0"
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	t.Run("one node primary with old version", func(t *testing.T) {
 		dir1, s1 := testServerWithConfig(t, func(c *Config) {

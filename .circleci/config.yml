@@ -15,7 +15,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.3
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.7
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
@@ -60,7 +60,7 @@ steps:
     name: notify-slack-failure
     when: on_fail
     command: |
-      if [[ $CIRCLE_BRANCH == "master" ]]; then
+      if [[ $CIRCLE_BRANCH == "main" ]]; then
         CIRCLE_ENDPOINT="https://app.circleci.com/pipelines/github/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}?branch=${CIRCLE_BRANCH}"
         GITHUB_ENDPOINT="https://github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commit/${CIRCLE_SHA1}"
         COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
@@ -79,7 +79,7 @@ steps:
         ] \
         }" "${FEED_CONSUL_GH_URL}"
       else
-        echo "Not posting slack failure notifications for non-master branch"
+        echo "Not posting slack failure notifications for non-main branch"
       fi
 
 commands:
@@ -116,14 +116,20 @@ jobs:
       - run: go get -u github.com/hashicorp/lint-consul-retry && lint-consul-retry
       - run: *notify-slack-failure
 
-  # Runs Go linters
   lint:
+    description: "Run golangci-lint"
+    parameters:
+      go-arch:
+        type: string
+        default: ""
     docker:
       - image: *GOLANG_IMAGE
     environment:
       GOTAGS: "" # No tags for OSS but there are for enterprise
+      GOARCH: "<<parameters.go-arch>>"
     steps:
       - checkout
+      - run: go env
       - run:
           name: Install golangci-lint
           command: |
@@ -144,16 +150,14 @@ jobs:
           command: *lintcmd
       - run: *notify-slack-failure
 
-  # checks vendor directory is correct
-  check-vendor:
+  check-go-mod:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - run:
-          command: make update-vendor
+      - run: go mod tidy
       - run: |
           if [[ -n $(git status -s) ]]; then
             echo "Git directory has changes"
@@ -275,6 +279,40 @@ jobs:
           path: /tmp/jsonfile
       - run: *notify-slack-failure
 
+  # go-test-32bit is to catch problems where 64-bit ints must be 64-bit aligned 
+  # to use them with sync/atomic. See https://golang.org/pkg/sync/atomic/#pkg-note-BUG.
+  # Running tests with GOARCH=386 seems to be the best way to detect this 
+  # problem. Only runs tests that are -short to limit the time we spend checking
+  # for these bugs.
+  go-test-32bit:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      GOTAGS: "" # No tags for OSS but there are for enterprise
+    steps:
+      - checkout
+      - run: *install-gotestsum
+      - run: go mod download
+      - run:
+          name: go test 32-bit
+          environment:
+            GOARCH: 386
+          command: |
+            mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            go env
+            gotestsum \
+              --jsonfile /tmp/jsonfile/go-test-32bit.log \
+              --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
+              -tags="$GOTAGS" -p 2 \
+              -short ./...
+
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+      - run: *notify-slack-failure
+
   go-test-lib:
     description: "test a library against a specific Go version"
     parameters:
@@ -386,7 +424,7 @@ jobs:
       <<: *ENVIRONMENT
     steps:
       - checkout
-      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in master branch after rebuilding UI
+      - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
           at: .
       - run:
           command: make dev
@@ -486,7 +524,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # run integration tests on nomad/master
+  # run integration tests on nomad/main
   nomad-integration-main:
     docker:
       - image: *GOLANG_IMAGE
@@ -648,7 +686,7 @@ jobs:
               short_sha=$(git rev-parse --short HEAD)
               git add agent/uiserver/bindata_assetfs.go
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
-              git push origin master
+              git push origin main
             else
               echo "no UI changes so no static assets to publish"
             fi
@@ -833,7 +871,7 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
+  # only runs on main: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
   cherry-picker:
     docker:
       - image: docker.mirror.hashicorp.services/alpine:3.12
@@ -949,7 +987,7 @@ workflows:
   go-tests:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
-      - check-vendor: &filter-ignore-non-go-branches
+      - check-go-mod: &filter-ignore-non-go-branches
           filters:
             branches:
               ignore:
@@ -959,6 +997,10 @@ workflows:
       - check-generated-protobuf: *filter-ignore-non-go-branches
       - lint-consul-retry: *filter-ignore-non-go-branches
       - lint: *filter-ignore-non-go-branches
+      - lint:
+          name: "lint-32bit"
+          go-arch: "386"
+          <<: *filter-ignore-non-go-branches
       - test-connect-ca-providers: *filter-ignore-non-go-branches
       - dev-build: *filter-ignore-non-go-branches
       - go-test:
@@ -984,21 +1026,22 @@ workflows:
           go-version: "1.15"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
+      - go-test-32bit: *filter-ignore-non-go-branches
   build-distros:
     unless: << pipeline.parameters.trigger-load-test >>
     jobs:
-      - check-vendor: *filter-ignore-non-go-branches
-      - build-386: &require-check-vendor
+      - check-go-mod: *filter-ignore-non-go-branches
+      - build-386: &require-check-go-mod
           requires:
-            - check-vendor
-      - build-amd64: *require-check-vendor
-      - build-arm: *require-check-vendor
-      # every commit on master will have a rebuilt UI
+            - check-go-mod
+      - build-amd64: *require-check-go-mod
+      - build-arm: *require-check-go-mod
+      # every commit on main will have a rebuilt UI
       - frontend-cache:
           filters:
             branches:
               only:
-                - master
+                - main
       - ember-build-prod:
           requires:
             - frontend-cache
@@ -1009,7 +1052,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
           requires:
             - build-static-assets
@@ -1034,7 +1077,7 @@ workflows:
             branches:
               ignore:
                 - /^pull\/.*$/ # only push dev builds from non forks
-                - master # all master dev uploads will include a UI rebuild in build-distros
+                - main # all main dev uploads will include a UI rebuild in build-distros
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
@@ -1071,7 +1114,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
       - algolia-index:
           context: consul-docs
           filters:
@@ -1085,7 +1128,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /^ui\/.*/
       - workspace-tests:
           requires:
@@ -1118,14 +1161,14 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
       - cherry-picker:
           context: team-consul
           filters:
             branches:
               only:
-                - master
+                - main
                 - /release\/\d+\.\d+\.x$/
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
@@ -1139,6 +1182,6 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - load-test

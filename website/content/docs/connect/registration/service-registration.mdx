@@ -3,7 +3,7 @@ layout: docs
 page_title: Connect - Service Registration
 description: >-
   A per-service proxy sidecar transparently handles inbound and outbound service
-  connections. You can register these sidecars with sane defaults by nesting
+  connections. You can register these sidecars with reasonable defaults by nesting
   their definitions in the service definition.
 ---
 
@@ -385,8 +385,7 @@ To connect to a service via local Unix Domain Socket instead of a
 port, add `local_bind_socket_path` and optionally `local_bind_socket_mode`
 to the upstream config for a service:
 
-<Tabs>
-<Tab heading="HCL">
+<CodeTabs>
 
 ```hcl
 upstreams = [
@@ -398,9 +397,6 @@ upstreams = [
 ]
 ```
 
-</Tab>
-<Tab heading="JSON">
-
 ```json
 "upstreams": [
   {
@@ -411,8 +407,7 @@ upstreams = [
 ]
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 This will cause Envoy to create a socket with the path and mode
 provided, and connect that to service-1.
@@ -431,8 +426,8 @@ mesh, use either the `socket_path` field in the service definition or the
 `local_service_socket_path` field in the proxy definition. These
 fields are analogous to the `port` and `service_port` fields in their
 respective locations.
-<Tabs>
-<Tab heading="HCL">
+
+<CodeTabs>
 
 ```hcl
 services {
@@ -441,9 +436,6 @@ services {
 }
 ```
 
-</Tab>
-<Tab heading="JSON">
-
 ```json
 "services": {
   "name": "service-2",
@@ -451,11 +443,11 @@ services {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 Or in the proxy definition:
-<Tabs>
-<Tab heading="HCL">
+
+<CodeTabs>
 
 ```hcl
 services {
@@ -472,9 +464,6 @@ services {
 }
 ```
 
-</Tab>
-<Tab heading="JSON">
-
 ```json
 "services": {
   "name": "socket_service_2",
@@ -490,8 +479,7 @@ services {
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
 
 There is no mode field since the service is expected to create the
 socket it is listening on, not the Envoy proxy.

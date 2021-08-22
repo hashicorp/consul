@@ -116,6 +116,44 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	require.NotEqual(t, resp.ServerName, first.ServerName)
 }
 
+func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
+	count := 3
+	conf := newConfig(t)
+	res := resolver.NewServerResolverBuilder(conf)
+	registerWithGRPC(t, res)
+	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
+
+	var servers []testServer
+	for i := 0; i < count; i++ {
+		name := fmt.Sprintf("server-%d", i)
+		srv := newTestServer(t, name, "dc1")
+		res.AddServer(srv.Metadata())
+		servers = append(servers, srv)
+		t.Cleanup(srv.shutdown)
+	}
+
+	// Set the leader address to the first server.
+	res.UpdateLeaderAddr(servers[0].addr.String())
+
+	conn, err := pool.ClientConnLeader()
+	require.NoError(t, err)
+	client := testservice.NewSimpleClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	t.Cleanup(cancel)
+
+	first, err := client.Something(ctx, &testservice.Req{})
+	require.NoError(t, err)
+	require.Equal(t, first.ServerName, servers[0].name)
+
+	// Update the leader address and make another request.
+	res.UpdateLeaderAddr(servers[1].addr.String())
+
+	resp, err := client.Something(ctx, &testservice.Req{})
+	require.NoError(t, err)
+	require.Equal(t, resp.ServerName, servers[1].name)
+}
+
 func newConfig(t *testing.T) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)

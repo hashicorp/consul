@@ -18,6 +18,14 @@ func (m *CheckServiceNode) UniqueID() string {
 		return ""
 	}
 	builder := new(strings.Builder)
+
+	switch {
+	case m.Node != nil:
+		builder.WriteString(m.Node.Partition + "/")
+	case m.Service != nil:
+		builder.WriteString(m.Service.EnterpriseMeta.Partition + "/")
+	}
+
 	if m.Node != nil {
 		builder.WriteString(m.Node.Node + "/")
 	}

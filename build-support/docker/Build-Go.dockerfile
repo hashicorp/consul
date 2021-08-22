@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.15.5
+ARG GOLANG_VERSION=1.16.7
 FROM golang:${GOLANG_VERSION}
 
 ARG GOTOOLS="github.com/elazarl/go-bindata-assetfs/... \
@@ -8,6 +8,14 @@ ARG GOTOOLS="github.com/elazarl/go-bindata-assetfs/... \
    github.com/axw/gocov/gocov \
    gopkg.in/matm/v1/gocov-html"
 
-RUN GO111MODULE=on go get -v ${GOTOOLS} && mkdir -p /consul
+RUN mkdir -p .gotools && \
+    cd .gotools && \
+    for tool in ${GOTOOLS}; do \
+        echo "=== TOOL: ${tool}" ; \
+        rm -rf go.mod go.sum ; \
+        go mod init consul-tools ; \
+        go get -v "${tool}" ; \
+    done && \
+    rm -rf go.mod go.sum
 
 WORKDIR /consul

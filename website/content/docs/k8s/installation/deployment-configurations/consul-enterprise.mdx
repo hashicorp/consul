@@ -21,16 +21,20 @@ kubectl create secret generic consul-ent-license --from-literal="key=${secret}"
 
 In your `config.yaml`, change the value of `global.image` to one of the enterprise [release tags](https://hub.docker.com/r/hashicorp/consul-enterprise/tags).
 
+<CodeBlockConfig filename="config.yaml" highlight="2">
+
 ```yaml
-# config.yaml
 global:
   image: 'hashicorp/consul-enterprise:1.10.0-ent'
 ```
 
+</CodeBlockConfig>
+
 Add the name and key of the secret you just created to `server.enterpriseLicense`, if using Consul version 1.10+.
 
+<CodeBlockConfig filename="config.yaml" highlight="4-6">
+
 ```yaml
-# config.yaml
 global:
   image: 'hashicorp/consul-enterprise:1.10.0-ent'
 server:
@@ -39,12 +43,15 @@ server:
     secretKey: 'key'
 ```
 
+</CodeBlockConfig>
+
 If the version of Consul is < 1.10, use the following config with the name and key of the secret you just created.
 
 -> **Note:** The value of `server.enterpriseLicense.enableLicenseAutoload` must be set to `false`.
 
+<CodeBlockConfig filename="config.yaml" highlight="7">
+
 ```yaml
-# config.yaml
 global:
   image: 'hashicorp/consul-enterprise:1.8.3-ent'
 server:
@@ -53,6 +60,8 @@ server:
     secretKey: 'key'
     enableLicenseAutoload: false
 ```
+
+</CodeBlockConfig>
 
 Now run `helm install`:
 
@@ -104,7 +113,7 @@ Then you have likely enabled ACLs. You need to specify your ACL token when
 running the `license get` command. First, assign the ACL token to the `CONSUL_HTTP_TOKEN` environment variable:
 
 ```shell-session
-$ export CONSUL_HTTP_TOKEN=$(kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template={{.data.token}} | base64 -D)
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secrets/hashicorp-consul-bootstrap-acl-token --template={{.data.token}} | base64 --decode)
 ```
 
 Now the token will be used when running Consul commands:

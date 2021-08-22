@@ -10,13 +10,15 @@ description: Configuration for the Consul Helm chart.
 
 The chart is highly customizable using
 [Helm configuration values](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing).
-Each value has a sane default tuned for an optimal getting started experience
+Each value has a reasonable default tuned for an optimal getting started experience
 with Consul. Before going into production, please review the parameters below
 and consider if they're appropriate for your deployment.
 
 <!-- DO NOT EDIT. The docs below are generated automatically. To change, edit
                   the consul-helm repo's values.yaml file -->
 <!-- codegen: start -->
+
+### global
 
 - `global` ((#v-global)) - Holds values that affect multiple components of the chart.
 
@@ -40,10 +42,10 @@ and consider if they're appropriate for your deployment.
     Examples:
 
     ```yaml
-    # Consul 1.5.0
-    image: "consul:1.5.0"
-    # Consul Enterprise 1.5.0
-    image: "hashicorp/consul-enterprise:1.5.0-ent"
+    # Consul 1.10.0
+    image: "consul:1.10.0"
+    # Consul Enterprise 1.10.0
+    image: "hashicorp/consul-enterprise:1.10.0-ent"
     ```
 
   - `imagePullSecrets` ((#v-global-imagepullsecrets)) (`array<map>`) - Array of objects containing image pull secret names that will be applied to each service account.
@@ -251,6 +253,8 @@ and consider if they're appropriate for your deployment.
 
     - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running
       its components on OpenShift.
+
+### server
 
 - `server` ((#v-server)) - Server, when enabled, configures a server cluster to run. This should
   be disabled if you plan on connecting to a Consul cluster external to
@@ -519,6 +523,8 @@ and consider if they're appropriate for your deployment.
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
 
+### externalServers
+
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
   When running external servers, configuring these values is recommended
   if setting `global.tls.enableAutoEncrypt` to true (requires consul-k8s >= 0.13.0)
@@ -560,6 +566,8 @@ and consider if they're appropriate for your deployment.
     kubectl config view \
       -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
     ```
+
+### client
 
 - `client` ((#v-client)) - Values that configure running a Consul client on Kubernetes nodes.
 
@@ -792,6 +800,8 @@ and consider if they're appropriate for your deployment.
         ...
       ```
 
+### dns
+
 - `dns` ((#v-dns)) - Configuration for DNS configuration within the Kubernetes cluster.
   This creates a service that routes to all agents (client or server)
   for serving DNS requests. This DOES NOT automatically configure kube-dns
@@ -816,6 +826,8 @@ and consider if they're appropriate for your deployment.
   - `additionalSpec` ((#v-dns-additionalspec)) (`string: null`) - Additional ServiceSpec values
     This should be a multi-line string mapping directly to a Kubernetes
     ServiceSpec object.
+
+### ui
 
 - `ui` ((#v-ui)) - Values that configure the Consul UI.
 
@@ -878,7 +890,7 @@ and consider if they're appropriate for your deployment.
       ```yaml
       tls:
         - hosts:
-          - chart-example.local
+            - chart-example.local
           secretName: testsecret-tls
       ```
 
@@ -902,6 +914,8 @@ and consider if they're appropriate for your deployment.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
+
+### syncCatalog
 
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
@@ -1076,6 +1090,8 @@ and consider if they're appropriate for your deployment.
       anotherLabelKey: another-label-value
     ```
 
+### connectInject
+
 - `connectInject` ((#v-connectinject)) - Configures the automatic Connect sidecar injector.
 
   - `enabled` ((#v-connectinject-enabled)) (`boolean: false`) - True if you want to enable connect injection. Set to "-" to inherit from
@@ -1090,7 +1106,7 @@ and consider if they're appropriate for your deployment.
     to explicitly opt-out of injection.
 
   - `transparentProxy` ((#v-connectinject-transparentproxy)) - Configures Transparent Proxy for Consul Service mesh services.
-    Using this feature requires Consul 1.10.0+ and consul-k8s 0.26.0+.
+    Using this feature requires Consul 1.10.0-beta1+ and consul-k8s 0.26.0-beta1+.
 
     - `defaultEnabled` ((#v-connectinject-transparentproxy-defaultenabled)) (`boolean: true`) - If true, then all Consul Service mesh will run with transparent proxy enabled by default,
       i.e. we enforce that all traffic within the pod will go through the proxy.
@@ -1110,17 +1126,18 @@ and consider if they're appropriate for your deployment.
       add prometheus annotations to connect-injected pods. It will also
       add a listener on the Envoy sidecar to expose metrics. The exposed
       metrics will depend on whether metrics merging is enabled:
-        - If metrics merging is enabled:
-          the Consul sidecar will run a merged metrics server
-          combining Envoy sidecar and Connect service metrics,
-          i.e. if your service exposes its own Prometheus metrics.
-        - If metrics merging is disabled:
-          the listener will just expose Envoy sidecar metrics.
-      This will inherit from `global.metrics.enabled`.
+
+      - If metrics merging is enabled:
+        the Consul sidecar will run a merged metrics server
+        combining Envoy sidecar and Connect service metrics,
+        i.e. if your service exposes its own Prometheus metrics.
+      - If metrics merging is disabled:
+        the listener will just expose Envoy sidecar metrics.
+        This will inherit from `global.metrics.enabled`.
 
     - `defaultEnableMerging` ((#v-connectinject-metrics-defaultenablemerging)) (`boolean: false`) - Configures the Consul sidecar to run a merged metrics server
       to combine and serve both Envoy and Connect service metrics.
-      This feature is available only in Consul v1.10-alpha or greater.
+      This feature is available only in Consul v1.10.0 or greater.
 
     - `defaultMergedMetricsPort` ((#v-connectinject-metrics-defaultmergedmetricsport)) (`integer: 20100`) - Configures the port at which the Consul sidecar will listen on to return
       combined metrics. This port only needs to be changed if it conflicts with
@@ -1129,14 +1146,14 @@ and consider if they're appropriate for your deployment.
     - `defaultPrometheusScrapePort` ((#v-connectinject-metrics-defaultprometheusscrapeport)) (`integer: 20200`) - Configures the port Prometheus will scrape metrics from, by configuring
       the Pod annotation `prometheus.io/port` and the corresponding listener in
       the Envoy sidecar.
-      NOTE: This is *not* the port that your application exposes metrics on.
+      NOTE: This is _not_ the port that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-port` annotation.
 
     - `defaultPrometheusScrapePath` ((#v-connectinject-metrics-defaultprometheusscrapepath)) (`string: /metrics`) - Configures the path Prometheus will scrape metrics from, by configuring the pod
       annotation `prometheus.io/path` and the corresponding handler in the Envoy
       sidecar.
-      NOTE: This is *not* the path that your application exposes metrics on.
+      NOTE: This is _not_ the path that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-path` annotation.
 
@@ -1293,6 +1310,8 @@ and consider if they're appropriate for your deployment.
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - Resource settings for the Connect injected init container.
 
+### controller
+
 - `controller` ((#v-controller)) - Controller handles config entry custom resources.
   Requires consul >= 1.8.4.
   ServiceIntentions require consul 1.9+.
@@ -1331,6 +1350,7 @@ and consider if they're appropriate for your deployment.
     `global.acls.manageSystemACLs`).
 
     If running Consul OSS, requires permissions:
+
     ```hcl
     operator = "write"
     service_prefix "" {
@@ -1338,11 +1358,14 @@ and consider if they're appropriate for your deployment.
       intentions = "write"
     }
     ```
+
     If running Consul Enterprise, talk to your account manager for assistance.
 
     - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
 
     - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
+
+### meshGateway
 
 - `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
 
@@ -1469,6 +1492,8 @@ and consider if they're appropriate for your deployment.
       'annotation-key': annotation-value
     ```
 
+### ingressGateways
+
 - `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all
   ingress gateways are defined in `ingressGateways.defaults`. Any of
   these values may be overridden in `ingressGateways.gateways` for a
@@ -1562,6 +1587,8 @@ and consider if they're appropriate for your deployment.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
+### terminatingGateways
+
 - `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all
   terminating gateways are defined in `terminatingGateways.defaults`. Any of
   these values may be overridden in `terminatingGateways.gateways` for a
@@ -1643,10 +1670,14 @@ and consider if they're appropriate for your deployment.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
 
+### prometheus
+
 - `prometheus` ((#v-prometheus)) - Configures a demo Prometheus installation.
 
   - `enabled` ((#v-prometheus-enabled)) (`boolean: false`) - When true, the Helm chart will install a demo Prometheus server instance
     alongside Consul.
+
+### tests
 
 - `tests` ((#v-tests)) - Control whether a test Pod manifest is generated when running helm template.
   When using helm install, the test Pod is not submitted to the cluster so this

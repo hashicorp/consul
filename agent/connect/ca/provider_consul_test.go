@@ -149,7 +149,7 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 
 				cert, err := provider.Sign(csr)
 				require.NoError(err)
-
+				requireTrailingNewline(t, cert)
 				parsed, err := connect.ParseCert(cert)
 				require.NoError(err)
 				require.Equal(spiffeService.URI(), parsed.URIs[0])
@@ -438,30 +438,45 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 }
 
 func TestConsulCAProvider_MigrateOldID(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	conf := testConsulCAConfig()
-	delegate := newMockDelegate(t, conf)
-
-	// Create an entry with an old-style ID.
-	_, err := delegate.ApplyCARequest(&structs.CARequest{
-		Op: structs.CAOpSetProviderState,
-		ProviderState: &structs.CAConsulProviderState{
-			ID: ",",
+	cases := []struct {
+		name  string
+		oldID string
+	}{
+		{
+			name:  "original-unhashed",
+			oldID: ",",
 		},
-	})
-	require.NoError(err)
-	_, providerState, err := delegate.state.CAProviderState(",")
-	require.NoError(err)
-	require.NotNil(providerState)
+		{
+			name:  "hash-v1",
+			oldID: hexStringHash(",,true"),
+		},
+	}
 
-	provider := TestConsulProvider(t, delegate)
-	require.NoError(provider.Configure(testProviderConfig(conf)))
-	require.NoError(provider.GenerateRoot())
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			conf := testConsulCAConfig()
+			delegate := newMockDelegate(t, conf)
 
-	// After running Configure, the old ID entry should be gone.
-	_, providerState, err = delegate.state.CAProviderState(",")
-	require.NoError(err)
-	require.Nil(providerState)
+			// Create an entry with an old-style ID.
+			_, err := delegate.ApplyCARequest(&structs.CARequest{
+				Op: structs.CAOpSetProviderState,
+				ProviderState: &structs.CAConsulProviderState{
+					ID: tc.oldID,
+				},
+			})
+			require.NoError(t, err)
+			_, providerState, err := delegate.state.CAProviderState(tc.oldID)
+			require.NoError(t, err)
+			require.NotNil(t, providerState)
+
+			provider := TestConsulProvider(t, delegate)
+			require.NoError(t, provider.Configure(testProviderConfig(conf)))
+			require.NoError(t, provider.GenerateRoot())
+
+			// After running Configure, the old ID entry should be gone.
+			_, providerState, err = delegate.state.CAProviderState(tc.oldID)
+			require.NoError(t, err)
+			require.Nil(t, providerState)
+		})
+	}
 }

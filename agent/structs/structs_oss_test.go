@@ -1,3 +1,5 @@
+// +build !consulent
+
 package structs
 
 import (

@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -54,13 +55,6 @@ type RuntimeConfig struct {
 	ConsulRaftLeaderLeaseTimeout     time.Duration
 	ConsulServerHealthInterval       time.Duration
 
-	// ACLDisabledTTL is used by agents to determine how long they will
-	// wait to check again with the servers if they discover ACLs are not
-	// enabled. (not user configurable)
-	//
-	// hcl: acl.disabled_ttl = "duration"
-	ACLDisabledTTL time.Duration
-
 	// ACLsEnabled is used to determine whether ACLs should be enabled
 	//
 	// hcl: acl.enabled = boolean
@@ -68,35 +62,7 @@ type RuntimeConfig struct {
 
 	ACLTokens token.Config
 
-	// ACLDatacenter is the central datacenter that holds authoritative
-	// ACL records. This must be the same for the entire cluster.
-	// If this is not set, ACLs are not enabled. Off by default.
-	//
-	// hcl: acl_datacenter = string
-	ACLDatacenter string
-
-	// ACLDefaultPolicy is used to control the ACL interaction when
-	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to deny-list, or "deny" which means ACLs are
-	// allow-lists.
-	//
-	// hcl: acl.default_policy = ("allow"|"deny")
-	ACLDefaultPolicy string
-
-	// ACLDownPolicy is used to control the ACL interaction when we cannot
-	// reach the ACLDatacenter and the token is not in the cache.
-	// There are the following modes:
-	//   * allow - Allow all requests
-	//   * deny - Deny all requests
-	//   * extend-cache - Ignore the cache expiration, and allow cached
-	//                    ACL's to be used to service requests. This
-	//                    is the default. If the ACL is not in the cache,
-	//                    this acts like deny.
-	//   * async-cache - Same behavior as extend-cache, but perform ACL
-	//                   Lookups asynchronously when cache TTL is expired.
-	//
-	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
-	ACLDownPolicy string
+	ACLResolverSettings consul.ACLResolverSettings
 
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
@@ -108,7 +74,7 @@ type RuntimeConfig struct {
 	ACLEnableKeyListPolicy bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
-	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
+	// on the servers in the PrimaryDatacenter. When the leader comes online, it ensures
 	// that the Master token is available. This provides the initial token.
 	//
 	// hcl: acl.tokens.master = string
@@ -119,24 +85,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.token_replication = boolean
 	ACLTokenReplication bool
-
-	// ACLTokenTTL is used to control the time-to-live of cached ACL tokens. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.policy_ttl = "duration"
-	ACLTokenTTL time.Duration
-
-	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.token_ttl = "duration"
-	ACLPolicyTTL time.Duration
-
-	// ACLRoleTTL is used to control the time-to-live of cached ACL roles. This has
-	// a major impact on performance. By default, it is set to 30 seconds.
-	//
-	// hcl: acl.role_ttl = "duration"
-	ACLRoleTTL time.Duration
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -269,6 +217,15 @@ type RuntimeConfig struct {
 	//
 	// hcl: dns_config { only_passing = (true|false) }
 	DNSOnlyPassing bool
+
+	// DNSRecursorStrategy controls the order in which DNS recursors are queried.
+	// 'sequential' queries recursors in the order they are listed under `recursors`.
+	// 'random' causes random selection of recursors which has the effect of
+	// spreading the query load among all listed servers, rather than having
+	// client agents try the first server in the list every time.
+	//
+	// hcl: dns_config { recursor_strategy = "(random|sequential)" }
+	DNSRecursorStrategy dns.RecursorStrategy
 
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.
@@ -715,27 +672,27 @@ type RuntimeConfig struct {
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
 
-	// GRPCPort is the port the gRPC server listens on. Currently this only
+	// XDSPort is the port the xDS gRPC server listens on. This port only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
-	// hcl: ports { grpc = int }
-	// flags: -grpc-port int
-	GRPCPort int
+	// hcl: ports { xds = int }
+	// flags: -xds-port int
+	XDSPort int
 
-	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
-	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
+	// XDSAddrs contains the list of TCP addresses and UNIX sockets the xDS gRPC
+	// server will bind to. If the xDS endpoint is disabled (ports.xds <= 0)
 	// the list is empty.
 	//
-	// The addresses are taken from 'addresses.grpc' which should contain a
+	// The addresses are taken from 'addresses.xds' which should contain a
 	// space separated list of ip addresses, UNIX socket paths and/or
 	// go-sockaddr templates. UNIX socket paths must be written as
-	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-xds.sock'.
 	//
-	// If 'addresses.grpc' was not provided the 'client_addr' addresses are
+	// If 'addresses.xds' was not provided the 'client_addr' addresses are
 	// used.
 	//
-	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
-	GRPCAddrs []net.Addr
+	// hcl: client_addr = string addresses { xds = string } ports { xds = int }
+	XDSAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
@@ -1661,7 +1618,6 @@ func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, erro
 	ca := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"RotationPeriod":      structs.DefaultCARotationPeriod,
 			"LeafCertTTL":         structs.DefaultLeafCertTTL,
 			"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
 		},
@@ -1920,4 +1876,17 @@ func isUint(t reflect.Type) bool {
 func isFloat(t reflect.Type) bool { return t.Kind() == reflect.Float32 || t.Kind() == reflect.Float64 }
 func isComplex(t reflect.Type) bool {
 	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
+}
+
+// ApplyDefaultQueryOptions returns a function which will set default values on
+// the options based on the configuration. The RuntimeConfig must not be nil.
+func ApplyDefaultQueryOptions(config *RuntimeConfig) func(options *structs.QueryOptions) {
+	return func(options *structs.QueryOptions) {
+		switch {
+		case options.MaxQueryTime > config.MaxQueryTime:
+			options.MaxQueryTime = config.MaxQueryTime
+		case options.MaxQueryTime == 0:
+			options.MaxQueryTime = config.DefaultQueryTime
+		}
+	}
 }

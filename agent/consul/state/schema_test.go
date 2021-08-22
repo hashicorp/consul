@@ -1,6 +1,7 @@
 package state
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/go-memdb"
@@ -36,14 +37,18 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 	require.NoError(t, schema.Validate())
 
 	var testcases = map[string]func() map[string]indexerTestCase{
-		tableACLPolicies:     testIndexerTableACLPolicies,
-		tableACLRoles:        testIndexerTableACLRoles,
+		// acl
+		tableACLPolicies: testIndexerTableACLPolicies,
+		tableACLRoles:    testIndexerTableACLRoles,
+		// catalog
 		tableChecks:          testIndexerTableChecks,
 		tableServices:        testIndexerTableServices,
 		tableNodes:           testIndexerTableNodes,
-		tableConfigEntries:   testIndexerTableConfigEntries,
+		tableCoordinates:     testIndexerTableCoordinates,
 		tableMeshTopology:    testIndexerTableMeshTopology,
 		tableGatewayServices: testIndexerTableGatewayServices,
+		// config
+		tableConfigEntries: testIndexerTableConfigEntries,
 	}
 	addEnterpriseIndexerTestCases(testcases)
 
@@ -106,11 +111,21 @@ func (tc indexerTestCase) run(t *testing.T, indexer memdb.Indexer) {
 		}
 	}
 
+	sortMultiByteSlice := func(v [][]byte) {
+		sort.Slice(v, func(i, j int) bool {
+			return string(v[i]) < string(v[j])
+		})
+	}
+
 	if i, ok := indexer.(memdb.MultiIndexer); ok {
-		valid, actual, err := i.FromObject(tc.writeMulti.source)
-		require.NoError(t, err)
-		require.True(t, valid)
-		require.Equal(t, tc.writeMulti.expected, actual)
+		t.Run("writeIndexMulti", func(t *testing.T) {
+			valid, actual, err := i.FromObject(tc.writeMulti.source)
+			require.NoError(t, err)
+			require.True(t, valid)
+			sortMultiByteSlice(actual)
+			sortMultiByteSlice(tc.writeMulti.expected)
+			require.ElementsMatch(t, tc.writeMulti.expected, actual)
+		})
 	}
 
 	for _, extra := range tc.extra {

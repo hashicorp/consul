@@ -1,0 +1,3 @@
+```release-note:bug
+acl: fixes a bug that prevented the default user token from being used to authorize service registration for connect proxies.
+```

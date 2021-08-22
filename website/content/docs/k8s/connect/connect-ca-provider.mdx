@@ -89,8 +89,9 @@ $ kubectl create secret generic vault-config --from-file=config=vault-config.jso
 We will provide this secret and the Vault CA secret, to the Consul server via the
 `server.extraVolumes` Helm value.
 
+<CodeBlockConfig filename="config.yaml" highlight="4-13">
+
 ```yaml
-# config.yaml
 global:
   name: consul
 server:
@@ -107,6 +108,8 @@ server:
 connectInject:
   enabled: true
 ```
+
+</CodeBlockConfig>
 
 Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
 
@@ -127,7 +130,6 @@ $ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/co
     "IntermediatePKIPath": "connect-intermediate",
     "LeafCertTTL": "72h",
     "RootPKIPath": "connect-root",
-    "RotationPeriod": "2160h",
     "Token": "s.VgQvaXl8xGFO1RUxAPbPbsfN"
   },
   "State": null,

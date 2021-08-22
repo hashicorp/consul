@@ -55,7 +55,7 @@ func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *EnterpriseMeta) 
 }
 
 func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func aclServiceIdentityRules(svc string, _ *EnterpriseMeta) string {

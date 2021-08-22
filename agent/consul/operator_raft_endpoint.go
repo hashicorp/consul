@@ -19,11 +19,11 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	}
 
 	// This action requires operator read access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	authz, err := op.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
+	if authz.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -81,14 +81,14 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -134,14 +134,14 @@ func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, repl
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := op.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := op.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

@@ -59,6 +59,10 @@ func TestRun_FlagValidation(t *testing.T) {
 }
 
 func TestGenerateConfigFromFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	cases := []struct {
 		name           string
 		command        func() cmd

@@ -1,0 +1,25 @@
+---
+class: css
+---
+# definition-table
+
+Simple CSS component to render a `dl` similar to a table with column headers.
+Contents of the `dd` are currently inline-block'ed for CopyButton reasons.
+
+```hbs preview-template
+<div class="definition-table">
+  <dl>
+    <dt>Title 1</dt>
+    <dd>Value</dd>
+    <dt>Title 2</dt>
+    <dd><CopyButton @name="Title 2" @value="Value"/>Value</dd>
+  </dl>
+</div>
+```
+
+
+```css
+.definition-table {
+  @extend %definition-table;
+}
+```

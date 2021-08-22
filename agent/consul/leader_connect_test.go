@@ -14,7 +14,6 @@ import (
 
 	uuid "github.com/hashicorp/go-uuid"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -24,6 +23,157 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestLeader_Builtin_PrimaryCA_ChangeKeyConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	types := []struct {
+		keyType string
+		keyBits int
+	}{
+		{connect.DefaultPrivateKeyType, connect.DefaultPrivateKeyBits},
+		{"ec", 256},
+		{"ec", 384},
+		{"rsa", 2048},
+		{"rsa", 4096},
+	}
+
+	for _, src := range types {
+		for _, dst := range types {
+			if src == dst {
+				continue // skip
+			}
+			src := src
+			dst := dst
+			t.Run(fmt.Sprintf("%s-%d to %s-%d", src.keyType, src.keyBits, dst.keyType, dst.keyBits), func(t *testing.T) {
+				t.Parallel()
+
+				providerState := map[string]string{"foo": "dc1-value"}
+
+				// Initialize primary as the primary DC
+				dir1, srv := testServerWithConfig(t, func(c *Config) {
+					c.Datacenter = "dc1"
+					c.PrimaryDatacenter = "dc1"
+					c.Build = "1.6.0"
+					c.CAConfig.Config["PrivateKeyType"] = src.keyType
+					c.CAConfig.Config["PrivateKeyBits"] = src.keyBits
+					c.CAConfig.Config["test_state"] = providerState
+				})
+				defer os.RemoveAll(dir1)
+				defer srv.Shutdown()
+				codec := rpcClient(t, srv)
+				defer codec.Close()
+
+				testrpc.WaitForLeader(t, srv.RPC, "dc1")
+				testrpc.WaitForActiveCARoot(t, srv.RPC, "dc1", nil)
+
+				var (
+					provider ca.Provider
+					caRoot   *structs.CARoot
+				)
+				retry.Run(t, func(r *retry.R) {
+					provider, caRoot = getCAProviderWithLock(srv)
+					require.NotNil(r, caRoot)
+					// Sanity check CA is using the correct key type
+					require.Equal(r, src.keyType, caRoot.PrivateKeyType)
+					require.Equal(r, src.keyBits, caRoot.PrivateKeyBits)
+				})
+
+				runStep(t, "sign leaf cert and make sure chain is correct", func(t *testing.T) {
+					spiffeService := &connect.SpiffeIDService{
+						Host:       "node1",
+						Namespace:  "default",
+						Datacenter: "dc1",
+						Service:    "foo",
+					}
+					raw, _ := connect.TestCSR(t, spiffeService)
+
+					leafCsr, err := connect.ParseCSR(raw)
+					require.NoError(t, err)
+
+					leafPEM, err := provider.Sign(leafCsr)
+					require.NoError(t, err)
+
+					// Check that the leaf signed by the new cert can be verified using the
+					// returned cert chain
+					require.NoError(t, connect.ValidateLeaf(caRoot.RootCert, leafPEM, []string{}))
+				})
+
+				runStep(t, "verify persisted state is correct", func(t *testing.T) {
+					state := srv.fsm.State()
+					_, caConfig, err := state.CAConfig(nil)
+					require.NoError(t, err)
+					require.Equal(t, providerState, caConfig.State)
+				})
+
+				runStep(t, "change roots", func(t *testing.T) {
+					// Update a config value
+					newConfig := &structs.CAConfiguration{
+						Provider: "consul",
+						Config: map[string]interface{}{
+							"PrivateKey":     "",
+							"RootCert":       "",
+							"PrivateKeyType": dst.keyType,
+							"PrivateKeyBits": dst.keyBits,
+							// This verifies the state persistence for providers although Consul
+							// provider doesn't actually use that mechanism outside of tests.
+							"test_state": providerState,
+						},
+					}
+
+					args := &structs.CARequest{
+						Datacenter: "dc1",
+						Config:     newConfig,
+					}
+					var reply interface{}
+					require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+				})
+
+				var (
+					newProvider ca.Provider
+					newCaRoot   *structs.CARoot
+				)
+				retry.Run(t, func(r *retry.R) {
+					newProvider, newCaRoot = getCAProviderWithLock(srv)
+					require.NotNil(r, newCaRoot)
+					// Sanity check CA is using the correct key type
+					require.Equal(r, dst.keyType, newCaRoot.PrivateKeyType)
+					require.Equal(r, dst.keyBits, newCaRoot.PrivateKeyBits)
+				})
+
+				runStep(t, "sign leaf cert and make sure NEW chain is correct", func(t *testing.T) {
+					spiffeService := &connect.SpiffeIDService{
+						Host:       "node1",
+						Namespace:  "default",
+						Datacenter: "dc1",
+						Service:    "foo",
+					}
+					raw, _ := connect.TestCSR(t, spiffeService)
+
+					leafCsr, err := connect.ParseCSR(raw)
+					require.NoError(t, err)
+
+					leafPEM, err := newProvider.Sign(leafCsr)
+					require.NoError(t, err)
+
+					// Check that the leaf signed by the new cert can be verified using the
+					// returned cert chain
+					require.NoError(t, connect.ValidateLeaf(newCaRoot.RootCert, leafPEM, []string{}))
+				})
+
+				runStep(t, "verify persisted state is still correct", func(t *testing.T) {
+					state := srv.fsm.State()
+					_, caConfig, err := state.CAConfig(nil)
+					require.NoError(t, err)
+					require.Equal(t, providerState, caConfig.State)
+				})
+			})
+		}
+	}
+
+}
 
 func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 	if testing.Short() {
@@ -51,11 +201,11 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// Initialize primary as the primary DC
 			dir1, s1 := testServerWithConfig(t, func(c *Config) {
 				c.Datacenter = "primary"
-				c.ACLDatacenter = "primary"
+				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
 				c.ACLMasterToken = masterToken
-				c.ACLDefaultPolicy = "deny"
+				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
 				c.CAConfig.Config["test_state"] = dc1State
@@ -70,10 +220,10 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			// secondary as a secondary DC
 			dir2, s2 := testServerWithConfig(t, func(c *Config) {
 				c.Datacenter = "secondary"
-				c.ACLDatacenter = "primary"
+				c.PrimaryDatacenter = "primary"
 				c.Build = "1.6.0"
 				c.ACLsEnabled = true
-				c.ACLDefaultPolicy = "deny"
+				c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 				c.ACLTokenReplication = true
 				c.CAConfig.Config["PrivateKeyType"] = tc.keyType
 				c.CAConfig.Config["PrivateKeyBits"] = tc.keyBits
@@ -184,6 +334,10 @@ func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 }
 
 func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	ca.SkipIfVaultNotPresent(t)
 
 	// no parallel execution because we change globals
@@ -224,7 +378,10 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 		}
 	})
 	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	defer func() {
+		s1.Shutdown()
+		s1.leaderRoutineManager.Wait()
+	}()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -318,10 +475,9 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 		c.CAConfig = &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"PrivateKey":     "",
-				"RootCert":       "",
-				"RotationPeriod": "2160h",
-				"LeafCertTTL":    "5s",
+				"PrivateKey":  "",
+				"RootCert":    "",
+				"LeafCertTTL": "5s",
 				// The retry loop only retries for 7sec max and
 				// the ttl needs to be below so that it
 				// triggers definitely.
@@ -334,7 +490,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 		}
 	})
 	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+	defer func() {
+		s1.Shutdown()
+		s1.leaderRoutineManager.Wait()
+	}()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -345,7 +504,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 		c.Build = "1.6.0"
 	})
 	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
+	defer func() {
+		s2.Shutdown()
+		s2.leaderRoutineManager.Wait()
+	}()
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
@@ -439,6 +601,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -486,7 +649,6 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 		Config: map[string]interface{}{
 			"PrivateKey":          newKey,
 			"RootCert":            "",
-			"RotationPeriod":      90 * 24 * time.Hour,
 			"IntermediateCertTTL": 72 * 24 * time.Hour,
 		},
 	}
@@ -690,6 +852,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1011,20 +1174,18 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 	return &rootList, active, nil
 }
 
-func TestLeader_GenerateCASignRequest(t *testing.T) {
-	csr := "A"
-	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
-	req := s.generateCASignRequest(csr)
-	assert.Equal(t, "east", req.RequestDatacenter())
-}
-
 func TestLeader_CARootPruning(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	// Can not use t.Parallel(), because this modifies a global.
+	origPruneInterval := caRootPruneInterval
 	caRootPruneInterval = 200 * time.Millisecond
+	t.Cleanup(func() {
+		// Reset the value of the global prune interval so that it doesn't affect other tests
+		caRootPruneInterval = origPruneInterval
+	})
 
 	require := require.New(t)
 	dir1, s1 := testServer(t)
@@ -1051,11 +1212,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    "500ms",
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"SkipValidate":   true,
+			"LeafCertTTL":  "500ms",
+			"PrivateKey":   newKey,
+			"RootCert":     "",
+			"SkipValidate": true,
 		},
 	}
 	{
@@ -1125,9 +1285,8 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"PrivateKey": newKey,
+			"RootCert":   "",
 		},
 	}
 	{
@@ -1431,11 +1590,10 @@ func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
 	newConfig := &structs.CAConfiguration{
 		Provider: "consul",
 		Config: map[string]interface{}{
-			"LeafCertTTL":    "500ms",
-			"PrivateKey":     newKey,
-			"RootCert":       "",
-			"RotationPeriod": "2160h",
-			"SkipValidate":   true,
+			"LeafCertTTL":  "500ms",
+			"PrivateKey":   newKey,
+			"RootCert":     "",
+			"SkipValidate": true,
 		},
 		ForceWithoutCrossSigning: true,
 	}

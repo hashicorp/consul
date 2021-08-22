@@ -54,7 +54,7 @@
       <div>
           <div>
     {{#if authorized}}
-              <nav aria-label="Breadcrumb">
+              <nav aria-label="Breadcrumb" data-test-breadcrumbs>
                   <YieldSlot @name="breadcrumbs">
                     {{document-attrs class="with-breadcrumbs"}}
                     {{yield}}
@@ -88,7 +88,7 @@
   </header>
   <div>
       {{#if (not enabled) }}
-        <EmptyState>
+        <EmptyState data-test-acls-disabled>
           <BlockSlot @name="header">
             <h2>Welcome to ACLs</h2>
           </BlockSlot>

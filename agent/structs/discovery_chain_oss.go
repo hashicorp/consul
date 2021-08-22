@@ -3,5 +3,5 @@
 package structs
 
 func (t *DiscoveryTarget) GetEnterpriseMetadata() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }

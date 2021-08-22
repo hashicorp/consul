@@ -51,7 +51,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	logger.Trace("new subscription")
 	defer logger.Trace("subscription closed")
 
-	entMeta := structs.NewEnterpriseMeta(req.Namespace)
+	entMeta := structs.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
 	authz, err := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
 	if err != nil {
 		return err
@@ -75,9 +75,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			return err
 		}
 
-		var ok bool
-		event, ok = filterByAuth(authz, event)
-		if !ok {
+		if !event.Payload.HasReadPermission(authz) {
 			continue
 		}
 
@@ -96,6 +94,7 @@ func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs
 		Token:     req.Token,
 		Index:     req.Index,
 		Namespace: entMeta.NamespaceOrEmpty(),
+		Partition: entMeta.PartitionOrEmpty(),
 	}
 }
 
@@ -124,16 +123,6 @@ func forwardToDC(
 			}
 		}
 	}
-}
-
-// filterByAuth to only those Events allowed by the acl token.
-func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool) {
-	// authz will be nil when ACLs are disabled
-	if authz == nil {
-		return event, true
-	}
-
-	return event, event.Payload.HasReadPermission(authz)
 }
 
 func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {

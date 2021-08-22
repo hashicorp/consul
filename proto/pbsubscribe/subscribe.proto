@@ -79,6 +79,12 @@ message SubscribeRequest {
     //
     // Namespace is an enterprise-only feature.
     string Namespace = 6;
+
+    // Partition which contains the resources. If Partition is not specified the
+    // default partition will be used.
+    //
+    // Partition is an enterprise-only feature.
+    string Partition = 7;
 }
 
 // Event describes a streaming update on a subscription. Events are used both to

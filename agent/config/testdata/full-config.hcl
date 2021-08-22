@@ -198,7 +198,6 @@ auto_encrypt = {
 connect {
     ca_provider = "consul"
     ca_config {
-        rotation_period = "90h"
         intermediate_cert_ttl = "8760h"
         leaf_cert_ttl = "1h"
         # hack float since json parses numbers as float and we have to
@@ -285,8 +284,8 @@ limits {
     rpc_rate = 12029.43
     rpc_max_burst = 44848
     rpc_max_conns_per_client = 2954
-    kv_max_value_size = 1234567800000000
-    txn_max_req_len = 5678000000000000
+    kv_max_value_size = 1234567800
+    txn_max_req_len = 567800000
 }
 log_level = "k1zo9Spt"
 log_json = true
@@ -298,6 +297,7 @@ node_meta {
 }
 node_name = "otlLxGaI"
 non_voting_server = true
+partition = ""
 performance {
     leave_drain_time = "8265s"
     raft_multiplier = 5
@@ -576,6 +576,7 @@ services = [
                 {
                     destination_type = "prepared_query"
                     destination_namespace = "9nakw0td"
+                    destination_partition = "part-9nakw0td"
                     destination_name = "KSd8HsRl"
                     local_bind_port = 11884
                     local_bind_address = "127.24.88.0"
@@ -583,6 +584,7 @@ services = [
                 {
                     destination_type = "prepared_query"
                     destination_namespace = "9nakw0td"
+                    destination_partition = "part-9nakw0td"
                     destination_name = "placeholder"
                     local_bind_socket_path = "/foo/bar/upstream"
                     local_bind_socket_mode = "0600"

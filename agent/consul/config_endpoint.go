@@ -81,7 +81,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
-	if authz != nil && !args.Entry.CanWrite(authz) {
+	if !args.Entry.CanWrite(authz) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -122,7 +122,7 @@ func (c *ConfigEntry) Get(args *structs.ConfigEntryQuery, reply *structs.ConfigE
 	}
 	lookupEntry.GetEnterpriseMeta().Merge(&args.EnterpriseMeta)
 
-	if authz != nil && !lookupEntry.CanRead(authz) {
+	if !lookupEntry.CanRead(authz) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -180,7 +180,7 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 			// Filter the entries returned by ACL permissions.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if authz != nil && !entry.CanRead(authz) {
+				if !entry.CanRead(authz) {
 					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
@@ -240,7 +240,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 			// Filter the entries returned by ACL permissions or by the provided kinds.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
-				if authz != nil && !entry.CanRead(authz) {
+				if !entry.CanRead(authz) {
 					continue
 				}
 				// Doing this filter outside of memdb isn't terribly
@@ -290,7 +290,7 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 		return err
 	}
 
-	if authz != nil && !args.Entry.CanWrite(authz) {
+	if !args.Entry.CanWrite(authz) {
 		return acl.ErrPermissionDenied
 	}
 
@@ -315,7 +315,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 	if err != nil {
 		return err
 	}
-	if authz != nil && authz.ServiceRead(args.Name, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -479,7 +479,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 					cfgMap := make(map[string]interface{})
 					upstreamDefaults.MergeInto(cfgMap)
 
-					wildcard := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMeta())
+					wildcard := structs.NewServiceID(structs.WildcardSpecifier, args.WildcardEnterpriseMetaForPartition())
 					usConfigs[wildcard] = cfgMap
 				}
 			}

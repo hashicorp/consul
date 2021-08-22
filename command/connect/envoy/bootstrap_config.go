@@ -86,7 +86,7 @@ type BootstrapConfig struct {
 	// configure the aspects that Connect relies upon to work. It's recommended
 	// that this only be used if necessary, and that it be based on the default
 	// template in
-	// https://github.com/hashicorp/consul/blob/master/command/connect/envoy/bootstrap_tpl.go
+	// https://github.com/hashicorp/consul/blob/main/command/connect/envoy/bootstrap_tpl.go
 	// for the correct version of Consul and Envoy being used.
 	OverrideJSONTpl string `mapstructure:"envoy_bootstrap_json_tpl"`
 
@@ -579,6 +579,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 	// metrics. This cluster will only be created once since it's only created
 	// when prometheusBackendPort is set, and prometheusBackendPort is only set
 	// when calling this function if c.PrometheusBindAddr is set.
+	clusterAddress := args.AdminBindAddress
 	clusterPort := args.AdminBindPort
 	clusterName := selfAdminName
 	if prometheusBackendPort != "" {
@@ -601,7 +602,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							"endpoint": {
 								"address": {
 									"socket_address": {
-										"address": "127.0.0.1",
+										"address": "` + clusterAddress + `",
 										"port_value": ` + clusterPort + `
 									}
 								}

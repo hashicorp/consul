@@ -54,7 +54,7 @@ module('Integration | Serializer | session | response', function(hooks) {
           Datacenter: dc,
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: payload[0].Namespace || undefinedNspace,
+            [NSPACE.toLowerCase()]: nspace || '',
           },
           Namespace: payload[0].Namespace || undefinedNspace,
           uid: `["${payload[0].Namespace || undefinedNspace}","${dc}","${id}"]`,

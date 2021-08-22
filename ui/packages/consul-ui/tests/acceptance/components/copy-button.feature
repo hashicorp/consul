@@ -22,5 +22,5 @@ Feature: components / copy-button
       node: node-0
     ---
     Then the url should be /dc-1/nodes/node-0/health-checks
-    When I click ".healthcheck-output:nth-child(1) button.copy-btn"
+    When I click ".healthcheck-output:nth-child(1) .copy-button button"
     Then I copied "The output"

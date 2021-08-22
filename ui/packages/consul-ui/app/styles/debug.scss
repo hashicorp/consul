@@ -8,6 +8,7 @@
 @import 'consul-ui/components/horizontal-kv-list/debug';
 @import 'consul-ui/components/icon-definition/debug';
 @import 'consul-ui/components/inline-alert/debug';
+@import 'consul-ui/components/definition-table/debug';
 
 html.is-debug body > .brand-loader {
   display: none !important;

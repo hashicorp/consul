@@ -407,6 +407,7 @@ type RegisterRequest struct {
 	// node portion of this update will not apply.
 	SkipNodeUpdate bool
 
+	// TODO(partitions): ensure the partition part is used for node reg
 	// EnterpriseMeta is the embedded enterprise metadata
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
@@ -436,6 +437,7 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 	// Check if any of the node-level fields are being changed.
 	if r.ID != node.ID ||
 		r.Node != node.Node ||
+		r.PartitionOrDefault() != node.PartitionOrDefault() ||
 		r.Address != node.Address ||
 		r.Datacenter != node.Datacenter ||
 		!reflect.DeepEqual(r.TaggedAddresses, node.TaggedAddresses) ||
@@ -450,10 +452,11 @@ func (r *RegisterRequest) ChangesNode(node *Node) bool {
 // to deregister a node as providing a service. If no service is
 // provided the entire node is deregistered.
 type DeregisterRequest struct {
-	Datacenter     string
-	Node           string
-	ServiceID      string
-	CheckID        types.CheckID
+	Datacenter string
+	Node       string
+	ServiceID  string
+	CheckID    types.CheckID
+	// TODO(partitions): ensure the partition part is used for node reg
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
@@ -481,10 +484,19 @@ func (r *DeregisterRequest) UnmarshalJSON(data []byte) error {
 // in queries so that we can adjust the response based on its network
 // coordinates.
 type QuerySource struct {
-	Datacenter string
-	Segment    string
-	Node       string
-	Ip         string
+	Datacenter    string
+	Segment       string
+	Node          string
+	NodePartition string `json:",omitempty"`
+	Ip            string
+}
+
+func (s QuerySource) NodeEnterpriseMeta() *EnterpriseMeta {
+	return NodeEnterpriseMetaInPartition(s.NodePartition)
+}
+
+func (s QuerySource) NodePartitionOrDefault() string {
+	return PartitionOrDefault(s.NodePartition)
 }
 
 type DatacentersRequest struct {
@@ -737,10 +749,19 @@ type Node struct {
 	Node            string
 	Address         string
 	Datacenter      string
+	Partition       string `json:",omitempty"`
 	TaggedAddresses map[string]string
 	Meta            map[string]string
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (n *Node) GetEnterpriseMeta() *EnterpriseMeta {
+	return NodeEnterpriseMetaInPartition(n.Partition)
+}
+
+func (n *Node) PartitionOrDefault() string {
+	return PartitionOrDefault(n.Partition)
 }
 
 func (n *Node) BestAddress(wan bool) string {
@@ -759,6 +780,7 @@ type Nodes []*Node
 func (n *Node) IsSame(other *Node) bool {
 	return n.ID == other.ID &&
 		n.Node == other.Node &&
+		n.PartitionOrDefault() == other.PartitionOrDefault() &&
 		n.Address == other.Address &&
 		n.Datacenter == other.Datacenter &&
 		reflect.DeepEqual(n.TaggedAddresses, other.TaggedAddresses) &&
@@ -877,13 +899,10 @@ type ServiceNode struct {
 	ServiceProxy             ConnectProxyConfig
 	ServiceConnect           ServiceConnect
 
+	// TODO(partitions): ensure that Node+Service are both in the same Partition
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
-}
-
-func (s *ServiceNode) NodeIdentity() Identity {
-	return Identity{ID: s.Node}
 }
 
 // PartialClone() returns a clone of the given service node, minus the node-
@@ -1082,6 +1101,7 @@ type NodeService struct {
 	// somewhere this is used in API output.
 	LocallyRegisteredAsSidecar bool `json:"-" bexpr:"-"`
 
+	// TODO(partitions): ensure that Node+Service are both in the same Partition
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
@@ -1139,6 +1159,7 @@ func (ns *NodeService) CompoundServiceName() ServiceName {
 //
 // Note: We do not have strict character restrictions in all node names, so this should NOT be split on / to retrieve components.
 func UniqueID(node string, compoundID string) string {
+	// TODO(partitions)
 	return fmt.Sprintf("%s/%s", node, compoundID)
 }
 
@@ -1197,6 +1218,8 @@ func (s *NodeService) IsGateway() bool {
 // other validation still exists in Catalog.Register.
 func (s *NodeService) Validate() error {
 	var result error
+
+	// TODO(partitions): remember to double check that this doesn't cross partition boundaries
 
 	// ConnectProxy validation
 	if s.Kind == ServiceKindConnectProxy {
@@ -1455,6 +1478,9 @@ type HealthCheck struct {
 	ServiceTags []string      // optional service tags
 	Type        string        // Check type: http/ttl/tcp/etc
 
+	Interval string // from definition
+	Timeout  string // from definition
+
 	// ExposedPort is the port of the exposed Envoy listener representing the
 	// HTTP or GRPC health check of the service.
 	ExposedPort int
@@ -1467,7 +1493,10 @@ type HealthCheck struct {
 }
 
 func (hc *HealthCheck) NodeIdentity() Identity {
-	return Identity{ID: hc.Node}
+	return Identity{
+		ID:             hc.Node,
+		EnterpriseMeta: *hc.NodeEnterpriseMetaForPartition(),
+	}
 }
 
 func (hc *HealthCheck) CompoundServiceID() ServiceID {
@@ -1787,6 +1816,7 @@ OUTER:
 type NodeInfo struct {
 	ID              types.NodeID
 	Node            string
+	Partition       string `json:",omitempty"`
 	Address         string
 	TaggedAddresses map[string]string
 	Meta            map[string]string
@@ -1817,7 +1847,7 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	var cid CheckID
 	cid.ID = id
 	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
+		entMeta = DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	cid.EnterpriseMeta = *entMeta
@@ -1843,7 +1873,7 @@ func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
 	var sid ServiceID
 	sid.ID = id
 	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
+		entMeta = DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	sid.EnterpriseMeta = *entMeta
@@ -1886,7 +1916,7 @@ func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
 	var ret ServiceName
 	ret.Name = name
 	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
+		entMeta = DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	ret.EnterpriseMeta = *entMeta
@@ -2239,7 +2269,7 @@ type Sessions []*Session
 type Session struct {
 	ID            string
 	Name          string
-	Node          string
+	Node          string // TODO(partitions): ensure that the entmeta interacts with this node field properly
 	LockDelay     time.Duration
 	Behavior      SessionBehavior // What to do when session is invalidated
 	TTL           string
@@ -2328,9 +2358,18 @@ type IndexedSessions struct {
 
 // Coordinate stores a node name with its associated network coordinate.
 type Coordinate struct {
-	Node    string
-	Segment string
-	Coord   *coordinate.Coordinate
+	Node      string
+	Segment   string
+	Partition string `json:",omitempty"` // TODO(partitions): fully thread this needle
+	Coord     *coordinate.Coordinate
+}
+
+func (c *Coordinate) GetEnterpriseMeta() *EnterpriseMeta {
+	return NodeEnterpriseMetaInPartition(c.Partition)
+}
+
+func (c *Coordinate) PartitionOrDefault() string {
+	return PartitionOrDefault(c.Partition)
 }
 
 type Coordinates []*Coordinate
@@ -2361,10 +2400,11 @@ type DatacenterMap struct {
 // CoordinateUpdateRequest is used to update the network coordinate of a given
 // node.
 type CoordinateUpdateRequest struct {
-	Datacenter string
-	Node       string
-	Segment    string
-	Coord      *coordinate.Coordinate
+	Datacenter     string
+	Node           string
+	Segment        string
+	Coord          *coordinate.Coordinate
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	WriteRequest
 }
 

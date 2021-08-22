@@ -128,16 +128,14 @@ RUN_QUERY:
 	events := s.agent.UserEvents()
 
 	// Filter the events using the ACL, if present
-	if authz != nil {
-		for i := 0; i < len(events); i++ {
-			name := events[i].Name
-			if authz.EventRead(name, nil) == acl.Allow {
-				continue
-			}
-			s.agent.logger.Debug("dropping event from result due to ACLs", "event", name)
-			events = append(events[:i], events[i+1:]...)
-			i--
+	for i := 0; i < len(events); i++ {
+		name := events[i].Name
+		if authz.EventRead(name, nil) == acl.Allow {
+			continue
 		}
+		s.agent.logger.Debug("dropping event from result due to ACLs", "event", name)
+		events = append(events[:i], events[i+1:]...)
+		i--
 	}
 
 	// Filter the events if requested

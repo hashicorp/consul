@@ -21,7 +21,7 @@ export default class EditRoute extends Route {
     const nspace = this.optionalParams().nspace;
     return hash({
       dc: dc,
-      nspace: nspace || 'default',
+      nspace: nspace,
       parent:
         typeof key !== 'undefined'
           ? this.repo.findBySlug({

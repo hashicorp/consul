@@ -48,11 +48,11 @@ A wildcard specifier cannot be set on a listener of protocol `tcp`.
 ### TCP listener
 
 <Tabs>
-<Tab heading="HCL">
-<Tabs>
 <Tab heading="Consul OSS">
 
 Set up a TCP listener on an ingress gateway named "us-east-ingress" to proxy traffic to the "db" service:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
@@ -71,11 +71,46 @@ Listeners = [
 ]
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: us-east-ingress
+spec:
+  listeners:
+    - port: 3456
+      protocol: tcp
+      services:
+        - name: db
+```
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Listeners": [
+    {
+      "Port": 3456,
+      "Protocol": "tcp",
+      "Services": [
+        {
+          "Name": "db"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
 Set up a TCP listener on an ingress gateway named "us-east-ingress" in the default namespace
 to proxy traffic to the "db" service in the ops namespace:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
@@ -96,34 +131,6 @@ Listeners = [
 ]
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set up a TCP listener on an ingress gateway named "us-east-ingress" to proxy traffic to the "db" service:
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: IngressGateway
-metadata:
-  name: us-east-ingress
-spec:
-  listeners:
-    - port: 3456
-      protocol: tcp
-      services:
-        - name: db
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set up a TCP listener on an ingress gateway named "us-east-ingress" in the default namespace
-to proxy traffic to the "db" service in the ops namespace:
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: IngressGateway
@@ -138,39 +145,6 @@ spec:
         - name: db
           namespace: ops
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set up a TCP listener on an ingress gateway named "us-east-ingress" to proxy traffic to the "db" service:
-
-```json
-{
-  "Kind": "ingress-gateway",
-  "Name": "us-east-ingress",
-  "Listeners": [
-    {
-      "Port": 3456,
-      "Protocol": "tcp",
-      "Services": [
-        {
-          "Name": "db"
-        }
-      ]
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set up a TCP listener on an ingress gateway named "us-east-ingress" in the default namespace
-to proxy traffic to the "db" service in the ops namespace:
 
 ```json
 {
@@ -192,20 +166,20 @@ to proxy traffic to the "db" service in the ops namespace:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
 ### Wildcard HTTP listener
 
 <Tabs>
-<Tab heading="HCL">
-<Tabs>
 <Tab heading="Consul OSS">
 
 Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the datacenter.
 Also make two services available over a custom port with user-provided hosts, and enable TLS on every listener:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
@@ -231,22 +205,83 @@ Listeners = [
     Services = [
       {
         Name  = "api"
-        Hosts = ["foo.example.com", "foo.example.com:4567"]
+        Hosts = ["foo.example.com"]
       },
       {
         Name  = "web"
-        Hosts = ["website.example.com", "website.example.com:4567"]
+        Hosts = ["website.example.com"]
       }
     ]
   }
 ]
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: us-east-ingress
+spec:
+  tls:
+    enabled: true
+  listeners:
+    - port: 8080
+      protocol: http
+      services:
+        - name: '*'
+    - port: 4567
+      protocol: http
+      services:
+        - name: api
+          hosts: ['foo.example.com']
+        - name: web
+          hosts: ['website.example.com']
+```
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "TLS": {
+    "Enabled": true
+  },
+  "Listeners": [
+    {
+      "Port": 8080,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "*"
+        }
+      ]
+    },
+    {
+      "Port": 4567,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "api",
+          "Hosts": ["foo.example.com"]
+        },
+        {
+          "Name": "web",
+          "Hosts": ["website.example.com"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
 Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the frontend namespace.
 Also make two services in the frontend namespace available over a custom port with user-provided hosts, and enable TLS on every listener:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
@@ -275,55 +310,17 @@ Listeners = [
       {
         Namespace = "frontend"
         Name  = "api"
-        Hosts = ["foo.example.com", "foo.example.com:4567"]
+        Hosts = ["foo.example.com"]
       },
       {
         Namespace = "frontend"
         Name  = "web"
-        Hosts = ["website.example.com", "website.example.com:4567"]
+        Hosts = ["website.example.com"]
       }
     ]
   }
 ]
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the datacenter.
-Also make two services available over a custom port with user-provided hosts, and enable TLS on every listener:
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: IngressGateway
-metadata:
-  name: us-east-ingress
-spec:
-  tls:
-    enabled: true
-  listeners:
-    - port: 8080
-      protocol: http
-      services:
-        - name: '*'
-    - port: 4567
-      protocol: http
-      services:
-        - name: api
-          hosts: ['foo.example.com', 'foo.example.com:4567']
-        - name: web
-          hosts: ['website.example.com', 'website.example.com:4567']
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the frontend namespace.
-Also make two services in the frontend namespace available over a custom port with user-provided hosts, and enable TLS on every listener:
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -345,62 +342,11 @@ spec:
       services:
         - name: api
           namespace: frontend
-          hosts: ['foo.example.com', 'foo.example.com:4567']
+          hosts: ['foo.example.com']
         - name: web
           namespace: frontend
-          hosts: ['website.example.com', 'website.example.com:4567']
+          hosts: ['website.example.com']
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the datacenter.
-Also make two services available over a custom port with user-provided hosts, and enable TLS on every listener:
-
-```json
-{
-  "Kind": "ingress-gateway",
-  "Name": "us-east-ingress",
-  "TLS": {
-    "Enabled": true
-  },
-  "Listeners": [
-    {
-      "Port": 8080,
-      "Protocol": "http",
-      "Services": [
-        {
-          "Name": "*"
-        }
-      ]
-    },
-    {
-      "Port": 4567,
-      "Protocol": "http",
-      "Services": [
-        {
-          "Name": "api",
-          "Hosts": ["foo.example.com", "foo.example.com:4567"]
-        },
-        {
-          "Name": "web",
-          "Hosts": ["website.example.com", "website.example.com:4567"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set up a wildcard HTTP listener on an ingress gateway named "us-east-ingress" to proxy traffic to all services in the frontend namespace.
-Also make two services in the frontend namespace available over a custom port with user-provided hosts, and enable TLS on every listener:
 
 ```json
 {
@@ -428,12 +374,12 @@ Also make two services in the frontend namespace available over a custom port wi
         {
           "Namespace": "frontend",
           "Name": "api",
-          "Hosts": ["foo.example.com", "foo.example.com:4567"]
+          "Hosts": ["foo.example.com"]
         },
         {
           "Namespace": "frontend",
           "Name": "web",
-          "Hosts": ["website.example.com", "website.example.com:4567"]
+          "Hosts": ["website.example.com"]
         }
       ]
     }
@@ -441,20 +387,20 @@ Also make two services in the frontend namespace available over a custom port wi
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
 ### HTTP listener with path-based routing
 
 <Tabs>
-<Tab heading="HCL">
-<Tabs>
 <Tab heading="Consul OSS">
 
 Set up a HTTP listener on an ingress gateway named "us-east-ingress" to proxy
 traffic to a virtual service named "api".
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
@@ -473,11 +419,46 @@ Listeners = [
 ]
 ```
 
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: us-east-ingress
+spec:
+  listeners:
+    - port: 80
+      protocol: http
+      services:
+        - name: api
+```
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Listeners": [
+    {
+      "Port": 80,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "api"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
 
 Set up a HTTP listener on an ingress gateway named "us-east-ingress" in the
 default namespace to proxy traffic to a virtual service named "api".
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "ingress-gateway"
@@ -498,35 +479,6 @@ Listeners = [
 ]
 ```
 
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set up a HTTP listener on an ingress gateway named "us-east-ingress" to proxy
-traffic to a virtual service named "api".
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: IngressGateway
-metadata:
-  name: us-east-ingress
-spec:
-  listeners:
-    - port: 80
-      protocol: http
-      services:
-        - name: api
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set up a HTTP listener on an ingress gateway named "us-east-ingress" in the
-default namespace to proxy traffic to a virtual service named "api".
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: IngressGateway
@@ -541,40 +493,6 @@ spec:
         - name: api
           namespace: frontend
 ```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
-
-Set up a HTTP listener on an ingress gateway named "us-east-ingress" to proxy
-traffic to a virtual service named "api".
-
-```json
-{
-  "Kind": "ingress-gateway",
-  "Name": "us-east-ingress",
-  "Listeners": [
-    {
-      "Port": 80,
-      "Protocol": "http",
-      "Services": [
-        {
-          "Name": "api"
-        }
-      ]
-    }
-  ]
-}
-```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-Set up a HTTP listener on an ingress gateway named "us-east-ingress" in the
-default namespace to proxy traffic to a virtual service named "api".
 
 ```json
 {
@@ -596,8 +514,8 @@ default namespace to proxy traffic to a virtual service named "api".
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
@@ -607,9 +525,9 @@ virtual service which uses path-based routing to route requests to different
 backend services:
 
 <Tabs>
-<Tab heading="HCL">
-<Tabs>
 <Tab heading="Consul OSS">
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-router"
@@ -640,48 +558,6 @@ Routes = [
 ]
 ```
 
-</Tab>
-<Tab heading="Consul Enterprise">
-
-```hcl
-Kind = "service-router"
-Name = "api"
-Namespace = "default"
-Routes = [
-  {
-    Match {
-      HTTP {
-        PathPrefix = "/billing"
-      }
-    }
-
-    Destination {
-      Service = "billing-api"
-      Namespace = "frontend"
-    }
-  },
-  {
-    Match {
-      HTTP {
-        PathPrefix = "/payments"
-      }
-    }
-
-    Destination {
-      Service = "payments-api"
-      Namespace = "frontend"
-    }
-  }
-]
-```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="Kubernetes YAML">
-<Tabs>
-<Tab heading="Consul OSS">
-
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceRouter
@@ -700,38 +576,6 @@ spec:
       destination:
         service: payments-api
 ```
-
-</Tab>
-<Tab heading="Consul Enterprise">
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceRouter
-metadata:
-  name: api
-  namespace: default
-spec:
-  routes:
-    - match:
-        http:
-          pathPrefix: '/billing'
-      destination:
-        service: billing-api
-        namespace: frontend
-    - match:
-        http:
-          pathPrefix: '/payments'
-      destination:
-        service: payments-api
-        namespace: frontend
-```
-
-</Tab>
-</Tabs>
-</Tab>
-<Tab heading="JSON">
-<Tabs>
-<Tab heading="Consul OSS">
 
 ```json
 {
@@ -762,8 +606,66 @@ spec:
 }
 ```
 
+</CodeTabs>
+
 </Tab>
 <Tab heading="Consul Enterprise">
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind = "service-router"
+Name = "api"
+Namespace = "default"
+Routes = [
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/billing"
+      }
+    }
+
+    Destination {
+      Service = "billing-api"
+      Namespace = "frontend"
+    }
+  },
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/payments"
+      }
+    }
+
+    Destination {
+      Service = "payments-api"
+      Namespace = "frontend"
+    }
+  }
+]
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceRouter
+metadata:
+  name: api
+  namespace: default
+spec:
+  routes:
+    - match:
+        http:
+          pathPrefix: '/billing'
+      destination:
+        service: billing-api
+        namespace: frontend
+    - match:
+        http:
+          pathPrefix: '/payments'
+      destination:
+        service: payments-api
+        namespace: frontend
+```
 
 ```json
 {
@@ -797,8 +699,8 @@ spec:
 }
 ```
 
-</Tab>
-</Tabs>
+</CodeTabs>
+
 </Tab>
 </Tabs>
 
@@ -882,7 +784,13 @@ spec:
         {
           name: 'Port',
           type: 'int: 0',
-          description: 'The port that the listener should receive traffic on.',
+          description: `The port on which the ingress listener should receive
+                        traffic. The port will be bound to the IP address that
+                        was specified in the [\`-address\`](/commands/connect/envoy#address)
+                        flag when starting the gateway.
+                        <b>Note:</b> The ingress listener port must not conflict
+                        with the health check port specified in the \`-address\`
+                        flag.`,
         },
         {
           name: 'Protocol',
@@ -894,7 +802,7 @@ spec:
           name: 'Services',
           type: 'array<IngressService>: <optional>',
           description:
-            'A list of services to be exposed via this listener. For "tcp" listeners, only a single service is allowed.',
+            'A list of services to be exposed via this listener. For `tcp` listeners, only a single service is allowed.',
           children: [
             {
               name: 'Name',
@@ -903,7 +811,7 @@ spec:
                                   through this listener. This can be either a service registered in the
                                   catalog, or a service defined only by [other config entries](/docs/connect/l7-traffic-management). If the wildcard specifier,
                                   \`*\`, is provided, then ALL services will be exposed through the listener.
-                                  This is not supported for listener's with protocol "tcp".`,
+                                  This is not supported for listener's with protocol \`tcp\`.`,
             },
             {
               name: 'Namespace',
@@ -928,13 +836,7 @@ spec:
               be used as part of the host to match multiple hosts, but only in the
               leftmost DNS label. This ensures that all defined hosts are valid DNS
               records. For example, \`*.example.com\` is valid, while \`example.*\` and
-              \`*-suffix.example.com\` are not.<br><br>
-              <b>Note:</b> If a well-known port is not used, i.e. a port other than 80
-              (http) or 443 (https), then the port must be appended to the host to
-              correctly match traffic. This is defined in the [HTTP/1.1 RFC](https://tools.ietf.org/html/rfc2616#section-14.23). If TLS is
-              enabled, then the host <b>without</b> the port must be added to the \`Hosts\`
-              field as well. TLS verification only matches against the hostname of the
-              incoming connection, and thus does not take into account the port.`,
+              \`*-suffix.example.com\` are not.`,
             },
           ],
         },

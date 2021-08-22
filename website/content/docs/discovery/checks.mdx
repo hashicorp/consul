@@ -64,7 +64,7 @@ There are several different kinds of checks:
   Certificate verification can be turned off by setting the `tls_skip_verify`
   field to `true` in the check definition. When using TLS, the SNI will be set
   automatically from the URL if it uses a hostname (as opposed to an IP address);
-  the value can be overriden by setting `tls_server_name`.
+  the value can be overridden by setting `tls_server_name`.
 
 - `TCP + Interval` - These checks make a TCP connection attempt to the specified
   IP/hostname and port, waiting `interval` amount of time between attempts
@@ -141,7 +141,7 @@ There are several different kinds of checks:
 
 A script check:
 
-```javascript
+```json
 {
   "check": {
     "id": "mem-util",
@@ -155,7 +155,7 @@ A script check:
 
 A HTTP check:
 
-```javascript
+```json
 {
   "check": {
     "id": "api",
@@ -174,7 +174,7 @@ A HTTP check:
 
 A TCP check:
 
-```javascript
+```json
 {
   "check": {
     "id": "ssh",
@@ -188,7 +188,7 @@ A TCP check:
 
 A TTL check:
 
-```javascript
+```json
 {
   "check": {
     "id": "web-app",
@@ -201,7 +201,7 @@ A TTL check:
 
 A Docker check:
 
-```javascript
+```json
 {
   "check": {
     "id": "mem-util",
@@ -216,7 +216,7 @@ A Docker check:
 
 A gRPC check for the whole application:
 
-```javascript
+```json
 {
   "check": {
     "id": "mem-util",
@@ -230,7 +230,7 @@ A gRPC check for the whole application:
 
 A gRPC check for the specific `my_service` service:
 
-```javascript
+```json
 {
   "check": {
     "id": "mem-util",
@@ -244,7 +244,7 @@ A gRPC check for the specific `my_service` service:
 
 A h2ping check:
 
-```javascript
+```json
 {
   "check": {
     "id": "h2ping-check",
@@ -257,7 +257,7 @@ A h2ping check:
 
 An alias check for a local service:
 
-```javascript
+```json
 {
   "check": {
     "id": "web-alias",
@@ -340,7 +340,7 @@ to be healthy. In certain cases, it may be desirable to specify the initial
 state of a health check. This can be done by specifying the `status` field in a
 health check definition, like so:
 
-```javascript
+```json
 {
   "check": {
     "id": "mem",
@@ -361,7 +361,7 @@ that the status of the health check will only affect the health status of the
 given service instead of the entire node. Service-bound health checks may be
 provided by adding a `service_id` field to a check configuration:
 
-```javascript
+```json
 {
   "check": {
     "id": "web-app",
@@ -387,7 +387,7 @@ to use the agent's credentials when configured for TLS.
 Multiple check definitions can be defined using the `checks` (plural)
 key in your configuration file.
 
-```javascript
+```json
 {
   "checks": [
     {

@@ -74,7 +74,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		}
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	// ------------------------------------------------------------
 	// cmd line flags
@@ -221,7 +221,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -237,7 +236,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -254,7 +252,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.DataDir = dataDir
 		},
@@ -285,7 +282,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -342,8 +338,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GossipWANProbeTimeout = 100 * time.Millisecond
 			rt.GossipWANSuspicionMult = 3
 			rt.ConsulServerHealthInterval = 10 * time.Millisecond
-			rt.GRPCPort = 8502
-			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
+			rt.XDSPort = 8502
+			rt.XDSAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			rt.RPCConfig.EnableStreaming = true
 		},
 	})
@@ -471,7 +467,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -492,7 +487,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -509,7 +503,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -659,7 +652,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "dc2"
 			rt.PrimaryDatacenter = "dc1"
-			rt.ACLDatacenter = "dc1"
 			rt.PrimaryGateways = []string{"a", "b"}
 			rt.DataDir = dataDir
 			// server things
@@ -1056,8 +1048,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("0.0.0.0:3")}
-			rt.GRPCPort = 4
-			rt.GRPCAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
+			rt.XDSPort = 4
+			rt.XDSAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1129,8 +1121,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3")}
-			rt.GRPCPort = 4
-			rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
+			rt.XDSPort = 4
+			rt.XDSAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1153,8 +1145,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:2"), tcpAddr("[2001:db8::1]:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("1.2.3.4:3"), tcpAddr("[2001:db8::1]:3")}
-			rt.GRPCPort = 4
-			rt.GRPCAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
+			rt.XDSPort = 4
+			rt.XDSAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1189,8 +1181,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3"), unixAddr("unix://https"), tcpAddr("[2001:db8::30]:3")}
-			rt.GRPCPort = 4
-			rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
+			rt.XDSPort = 4
+			rt.XDSAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1484,7 +1476,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.Bootstrap = false
 			rt.BootstrapExpect = 0
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.StartJoinAddrsLAN = []string{"a", "b", "c", "d"}
 			rt.NodeMeta = map[string]string{"a": "c"}
@@ -1507,8 +1498,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"start_join":["a", "b"]
 					}`,
 		},
-		hcl: []string{
-			`
+		hcl: []string{`
 					advertise_addr = "1.2.3.4"
 					advertise_addr_wan = "5.6.7.8"
 					bootstrap = true
@@ -1541,7 +1531,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.SerfAdvertiseAddrLAN = tcpAddr("1.1.1.1:8301")
 			rt.SerfAdvertiseAddrWAN = tcpAddr("2.2.2.2:8302")
 			rt.Datacenter = "b"
-			rt.ACLDatacenter = "b"
 			rt.PrimaryDatacenter = "b"
 			rt.DNSRecursors = []string{"1.2.3.6", "5.6.7.10", "1.2.3.5", "5.6.7.9"}
 			rt.NodeMeta = map[string]string{"a": "c"}
@@ -1627,7 +1616,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{`datacenter = "A"`},
 		expected: func(rt *RuntimeConfig) {
 			rt.Datacenter = "a"
-			rt.ACLDatacenter = "a"
 			rt.PrimaryDatacenter = "a"
 			rt.DataDir = dataDir
 		},
@@ -1639,7 +1627,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{`acl_datacenter = "A"`},
 		expected: func(rt *RuntimeConfig) {
 			rt.ACLsEnabled = true
-			rt.ACLDatacenter = "a"
 			rt.DataDir = dataDir
 			rt.PrimaryDatacenter = "a"
 		},
@@ -1750,15 +1737,28 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "acl_datacenter invalid",
+		desc: "primary_datacenter invalid",
 		args: []string{
 			`-datacenter=a`,
 			`-data-dir=` + dataDir,
 		},
-		json:             []string{`{ "acl_datacenter": "%" }`},
-		hcl:              []string{`acl_datacenter = "%"`},
-		expectedErr:      `acl_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
+		json:        []string{`{ "primary_datacenter": "%" }`},
+		hcl:         []string{`primary_datacenter = "%"`},
+		expectedErr: `primary_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
+	})
+	run(t, testCase{
+		desc: "acl_datacenter deprecated",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json:             []string{`{ "acl_datacenter": "ab" }`},
+		hcl:              []string{`acl_datacenter = "ab"`},
 		expectedWarnings: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLsEnabled = true
+			rt.PrimaryDatacenter = "ab"
+			rt.DataDir = dataDir
+		},
 	})
 	run(t, testCase{
 		desc: "autopilot.max_trailing_logs invalid",
@@ -3374,7 +3374,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DataDir = dataDir
 			rt.Datacenter = "two"
 			rt.PrimaryDatacenter = "one"
-			rt.ACLDatacenter = "one"
 			rt.PrimaryGateways = []string{"foo.local", "bar.local"}
 			rt.ConnectEnabled = true
 			rt.ConnectMeshGatewayWANFederationEnabled = true
@@ -5098,27 +5097,22 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		}
 
 		opts := tc.opts
+
 		fs := flag.NewFlagSet("", flag.ContinueOnError)
 		AddFlags(fs, &opts)
 		require.NoError(t, fs.Parse(tc.args))
 		require.Len(t, fs.Args(), 0)
 
-		// Then create a builder with the flags.
-		patchLoadOptsShims(&opts)
-		b, err := newBuilder(opts)
-		require.NoError(t, err)
-
-		// read the source fragments
 		for i, data := range tc.source(format) {
-			b.Sources = append(b.Sources, FileSource{
+			opts.sources = append(opts.sources, FileSource{
 				Name:   fmt.Sprintf("src-%d.%s", i, format),
 				Format: format,
 				Data:   data,
 			})
 		}
 
-		// build/merge the config fragments
-		actual, err := b.BuildAndValidate()
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
 		switch {
 		case err == nil && tc.expectedErr != "":
 			t.Fatalf("got nil want error to contain %q", tc.expectedErr)
@@ -5130,7 +5124,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		if tc.expectedErr != "" {
 			return
 		}
-		require.Equal(t, tc.expectedWarnings, b.Warnings, "warnings")
+		require.Equal(t, tc.expectedWarnings, result.Warnings, "warnings")
 
 		// build a default configuration, then patch the fields we expect to change
 		// and compare it with the generated configuration. Since the expected
@@ -5140,17 +5134,22 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		x, err := newBuilder(expectedOpts)
 		require.NoError(t, err)
 
-		expected, err := x.Build()
+		expected, err := x.build()
 		require.NoError(t, err)
 		if tc.expected != nil {
 			tc.expected(&expected)
 		}
 
+		actual := *result.RuntimeConfig
 		// both DataDir fields should always be the same, so test for the
 		// invariant, and than updated the expected, so that every test
 		// case does not need to set this field.
 		require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 		expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
+		// These fields are always the same
+		expected.ACLResolverSettings.Datacenter = expected.Datacenter
+		expected.ACLResolverSettings.ACLsEnabled = expected.ACLsEnabled
+		expected.ACLResolverSettings.NodeName = expected.NodeName
 
 		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
@@ -5189,10 +5188,9 @@ func TestLoad_FullConfig(t *testing.T) {
 		return n
 	}
 
-	defaultEntMeta := structs.DefaultEnterpriseMeta()
+	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
-		ACLDisabledTTL:             120 * time.Second,
 		AEInterval:                 time.Minute,
 		CheckDeregisterIntervalMin: time.Minute,
 		CheckReapInterval:          30 * time.Second,
@@ -5237,15 +5235,20 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLReplicationToken: "5795983a",
 		},
 
-		ACLsEnabled:                      true,
-		ACLDatacenter:                    "ejtmd43d",
-		ACLDefaultPolicy:                 "72c2e7a0",
-		ACLDownPolicy:                    "03eb2aee",
+		ACLsEnabled:       true,
+		PrimaryDatacenter: "ejtmd43d",
+		ACLResolverSettings: consul.ACLResolverSettings{
+			ACLsEnabled:      true,
+			Datacenter:       "rzo029wg",
+			NodeName:         "otlLxGaI",
+			ACLDefaultPolicy: "72c2e7a0",
+			ACLDownPolicy:    "03eb2aee",
+			ACLTokenTTL:      3321 * time.Second,
+			ACLPolicyTTL:     1123 * time.Second,
+			ACLRoleTTL:       9876 * time.Second,
+		},
 		ACLEnableKeyListPolicy:           true,
 		ACLMasterToken:                   "8a19ac27",
-		ACLTokenTTL:                      3321 * time.Second,
-		ACLPolicyTTL:                     1123 * time.Second,
-		ACLRoleTTL:                       9876 * time.Second,
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
@@ -5383,7 +5386,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				AuthMethod: structs.ACLAuthMethod{
 					Name:           "Auto Config Authorizer",
 					Type:           "jwt",
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					Config: map[string]interface{}{
 						"JWTValidationPubKeys": []string{"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERVchfCZng4mmdvQz1+sJHRN40snC\nYt8NjYOnbnScEXMkyoUmASr88gb7jaVAVt3RYASAbgBjB2Z+EUizWkx5Tg==\n-----END PUBLIC KEY-----"},
 						"ClaimMappings": map[string]string{
@@ -5413,7 +5416,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		ExposeMaxPort:         2222,
 		ConnectCAProvider:     "consul",
 		ConnectCAConfig: map[string]interface{}{
-			"RotationPeriod":      "90h",
 			"IntermediateCertTTL": "8760h",
 			"LeafCertTTL":         "1h",
 			"CSRMaxPerSecond":     float64(100),
@@ -5431,6 +5433,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		DNSNodeTTL:                             7084 * time.Second,
 		DNSOnlyPassing:                         true,
 		DNSPort:                                7001,
+		DNSRecursorStrategy:                    "sequential",
 		DNSRecursorTimeout:                     4427 * time.Second,
 		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
 		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
@@ -5459,8 +5462,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
 		EncryptVerifyOutgoing:                  true,
-		GRPCPort:                               4881,
-		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
+		XDSPort:                                4881,
+		XDSAddrs:                               []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:                     []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:                     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -5473,7 +5476,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		HTTPSPort:                              15127,
 		HTTPUseCache:                           false,
 		KeyFile:                                "IEkkwgIA",
-		KVMaxValueSize:                         1234567800000000,
+		KVMaxValueSize:                         1234567800,
 		LeaveDrainTime:                         8265 * time.Second,
 		LeaveOnTerm:                            true,
 		Logging: logging.Config{
@@ -5488,7 +5491,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		NodeName:                "otlLxGaI",
 		ReadReplica:             true,
 		PidFile:                 "43xN80Km",
-		PrimaryDatacenter:       "ejtmd43d",
 		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
 		PrimaryGatewaysInterval: 18866 * time.Second,
 		RPCAdvertiseAddr:        tcpAddr("17.99.29.16:3757"),
@@ -5652,9 +5654,11 @@ func TestLoad_FullConfig(t *testing.T) {
 					},
 					Upstreams: structs.Upstreams{
 						{
-							DestinationType: "service", // Default should be explicitly filled
-							DestinationName: "KPtAj2cb",
-							LocalBindPort:   4051,
+							DestinationType:      "service", // Default should be explicitly filled
+							DestinationName:      "KPtAj2cb",
+							DestinationPartition: defaultEntMeta.PartitionOrEmpty(),
+							DestinationNamespace: defaultEntMeta.NamespaceOrEmpty(),
+							LocalBindPort:        4051,
 							Config: map[string]interface{}{
 								"kzRnZOyd": "nUNKoL8H",
 							},
@@ -5662,6 +5666,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						{
 							DestinationType:      "prepared_query",
 							DestinationNamespace: "9nakw0td",
+							DestinationPartition: "part-9nakw0td",
 							DestinationName:      "KSd8HsRl",
 							LocalBindPort:        11884,
 							LocalBindAddress:     "127.24.88.0",
@@ -5669,6 +5674,7 @@ func TestLoad_FullConfig(t *testing.T) {
 						{
 							DestinationType:      "prepared_query",
 							DestinationNamespace: "9nakw0td",
+							DestinationPartition: "part-9nakw0td",
 							DestinationName:      "placeholder",
 							LocalBindSocketPath:  "/foo/bar/upstream",
 							LocalBindSocketMode:  "0600",
@@ -5868,7 +5874,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			"wan_ipv4": "78.63.37.19",
 		},
 		TranslateWANAddrs: true,
-		TxnMaxReqLen:      5678000000000000,
+		TxnMaxReqLen:      567800000,
 		UIConfig: UIConfig{
 			Dir:                        "pVncV4Ey",
 			ContentPath:                "/qp1WRhYH/", // slashes are added in parsing
@@ -6594,7 +6600,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "consul",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 				},
@@ -6611,7 +6616,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider:  "consul",
 				ClusterID: "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 					"cluster_id":          "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
@@ -6635,7 +6639,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "vault",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 				},
@@ -6651,7 +6654,6 @@ func TestConnectCAConfiguration(t *testing.T) {
 			expected: &structs.CAConfiguration{
 				Provider: "consul",
 				Config: map[string]interface{}{
-					"RotationPeriod":      "2160h",
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
 					"foo":                 "bar",

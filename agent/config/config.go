@@ -268,8 +268,6 @@ type Config struct {
 	SnapshotAgent map[string]interface{} `mapstructure:"snapshot_agent"`
 
 	// non-user configurable values
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDisabledTTL             *string  `mapstructure:"acl_disabled_ttl"`
 	AEInterval                 *string  `mapstructure:"ae_interval"`
 	CheckDeregisterIntervalMin *string  `mapstructure:"check_deregister_interval_min"`
 	CheckReapInterval          *string  `mapstructure:"check_reap_interval"`
@@ -290,6 +288,8 @@ type Config struct {
 	SegmentName *string `mapstructure:"segment"`
 	// Enterprise Only
 	Segments []Segment `mapstructure:"segments"`
+	// Enterprise Only
+	Partition *string `mapstructure:"partition"`
 
 	// Enterprise Only - not user configurable
 	LicensePollBaseTime   *string `mapstructure:"license_poll_base_time"`
@@ -338,7 +338,10 @@ type Addresses struct {
 	DNS   *string `mapstructure:"dns"`
 	HTTP  *string `mapstructure:"http"`
 	HTTPS *string `mapstructure:"https"`
-	GRPC  *string `mapstructure:"grpc"`
+	XDS   *string `mapstructure:"xds"`
+
+	// Deprecated: replaced by XDS
+	GRPC *string `mapstructure:"grpc"`
 }
 
 type AdvertiseAddrsConfig struct {
@@ -508,6 +511,7 @@ type Upstream struct {
 	// on service definitions in various places.
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
+	DestinationPartition *string `mapstructure:"destination_partition"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
@@ -629,6 +633,7 @@ type DNS struct {
 	MaxStale           *string           `mapstructure:"max_stale"`
 	NodeTTL            *string           `mapstructure:"node_ttl"`
 	OnlyPassing        *bool             `mapstructure:"only_passing"`
+	RecursorStrategy   *string           `mapstructure:"recursor_strategy"`
 	RecursorTimeout    *string           `mapstructure:"recursor_timeout"`
 	ServiceTTL         map[string]string `mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `mapstructure:"udp_answer_limit"`
@@ -688,13 +693,16 @@ type Ports struct {
 	SerfLAN        *int `mapstructure:"serf_lan"`
 	SerfWAN        *int `mapstructure:"serf_wan"`
 	Server         *int `mapstructure:"server"`
-	GRPC           *int `mapstructure:"grpc"`
+	XDS            *int `mapstructure:"xds"`
 	ProxyMinPort   *int `mapstructure:"proxy_min_port"`
 	ProxyMaxPort   *int `mapstructure:"proxy_max_port"`
 	SidecarMinPort *int `mapstructure:"sidecar_min_port"`
 	SidecarMaxPort *int `mapstructure:"sidecar_max_port"`
 	ExposeMinPort  *int `mapstructure:"expose_min_port"`
 	ExposeMaxPort  *int `mapstructure:"expose_max_port"`
+
+	// Deprecated: replaced by XDS
+	GRPC *int `mapstructure:"grpc"`
 }
 
 type UnixSocket struct {
@@ -732,7 +740,6 @@ type ACL struct {
 	DefaultPolicy          *string `mapstructure:"default_policy"`
 	EnableKeyListPolicy    *bool   `mapstructure:"enable_key_list_policy"`
 	Tokens                 Tokens  `mapstructure:"tokens"`
-	DisabledTTL            *string `mapstructure:"disabled_ttl"`
 	EnableTokenPersistence *bool   `mapstructure:"enable_token_persistence"`
 
 	// Enterprise Only
@@ -777,6 +784,7 @@ type AuditSink struct {
 	Format            *string `mapstructure:"format"`
 	Path              *string `mapstructure:"path"`
 	DeliveryGuarantee *string `mapstructure:"delivery_guarantee"`
+	Mode              *string `mapstructure:"mode"`
 	RotateBytes       *int    `mapstructure:"rotate_bytes"`
 	RotateDuration    *string `mapstructure:"rotate_duration"`
 	RotateMaxFiles    *int    `mapstructure:"rotate_max_files"`

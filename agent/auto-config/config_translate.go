@@ -3,13 +3,14 @@ package autoconf
 import (
 	"fmt"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/proto/pbconnect"
-	"github.com/mitchellh/mapstructure"
 )
 
 // translateAgentConfig is meant to take in a proto/pbconfig.Config type
@@ -48,7 +49,6 @@ func translateConfig(c *pbconfig.Config) config.Config {
 			DownPolicy:             stringPtrOrNil(a.DownPolicy),
 			DefaultPolicy:          stringPtrOrNil(a.DefaultPolicy),
 			EnableKeyListPolicy:    &a.EnableKeyListPolicy,
-			DisabledTTL:            stringPtrOrNil(a.DisabledTTL),
 			EnableTokenPersistence: &a.EnableTokenPersistence,
 		}
 

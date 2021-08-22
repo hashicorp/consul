@@ -61,11 +61,11 @@ func (s *ConnectCA) ConfigurationGet(
 	}
 
 	// This action requires operator read access.
-	rule, err := s.srv.ResolveToken(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -93,11 +93,11 @@ func (s *ConnectCA) ConfigurationSet(
 	}
 
 	// This action requires operator write access.
-	rule, err := s.srv.ResolveToken(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -158,7 +158,7 @@ func (s *ConnectCA) Sign(
 	}
 
 	// Verify that the ACL token provided has permission to act as this service
-	rule, err := s.srv.ResolveToken(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (s *ConnectCA) Sign(
 	if isService {
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
 		entMeta.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
+		if authz.ServiceWrite(serviceID.Service, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 
@@ -186,13 +186,14 @@ func (s *ConnectCA) Sign(
 				"we are %s", serviceID.Datacenter, s.srv.config.Datacenter)
 		}
 	} else if isAgent {
-		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
-		if rule != nil && rule.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
+
+		structs.DefaultEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+		if authz.NodeWrite(agentID.Agent, &authzContext) != acl.Allow {
 			return acl.ErrPermissionDenied
 		}
 	}
 
-	cert, err := s.srv.SignCertificate(csr, spiffeID)
+	cert, err := s.srv.caManager.SignCertificate(csr, spiffeID)
 	if err != nil {
 		return err
 	}
@@ -219,11 +220,11 @@ func (s *ConnectCA) SignIntermediate(
 	}
 
 	// This action requires operator write access.
-	rule, err := s.srv.ResolveToken(args.Token)
+	authz, err := s.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
+	if authz.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

@@ -2,12 +2,6 @@ package agent
 
 func init() {
 	registerEndpoint("/v1/acl/bootstrap", []string{"PUT"}, (*HTTPHandlers).ACLBootstrap)
-	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPHandlers).ACLCreate)
-	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPHandlers).ACLUpdate)
-	registerEndpoint("/v1/acl/destroy/", []string{"PUT"}, (*HTTPHandlers).ACLDestroy)
-	registerEndpoint("/v1/acl/info/", []string{"GET"}, (*HTTPHandlers).ACLGet)
-	registerEndpoint("/v1/acl/clone/", []string{"PUT"}, (*HTTPHandlers).ACLClone)
-	registerEndpoint("/v1/acl/list", []string{"GET"}, (*HTTPHandlers).ACLList)
 	registerEndpoint("/v1/acl/login", []string{"POST"}, (*HTTPHandlers).ACLLogin)
 	registerEndpoint("/v1/acl/logout", []string{"POST"}, (*HTTPHandlers).ACLLogout)
 	registerEndpoint("/v1/acl/replication", []string{"GET"}, (*HTTPHandlers).ACLReplicationStatus)
@@ -26,7 +20,7 @@ func init() {
 	registerEndpoint("/v1/acl/auth-method", []string{"PUT"}, (*HTTPHandlers).ACLAuthMethodCreate)
 	registerEndpoint("/v1/acl/auth-method/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).ACLAuthMethodCRUD)
 	registerEndpoint("/v1/acl/rules/translate", []string{"POST"}, (*HTTPHandlers).ACLRulesTranslate)
-	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPHandlers).ACLRulesTranslateLegacyToken)
+	registerEndpoint("/v1/acl/rules/translate/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
 	registerEndpoint("/v1/acl/tokens", []string{"GET"}, (*HTTPHandlers).ACLTokenList)
 	registerEndpoint("/v1/acl/token", []string{"PUT"}, (*HTTPHandlers).ACLTokenCreate)
 	registerEndpoint("/v1/acl/token/self", []string{"GET"}, (*HTTPHandlers).ACLTokenSelf)
@@ -38,6 +32,7 @@ func init() {
 	registerEndpoint("/v1/agent/reload", []string{"PUT"}, (*HTTPHandlers).AgentReload)
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPHandlers).AgentMonitor)
 	registerEndpoint("/v1/agent/metrics", []string{"GET"}, (*HTTPHandlers).AgentMetrics)
+	registerEndpoint("/v1/agent/metrics/stream", []string{"GET"}, (*HTTPHandlers).AgentMetricsStream)
 	registerEndpoint("/v1/agent/services", []string{"GET"}, (*HTTPHandlers).AgentServices)
 	registerEndpoint("/v1/agent/service/", []string{"GET"}, (*HTTPHandlers).AgentService)
 	registerEndpoint("/v1/agent/checks", []string{"GET"}, (*HTTPHandlers).AgentChecks)
@@ -123,4 +118,12 @@ func init() {
 	registerEndpoint("/v1/status/peers", []string{"GET"}, (*HTTPHandlers).StatusPeers)
 	registerEndpoint("/v1/snapshot", []string{"GET", "PUT"}, (*HTTPHandlers).Snapshot)
 	registerEndpoint("/v1/txn", []string{"PUT"}, (*HTTPHandlers).Txn)
+
+	// Deprecated ACL endpoints, they do nothing but return an error
+	registerEndpoint("/v1/acl/create", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/update", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/destroy/", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/info/", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/clone/", []string{"PUT"}, (*HTTPHandlers).ACLLegacy)
+	registerEndpoint("/v1/acl/list", []string{"GET"}, (*HTTPHandlers).ACLLegacy)
 }

@@ -5,23 +5,6 @@ import { get, action } from '@ember/object';
 // TODO: We should potentially move all these nspace related things
 // up a level to application.js
 
-const findActiveNspace = function(nspaces, nspace) {
-  let found = nspaces.find(function(item) {
-    return item.Name === nspace.Name;
-  });
-  if (typeof found === 'undefined') {
-    // if we can't find the nspace that was saved
-    // try default
-    found = nspaces.find(function(item) {
-      return item.Name === 'default';
-    });
-    // if there is no default just choose the first
-    if (typeof found === 'undefined') {
-      found = nspaces.firstObject;
-    }
-  }
-  return found;
-};
 export default class DcRoute extends Route {
   @service('repository/dc') repo;
   @service('repository/permission') permissionsRepo;
@@ -29,23 +12,16 @@ export default class DcRoute extends Route {
   @service('settings') settingsRepo;
 
   async model(params) {
-    const app = this.modelFor('application');
-
     let [token, nspace, dc] = await Promise.all([
       this.settingsRepo.findBySlug('token'),
       this.nspacesRepo.getActive(this.optionalParams().nspace),
-      this.repo.findBySlug(params.dc, app.dcs),
+      this.repo.findBySlug(params.dc),
     ]);
-    // if there is only 1 namespace then use that
-    // otherwise find the namespace object that corresponds
-    // to the active one
-    nspace =
-      app.nspaces.length > 1 ? findActiveNspace(app.nspaces, nspace) : app.nspaces.firstObject;
 
     // When disabled nspaces is [], so nspace is undefined
     const permissions = await this.permissionsRepo.findAll({
       dc: params.dc,
-      nspace: get(nspace || {}, 'Name'),
+      ns: get(nspace || {}, 'Name'),
     });
     // the model here is actually required for the entire application
     // but we need to wait until we are in this route so we know what the dc

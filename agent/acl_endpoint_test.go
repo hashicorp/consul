@@ -10,6 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,9 +21,6 @@ import (
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/go-uuid"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 // NOTE: The tests contained herein are designed to test the HTTP API
@@ -45,7 +46,6 @@ func TestACL_Disabled_Response(t *testing.T) {
 		{"ACLReplicationStatus", a.srv.ACLReplicationStatus},
 		{"AgentToken", a.srv.AgentToken}, // See TestAgent_Token
 		{"ACLRulesTranslate", a.srv.ACLRulesTranslate},
-		{"ACLRulesTranslateLegacyToken", a.srv.ACLRulesTranslateLegacyToken},
 		{"ACLPolicyList", a.srv.ACLPolicyList},
 		{"ACLPolicyCRUD", a.srv.ACLPolicyCRUD},
 		{"ACLPolicyCreate", a.srv.ACLPolicyCreate},
@@ -859,6 +859,7 @@ func TestACL_HTTP(t *testing.T) {
 				found := false
 				for _, actual := range tokens {
 					if actual.AccessorID == tokenID {
+						require.Equal(t, expected.SecretID, actual.SecretID)
 						require.Equal(t, expected.Description, actual.Description)
 						require.Equal(t, expected.Policies, actual.Policies)
 						require.Equal(t, expected.Local, actual.Local)
@@ -2318,4 +2319,26 @@ func startSSOTestServer(t *testing.T) *oidcauthtest.Server {
 		ports[0],
 		func() { freeport.Return(ports) },
 	))
+}
+
+func TestHTTPHandlers_ACLReplicationStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, TestACLConfig())
+	defer a.Shutdown()
+
+	req, _ := http.NewRequest("GET", "/v1/acl/replication", nil)
+	resp := httptest.NewRecorder()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	obj, err := a.srv.ACLReplicationStatus(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, ok := obj.(structs.ACLReplicationStatus)
+	if !ok {
+		t.Fatalf("should work")
+	}
 }

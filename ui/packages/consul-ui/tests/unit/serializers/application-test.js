@@ -67,7 +67,7 @@ module('Unit | Serializer | application', function(hooks) {
       Name: 'name',
       [META]: {
         [DC.toLowerCase()]: 'dc-1',
-        [NSPACE.toLowerCase()]: 'default',
+        [NSPACE.toLowerCase()]: '',
       },
       'primary-key-name': 'name',
     };

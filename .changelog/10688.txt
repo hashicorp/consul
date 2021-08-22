@@ -1,0 +1,3 @@
+```release-note:bug
+connect: proxy upstreams inherit namespace from service if none are defined.
+```

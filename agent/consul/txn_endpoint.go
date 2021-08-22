@@ -81,18 +81,7 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 			}
 
 			service := &op.Service.Service
-			// This is intentionally nil as we will authorize the request
-			// using vetServiceTxnOp next instead of doing it in servicePreApply
-			if err := servicePreApply(service, nil); err != nil {
-				errors = append(errors, &structs.TxnError{
-					OpIndex: i,
-					What:    err.Error(),
-				})
-				break
-			}
-
-			// Check that the token has permissions for the given operation.
-			if err := vetServiceTxnOp(op.Service, authorizer); err != nil {
+			if err := servicePreApply(service, authorizer, op.Service.FillAuthzContext); err != nil {
 				errors = append(errors, &structs.TxnError{
 					OpIndex: i,
 					What:    err.Error(),
@@ -119,6 +108,36 @@ func (t *Txn) preCheck(authorizer acl.Authorizer, ops structs.TxnOps) structs.Tx
 	return errors
 }
 
+// vetNodeTxnOp applies the given ACL policy to a node transaction operation.
+func vetNodeTxnOp(op *structs.TxnNodeOp, authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	op.FillAuthzContext(&authzContext)
+
+	if authz.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+	return nil
+}
+
+// vetCheckTxnOp applies the given ACL policy to a check transaction operation.
+func vetCheckTxnOp(op *structs.TxnCheckOp, authz acl.Authorizer) error {
+	var authzContext acl.AuthorizerContext
+	op.FillAuthzContext(&authzContext)
+
+	if op.Check.ServiceID == "" {
+		// Node-level check.
+		if authz.NodeWrite(op.Check.Node, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	} else {
+		// Service-level check.
+		if authz.ServiceWrite(op.Check.ServiceName, &authzContext) != acl.Allow {
+			return acl.ErrPermissionDenied
+		}
+	}
+	return nil
+}
+
 // Apply is used to apply multiple operations in a single, atomic transaction.
 func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error {
 	if done, err := t.srv.ForwardRPC("Txn.Apply", args, reply); done {
@@ -127,11 +146,11 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	defer metrics.MeasureSince([]string{"txn", "apply"}, time.Now())
 
 	// Run the pre-checks before we send the transaction into Raft.
-	authorizer, err := t.srv.ResolveToken(args.Token)
+	authz, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	reply.Errors = t.preCheck(authorizer, args.Ops)
+	reply.Errors = t.preCheck(authz, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
 	}
@@ -145,9 +164,7 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	// Convert the return type. This should be a cheap copy since we are
 	// just taking the two slices.
 	if txnResp, ok := resp.(structs.TxnResponse); ok {
-		if authorizer != nil {
-			txnResp.Results = FilterTxnResults(authorizer, txnResp.Results)
-		}
+		txnResp.Results = FilterTxnResults(authz, txnResp.Results)
 		*reply = txnResp
 	} else {
 		return fmt.Errorf("unexpected return type %T", resp)
@@ -174,11 +191,11 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	}
 
 	// Run the pre-checks before we perform the read.
-	authorizer, err := t.srv.ResolveToken(args.Token)
+	authz, err := t.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
-	reply.Errors = t.preCheck(authorizer, args.Ops)
+	reply.Errors = t.preCheck(authz, args.Ops)
 	if len(reply.Errors) > 0 {
 		return nil
 	}
@@ -186,8 +203,6 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	// Run the read transaction.
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
-	if authorizer != nil {
-		reply.Results = FilterTxnResults(authorizer, reply.Results)
-	}
+	reply.Results = FilterTxnResults(authz, reply.Results)
 	return nil
 }

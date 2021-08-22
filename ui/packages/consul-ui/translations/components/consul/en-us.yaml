@@ -52,6 +52,7 @@ token:
         global-management: Global Management
         global: Global Scope
         local: Local Scope
+  secretID: Secret ID
 policy:
   search-bar:
     kind:
@@ -109,6 +110,10 @@ intention:
         name: Precedence
         asc: Ascending
         desc: Descending
+  notice:
+    permissions:
+      body: Permissions are L7 attributes. If any of the following permissions match the request, the Intention will apply. Requests that fail to match any of the provided routes will follow the default ACL policy.
+      footer: Learn more about permissions
 transparent-proxy: Transparent Proxy
 topology-metrics:
   source-type:
@@ -151,3 +156,9 @@ topology-metrics:
       header: No traffic
       body: Add "{upstream}" as an explicit upstream of "{downstream}" or set the "{downstream}" proxy to "transparent" mode to enable traffic.
       action: Documentation
+source:
+  header: This is not a registered Consul service. It’s a routing configuration that routes traffic to real services in Consul. For more information, read our documentation.
+  menu-title: About Routing Configs
+  links:
+    documentation: Documentation
+

@@ -15,6 +15,7 @@ import (
 type CompileRequest struct {
 	ServiceName           string
 	EvaluateInNamespace   string
+	EvaluateInPartition   string
 	EvaluateInDatacenter  string
 	EvaluateInTrustDomain string
 	UseInDatacenter       string // where the results will be used from
@@ -705,7 +706,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	}
 
 	// If we record this exists before recursing down it will short-circuit
-	// sanely if there is some sort of graph loop below.
+	// reasonably if there is some sort of graph loop below.
 	c.recordNode(splitNode)
 
 	var hasLB bool
@@ -906,11 +907,9 @@ RESOLVE_AGAIN:
 	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
 	if target.Datacenter == c.useInDatacenter {
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
 	} else if target.External {
 		// Bypass mesh gateways if it is an external service.
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
 	} else {
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
@@ -941,7 +940,7 @@ RESOLVE_AGAIN:
 	}
 
 	// If we record this exists before recursing down it will short-circuit
-	// sanely if there is some sort of graph loop below.
+	// reasonably if there is some sort of graph loop below.
 	c.recordNode(node)
 
 	if len(resolver.Failover) > 0 {

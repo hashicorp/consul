@@ -97,3 +97,22 @@ using a local Connect proxy. This is documented in the
 
 **If non-proxy traffic can communicate with the service**, this traffic
 will not be encrypted or authorized via Connect.
+
+### Restrict Access to Envoy's Administration Interface
+
+Envoy exposes an **unauthenticated**
+[administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin)
+that can be used to query and modify the proxy. This interface 
+allows potentially sensitive information to be retrieved, such as:
+
+* Envoy configuration
+* TLS certificates
+* List of upstream services and endpoints
+
+We **strongly advise** only exposing the administration interface on a loopback
+address (default configuration) and restricting access to a subset of users.
+
+**If the administration interface is exposed externally**, for
+example by specifying a routable [`-admin-bind`](/commands/connect/envoy#admin-bind)
+address, it may be possible for a malicious actor to gain access to Envoy's
+configuration, or impact the service's availability within the cluster.

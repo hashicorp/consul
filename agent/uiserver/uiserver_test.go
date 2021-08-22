@@ -226,8 +226,8 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 
 func withACLs() cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
-		cfg.ACLDatacenter = "dc1"
-		cfg.ACLDefaultPolicy = "deny"
+		cfg.PrimaryDatacenter = "dc1"
+		cfg.ACLResolverSettings.ACLDefaultPolicy = "deny"
 		cfg.ACLsEnabled = true
 	}
 }

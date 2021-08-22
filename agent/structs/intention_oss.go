@@ -7,23 +7,23 @@ import (
 )
 
 func (ixn *Intention) SourceEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (ixn *Intention) DestinationEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (e *IntentionMatchEntry) GetEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (e *IntentionQueryExact) SourceEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 func (e *IntentionQueryExact) DestinationEnterpriseMeta() *EnterpriseMeta {
-	return DefaultEnterpriseMeta()
+	return DefaultEnterpriseMetaInDefaultPartition()
 }
 
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup

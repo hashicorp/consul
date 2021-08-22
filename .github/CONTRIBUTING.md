@@ -60,7 +60,7 @@ issue. Stale issues will be closed.
 ## Building Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (The version of Go should match the one of our [CI config's](https://github.com/hashicorp/consul/blob/master/.circleci/config.yml) Go image).
+installed (The version of Go should match the one of our [CI config's](https://github.com/hashicorp/consul/blob/main/.circleci/config.yml) Go image).
 
 
 Next, clone this repository and then run `make dev`. In a few moments, you'll have a working
@@ -89,6 +89,16 @@ lives in the spot where the go cli tools are expecting to find it.
 >Note: If you make any changes to the code, run `make format` to automatically format the code according to Go standards.
 
 ## Testing
+
+### During Development: Run Relevant Test(s)
+
+During development, it may be more convenient to check your work-in-progress by running only the tests which you expect to be affected by your changes, as the full test suite can take several minutes to execute. [Go's built-in test tool](https://golang.org/pkg/cmd/go/internal/test/) allows specifying a list of packages to test and the `-run` option to only include test names matching a regular expression.
+
+Examples (run from the repository root):
+- `go test -v ./connect` will run all tests in the connect package (see `./connect` folder)
+- `go test -v -run TestRetryJoin ./command/agent` will run all tests in the agent package (see `./command/agent` folder) with name substring `TestRetryJoin`
+
+### Before Submitting Changes: Run All Tests
 
 Before submitting changes, run **all** tests locally by typing `make test`. 
 The test suite may fail if over-parallelized, so if you are seeing stochastic 

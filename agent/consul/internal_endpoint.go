@@ -161,7 +161,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -169,10 +169,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultAllow := acl.Allow
-			if authz != nil {
-				defaultAllow = authz.IntentionDefaultAllow(nil)
-			}
+			defaultAllow := authz.IntentionDefaultAllow(nil)
 
 			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
@@ -216,10 +213,7 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			defaultDecision := acl.Allow
-			if authz != nil {
-				defaultDecision = authz.IntentionDefaultAllow(nil)
-			}
+			defaultDecision := authz.IntentionDefaultAllow(nil)
 
 			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
 			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
@@ -228,7 +222,8 @@ func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, repl
 			}
 
 			reply.Index, reply.Services = index, services
-			return m.srv.filterACLWithAuthorizer(authz, reply)
+			m.srv.filterACLWithAuthorizer(authz, reply)
+			return nil
 		})
 }
 
@@ -254,7 +249,7 @@ func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, repl
 	}
 
 	// We need read access to the gateway we're trying to find services for, so check that first.
-	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -338,7 +333,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 	}
 
 	// We need read access to the gateway we're trying to find intentions for, so check that first.
-	if authz != nil && authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
+	if authz.ServiceRead(args.Match.Entries[0].Name, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -404,12 +399,12 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	}
 
 	// Check ACLs
-	rule, err := m.srv.ResolveToken(args.Token)
+	authz, err := m.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
-	if rule != nil && rule.EventWrite(args.Name, nil) != acl.Allow {
+	if authz.EventWrite(args.Name, nil) != acl.Allow {
 		accessorID := m.aclAccessorID(args.Token)
 		m.logger.Warn("user event blocked by ACLs", "event", args.Name, "accessorID", accessorID)
 		return acl.ErrPermissionDenied
@@ -445,30 +440,28 @@ func (m *Internal) KeyringOperation(
 	}
 
 	// Check ACLs
-	identity, rule, err := m.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
+	identity, authz, err := m.srv.acls.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
 	if err := m.srv.validateEnterpriseToken(identity); err != nil {
 		return err
 	}
-	if rule != nil {
-		switch args.Operation {
-		case structs.KeyringList:
-			if rule.KeyringRead(nil) != acl.Allow {
-				return fmt.Errorf("Reading keyring denied by ACLs")
-			}
-		case structs.KeyringInstall:
-			fallthrough
-		case structs.KeyringUse:
-			fallthrough
-		case structs.KeyringRemove:
-			if rule.KeyringWrite(nil) != acl.Allow {
-				return fmt.Errorf("Modifying keyring denied due to ACLs")
-			}
-		default:
-			panic("Invalid keyring operation")
+	switch args.Operation {
+	case structs.KeyringList:
+		if authz.KeyringRead(nil) != acl.Allow {
+			return fmt.Errorf("Reading keyring denied by ACLs")
 		}
+	case structs.KeyringInstall:
+		fallthrough
+	case structs.KeyringUse:
+		fallthrough
+	case structs.KeyringRemove:
+		if authz.KeyringWrite(nil) != acl.Allow {
+			return fmt.Errorf("Modifying keyring denied due to ACLs")
+		}
+	default:
+		panic("Invalid keyring operation")
 	}
 
 	if args.LocalOnly || args.Forwarded || m.srv.serfWAN == nil {

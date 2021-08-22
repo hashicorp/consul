@@ -25,14 +25,15 @@ type EventPayloadCheckServiceNode struct {
 	// when the change event is for a sidecar or gateway.
 	overrideKey       string
 	overrideNamespace string
+	overridePartition string
 }
 
 func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
-func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
-	if key == "" && namespace == "" {
+func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace, partition string) bool {
+	if key == "" && namespace == "" && partition == "" {
 		return true
 	}
 
@@ -48,8 +49,14 @@ func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 	if e.overrideNamespace != "" {
 		ns = e.overrideNamespace
 	}
+	ap := e.Value.Service.EnterpriseMeta.PartitionOrDefault()
+	if e.overridePartition != "" {
+		ap = e.overridePartition
+	}
+
 	return (key == "" || strings.EqualFold(key, name)) &&
-		(namespace == "" || strings.EqualFold(namespace, ns))
+		(namespace == "" || strings.EqualFold(namespace, ns)) &&
+		(partition == "" || strings.EqualFold(partition, ap))
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -60,7 +67,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect
-		entMeta := structs.NewEnterpriseMeta(req.Namespace)
+		entMeta := structs.NewEnterpriseMetaWithPartition(req.Partition, req.Namespace)
 		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &entMeta)
 		if err != nil {
 			return 0, err
@@ -123,6 +130,11 @@ type serviceChange struct {
 	change     memdb.Change
 }
 
+type nodeTuple struct {
+	Node      string
+	Partition string
+}
+
 var serviceChangeIndirect = serviceChange{changeType: changeIndirect}
 
 // ServiceHealthEventsFromChanges returns all the service and Connect health
@@ -130,13 +142,13 @@ var serviceChangeIndirect = serviceChange{changeType: changeIndirect}
 func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	var events []stream.Event
 
-	var nodeChanges map[string]changeType
+	var nodeChanges map[nodeTuple]changeType
 	var serviceChanges map[nodeServiceTuple]serviceChange
 	var termGatewayChanges map[structs.ServiceName]map[structs.ServiceName]serviceChange
 
-	markNode := func(node string, typ changeType) {
+	markNode := func(node nodeTuple, typ changeType) {
 		if nodeChanges == nil {
-			nodeChanges = make(map[string]changeType)
+			nodeChanges = make(map[nodeTuple]changeType)
 		}
 		// If the caller has an actual node mutation ensure we store it even if the
 		// node is already marked. If the caller is just marking the node dirty
@@ -161,14 +173,15 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 
 	for _, change := range changes.Changes {
 		switch change.Table {
-		case "nodes":
+		case tableNodes:
 			// Node changed in some way, if it's not a delete, we'll need to
 			// re-deliver CheckServiceNode results for all services on that node but
 			// we mark it anyway because if it _is_ a delete then we need to know that
 			// later to avoid trying to deliver events when node level checks mark the
 			// node as "changed".
 			n := changeObject(change).(*structs.Node)
-			markNode(n.Node, changeTypeFromChange(change))
+			tuple := newNodeTupleFromNode(n)
+			markNode(tuple, changeTypeFromChange(change))
 
 		case tableServices:
 			sn := changeObject(change).(*structs.ServiceNode)
@@ -187,7 +200,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				after := change.After.(*structs.HealthCheck)
 				if after.ServiceID == "" || before.ServiceID == "" {
 					// check before and/or after is node-scoped
-					markNode(after.Node, changeIndirect)
+					nt := newNodeTupleFromHealthCheck(after)
+					markNode(nt, changeIndirect)
 				} else {
 					// Check changed which means we just need to emit for the linked
 					// service.
@@ -206,7 +220,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				obj := changeObject(change).(*structs.HealthCheck)
 				if obj.ServiceID == "" {
 					// Node level check
-					markNode(obj.Node, changeIndirect)
+					nt := newNodeTupleFromHealthCheck(obj)
+					markNode(nt, changeIndirect)
 				} else {
 					markService(newNodeServiceTupleFromServiceHealthCheck(obj), serviceChangeIndirect)
 				}
@@ -250,7 +265,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			continue
 		}
 		// Rebuild events for all services on this node
-		es, err := newServiceHealthEventsForNode(tx, changes.Index, node)
+		es, err := newServiceHealthEventsForNode(tx, changes.Index, node.Node,
+			structs.WildcardEnterpriseMetaInPartition(node.Partition))
 		if err != nil {
 			return nil, err
 		}
@@ -286,7 +302,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			}
 		}
 
-		if _, ok := nodeChanges[tuple.Node]; ok {
+		if _, ok := nodeChanges[tuple.nodeTuple()]; ok {
 			// We already rebuilt events for everything on this node, no need to send
 			// a duplicate.
 			continue
@@ -303,7 +319,10 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		for serviceName, gsChange := range serviceChanges {
 			gs := changeObject(gsChange.change).(*structs.GatewayService)
 
-			q := Query{Value: gs.Gateway.Name, EnterpriseMeta: gatewayName.EnterpriseMeta}
+			q := Query{
+				Value:          gs.Gateway.Name,
+				EnterpriseMeta: gatewayName.EnterpriseMeta,
+			}
 			_, nodes, err := serviceNodesTxn(tx, nil, indexService, q)
 			if err != nil {
 				return nil, err
@@ -319,6 +338,9 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 					payload.overrideKey = serviceName.Name
 					if gatewayName.EnterpriseMeta.NamespaceOrDefault() != serviceName.EnterpriseMeta.NamespaceOrDefault() {
 						payload.overrideNamespace = serviceName.EnterpriseMeta.NamespaceOrDefault()
+					}
+					if gatewayName.EnterpriseMeta.PartitionOrDefault() != serviceName.EnterpriseMeta.PartitionOrDefault() {
+						payload.overridePartition = serviceName.EnterpriseMeta.PartitionOrDefault()
 					}
 					e.Payload = payload
 
@@ -343,6 +365,9 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				payload.overrideKey = serviceName.Name
 				if gatewayName.EnterpriseMeta.NamespaceOrDefault() != serviceName.EnterpriseMeta.NamespaceOrDefault() {
 					payload.overrideNamespace = serviceName.EnterpriseMeta.NamespaceOrDefault()
+				}
+				if gatewayName.EnterpriseMeta.PartitionOrDefault() != serviceName.EnterpriseMeta.PartitionOrDefault() {
+					payload.overridePartition = serviceName.EnterpriseMeta.PartitionOrDefault()
 				}
 				e.Payload = payload
 
@@ -480,6 +505,9 @@ func copyEventForService(event stream.Event, service structs.ServiceName) stream
 	if payload.Value.Service.EnterpriseMeta.NamespaceOrDefault() != service.EnterpriseMeta.NamespaceOrDefault() {
 		payload.overrideNamespace = service.EnterpriseMeta.NamespaceOrDefault()
 	}
+	if payload.Value.Service.EnterpriseMeta.PartitionOrDefault() != service.EnterpriseMeta.PartitionOrDefault() {
+		payload.overridePartition = service.EnterpriseMeta.PartitionOrDefault()
+	}
 
 	event.Payload = payload
 	return event
@@ -497,13 +525,16 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 // given node. This mirrors some of the the logic in the oddly-named
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
-func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]stream.Event, error) {
-	services, err := tx.Get(tableServices, indexNode, Query{Value: node})
+func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string, entMeta *structs.EnterpriseMeta) ([]stream.Event, error) {
+	services, err := tx.Get(tableServices, indexNode, Query{
+		Value:          node,
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	n, checksFunc, err := getNodeAndChecks(tx, node)
+	n, checksFunc, err := getNodeAndChecks(tx, node, entMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -521,9 +552,12 @@ func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]strea
 
 // getNodeAndNodeChecks returns a the node structure and a function that returns
 // the full list of checks for a specific service on that node.
-func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc, error) {
+func getNodeAndChecks(tx ReadTxn, node string, entMeta *structs.EnterpriseMeta) (*structs.Node, serviceChecksFunc, error) {
 	// Fetch the node
-	nodeRaw, err := tx.First(tableNodes, indexID, Query{Value: node})
+	nodeRaw, err := tx.First(tableNodes, indexID, Query{
+		Value:          node,
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -532,7 +566,10 @@ func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc
 	}
 	n := nodeRaw.(*structs.Node)
 
-	iter, err := tx.Get(tableChecks, indexNode, Query{Value: node})
+	iter, err := tx.Get(tableChecks, indexNode, Query{
+		Value:          node,
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -566,12 +603,16 @@ func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc
 type serviceChecksFunc func(serviceID string) structs.HealthChecks
 
 func newServiceHealthEventForService(tx ReadTxn, idx uint64, tuple nodeServiceTuple) (stream.Event, error) {
-	n, checksFunc, err := getNodeAndChecks(tx, tuple.Node)
+	n, checksFunc, err := getNodeAndChecks(tx, tuple.Node, &tuple.EntMeta)
 	if err != nil {
 		return stream.Event{}, err
 	}
 
-	svc, err := tx.Get(tableServices, indexID, NodeServiceQuery{EnterpriseMeta: tuple.EntMeta, Node: tuple.Node, Service: tuple.ServiceID})
+	svc, err := tx.Get(tableServices, indexID, NodeServiceQuery{
+		EnterpriseMeta: tuple.EntMeta,
+		Node:           tuple.Node,
+		Service:        tuple.ServiceID,
+	})
 	if err != nil {
 		return stream.Event{}, err
 	}
@@ -615,9 +656,14 @@ func newServiceHealthEventDeregister(idx uint64, sn *structs.ServiceNode) stream
 	// This is also important because if the service was deleted as part of a
 	// whole node deregistering then the node record won't actually exist now
 	// anyway and we'd have to plumb it through from the changeset above.
+
+	entMeta := sn.EnterpriseMeta
+	entMeta.Normalize()
+
 	csn := &structs.CheckServiceNode{
 		Node: &structs.Node{
-			Node: sn.Node,
+			Node:      sn.Node,
+			Partition: entMeta.PartitionOrEmpty(),
 		},
 		Service: sn.ToNodeService(),
 	}

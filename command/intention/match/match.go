@@ -40,7 +40,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.NamespaceFlags())
+	flags.Merge(c.flags, c.http.MultiTenancyFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -97,8 +97,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "Show intentions that match a source or destination."
-const help = `
+const (
+	synopsis = "Show intentions that match a source or destination."
+	help     = `
 Usage: consul intention match [options] SRC|DST
 
   Show the list of intentions that would be enforced for a given source
@@ -109,3 +110,4 @@ Usage: consul intention match [options] SRC|DST
       $ consul intention match -source web
 
 `
+)

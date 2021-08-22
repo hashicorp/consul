@@ -10,6 +10,7 @@
 @import 'consul-ui/components/code-editor';
 @import 'consul-ui/components/composite-row';
 @import 'consul-ui/components/confirmation-dialog';
+@import 'consul-ui/components/copy-button';
 @import 'consul-ui/components/definition-table';
 @import 'consul-ui/components/display-toggle';
 @import 'consul-ui/components/dom-recycling-table';
@@ -79,6 +80,7 @@
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
+@import 'consul-ui/components/consul/source';
 @import 'consul-ui/components/consul/intention';
 @import 'consul-ui/components/consul/lock-session/list';
 @import 'consul-ui/components/consul/lock-session/form';

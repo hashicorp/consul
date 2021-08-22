@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 )
 
 var (
@@ -51,9 +50,19 @@ type ConsulProvider struct {
 	sync.RWMutex
 }
 
+// NewConsulProvider returns a new ConsulProvider that is ready to be used.
+func NewConsulProvider(delegate ConsulProviderStateDelegate, logger hclog.Logger) *ConsulProvider {
+	return &ConsulProvider{Delegate: delegate, logger: logger}
+}
+
 type ConsulProviderStateDelegate interface {
 	State() *state.Store
 	ApplyCARequest(*structs.CARequest) (interface{}, error)
+}
+
+func hexStringHash(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return connect.HexString(hash[:])
 }
 
 // Configure sets up the provider using the given configuration.
@@ -64,8 +73,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return err
 	}
 	c.config = config
-	hash := sha256.Sum256([]byte(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)))
-	c.id = connect.HexString(hash[:])
+	c.id = hexStringHash(fmt.Sprintf("%s,%s,%s,%d,%v", config.PrivateKey, config.RootCert, config.PrivateKeyType, config.PrivateKeyBits, cfg.IsPrimary))
 	c.clusterID = cfg.ClusterID
 	c.isPrimary = cfg.IsPrimary
 	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
@@ -83,54 +91,52 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		return nil
 	}
 
-	// Check if there's an entry with the old ID scheme.
-	oldID := fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert)
-	_, providerState, err = c.Delegate.State().CAProviderState(oldID)
-	if err != nil {
-		return err
+	oldIDs := []string{
+		hexStringHash(fmt.Sprintf("%s,%s,%v", config.PrivateKey, config.RootCert, cfg.IsPrimary)),
+		fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert),
 	}
 
-	// Found an entry with the old ID, so update it to the new ID and
-	// delete the old entry.
-	if providerState != nil {
-		newState := *providerState
-		newState.ID = c.id
-		createReq := &structs.CARequest{
-			Op:            structs.CAOpSetProviderState,
-			ProviderState: &newState,
-		}
-		if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
+	// Check if there any entries with old ID schemes.
+	for _, oldID := range oldIDs {
+		_, providerState, err = c.Delegate.State().CAProviderState(oldID)
+		if err != nil {
 			return err
 		}
 
-		deleteReq := &structs.CARequest{
-			Op:            structs.CAOpDeleteProviderState,
-			ProviderState: providerState,
-		}
-		if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
-			return err
-		}
+		// Found an entry with the old ID, so update it to the new ID and
+		// delete the old entry.
+		if providerState != nil {
+			newState := *providerState
+			newState.ID = c.id
+			createReq := &structs.CARequest{
+				Op:            structs.CAOpSetProviderState,
+				ProviderState: &newState,
+			}
+			if _, err := c.Delegate.ApplyCARequest(createReq); err != nil {
+				return err
+			}
 
-		return nil
-	}
+			deleteReq := &structs.CARequest{
+				Op:            structs.CAOpDeleteProviderState,
+				ProviderState: providerState,
+			}
+			if _, err := c.Delegate.ApplyCARequest(deleteReq); err != nil {
+				return err
+			}
 
-	// Write the provider state to the state store.
-	newState := structs.CAConsulProviderState{
-		ID: c.id,
+			return nil
+		}
 	}
 
 	args := &structs.CARequest{
 		Op:            structs.CAOpSetProviderState,
-		ProviderState: &newState,
+		ProviderState: &structs.CAConsulProviderState{ID: c.id},
 	}
 	if _, err := c.Delegate.ApplyCARequest(args); err != nil {
 		return err
 	}
 
-	c.logger.Debug("consul CA provider configured",
-		"id", c.id,
-		"is_primary", c.isPrimary,
-	)
+	c.logger.Debug("consul CA provider configured", "id", c.id, "is_primary", c.isPrimary)
 
 	return nil
 }
@@ -665,14 +671,6 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 	}
 
 	return buf.String(), nil
-}
-
-// SetLogger implements the NeedsLogger interface so the provider can log important messages.
-func (c *ConsulProvider) SetLogger(logger hclog.Logger) {
-	c.logger = logger.
-		ResetNamed(logging.Connect).
-		Named(logging.CA).
-		Named(logging.Consul)
 }
 
 func (c *ConsulProvider) parseTestState(rawConfig map[string]interface{}, state map[string]string) {

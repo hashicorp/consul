@@ -234,7 +234,7 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLReplicationApplyLimit = 1
 	})
@@ -289,7 +289,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	t.Parallel()
 	// ACLs not enabled.
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = ""
+		c.PrimaryDatacenter = ""
 		c.ACLsEnabled = false
 	})
 	defer os.RemoveAll(dir1)
@@ -301,7 +301,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	// ACLs enabled but not replication.
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 	})
 	defer os.RemoveAll(dir2)
@@ -316,7 +316,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	// ACLs enabled with replication.
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 	})
@@ -331,7 +331,7 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 	// so replication should be disabled.
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 	})
@@ -354,7 +354,7 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 	})
@@ -366,7 +366,7 @@ func TestACLReplication_LegacyTokens(t *testing.T) {
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
 		c.ACLsEnabled = true
 		c.ACLTokenReplication = true
 		c.ACLReplicationRate = 100

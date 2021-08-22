@@ -61,6 +61,12 @@ The table below shows this endpoint's support for
   [`datacenter`](/docs/connect/registration/service-registration#datacenter)
   parameter.
 
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the source namespace
+  to use as the basis of compilation. This value can be specified as the `ns`
+  URL query parameter or the `X-Consul-Namespace` header. If not provided by either,
+  the namespace will be inherited from the request's ACL token or will default
+  to the `default` namespace. Added in Consul 1.7.0.
+
 ### POST Body Parameters
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect

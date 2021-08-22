@@ -395,6 +395,7 @@ func New(bd BaseDeps) (*Agent, error) {
 			Logger: bd.Logger.Named("rpcclient.health"),
 		},
 		UseStreamingBackend: a.config.UseStreamingBackend,
+		QueryOptionDefaults: config.ApplyDefaultQueryOptions(a.config),
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -433,6 +434,7 @@ func LocalConfig(cfg *config.RuntimeConfig) local.Config {
 		DiscardCheckOutput:  cfg.DiscardCheckOutput,
 		NodeID:              cfg.NodeID,
 		NodeName:            cfg.NodeName,
+		Partition:           cfg.PartitionOrDefault(),
 		TaggedAddresses:     map[string]string{},
 	}
 	for k, v := range cfg.TaggedAddresses {
@@ -541,13 +543,13 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	var intentionDefaultAllow bool
-	switch a.config.ACLDefaultPolicy {
+	switch a.config.ACLResolverSettings.ACLDefaultPolicy {
 	case "allow":
 		intentionDefaultAllow = true
 	case "deny":
 		intentionDefaultAllow = false
 	default:
-		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLDefaultPolicy)
+		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
 	}
 
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
@@ -558,9 +560,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		Health: a.rpcClientHealth,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
+		Tokens: a.baseDeps.Tokens,
 		Source: &structs.QuerySource{
-			Datacenter: a.config.Datacenter,
-			Segment:    a.config.SegmentName,
+			Datacenter:    a.config.Datacenter,
+			Segment:       a.config.SegmentName,
+			NodePartition: a.config.PartitionOrEmpty(),
 		},
 		DNSConfig: proxycfg.DNSConfig{
 			Domain:    a.config.DNSDomain,
@@ -617,8 +621,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	// Start gRPC server.
-	if err := a.listenAndServeGRPC(); err != nil {
+	if err := a.listenAndServeXDS(); err != nil {
 		return err
 	}
 
@@ -637,6 +640,11 @@ func (a *Agent) Start(ctx context.Context) error {
 	// future release of Consul.
 	if !a.config.Telemetry.DisableCompatOneNine {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+
+	if a.tlsConfigurator.Cert() != nil {
+		m := consul.AgentTLSCertExpirationMonitor(a.tlsConfigurator, a.logger, a.config.Datacenter)
+		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
 	// consul version metric with labels
@@ -661,8 +669,8 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) listenAndServeGRPC() error {
-	if len(a.config.GRPCAddrs) < 1 {
+func (a *Agent) listenAndServeXDS() error {
+	if len(a.config.XDSAddrs) < 1 {
 		return nil
 	}
 
@@ -682,13 +690,9 @@ func (a *Agent) listenAndServeGRPC() error {
 	if a.config.HTTPSPort <= 0 {
 		tlsConfig = nil
 	}
-	var err error
-	a.grpcServer, err = xdsServer.GRPCServer(tlsConfig)
-	if err != nil {
-		return err
-	}
+	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
 
-	ln, err := a.startListeners(a.config.GRPCAddrs)
+	ln, err := a.startListeners(a.config.XDSAddrs)
 	if err != nil {
 		return err
 	}
@@ -1021,6 +1025,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.PrimaryDatacenter = runtimeCfg.PrimaryDatacenter
 	cfg.DataDir = runtimeCfg.DataDir
 	cfg.NodeName = runtimeCfg.NodeName
+	cfg.ACLResolverSettings = runtimeCfg.ACLResolverSettings
 
 	cfg.CoordinateUpdateBatchSize = runtimeCfg.ConsulCoordinateUpdateBatchSize
 	cfg.CoordinateUpdateMaxBatches = runtimeCfg.ConsulCoordinateUpdateMaxBatches
@@ -1113,24 +1118,6 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.ACLMasterToken != "" {
 		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
 	}
-	if runtimeCfg.ACLDatacenter != "" {
-		cfg.ACLDatacenter = runtimeCfg.ACLDatacenter
-	}
-	if runtimeCfg.ACLTokenTTL != 0 {
-		cfg.ACLTokenTTL = runtimeCfg.ACLTokenTTL
-	}
-	if runtimeCfg.ACLPolicyTTL != 0 {
-		cfg.ACLPolicyTTL = runtimeCfg.ACLPolicyTTL
-	}
-	if runtimeCfg.ACLRoleTTL != 0 {
-		cfg.ACLRoleTTL = runtimeCfg.ACLRoleTTL
-	}
-	if runtimeCfg.ACLDefaultPolicy != "" {
-		cfg.ACLDefaultPolicy = runtimeCfg.ACLDefaultPolicy
-	}
-	if runtimeCfg.ACLDownPolicy != "" {
-		cfg.ACLDownPolicy = runtimeCfg.ACLDownPolicy
-	}
 	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
 	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
 	if runtimeCfg.ACLEnableKeyListPolicy {
@@ -1198,22 +1185,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	}
 	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
-	// Copy the TLS configuration
-	cfg.VerifyIncoming = runtimeCfg.VerifyIncoming || runtimeCfg.VerifyIncomingRPC
-	if runtimeCfg.CAPath != "" || runtimeCfg.CAFile != "" {
-		cfg.UseTLS = true
-	}
-	cfg.VerifyOutgoing = runtimeCfg.VerifyOutgoing
-	cfg.VerifyServerHostname = runtimeCfg.VerifyServerHostname
-	cfg.CAFile = runtimeCfg.CAFile
-	cfg.CAPath = runtimeCfg.CAPath
-	cfg.CertFile = runtimeCfg.CertFile
-	cfg.KeyFile = runtimeCfg.KeyFile
-	cfg.ServerName = runtimeCfg.ServerName
-	cfg.Domain = runtimeCfg.DNSDomain
-	cfg.TLSMinVersion = runtimeCfg.TLSMinVersion
-	cfg.TLSCipherSuites = runtimeCfg.TLSCipherSuites
-	cfg.TLSPreferServerCipherSuites = runtimeCfg.TLSPreferServerCipherSuites
+	cfg.TLSConfig = runtimeCfg.ToTLSUtilConfig()
+
 	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
 	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
 
@@ -1558,11 +1531,13 @@ func (a *Agent) LocalMember() serf.Member {
 
 // LANMembers is used to retrieve the LAN members
 func (a *Agent) LANMembers() []serf.Member {
+	// TODO(partitions): filter this by the partition?
 	return a.delegate.LANMembers()
 }
 
 // WANMembers is used to retrieve the WAN members
 func (a *Agent) WANMembers() []serf.Member {
+	// TODO(partitions): filter this by the partition by omitting wan results for now?
 	if srv, ok := a.delegate.(*consul.Server); ok {
 		return srv.WANMembers()
 	}
@@ -1675,11 +1650,12 @@ OUTER:
 			for segment, coord := range cs {
 				agentToken := a.tokens.AgentToken()
 				req := structs.CoordinateUpdateRequest{
-					Datacenter:   a.config.Datacenter,
-					Node:         a.config.NodeName,
-					Segment:      segment,
-					Coord:        coord,
-					WriteRequest: structs.WriteRequest{Token: agentToken},
+					Datacenter:     a.config.Datacenter,
+					Node:           a.config.NodeName,
+					Segment:        segment,
+					Coord:          coord,
+					EnterpriseMeta: *a.agentEnterpriseMeta(),
+					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
 				// todo(kit) port all of these logger calls to hclog w/ loglevel configuration
@@ -1703,7 +1679,7 @@ OUTER:
 // reapServicesInternal does a single pass, looking for services to reap.
 func (a *Agent) reapServicesInternal() {
 	reaped := make(map[structs.ServiceID]bool)
-	for checkID, cs := range a.State.CriticalCheckStates(structs.WildcardEnterpriseMeta()) {
+	for checkID, cs := range a.State.AllCriticalCheckStates() {
 		serviceID := cs.Check.CompoundServiceID()
 
 		// There's nothing to do if there's no service.
@@ -2033,7 +2009,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	// Agent.Start does not have a snapshot, and we don't want to query
 	// State.Checks each time.
 	if req.checkStateSnapshot == nil {
-		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMeta())
+		req.checkStateSnapshot = a.State.AllChecks()
 	}
 
 	// Create an associated health check
@@ -2487,6 +2463,8 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 		// Need its config to know whether we should reroute checks to it
 		var proxy *structs.NodeService
 		if service != nil {
+			// NOTE: Both services must live in the same namespace and
+			// partition so this will correctly scope the results.
 			for _, svc := range a.State.Services(&service.EnterpriseMeta) {
 				if svc.Proxy.DestinationServiceID == service.ID {
 					proxy = svc
@@ -2748,6 +2726,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var rpcReq structs.NodeSpecificRequest
 			rpcReq.Datacenter = a.config.Datacenter
+			rpcReq.EnterpriseMeta = *a.agentEnterpriseMeta()
 
 			// The token to set is really important. The behavior below follows
 			// the same behavior as anti-entropy: we use the user-specified token
@@ -3326,7 +3305,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 
 // unloadServices will deregister all services.
 func (a *Agent) unloadServices() error {
-	for id := range a.State.Services(structs.WildcardEnterpriseMeta()) {
+	for id := range a.State.AllServices() {
 		if err := a.removeServiceLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering service '%s': %v", id, err)
 		}
@@ -3440,7 +3419,7 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 
 // unloadChecks will deregister all checks known to the local agent.
 func (a *Agent) unloadChecks() error {
-	for id := range a.State.Checks(structs.WildcardEnterpriseMeta()) {
+	for id := range a.State.AllChecks() {
 		if err := a.removeCheckLocked(id, false); err != nil {
 			return fmt.Errorf("Failed deregistering check '%s': %s", id, err)
 		}
@@ -3452,7 +3431,7 @@ func (a *Agent) unloadChecks() error {
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
 func (a *Agent) snapshotCheckState() map[structs.CheckID]*structs.HealthCheck {
-	return a.State.Checks(structs.WildcardEnterpriseMeta())
+	return a.State.AllChecks()
 }
 
 // loadMetadata loads node metadata fields from the agent config and

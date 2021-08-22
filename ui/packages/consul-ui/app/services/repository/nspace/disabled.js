@@ -2,7 +2,6 @@ import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
-const DEFAULT_NSPACE = 'default';
 export default class NspaceDisabledService extends RepositoryService {
   getPrimaryKey() {
     return PRIMARY_KEY;
@@ -22,7 +21,7 @@ export default class NspaceDisabledService extends RepositoryService {
 
   getActive() {
     return {
-      Name: DEFAULT_NSPACE,
+      Name: 'default',
     };
   }
 

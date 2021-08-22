@@ -598,8 +598,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 					t, "kafka", "default", "dc1",
 					connect.TestClusterID+".consul", "dc1", nil)
 
-				kafka := structs.NewServiceName("kafka", structs.DefaultEnterpriseMeta())
-				mongo := structs.NewServiceName("mongo", structs.DefaultEnterpriseMeta())
+				kafka := structs.NewServiceName("kafka", structs.DefaultEnterpriseMetaInDefaultPartition())
+				mongo := structs.NewServiceName("mongo", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 				// We add a filter chains for each passthrough service name.
 				// The filter chain will route to a cluster with the same SNI name.

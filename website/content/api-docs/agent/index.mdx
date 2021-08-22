@@ -17,6 +17,195 @@ agent registers services and checks with the Catalog and performs
 In addition to these endpoints, additional endpoints are grouped in the
 navigation for `Checks` and `Services`.
 
+## Retrieve host information
+
+This endpoint returns information about the host the agent is running on such as
+CPU, memory, and disk.
+
+~> Note: this is not a stable API. The structure of the response body may change
+at any time. If you require this data to be in a stable format, please open a
+GitHub issue to discuss your use case.
+
+| Method | Path             | Produces           |
+| ------ | ---------------- | ------------------ |
+| `GET`  | `/agent/host`    | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `operator:read` |
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/agent/host
+```
+
+### Sample Response
+
+```json
+{
+  "Memory": {
+    "total": 8192864256,
+    "available": 7154810880,
+    "used": 1406787584,
+    "usedPercent": 17.17088847126628,
+    "free": 1683918848,
+    "active": 2873405440,
+    "inactive": 2777124864,
+    "wired": 0,
+    "laundry": 0,
+    "buffers": 131567616,
+    "cached": 4970590208,
+    "writeBack": 0,
+    "dirty": 1069056,
+    "writeBackTmp": 0,
+    "shared": 9121792,
+    "slab": 770506752,
+    "sreclaimable": 0,
+    "sunreclaim": 0,
+    "pageTables": 5103616,
+    "swapCached": 143360,
+    "commitLimit": 4201283584,
+    "committedAS": 1514496000,
+    "highTotal": 0,
+    "highFree": 0,
+    "lowTotal": 0,
+    "lowFree": 0,
+    "swapTotal": 104853504,
+    "swapFree": 99696640,
+    "mapped": 313540608,
+    "vmallocTotal": 269240696832,
+    "vmallocUsed": 25956352,
+    "vmallocChunk": 0,
+    "hugePagesTotal": 0,
+    "hugePagesFree": 0,
+    "hugePageSize": 0
+  },
+  "CPU": [
+    {
+      "cpu": 0,
+      "vendorId": "",
+      "family": "",
+      "model": "",
+      "stepping": 0,
+      "physicalId": "",
+      "coreId": "0",
+      "cores": 1,
+      "modelName": "",
+      "mhz": 1500,
+      "cacheSize": 0,
+      "flags": [
+        "fp",
+        "asimd",
+        "evtstrm",
+        "crc32",
+        "cpuid"
+      ],
+      "microcode": ""
+    },
+    {
+      "cpu": 1,
+      "vendorId": "",
+      "family": "",
+      "model": "",
+      "stepping": 0,
+      "physicalId": "",
+      "coreId": "1",
+      "cores": 1,
+      "modelName": "",
+      "mhz": 1500,
+      "cacheSize": 0,
+      "flags": [
+        "fp",
+        "asimd",
+        "evtstrm",
+        "crc32",
+        "cpuid"
+      ],
+      "microcode": ""
+    },
+    {
+      "cpu": 2,
+      "vendorId": "",
+      "family": "",
+      "model": "",
+      "stepping": 0,
+      "physicalId": "",
+      "coreId": "2",
+      "cores": 1,
+      "modelName": "",
+      "mhz": 1500,
+      "cacheSize": 0,
+      "flags": [
+        "fp",
+        "asimd",
+        "evtstrm",
+        "crc32",
+        "cpuid"
+      ],
+      "microcode": ""
+    },
+    {
+      "cpu": 3,
+      "vendorId": "",
+      "family": "",
+      "model": "",
+      "stepping": 0,
+      "physicalId": "",
+      "coreId": "3",
+      "cores": 1,
+      "modelName": "",
+      "mhz": 1500,
+      "cacheSize": 0,
+      "flags": [
+        "fp",
+        "asimd",
+        "evtstrm",
+        "crc32",
+        "cpuid"
+      ],
+      "microcode": ""
+    }
+  ],
+  "Host": {
+    "hostname": "hashicorp-consul-server-2",
+    "uptime": 6855759,
+    "bootTime": 1620226737,
+    "procs": 1,
+    "os": "linux",
+    "platform": "alpine",
+    "platformFamily": "alpine",
+    "platformVersion": "3.13.5",
+    "kernelVersion": "5.10.17-v8+",
+    "kernelArch": "aarch64",
+    "virtualizationSystem": "",
+    "virtualizationRole": "",
+    "hostId": "7a8ef887-9dbe-4ed3-b45b-c04d7ee6476f"
+  },
+  "Disk": {
+    "path": "/",
+    "fstype": "",
+    "total": 125550247936,
+    "free": 93488398336,
+    "used": 26909102080,
+    "usedPercent": 22.350216563486036,
+    "inodesTotal": 7684080,
+    "inodesUsed": 442088,
+    "inodesFree": 7241992,
+    "inodesUsedPercent": 5.753297727249065
+  },
+  "CollectionTime": 1627082496166088783,
+  "Errors": null
+}
+```
+
 ## List Members
 
 This endpoint returns the members the agent sees in the cluster gossip pool. Due
@@ -412,7 +601,7 @@ $ curl \
 
 ### Sample Response
 
-```text
+```log
 YYYY/MM/DD HH:MM:SS [INFO] raft: Initial configuration (index=1): [{Suffrage:Voter ID:127.0.0.1:8300 Address:127.0.0.1:8300}]
 YYYY/MM/DD HH:MM:SS [INFO] raft: Node at 127.0.0.1:8300 [Follower] entering Follower state (Leader: "")
 YYYY/MM/DD HH:MM:SS [INFO] serf: EventMemberJoin: machine-osx 127.0.0.1

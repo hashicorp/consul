@@ -25,6 +25,9 @@ func validateEnterpriseConfigKeys(config *Config) []error {
 	if len(config.Segments) > 0 {
 		add("segments")
 	}
+	if stringVal(config.Partition) != "" {
+		add("partition")
+	}
 	if stringVal(config.Autopilot.RedundancyZoneTag) != "" {
 		add("autopilot.redundancy_zone_tag")
 	}

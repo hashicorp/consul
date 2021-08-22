@@ -23,7 +23,7 @@ To get started with the built-in proxy and see a working example you can follow 
 Below is a complete example of all the configuration options available
 for the built-in proxy.
 
-```javascript
+```json
 {
   "service": {
     ...
@@ -53,7 +53,7 @@ for the built-in proxy.
 }
 ```
 
-All fields are optional with a sane default.
+All fields are optional with a reasonable default.
 
 - `bind_address` - The address the proxy will bind its
   _public_ mTLS listener to. It defaults to the same address the agent binds to.
@@ -101,7 +101,7 @@ All fields are optional with a sane default.
 
 ## Proxy Upstream Config Key Reference
 
-All fields are optional with a sane default.
+All fields are optional with a reasonable default.
 
 - `connect_timeout_ms` - The number of milliseconds
   the proxy will wait to establish a TLS connection to the discovered upstream instance

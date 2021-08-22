@@ -3,10 +3,11 @@ package debug
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,19 +15,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/pprof/profile"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
+	"gotest.tools/v3/fs"
 
-	"github.com/google/pprof/profile"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
-func TestDebugCommand_noTabs(t *testing.T) {
-	t.Parallel()
-
-	if strings.ContainsRune(New(cli.NewMockUi(), nil).Help(), '\t') {
+func TestDebugCommand_Help_TextContainsNoTabs(t *testing.T) {
+	if strings.ContainsRune(New(cli.NewMockUi()).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
@@ -46,27 +48,98 @@ func TestDebugCommand(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
+
+	it := &incrementalTime{
+		base: time.Date(2021, 7, 8, 9, 10, 11, 0, time.UTC),
+	}
+	cmd.timeNow = it.Now
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-output=" + outputPath,
-		"-duration=100ms",
-		"-interval=50ms",
+		"-duration=2s",
+		"-interval=1s",
+		"-archive=false",
 	}
 
 	code := cmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Equal(t, "", ui.ErrorWriter.String())
 
-	if code != 0 {
-		t.Errorf("should exit 0, got code: %d", code)
-	}
+	expected := fs.Expected(t,
+		fs.WithDir("debug",
+			fs.WithFile("index.json", "", fs.MatchFileContent(validIndexJSON)),
+			fs.WithFile("agent.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("host.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("members.json", "", fs.MatchFileContent(validJSON)),
+			fs.WithFile("metrics.json", "", fs.MatchAnyFileContent),
+			fs.WithFile("consul.log", "", fs.MatchFileContent(validLogFile)),
+			fs.WithFile("profile.prof", "", fs.MatchFileContent(validProfileData)),
+			fs.WithFile("trace.out", "", fs.MatchAnyFileContent),
+			fs.WithDir("2021-07-08T09-10-12Z",
+				fs.WithFile("goroutine.prof", "", fs.MatchFileContent(validProfileData)),
+				fs.WithFile("heap.prof", "", fs.MatchFileContent(validProfileData))),
+			fs.WithDir("2021-07-08T09-10-13Z",
+				fs.WithFile("goroutine.prof", "", fs.MatchFileContent(validProfileData)),
+				fs.WithFile("heap.prof", "", fs.MatchFileContent(validProfileData))),
+			// Ignore the extra directories, they should be the same as the first two
+			fs.MatchExtraFiles))
+	assert.Assert(t, fs.Equal(testDir, expected))
 
-	errOutput := ui.ErrorWriter.String()
-	if errOutput != "" {
-		t.Errorf("expected no error output, got %q", errOutput)
+	require.Equal(t, "", ui.ErrorWriter.String(), "expected no error output")
+}
+
+func validLogFile(raw []byte) fs.CompareResult {
+	scanner := bufio.NewScanner(bytes.NewReader(raw))
+	for scanner.Scan() {
+		logLine := scanner.Text()
+		if !validateLogLine([]byte(logLine)) {
+			return cmp.ResultFailure(fmt.Sprintf("log line is not valid %s", logLine))
+		}
 	}
+	if scanner.Err() != nil {
+		return cmp.ResultFailure(scanner.Err().Error())
+	}
+	return cmp.ResultSuccess
+}
+
+func validIndexJSON(raw []byte) fs.CompareResult {
+	var target debugIndex
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&target); err != nil {
+		return cmp.ResultFailure(err.Error())
+	}
+	return cmp.ResultSuccess
+}
+
+func validJSON(raw []byte) fs.CompareResult {
+	var target interface{}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	if err := decoder.Decode(&target); err != nil {
+		return cmp.ResultFailure(err.Error())
+	}
+	return cmp.ResultSuccess
+}
+
+func validProfileData(raw []byte) fs.CompareResult {
+	if _, err := profile.ParseData(raw); err != nil {
+		return cmp.ResultFailure(err.Error())
+	}
+	return cmp.ResultSuccess
+}
+
+type incrementalTime struct {
+	base time.Time
+	next uint64
+}
+
+func (t *incrementalTime) Now() time.Time {
+	t.next++
+	return t.base.Add(time.Duration(t.next) * time.Second)
 }
 
 func TestDebugCommand_Archive(t *testing.T) {
@@ -79,11 +152,12 @@ func TestDebugCommand_Archive(t *testing.T) {
 	a := agent.NewTestAgent(t, `
 	enable_debug = true
 	`)
+
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -93,28 +167,24 @@ func TestDebugCommand_Archive(t *testing.T) {
 		"-capture=agent",
 	}
 
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("should exit 0, got code: %d", code)
-	}
+	code := cmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Equal(t, "", ui.ErrorWriter.String())
 
-	archivePath := fmt.Sprintf("%s%s", outputPath, debugArchiveExtension)
+	archivePath := outputPath + debugArchiveExtension
 	file, err := os.Open(archivePath)
-	if err != nil {
-		t.Fatalf("failed to open archive: %s", err)
-	}
+	require.NoError(t, err)
+
 	gz, err := gzip.NewReader(file)
-	if err != nil {
-		t.Fatalf("failed to read gzip archive: %s", err)
-	}
+	require.NoError(t, err)
 	tr := tar.NewReader(gz)
 
 	for {
 		h, err := tr.Next()
-
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		switch {
+		case err == io.EOF:
+			return
+		case err != nil:
 			t.Fatalf("failed to read file in archive: %s", err)
 		}
 
@@ -128,19 +198,13 @@ func TestDebugCommand_Archive(t *testing.T) {
 			t.Fatalf("archive contents do not match: %s", h.Name)
 		}
 	}
-
 }
 
 func TestDebugCommand_ArgsBad(t *testing.T) {
-	t.Parallel()
-
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 
-	args := []string{
-		"foo",
-		"bad",
-	}
+	args := []string{"foo", "bad"}
 
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("should exit non-zero, got code: %d", code)
@@ -154,7 +218,7 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 
 func TestDebugCommand_InvalidFlags(t *testing.T) {
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := ""
@@ -187,7 +251,7 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := ""
@@ -220,7 +284,7 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)
@@ -263,17 +327,17 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		"single": {
 			[]string{"agent"},
 			[]string{"agent.json"},
-			[]string{"host.json", "cluster.json"},
+			[]string{"host.json", "members.json"},
 		},
 		"static": {
 			[]string{"agent", "host", "cluster"},
-			[]string{"agent.json", "host.json", "cluster.json"},
-			[]string{"*/metrics.json"},
+			[]string{"agent.json", "host.json", "members.json"},
+			[]string{"metrics.json"},
 		},
 		"metrics-only": {
 			[]string{"metrics"},
-			[]string{"*/metrics.json"},
-			[]string{"agent.json", "host.json", "cluster.json"},
+			[]string{"metrics.json"},
+			[]string{"agent.json", "host.json", "members.json"},
 		},
 		"all-but-pprof": {
 			[]string{
@@ -286,9 +350,9 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 			[]string{
 				"host.json",
 				"agent.json",
-				"cluster.json",
-				"*/metrics.json",
-				"*/consul.log",
+				"members.json",
+				"metrics.json",
+				"consul.log",
 			},
 			[]string{},
 		},
@@ -305,7 +369,7 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 		ui := cli.NewMockUi()
-		cmd := New(ui, nil)
+		cmd := New(ui)
 		cmd.validateTiming = false
 
 		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
@@ -357,100 +421,6 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 	}
 }
 
-func TestDebugCommand_CaptureLogs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	cases := map[string]struct {
-		// used in -target param
-		targets []string
-		// existence verified after execution
-		files []string
-		// non-existence verified after execution
-		excludedFiles []string
-	}{
-		"logs-only": {
-			[]string{"logs"},
-			[]string{"*/consul.log"},
-			[]string{"agent.json", "host.json", "cluster.json", "*/metrics.json"},
-		},
-	}
-
-	for name, tc := range cases {
-		testDir := testutil.TempDir(t, "debug")
-
-		a := agent.NewTestAgent(t, `
-		enable_debug = true
-		`)
-
-		defer a.Shutdown()
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-		ui := cli.NewMockUi()
-		cmd := New(ui, nil)
-		cmd.validateTiming = false
-
-		outputPath := fmt.Sprintf("%s/debug-%s", testDir, name)
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-output=" + outputPath,
-			"-archive=false",
-			"-duration=1000ms",
-			"-interval=50ms",
-		}
-		for _, t := range tc.targets {
-			args = append(args, "-capture="+t)
-		}
-
-		if code := cmd.Run(args); code != 0 {
-			t.Fatalf("should exit 0, got code: %d", code)
-		}
-
-		errOutput := ui.ErrorWriter.String()
-		if errOutput != "" {
-			t.Errorf("expected no error output, got %q", errOutput)
-		}
-
-		// Ensure the debug data was written
-		_, err := os.Stat(outputPath)
-		if err != nil {
-			t.Fatalf("output path should exist: %s", err)
-		}
-
-		// Ensure the captured static files exist
-		for _, f := range tc.files {
-			path := fmt.Sprintf("%s/%s", outputPath, f)
-			// Glob ignores file system errors
-			fs, _ := filepath.Glob(path)
-			if len(fs) <= 0 {
-				t.Fatalf("%s: output data should exist for %s", name, f)
-			}
-			for _, logFile := range fs {
-				content, err := ioutil.ReadFile(logFile)
-				require.NoError(t, err)
-				scanner := bufio.NewScanner(strings.NewReader(string(content)))
-				for scanner.Scan() {
-					logLine := scanner.Text()
-					if !validateLogLine([]byte(logLine)) {
-						t.Fatalf("%s: log line is not valid %s", name, logLine)
-					}
-				}
-			}
-		}
-
-		// Ensure any excluded files do not exist
-		for _, f := range tc.excludedFiles {
-			path := fmt.Sprintf("%s/%s", outputPath, f)
-			// Glob ignores file system errors
-			fs, _ := filepath.Glob(path)
-			if len(fs) > 0 {
-				t.Fatalf("%s: output data should not exist for %s", name, f)
-			}
-		}
-	}
-}
-
 func validateLogLine(content []byte) bool {
 	fields := strings.SplitN(string(content), " ", 2)
 	if len(fields) != 2 {
@@ -467,121 +437,44 @@ func validateLogLine(content []byte) bool {
 	return valid
 }
 
-func TestDebugCommand_ProfilesExist(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	testDir := testutil.TempDir(t, "debug")
-
-	a := agent.NewTestAgent(t, `
-	enable_debug = true
-	`)
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
-	cmd.validateTiming = false
-
-	outputPath := fmt.Sprintf("%s/debug", testDir)
-	println(outputPath)
-	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
-		"-output=" + outputPath,
-		// CPU profile has a minimum of 1s
-		"-archive=false",
-		"-duration=2s",
-		"-interval=1s",
-		"-capture=pprof",
-	}
-
-	if code := cmd.Run(args); code != 0 {
-		t.Fatalf("should exit 0, got code: %d", code)
-	}
-
-	profiles := []string{"heap.prof", "profile.prof", "goroutine.prof", "trace.out"}
-	// Glob ignores file system errors
-	for _, v := range profiles {
-		fs, _ := filepath.Glob(fmt.Sprintf("%s/*/%s", outputPath, v))
-		if len(fs) < 1 {
-			t.Errorf("output data should exist for %s", v)
-		}
-		for _, f := range fs {
-			if !strings.Contains(f, "trace.out") {
-				content, err := ioutil.ReadFile(f)
-				require.NoError(t, err)
-				_, err = profile.ParseData(content)
-				require.NoError(t, err)
-			}
-		}
-	}
-
-	errOutput := ui.ErrorWriter.String()
-	if errOutput != "" {
-		t.Errorf("expected no error output, got %s", errOutput)
-	}
-}
-
-func TestDebugCommand_ValidateTiming(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
+func TestDebugCommand_Prepare_ValidateTiming(t *testing.T) {
 	cases := map[string]struct {
 		duration string
 		interval string
-		output   string
-		code     int
+		expected string
 	}{
 		"both": {
-			"20ms",
-			"10ms",
-			"duration must be longer",
-			1,
+			duration: "20ms",
+			interval: "10ms",
+			expected: "duration must be longer",
 		},
 		"short interval": {
-			"10s",
-			"10ms",
-			"interval must be longer",
-			1,
+			duration: "10s",
+			interval: "10ms",
+			expected: "interval must be longer",
 		},
 		"lower duration": {
-			"20s",
-			"30s",
-			"must be longer than interval",
-			1,
+			duration: "20s",
+			interval: "30s",
+			expected: "must be longer than interval",
 		},
 	}
 
 	for name, tc := range cases {
-		// Because we're only testng validation, we want to shut down
-		// the valid duration test to avoid hanging
-		shutdownCh := make(chan struct{})
+		t.Run(name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
 
-		a := agent.NewTestAgent(t, "")
-		defer a.Shutdown()
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
+			args := []string{
+				"-duration=" + tc.duration,
+				"-interval=" + tc.interval,
+			}
+			err := cmd.flags.Parse(args)
+			require.NoError(t, err)
 
-		ui := cli.NewMockUi()
-		cmd := New(ui, shutdownCh)
-
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-duration=" + tc.duration,
-			"-interval=" + tc.interval,
-			"-capture=agent",
-		}
-		code := cmd.Run(args)
-
-		if code != tc.code {
-			t.Errorf("%s: should exit %d, got code: %d", name, tc.code, code)
-		}
-
-		errOutput := ui.ErrorWriter.String()
-		if !strings.Contains(errOutput, tc.output) {
-			t.Errorf("%s: expected error output '%s', got '%q'", name, tc.output, errOutput)
-		}
+			_, err = cmd.prepare()
+			testutil.RequireErrorContains(t, err, tc.expected)
+		})
 	}
 }
 
@@ -601,7 +494,7 @@ func TestDebugCommand_DebugDisabled(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
-	cmd := New(ui, nil)
+	cmd := New(ui)
 	cmd.validateTiming = false
 
 	outputPath := fmt.Sprintf("%s/debug", testDir)

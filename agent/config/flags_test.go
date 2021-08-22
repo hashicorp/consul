@@ -49,7 +49,7 @@ func TestAddFlags_WithParse(t *testing.T) {
 		},
 		{
 			args:     []string{`-grpc-port`, `1`},
-			expected: LoadOpts{FlagValues: Config{Ports: Ports{GRPC: pInt(1)}}},
+			expected: LoadOpts{FlagValues: Config{Ports: Ports{XDS: pInt(1)}}},
 		},
 		{
 			args:     []string{`-http-port`, `1`},

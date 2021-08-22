@@ -253,7 +253,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(20, ingress))
-	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 
 	// Raft Chunking
@@ -489,7 +489,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, fsm2.Restore(sink))
 
 	// Verify the contents
-	_, nodes, err := fsm2.state.Nodes(nil)
+	_, nodes, err := fsm2.state.Nodes(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, nodes, 2, "incorect number of nodes: %v", nodes)
 
@@ -625,7 +625,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}()
 
 	// Verify coordinates are restored
-	_, coords, err := fsm2.state.Coordinates(nil)
+	_, coords, err := fsm2.state.Coordinates(nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, updates, coords)
 
@@ -641,7 +641,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, autopilotConf, restoredConf)
 
 	// Verify legacy intentions are restored.
-	_, ixns, err := fsm2.state.LegacyIntentions(nil, structs.WildcardEnterpriseMeta())
+	_, ixns, err := fsm2.state.LegacyIntentions(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Len(t, ixns, 1)
 	require.Equal(t, ixn, ixns[0])
@@ -663,19 +663,19 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, caConfig, caConf)
 
 	// Verify config entries are restored
-	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMeta())
+	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, serviceConfig, serviceConfEntry)
 
-	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMeta())
+	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, proxyConfig, proxyConfEntry)
 
-	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMeta())
+	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, ingress, ingressRestored)
 
-	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
+	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, gatewayServices, restoredGatewayServices)
 
@@ -692,9 +692,9 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, fedState2, fedStateLoaded2)
 
 	// Verify usage data is correctly updated
-	idx, nodeCount, err := fsm2.state.NodeCount()
+	idx, nodeUsage, err := fsm2.state.NodeUsage()
 	require.NoError(t, err)
-	require.Equal(t, len(nodes), nodeCount)
+	require.Equal(t, len(nodes), nodeUsage.Nodes)
 	require.NotZero(t, idx)
 
 	// Verify system metadata is restored.
@@ -704,12 +704,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[0])
 
 	// Verify service-intentions is restored
-	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMeta())
+	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, serviceIxn, serviceIxnEntry)
 
 	// Verify mesh config entry is restored
-	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMeta())
+	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
 	require.Equal(t, meshConfig, meshConfigEntry)
 
@@ -749,7 +749,7 @@ func TestFSM_BadRestore_OSS(t *testing.T) {
 	require.Error(t, fsm.Restore(sink))
 
 	// Verify the contents didn't get corrupted.
-	_, nodes, err := fsm.state.Nodes(nil)
+	_, nodes, err := fsm.state.Nodes(nil, nil)
 	require.NoError(t, err)
 	require.Len(t, nodes, 1)
 	require.Equal(t, "foo", nodes[0].Node)

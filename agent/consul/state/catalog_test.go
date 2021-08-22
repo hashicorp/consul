@@ -1,6 +1,7 @@
 package state
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"reflect"
 	"sort"
@@ -28,23 +29,24 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 
 func TestStateStore_GetNodeID(t *testing.T) {
 	s := testStateStore(t)
-	_, out, err := s.GetNodeID(types.NodeID("wrongId"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
+
+	_, out, err := s.GetNodeID(types.NodeID("wrongId"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: UUID (without hyphens) must be") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
 	}
-	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
-	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
-	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"))
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"), nil)
 	if err != nil || out != nil {
-		t.Fatalf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
+		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
 	}
 
 	nodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fceeaaa")
@@ -53,30 +55,53 @@ func TestStateStore_GetNodeID(t *testing.T) {
 		Node:    "node1",
 		Address: "1.2.3.4",
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 
-	_, out, err = s.GetNodeID(nodeID)
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	_, out, err = s.GetNodeID(nodeID, nil)
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
+
 	// Case insensitive lookup should work as well
-	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"))
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"), nil)
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
 }
 
+func TestStateStore_GetNode(t *testing.T) {
+	s := testStateStore(t)
+
+	// initially does not exist
+	idx, out, err := s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.Nil(t, out)
+	require.Equal(t, uint64(0), idx)
+
+	// Create it
+	testRegisterNode(t, s, 1, "node1")
+
+	// now exists
+	idx, out, err = s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+
+	// Case insensitive lookup should work as well
+	idx, out, err = s.GetNode("NoDe1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+}
+
 func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
+
 	nodeID := makeRandomNodeID(t)
 	req := &structs.RegisterRequest{
 		ID:              nodeID,
@@ -90,9 +115,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 	req = &structs.RegisterRequest{
 		ID:      types.NodeID(""),
 		Node:    "node2",
@@ -103,31 +126,29 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(2, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(2, req))
+
 	tx := s.db.WriteTxnRestore()
 	defer tx.Abort()
+
 	node := &structs.Node{
 		ID:      makeRandomNodeID(t),
 		Node:    "NOdE1", // Name is similar but case is different
 		Address: "2.3.4.5",
 	}
+
 	// Lets conflict with node1 (has an ID)
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should return an error since another name with similar name exists")
+
 	// Lets conflict with node without ID
 	node.Node = "NoDe2"
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
-		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should not clash with another similar node name without ID")
 
 	// Set node1's Serf health to failing and replace it.
 	newNode := &structs.Node{
@@ -135,17 +156,15 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Node:    "node1",
 		Address: "2.3.4.5",
 	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
-		t.Fatalf("Should return an error since the previous node is still healthy")
-	}
-	s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false),
+		"Should return an error since the previous node is still healthy")
+
+	require.NoError(t, s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
 		Node:    "node1",
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
-	})
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
-		t.Fatal(err)
-	}
+	}))
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false))
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
@@ -171,18 +190,19 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			ID:              nodeID,
 			Node:            "node1",
 			Address:         "1.2.3.4",
+			Partition:       structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			TaggedAddresses: map[string]string{"hello": "world"},
 			Meta:            map[string]string{"somekey": "somevalue"},
 			RaftIndex:       structs.RaftIndex{CreateIndex: 1, ModifyIndex: 1},
 		}
 
-		_, out, err := s.GetNode("node1")
+		_, out, err := s.GetNode("node1", nil)
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
 		require.Equal(t, node, out)
 
-		_, out2, err := s.GetNodeID(nodeID)
+		_, out2, err := s.GetNodeID(nodeID, nil)
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
@@ -230,7 +250,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Tags:           []string{"primary"},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 
@@ -268,7 +288,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Name:           "check",
 				Status:         "critical",
 				RaftIndex:      structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 
@@ -313,7 +333,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Name:           "check",
 				Status:         "critical",
 				RaftIndex:      structs.RaftIndex{CreateIndex: 3, ModifyIndex: 3},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			&structs.HealthCheck{
 				Node:           "node1",
@@ -324,7 +344,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				ServiceName:    "redis",
 				ServiceTags:    []string{"primary"},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 4, ModifyIndex: 4},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 		}
 
@@ -357,7 +377,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			Node:           "nope",
 			CheckID:        "check2",
 			Name:           "check",
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	err = s.EnsureRegistration(6, req)
@@ -392,12 +412,12 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 
 	// Retrieve the node and verify its contents.
 	verifyNode := func(nodeLookup string) {
-		_, out, err := s.GetNode(nodeLookup)
+		_, out, err := s.GetNode(nodeLookup, nil)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		if out == nil {
-			_, out, err = s.GetNodeID(types.NodeID(nodeLookup))
+			_, out, err = s.GetNodeID(types.NodeID(nodeLookup), nil)
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
@@ -550,7 +570,7 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 	if err := s.EnsureNode(txIdx, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err := s.GetNode(nodeName)
+	idx, out, err := s.GetNode(nodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -580,7 +600,7 @@ func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Retrieve the node again
-	idx, out, err := s.GetNode(firstNodeName)
+	idx, out, err := s.GetNode(firstNodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -603,7 +623,7 @@ func TestStateStore_EnsureNodeDeprecated(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	// Retrieve the node again
-	idx, out, err = s.GetNode(firstNodeName)
+	idx, out, err = s.GetNode(firstNodeName, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -676,11 +696,11 @@ func TestNodeRenamingNodes(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, node, err := s.GetNodeID(nodeID1); err != nil || node == nil || node.ID != nodeID1 {
+	if _, node, err := s.GetNodeID(nodeID1, nil); err != nil || node == nil || node.ID != nodeID1 {
 		t.Fatalf("err: %s, node:= %q", err, node)
 	}
 
-	if _, node, err := s.GetNodeID(nodeID2); err != nil && node == nil || node.ID != nodeID2 {
+	if _, node, err := s.GetNodeID(nodeID2, nil); err != nil && node == nil || node.ID != nodeID2 {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -725,13 +745,13 @@ func TestNodeRenamingNodes(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	idx, out, err := s.GetNode("node2bis")
+	idx, out, err := s.GetNode("node2bis", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Retrieve the node again
-	idx2, out2, err := s.GetNodeID(nodeID2)
+	idx2, out2, err := s.GetNodeID(nodeID2, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -749,7 +769,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching a non-existent node returns nil
-	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
+	if _, node, err := s.GetNode("node1", nil); node != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", node, err)
 	}
 
@@ -766,7 +786,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	idx, out, err := s.GetNode("node1")
+	idx, out, err := s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -795,7 +815,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	idx, out, err = s.GetNode("node1")
+	idx, out, err = s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -812,7 +832,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(3, in2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	_, out, err = s.GetNode("node1")
+	_, out, err = s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -829,7 +849,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(3, in3); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err = s.GetNode("node1")
+	idx, out, err = s.GetNode("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -856,13 +876,13 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	_, out, err = s.GetNode("node1")
+	_, out, err = s.GetNode("node1", nil)
 	require.NoError(t, err)
 	if out != nil {
 		t.Fatalf("Node should not exist anymore: %q", out)
 	}
 
-	idx, out, err = s.GetNode("node1-renamed")
+	idx, out, err = s.GetNode("node1-renamed", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -921,7 +941,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	_, out, err = s.GetNode("Node1bis")
+	_, out, err = s.GetNode("Node1bis", nil)
 	require.NoError(t, err)
 	if out == nil {
 		t.Fatalf("Node should exist, but was null")
@@ -937,7 +957,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	idx, out, err = s.GetNode("Node1bis")
+	idx, out, err = s.GetNode("Node1bis", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -980,7 +1000,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(12, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	idx, out, err = s.GetNode("Node1-Renamed2")
+	idx, out, err = s.GetNode("Node1-Renamed2", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1010,7 +1030,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if err := s.EnsureNode(15, in); err != nil {
 		t.Fatalf("[DEPRECATED] it should work, err:= %q", err)
 	}
-	_, out, err = s.GetNode("Node1-Renamed2")
+	_, out, err = s.GetNode("Node1-Renamed2", nil)
 	if err != nil {
 		t.Fatalf("[DEPRECATED] err: %s", err)
 	}
@@ -1027,7 +1047,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 
 	// Listing with no results returns nil.
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.Nodes(ws)
+	idx, res, err := s.Nodes(ws, nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -1042,7 +1062,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 
 	// Retrieve the nodes.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err := s.Nodes(ws)
+	idx, nodes, err := s.Nodes(ws, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1072,7 +1092,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 	if watchFired(ws) {
 		t.Fatalf("bad")
 	}
-	if err := s.DeleteNode(3, "node1"); err != nil {
+	if err := s.DeleteNode(3, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -1092,7 +1112,7 @@ func BenchmarkGetNodes(b *testing.B) {
 
 	ws := memdb.NewWatchSet()
 	for i := 0; i < b.N; i++ {
-		s.Nodes(ws)
+		s.Nodes(ws, nil)
 	}
 }
 
@@ -1101,7 +1121,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 
 	// Listing with no results returns nil
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.NodesByMeta(ws, map[string]string{"somekey": "somevalue"})
+	idx, res, err := s.NodesByMeta(ws, map[string]string{"somekey": "somevalue"}, nil)
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
@@ -1118,6 +1138,11 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 		filters map[string]string
 		nodes   []string
 	}{
+		// Empty meta filter
+		{
+			filters: map[string]string{},
+			nodes:   []string{},
+		},
 		// Simple meta filter
 		{
 			filters: map[string]string{"role": "server"},
@@ -1141,7 +1166,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, result, err := s.NodesByMeta(nil, tc.filters)
+		_, result, err := s.NodesByMeta(nil, tc.filters, nil)
 		if err != nil {
 			t.Fatalf("bad: %v", err)
 		}
@@ -1159,7 +1184,7 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 
 	// Set up a watch.
 	ws = memdb.NewWatchSet()
-	_, _, err = s.NodesByMeta(ws, map[string]string{"role": "client"})
+	_, _, err = s.NodesByMeta(ws, map[string]string{"role": "client"}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1187,9 +1212,7 @@ func TestStateStore_NodeServices(t *testing.T) {
 			Node:    "node1",
 			Address: "1.2.3.4",
 		}
-		if err := s.EnsureRegistration(1, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, s.EnsureRegistration(1, req))
 	}
 	{
 		req := &structs.RegisterRequest{
@@ -1197,83 +1220,59 @@ func TestStateStore_NodeServices(t *testing.T) {
 			Node:    "node2",
 			Address: "5.6.7.8",
 		}
-		if err := s.EnsureRegistration(2, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, s.EnsureRegistration(2, req))
 	}
 
 	// Look up by name.
-	{
-		_, ns, err := s.NodeServices(nil, "node1", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Look up by name", func(t *testing.T) {
+		{
+			_, ns, err := s.NodeServices(nil, "node1", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node1", ns.Node.Node)
 		}
-		if ns == nil || ns.Node.Node != "node1" {
-			t.Fatalf("bad: %#v", *ns)
+		{
+			_, ns, err := s.NodeServices(nil, "node2", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node2", ns.Node.Node)
 		}
-	}
-	{
-		_, ns, err := s.NodeServices(nil, "node2", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", *ns)
-		}
-	}
+	})
 
-	// Look up by UUID.
-	{
-		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Look up by UUID", func(t *testing.T) {
+		{
+			_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node1", ns.Node.Node)
 		}
-		if ns == nil || ns.Node.Node != "node1" {
-			t.Fatalf("bad: %#v", ns)
+		{
+			_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node2", ns.Node.Node)
 		}
-	}
-	{
-		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+	})
 
-	// Ambiguous prefix.
-	{
+	t.Run("Ambiguous prefix", func(t *testing.T) {
 		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns != nil {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 
-	// Bad node, and not a UUID (should not get a UUID error).
-	{
+	t.Run("Bad node", func(t *testing.T) {
+		// Bad node, and not a UUID (should not get a UUID error).
 		_, ns, err := s.NodeServices(nil, "nope", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns != nil {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 
-	// Specific prefix.
-	{
+	t.Run("Specific prefix", func(t *testing.T) {
 		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bb", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.NotNil(t, ns)
+		require.Equal(t, "node2", ns.Node.Node)
+	})
 }
 
 func TestStateStore_DeleteNode(t *testing.T) {
@@ -1285,12 +1284,12 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	testRegisterCheck(t, s, 2, "node1", "", "check1", api.HealthPassing)
 
 	// Delete the node
-	if err := s.DeleteNode(3, "node1"); err != nil {
+	if err := s.DeleteNode(3, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// The node was removed
-	if idx, n, err := s.GetNode("node1"); err != nil || n != nil || idx != 3 {
+	if idx, n, err := s.GetNode("node1", nil); err != nil || n != nil || idx != 3 {
 		t.Fatalf("bad: %#v %d (err: %#v)", n, idx, err)
 	}
 
@@ -1316,7 +1315,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{"nodes", tableServices, tableChecks} {
+	for _, tbl := range []string{tableNodes, tableServices, tableChecks} {
 		if idx := s.maxIndex(tbl); idx != 3 {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
@@ -1324,10 +1323,10 @@ func TestStateStore_DeleteNode(t *testing.T) {
 
 	// Deleting a nonexistent node should be idempotent and not return
 	// an error
-	if err := s.DeleteNode(4, "node1"); err != nil {
+	if err := s.DeleteNode(4, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("nodes"); idx != 3 {
+	if idx := s.maxIndex(tableNodes); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -1395,7 +1394,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 		Address:        "1.1.1.1",
 		Port:           1111,
 		Weights:        &structs.Weights{Passing: 1, Warning: 0},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Creating a service without a node returns an error.
@@ -1531,7 +1530,7 @@ func TestStateStore_EnsureService_connectProxy(t *testing.T) {
 			Warning: 1,
 		},
 		Proxy:          structs.ConnectProxyConfig{DestinationServiceName: "foo"},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 	}
 
 	// Service successfully registers into the state store.
@@ -1618,7 +1617,7 @@ func TestStateStore_Services(t *testing.T) {
 	}
 
 	// Deleting a node with a service should fire the watch.
-	if err := s.DeleteNode(6, "node1"); err != nil {
+	if err := s.DeleteNode(6, "node1", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -1868,7 +1867,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	}
 
 	// But removing a node with the "db" service should fire the watch.
-	if err := s.DeleteNode(18, "bar"); err != nil {
+	if err := s.DeleteNode(18, "bar", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -1972,7 +1971,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	}
 
 	// But removing a node with the "db:primary" service should fire the watch.
-	if err := s.DeleteNode(21, "foo"); err != nil {
+	if err := s.DeleteNode(21, "foo", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
@@ -2134,7 +2133,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.False(watchFired(ws))
 
 	// But removing a node with the "db" service should fire the watch.
-	assert.Nil(s.DeleteNode(18, "bar"))
+	assert.Nil(s.DeleteNode(18, "bar", nil))
 	assert.True(watchFired(ws))
 }
 
@@ -2259,7 +2258,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Address:        "1.1.1.1",
 			Port:           1111,
 			Weights:        &structs.Weights{Passing: 1, Warning: 0},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		{
 			ID:             "service2",
@@ -2268,7 +2267,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			Address:        "1.1.1.2",
 			Port:           1112,
 			Weights:        &structs.Weights{Passing: 1, Warning: 1},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 	}
 	for i, svc := range ns {
@@ -2293,7 +2292,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	services, err := snap.Services("node1")
+	services, err := snap.Services("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3875,7 +3874,7 @@ func TestStateStore_Check_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	iter, err := snap.Checks("node1")
+	iter, err := snap.Checks("node1", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4131,7 +4130,7 @@ func TestStateStore_ServiceDump(t *testing.T) {
 		{
 			name: "delete a node",
 			modFn: func(t *testing.T) {
-				s.DeleteNode(12, "node2")
+				s.DeleteNode(12, "node2", nil)
 			},
 			allFired:  true, // fires due to "index"
 			kindFired: true, // fires due to "index"
@@ -4236,7 +4235,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	// Check that our result matches what we expect.
 	expect := structs.NodeDump{
 		&structs.NodeInfo{
-			Node: "node1",
+			Node:      "node1",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node1",
@@ -4248,7 +4248,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 6,
 						ModifyIndex: 6,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				&structs.HealthCheck{
 					Node:        "node1",
@@ -4260,7 +4260,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 8,
 						ModifyIndex: 8,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			Services: []*structs.NodeService{
@@ -4275,7 +4275,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 2,
 						ModifyIndex: 2,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				{
 					ID:      "service2",
@@ -4288,12 +4288,13 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 3,
 						ModifyIndex: 3,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
 		&structs.NodeInfo{
-			Node: "node2",
+			Node:      "node2",
+			Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "node2",
@@ -4305,7 +4306,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 7,
 						ModifyIndex: 7,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				&structs.HealthCheck{
 					Node:        "node2",
@@ -4317,7 +4318,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 9,
 						ModifyIndex: 9,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 			Services: []*structs.NodeService{
@@ -4332,7 +4333,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 4,
 						ModifyIndex: 4,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 				{
 					ID:      "service2",
@@ -4345,7 +4346,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 						CreateIndex: 5,
 						ModifyIndex: 5,
 					},
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
 		},
@@ -6151,7 +6152,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 		Node: "foo",
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	admin := structs.NewServiceName("admin", defaultMeta)
 	cache := structs.NewServiceName("cache", defaultMeta)
@@ -6261,7 +6262,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 }
 
 func TestCatalog_catalogDownstreams(t *testing.T) {
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -6377,7 +6378,7 @@ func TestCatalog_catalogDownstreams(t *testing.T) {
 			}
 
 			tx := s.db.ReadTxn()
-			idx, names, err := downstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("admin", structs.DefaultEnterpriseMeta()))
+			idx, names, err := downstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("admin", structs.DefaultEnterpriseMetaInDefaultPartition()))
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6387,7 +6388,7 @@ func TestCatalog_catalogDownstreams(t *testing.T) {
 }
 
 func TestCatalog_upstreamsFromRegistration(t *testing.T) {
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -6552,7 +6553,7 @@ func TestCatalog_upstreamsFromRegistration(t *testing.T) {
 			}
 
 			tx := s.db.ReadTxn()
-			idx, names, err := upstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("api", structs.DefaultEnterpriseMeta()))
+			idx, names, err := upstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("api", structs.DefaultEnterpriseMetaInDefaultPartition()))
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6574,7 +6575,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 		Node: "foo",
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	web := structs.NewServiceName("web", defaultMeta)
 
 	ws := memdb.NewWatchSet()
@@ -6739,7 +6740,7 @@ func TestCatalog_topologyCleanupPanic(t *testing.T) {
 		Node: "foo",
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	web := structs.NewServiceName("web", defaultMeta)
 
 	ws := memdb.NewWatchSet()
@@ -6791,7 +6792,7 @@ func TestCatalog_topologyCleanupPanic(t *testing.T) {
 	assert.True(t, watchFired(ws))
 
 	// Now delete the node Foo, and this would panic because of the deletion within an iterator
-	require.NoError(t, s.DeleteNode(3, "foo"))
+	require.NoError(t, s.DeleteNode(3, "foo", nil))
 	assert.True(t, watchFired(ws))
 
 }
@@ -6816,7 +6817,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 		},
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	ingress := structs.NewServiceName("ingress", defaultMeta)
 
 	ws := memdb.NewWatchSet()
@@ -7023,7 +7024,7 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 		},
 	}))
 
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	// Register two different gateways that target services via wildcard
 	require.NoError(t, s.EnsureConfigEntry(2, &structs.TerminatingGatewayConfigEntry{
@@ -7074,11 +7075,11 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 	require.NoError(t, s.EnsureService(5, "foo", &api2))
 
 	// Now delete the node "foo", and this would panic because of the deletion within an iterator
-	require.NoError(t, s.DeleteNode(6, "foo"))
+	require.NoError(t, s.DeleteNode(6, "foo", nil))
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {
-	defaultMeta := structs.DefaultEnterpriseMeta()
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
 	type expect struct {
 		idx   uint64
@@ -7203,7 +7204,7 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 			defer tx.Abort()
 
 			ws := memdb.NewWatchSet()
-			sn := structs.NewServiceName("admin", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("admin", structs.DefaultEnterpriseMetaInDefaultPartition())
 			idx, names, err := s.downstreamsForServiceTxn(tx, ws, "dc1", sn)
 			require.NoError(t, err)
 
@@ -7215,7 +7216,7 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 
 func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 	var (
-		defaultMeta = structs.DefaultEnterpriseMeta()
+		defaultMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 		target      = structs.NewServiceName("admin", defaultMeta)
 	)
 
@@ -7509,7 +7510,7 @@ func TestProtocolForIngressGateway(t *testing.T) {
 			defer tx.Abort()
 
 			ws := memdb.NewWatchSet()
-			sn := structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 
 			idx, protocol, err := metricsProtocolForIngressGateway(tx, ws, sn)
 			require.NoError(t, err)
@@ -7517,4 +7518,61 @@ func TestProtocolForIngressGateway(t *testing.T) {
 			require.Equal(t, tc.expect, protocol)
 		})
 	}
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
+}
+
+func assertMaxIndexes(t *testing.T, tx ReadTxn, expect map[string]uint64, skip ...string) {
+	t.Helper()
+
+	all := dumpMaxIndexes(t, tx)
+
+	for _, index := range skip {
+		if _, ok := all[index]; ok {
+			delete(all, index)
+		} else {
+			t.Logf("index %q isn't even set; probably test assertion isn't relevant anymore", index)
+		}
+	}
+
+	require.Equal(t, expect, all)
+
+	// TODO
+	// for _, index := range indexes {
+	// 	require.Equal(t, expectIndex, maxIndexTxn(tx, index),
+	// 		"index %s has the wrong value", index)
+	// }
+}
+
+func dumpMaxIndexes(t *testing.T, tx ReadTxn) map[string]uint64 {
+	out := make(map[string]uint64)
+
+	iter, err := tx.Get(tableIndex, "id")
+	require.NoError(t, err)
+
+	for entry := iter.Next(); entry != nil; entry = iter.Next() {
+		if idx, ok := entry.(*IndexEntry); ok {
+			out[idx.Key] = idx.Value
+		}
+	}
+	return out
+}
+
+func generateUUID() ([]byte, string) {
+	buf := make([]byte, 16)
+	if _, err := crand.Read(buf); err != nil {
+		panic(fmt.Errorf("failed to read random bytes: %v", err))
+	}
+	uuid := fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+		buf[0:4],
+		buf[4:6],
+		buf[6:8],
+		buf[8:10],
+		buf[10:16])
+	return buf, uuid
 }

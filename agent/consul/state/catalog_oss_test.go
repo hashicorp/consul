@@ -4,6 +4,7 @@ package state
 
 import (
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 func testIndexerTableChecks() map[string]indexerTestCase {
@@ -175,6 +176,8 @@ func testIndexerTableGatewayServices() map[string]indexerTestCase {
 }
 
 func testIndexerTableNodes() map[string]indexerTestCase {
+	uuidBuf, uuid := generateUUID()
+
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
@@ -185,7 +188,76 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 				source:   &structs.Node{Node: "NoDeId"},
 				expected: []byte("nodeid\x00"),
 			},
+			prefix: []indexValue{
+				{
+					source:   (*structs.EnterpriseMeta)(nil),
+					expected: nil,
+				},
+				{
+					source:   structs.EnterpriseMeta{},
+					expected: nil,
+				},
+				{
+					source:   Query{Value: "NoDeId"},
+					expected: []byte("nodeid\x00"),
+				},
+			},
 		},
+		indexUUID: {
+			read: indexValue{
+				source:   Query{Value: uuid},
+				expected: uuidBuf,
+			},
+			write: indexValue{
+				source: &structs.Node{
+					ID:   types.NodeID(uuid),
+					Node: "NoDeId",
+				},
+				expected: uuidBuf,
+			},
+			prefix: []indexValue{
+				{
+					source:   (*structs.EnterpriseMeta)(nil),
+					expected: nil,
+				},
+				{
+					source:   structs.EnterpriseMeta{},
+					expected: nil,
+				},
+				{ // partial length
+					source:   Query{Value: uuid[:6]},
+					expected: uuidBuf[:3],
+				},
+				{ // full length
+					source:   Query{Value: uuid},
+					expected: uuidBuf,
+				},
+			},
+		},
+		indexMeta: {
+			read: indexValue{
+				source: KeyValueQuery{
+					Key:   "KeY",
+					Value: "VaLuE",
+				},
+				expected: []byte("KeY\x00VaLuE\x00"),
+			},
+			writeMulti: indexValueMulti{
+				source: &structs.Node{
+					Node: "NoDeId",
+					Meta: map[string]string{
+						"MaP-kEy-1": "mAp-VaL-1",
+						"mAp-KeY-2": "MaP-vAl-2",
+					},
+				},
+				expected: [][]byte{
+					[]byte("MaP-kEy-1\x00mAp-VaL-1\x00"),
+					[]byte("mAp-KeY-2\x00MaP-vAl-2\x00"),
+				},
+			},
+		},
+
+		// TODO(partitions): fix schema tests for tables that reference nodes too
 	}
 }
 

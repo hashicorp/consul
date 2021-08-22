@@ -10,6 +10,7 @@ func NodeToStructs(s Node) structs.Node {
 	t.Node = s.Node
 	t.Address = s.Address
 	t.Datacenter = s.Datacenter
+	t.Partition = s.Partition
 	t.TaggedAddresses = s.TaggedAddresses
 	t.Meta = s.Meta
 	t.RaftIndex = RaftIndexToStructs(s.RaftIndex)
@@ -21,6 +22,7 @@ func NewNodeFromStructs(t structs.Node) Node {
 	s.Node = t.Node
 	s.Address = t.Address
 	s.Datacenter = t.Datacenter
+	s.Partition = t.Partition
 	s.TaggedAddresses = t.TaggedAddresses
 	s.Meta = t.Meta
 	s.RaftIndex = NewRaftIndexFromStructs(t.RaftIndex)
