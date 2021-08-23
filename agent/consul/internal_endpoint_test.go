@@ -1932,19 +1932,11 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			require.Empty(r, out.ServiceTopology.Downstreams)
+			require.Empty(r, out.ServiceTopology.DownstreamDecisions)
+			require.Empty(r, out.ServiceTopology.DownstreamSources)
 
-			expectDown := map[string]structs.IntentionDecisionSummary{
-				"counting":    {DefaultAllow: true, Allowed: true},
-				"counting-v2": {DefaultAllow: true, Allowed: true},
-			}
-			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
-
-			expectDownstreamSources := map[string]string{
-				"counting":    structs.TopologySourceDefaultAllow,
-				"counting-v2": structs.TopologySourceDefaultAllow,
-			}
-			require.Equal(r, expectDownstreamSources, out.ServiceTopology.DownstreamSources)
-
+			// routing-config will not appear as an Upstream service
+			// but will be present in UpstreamSources as a k-v pair.
 			require.Empty(r, out.ServiceTopology.Upstreams)
 
 			expectUp := map[string]structs.IntentionDecisionSummary{

@@ -3130,28 +3130,6 @@ func (s *Store) ServiceTopology(
 		}
 	}
 
-	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
-	}
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-
-	var upstreams structs.CheckServiceNodes
-	for _, upstream := range unfilteredUpstreams {
-		sn := upstream.Service.CompoundServiceName()
-		if upstream.Service.Kind == structs.ServiceKindConnectProxy {
-			sn = structs.NewServiceName(upstream.Service.Proxy.DestinationServiceName, &upstream.Service.EnterpriseMeta)
-		}
-
-		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode.
-		if !hasTransparent && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
-			continue
-		}
-		upstreams = append(upstreams, upstream)
-	}
-
 	matchEntry := structs.IntentionMatchEntry{
 		Namespace: entMeta.NamespaceOrDefault(),
 		Name:      service,
@@ -3175,6 +3153,28 @@ func (s *Store) ServiceTopology(
 				sn.String(), un.String(), err)
 		}
 		upstreamDecisions[un.String()] = decision
+	}
+
+	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	var upstreams structs.CheckServiceNodes
+	for _, upstream := range unfilteredUpstreams {
+		sn := upstream.Service.CompoundServiceName()
+		if upstream.Service.Kind == structs.ServiceKindConnectProxy {
+			sn = structs.NewServiceName(upstream.Service.Proxy.DestinationServiceName, &upstream.Service.EnterpriseMeta)
+		}
+
+		// Avoid returning upstreams from intentions when none of the proxy instances of the target are in transparent mode.
+		if !hasTransparent && upstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			continue
+		}
+		upstreams = append(upstreams, upstream)
 	}
 
 	var foundUpstreams = make(map[structs.ServiceName]struct{})
@@ -3244,6 +3244,26 @@ func (s *Store) ServiceTopology(
 		downstreamSources[svc.Name.String()] = source
 	}
 
+	_, dstIntentions, err := compatIntentionMatchOneTxn(
+		tx,
+		ws,
+		matchEntry,
+
+		// The given service is a destination relative to its downstreams
+		structs.IntentionMatchDestination,
+	)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
+	}
+	for _, dn := range downstreamNames {
+		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), dstIntentions, structs.IntentionMatchSource, defaultAllow, false)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				dn.String(), sn.String(), err)
+		}
+		downstreamDecisions[dn.String()] = decision
+	}
+
 	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
@@ -3269,29 +3289,12 @@ func (s *Store) ServiceTopology(
 			sn = structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
 		}
 		if _, ok := tproxyMap[sn]; !ok && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			// If downstream is not a transparent proxy, remove references
+			delete(downstreamSources, sn.String())
+			delete(downstreamDecisions, sn.String())
 			continue
 		}
 		downstreams = append(downstreams, downstream)
-	}
-
-	_, dstIntentions, err := compatIntentionMatchOneTxn(
-		tx,
-		ws,
-		matchEntry,
-
-		// The given service is a destination relative to its downstreams
-		structs.IntentionMatchDestination,
-	)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
-	}
-	for _, dn := range downstreamNames {
-		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), dstIntentions, structs.IntentionMatchSource, defaultAllow, false)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
-				dn.String(), sn.String(), err)
-		}
-		downstreamDecisions[dn.String()] = decision
 	}
 
 	resp := &structs.ServiceTopology{
