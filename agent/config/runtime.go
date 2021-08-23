@@ -273,6 +273,15 @@ type RuntimeConfig struct {
 	// hcl: dns_config { cache_max_age = "duration" }
 	DNSCacheMaxAge time.Duration
 
+	// DNSMaxTCPQueries controls how many queries will be serviced by a
+	// single TCP connection before closing it. Default is the value of
+	// `maxTCPQueries` (currently 128) as defined here
+	// https://pkg.go.dev/github.com/miekg/dns#Server.MaxTCPQueries or can
+	// be set to -1 for unlimited.
+	//
+	// hcl: dns_config { max_tcp_queries = int }
+	DNSMaxTCPQueries int
+
 	// HTTPUseCache whether or not to use cache for http queries. Defaults
 	// to true.
 	//

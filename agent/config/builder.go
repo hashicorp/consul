@@ -922,6 +922,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DNSNodeMetaTXT:        boolValWithDefault(c.DNS.NodeMetaTXT, true),
 		DNSUseCache:           boolVal(c.DNS.UseCache),
 		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
+		DNSMaxTCPQueries:      intValWithDefault(c.DNS.MaxTCPQueries, 128),
 
 		// HTTP
 		HTTPPort:            httpPort,
@@ -1330,6 +1331,9 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 	if rt.DNSARecordLimit < 0 {
 		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)
+	}
+	if rt.DNSMaxTCPQueries < -1 {
+		return fmt.Errorf("dns_config.max_tcp_queries cannot be %d. Must be greater than or equal to -1", rt.DNSMaxTCPQueries)
 	}
 	if err := structs.ValidateNodeMetadata(rt.NodeMeta, false); err != nil {
 		return fmt.Errorf("node_meta invalid: %v", err)

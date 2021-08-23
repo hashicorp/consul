@@ -86,6 +86,7 @@ type dnsConfig struct {
 	UDPAnswerLimit   int
 	ARecordLimit     int
 	NodeMetaTXT      bool
+	MaxTCPQueries    int
 	SOAConfig        dnsSOAConfig
 	// TTLRadix sets service TTLs by prefix, eg: "database-*"
 	TTLRadix *radix.Tree
@@ -166,6 +167,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		DisableCompression: conf.DNSDisableCompression,
 		UseCache:           conf.DNSUseCache,
 		CacheMaxAge:        conf.DNSCacheMaxAge,
+		MaxTCPQueries:      conf.DNSMaxTCPQueries,
 		SOAConfig: dnsSOAConfig{
 			Expire:  conf.DNSSOA.Expire,
 			Minttl:  conf.DNSSOA.Minttl,
@@ -243,6 +245,8 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 	if network == "udp" {
 		d.UDPSize = 65535
 	}
+
+	d.MaxTCPQueries = cfg.MaxTCPQueries
 	return d.Server.ListenAndServe()
 }
 

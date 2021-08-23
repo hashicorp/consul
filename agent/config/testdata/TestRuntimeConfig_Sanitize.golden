@@ -146,6 +146,7 @@
     "DNSDomain": "",
     "DNSEnableTruncate": false,
     "DNSMaxStale": "0s",
+    "DNSMaxTCPQueries": 128,
     "DNSNodeMetaTXT": false,
     "DNSNodeTTL": "0s",
     "DNSOnlyPassing": false,

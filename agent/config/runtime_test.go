@@ -2002,6 +2002,15 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedErr: "dns_config.a_record_limit cannot be -1. Must be greater than or equal to zero",
 	})
 	run(t, testCase{
+		desc: "dns_config.max_tcp_queries invalid",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json:        []string{`{ "dns_config": { "max_tcp_queries": -2 } }`},
+		hcl:         []string{`dns_config = { max_tcp_queries = -2 }`},
+		expectedErr: "dns_config.max_tcp_queries cannot be -2. Must be greater than or equal to -1",
+	})
+	run(t, testCase{
 		desc: "performance.raft_multiplier < 0",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -5442,6 +5451,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		DNSNodeMetaTXT:                         true,
 		DNSUseCache:                            true,
 		DNSCacheMaxAge:                         5 * time.Minute,
+		DNSMaxTCPQueries:                       128,
 		DataDir:                                dataDir,
 		Datacenter:                             "rzo029wg",
 		DefaultQueryTime:                       16743 * time.Second,
@@ -6195,6 +6205,7 @@ func TestRuntimeConfig_Sanitize(t *testing.T) {
 				},
 			},
 		},
+		DNSMaxTCPQueries: 128,
 	}
 
 	b, err := json.MarshalIndent(rt.Sanitized(), "", "    ")

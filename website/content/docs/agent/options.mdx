@@ -1431,6 +1431,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     versions and will assume the label is the datacenter. See: [this section](/docs/discovery/dns#namespaced-services)
     for more details.
 
+  - `max_tcp_queries` ((#dns_max_tcp_queries)) - The maximum number of queries
+    answered over a reused TCP socket before the connection is closed. Defaults
+    to 128. Set to -1 for unlimited.
+
 - `domain` Equivalent to the [`-domain` command-line flag](#_domain).
 
 - `enable_acl_replication` When set on a Consul server, enables ACL replication without having to set

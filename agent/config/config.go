@@ -641,6 +641,7 @@ type DNS struct {
 	SOA                *SOA              `mapstructure:"soa"`
 	UseCache           *bool             `mapstructure:"use_cache"`
 	CacheMaxAge        *string           `mapstructure:"cache_max_age"`
+	MaxTCPQueries      *int              `mapstructure:"max_tcp_queries"`
 
 	// Enterprise Only
 	PreferNamespace *bool `mapstructure:"prefer_namespace"`

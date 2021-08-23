@@ -88,6 +88,7 @@ func DefaultSource() Source {
 			udp_answer_limit = 3
 			max_stale = "87600h"
 			recursor_timeout = "2s"
+			max_tcp_queries = 128
 		}
 		limits = {
 			http_max_conns_per_client = 200

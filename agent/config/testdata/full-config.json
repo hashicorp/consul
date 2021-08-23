@@ -252,6 +252,7 @@
     "udp_answer_limit": 29909,
     "use_cache": true,
     "cache_max_age": "5m",
+    "max_tcp_queries": 128,
     "prefer_namespace": true
   },
   "enable_acl_replication": true,
