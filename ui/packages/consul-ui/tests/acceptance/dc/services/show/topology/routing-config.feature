@@ -14,7 +14,7 @@ Feature: dc / services / show / topology / routing-config
       Upstreams: []
       Downstreams:
         - Name: db
-          Namespace: default
+          Namespace: @namespace
           Datacenter: dc1
           Intention: {}
           Source: routing-config
