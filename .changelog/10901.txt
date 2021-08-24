@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Properly encode non-URL safe characters in OIDC responses
+```
