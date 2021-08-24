@@ -499,7 +499,6 @@ func newTestResolverConfig(t *testing.T, suffix string) resolver.Config {
 	return resolver.Config{Authority: strings.ToLower(s) + "-" + suffix}
 }
 
-// TODO(rb): add tests for the wanfed/alpn variations
 func newDefaultDeps(t *testing.T, c *Config) Deps {
 	t.Helper()
 
