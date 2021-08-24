@@ -89,6 +89,10 @@ function init_workdir {
   # move all of the registration files OUT of the consul config dir now
   find workdir/${DC}/consul -type f -name 'service_*.hcl' -exec mv -f {} workdir/${DC}/register \;
 
+  # copy the ca-certs for SDS so we can verify the right ones are served
+  mkdir -p workdir/test-sds-server/certs
+  cp test-sds-server/certs/ca-root.crt workdir/test-sds-server/certs/ca-root.crt
+
   if test -d "${CASE_DIR}/data"
   then
     cp -r ${CASE_DIR}/data/* workdir/${DC}/data
@@ -366,6 +370,10 @@ function suite_setup {
     docker build -t consul-dev-envoy:${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
+
+    # pre-build the test-sds-server container
+    echo "Rebuilding 'test-sds-server' image..."
+    docker build -t test-sds-server -f Dockerfile-test-sds-server .
 }
 
 function suite_teardown {
@@ -574,6 +582,15 @@ function run_container_jaeger {
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
     --collector.zipkin.http-port=9411
+}
+
+function run_container_test-sds-server {
+  docker run -d --name $(container_name) \
+    $WORKDIR_SNIPPET \
+    -v "$PWD/test-sds-server/certs:/usr/sds/certs" \
+    -w /usr/sds \
+    $(network_snippet primary) \
+    "test-sds-server"
 }
 
 function container_name {
