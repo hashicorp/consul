@@ -1,6 +1,7 @@
 package wanfed
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"github.com/hashicorp/memberlist"
 
 	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -97,13 +97,8 @@ func (t *Transport) WriteToAddress(b []byte, addr memberlist.Address) (time.Time
 	}
 
 	if dc != t.datacenter {
-		gwAddr := t.gwResolver(dc)
-		if gwAddr == "" {
-			return time.Time{}, structs.ErrDCNotAvailable
-		}
-
 		dialFunc := func() (net.Conn, error) {
-			return t.dial(dc, node, pool.ALPN_WANGossipPacket, gwAddr)
+			return t.dial(dc, node, pool.ALPN_WANGossipPacket)
 		}
 		conn, err := t.pool.AcquireOrDial(addr.Name, dialFunc)
 		if err != nil {
@@ -136,42 +131,24 @@ func (t *Transport) DialAddressTimeout(addr memberlist.Address, timeout time.Dur
 	}
 
 	if dc != t.datacenter {
-		gwAddr := t.gwResolver(dc)
-		if gwAddr == "" {
-			return nil, structs.ErrDCNotAvailable
-		}
-
-		return t.dial(dc, node, pool.ALPN_WANGossipStream, gwAddr)
+		return t.dial(dc, node, pool.ALPN_WANGossipStream)
 	}
 
 	return t.IngestionAwareTransport.DialAddressTimeout(addr, timeout)
 }
 
-// NOTE: There is a close mirror of this method in agent/pool/pool.go:DialTimeoutWithRPCType
-func (t *Transport) dial(dc, nodeName, nextProto, addr string) (net.Conn, error) {
-	wrapper := t.tlsConfigurator.OutgoingALPNRPCWrapper()
-	if wrapper == nil {
-		return nil, fmt.Errorf("wanfed: cannot dial via a mesh gateway when outgoing TLS is disabled")
-	}
-
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
-
-	rawConn, err := dialer.Dial("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-
-	if tcp, ok := rawConn.(*net.TCPConn); ok {
-		_ = tcp.SetKeepAlive(true)
-		_ = tcp.SetNoDelay(true)
-	}
-
-	tlsConn, err := wrapper(dc, nodeName, nextProto, rawConn)
-	if err != nil {
-		return nil, err
-	}
-
-	return tlsConn, nil
+func (t *Transport) dial(dc, nodeName, nextProto string) (net.Conn, error) {
+	conn, _, err := pool.DialRPCViaMeshGateway(
+		context.Background(),
+		dc,
+		nodeName,
+		nil, // TODO(rb): thread source address through here?
+		t.tlsConfigurator.OutgoingALPNRPCWrapper(),
+		nextProto,
+		true,
+		t.gwResolver,
+	)
+	return conn, err
 }
 
 // SplitNodeName splits a node name as it would be represented in

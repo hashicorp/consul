@@ -293,7 +293,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleSnapshotConn(tlsConn)
 
 	case pool.ALPN_RPCGRPC:
-		s.grpcHandler.Handle(conn)
+		s.grpcHandler.Handle(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -373,7 +373,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 		}
 		sub = peeked
 		switch first {
-		case pool.RPCGossip:
+		case byte(pool.RPCGossip):
 			buf := make([]byte, 1)
 			sub.Read(buf)
 			go func() {

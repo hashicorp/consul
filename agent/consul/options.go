@@ -24,8 +24,10 @@ type Deps struct {
 type GRPCClientConner interface {
 	ClientConn(datacenter string) (*grpc.ClientConn, error)
 	ClientConnLeader() (*grpc.ClientConn, error)
+	SetGatewayResolver(func(string) string)
 }
 
 type LeaderForwarder interface {
-	UpdateLeaderAddr(leaderAddr string)
+	// UpdateLeaderAddr updates the leader address in the local DC's resolver.
+	UpdateLeaderAddr(datacenter, addr string)
 }

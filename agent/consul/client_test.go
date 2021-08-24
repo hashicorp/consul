@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
@@ -20,11 +27,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
 )
 
 func testClientConfig(t *testing.T) (string, *Config) {
@@ -490,6 +492,13 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
+func newTestResolverConfig(t *testing.T, suffix string) resolver.Config {
+	n := t.Name()
+	s := strings.Replace(n, "/", "", -1)
+	s = strings.Replace(s, "_", "", -1)
+	return resolver.Config{Authority: strings.ToLower(s) + "-" + suffix}
+}
+
 func newDefaultDeps(t *testing.T, c *Config) Deps {
 	t.Helper()
 
@@ -502,7 +511,7 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.TLSConfig, logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{Authority: c.NodeName})
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
 	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
 	resolver.Register(builder)
 
@@ -522,7 +531,13 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Tokens:          new(token.Store),
 		Router:          r,
 		ConnPool:        connPool,
-		GRPCConnPool:    grpc.NewClientConnPool(builder, grpc.TLSWrapper(tls.OutgoingRPCWrapper()), tls.UseTLS),
+		GRPCConnPool: grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
+			UseTLSForDC:           tls.UseTLS,
+			DialingFromServer:     true,
+			DialingFromDatacenter: c.Datacenter,
+		}),
 		LeaderForwarder: builder,
 		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
 	}

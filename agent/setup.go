@@ -106,9 +106,22 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	builder := resolver.NewServerResolverBuilder(resolver.Config{})
+	builder := resolver.NewServerResolverBuilder(resolver.Config{
+		// Set the authority to something sufficiently unique so any usage in
+		// tests would be self-isolating in the global resolver map, while also
+		// not incurring a huge penalty for non-test code.
+		Authority: cfg.Datacenter + "." + string(cfg.NodeID),
+	})
 	resolver.Register(builder)
-	d.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()), d.TLSConfigurator.UseTLS)
+	d.GRPCConnPool = grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+		Servers:               builder,
+		SrcAddr:               d.ConnPool.SrcAddr,
+		TLSWrapper:            grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()),
+		ALPNWrapper:           grpc.ALPNWrapper(d.TLSConfigurator.OutgoingALPNRPCWrapper()),
+		UseTLSForDC:           d.TLSConfigurator.UseTLS,
+		DialingFromServer:     cfg.ServerMode,
+		DialingFromDatacenter: cfg.Datacenter,
+	})
 	d.LeaderForwarder = builder
 
 	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
