@@ -10,12 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/tcpproxy"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -64,6 +67,86 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, conn.Close())
 	require.True(t, called, "expected TLSWrapper to be called")
+}
+
+func TestNewDialer_WithALPNWrapper(t *testing.T) {
+	ports := freeport.MustTake(3)
+	defer freeport.Return(ports)
+
+	var (
+		s1addr = ipaddr.FormatAddressPort("127.0.0.1", ports[0])
+		s2addr = ipaddr.FormatAddressPort("127.0.0.1", ports[1])
+		gwAddr = ipaddr.FormatAddressPort("127.0.0.1", ports[2])
+	)
+
+	lis1, err := net.Listen("tcp", s1addr)
+	require.NoError(t, err)
+	t.Cleanup(logError(t, lis1.Close))
+
+	lis2, err := net.Listen("tcp", s2addr)
+	require.NoError(t, err)
+	t.Cleanup(logError(t, lis2.Close))
+
+	// Send all of the traffic to dc2's server
+	var p tcpproxy.Proxy
+	p.AddRoute(gwAddr, tcpproxy.To(s2addr))
+	p.AddStopACMESearch(gwAddr)
+	require.NoError(t, p.Start())
+	defer func() {
+		p.Close()
+		p.Wait()
+	}()
+
+	builder := resolver.NewServerResolverBuilder(newConfig(t))
+	builder.AddServer(&metadata.Server{
+		Name:       "server-1",
+		ID:         "ID1",
+		Datacenter: "dc1",
+		Addr:       lis1.Addr(),
+		UseTLS:     true,
+	})
+	builder.AddServer(&metadata.Server{
+		Name:       "server-2",
+		ID:         "ID2",
+		Datacenter: "dc2",
+		Addr:       lis2.Addr(),
+		UseTLS:     true,
+	})
+
+	var calledTLS bool
+	wrapperTLS := func(_ string, conn net.Conn) (net.Conn, error) {
+		calledTLS = true
+		return conn, nil
+	}
+	var calledALPN bool
+	wrapperALPN := func(_, _, _ string, conn net.Conn) (net.Conn, error) {
+		calledALPN = true
+		return conn, nil
+	}
+	gwResolverDep := &gatewayResolverDep{
+		GatewayResolver: func(addr string) string {
+			return gwAddr
+		},
+	}
+	dial := newDialer(
+		ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            wrapperTLS,
+			ALPNWrapper:           wrapperALPN,
+			UseTLSForDC:           useTLSForDcAlwaysTrue,
+			DialingFromServer:     true,
+			DialingFromDatacenter: "dc1",
+		},
+		gwResolverDep,
+	)
+
+	ctx := context.Background()
+	conn, err := dial(ctx, resolver.DCPrefix("dc2", lis2.Addr().String()))
+	require.NoError(t, err)
+	require.NoError(t, conn.Close())
+
+	assert.False(t, calledTLS, "expected TLSWrapper not to be called")
+	assert.True(t, calledALPN, "expected ALPNWrapper to be called")
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
