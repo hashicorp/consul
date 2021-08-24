@@ -440,7 +440,14 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		return nil
 	case *envoy_core_v2.ConfigSource:
 		if x.ConfigSourceSpecifier != nil {
-			if _, ok := x.ConfigSourceSpecifier.(*envoy_core_v2.ConfigSource_Ads); !ok {
+			switch spec := x.ConfigSourceSpecifier.(type) {
+			case *envoy_core_v2.ConfigSource_Ads:
+				// Nothing else to do
+				break
+			case *envoy_core_v2.ConfigSource_ApiConfigSource:
+				spec.ApiConfigSource.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+				break
+			default:
 				return fmt.Errorf("%T: ConfigSourceSpecifier type %T not handled", x, x.ConfigSourceSpecifier)
 			}
 		}
@@ -491,8 +498,30 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_http_rbac_v2.RBAC:
 		return nil
 	case *envoy_tls_v2.UpstreamTlsContext:
+		if x.CommonTlsContext != nil {
+			if err := convertTypedConfigsToV2(x.CommonTlsContext); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
+			}
+		}
 		return nil
 	case *envoy_tls_v2.DownstreamTlsContext:
+		if x.CommonTlsContext != nil {
+			if err := convertTypedConfigsToV2(x.CommonTlsContext); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
+			}
+		}
+		return nil
+	case *envoy_tls_v2.CommonTlsContext:
+		for _, sds := range x.TlsCertificateSdsSecretConfigs {
+			if err := convertTypedConfigsToV2(sds); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
+			}
+		}
+		return nil
+	case *envoy_tls_v2.SdsSecretConfig:
+		if err := convertTypedConfigsToV2(x.SdsConfig); err != nil {
+			return fmt.Errorf("%T: %w", x, err)
+		}
 		return nil
 	case *envoy_grpc_stats_v2.FilterConfig:
 		return nil

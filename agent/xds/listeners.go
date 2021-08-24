@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -511,12 +512,68 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 	return resources, err
 }
 
+func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
+	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
+
+	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+	if !ok {
+		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+	}
+
+	var mergedCfg structs.GatewayTLSSDSConfig
+
+	if gwSDS != nil {
+		mergedCfg.ClusterName = gwSDS.ClusterName
+		mergedCfg.CertResource = gwSDS.CertResource
+	}
+
+	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
+		if listenerCfg.TLS.SDS.ClusterName != "" {
+			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
+		}
+		if listenerCfg.TLS.SDS.CertResource != "" {
+			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
+		}
+	}
+
+	// Validate. Either merged should have both fields empty or both set. Other
+	// cases shouldn't be possible as we validate them at input but be robust to
+	// bugs later.
+	switch {
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
+		return nil, nil
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
+		return &mergedCfg, nil
+
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
+	}
+
+	return &mergedCfg, nil
+}
+
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var resources []proto.Message
 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		var tlsContext *envoy_tls_v3.DownstreamTlsContext
-		if cfgSnap.IngressGateway.TLSEnabled {
+
+		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if sdsCfg != nil {
+			// Set up listener TLS from SDS
+			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
+				CommonTlsContext:         makeCommonTLSContextFromSDS(cfgSnap, *sdsCfg),
+				RequireClientCertificate: &wrappers.BoolValue{Value: false},
+			}
+		} else if cfgSnap.IngressGateway.TLSConfig.Enabled {
 			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
 				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
@@ -557,9 +614,115 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				routePath:       "",
 				httpAuthzFilter: nil,
 			}
-			filter, err := makeListenerFilter(opts)
+
+			// Generate any filter chains needed for services with custom TLS certs
+			// via SDS.
+			sniFilterChains, err := makeSDSOverrideFilterChains(cfgSnap, listenerKey, opts)
 			if err != nil {
 				return nil, err
+			}
+
+			// If there are any sni filter chains, we need a TLS inspector filter!
+			if len(sniFilterChains) > 0 {
+				tlsInspector, err := makeTLSInspectorListenerFilter()
+				if err != nil {
+					return nil, err
+				}
+				listener.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
+			}
+
+			listener.FilterChains = sniFilterChains
+
+			// See if there are other services that didn't have specific SNI-matching
+			// filter chains. If so add a default filterchain to serve them.
+			if len(sniFilterChains) < len(upstreams) {
+				defaultFilter, err := makeListenerFilter(opts)
+				if err != nil {
+					return nil, err
+				}
+
+				transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
+				if err != nil {
+					return nil, err
+				}
+				listener.FilterChains = append(listener.FilterChains,
+					&envoy_listener_v3.FilterChain{
+						Filters: []*envoy_listener_v3.Filter{
+							defaultFilter,
+						},
+						TransportSocket: transportSocket,
+					})
+			}
+
+			resources = append(resources, listener)
+		}
+	}
+
+	return resources, nil
+}
+
+func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) (string, error) {
+	key := proxycfg.IngressListenerKeyFromListener(l)
+
+	// If the upsteam service doesn't have any TLS overrides then it can just use
+	// the combined filterchain with all the merged routes.
+	if !ingressServiceHasSDSOverrides(s) {
+		return key.RouteName(), nil
+	}
+
+	// Return a specific route for this service as it needs a custom FilterChain
+	// to serve it's custom cert so we should attach it's routes to a separate
+	// Route too.
+	return fmt.Sprintf("%s_%s", key.RouteName(), s.ToServiceName().ToServiceID().String()), nil
+}
+
+func ingressServiceHasSDSOverrides(s structs.IngressService) bool {
+	return s.TLS != nil &&
+		s.TLS.SDS != nil &&
+		s.TLS.SDS.CertResource != ""
+}
+
+// ingress services that specify custom TLS certs via SDS overrides need to get
+// their own filter chain and routes. This will generate all the extra filter
+// chains an ingress listener needs. It maybe be empty and expects the default
+// catch-all chain and route to contain all the other services that share the
+// default TLS config.
+func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
+	listenerKey proxycfg.IngressListenerKey,
+	filterOpts listenerFilterOpts) ([]*envoy_listener_v3.FilterChain, error) {
+
+	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+	if !ok {
+		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+	}
+
+	var chains []*envoy_listener_v3.FilterChain
+
+	for _, svc := range listenerCfg.Services {
+		if ingressServiceHasSDSOverrides(svc) {
+			if len(svc.Hosts) < 1 {
+				// Shouldn't be possible with validation but be careful
+				return nil, fmt.Errorf("no hosts specified with SDS certificate (service %q on listener on port %d)",
+					svc.ToServiceName().ToServiceID().String(), listenerKey.Port)
+			}
+
+			// Service has a certificate resource override. Return a new filter chain
+			// with the right TLS cert and a filter that will load only the routes for
+			// this service.
+			routeName, err := routeNameForUpstream(listenerCfg, svc)
+			if err != nil {
+				return nil, err
+			}
+			filterOpts.filterName = routeName
+			filterOpts.routeName = routeName
+			filter, err := makeListenerFilter(filterOpts)
+			if err != nil {
+				return nil, err
+			}
+
+			tlsContext := &envoy_tls_v3.DownstreamTlsContext{
+				CommonTlsContext:         makeCommonTLSContextFromSDS(cfgSnap, *svc.TLS.SDS),
+				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
 
 			transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
@@ -567,19 +730,20 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				return nil, err
 			}
 
-			listener.FilterChains = []*envoy_listener_v3.FilterChain{
-				{
-					Filters: []*envoy_listener_v3.Filter{
-						filter,
-					},
-					TransportSocket: transportSocket,
+			chain := &envoy_listener_v3.FilterChain{
+				// Only match traffic for this service's hosts.
+				FilterChainMatch: makeSNIFilterChainMatch(svc.Hosts...),
+				Filters: []*envoy_listener_v3.Filter{
+					filter,
 				},
+				TransportSocket: transportSocket,
 			}
-			resources = append(resources, listener)
+
+			chains = append(chains, chain)
 		}
 	}
 
-	return resources, nil
+	return chains, nil
 }
 
 // makeListener returns a listener with name and bind details set. Filters must
@@ -1584,9 +1748,9 @@ func makeTLSInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error)
 	return &envoy_listener_v3.ListenerFilter{Name: "envoy.filters.listener.tls_inspector"}, nil
 }
 
-func makeSNIFilterChainMatch(sniMatch string) *envoy_listener_v3.FilterChainMatch {
+func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChainMatch {
 	return &envoy_listener_v3.FilterChainMatch{
-		ServerNames: []string{sniMatch},
+		ServerNames: sniMatches,
 	}
 }
 
@@ -1763,7 +1927,6 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		return nil
 	}
 
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)
@@ -1792,6 +1955,38 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 					Specifier: &envoy_core_v3.DataSource_InlineString{
 						InlineString: rootPEMS,
 					},
+				},
+			},
+		},
+	}
+}
+
+func makeCommonTLSContextFromSDS(cfgSnap *proxycfg.ConfigSnapshot, sdsCfg structs.GatewayTLSSDSConfig) *envoy_tls_v3.CommonTlsContext {
+	return &envoy_tls_v3.CommonTlsContext{
+		TlsParams: &envoy_tls_v3.TlsParameters{},
+		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
+			{
+				Name: sdsCfg.CertResource,
+				SdsConfig: &envoy_core_v3.ConfigSource{
+					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_ApiConfigSource{
+						ApiConfigSource: &envoy_core_v3.ApiConfigSource{
+							ApiType:             envoy_core_v3.ApiConfigSource_GRPC,
+							TransportApiVersion: envoy_core_v3.ApiVersion_V3,
+							// Note ClusterNames can't be set here - that's only for REST type
+							// we need a full GRPC config instead.
+							GrpcServices: []*envoy_core_v3.GrpcService{
+								{
+									TargetSpecifier: &envoy_core_v3.GrpcService_EnvoyGrpc_{
+										EnvoyGrpc: &envoy_core_v3.GrpcService_EnvoyGrpc{
+											ClusterName: sdsCfg.ClusterName,
+										},
+									},
+									Timeout: &duration.Duration{Seconds: 5},
+								},
+							},
+						},
+					},
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 				},
 			},
 		},

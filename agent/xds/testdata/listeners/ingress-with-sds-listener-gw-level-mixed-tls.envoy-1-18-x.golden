@@ -1,0 +1,89 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "insecure:1.2.3.4:9090",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 9090
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.insecure.default.dc1",
+                "cluster": "insecure.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "secure:1.2.3.4:8080",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 8080
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.secure.default.dc1",
+                "cluster": "secure.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificateSdsSecretConfigs": [
+                  {
+                    "name": "listener-cert",
+                    "sdsConfig": {
+                      "apiConfigSource": {
+                        "apiType": "GRPC",
+                        "transportApiVersion": "V3",
+                        "grpcServices": [
+                          {
+                            "envoyGrpc": {
+                              "clusterName": "listener-sds-cluster"
+                            },
+                            "timeout": "5s"
+                          }
+                        ]
+                      },
+                      "resourceApiVersion": "V3"
+                    }
+                  }
+                ]
+              },
+              "requireClientCertificate": false
+            }
+          }
+        }
+      ],
+      "trafficDirection": "OUTBOUND"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce": "00000001"
+}

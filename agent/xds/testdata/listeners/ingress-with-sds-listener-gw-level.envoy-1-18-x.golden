@@ -1,0 +1,64 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "db:1.2.3.4:9191",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 9191
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix": "upstream.db.default.dc1",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsParams": {
+
+                },
+                "tlsCertificateSdsSecretConfigs": [
+                  {
+                    "name": "cert-resource",
+                    "sdsConfig": {
+                      "apiConfigSource": {
+                        "apiType": "GRPC",
+                        "transportApiVersion": "V3",
+                        "grpcServices": [
+                          {
+                            "envoyGrpc": {
+                              "clusterName": "sds-cluster"
+                            },
+                            "timeout": "5s"
+                          }
+                        ]
+                      },
+                      "resourceApiVersion": "V3"
+                    }
+                  }
+                ]
+              },
+              "requireClientCertificate": false
+            }
+          }
+        }
+      ],
+      "trafficDirection": "OUTBOUND"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "nonce": "00000001"
+}
