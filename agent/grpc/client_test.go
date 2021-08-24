@@ -23,8 +23,6 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
-// TODO(rb): add tests for the wanfed/alpn variations
-
 // useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled
 func useTLSForDcAlwaysTrue(_ string) bool {
 	return true
@@ -187,6 +185,82 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "server-1", resp.ServerName)
 	require.True(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished) > 0)
+	require.True(t, atomic.LoadInt32(&srv.rpc.alpnConnEstablished) == 0)
+}
+
+func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T) {
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
+
+	gwAddr := ipaddr.FormatAddressPort("127.0.0.1", ports[0])
+
+	res := resolver.NewServerResolverBuilder(newConfig(t))
+	registerWithGRPC(t, res)
+
+	srv := newTestServer(t, "bob", "dc1")
+	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
+		VerifyIncoming:       true,
+		VerifyOutgoing:       true,
+		VerifyServerHostname: true,
+		CAFile:               "../../test/hostname/CertAuth.crt",
+		CertFile:             "../../test/hostname/Bob.crt",
+		KeyFile:              "../../test/hostname/Bob.key",
+		Domain:               "consul",
+		NodeName:             "bob",
+	}, hclog.New(nil))
+	require.NoError(t, err)
+	srv.rpc.tlsConf = tlsConf
+
+	// Send all of the traffic to dc1's server
+	var p tcpproxy.Proxy
+	p.AddRoute(gwAddr, tcpproxy.To(srv.addr.String()))
+	p.AddStopACMESearch(gwAddr)
+	require.NoError(t, p.Start())
+	defer func() {
+		p.Close()
+		p.Wait()
+	}()
+
+	md := srv.Metadata()
+	res.AddServer(md)
+	t.Cleanup(srv.shutdown)
+
+	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
+		VerifyIncoming:       true,
+		VerifyOutgoing:       true,
+		VerifyServerHostname: true,
+		CAFile:               "../../test/hostname/CertAuth.crt",
+		CertFile:             "../../test/hostname/Betty.crt",
+		KeyFile:              "../../test/hostname/Betty.key",
+		Domain:               "consul",
+		NodeName:             "betty",
+	}, hclog.New(nil))
+	require.NoError(t, err)
+
+	pool := NewClientConnPool(ClientConnPoolConfig{
+		Servers:               res,
+		TLSWrapper:            TLSWrapper(clientTLSConf.OutgoingRPCWrapper()),
+		ALPNWrapper:           ALPNWrapper(clientTLSConf.OutgoingALPNRPCWrapper()),
+		UseTLSForDC:           tlsConf.UseTLS,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc2",
+	})
+	pool.SetGatewayResolver(func(addr string) string {
+		return gwAddr
+	})
+
+	conn, err := pool.ClientConn("dc1")
+	require.NoError(t, err)
+	client := testservice.NewSimpleClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	t.Cleanup(cancel)
+
+	resp, err := client.Something(ctx, &testservice.Req{})
+	require.NoError(t, err)
+	require.Equal(t, "bob", resp.ServerName)
+	require.True(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished) == 0)
+	require.True(t, atomic.LoadInt32(&srv.rpc.alpnConnEstablished) > 0)
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {

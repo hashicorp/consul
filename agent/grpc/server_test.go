@@ -116,11 +116,12 @@ func (s *simple) Something(_ context.Context, _ *testservice.Req) (*testservice.
 // For now, since this logic is in agent/consul, we can't easily use Server.listen
 // so we fake it.
 type fakeRPCListener struct {
-	t                  *testing.T
-	handler            *Handler
-	shutdown           bool
-	tlsConf            *tlsutil.Configurator
-	tlsConnEstablished int32
+	t                   *testing.T
+	handler             *Handler
+	shutdown            bool
+	tlsConf             *tlsutil.Configurator
+	tlsConnEstablished  int32
+	alpnConnEstablished int32
 }
 
 func (f *fakeRPCListener) listen(listener net.Listener) error {
@@ -138,6 +139,26 @@ func (f *fakeRPCListener) listen(listener net.Listener) error {
 }
 
 func (f *fakeRPCListener) handleConn(conn net.Conn) {
+	if f.tlsConf != nil && f.tlsConf.MutualTLSCapable() {
+		// See if actually this is native TLS multiplexed onto the old
+		// "type-byte" system.
+
+		peekedConn, nativeTLS, err := pool.PeekForTLS(conn)
+		if err != nil {
+			if err != io.EOF {
+				fmt.Printf("ERROR: failed to read first byte: %v\n", err)
+			}
+			conn.Close()
+			return
+		}
+
+		if nativeTLS {
+			f.handleNativeTLSConn(peekedConn)
+			return
+		}
+		conn = peekedConn
+	}
+
 	buf := make([]byte, 1)
 
 	if _, err := conn.Read(buf); err != nil {
@@ -172,6 +193,35 @@ func (f *fakeRPCListener) handleConn(conn net.Conn) {
 
 	default:
 		fmt.Println("ERROR: unexpected byte", typ)
+		conn.Close()
+	}
+}
+
+func (f *fakeRPCListener) handleNativeTLSConn(conn net.Conn) {
+	tlscfg := f.tlsConf.IncomingALPNRPCConfig(pool.RPCNextProtos)
+	tlsConn := tls.Server(conn, tlscfg)
+
+	// Force the handshake to conclude.
+	if err := tlsConn.Handshake(); err != nil {
+		fmt.Printf("ERROR: TLS handshake failed: %v", err)
+		conn.Close()
+		return
+	}
+
+	conn.SetReadDeadline(time.Time{})
+
+	var (
+		cs        = tlsConn.ConnectionState()
+		nextProto = cs.NegotiatedProtocol
+	)
+
+	switch nextProto {
+	case pool.ALPN_RPCGRPC:
+		atomic.AddInt32(&f.alpnConnEstablished, 1)
+		f.handler.Handle(tlsConn)
+
+	default:
+		fmt.Printf("ERROR: discarding RPC for unknown negotiated protocol %q\n", nextProto)
 		conn.Close()
 	}
 }
