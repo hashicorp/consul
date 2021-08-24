@@ -291,11 +291,15 @@ type HttpBasicAuth struct {
 
 // Config is used to configure the creation of a client
 type Config struct {
-	// Address is the address of the Consul server
+	// Address is the address of the Consul server or reverse proxy server which
+	// redirects to Consul server.
 	Address string
 
 	// Scheme is the URI scheme for the Consul server
 	Scheme string
+
+	// Prefix for URIs for when consul is behind an API gateway.
+	PathPrefix string
 
 	// Datacenter to use. If not provided, the default agent datacenter is used.
 	Datacenter string
@@ -660,8 +664,19 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
+	var addr, pref string
+
 	parts := strings.SplitN(config.Address, "://", 2)
 	if len(parts) == 2 {
+		switch parts[0] {
+		case "http", "https":
+			// for http and https addresses check if address contains prefix path.
+			parts := strings.SplitN(parts[1], "/", 2)
+			if len(parts) == 2 {
+				addr, pref = parts[0], "/"+parts[1]
+			}
+		}
+
 		switch parts[0] {
 		case "http":
 			// Never revert to http if TLS was explicitly requested.
@@ -680,7 +695,13 @@ func NewClient(config *Config) (*Client, error) {
 		default:
 			return nil, fmt.Errorf("Unknown protocol scheme: %s", parts[0])
 		}
+
 		config.Address = parts[1]
+
+		if addr != "" && pref != "" {
+			config.Address = addr
+			config.PathPrefix = pref
+		}
 	}
 
 	// If the TokenFile is set, always use that, even if a Token is configured.
@@ -922,7 +943,7 @@ func (c *Client) newRequest(method, path string) *request {
 		url: &url.URL{
 			Scheme: c.config.Scheme,
 			Host:   c.config.Address,
-			Path:   path,
+			Path:   c.config.PathPrefix + path,
 		},
 		params: make(map[string][]string),
 		header: c.Headers(),
