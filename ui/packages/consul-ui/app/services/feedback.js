@@ -1,8 +1,8 @@
 import Service, { inject as service } from '@ember/service';
 import callableType from 'consul-ui/utils/callable-type';
 
-const TYPE_SUCCESS = 'success';
-const TYPE_ERROR = 'error';
+export const TYPE_SUCCESS = 'success';
+export const TYPE_ERROR = 'error';
 const defaultStatus = function(type, obj) {
   return type;
 };

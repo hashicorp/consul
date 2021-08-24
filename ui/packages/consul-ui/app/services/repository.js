@@ -134,6 +134,16 @@ export default class RepositoryService extends Service {
     return item.save();
   }
 
+  rollback(item) {
+    // assuming the item is an Ember Data model, attributes can be rolled
+    // back in the event that the server disagrees with the client (e.g.,
+    // unauthorized to submit a form)
+    if (isChangeset(item)) {
+      item = item.data;
+    }
+    return item.rollbackAttributes();
+  }
+
   remove(obj) {
     let item = obj;
     if (typeof obj.destroyRecord === 'undefined') {

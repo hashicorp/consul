@@ -1,6 +1,7 @@
 import Mixin from '@ember/object/mixin';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
+import { TYPE_ERROR } from 'consul-ui/services/feedback';
 /** With Blocking Actions
  * This mixin contains common write actions (Create Update Delete) for routes.
  * It could also be an Route to extend but decoration seems to be more sense right now.
@@ -90,6 +91,9 @@ export default Mixin.create({
         },
         'update',
         (type, e) => {
+          if (type === TYPE_ERROR) {
+            this.repo.rollback(item);
+          }
           return this.errorUpdate(type, e);
         }
       );
