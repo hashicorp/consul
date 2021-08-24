@@ -151,7 +151,6 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 
-	srv := newTestServer(t, "server-1", "dc1")
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		VerifyIncoming: true,
 		VerifyOutgoing: true,
@@ -160,7 +159,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 		KeyFile:        "../../test/hostname/Alice.key",
 	}, hclog.New(nil))
 	require.NoError(t, err)
-	srv.rpc.tlsConf = tlsConf
+
+	srv := newTestServer(t, "server-1", "dc1", tlsConf)
 
 	md := srv.Metadata()
 	res.AddServer(md)
@@ -197,7 +197,6 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 
-	srv := newTestServer(t, "bob", "dc1")
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
 		VerifyIncoming:       true,
 		VerifyOutgoing:       true,
@@ -209,7 +208,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 		NodeName:             "bob",
 	}, hclog.New(nil))
 	require.NoError(t, err)
-	srv.rpc.tlsConf = tlsConf
+
+	srv := newTestServer(t, "bob", "dc1", tlsConf)
 
 	// Send all of the traffic to dc1's server
 	var p tcpproxy.Proxy
@@ -276,7 +276,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1")
+		srv := newTestServer(t, name, "dc1", nil)
 		res.AddServer(srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
@@ -312,7 +312,7 @@ func TestClientConnPool_ForwardToLeader_Failover(t *testing.T) {
 	var servers []testServer
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1")
+		srv := newTestServer(t, name, "dc1", nil)
 		res.AddServer(srv.Metadata())
 		servers = append(servers, srv)
 		t.Cleanup(srv.shutdown)
@@ -362,7 +362,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
-		srv := newTestServer(t, name, "dc1")
+		srv := newTestServer(t, name, "dc1", nil)
 		res.AddServer(srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}
@@ -416,7 +416,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 
 	for _, dc := range dcs {
 		name := "server-0-" + dc
-		srv := newTestServer(t, name, dc)
+		srv := newTestServer(t, name, dc, nil)
 		res.AddServer(srv.Metadata())
 		t.Cleanup(srv.shutdown)
 	}

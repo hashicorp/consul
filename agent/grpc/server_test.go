@@ -41,7 +41,7 @@ func (s testServer) Metadata() *metadata.Server {
 	}
 }
 
-func newTestServer(t *testing.T, name string, dc string) testServer {
+func newTestServer(t *testing.T, name string, dc string, tlsConf *tlsutil.Configurator) testServer {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	handler := NewHandler(addr, func(server *grpc.Server) {
 		testservice.RegisterSimpleServer(server, &simple{name: name, dc: dc})
@@ -55,7 +55,7 @@ func newTestServer(t *testing.T, name string, dc string) testServer {
 	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(ports[0])))
 	require.NoError(t, err)
 
-	rpc := &fakeRPCListener{t: t, handler: handler}
+	rpc := &fakeRPCListener{t: t, handler: handler, tlsConf: tlsConf}
 
 	g := errgroup.Group{}
 	g.Go(func() error {
