@@ -16,8 +16,8 @@ One of the main goals of service discovery is to provide a catalog of available
 services. To that end, the agent provides a simple service definition format
 to declare the availability of a service and to potentially associate it with
 a health check. A health check associated with a service is considered to be an
-application-level check. A service is defined in a configuration file
-or added at runtime over the HTTP interface.
+application-level check. Define services in a configuration file or add it at
+runtime using the HTTP interface.
 
 Complete the [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
 
@@ -26,7 +26,8 @@ Complete the [Getting Started tutorials](https://learn.hashicorp.com/tutorials/c
 Configure a service by providing the service definition to the agent. You can
 either specify the configuration file using the `-config-file` option, or specify
 the directory containing the service definition file with the `-config-dir` option.
-Save the service definition as a `.json` or `.hcl` file. so that it can be loaded by Consul.
+Consul can load service definitions saved as `.json` or `.hcl` files.
+
 Send a `SIGHUP` to the running agent to check for new service definitions or to
 update existing services. Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
 using the [HTTP API](/api).
@@ -128,8 +129,8 @@ This is the root-level parameter that defines the service. You can specify the p
 | `enable_tag_override` | Boolean value that determines if the anti-entropy feature for the service is enabled. <br/> If set to `true`, the then external agents can update this service in the catalog and modify the tags.<br/> Subsequent local sync operations by this agent will ignore the updated tags. <br/> This parameter only applies to the locally-registered service. If multiple nodes register the same service, the `enable_tag_override` configuration, and all other service configuration items, operate independently. <br/>Updating the tags for services registered on one node is indepenedent from the same service (by name) registered on another node. <br/> See [anti-entropy syncs](/docs/internals/anti-entropy) for additional information.<br/> | False                         | Optional                     |
 | `checks`              | Array of objects that define health checks for the service. See [Health Checks](#health-checks) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | None                          | Optional                     |
 | `kind`                | String value that identifies the service as a Connect proxy. See [Connect](#connect) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | None                          | Optional                     |
-| `proxy_destination`   | String value that specifies the _name_ of the destination service that the service currently being configured proxies to. <br/>This parameter is deprecated. Use `proxy.destination_service` instead. <br/>See [Connect](#Connect) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Optional                     |
-| `proxy`               | Object that defines the destination services that the service currently being configured proxies to. See [Proxy](#Proxy) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | None                          | Optional                     |
+| `proxy_destination`   | String value that specifies the _name_ of the destination service that the service currently being configured proxies to. <br/>This parameter is deprecated. Use `proxy.destination_service` instead. <br/>See [Connect](#connect) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Optional                     |
+| `proxy`               | Object that defines the destination services that the service currently being configured proxies to. See [Proxy](#proxy) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | None                          | Optional                     |
 | `connect`             | Object that configures a Consul Connect service mesh connection. See [Connect](#connect) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | None                          | Optional                     |
 | `weights`             | Object that configures the weight of the service in terms of its DNS service (SRV) response. See [DNS SRV Weights](#dns-srv-weights) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | None                          | Optional                     |
 | `token`               | String value specifying the ACL token (if the ACL system is enabled). The token is required for the service to interact with the service catalog. See [Security Configurations](#security-configurations) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | None                          | Required if ACLs are enabled |
@@ -204,36 +205,31 @@ for the available configuration options.
 
 ### Connect
 
-The `kind` parameter determines role of the service.
-For typical non-proxy instances, the `kind` field must be omitted.
-Services can be configured to perform several roles.
+The `kind` parameter determines the service's role. Services can be configured to perform several roles, but you must omit the `kind` parameter for typical non-proxy instances.
 Refer to the [Configuration Entries](/docs/connect/config-entries) documentation for Consul Connect for information about other registration types.
 
-In the service definition example described above, the `kind` property is set to `connect-proxy`, which registers the service as a proxy.
+In the service definition example described above, the service is registered as a proxy because the `kind` property is set to `connect-proxy`.
 The `proxy` parameter is also required for Connect proxy registrations and is only valid if `kind` is `connect-proxy`.
 Refer to the [Proxy Service Registration](/docs/connect/registration/service-registration) documenatation for details about this type.
 
-The only required `proxy` field for a `connect-proxy` is `destination_service_name`.
+When the `kind` parameter is set to `connect-proxy`, the only required parameter for the `proxy` configuration is `destination_service_name`.
 Refer to the [complete proxy configuration example](/docs/connect/registration/service-registration#complete-configuration-example) for additional information.
 
--> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
-specified using `proxy_destination` at the top level. This will continue to work
-until at least 1.5.0 but it's highly recommended to switch to using
-`proxy.destination_service_name`.
+The `connect` field can be specified to configure [Connect](/docs/connect) for a service. This field is available in Consul 1.2.0 and later. The following parameters are available.
 
-The `connect` field can be specified to configure
-[Connect](/docs/connect) for a service. This field is available in
-Consul 1.2.0 and later. The `native` value can be set to true to advertise the
-service as [Connect-native](/docs/connect/native). The `sidecar_service`
-field is an optional nested service definition its behavior and defaults are
-described in [Sidecar Service
-Registration](/docs/connect/registration/sidecar-service). If `native` is true,
-it is an error to also specify a sidecar service registration.
+| Parameter         | Description                                                                                                                                       | Default                                                                                                    | Required |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
+| `native`          | Boolean value that advertises the service as [Connect-native](/docs/connect/native). <br/>If set to `true`, do not configure a `sidecar_service`. | `false`                                                                                                    | Optional |
+| `sidecar_service` | Object that defines a nested service definition. <br/>Do not configure if `native` is set to `true`.                                              | See [Sidecar Service Registration](/docs/connect/registration/sidecar-service) for default configurations. | Optional |
 
--> **Deprecation Notice:** From version 1.2.0 to 1.3.0 during beta, Connect
-supported "Managed" proxies which are specified with the `connect.proxy` field.
-[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated)
-and the `connect.proxy` field will be removed in a future major release.
+#### Deprecated parameters
+
+Different Consul Connect parameters are supported for different Consul versions. The following table describes changes applicable to service discovery.
+
+| Parameter           | Description                                                                                          | Consul version               | Status                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------- |
+| `proxy_destination` | Specified the proxy destination **in the root level** of the definition file.                        | 1.2.0 to 1.3.0               | Deprecated since 1.5.0. <br/> Use `proxy.destination_service_name` instead. |
+| `connect.proxy`     | Specified "managed" proxies, [which have been deprecated](/docs/connect/proxies/managed-deprecated). | 1.2.0 (beta) to 1.3.0 (beta) | Deprecated.                                                                 |
 
 ### DNS SRV Weights
 
