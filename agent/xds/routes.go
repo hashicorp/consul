@@ -177,13 +177,17 @@ func (s *ResourceGenerator) routesForIngressGateway(
 			continue
 		}
 
-		upstreamRoute := &envoy_route_v3.RouteConfiguration{
+		// Depending on their TLS config, upstreams are either attached to the
+		// default route or have their own routes. We'll add any upstreams that
+		// don't have custom filter chains and routes to this.
+		defaultRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
 			ValidateClusters: makeBoolValue(true),
 		}
+
 		for _, u := range upstreams {
 			upstreamID := u.Identifier()
 			chain := chains[upstreamID]
@@ -197,45 +201,45 @@ func (s *ResourceGenerator) routesForIngressGateway(
 				return nil, err
 			}
 
-			// See if we need to configure any special settings on this route config
-			if lCfg, ok := listeners[listenerKey]; ok {
-				if is := findIngressServiceMatchingUpstream(lCfg, u); is != nil {
-					// Set up any header manipulation we need
-					if is.RequestHeaders != nil {
-						virtualHost.RequestHeadersToAdd = append(
-							virtualHost.RequestHeadersToAdd,
-							makeHeadersValueOptions(is.RequestHeaders.Add, true)...,
-						)
-						virtualHost.RequestHeadersToAdd = append(
-							virtualHost.RequestHeadersToAdd,
-							makeHeadersValueOptions(is.RequestHeaders.Set, false)...,
-						)
-						virtualHost.RequestHeadersToRemove = append(
-							virtualHost.RequestHeadersToRemove,
-							is.RequestHeaders.Remove...,
-						)
-					}
-					if is.ResponseHeaders != nil {
-						virtualHost.ResponseHeadersToAdd = append(
-							virtualHost.ResponseHeadersToAdd,
-							makeHeadersValueOptions(is.ResponseHeaders.Add, true)...,
-						)
-						virtualHost.ResponseHeadersToAdd = append(
-							virtualHost.ResponseHeadersToAdd,
-							makeHeadersValueOptions(is.ResponseHeaders.Set, false)...,
-						)
-						virtualHost.ResponseHeadersToRemove = append(
-							virtualHost.ResponseHeadersToRemove,
-							is.ResponseHeaders.Remove...,
-						)
-					}
-				}
+			// Lookup listener and service config details from ingress gateway
+			// definition.
+			lCfg, ok := listeners[listenerKey]
+			if !ok {
+				return nil, fmt.Errorf("missing ingress listener config (listener on port %d)", listenerKey.Port)
+			}
+			svc := findIngressServiceMatchingUpstream(lCfg, u)
+			if svc == nil {
+				return nil, fmt.Errorf("missing service in listener config (service %q listener on port %d)",
+					u.DestinationID(), listenerKey.Port)
 			}
 
-			upstreamRoute.VirtualHosts = append(upstreamRoute.VirtualHosts, virtualHost)
+			if err := injectHeaderManipToVirtualHost(svc, virtualHost); err != nil {
+				return nil, err
+			}
+
+			// See if this upstream has it's own route/filter chain
+			svcRouteName, err := routeNameForUpstream(lCfg, *svc)
+			if err != nil {
+				return nil, err
+			}
+
+			// If the routeName is the same as the default one, merge the virtual host
+			// to the default route
+			if svcRouteName == defaultRoute.Name {
+				defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
+			} else {
+				svcRoute := &envoy_route_v3.RouteConfiguration{
+					Name:             svcRouteName,
+					ValidateClusters: makeBoolValue(true),
+					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
+				}
+				result = append(result, svcRoute)
+			}
 		}
 
-		result = append(result, upstreamRoute)
+		if len(defaultRoute.VirtualHosts) > 0 {
+			result = append(result, defaultRoute)
+		}
 	}
 
 	return result, nil
@@ -262,13 +266,20 @@ func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Ups
 	// wasn't checked as it didn't matter. Assume there is only one now
 	// though!
 	wantSID := u.DestinationID()
+	var foundSameNSWildcard *structs.IngressService
 	for _, s := range l.Services {
 		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)
 		if wantSID.Matches(sid) {
 			return &s
 		}
+		if s.Name == structs.WildcardSpecifier &&
+			s.NamespaceOrDefault() == wantSID.NamespaceOrDefault() {
+			foundSameNSWildcard = &s
+		}
 	}
-	return nil
+	// Didn't find an exact match. Return the wildcard from same service if we
+	// found one.
+	return foundSameNSWildcard
 }
 
 func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {
@@ -747,6 +758,38 @@ func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_ro
 		)
 		r.ResponseHeadersToRemove = append(
 			r.ResponseHeadersToRemove,
+			dest.ResponseHeaders.Remove...,
+		)
+	}
+	return nil
+}
+
+func injectHeaderManipToVirtualHost(dest *structs.IngressService, vh *envoy_route_v3.VirtualHost) error {
+	if !dest.RequestHeaders.IsZero() {
+		vh.RequestHeadersToAdd = append(
+			vh.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Add, true)...,
+		)
+		vh.RequestHeadersToAdd = append(
+			vh.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Set, false)...,
+		)
+		vh.RequestHeadersToRemove = append(
+			vh.RequestHeadersToRemove,
+			dest.RequestHeaders.Remove...,
+		)
+	}
+	if !dest.ResponseHeaders.IsZero() {
+		vh.ResponseHeadersToAdd = append(
+			vh.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Add, true)...,
+		)
+		vh.ResponseHeadersToAdd = append(
+			vh.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Set, false)...,
+		)
+		vh.ResponseHeadersToRemove = append(
+			vh.ResponseHeadersToRemove,
 			dest.ResponseHeaders.Remove...,
 		)
 	}
