@@ -105,7 +105,10 @@
               },
               "matchSubjectAltNames": [
                 {
-                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/geo-cache"
+                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/geo-cache-target"
+                },
+                {
+                  "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc2/svc/geo-cache-target"
                 }
               ]
             }
