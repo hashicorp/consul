@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func TestPeekForTLS_not_TLS(t *testing.T) {
@@ -30,6 +31,7 @@ func TestPeekForTLS_not_TLS(t *testing.T) {
 		RPCSnapshot,
 		RPCGossip,
 		RPCTLSInsecure,
+		RPCGRPC,
 	} {
 		cases = append(cases, testcase{
 			name:     fmt.Sprintf("tcp rpc type byte %d", rpcType),
@@ -76,6 +78,7 @@ func TestPeekForTLS_actual_TLS(t *testing.T) {
 		RPCSnapshot,
 		RPCGossip,
 		RPCTLSInsecure,
+		RPCGRPC,
 	} {
 		cases = append(cases, testcase{
 			name:     fmt.Sprintf("tcp rpc type byte %d", rpcType),

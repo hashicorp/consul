@@ -22,4 +22,5 @@ type Deps struct {
 
 type GRPCClientConner interface {
 	ClientConn(datacenter string) (*grpc.ClientConn, error)
+	SetGatewayResolver(func(string) string)
 }

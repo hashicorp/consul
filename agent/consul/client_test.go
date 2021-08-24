@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
+	grpc "github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/consul/agent/grpc/resolver"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -485,6 +488,13 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
+func newTestResolverConfig(t *testing.T, suffix string) resolver.Config {
+	n := t.Name()
+	s := strings.Replace(n, "/", "", -1)
+	s = strings.Replace(s, "_", "", -1)
+	return resolver.Config{Authority: strings.ToLower(s) + "-" + suffix}
+}
+
 func newDefaultDeps(t *testing.T, c *Config) Deps {
 	t.Helper()
 
@@ -497,7 +507,9 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 	tls, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
 	require.NoError(t, err, "failed to create tls configuration")
 
-	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), nil)
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, c.NodeName+"-"+c.Datacenter))
+	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), builder)
+	resolver.Register(builder)
 
 	connPool := &pool.ConnPool{
 		Server:          false,
@@ -515,7 +527,14 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 		Tokens:          new(token.Store),
 		Router:          r,
 		ConnPool:        connPool,
-		EnterpriseDeps:  newDefaultDepsEnterprise(t, logger, c),
+		GRPCConnPool: grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            grpc.TLSWrapper(tls.OutgoingRPCWrapper()),
+			UseTLSForDC:           tls.UseTLS,
+			DialingFromServer:     true,
+			DialingFromDatacenter: c.Datacenter,
+		}),
+		EnterpriseDeps: newDefaultDepsEnterprise(t, logger, c),
 	}
 }
 
