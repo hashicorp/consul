@@ -8,7 +8,7 @@ const modelName = 'oidc-provider';
 const OAUTH_PROVIDER_NAME = 'oidc-with-url';
 export default class OidcProviderService extends RepositoryService {
   @service('torii') manager;
-  @service('repository/settings') settings;
+  @service('settings') settings;
 
   init() {
     super.init(...arguments);
