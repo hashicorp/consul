@@ -25,7 +25,14 @@
     </State>
     <State @matches="token">
       <DataSource
-        @src={{concat path '/oidc/authorize/' provider.Name '/' jwt.authorizationCode '/' jwt.authorizationState}}
+        @src={{uri
+          (concat path '/oidc/authorize/${provider}/${code}/${state}')
+            (hash
+              provider=provider.Name
+              code=jwt.authorizationCode
+              state=(or jwt.authorizationState '')
+            )
+        }}
         @onchange={{action 'change'}}
         @onerror={{action onerror}}
       />
