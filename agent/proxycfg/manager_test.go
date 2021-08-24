@@ -199,7 +199,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			setup: func(t *testing.T, types *TestCacheTypes) {
 				// Note that we deliberately leave the 'geo-cache' prepared query to time out
 				types.health.Set(dbHealthCacheKey, &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t),
+					Nodes: TestUpstreamNodes(t, db.Name),
 				})
 				types.compiledChain.Set(dbChainCacheKey, &structs.DiscoveryChainResponse{
 					Chain: dbDefaultChain(),
@@ -225,7 +225,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						WatchedUpstreams:       nil, // Clone() clears this out
 						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 							db.String(): {
-								"db.default.dc1": TestUpstreamNodes(t),
+								"db.default.dc1": TestUpstreamNodes(t, db.Name),
 							},
 						},
 						WatchedGateways: nil, // Clone() clears this out
@@ -252,7 +252,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			setup: func(t *testing.T, types *TestCacheTypes) {
 				// Note that we deliberately leave the 'geo-cache' prepared query to time out
 				types.health.Set(db_v1_HealthCacheKey, &structs.IndexedCheckServiceNodes{
-					Nodes: TestUpstreamNodes(t),
+					Nodes: TestUpstreamNodes(t, db.Name),
 				})
 				types.health.Set(db_v2_HealthCacheKey, &structs.IndexedCheckServiceNodes{
 					Nodes: TestUpstreamNodesAlternate(t),
@@ -281,7 +281,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 						WatchedUpstreams:       nil, // Clone() clears this out
 						WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 							db.String(): {
-								"v1.db.default.dc1": TestUpstreamNodes(t),
+								"v1.db.default.dc1": TestUpstreamNodes(t, db.Name),
 								"v2.db.default.dc1": TestUpstreamNodesAlternate(t),
 							},
 						},
@@ -330,6 +330,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				rootsCacheKey, leafCacheKey,
 				roots,
 				webProxyCopy.(*structs.NodeService),
+				local.Config{},
 				expectSnapCopy.(*ConfigSnapshot),
 			)
 		})
@@ -349,13 +350,14 @@ func testManager_BasicLifecycle(
 	rootsCacheKey, leafCacheKey string,
 	roots *structs.IndexedCARoots,
 	webProxy *structs.NodeService,
+	agentConfig local.Config,
 	expectSnap *ConfigSnapshot,
 ) {
 	c := TestCacheWithTypes(t, types)
 
 	require := require.New(t)
 	logger := testutil.Logger(t)
-	state := local.NewState(local.Config{}, logger, &token.Store{})
+	state := local.NewState(agentConfig, logger, &token.Store{})
 	source := &structs.QuerySource{Datacenter: "dc1"}
 
 	// Stub state syncing

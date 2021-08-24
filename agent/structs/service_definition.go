@@ -91,6 +91,9 @@ func (s *ServiceDefinition) NodeService() *NodeService {
 			if ns.Proxy.Upstreams[i].DestinationNamespace == "" {
 				ns.Proxy.Upstreams[i].DestinationNamespace = ns.EnterpriseMeta.NamespaceOrEmpty()
 			}
+			if ns.Proxy.Upstreams[i].DestinationPartition == "" {
+				ns.Proxy.Upstreams[i].DestinationPartition = ns.EnterpriseMeta.PartitionOrEmpty()
+			}
 		}
 		ns.Proxy.Expose = s.Proxy.Expose
 	}

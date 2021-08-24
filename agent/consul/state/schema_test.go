@@ -1,6 +1,7 @@
 package state
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/go-memdb"
@@ -110,12 +111,20 @@ func (tc indexerTestCase) run(t *testing.T, indexer memdb.Indexer) {
 		}
 	}
 
+	sortMultiByteSlice := func(v [][]byte) {
+		sort.Slice(v, func(i, j int) bool {
+			return string(v[i]) < string(v[j])
+		})
+	}
+
 	if i, ok := indexer.(memdb.MultiIndexer); ok {
 		t.Run("writeIndexMulti", func(t *testing.T) {
 			valid, actual, err := i.FromObject(tc.writeMulti.source)
 			require.NoError(t, err)
 			require.True(t, valid)
-			require.Equal(t, tc.writeMulti.expected, actual)
+			sortMultiByteSlice(actual)
+			sortMultiByteSlice(tc.writeMulti.expected)
+			require.ElementsMatch(t, tc.writeMulti.expected, actual)
 		})
 	}
 

@@ -8,8 +8,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var SegmentOSSSummaries = []prometheus.SummaryDefinition{
@@ -62,12 +63,17 @@ func (s *Server) setupSegments(config *Config, port int, rpcListeners map[string
 func (s *Server) floodSegments(config *Config) {
 }
 
+func getSerfMemberEnterpriseMeta(member serf.Member) *structs.EnterpriseMeta {
+	return structs.NodeEnterpriseMetaInDefaultPartition()
+}
+
 // reconcile is used to reconcile the differences between Serf membership and
 // what is reflected in our strongly consistent store. Mainly we need to ensure
 // all live nodes are registered, all failed nodes are marked as such, and all
 // left nodes are deregistered.
 func (s *Server) reconcile() (err error) {
 	defer metrics.MeasureSince([]string{"leader", "reconcile"}, time.Now())
+
 	members := s.serfLAN.Members()
 	knownMembers := make(map[string]struct{})
 	for _, member := range members {
@@ -79,5 +85,5 @@ func (s *Server) reconcile() (err error) {
 
 	// Reconcile any members that have been reaped while we were not the
 	// leader.
-	return s.reconcileReaped(knownMembers)
+	return s.reconcileReaped(knownMembers, nil)
 }

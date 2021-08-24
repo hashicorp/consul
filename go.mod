@@ -85,13 +85,14 @@ require (
 	golang.org/x/net v0.0.0-20210410081132-afb366fc7cd1
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
+	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.9.0 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.25.1
 	gopkg.in/square/go-jose.v2 v2.5.1
+	gotest.tools/v3 v3.0.3
 	k8s.io/api v0.16.9
 	k8s.io/apimachinery v0.16.9
 	k8s.io/client-go v0.16.9

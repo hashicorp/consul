@@ -82,6 +82,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		PrimaryDatacenter string
 		NodeName          string
 		NodeID            string
+		Partition         string `json:",omitempty"`
 		Revision          string
 		Server            bool
 		Version           string
@@ -90,6 +91,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		PrimaryDatacenter: s.agent.config.PrimaryDatacenter,
 		NodeName:          s.agent.config.NodeName,
 		NodeID:            string(s.agent.config.NodeID),
+		Partition:         s.agent.config.PartitionOrEmpty(),
 		Revision:          s.agent.config.Revision,
 		Server:            s.agent.config.ServerMode,
 		Version:           s.agent.config.Version,
@@ -305,6 +307,12 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
+	// NOTE: we're explicitly fetching things in the requested partition and
+	// namespace here.
 	services := s.agent.State.Services(&entMeta)
 	if err := s.agent.filterServicesWithAuthorizer(authz, &services); err != nil {
 		return nil, err
@@ -368,6 +376,10 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 	sid := structs.NewServiceID(id, &entMeta)
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	dc := s.agent.config.Datacenter
 
 	resultHash, service, err := s.agent.LocalBlockingQuery(false, hash, queryOpts.MaxQueryTime,
@@ -400,6 +412,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			aSvc := buildAgentService(svc, dc)
 			reply := &aSvc
 
+			// TODO(partitions): do we need to do anything here?
 			rawHash, err := hashstructure.Hash(reply, nil)
 			if err != nil {
 				return "", nil, err
@@ -432,6 +445,10 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	var filterExpression string
 	s.parseFilter(req, &filterExpression)
 	filter, err := bexpr.CreateFilter(filterExpression, nil, nil)
@@ -439,6 +456,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 		return nil, err
 	}
 
+	// NOTE(partitions): this works because nodes exist in ONE partition
 	checks := s.agent.State.Checks(&entMeta)
 	if err := s.agent.filterChecksWithAuthorizer(authz, &checks); err != nil {
 		return nil, err
@@ -485,6 +503,8 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 	}
 
+	// TODO(partitions): likely partitions+segment integration will take care of this
+
 	var members []serf.Member
 	if wan {
 		members = s.agent.WANMembers()
@@ -521,6 +541,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	wan := false
 	if other := req.URL.Query().Get("wan"); other != "" {
 		wan = true
+		// TODO(partitions) : block wan join
 	}
 
 	// Get the address
@@ -616,6 +637,10 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
+		return nil, nil
+	}
+
 	// Construct the health check.
 	health := args.HealthCheck(s.agent.config.NodeName)
 
@@ -672,6 +697,10 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 
 	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, checkID); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &checkID.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.RemoveCheck(checkID, true); err != nil {
@@ -740,7 +769,7 @@ func (s *HTTPHandlers) AgentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	return s.agentCheckUpdate(resp, req, checkID, update.Status, update.Output)
 }
 
-func (s *HTTPHandlers) agentCheckUpdate(_resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
+func (s *HTTPHandlers) agentCheckUpdate(resp http.ResponseWriter, req *http.Request, checkID types.CheckID, status string, output string) (interface{}, error) {
 	cid := structs.NewCheckID(checkID, nil)
 
 	// Get the provided token, if any, and vet against any ACL policies.
@@ -760,6 +789,10 @@ func (s *HTTPHandlers) agentCheckUpdate(_resp http.ResponseWriter, req *http.Req
 
 	if err := s.agent.vetCheckUpdateWithAuthorizer(authz, cid); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &cid.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.updateTTLCheck(cid, status, output); err != nil {
@@ -833,6 +866,10 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		return nil, err
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	sid := structs.NewServiceID(serviceID, &entMeta)
 
 	dc := s.agent.config.Datacenter
@@ -891,35 +928,38 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, acl.ErrPermissionDenied
 	}
 
+	if !s.validateRequestPartition(resp, &entMeta) {
+		return nil, nil
+	}
+
 	dc := s.agent.config.Datacenter
 
 	code := http.StatusNotFound
 	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
-	services := s.agent.State.Services(&entMeta)
+
+	services := s.agent.State.ServicesByName(structs.NewServiceName(serviceName, &entMeta))
 	result := make([]api.AgentServiceChecksInfo, 0, 16)
 	for _, service := range services {
-		if service.Service == serviceName {
-			sid := structs.NewServiceID(service.ID, &entMeta)
+		sid := structs.NewServiceID(service.ID, &entMeta)
 
-			scode, sstatus, healthChecks := agentHealthService(sid, s)
-			serviceInfo := buildAgentService(service, dc)
-			res := api.AgentServiceChecksInfo{
-				AggregatedStatus: sstatus,
-				Checks:           healthChecks,
-				Service:          &serviceInfo,
-			}
-			result = append(result, res)
-			// When service is not found, we ignore it and keep existing HTTP status
-			if code == http.StatusNotFound {
-				code = scode
-				status = sstatus
-			}
-			// We take the worst of all statuses, so we keep iterating
-			// passing: 200 < warning: 429 < critical: 503
-			if code < scode {
-				code = scode
-				status = sstatus
-			}
+		scode, sstatus, healthChecks := agentHealthService(sid, s)
+		serviceInfo := buildAgentService(service, dc)
+		res := api.AgentServiceChecksInfo{
+			AggregatedStatus: sstatus,
+			Checks:           healthChecks,
+			Service:          &serviceInfo,
+		}
+		result = append(result, res)
+		// When service is not found, we ignore it and keep existing HTTP status
+		if code == http.StatusNotFound {
+			code = scode
+			status = sstatus
+		}
+		// We take the worst of all statuses, so we keep iterating
+		// passing: 200 < warning: 429 < critical: 503
+		if code < scode {
+			code = scode
+			status = sstatus
 		}
 	}
 	if returnTextPlain(req) {
@@ -963,6 +1003,10 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &args.EnterpriseMeta, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	// Get the node service.
@@ -1102,6 +1146,10 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 
 	if err := s.agent.vetServiceUpdateWithAuthorizer(authz, sid); err != nil {
 		return nil, err
+	}
+
+	if !s.validateRequestPartition(resp, &sid.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	if err := s.agent.RemoveService(sid); err != nil {
@@ -1403,6 +1451,10 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	args.MaxQueryTime = qOpts.MaxQueryTime
 	args.Token = qOpts.Token
 
+	if !s.validateRequestPartition(resp, &args.EnterpriseMeta) {
+		return nil, nil
+	}
+
 	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
 	if err != nil {
 		return nil, err
@@ -1440,6 +1492,10 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 
 	if err := decodeBody(req.Body, &authReq); err != nil {
 		return nil, BadRequestError{fmt.Sprintf("Request decode failed: %v", err)}
+	}
+
+	if !s.validateRequestPartition(resp, &authReq.EnterpriseMeta) {
+		return nil, nil
 	}
 
 	authz, reason, cacheMeta, err := s.agent.ConnectAuthorize(token, &authReq)

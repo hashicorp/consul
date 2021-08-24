@@ -134,6 +134,7 @@ message Upstream {
     // LocalBindSocketPath is the socket to create to connect to the upstream service
     string LocalBindSocketPath = 10;
     string LocalBindSocketMode = 11;
+    string DestinationPartition = 12;
 }
 
 // ServiceConnect are the shared Connect settings between all service

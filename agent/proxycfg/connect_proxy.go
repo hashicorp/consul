@@ -86,7 +86,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
 			ServiceName:    s.proxyCfg.DestinationServiceName,
-			EnterpriseMeta: structs.NewEnterpriseMetaInDefaultPartition(s.proxyID.NamespaceOrEmpty()),
+			EnterpriseMeta: s.proxyID.EnterpriseMeta,
 		}, intentionUpstreamsID, s.ch)
 		if err != nil {
 			return snap, err
@@ -97,7 +97,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Name:           structs.MeshConfigMesh,
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
-			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			EnterpriseMeta: *s.proxyID.DefaultEnterpriseMetaForPartition(),
 		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return snap, err
@@ -162,6 +162,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		case structs.UpstreamDestTypeService:
 			fallthrough
 
+			// TODO (partition): pass Partition to DiscoveryChainRequest?
 		case "": // Treat unset as the default Service type
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,
@@ -228,7 +229,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
 				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
 				// by the ResolveServiceConfig endpoint.
-				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, structs.WildcardEnterpriseMetaInDefaultPartition())
+				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WildcardEnterpriseMetaForPartition())
 				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardSID.String()]
 				if ok {
 					u = defaults

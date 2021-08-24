@@ -106,6 +106,9 @@ func (uc *UpstreamConfig) applyDefaults() {
 	if uc.DestinationNamespace == "" {
 		uc.DestinationNamespace = "default"
 	}
+	if uc.DestinationPartition == "" {
+		uc.DestinationPartition = "default"
+	}
 	if uc.LocalBindAddress == "" && uc.LocalBindSocketPath == "" {
 		uc.LocalBindAddress = "127.0.0.1"
 	}
@@ -120,8 +123,8 @@ func (uc *UpstreamConfig) String() string {
 			"%s:%d",
 			uc.LocalBindAddress, uc.LocalBindPort)
 	}
-	return fmt.Sprintf("%s->%s:%s/%s", addr,
-		uc.DestinationType, uc.DestinationNamespace, uc.DestinationName)
+	return fmt.Sprintf("%s->%s:%s/%s/%s", addr,
+		uc.DestinationType, uc.DestinationPartition, uc.DestinationNamespace, uc.DestinationName)
 }
 
 // UpstreamResolverFuncFromClient returns a closure that captures a consul
@@ -140,6 +143,7 @@ func UpstreamResolverFuncFromClient(client *api.Client) func(cfg UpstreamConfig)
 		return &connect.ConsulResolver{
 			Client:     client,
 			Namespace:  cfg.DestinationNamespace,
+			Partition:  cfg.DestinationPartition,
 			Name:       cfg.DestinationName,
 			Type:       typ,
 			Datacenter: cfg.Datacenter,

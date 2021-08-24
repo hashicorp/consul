@@ -7,7 +7,7 @@ export default function CalloutBlade({ title, callouts }) {
   return (
     <div className={styles.calloutBlade}>
       <div className={styles.contentWrapper}>
-        <h3>{title}</h3>
+        <h3 className="g-type-display-3">{title}</h3>
         <ul
           className={classNames(styles.callouts, {
             [styles.twoUp]: callouts.length % 3 !== 0,
@@ -21,7 +21,9 @@ export default function CalloutBlade({ title, callouts }) {
                   <InlineSvg src={callout.icon} className={styles.icon} />
                   <div className={styles.flexWrapper}>
                     <div className={styles.infoWrapper}>
-                      {callout.title && <h5>{callout.title}</h5>}
+                      {callout.title && (
+                        <h5 className="g-type-display-5">{callout.title}</h5>
+                      )}
                       <p>{callout.description}</p>
                     </div>
                     <div className={styles.linkWrapper}>

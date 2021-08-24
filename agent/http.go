@@ -1032,6 +1032,7 @@ func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySourc
 		} else {
 			source.Node = node
 		}
+		source.NodePartition = s.agent.config.PartitionOrEmpty()
 	}
 }
 

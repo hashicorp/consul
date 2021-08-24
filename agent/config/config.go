@@ -511,6 +511,7 @@ type Upstream struct {
 	// on service definitions in various places.
 	DestinationType      *string `mapstructure:"destination_type"`
 	DestinationNamespace *string `mapstructure:"destination_namespace"`
+	DestinationPartition *string `mapstructure:"destination_partition"`
 	DestinationName      *string `mapstructure:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note

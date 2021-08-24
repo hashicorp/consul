@@ -327,7 +327,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	}
 
 	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
-		return s.checkStreamACLs(stream.Context(), cfgSnap)
+		return s.authorize(stream.Context(), cfgSnap)
 	}
 
 	for {
@@ -564,13 +564,22 @@ func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Serve
 	return srv
 }
 
-func (s *Server) checkStreamACLs(streamCtx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
+// authorize the xDS request using the token stored in ctx. This authorization is
+// a bit different from most interfaces. Instead of explicitly authorizing or
+// filtering each piece of data in the response, the request is authorized
+// by checking the token has `service:write` for the service ID of the destination
+// service (for kind=ConnectProxy), or the gateway service (for other kinds).
+// This authorization strategy requires that agent/proxycfg only fetches data
+// using a token with the same permissions, and that it stores the data by
+// proxy ID. We assume that any data in the snapshot was already filtered,
+// which allows this authorization to be a shallow authorization check
+// for all the data in a ConfigSnapshot.
+func (s *Server) authorize(ctx context.Context, cfgSnap *proxycfg.ConfigSnapshot) error {
 	if cfgSnap == nil {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 	}
 
-	authz, err := s.ResolveToken(tokenFromContext(streamCtx))
-
+	authz, err := s.ResolveToken(tokenFromContext(ctx))
 	if acl.IsErrNotFound(err) {
 		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
 	} else if acl.IsErrPermissionDenied(err) {

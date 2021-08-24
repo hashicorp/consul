@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -275,8 +274,7 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 	// name is the same.
 	var n *structs.Node
 	if node.ID != "" {
-		// TODO(partitions): should this take a node ent-meta?
-		existing, err := getNodeIDTxn(tx, node.ID)
+		existing, err := getNodeIDTxn(tx, node.ID, node.GetEnterpriseMeta())
 		if err != nil {
 			return fmt.Errorf("node lookup failed: %s", err)
 		}
@@ -382,14 +380,11 @@ func getNodeTxn(tx ReadTxn, nodeNameOrID string, entMeta *structs.EnterpriseMeta
 	return nil, nil
 }
 
-func getNodeIDTxn(tx ReadTxn, id types.NodeID) (*structs.Node, error) {
-	strnode := string(id)
-	uuidValue, err := uuid.ParseUUID(strnode)
-	if err != nil {
-		return nil, fmt.Errorf("node lookup by ID failed, wrong UUID: %v for '%s'", err, strnode)
-	}
-
-	node, err := tx.First(tableNodes, "uuid", uuidValue)
+func getNodeIDTxn(tx ReadTxn, id types.NodeID, entMeta *structs.EnterpriseMeta) (*structs.Node, error) {
+	node, err := tx.First(tableNodes, indexUUID+"_prefix", Query{
+		Value:          string(id),
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("node lookup by ID failed: %s", err)
 	}
@@ -400,17 +395,20 @@ func getNodeIDTxn(tx ReadTxn, id types.NodeID) (*structs.Node, error) {
 }
 
 // GetNodeID is used to retrieve a node registration by node ID.
-func (s *Store) GetNodeID(id types.NodeID) (uint64, *structs.Node, error) {
+func (s *Store) GetNodeID(id types.NodeID, entMeta *structs.EnterpriseMeta) (uint64, *structs.Node, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	// Get the table index.
-	///
-	// NOTE: nodeIDs aren't partitioned so don't use the convenience function.
-	idx := maxIndexTxn(tx, tableNodes)
+	idx := catalogNodesMaxIndex(tx, entMeta)
 
 	// Retrieve the node from the state store
-	node, err := getNodeIDTxn(tx, id)
+	node, err := getNodeIDTxn(tx, id, entMeta)
 	return idx, node, err
 }
 
@@ -453,19 +451,25 @@ func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string, entMet
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, tableNodes)
-	// TODO:(partitions) use the partitioned meta index
-	// idx := catalogNodesMaxIndex(tx, entMeta)
-	_ = entMeta
+	idx := catalogNodesMaxIndex(tx, entMeta)
 
-	// Retrieve all of the nodes
-	var args []interface{}
-	for key, value := range filters {
-		args = append(args, key, value)
+	if len(filters) == 0 {
+		return idx, nil, nil // NodesByMeta is never called with an empty map, but just in case make it return no results.
+	}
+
+	// Retrieve all of the nodes. We'll do a lookup of just ONE KV pair, which
+	// over-matches if multiple pairs are requested, but then in the loop below
+	// we'll finish filtering.
+	var firstKey, firstValue string
+	for firstKey, firstValue = range filters {
 		break
 	}
 
-	nodes, err := tx.Get(tableNodes, "meta", args...)
+	nodes, err := tx.Get(tableNodes, indexMeta, KeyValueQuery{
+		Key:            firstKey,
+		Value:          firstValue,
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -829,20 +833,34 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.NodeEnterpriseMetaInDefaultPartition()
+	}
+
 	// Get the table index.
 	idx := catalogServicesMaxIndex(tx, entMeta)
 	if nodeIdx := catalogNodesMaxIndex(tx, entMeta); nodeIdx > idx {
 		idx = nodeIdx
 	}
 
-	// Retrieve all of the nodes with the meta k/v pair
-	var args []interface{}
-	for key, value := range filters {
-		args = append(args, key, value)
+	if len(filters) == 0 {
+		return idx, nil, nil // ServicesByNodeMeta is never called with an empty map, but just in case make it return no results.
+	}
+
+	// Retrieve all of the nodes. We'll do a lookup of just ONE KV pair, which
+	// over-matches if multiple pairs are requested, but then in the loop below
+	// we'll finish filtering.
+	var firstKey, firstValue string
+	for firstKey, firstValue = range filters {
 		break
 	}
-	// TODO(partitions): scope the meta index to a partition
-	nodes, err := tx.Get(tableNodes, "meta", args...)
+
+	nodes, err := tx.Get(tableNodes, indexMeta, KeyValueQuery{
+		Key:            firstKey,
+		Value:          firstValue,
+		EnterpriseMeta: *entMeta,
+	})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -1274,7 +1292,10 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *st
 		}
 
 		// Attempt to lookup the node by its node ID
-		iter, err := tx.Get(tableNodes, "uuid_prefix", resizeNodeLookupKey(nodeNameOrID))
+		iter, err := tx.Get(tableNodes, indexUUID+"_prefix", Query{
+			Value:          resizeNodeLookupKey(nodeNameOrID),
+			EnterpriseMeta: *entMeta,
+		})
 		if err != nil {
 			ws.Add(watchCh)
 			// TODO(sean@): We could/should log an error re: the uuid_prefix lookup

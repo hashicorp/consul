@@ -61,6 +61,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		nodeID:   c.config.NodeID,
 		nodeName: c.config.NodeName,
 		segment:  c.config.Segment,
+		server:   false,
 	}
 
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
@@ -68,7 +69,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 		return nil, err
 	}
 
-	addEnterpriseSerfTags(conf.Tags)
+	addEnterpriseSerfTags(conf.Tags, c.config.agentEnterpriseMeta())
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(c.logger)
 

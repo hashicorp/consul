@@ -1165,7 +1165,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     through mesh gateways. Defaults to false. This was added in Consul 1.8.0.
 
   - `ca_provider` ((#connect_ca_provider)) Controls which CA provider to
-    use for Connect's CA. Currently only the `consul` and `vault` providers are supported.
+    use for Connect's CA. Currently only the `aws-pca`, `consul`, and `vault` providers are supported.
     This is only used when initially bootstrapping the cluster. For an existing cluster,
     use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
 
@@ -1175,6 +1175,12 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     Endpoint](/api/connect/ca#update-ca-configuration).
 
     The following providers are supported:
+
+    #### AWS ACM Private CA Provider (`ca_provider = "aws-pca"`)
+
+    - `existing_arn` ((#aws_ca_existing_arn)) The Amazon Resource Name (ARN) of
+      an existing private CA in your ACM account. If specified, Consul will
+      attempt to use the existing CA to issue certificates.
 
     #### Consul CA Provider (`ca_provider = "consul"`)
 
@@ -1212,34 +1218,33 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
     There are also a number of common configuration options supported by all providers:
 
-    - `csr_max_concurrent` ((#ca_csr_max_concurrent)) Sets a limit on how
-      many Certificate Signing Requests will be processed concurrently. Defaults
-      to 0 (disabled). This is useful when you have more than one or two cores available
-      to the server. For example on an 8 core server, setting this to 1 will ensure
-      that even during a CA rotation no more than one server core on the leader will
-      be consumed at a time with generating new certificates. Setting this is recommended
-      **instead** of `csr_max_per_second` where you know there are multiple cores available
-      since it is simpler to reason about limiting CSR resources this way without
-      artificially slowing down rotations. Added in 1.4.1.
+    - `csr_max_concurrent` ((#ca_csr_max_concurrent)) Sets a limit on the number
+      of Certificate Signing Requests that can be processed concurrently. Defaults
+      to 0 (disabled). This is useful when you want to limit the number of CPU cores
+      available to the server for certificate signing operations. For example, on an
+      8 core server, setting this to 1 will ensure that no more than one CPU core
+      will be consumed when generating or rotating certificates. Setting this is
+      recommended **instead** of `csr_max_per_second` when you want to limit the
+      number of cores consumed since it is simpler to reason about limiting CSR
+      resources this way without artificially slowing down rotations. Added in 1.4.1.
 
     - `csr_max_per_second` ((#ca_csr_max_per_second)) Sets a rate limit
       on the maximum number of Certificate Signing Requests (CSRs) the servers will
       accept. This is used to prevent CA rotation from causing unbounded CPU usage
-      on servers. It defaults to 50 which is conservative - a 2017 Macbook can process
-      about 100 per second using only ~40% of one CPU core - but sufficient for deployments
+      on servers. It defaults to 50 which is conservative – a 2017 Macbook can process
+      about 100 per second using only ~40% of one CPU core – but sufficient for deployments
       up to ~1500 service instances before the time it takes to rotate is impacted.
       For larger deployments we recommend increasing this based on the expected number
       of server instances and server resources, or use `csr_max_concurrent` instead
-      if servers have more than one core. Setting this to zero disables rate limiting.
+      if servers have more than one CPU core. Setting this to zero disables rate limiting.
       Added in 1.4.1.
 
     - `leaf_cert_ttl` ((#ca_leaf_cert_ttl)) The upper bound on the lease
       duration of a leaf certificate issued for a service. In most cases a new leaf
       certificate will be requested by a proxy before this limit is reached. This
       is also the effective limit on how long a server outage can last (with no leader)
-      before network connections will start being rejected, and as a result the defaults
-      is `72h` to last through a weekend without intervention. This value cannot
-      be lower than 1 hour or higher than 1 year.
+      before network connections will start being rejected. Defaults to `72h`.
+      This value cannot be lower than 1 hour or higher than 1 year.
 
       This value is also used when rotating out old root certificates from
       the cluster. When a root certificate has been inactive (rotated out)
@@ -1252,9 +1257,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       PKI paths given for Vault then this will be ignored. Currently supported options
       are `ec` or `rsa`. Default is `ec`.
 
-      It is required that all servers in a Datacenter have
+      It is required that all servers in a datacenter have
       the same config for the CA. It is recommended that servers in
-      different Datacenters have the same CA config for key type and size
+      different datacenters use the same key type and size,
       although the built-in CA and Vault provider will both allow mixed CA
       key types.
 
@@ -1752,7 +1757,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   failover if this is increased significantly as more logs will need to be
   replayed. In Consul 1.1.0 and later this defaults to 16384, and in prior
   versions it was set to 8192.
-  
+
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
   in emergencies.
@@ -1768,7 +1773,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   is increased significantly as more logs will need to be replayed. In Consul
   1.1.0 and later this defaults to `30s`, and in prior versions it was set to
   `5s`.
-  
+
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow tuning snapshot activity without a rolling restart
   in emergencies.
@@ -1781,10 +1786,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   consider reducing write throughput or the amount of data stored on Consul as
   it is likely under a load it is not designed to handle. The default value is
   10000 which is suitable for all normal workloads. Added in Consul 1.5.3.
-  
+
   Since Consul 1.10.0 this can be reloaded using `consul reload` or sending the
   server a `SIGHUP` to allow recovery without downtime when followers can't keep
-  up. 
+  up.
 
 - `reap` This controls Consul's automatic reaping of child processes,
   which is useful if Consul is running as PID 1 in a Docker container. If this isn't

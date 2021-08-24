@@ -1,6 +1,7 @@
 package state
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"reflect"
 	"sort"
@@ -28,23 +29,24 @@ func makeRandomNodeID(t *testing.T) types.NodeID {
 
 func TestStateStore_GetNodeID(t *testing.T) {
 	s := testStateStore(t)
-	_, out, err := s.GetNodeID(types.NodeID("wrongId"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
+
+	_, out, err := s.GetNodeID(types.NodeID("wrongId"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: UUID (without hyphens) must be") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err.Error(), out)
 	}
-	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	_, out, err = s.GetNodeID(types.NodeID("0123456789abcdefghijklmnopqrstuvwxyz"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
-	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"))
-	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed, wrong UUID") {
-		t.Fatalf("want an error, nil value, err:=%q ; out:=%q", err, out)
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee50Z"), nil)
+	if err == nil || out != nil || !strings.Contains(err.Error(), "node lookup by ID failed: index error: invalid UUID") {
+		t.Errorf("want an error, nil value, err:=%q ; out:=%q", err, out)
 	}
 
-	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"))
+	_, out, err = s.GetNodeID(types.NodeID("00a916bc-a357-4a19-b886-59419fcee506"), nil)
 	if err != nil || out != nil {
-		t.Fatalf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
+		t.Errorf("do not want any error nor returned value, err:=%q ; out:=%q", err, out)
 	}
 
 	nodeID := types.NodeID("00a916bc-a357-4a19-b886-59419fceeaaa")
@@ -53,30 +55,53 @@ func TestStateStore_GetNodeID(t *testing.T) {
 		Node:    "node1",
 		Address: "1.2.3.4",
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 
-	_, out, err = s.GetNodeID(nodeID)
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	_, out, err = s.GetNodeID(nodeID, nil)
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
+
 	// Case insensitive lookup should work as well
-	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"))
-	if err != nil {
-		t.Fatalf("got err %s want nil", err)
-	}
+	_, out, err = s.GetNodeID(types.NodeID("00a916bC-a357-4a19-b886-59419fceeAAA"), nil)
+	require.NoError(t, err)
 	if out == nil || out.ID != nodeID {
 		t.Fatalf("out should not be nil and contain nodeId, but was:=%#v", out)
 	}
 }
 
+func TestStateStore_GetNode(t *testing.T) {
+	s := testStateStore(t)
+
+	// initially does not exist
+	idx, out, err := s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.Nil(t, out)
+	require.Equal(t, uint64(0), idx)
+
+	// Create it
+	testRegisterNode(t, s, 1, "node1")
+
+	// now exists
+	idx, out, err = s.GetNode("node1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+
+	// Case insensitive lookup should work as well
+	idx, out, err = s.GetNode("NoDe1", nil)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+	require.Equal(t, uint64(1), idx)
+	require.Equal(t, "node1", out.Node)
+}
+
 func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 	t.Parallel()
 	s := testStateStore(t)
+
 	nodeID := makeRandomNodeID(t)
 	req := &structs.RegisterRequest{
 		ID:              nodeID,
@@ -90,9 +115,7 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(1, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(1, req))
 	req = &structs.RegisterRequest{
 		ID:      types.NodeID(""),
 		Node:    "node2",
@@ -103,31 +126,29 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 			Status:  api.HealthPassing,
 		},
 	}
-	if err := s.EnsureRegistration(2, req); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, s.EnsureRegistration(2, req))
+
 	tx := s.db.WriteTxnRestore()
 	defer tx.Abort()
+
 	node := &structs.Node{
 		ID:      makeRandomNodeID(t),
 		Node:    "NOdE1", // Name is similar but case is different
 		Address: "2.3.4.5",
 	}
+
 	// Lets conflict with node1 (has an ID)
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should return an error since another name with similar name exists")
+
 	// Lets conflict with node without ID
 	node.Node = "NoDe2"
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
-		t.Fatalf("Should return an error since another name with similar name exists")
-	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
-		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
-	}
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, node, false),
+		"Should return an error since another name with similar name exists")
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, node, true),
+		"Should not clash with another similar node name without ID")
 
 	// Set node1's Serf health to failing and replace it.
 	newNode := &structs.Node{
@@ -135,17 +156,15 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Node:    "node1",
 		Address: "2.3.4.5",
 	}
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
-		t.Fatalf("Should return an error since the previous node is still healthy")
-	}
-	s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
+	require.Error(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false),
+		"Should return an error since the previous node is still healthy")
+
+	require.NoError(t, s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
 		Node:    "node1",
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
-	})
-	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
-		t.Fatal(err)
-	}
+	}))
+	require.NoError(t, ensureNoNodeWithSimilarNameTxn(tx, newNode, false))
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {
@@ -183,7 +202,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		}
 		require.Equal(t, node, out)
 
-		_, out2, err := s.GetNodeID(nodeID)
+		_, out2, err := s.GetNodeID(nodeID, nil)
 		if err != nil {
 			t.Fatalf("got err %s want nil", err)
 		}
@@ -398,7 +417,7 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		if out == nil {
-			_, out, err = s.GetNodeID(types.NodeID(nodeLookup))
+			_, out, err = s.GetNodeID(types.NodeID(nodeLookup), nil)
 			if err != nil {
 				t.Fatalf("err: %s", err)
 			}
@@ -677,11 +696,11 @@ func TestNodeRenamingNodes(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, node, err := s.GetNodeID(nodeID1); err != nil || node == nil || node.ID != nodeID1 {
+	if _, node, err := s.GetNodeID(nodeID1, nil); err != nil || node == nil || node.ID != nodeID1 {
 		t.Fatalf("err: %s, node:= %q", err, node)
 	}
 
-	if _, node, err := s.GetNodeID(nodeID2); err != nil && node == nil || node.ID != nodeID2 {
+	if _, node, err := s.GetNodeID(nodeID2, nil); err != nil && node == nil || node.ID != nodeID2 {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -732,7 +751,7 @@ func TestNodeRenamingNodes(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	idx2, out2, err := s.GetNodeID(nodeID2)
+	idx2, out2, err := s.GetNodeID(nodeID2, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1119,6 +1138,11 @@ func TestStateStore_GetNodesByMeta(t *testing.T) {
 		filters map[string]string
 		nodes   []string
 	}{
+		// Empty meta filter
+		{
+			filters: map[string]string{},
+			nodes:   []string{},
+		},
 		// Simple meta filter
 		{
 			filters: map[string]string{"role": "server"},
@@ -1188,9 +1212,7 @@ func TestStateStore_NodeServices(t *testing.T) {
 			Node:    "node1",
 			Address: "1.2.3.4",
 		}
-		if err := s.EnsureRegistration(1, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, s.EnsureRegistration(1, req))
 	}
 	{
 		req := &structs.RegisterRequest{
@@ -1198,83 +1220,59 @@ func TestStateStore_NodeServices(t *testing.T) {
 			Node:    "node2",
 			Address: "5.6.7.8",
 		}
-		if err := s.EnsureRegistration(2, req); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+		require.NoError(t, s.EnsureRegistration(2, req))
 	}
 
 	// Look up by name.
-	{
-		_, ns, err := s.NodeServices(nil, "node1", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Look up by name", func(t *testing.T) {
+		{
+			_, ns, err := s.NodeServices(nil, "node1", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node1", ns.Node.Node)
 		}
-		if ns == nil || ns.Node.Node != "node1" {
-			t.Fatalf("bad: %#v", *ns)
+		{
+			_, ns, err := s.NodeServices(nil, "node2", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node2", ns.Node.Node)
 		}
-	}
-	{
-		_, ns, err := s.NodeServices(nil, "node2", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", *ns)
-		}
-	}
+	})
 
-	// Look up by UUID.
-	{
-		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
+	t.Run("Look up by UUID", func(t *testing.T) {
+		{
+			_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-aaaaaaaaaaaa", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node1", ns.Node.Node)
 		}
-		if ns == nil || ns.Node.Node != "node1" {
-			t.Fatalf("bad: %#v", ns)
+		{
+			_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb", nil)
+			require.NoError(t, err)
+			require.NotNil(t, ns)
+			require.Equal(t, "node2", ns.Node.Node)
 		}
-	}
-	{
-		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bbbbbbbbbbbb", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+	})
 
-	// Ambiguous prefix.
-	{
+	t.Run("Ambiguous prefix", func(t *testing.T) {
 		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns != nil {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 
-	// Bad node, and not a UUID (should not get a UUID error).
-	{
+	t.Run("Bad node", func(t *testing.T) {
+		// Bad node, and not a UUID (should not get a UUID error).
 		_, ns, err := s.NodeServices(nil, "nope", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns != nil {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.Nil(t, ns)
+	})
 
-	// Specific prefix.
-	{
+	t.Run("Specific prefix", func(t *testing.T) {
 		_, ns, err := s.NodeServices(nil, "40e4a748-2192-161a-0510-bb", nil)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if ns == nil || ns.Node.Node != "node2" {
-			t.Fatalf("bad: %#v", ns)
-		}
-	}
+		require.NoError(t, err)
+		require.NotNil(t, ns)
+		require.Equal(t, "node2", ns.Node.Node)
+	})
 }
 
 func TestStateStore_DeleteNode(t *testing.T) {
@@ -7563,4 +7561,18 @@ func dumpMaxIndexes(t *testing.T, tx ReadTxn) map[string]uint64 {
 		}
 	}
 	return out
+}
+
+func generateUUID() ([]byte, string) {
+	buf := make([]byte, 16)
+	if _, err := crand.Read(buf); err != nil {
+		panic(fmt.Errorf("failed to read random bytes: %v", err))
+	}
+	uuid := fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+		buf[0:4],
+		buf[4:6],
+		buf[6:8],
+		buf[8:10],
+		buf[10:16])
+	return buf, uuid
 }

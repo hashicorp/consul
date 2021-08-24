@@ -153,7 +153,7 @@ func (s *Store) txnNode(tx WriteTxn, idx uint64, op *structs.TxnNodeOp) (structs
 
 	getNode := func() (*structs.Node, error) {
 		if op.Node.ID != "" {
-			return getNodeIDTxn(tx, op.Node.ID)
+			return getNodeIDTxn(tx, op.Node.ID, op.Node.GetEnterpriseMeta())
 		} else {
 			return getNodeTxn(tx, op.Node.Node, op.Node.GetEnterpriseMeta())
 		}

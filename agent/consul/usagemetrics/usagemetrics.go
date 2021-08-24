@@ -8,10 +8,11 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/logging"
 )
 
 var Gauges = []prometheus.GaugeDefinition{
@@ -145,15 +146,13 @@ func (u *UsageMetricsReporter) Run(ctx context.Context) {
 
 func (u *UsageMetricsReporter) runOnce() {
 	state := u.stateProvider.State()
-	_, nodes, err := state.NodeCount()
+
+	_, nodeUsage, err := state.NodeUsage()
 	if err != nil {
 		u.logger.Warn("failed to retrieve nodes from state store", "error", err)
 	}
-	metrics.SetGaugeWithLabels(
-		[]string{"consul", "state", "nodes"},
-		float32(nodes),
-		u.metricLabels,
-	)
+
+	u.emitNodeUsage(nodeUsage)
 
 	_, serviceUsage, err := state.ServiceUsage()
 	if err != nil {
@@ -162,65 +161,27 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitServiceUsage(serviceUsage)
 
-	servers, clients := u.memberUsage()
-	u.emitMemberUsage(servers, clients)
+	members := u.memberUsage()
+	u.emitMemberUsage(members)
 }
 
-func (u *UsageMetricsReporter) memberUsage() (int, map[string]int) {
+func (u *UsageMetricsReporter) memberUsage() []serf.Member {
 	if u.getMembersFunc == nil {
-		return 0, nil
+		return nil
 	}
 
 	mems := u.getMembersFunc()
 	if len(mems) <= 0 {
 		u.logger.Warn("cluster reported zero members")
-		return 0, nil
 	}
 
-	servers := 0
-	clients := make(map[string]int)
-
+	out := make([]serf.Member, 0, len(mems))
 	for _, m := range mems {
 		if m.Status != serf.StatusAlive {
 			continue
 		}
-
-		switch m.Tags["role"] {
-		case "node":
-			clients[m.Tags["segment"]]++
-		case "consul":
-			servers++
-		}
+		out = append(out, m)
 	}
 
-	return servers, clients
-}
-
-func (u *UsageMetricsReporter) emitMemberUsage(servers int, clients map[string]int) {
-	totalClients := 0
-
-	for seg, c := range clients {
-		segmentLabel := metrics.Label{Name: "segment", Value: seg}
-		labels := append([]metrics.Label{segmentLabel}, u.metricLabels...)
-
-		metrics.SetGaugeWithLabels(
-			[]string{"consul", "members", "clients"},
-			float32(c),
-			labels,
-		)
-
-		totalClients += c
-	}
-
-	metrics.SetGaugeWithLabels(
-		[]string{"consul", "members", "clients"},
-		float32(totalClients),
-		u.metricLabels,
-	)
-
-	metrics.SetGaugeWithLabels(
-		[]string{"consul", "members", "servers"},
-		float32(servers),
-		u.metricLabels,
-	)
+	return out
 }

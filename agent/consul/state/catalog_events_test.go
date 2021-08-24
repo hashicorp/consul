@@ -1605,9 +1605,9 @@ func (tc eventsTestCase) run(t *testing.T) {
 	assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 }
 
-func runCase(t *testing.T, name string, fn func(t *testing.T)) {
+func runCase(t *testing.T, name string, fn func(t *testing.T)) bool {
 	t.Helper()
-	t.Run(name, func(t *testing.T) {
+	return t.Run(name, func(t *testing.T) {
 		t.Helper()
 		t.Log("case:", name)
 		fn(t)
@@ -1680,7 +1680,11 @@ var cmpPartialOrderEvents = cmp.Options{
 			if payload.overrideNamespace != "" {
 				ns = payload.overrideNamespace
 			}
-			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, ns, name)
+			ap := csn.Service.EnterpriseMeta.PartitionOrDefault()
+			if payload.overridePartition != "" {
+				ap = payload.overridePartition
+			}
+			return fmt.Sprintf("%s/%s/%s/%s/%s", e.Topic, ap, csn.Node.Node, ns, name)
 		}
 		return key(i) < key(j)
 	}),
@@ -2172,6 +2176,7 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 					Node:       node,
 					Address:    addr,
 					Datacenter: "dc1",
+					Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 					RaftIndex: structs.RaftIndex{
 						CreateIndex: index,
 						ModifyIndex: index,
@@ -2238,7 +2243,8 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 			Op: pbsubscribe.CatalogOp_Deregister,
 			Value: &structs.CheckServiceNode{
 				Node: &structs.Node{
-					Node: fmt.Sprintf("node%d", nodeNum),
+					Node:      fmt.Sprintf("node%d", nodeNum),
+					Partition: structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 				},
 				Service: &structs.NodeService{
 					ID:      svc,
@@ -2270,6 +2276,7 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 		payload   EventPayloadCheckServiceNode
 		key       string
 		namespace string
+		partition string // TODO(partitions): create test cases for this being set
 		expected  bool
 	}
 
@@ -2278,7 +2285,7 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 			t.Skip("cant test namespace matching without namespace support")
 		}
 
-		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace))
+		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace, tc.partition))
 	}
 
 	var testCases = []testCase{

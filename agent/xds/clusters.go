@@ -535,18 +535,34 @@ func (s *ResourceGenerator) makeUpstreamClusterForPreparedQuery(upstream structs
 		}
 	}
 
-	spiffeID := connect.SpiffeIDService{
-		Host:       cfgSnap.Roots.TrustDomain,
-		Namespace:  upstream.DestinationNamespace,
-		Datacenter: dc,
-		Service:    upstream.DestinationName,
+	endpoints := cfgSnap.ConnectProxy.PreparedQueryEndpoints[upstream.Identifier()]
+	var (
+		spiffeIDs = make([]connect.SpiffeIDService, 0)
+		seen      = make(map[string]struct{})
+	)
+	for _, e := range endpoints {
+		id := fmt.Sprintf("%s/%s", e.Node.Datacenter, e.Service.CompoundServiceName())
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
 
-		// TODO(partitions) Store partition
+		name := e.Service.Proxy.DestinationServiceName
+		if e.Service.Connect.Native {
+			name = e.Service.Service
+		}
+		spiffeIDs = append(spiffeIDs, connect.SpiffeIDService{
+			Host:       cfgSnap.Roots.TrustDomain,
+			Namespace:  e.Service.NamespaceOrDefault(),
+			Partition:  e.Service.PartitionOrDefault(),
+			Datacenter: e.Node.Datacenter,
+			Service:    name,
+		})
 	}
 
 	// Enable TLS upstream with the configured client certificate.
 	commonTLSContext := makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf())
-	err = injectSANMatcher(commonTLSContext, spiffeID)
+	err = injectSANMatcher(commonTLSContext, spiffeIDs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
 	}

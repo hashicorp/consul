@@ -10,16 +10,18 @@ import (
 
 const (
 	serviceNamesUsageTable = "service-names"
+
+	tableUsage = "usage"
 )
 
 // usageTableSchema returns a new table schema used for tracking various indexes
 // for the Raft log.
 func usageTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "usage",
+		Name: tableUsage,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -46,6 +48,12 @@ type ServiceUsage struct {
 	EnterpriseServiceUsage
 }
 
+// NodeUsage contains all of the usage data related to nodes
+type NodeUsage struct {
+	Nodes int
+	EnterpriseNodeUsage
+}
+
 type uniqueServiceState int
 
 const (
@@ -68,8 +76,10 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 		}
 
 		switch change.Table {
-		case "nodes":
+		case tableNodes:
 			usageDeltas[change.Table] += delta
+			addEnterpriseNodeUsage(usageDeltas, change)
+
 		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
 			usageDeltas[change.Table] += delta
@@ -98,7 +108,8 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 	// This will happen when restoring from a snapshot, just take the max index
 	// of the tables we are tracking.
 	if idx == 0 {
-		idx = maxIndexTxn(tx, "nodes", tableServices)
+		// TODO(partitions? namespaces?)
+		idx = maxIndexTxn(tx, tableNodes, tableServices)
 	}
 
 	return writeUsageDeltas(tx, idx, usageDeltas)
@@ -107,7 +118,10 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceNameChanges map[structs.ServiceName]int) (map[structs.ServiceName]uniqueServiceState, error) {
 	serviceStates := make(map[structs.ServiceName]uniqueServiceState, len(serviceNameChanges))
 	for svc, delta := range serviceNameChanges {
-		q := Query{Value: svc.Name, EnterpriseMeta: svc.EnterpriseMeta}
+		q := Query{
+			Value:          svc.Name,
+			EnterpriseMeta: svc.EnterpriseMeta,
+		}
 		serviceIter, err := tx.Get(tableServices, indexService, q)
 		if err != nil {
 			return nil, err
@@ -162,7 +176,7 @@ func serviceNameChanged(change memdb.Change) bool {
 // passed in will be recorded on the entry as well.
 func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error {
 	for id, delta := range usageDeltas {
-		u, err := tx.First("usage", "id", id)
+		u, err := tx.First(tableUsage, indexID, id)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve existing usage entry: %s", err)
 		}
@@ -175,7 +189,7 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 				// large numbers.
 				delta = 0
 			}
-			err := tx.Insert("usage", &UsageEntry{
+			err := tx.Insert(tableUsage, &UsageEntry{
 				ID:    id,
 				Count: delta,
 				Index: idx,
@@ -192,7 +206,7 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 				// large numbers.
 				updated = 0
 			}
-			err := tx.Insert("usage", &UsageEntry{
+			err := tx.Insert(tableUsage, &UsageEntry{
 				ID:    id,
 				Count: updated,
 				Index: idx,
@@ -205,17 +219,26 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 	return nil
 }
 
-// NodeCount returns the latest seen Raft index, a count of the number of nodes
-// registered, and any errors.
-func (s *Store) NodeCount() (uint64, int, error) {
+// NodeUsage returns the latest seen Raft index, a compiled set of node usage
+// data, and any errors.
+func (s *Store) NodeUsage() (uint64, NodeUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	nodeUsage, err := firstUsageEntry(tx, "nodes")
+	nodes, err := firstUsageEntry(tx, tableNodes)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed nodes lookup: %s", err)
+		return 0, NodeUsage{}, fmt.Errorf("failed nodes lookup: %s", err)
 	}
-	return nodeUsage.Index, nodeUsage.Count, nil
+
+	usage := NodeUsage{
+		Nodes: nodes.Count,
+	}
+	results, err := compileEnterpriseNodeUsage(tx, usage)
+	if err != nil {
+		return 0, NodeUsage{}, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
+	return nodes.Index, results, nil
 }
 
 // ServiceUsage returns the latest seen Raft index, a compiled set of service
@@ -238,7 +261,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 		ServiceInstances: serviceInstances.Count,
 		Services:         services.Count,
 	}
-	results, err := compileEnterpriseUsage(tx, usage)
+	results, err := compileEnterpriseServiceUsage(tx, usage)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
@@ -247,7 +270,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 }
 
 func firstUsageEntry(tx ReadTxn, id string) (*UsageEntry, error) {
-	usage, err := tx.First("usage", "id", id)
+	usage, err := tx.First(tableUsage, indexID, id)
 	if err != nil {
 		return nil, err
 	}

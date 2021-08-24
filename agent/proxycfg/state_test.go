@@ -969,6 +969,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, snap.IngressGateway.Upstreams[key], structs.Upstreams{
 							{
 								DestinationNamespace: "default",
+								DestinationPartition: "default",
 								DestinationName:      "api",
 								LocalBindPort:        9999,
 								Config: map[string]interface{}{
