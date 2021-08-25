@@ -1,4 +1,4 @@
-import { module, test, skip } from 'qunit';
+import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import {
@@ -39,7 +39,7 @@ module('Integration | Serializer | auth-method', function(hooks) {
         assert.deepEqual(actual, expected);
       });
     });
-    skip(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
       const serializer = this.owner.lookup('serializer:auth-method');
       const request = {
         url: `/v1/acl/auth-method/${id}?dc=${dc}${
@@ -51,7 +51,7 @@ module('Integration | Serializer | auth-method', function(hooks) {
           Datacenter: dc,
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: payload.Namespace || undefinedNspace,
+            [NSPACE.toLowerCase()]: nspace || '',
           },
           Namespace: payload.Namespace || undefinedNspace,
           uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
