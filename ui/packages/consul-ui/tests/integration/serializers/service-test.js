@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
+import { HEADERS_DATACENTER as DC, HEADERS_NAMESPACE as NSPACE } from 'consul-ui/utils/http/consul';
 module('Integration | Serializer | service', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
@@ -23,7 +24,10 @@ module('Integration | Serializer | service', function(hooks) {
         );
         const actual = serializer.respondForQuery(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },

@@ -21,7 +21,10 @@ module('Integration | Serializer | node', function(hooks) {
     return get(request.url).then(function(payload) {
       const actual = serializer.respondForQuery(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [DC]: dc,
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },
@@ -51,7 +54,10 @@ module('Integration | Serializer | node', function(hooks) {
     return get(request.url).then(function(payload) {
       const actual = serializer.respondForQueryRecord(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [DC]: dc,
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },
@@ -80,12 +86,15 @@ module('Integration | Serializer | node', function(hooks) {
         Port: '8500',
         [META]: {
           [DC.toLowerCase()]: dc,
-          [NSPACE.toLowerCase()]: '',
+          [NSPACE.toLowerCase()]: nspace,
         },
       };
       const actual = serializer.respondForQueryLeader(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [DC]: dc,
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },

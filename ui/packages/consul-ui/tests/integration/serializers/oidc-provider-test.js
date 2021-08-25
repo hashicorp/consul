@@ -28,7 +28,10 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
         );
         const actual = serializer.respondForQuery(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },
@@ -58,14 +61,17 @@ module('Integration | Serializer | oidc-provider', function(hooks) {
           Datacenter: dc,
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: nspace || '',
+            [NSPACE.toLowerCase()]: nspace || undefinedNspace,
           },
           Namespace: nspace || undefinedNspace,
           uid: `["${nspace || undefinedNspace}","${dc}","${id}"]`,
         });
         const actual = serializer.respondForQueryRecord(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },
