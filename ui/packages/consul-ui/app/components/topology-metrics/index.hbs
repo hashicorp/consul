@@ -28,7 +28,7 @@
     {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
       {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
       <TopologyMetrics::Stats
-        data-test-downstream-metrics-stats
+        data-test-topology-metrics-downstream-stats
         @nspace={{or item.Namespace 'default'}}
         @dc={{item.Datacenter}}
         @endpoint='downstream-summary-for-service'

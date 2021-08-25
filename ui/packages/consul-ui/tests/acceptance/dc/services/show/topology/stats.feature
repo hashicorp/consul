@@ -70,6 +70,7 @@ Feature: dc / services / show / topology / stats
           Namespace: @namespace
           Datacenter: dc1
           Intention: {}
+          Kind: ingress-gateway
     ---
     When I visit the service page for yaml
     ---
@@ -78,5 +79,5 @@ Feature: dc / services / show / topology / stats
     ---
     And I see topology on the tabs
     And I see the "[data-test-sparkline]" element
-    And I don't see the "[data-test-topology-downstream-metrics-stats]" element
+    And I don't see the "[data-test-topology-metrics-downstream-stats]" element
 
