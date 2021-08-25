@@ -39,17 +39,21 @@ const (
 const (
 	// TODO (freddy) Should we have a TopologySourceMixed when there is a mix of proxy reg and tproxy?
 	//				 Currently we label as proxy-registration if ANY instance has the explicit upstream definition.
-	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions
+	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions.
 	TopologySourceRegistration = "proxy-registration"
 
-	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions
+	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions.
 	TopologySourceSpecificIntention = "specific-intention"
 
-	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions
+	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions.
 	TopologySourceWildcardIntention = "wildcard-intention"
 
-	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy
+	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy.
 	TopologySourceDefaultAllow = "default-allow"
+
+	// TopologySourceRoutingConfig is used to label upstreams that are not backed by a service instance
+	// and are simply used for routing configurations.
+	TopologySourceRoutingConfig = "routing-config"
 )
 
 // MeshGatewayConfig controls how Mesh Gateways are configured and used
