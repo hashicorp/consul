@@ -176,7 +176,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
 
-	addEnterpriseSerfTags(conf.Tags, s.config.agentEnterpriseMeta())
+	addEnterpriseSerfTags(conf.Tags, s.config.AgentEnterpriseMeta())
 
 	if s.config.OverrideInitialSerfTags != nil {
 		s.config.OverrideInitialSerfTags(conf.Tags)

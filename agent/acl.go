@@ -62,6 +62,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+			// TODO(partitions) fix this to include namespace and partition
 			return acl.PermissionDenied("Missing service:write on %s", service.Proxy.DestinationServiceName)
 		}
 	}
@@ -98,7 +99,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 		}
 	} else {
 		if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-			return acl.PermissionDenied("Missing node:write on %s", a.config.NodeName)
+			return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.agentEnterpriseMeta()))
 		}
 	}
 
@@ -110,7 +111,7 @@ func (a *Agent) vetCheckRegisterWithAuthorizer(authz acl.Authorizer, check *stru
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", a.config.NodeName)
+				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.agentEnterpriseMeta()))
 			}
 		}
 	}
@@ -126,11 +127,11 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing service:write on %s", existing.ServiceName)
+				return acl.PermissionDenied("Missing service:write on %s", structs.ServiceIDString(existing.ServiceName, &existing.EnterpriseMeta))
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.PermissionDenied("Missing node:write on %s", a.config.NodeName)
+				return acl.PermissionDenied("Missing node:write on %s", structs.NodeNameString(a.config.NodeName, a.agentEnterpriseMeta()))
 			}
 		}
 	} else {
@@ -184,14 +185,12 @@ func (a *Agent) filterChecksWithAuthorizer(authz acl.Authorizer, checks *map[str
 	var authzContext acl.AuthorizerContext
 	// Filter out checks based on the node or service policy.
 	for id, check := range *checks {
+		check.FillAuthzContext(&authzContext)
 		if len(check.ServiceName) > 0 {
-			check.FillAuthzContext(&authzContext)
 			if authz.ServiceRead(check.ServiceName, &authzContext) == acl.Allow {
 				continue
 			}
 		} else {
-			// TODO(partition): should this be a Default or Node flavored entmeta?
-			check.NodeEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
 			if authz.NodeRead(a.config.NodeName, &authzContext) == acl.Allow {
 				continue
 			}

@@ -151,7 +151,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	}
 
 	var authzContext acl.AuthorizerContext
-	args.DefaultEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
+	args.FillAuthzContext(&authzContext)
 	if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
@@ -174,7 +174,7 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 		return err
 	}
 
-	// TODO(partitions):
+	// TODO(partitions): should we filter any of this out?
 
 	var out []structs.DatacenterMap
 
@@ -248,7 +248,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	}
 
 	var authzContext acl.AuthorizerContext
-	args.WildcardEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
+	args.FillAuthzContext(&authzContext)
 	if authz.NodeRead(args.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}

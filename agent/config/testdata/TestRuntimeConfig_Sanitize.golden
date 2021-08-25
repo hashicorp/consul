@@ -9,6 +9,7 @@
         "ACLTokenTTL": "0s",
         "ACLsEnabled": false,
         "Datacenter": "",
+        "EnterpriseMeta": {},
         "NodeName": ""
     },
     "ACLTokenReplication": false,

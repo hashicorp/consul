@@ -128,6 +128,12 @@ func WildcardEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
 // FillAuthzContext stub
 func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
+func (_ *Node) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func (_ *NodeInfo) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
 func (_ *EnterpriseMeta) Normalize() {}
 
 // FillAuthzContext stub
@@ -148,6 +154,10 @@ func (_ *TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 // OSS Stub
 func (_ *TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func NodeNameString(node string, _ *EnterpriseMeta) string {
+	return node
+}
 
 func ServiceIDString(id string, _ *EnterpriseMeta) string {
 	return id

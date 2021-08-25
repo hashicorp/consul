@@ -1824,6 +1824,14 @@ type NodeInfo struct {
 	Checks          HealthChecks
 }
 
+func (n *NodeInfo) GetEnterpriseMeta() *EnterpriseMeta {
+	return NodeEnterpriseMetaInPartition(n.Partition)
+}
+
+func (n *NodeInfo) PartitionOrDefault() string {
+	return PartitionOrDefault(n.Partition)
+}
+
 // NodeDump is used to dump all the nodes with all their
 // associated data. This is currently used for the UI only,
 // as it is rather expensive to generate.

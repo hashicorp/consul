@@ -250,6 +250,7 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 		config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
 		config.ACLResolverSettings.NodeName = config.NodeName
 		config.ACLResolverSettings.Datacenter = config.Datacenter
+		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
 		srv, err = newServer(t, config)
