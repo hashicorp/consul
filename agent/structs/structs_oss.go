@@ -79,6 +79,10 @@ func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 	return ""
 }
 
+func (m *EnterpriseMeta) InDefaultNamespace() bool {
+	return true
+}
+
 func (m *EnterpriseMeta) PartitionOrDefault() string {
 	return "default"
 }
@@ -89,6 +93,10 @@ func PartitionOrDefault(_ string) string {
 
 func (m *EnterpriseMeta) PartitionOrEmpty() string {
 	return ""
+}
+
+func (m *EnterpriseMeta) InDefaultPartition() bool {
+	return true
 }
 
 // ReplicationEnterpriseMeta stub

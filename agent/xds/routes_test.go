@@ -387,6 +387,17 @@ func TestRoutesFromSnapshot(t *testing.T) {
 
 						gName += ".v2compat"
 
+						// It's easy to miss a new type that encodes a version from just
+						// looking at the golden files so lets make it an error here. If
+						// there are ever false positives we can maybe include an allow list
+						// here as it seems safer to assume something was missed than to
+						// assume we'll notice the golden file being wrong. Note the first
+						// one matches both resourceApiVersion and transportApiVersion. I
+						// left it as a suffix in case there are other field names that
+						// follow that convention now or in the future.
+						require.NotContains(t, gotJSON, `ApiVersion": "V3"`)
+						require.NotContains(t, gotJSON, `type.googleapis.com/envoy.api.v3`)
+
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
@@ -651,6 +662,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 
 type ingressSDSOpts struct {
 	listenerSDS, webSDS, fooSDS, wildcard bool
+	entMetas                              map[string]*structs.EnterpriseMeta
 }
 
 // setupIngressWithTwoHTTPServices can be used with
@@ -662,24 +674,34 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 
 		snap.IngressGateway.TLSConfig.SDS = nil
 
+		webUpstream := structs.Upstream{
+			DestinationName: "web",
+			// We use empty not default here because of the way upstream identifiers
+			// vary between OSS and Enterprise currently causing test conflicts. In
+			// real life `proxycfg` always sets ingress upstream namespaces to
+			// `NamespaceOrDefault` which shouldn't matter because we should be
+			// consistent within a single binary it's just inconvenient if OSS and
+			// enterprise tests generate different output.
+			DestinationNamespace: o.entMetas["web"].NamespaceOrEmpty(),
+			DestinationPartition: o.entMetas["web"].PartitionOrEmpty(),
+			LocalBindPort:        9191,
+			IngressHosts: []string{
+				"www.example.com",
+			},
+		}
+		fooUpstream := structs.Upstream{
+			DestinationName:      "foo",
+			DestinationNamespace: o.entMetas["foo"].NamespaceOrEmpty(),
+			DestinationPartition: o.entMetas["foo"].PartitionOrEmpty(),
+			LocalBindPort:        9191,
+			IngressHosts: []string{
+				"foo.example.com",
+			},
+		}
+
 		// Setup additional HTTP service on same listener with default router
 		snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
-			{Protocol: "http", Port: 9191}: {
-				{
-					DestinationName: "web",
-					LocalBindPort:   9191,
-					IngressHosts: []string{
-						"www.example.com",
-					},
-				},
-				{
-					DestinationName: "foo",
-					LocalBindPort:   9191,
-					IngressHosts: []string{
-						"foo.example.com",
-					},
-				},
-			},
+			{Protocol: "http", Port: 9191}: {webUpstream, fooUpstream},
 		}
 		il := structs.IngressListener{
 			Port: 9191,
@@ -693,6 +715,11 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 					Hosts: []string{"foo.example.com"},
 				},
 			},
+		}
+		for i, svc := range il.Services {
+			if em, ok := o.entMetas[svc.Name]; ok && em != nil {
+				il.Services[i].EnterpriseMeta = *em
+			}
 		}
 
 		// Now set the appropriate SDS configs
@@ -760,9 +787,25 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 				ConnectTimeout: 22 * time.Second,
 			},
 		}
-		webChain := discoverychain.TestCompileConfigEntries(t, "web", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-		fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-		snap.IngressGateway.DiscoveryChain["web"] = webChain
-		snap.IngressGateway.DiscoveryChain["foo"] = fooChain
+		for i, e := range entries {
+			switch v := e.(type) {
+			// Add other Service types here if we ever need them above
+			case *structs.ServiceResolverConfigEntry:
+				if em, ok := o.entMetas[v.Name]; ok && em != nil {
+					v.EnterpriseMeta = *em
+					entries[i] = v
+				}
+			}
+		}
+
+		webChain := discoverychain.TestCompileConfigEntries(t, "web",
+			o.entMetas["web"].NamespaceOrDefault(), "dc1",
+			connect.TestClusterID+".consul", "dc1", nil, entries...)
+		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
+			o.entMetas["foo"].NamespaceOrDefault(), "dc1",
+			connect.TestClusterID+".consul", "dc1", nil, entries...)
+
+		snap.IngressGateway.DiscoveryChain[webUpstream.Identifier()] = webChain
+		snap.IngressGateway.DiscoveryChain[fooUpstream.Identifier()] = fooChain
 	}
 }
