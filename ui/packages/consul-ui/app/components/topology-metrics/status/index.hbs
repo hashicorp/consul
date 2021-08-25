@@ -1,5 +1,5 @@
 {{#if (or @noMetricsReason @error)}}
-  <span class="topology-metrics-status-error">
+  <span data-test-topology-metrics-status class="topology-metrics-status-error">
     {{#if (eq @noMetricsReason 'ingress-gateway')}}
       {{t "components.consul.topology-metrics.status.ingress-gateway"}}
     {{else if (eq @noMetricsReason 'remote-dc')}}
