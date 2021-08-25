@@ -11,9 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/blake2b"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
-	"golang.org/x/crypto/blake2b"
 )
 
 type ACLMode string
@@ -229,6 +230,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
+	// TODO(partitions,acls): this needs to be fed the correct partition
 	policy.EnterpriseMeta = *DefaultEnterpriseMetaInDefaultPartition()
 	policy.SetHash(true)
 	return policy

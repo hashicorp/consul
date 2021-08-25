@@ -73,6 +73,13 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 		cb(config)
 	}
 
+	// Apply config to copied fields because many tests only set the old
+	//values.
+	config.ACLResolverSettings.ACLsEnabled = config.ACLsEnabled
+	config.ACLResolverSettings.NodeName = config.NodeName
+	config.ACLResolverSettings.Datacenter = config.Datacenter
+	config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
+
 	client, err := NewClient(config, newDefaultDeps(t, config))
 	return dir, client, err
 }

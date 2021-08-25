@@ -208,6 +208,7 @@ func (ac *AutoConfig) updateACLsInConfig(opts AutoConfigOptions, resp *pbautocon
 					Datacenter: ac.config.Datacenter,
 				},
 			},
+			// TODO(partitions): support auto-config in different partitions
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		}
 

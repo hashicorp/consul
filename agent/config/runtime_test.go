@@ -5150,6 +5150,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.Datacenter = expected.Datacenter
 		expected.ACLResolverSettings.ACLsEnabled = expected.ACLsEnabled
 		expected.ACLResolverSettings.NodeName = expected.NodeName
+		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
@@ -5189,6 +5190,7 @@ func TestLoad_FullConfig(t *testing.T) {
 	}
 
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
 		AEInterval:                 time.Minute,
@@ -5241,6 +5243,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLsEnabled:      true,
 			Datacenter:       "rzo029wg",
 			NodeName:         "otlLxGaI",
+			EnterpriseMeta:   *nodeEntMeta,
 			ACLDefaultPolicy: "72c2e7a0",
 			ACLDownPolicy:    "03eb2aee",
 			ACLTokenTTL:      3321 * time.Second,

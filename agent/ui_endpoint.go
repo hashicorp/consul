@@ -614,6 +614,8 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// This endpoint requires wildcard read on all services and all nodes.
 	//
 	// In enterprise it requires this _in all namespaces_ too.
+	//
+	// TODO(partitions,acls): need to revisit this
 	var authzContext acl.AuthorizerContext
 	entMeta.WildcardEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
 

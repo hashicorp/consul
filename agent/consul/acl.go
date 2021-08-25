@@ -217,9 +217,10 @@ const aclClientDisabledTTL = 30 * time.Second
 
 // TODO: rename the fields to remove the ACL prefix
 type ACLResolverSettings struct {
-	ACLsEnabled bool
-	Datacenter  string
-	NodeName    string
+	ACLsEnabled    bool
+	Datacenter     string
+	NodeName       string
+	EnterpriseMeta structs.EnterpriseMeta
 
 	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
@@ -301,7 +302,11 @@ type ACLResolver struct {
 	agentMasterAuthz acl.Authorizer
 }
 
-func agentMasterAuthorizer(nodeName string) (acl.Authorizer, error) {
+func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (acl.Authorizer, error) {
+	// TODO(partitions,acls): this function likely needs split so that the generated policy can be partitioned appropriately
+
+	// TODO(partitions,acls): after this all works, write a test for this function when partitioned
+
 	// Build a policy for the agent master token.
 	// The builtin agent master policy allows reading any node information
 	// and allows writes to the agent with the node name of the running agent
@@ -355,7 +360,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
 
-	authz, err := agentMasterAuthorizer(config.Config.NodeName)
+	authz, err := agentMasterAuthorizer(config.Config.NodeName, &config.Config.EnterpriseMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize the agent master authorizer")
 	}
@@ -1443,7 +1448,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 		if f.allowNode(node.Node, &authzContext) && f.allowService(node.ServiceName, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node.Node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node, &node.EnterpriseMeta))
 		sn = append(sn[:i], sn[i+1:]...)
 		i--
 	}
@@ -1457,8 +1462,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 	}
 
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	(*services).Node.FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
 		return
@@ -1482,8 +1486,7 @@ func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
 	}
 
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	(*services).Node.FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
 		return
@@ -1523,7 +1526,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 		if f.allowNode(node.Node.Node, &authzContext) && f.allowService(node.Service.Service, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node.Node.Node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
 	}
@@ -1580,15 +1583,14 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	c := *coords
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(c); i++ {
+		c[i].FillAuthzContext(&authzContext)
 		node := c[i].Node
 		if f.allowNode(node, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, c[i].GetEnterpriseMeta()))
 		c = append(c[:i], c[i+1:]...)
 		i--
 	}
@@ -1622,10 +1624,9 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info := nd[i]
 
 		// Filter nodes
-		// TODO(partitions): put partition into this wildcard?
-		structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+		info.FillAuthzContext(&authzContext)
 		if node := info.Node; !f.allowNode(node, &authzContext) {
-			f.logger.Debug("dropping node from result due to ACLs", "node", node)
+			f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, info.GetEnterpriseMeta()))
 			nd = append(nd[:i], nd[i+1:]...)
 			i--
 			continue
@@ -1691,15 +1692,14 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 	n := *nodes
 
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(n); i++ {
+		n[i].FillAuthzContext(&authzContext)
 		node := n[i].Node
 		if f.allowNode(node, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, n[i].GetEnterpriseMeta()))
 		n = append(n[:i], n[i+1:]...)
 		i--
 	}
