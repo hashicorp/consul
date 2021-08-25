@@ -14,7 +14,7 @@ module('Unit | Utility | create fingerprinter', function() {
       uid: '["namespace","dc","slug"]',
     };
     const fingerprint = createFingerprinter('Datacenter', 'Namespace');
-    const actual = fingerprint('uid', 'ID', 'dc')(obj);
+    const actual = fingerprint('uid', 'ID', 'dc', 'namespace')(obj);
     assert.deepEqual(actual, expected);
   });
   test("fingerprint returns a 'unique' fingerprinted object based on primary, slug and foreign keys, and uses default namespace if none set", function(assert) {
@@ -28,7 +28,7 @@ module('Unit | Utility | create fingerprinter', function() {
       uid: '["default","dc","slug"]',
     };
     const fingerprint = createFingerprinter('Datacenter', 'Namespace');
-    const actual = fingerprint('uid', 'ID', 'dc')(obj);
+    const actual = fingerprint('uid', 'ID', 'dc', 'default')(obj);
     assert.deepEqual(actual, expected);
   });
   test("fingerprint throws an error if it can't find a foreignKey", function(assert) {

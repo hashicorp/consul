@@ -65,10 +65,7 @@ module('Unit | Serializer | application', function(hooks) {
     const expected = {
       Datacenter: 'dc-1',
       Name: 'name',
-      [META]: {
-        [DC.toLowerCase()]: 'dc-1',
-        [NSPACE.toLowerCase()]: '',
-      },
+      [META]: {},
       'primary-key-name': 'name',
     };
     const respond = function(cb) {
