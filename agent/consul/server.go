@@ -171,6 +171,9 @@ type Server struct {
 	// Connection pool to other consul servers
 	connPool *pool.ConnPool
 
+	// Connection pool to other consul servers using gRPC
+	grpcConnPool GRPCClientConner
+
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
 	eventChLAN chan serf.Event
@@ -360,6 +363,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		config:                  config,
 		tokens:                  flat.Tokens,
 		connPool:                flat.ConnPool,
+		grpcConnPool:            flat.GRPCConnPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  serverLogger,
@@ -389,6 +393,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			s.config.PrimaryDatacenter,
 		)
 		s.connPool.GatewayResolver = s.gatewayLocator.PickGateway
+		s.grpcConnPool.SetGatewayResolver(s.gatewayLocator.PickGateway)
 	}
 
 	// Initialize enterprise specific server functionality
