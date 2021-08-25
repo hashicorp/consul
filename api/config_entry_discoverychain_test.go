@@ -193,6 +193,14 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Service:       "test-failover",
 						ServiceSubset: "v1",
 						Namespace:     defaultNamespace,
+						RequestHeaders: &HTTPHeaderModifiers{
+							Set: map[string]string{
+								"x-foo": "bar",
+							},
+						},
+						ResponseHeaders: &HTTPHeaderModifiers{
+							Remove: []string{"x-foo"},
+						},
 					},
 					{
 						Weight:    10,
@@ -235,6 +243,14 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							NumRetries:            5,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{500, 503, 401},
+							RequestHeaders: &HTTPHeaderModifiers{
+								Set: map[string]string{
+									"x-foo": "bar",
+								},
+							},
+							ResponseHeaders: &HTTPHeaderModifiers{
+								Remove: []string{"x-foo"},
+							},
 						},
 					},
 				},

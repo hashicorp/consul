@@ -78,6 +78,14 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 				{
 					Name:  "asdf",
 					Hosts: []string{"test.example.com"},
+					RequestHeaders: &HTTPHeaderModifiers{
+						Set: map[string]string{
+							"x-foo": "bar",
+						},
+					},
+					ResponseHeaders: &HTTPHeaderModifiers{
+						Remove: []string{"x-foo"},
+					},
 				},
 			},
 		},

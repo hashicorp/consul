@@ -61,14 +61,16 @@ type ServiceRouteHTTPMatchQueryParam struct {
 }
 
 type ServiceRouteDestination struct {
-	Service               string        `json:",omitempty"`
-	ServiceSubset         string        `json:",omitempty" alias:"service_subset"`
-	Namespace             string        `json:",omitempty"`
-	PrefixRewrite         string        `json:",omitempty" alias:"prefix_rewrite"`
-	RequestTimeout        time.Duration `json:",omitempty" alias:"request_timeout"`
-	NumRetries            uint32        `json:",omitempty" alias:"num_retries"`
-	RetryOnConnectFailure bool          `json:",omitempty" alias:"retry_on_connect_failure"`
-	RetryOnStatusCodes    []uint32      `json:",omitempty" alias:"retry_on_status_codes"`
+	Service               string               `json:",omitempty"`
+	ServiceSubset         string               `json:",omitempty" alias:"service_subset"`
+	Namespace             string               `json:",omitempty"`
+	PrefixRewrite         string               `json:",omitempty" alias:"prefix_rewrite"`
+	RequestTimeout        time.Duration        `json:",omitempty" alias:"request_timeout"`
+	NumRetries            uint32               `json:",omitempty" alias:"num_retries"`
+	RetryOnConnectFailure bool                 `json:",omitempty" alias:"retry_on_connect_failure"`
+	RetryOnStatusCodes    []uint32             `json:",omitempty" alias:"retry_on_status_codes"`
+	RequestHeaders        *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders       *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
@@ -127,10 +129,12 @@ func (e *ServiceSplitterConfigEntry) GetCreateIndex() uint64     { return e.Crea
 func (e *ServiceSplitterConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceSplit struct {
-	Weight        float32
-	Service       string `json:",omitempty"`
-	ServiceSubset string `json:",omitempty" alias:"service_subset"`
-	Namespace     string `json:",omitempty"`
+	Weight          float32
+	Service         string               `json:",omitempty"`
+	ServiceSubset   string               `json:",omitempty" alias:"service_subset"`
+	Namespace       string               `json:",omitempty"`
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
 
 type ServiceResolverConfigEntry struct {
@@ -286,4 +290,22 @@ type CookieConfig struct {
 
 	// The path to set for the cookie
 	Path string `json:",omitempty"`
+}
+
+// HTTPHeaderModifiers is a set of rules for HTTP header modification that
+// should be performed by proxies as the request passes through them. It can
+// operate on either request or response headers depending on the context in
+// which it is used.
+type HTTPHeaderModifiers struct {
+	// Add is a set of name -> value pairs that should be appended to the request
+	// or response (i.e. allowing duplicates if the same header already exists).
+	Add map[string]string `json:",omitempty"`
+
+	// Set is a set of name -> value pairs that should be added to the request or
+	// response, overwriting any existing header values of the same name.
+	Set map[string]string `json:",omitempty"`
+
+	// Remove is the set of header names that should be stripped from the request
+	// or response.
+	Remove []string `json:",omitempty"`
 }
