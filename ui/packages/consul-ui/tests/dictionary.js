@@ -55,6 +55,7 @@ export default utils => (annotations, nspace, dict = new Yadda.Dictionary()) => 
         val = val.replace(/&ns=@!namespace/g, '');
         val = val.replace(/&ns=\*/g, '');
         val = val.replace(/- \/v1\/namespaces/g, '');
+        val = val.replace(/Namespace: @!namespace/g, '');
       }
       if (typeof nspace === 'undefined' || nspace === '') {
         val = val.replace(/Namespace: @namespace/g, '').replace(/&ns=@namespace/g, '');
