@@ -25,6 +25,7 @@ config_entries {
                 }
                 set {
                   x-existing-2 = "replaced-req"
+                  x-client-ip = "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%"
                 }
                 remove = ["x-bad-req"]
               }

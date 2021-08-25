@@ -63,6 +63,9 @@ load helpers
   # Ingress should have replaced the second existing header
   echo "$output" | grep -E "^X-Existing-2: replaced-req"
 
+  # Ingress should have set the client ip from dynamic Envoy variable
+  echo "$output" | grep -E "^X-Client-Ip: 127.0.0.1"
+
   # Ingress should have removed the bad request header
   if echo "$output" | grep -E "^X-Bad-Req: true"; then
     echo "X-Bad-Req request header should have been stripped but was still present"
