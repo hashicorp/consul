@@ -26,7 +26,7 @@ Feature: dc / services / show / topology / routing-config
     ---
     And I see topology on the tabs
   Scenario: Given the Source is routing config, show Source Type
-    Then I see the "[data-test-topology-metrics-source-type]" element
+    Then I see the text "Routing configuration" in "[data-test-topology-metrics-source-type]"
   Scenario: Given the Source is routing config, redirect to Routing Config page
     When I click "[data-test-topology-metrics-card]"
     Then the url should be /dc1/routing-config/db

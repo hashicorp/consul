@@ -1,12 +1,12 @@
 {{#if (eq @item.Name '* (All Services)')}}
-<a class="topology-metrics-card" href={{href-to 'dc.services.index'}}>
+<a data-test-topology-metrics-card class="topology-metrics-card" href={{href-to 'dc.services.index'}}>
   <p class="empty">
     {{@item.Name}}
   </p>
 </a>
 {{else}}
-<a class="topology-metrics-card"
-  data-test-topology-metrics-card
+<a data-test-topology-metrics-card
+  class="topology-metrics-card"
   href={{if
    (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
     (href-to this.hrefPath @item.Datacenter @item.Name params=(hash nspace=@item.Namespace))
