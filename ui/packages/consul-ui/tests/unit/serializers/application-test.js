@@ -1,11 +1,7 @@
 import { module } from 'qunit';
 import test from 'ember-sinon-qunit/test-support/test';
 import { setupTest } from 'ember-qunit';
-import {
-  HEADERS_SYMBOL as META,
-  HEADERS_DATACENTER as DC,
-  HEADERS_NAMESPACE as NSPACE,
-} from 'consul-ui/utils/http/consul';
+import { HEADERS_SYMBOL as META } from 'consul-ui/utils/http/consul';
 
 module('Unit | Serializer | application', function(hooks) {
   setupTest(hooks);
