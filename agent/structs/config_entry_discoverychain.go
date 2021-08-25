@@ -1498,10 +1498,6 @@ func (m *HTTPHeaderModifiers) IsZero() bool {
 }
 
 func (m *HTTPHeaderModifiers) Validate(protocol string) error {
-	if m == nil {
-		// Empty is always valid
-		return nil
-	}
 	if m.IsZero() {
 		return nil
 	}
