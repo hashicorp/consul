@@ -19,7 +19,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
       });
     },
     function performTest(service) {
-      return service.findAllByDatacenter({ dc, ns: nspace });
+      return service.findAllByDatacenter({ dc });
     },
     function performAssertion(actual, expected) {
       assert.deepEqual(
