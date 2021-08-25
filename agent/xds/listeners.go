@@ -570,7 +570,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 		if sdsCfg != nil {
 			// Set up listener TLS from SDS
 			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromSDS(cfgSnap, *sdsCfg),
+				CommonTlsContext:         makeCommonTLSContextFromSDS(*sdsCfg),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
 		} else if cfgSnap.IngressGateway.TLSConfig.Enabled {
@@ -730,7 +730,7 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			}
 
 			tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromSDS(cfgSnap, *svc.TLS.SDS),
+				CommonTlsContext:         makeCommonTLSContextFromSDS(*svc.TLS.SDS),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
 
@@ -1970,7 +1970,7 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	}
 }
 
-func makeCommonTLSContextFromSDS(cfgSnap *proxycfg.ConfigSnapshot, sdsCfg structs.GatewayTLSSDSConfig) *envoy_tls_v3.CommonTlsContext {
+func makeCommonTLSContextFromSDS(sdsCfg structs.GatewayTLSSDSConfig) *envoy_tls_v3.CommonTlsContext {
 	return &envoy_tls_v3.CommonTlsContext{
 		TlsParams: &envoy_tls_v3.TlsParameters{},
 		TlsCertificateSdsSecretConfigs: []*envoy_tls_v3.SdsSecretConfig{
