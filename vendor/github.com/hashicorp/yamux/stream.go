@@ -49,6 +49,13 @@ type Stream struct {
 
 	readDeadline  atomic.Value // time.Time
 	writeDeadline atomic.Value // time.Time
+
+	// establishCh is notified if the stream is established or being closed.
+	establishCh chan struct{}
+
+	// closeTimer is set with stateLock held to honor the StreamCloseTimeout
+	// setting on Session.
+	closeTimer *time.Timer
 }
 
 // newStream is used to construct a new stream within
@@ -66,6 +73,7 @@ func newStream(session *Session, id uint32, state streamState) *Stream {
 		sendWindow:   initialStreamWindow,
 		recvNotifyCh: make(chan struct{}, 1),
 		sendNotifyCh: make(chan struct{}, 1),
+		establishCh:  make(chan struct{}, 1),
 	}
 	s.readDeadline.Store(time.Time{})
 	s.writeDeadline.Store(time.Time{})
@@ -312,6 +320,27 @@ func (s *Stream) Close() error {
 	s.stateLock.Unlock()
 	return nil
 SEND_CLOSE:
+	// This shouldn't happen (the more realistic scenario to cancel the
+	// timer is via processFlags) but just in case this ever happens, we
+	// cancel the timer to prevent dangling timers.
+	if s.closeTimer != nil {
+		s.closeTimer.Stop()
+		s.closeTimer = nil
+	}
+
+	// If we have a StreamCloseTimeout set we start the timeout timer.
+	// We do this only if we're not already closing the stream since that
+	// means this was a graceful close.
+	//
+	// This prevents memory leaks if one side (this side) closes and the
+	// remote side poorly behaves and never responds with a FIN to complete
+	// the close. After the specified timeout, we clean our resources up no
+	// matter what.
+	if !closeStream && s.session.config.StreamCloseTimeout > 0 {
+		s.closeTimer = time.AfterFunc(
+			s.session.config.StreamCloseTimeout, s.closeTimeout)
+	}
+
 	s.stateLock.Unlock()
 	s.sendClose()
 	s.notifyWaiting()
@@ -319,6 +348,22 @@ SEND_CLOSE:
 		s.session.closeStream(s.id)
 	}
 	return nil
+}
+
+// closeTimeout is called after StreamCloseTimeout during a close to
+// close this stream.
+func (s *Stream) closeTimeout() {
+	// Close our side forcibly
+	s.forceClose()
+
+	// Free the stream from the session map
+	s.session.closeStream(s.id)
+
+	// Send a RST so the remote side closes too.
+	s.sendLock.Lock()
+	defer s.sendLock.Unlock()
+	s.sendHdr.encode(typeWindowUpdate, flagRST, s.id, 0)
+	s.session.sendNoWait(s.sendHdr)
 }
 
 // forceClose is used for when the session is exiting
@@ -332,20 +377,27 @@ func (s *Stream) forceClose() {
 // processFlags is used to update the state of the stream
 // based on set flags, if any. Lock must be held
 func (s *Stream) processFlags(flags uint16) error {
+	s.stateLock.Lock()
+	defer s.stateLock.Unlock()
+
 	// Close the stream without holding the state lock
 	closeStream := false
 	defer func() {
 		if closeStream {
+			if s.closeTimer != nil {
+				// Stop our close timeout timer since we gracefully closed
+				s.closeTimer.Stop()
+			}
+
 			s.session.closeStream(s.id)
 		}
 	}()
 
-	s.stateLock.Lock()
-	defer s.stateLock.Unlock()
 	if flags&flagACK == flagACK {
 		if s.state == streamSYNSent {
 			s.state = streamEstablished
 		}
+		asyncNotify(s.establishCh)
 		s.session.establishStream(s.id)
 	}
 	if flags&flagFIN == flagFIN {
@@ -378,6 +430,7 @@ func (s *Stream) processFlags(flags uint16) error {
 func (s *Stream) notifyWaiting() {
 	asyncNotify(s.recvNotifyCh)
 	asyncNotify(s.sendNotifyCh)
+	asyncNotify(s.establishCh)
 }
 
 // incrSendWindow updates the size of our send window
@@ -446,15 +499,17 @@ func (s *Stream) SetDeadline(t time.Time) error {
 	return nil
 }
 
-// SetReadDeadline sets the deadline for future Read calls.
+// SetReadDeadline sets the deadline for blocked and future Read calls.
 func (s *Stream) SetReadDeadline(t time.Time) error {
 	s.readDeadline.Store(t)
+	asyncNotify(s.recvNotifyCh)
 	return nil
 }
 
-// SetWriteDeadline sets the deadline for future Write calls
+// SetWriteDeadline sets the deadline for blocked and future Write calls
 func (s *Stream) SetWriteDeadline(t time.Time) error {
 	s.writeDeadline.Store(t)
+	asyncNotify(s.sendNotifyCh)
 	return nil
 }
 
