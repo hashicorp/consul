@@ -13,7 +13,12 @@ export default class RoutingConfigRoute extends Route {
       dc: dc,
       nspace: nspace,
       slug: name,
-      chain: await this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+      chain: await this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${name}`),
     };
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
+    controller.setProperties(model);
   }
 }
