@@ -1868,7 +1868,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						// should not be used in DC-local calls.
 						require.Equal(t, snap.ConnectProxy.PassthroughUpstreams, map[string]ServicePassthroughAddrs{
 							db.String(): {
-								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, snap.Datacenter, snap.Roots.TrustDomain),
+								SNI: connect.ServiceSNI("db", "", structs.IntentionDefaultNamespace, "", snap.Datacenter, snap.Roots.TrustDomain),
 								SpiffeID: connect.SpiffeIDService{
 									Host:       snap.Roots.TrustDomain,
 									Namespace:  db.NamespaceOrDefault(),

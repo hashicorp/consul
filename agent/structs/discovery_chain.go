@@ -211,6 +211,7 @@ type DiscoveryTarget struct {
 	Service       string `json:",omitempty"`
 	ServiceSubset string `json:",omitempty"`
 	Namespace     string `json:",omitempty"`
+	Partition     string `json:",omitempty"`
 	Datacenter    string `json:",omitempty"`
 
 	MeshGateway MeshGatewayConfig     `json:",omitempty"`

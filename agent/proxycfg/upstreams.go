@@ -87,12 +87,7 @@ func (s *handlerUpstreams) handleUpdateUpstreams(ctx context.Context, u cache.Up
 					svc.Name = dst
 				}
 
-				sni := connect.ServiceSNI(
-					svc.Name,
-					"",
-					svc.NamespaceOrDefault(),
-					snap.Datacenter,
-					snap.Roots.TrustDomain)
+				sni := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), snap.Datacenter, snap.Roots.TrustDomain)
 
 				spiffeID := connect.SpiffeIDService{
 					Host:       snap.Roots.TrustDomain,

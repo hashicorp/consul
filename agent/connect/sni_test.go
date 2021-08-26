@@ -11,8 +11,10 @@ const (
 	testTrustDomain1 = "5fcd4b81-a2ca-405a-ac62-0fac602c1949.consul"
 	testTrustDomain2 = "d2e1a32e-5733-47f2-a9dd-6cf271aab5b7.consul"
 
-	testTrustDomainSuffix1 = "internal.5fcd4b81-a2ca-405a-ac62-0fac602c1949.consul"
-	testTrustDomainSuffix2 = "internal.d2e1a32e-5733-47f2-a9dd-6cf271aab5b7.consul"
+	testTrustDomainSuffix1         = internal + ".5fcd4b81-a2ca-405a-ac62-0fac602c1949.consul"
+	testTrustDomainSuffix1WithPart = internalVersion + ".5fcd4b81-a2ca-405a-ac62-0fac602c1949.consul"
+	testTrustDomainSuffix2         = internal + ".d2e1a32e-5733-47f2-a9dd-6cf271aab5b7.consul"
+	testTrustDomainSuffix2WithPart = internalVersion + ".d2e1a32e-5733-47f2-a9dd-6cf271aab5b7.consul"
 )
 
 func TestUpstreamSNI(t *testing.T) {
@@ -101,19 +103,35 @@ func TestDatacenterSNI(t *testing.T) {
 func TestServiceSNI(t *testing.T) {
 	// empty namespace, empty subset
 	require.Equal(t, "api.default.foo."+testTrustDomainSuffix1,
-		ServiceSNI("api", "", "", "foo", testTrustDomain1))
+		ServiceSNI("api", "", "", "", "foo", testTrustDomain1))
 
 	// set namespace, empty subset
 	require.Equal(t, "api.neighbor.foo."+testTrustDomainSuffix2,
-		ServiceSNI("api", "", "neighbor", "foo", testTrustDomain2))
+		ServiceSNI("api", "", "neighbor", "", "foo", testTrustDomain2))
 
 	// empty namespace, set subset
 	require.Equal(t, "v2.api.default.foo."+testTrustDomainSuffix1,
-		ServiceSNI("api", "v2", "", "foo", testTrustDomain1))
+		ServiceSNI("api", "v2", "", "", "foo", testTrustDomain1))
 
 	// set namespace, set subset
 	require.Equal(t, "canary.api.neighbor.foo."+testTrustDomainSuffix2,
-		ServiceSNI("api", "canary", "neighbor", "foo", testTrustDomain2))
+		ServiceSNI("api", "canary", "neighbor", "", "foo", testTrustDomain2))
+
+	// empty namespace, empty subset, set partition
+	require.Equal(t, "api.default.part1.foo."+testTrustDomainSuffix1WithPart,
+		ServiceSNI("api", "", "", "part1", "foo", testTrustDomain1))
+
+	// set namespace, empty subset, set partition
+	require.Equal(t, "api.neighbor.part1.foo."+testTrustDomainSuffix2WithPart,
+		ServiceSNI("api", "", "neighbor", "part1", "foo", testTrustDomain2))
+
+	// empty namespace, set subset, set partition
+	require.Equal(t, "v2.api.default.part1.foo."+testTrustDomainSuffix1WithPart,
+		ServiceSNI("api", "v2", "", "part1", "foo", testTrustDomain1))
+
+	// set namespace, set subset, set partition
+	require.Equal(t, "canary.api.neighbor.part1.foo."+testTrustDomainSuffix2WithPart,
+		ServiceSNI("api", "canary", "neighbor", "part1", "foo", testTrustDomain2))
 }
 
 func TestQuerySNI(t *testing.T) {

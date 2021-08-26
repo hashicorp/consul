@@ -77,7 +77,7 @@ func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxyc
 
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
@@ -109,7 +109,7 @@ func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxyc
 
 		// If there is a service-resolver for this service then also setup routes for each subset
 		for name := range resolver.Subsets {
-			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 			if err != nil {
 				s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
