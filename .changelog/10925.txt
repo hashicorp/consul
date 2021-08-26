@@ -1,0 +1,3 @@
+```release-note:security
+rpc: authorize raft requests (CVE-2021-37219)
+```
