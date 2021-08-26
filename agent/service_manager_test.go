@@ -544,6 +544,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 
 	// Now register a sidecar proxy via the API.
 	svcID := "web-sidecar-proxy"
+	defaultMeta := structs.DefaultEnterpriseMeta()
 
 	expectState := &structs.NodeService{
 		Kind:            structs.ServiceKindConnectProxy,
@@ -562,9 +563,10 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationType: "service",
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationType:      "service",
+					DestinationName:      "redis",
+					DestinationNamespace: defaultMeta.NamespaceOrEmpty(),
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -575,7 +577,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		EnterpriseMeta: *defaultMeta,
 	}
 
 	// Now wait until we've re-registered using central config updated data.
