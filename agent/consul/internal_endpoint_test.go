@@ -1939,13 +1939,15 @@ func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
 			// but will be present in UpstreamSources as a k-v pair.
 			require.Empty(r, out.ServiceTopology.Upstreams)
 
+			sn := structs.NewServiceName("routing-config", structs.DefaultEnterpriseMetaInDefaultPartition()).String()
+
 			expectUp := map[string]structs.IntentionDecisionSummary{
-				"routing-config": {DefaultAllow: true, Allowed: true},
+				sn: {DefaultAllow: true, Allowed: true},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
 
 			expectUpstreamSources := map[string]string{
-				"routing-config": structs.TopologySourceRoutingConfig,
+				sn: structs.TopologySourceRoutingConfig,
 			}
 			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)
 
