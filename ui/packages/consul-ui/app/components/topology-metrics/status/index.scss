@@ -1,5 +1,5 @@
-.topology-metrics-error,
-.topology-metrics-loader {
+.topology-metrics-status-error,
+.topology-metrics-status-loader {
   font-weight: normal;
   font-size: 0.875rem;
   color: $gray-500;
@@ -13,6 +13,6 @@
   }
 }
 
-span.topology-metrics-loader::after {
+span.topology-metrics-status-loader::after {
   @extend %with-loading-icon, %as-pseudo;
 }
