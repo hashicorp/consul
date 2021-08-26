@@ -274,7 +274,9 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	c.flattenAdjacentSplitterNodes()
+	if err := c.flattenAdjacentSplitterNodes(); err != nil {
+		return nil, err
+	}
 
 	if err := c.removeUnusedNodes(); err != nil {
 		return nil, err
@@ -394,7 +396,7 @@ func (c *compiler) detectCircularReferences() error {
 	return nil
 }
 
-func (c *compiler) flattenAdjacentSplitterNodes() {
+func (c *compiler) flattenAdjacentSplitterNodes() error {
 	for {
 		anyChanged := false
 		for _, node := range c.nodes {
@@ -416,11 +418,14 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 				for _, innerSplit := range nextNode.Splits {
 					effectiveWeight := split.Weight * innerSplit.Weight / 100
 
+					// Copy the definition from the inner node but merge in the parent
+					// to preserve any config it needs to pass through.
+					newDef, err := innerSplit.Definition.MergeParent(split.Definition)
+					if err != nil {
+						return err
+					}
 					newDiscoverySplit := &structs.DiscoverySplit{
-						// Copy the definition from the inner node so any extra config (e.g.
-						// header manipulation) will be applied to requests taking this
-						// path.
-						Definition: innerSplit.Definition,
+						Definition: newDef,
 						Weight:     structs.NormalizeServiceSplitWeight(effectiveWeight),
 						NextNode:   innerSplit.NextNode,
 					}
@@ -436,7 +441,7 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 		}
 
 		if !anyChanged {
-			return
+			return nil
 		}
 	}
 }
