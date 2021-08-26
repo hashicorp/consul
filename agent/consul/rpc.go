@@ -194,8 +194,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleConsulConn(conn)
 
 	case pool.RPCRaft:
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-		s.raftLayer.Handoff(conn)
+		s.handleRaftRPC(conn)
 
 	case pool.RPCTLS:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
@@ -283,8 +282,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleConsulConn(tlsConn)
 
 	case pool.ALPN_RPCRaft:
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-		s.raftLayer.Handoff(tlsConn)
+		s.handleRaftRPC(tlsConn)
 
 	case pool.ALPN_RPCMultiplexV2:
 		s.handleMultiplexV2(tlsConn)
@@ -453,6 +451,20 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 			)
 		}
 	}()
+}
+
+func (s *Server) handleRaftRPC(conn net.Conn) {
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
+		if err != nil {
+			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft RPC")
+			conn.Close()
+			return
+		}
+	}
+
+	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
+	s.raftLayer.Handoff(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
