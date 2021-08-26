@@ -37,6 +37,9 @@
       </dd>
     </dl>
   {{/if}}
+
+{{#if (not-eq @item.Source 'routing-config')}}
+
 {{#if (eq @item.Datacenter @dc)}}
   {{#let (service/health-percentage @item) as |percentage|}}
   {{#if (eq percentage '')}}
@@ -64,6 +67,8 @@
         Health
       </dd>
     </dl>
+{{/if}}
+
 {{/if}}
   </div>
   {{yield}}
