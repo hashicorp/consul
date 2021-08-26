@@ -6,7 +6,7 @@
     onclick={{optional @onclick}} id={{concat 'resolver:' @item.ID}}>
     <a name="">
       <h3>{{@item.Name}}</h3>
-{{#if item.Failover}}
+{{#if @item.Failover}}
       <dl class="failover">
         <dt
           {{tooltip (concat @item.Failover.Type ' failover')}}
