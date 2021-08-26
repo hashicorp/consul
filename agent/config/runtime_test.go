@@ -5009,6 +5009,7 @@ func TestFullConfig(t *testing.T) {
 						"upstreams": [
 							{
 								"destination_name": "KPtAj2cb",
+								"destination_namespace": "` + defaultEntMeta.NamespaceOrEmpty() + `",
 								"local_bind_port": 4051,
 								"config": {
 									"kzRnZOyd": "nUNKoL8H"
@@ -5665,6 +5666,7 @@ func TestFullConfig(t *testing.T) {
 						upstreams = [
 							{
 								destination_name = "KPtAj2cb"
+								destination_namespace = "` + defaultEntMeta.NamespaceOrEmpty() + `"
 								local_bind_port = 4051
 								config {
 									kzRnZOyd = "nUNKoL8H"
