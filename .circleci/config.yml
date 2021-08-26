@@ -834,12 +834,6 @@ workflows:
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
-      - nomad-integration-main:
-          requires:
-            - dev-build
-      - nomad-integration-0_8:
-          requires:
-            - dev-build
       - envoy-integration-test-1_11_2:
           requires:
             - dev-build
@@ -900,3 +894,20 @@ workflows:
               only:
                 - master
                 - /release\/\d+\.\d+\.x$/
+                  
+  nightly-jobs:
+    triggers:
+      - schedule:
+          cron: "0 4 * * *" # 4AM UTC <> 12AM EST <> 9PM PST should have no impact
+          filters:
+            branches:
+              only:
+                - /release\/\d+\.\d+\.x$/
+    jobs:
+      - dev-build
+      - nomad-integration-main:
+          requires:
+            - dev-build
+      - nomad-integration-0_8:
+          requires:
+            - dev-build
