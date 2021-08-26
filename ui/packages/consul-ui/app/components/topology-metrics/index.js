@@ -84,6 +84,12 @@ export default class TopologyMetrics extends Component {
     return items;
   }
 
+  get mainNotIngressService() {
+    const kind = get(this.args.service.Service, 'Kind') || '';
+
+    return kind !== 'ingress-gateway';
+  }
+
   // =actions
   @action
   setHeight(el, item) {
@@ -98,9 +104,9 @@ export default class TopologyMetrics extends Component {
   @action
   calculate() {
     if (this.args.isRemoteDC) {
-      this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
+      this.noMetricsReason = 'remote-dc';
     } else if (this.args.service.Service.Kind === 'ingress-gateway') {
-      this.noMetricsReason = 'Unable to fetch metrics for a ingress gateway';
+      this.noMetricsReason = 'ingress-gateway';
     } else {
       this.noMetricsReason = null;
     }

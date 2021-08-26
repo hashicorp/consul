@@ -160,9 +160,13 @@ topology-metrics:
       header: No traffic
       body: Add "{upstream}" as an explicit upstream of "{downstream}" or set the "{downstream}" proxy to "transparent" mode to enable traffic.
       action: Documentation
+  status:
+    error: Unable to load metrics
+    remote-dc: Unable to fetch metrics for a remote datacenter
+    loading: Loading metrics
+    ingress-gateway: Viewing metrics for Ingress Gateways is not currently supported in the UI.
 source:
   header: This is not a registered Consul service. It’s a routing configuration that routes traffic to real services in Consul. For more information, read our documentation.
   menu-title: About Routing Configs
   links:
     documentation: Documentation
-
