@@ -1,6 +1,6 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
-import { action } from '@ember/object';
+import { action, get } from '@ember/object';
 
 export default class TopologyMetrics extends Component {
   // =attributes
@@ -66,13 +66,19 @@ export default class TopologyMetrics extends Component {
       });
   }
 
+  get mainNotIngressService() {
+    const kind = get(this.args.service.Service, 'Kind') || '';
+
+    return kind !== 'ingress-gateway';
+  }
+
   // =actions
   @action
   calculate() {
     if (this.args.isRemoteDC) {
-      this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
+      this.noMetricsReason = 'remote-dc';
     } else if (this.args.service.Service.Kind === 'ingress-gateway') {
-      this.noMetricsReason = 'Unable to fetch metrics for a ingress gateway';
+      this.noMetricsReason = 'ingress-gateway';
     } else {
       this.noMetricsReason = null;
     }
