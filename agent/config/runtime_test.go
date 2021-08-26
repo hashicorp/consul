@@ -5605,6 +5605,7 @@ func TestFullConfig(t *testing.T) {
 						"upstreams": [
 							{
 								"destination_name": "KPtAj2cb",
+								"destination_namespace": "` + defaultEntMeta.NamespaceOrEmpty() + `",
 								"local_bind_port": 4051,
 								"config": {
 									"kzRnZOyd": "nUNKoL8H"
@@ -6287,6 +6288,7 @@ func TestFullConfig(t *testing.T) {
 						upstreams = [
 							{
 								destination_name = "KPtAj2cb"
+								destination_namespace = "` + defaultEntMeta.NamespaceOrEmpty() + `"
 								local_bind_port = 4051
 								config {
 									kzRnZOyd = "nUNKoL8H"
@@ -6296,6 +6298,7 @@ func TestFullConfig(t *testing.T) {
 								destination_type = "prepared_query"
 								destination_namespace = "9nakw0td"
 								destination_name = "KSd8HsRl"
+								destination_namespace = "9nakw0td"
 								local_bind_port = 11884
 								local_bind_address = "127.24.88.0"
 							},
