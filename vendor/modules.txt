@@ -300,7 +300,7 @@ github.com/hashicorp/vault/sdk/helper/parseutil
 github.com/hashicorp/vault/sdk/helper/strutil
 # github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443
 github.com/hashicorp/vic/pkg/vsphere/tags
-# github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce
+# github.com/hashicorp/yamux v0.0.0-20210826001029-26ff87cf9493
 github.com/hashicorp/yamux
 # github.com/imdario/mergo v0.3.6
 github.com/imdario/mergo
