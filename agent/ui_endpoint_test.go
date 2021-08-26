@@ -1916,11 +1916,12 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
-							Name:          "dashboard",
-							Datacenter:    "dc1",
-							Nodes:         []string{"foo"},
-							InstanceCount: 1,
-							ChecksPassing: 1,
+							Name:           "dashboard",
+							Datacenter:     "dc1",
+							Nodes:          []string{"foo"},
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							InstanceCount:  1,
+							ChecksPassing:  1,
 						},
 						Source: "proxy-registration",
 						Intention: structs.IntentionDecisionSummary{
