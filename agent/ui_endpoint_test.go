@@ -1892,7 +1892,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 						ServiceSummary: ServiceSummary{
 							Name:             "routing-config",
 							Datacenter:       "dc1",
-							EnterpriseMeta:   *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							EnterpriseMeta:   *structs.DefaultEnterpriseMeta(),
 							TransparentProxy: false,
 						},
 						Intention: structs.IntentionDecisionSummary{
@@ -1919,7 +1919,7 @@ func TestUIServiceTopology_RoutingConfigs(t *testing.T) {
 							Name:           "dashboard",
 							Datacenter:     "dc1",
 							Nodes:          []string{"foo"},
-							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 							InstanceCount:  1,
 							ChecksPassing:  1,
 						},
