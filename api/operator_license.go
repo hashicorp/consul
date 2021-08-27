@@ -1,8 +1,8 @@
 package api
 
 import (
-	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -81,14 +81,39 @@ func (op *Operator) LicenseGetSigned(q *QueryOptions) (string, error) {
 //
 // DEPRECATED: Consul 1.10 removes the corresponding HTTP endpoint as licenses
 // are now set via agent configuration instead of through the API
-func (*Operator) LicenseReset(_ *WriteOptions) (*LicenseReply, error) {
-	return nil, fmt.Errorf("Consul 1.10 no longer supports API driven license management.")
+func (op *Operator) LicenseReset(opts *WriteOptions) (*LicenseReply, error) {
+	var reply LicenseReply
+	r := op.c.newRequest("DELETE", "/v1/operator/license")
+	r.setWriteOptions(opts)
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err := decodeBody(resp, &reply); err != nil {
+		return nil, err
+	}
+	return &reply, nil
 }
 
 // LicensePut will configure the Consul Enterprise license for the target datacenter
 //
 // DEPRECATED: Consul 1.10 removes the corresponding HTTP endpoint as licenses
 // are now set via agent configuration instead of through the API
-func (*Operator) LicensePut(_ string, _ *WriteOptions) (*LicenseReply, error) {
-	return nil, fmt.Errorf("Consul 1.10 no longer supports API driven license management.")
+func (op *Operator) LicensePut(license string, opts *WriteOptions) (*LicenseReply, error) {
+	var reply LicenseReply
+	r := op.c.newRequest("PUT", "/v1/operator/license")
+	r.setWriteOptions(opts)
+	r.body = strings.NewReader(license)
+	_, resp, err := requireOK(op.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if err := decodeBody(resp, &reply); err != nil {
+		return nil, err
+	}
+
+	return &reply, nil
 }
