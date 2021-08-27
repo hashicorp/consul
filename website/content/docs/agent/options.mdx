@@ -1051,7 +1051,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
         - `segment` <EnterpriseAlert inline /> - The network segment name the client is requesting.
 
-      ~> **Warning:** Enabling `auto_config` conflicts with the `auto_encrypt.tls` feature.
+      ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
       Only one option may be specified.
 
 - `auto_encrypt` This object allows setting options for the `auto_encrypt` feature.
@@ -1090,7 +1090,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     the certificates requested by `auto_encrypt` from the server have these `ip_san`
     set as IP SAN.
 
-  ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the `auto_config` feature.
+  ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
   Only one option may be specified.
 
 - `bootstrap` Equivalent to the [`-bootstrap` command-line flag](#_bootstrap).
