@@ -587,8 +587,6 @@ function run_container_jaeger {
 function run_container_test-sds-server {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
-    -v "$PWD/test-sds-server/certs:/usr/sds/certs" \
-    -w /usr/sds \
     $(network_snippet primary) \
     "test-sds-server"
 }

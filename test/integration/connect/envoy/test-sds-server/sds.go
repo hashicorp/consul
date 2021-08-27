@@ -140,7 +140,7 @@ func makeLoggerCallbacks(log hclog.Logger) *xds.CallbackFuncs {
 			return nil
 		},
 		StreamResponseFunc: func(id int64, req *discovery.DiscoveryRequest, resp *discovery.DiscoveryResponse) {
-			log.Trace("gRPC stream request", "id", id,
+			log.Trace("gRPC stream response", "id", id,
 				"resp.typeURL", resp.TypeUrl,
 				"resp.version", resp.VersionInfo,
 			)
