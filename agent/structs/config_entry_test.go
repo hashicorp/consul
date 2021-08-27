@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/copystructure"
@@ -2563,7 +2564,18 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			}
 
 			if tc.expectUnchanged {
-				require.Equal(t, beforeNormalize, tc.entry, "Expected Normalize not to change anything")
+				// EnterpriseMeta.Normalize behaves differently in Ent and OSS which
+				// causes an exact comparison to fail. It's still useful to assert that
+				// nothing else changes though during Normalize. So we ignore
+				// EnterpriseMeta Defaults.
+				opts := cmp.Options{
+					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+						return a.IsSame(&b)
+					}),
+				}
+				if diff := cmp.Diff(beforeNormalize, tc.entry, opts); diff != "" {
+					t.Fatalf("expect unchanged after Normalize, got diff:\n%s", diff)
+				}
 			}
 
 			if tc.check != nil {

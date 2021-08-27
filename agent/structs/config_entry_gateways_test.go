@@ -539,7 +539,6 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			expectUnchanged: true,
 		},
 		"TLS.SDS gateway-level": {
 			entry: &IngressGatewayConfigEntry{
@@ -845,7 +844,9 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "A service specifying TLS.SDS.CertResource must have at least one item in Hosts (service \"*\" on listener on port 1111)",
+			// Note we don't assert the last part `(service \"*\" on listener on port 1111)`
+			// since the service name is normalized differently on OSS and Ent
+			validateErr: "A service specifying TLS.SDS.CertResource must have at least one item in Hosts",
 		},
 		"TLS.SDS at service level needs a cluster from somewhere": {
 			entry: &IngressGatewayConfigEntry{
@@ -870,7 +871,9 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "TLS.SDS.ClusterName is required if CertResource is set (service \"foo\" on listener on port 1111)",
+			// Note we don't assert the last part `(service \"foo\" on listener on port 1111)`
+			// since the service name is normalized differently on OSS and Ent
+			validateErr: "TLS.SDS.ClusterName is required if CertResource is set",
 		},
 	}
 
