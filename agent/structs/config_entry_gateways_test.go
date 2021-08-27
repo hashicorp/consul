@@ -437,49 +437,6 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			// Unchanged
-			expected: &IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
-				Listeners: []IngressListener{
-					{
-						Port:     1111,
-						Protocol: "http",
-						Services: []IngressService{
-							{
-								Name: "web",
-								RequestHeaders: &HTTPHeaderModifiers{
-									Set: map[string]string{"x-foo": "bar"},
-								},
-							},
-						},
-					},
-					{
-						Port:     2222,
-						Protocol: "http2",
-						Services: []IngressService{
-							{
-								Name: "web2",
-								ResponseHeaders: &HTTPHeaderModifiers{
-									Set: map[string]string{"x-foo": "bar"},
-								},
-							},
-						},
-					},
-					{
-						Port:     3333,
-						Protocol: "grpc",
-						Services: []IngressService{
-							{
-								Name: "api",
-								ResponseHeaders: &HTTPHeaderModifiers{
-									Remove: []string{"x-grpc-internal"},
-								},
-							},
-						},
-					},
-				},
-			},
 		},
 		"request header manip not allowed for non-http protocol": {
 			entry: &IngressGatewayConfigEntry{
@@ -542,7 +499,9 @@ func TestIngressGatewayConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Service web cannot be added multiple times (listener on port 1111)",
+			// Match only the last part of the exected error because the service name
+			// differs between Ent and OSS default/default/web vs web
+			validateErr: "cannot be added multiple times (listener on port 1111)",
 		},
 	}
 
