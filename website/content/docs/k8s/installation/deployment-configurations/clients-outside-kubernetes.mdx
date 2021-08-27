@@ -78,7 +78,7 @@ Given you have the [official Helm chart](/docs/k8s/helm) installed with the defa
   ```bash
   consul agent \
     -advertise="$ADVERTISE_IP" \
-    -retry-join='provider=k8s label_selector="app=consul,component=server"'
+    -retry-join='provider=k8s label_selector="app=consul,component=server"' \
     -bind=0.0.0.0 \
     -hcl='leave_on_terminate = true' \
     -hcl='ports { grpc = 8502 }' \
