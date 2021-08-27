@@ -287,6 +287,7 @@ function run_tests {
   CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
   export CASE_NAME
+  export SKIP_CASE=""
 
   init_vars
 
@@ -299,6 +300,12 @@ function run_tests {
   fi
 
   global_setup
+
+  # Allow vars.sh to set a reason to skip this test case based on the ENV
+  if [ "$SKIP_CASE" != "" ] ; then
+    echoyellow "SKIPPING CASE: $SKIP_CASE"
+    return 0
+  fi
 
   # Wipe state
   wipe_volumes
