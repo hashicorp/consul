@@ -27,6 +27,16 @@ The options to set the license in order of precedence:
 
 Note: the [options to set the license and order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) is the same as Consul Enterprise server agents.
 
+### Updating the License
+
+After running Consul-Terraform-Sync Enterprise, your license will eventually approach expiration, and you'll want to update to a new license. To do so, have the new license value at hand or saved in a file to disk.
+
+Steps to update to a new license:
+1. Update the license environment variable or configuration that you used to set the prior license with the new license value or file path
+1. Stop and restart Consul-Terraform-Sync Enterprise
+
+Once Consul-Terraform-Sync Enterprise starts again, it will pick up the new license and run the tasks with any changes that may have occurred between the stop and restart period.
+
 ## Notification and Termination Behavior
 
 Licenses have an expiration date and termination date where termination is a time at or after expiration. Consul-Terraform-Sync Enterprise will cease to function once the termination date has passed. The time between the expiration and termination date is a grace period. Grace periods are generally 24-hours; however, please refer to your license for accurate understanding of your grace period.
