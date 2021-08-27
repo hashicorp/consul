@@ -397,13 +397,6 @@ and consider if they're appropriate for your deployment.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
-  - `containerSecurityContext` ((#v-server-containersecuritycontext)) (`map`) - The container securityContext for each container in the server pods.  In
-    addition to the Pod's SecurityContext this can
-    set the capabilities of processes running in the container and ensure the
-    root file systems in the container is read-only.
-
-    - `server` ((#v-server-containersecuritycontext-server)) (`map`) - The consul server agent container
-
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
     control a rolling update of Consul server agents. This value specifies the
     partition (https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
@@ -667,17 +660,6 @@ and consider if they're appropriate for your deployment.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
-  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods.  In
-    addition to the Pod's SecurityContext this can
-    set the capabilities of processes running in the container and ensure the
-    root file systems in the container is read-only.
-
-    - `client` ((#v-client-containersecuritycontext-client)) (`map`) - The consul client agent container
-
-    - `aclInit` ((#v-client-containersecuritycontext-aclinit)) (`map`) - The acl-init initContainer
-
-    - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
-
   - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
@@ -897,12 +879,6 @@ and consider if they're appropriate for your deployment.
       true and taking effect.
 
     - `type` ((#v-ui-service-type)) (`string: null`) - The service type to register.
-
-    - `port` ((#v-ui-service-port)) - Set the port value of the UI service.
-
-      - `http` ((#v-ui-service-port-http)) (`integer: 80`) - HTTP port.
-
-      - `https` ((#v-ui-service-port-https)) (`integer: 443`) - HTTPS port.
 
     - `nodePort` ((#v-ui-service-nodeport)) - Optionally set the nodePort value of the ui service if using a NodePort service.
       If not set and using a NodePort service, Kubernetes will automatically assign
