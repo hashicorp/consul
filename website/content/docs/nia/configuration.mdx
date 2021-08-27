@@ -130,7 +130,15 @@ task {
 - `enabled` - (bool: true) Enable or disable a task from running and managing resources.
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
 - `services` - (list[string]) Required depending on [`condition`](#condition) configuration. Services is the list of logical service names or service IDs the task executes on. Consul-Terraform-Sync monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace. Alternative to configuring `services`, a `condition` can be configured so that the task does not trigger on changes to services (default behavior) but instead trigger on a different condition. See [Task Condition](#task-condition) configuration for more details.
-- `source` - (string: required) Source is the location the driver uses to discover the Terraform module used for automation. The source is the module path which can be local or remote. Read more on [Terraform module source here](https://www.terraform.io/docs/modules/sources.html).
+- `source` - (string: required) Source is the location the driver uses to discover the Terraform module used for automation. The source is the module path which can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source here](https://www.terraform.io/docs/modules/sources.html).
+  - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](https://learn.hashicorp.com/tutorials/terraform/cloud-login) to authenticate the local Terraform CLI prior to starting Consul-Terraform-Sync.
+  - To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
+    ```hcl
+    task {
+      source = "<HOSTNAME>/<ORGANIZATION>/<MODULE NAME>/<PROVIDER>"
+      // example: "my.tfe.hostname.io/my-org/hello/cts"
+    }
+    ```
 - `variable_files` - (list[string]) A list of paths to files containing variables for the task. For the [Terraform driver](#terraform-driver), these are used as Terraform [variable definition (`.tfvars`) files](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files) and consists of only variable name assignments. The variable assignments must match the corresponding variable declarations available by the Terraform module for the task. Consul-Terraform-Sync will generate the intermediate variable declarations to pass as arguments from the auto-generated root module to the task's module. Variables are loaded in the same order as they appear in the order of the files. Duplicate variables are overwritten with the later value. _Note: unless specified by the module, configure arguments for Terraform providers using [`terraform_provider` blocks](#terraform-provider)._
   ```hcl
   address_group = "consul-services"
