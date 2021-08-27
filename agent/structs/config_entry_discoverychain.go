@@ -677,8 +677,8 @@ type ServiceSplit struct {
 // MergeParent is called by the discovery chain compiler when a split directs to
 // another splitter. We refer to the first ServiceSplit as the parent and the
 // ServiceSplits of the second splitter as its children. The parent ends up
-// "flattened" by the compiler, i.e. replaced with it's children recursively
-// with the weights modified as necessary.
+// "flattened" by the compiler, i.e. replaced with its children recursively with
+// the weights modified as necessary.
 //
 // Since the parent is never included in the output, any request processing
 // config attached to it (e.g. header manipulation) would be lost and not take
@@ -721,7 +721,7 @@ func (s *ServiceSplit) MergeParent(parent *ServiceSplit) (*ServiceSplit, error) 
 	}
 
 	// Merge any request handling from parent _unless_ it's overridden by us.
-	copy.RequestHeaders, err = s.RequestHeaders.MergeDefaults(parentReq)
+	copy.RequestHeaders, err = MergeHTTPHeaderModifiers(parentReq, s.RequestHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -735,7 +735,7 @@ func (s *ServiceSplit) MergeParent(parent *ServiceSplit) (*ServiceSplit, error) 
 	// time since responses flow the other way so the unflattened behavior would
 	// be that the parent processing happens _after_ ours potentially overriding
 	// it.
-	copy.ResponseHeaders, err = parentResp.MergeDefaults(s.ResponseHeaders)
+	copy.ResponseHeaders, err = MergeHTTPHeaderModifiers(s.ResponseHeaders, parentResp)
 	if err != nil {
 		return nil, err
 	}
@@ -1580,46 +1580,6 @@ func (m *HTTPHeaderModifiers) Validate(protocol string) error {
 	return nil
 }
 
-// MergeDefaults takes another HTTPHeaderModifiers and merges it's fields. The
-// fields from this object take precedence over the passed in defaults if there
-// is a collision. The resulting object is returned leaving both m and defaults
-// unchanged. The semantics in the case of `Add` are that our Add will override
-// the default if they affect the same key since we have no way to express
-// multiple adds to the same key. We could change that, but it makes the config
-// syntax more complex for a huge edgecase.
-func (m *HTTPHeaderModifiers) MergeDefaults(defaults *HTTPHeaderModifiers) (*HTTPHeaderModifiers, error) {
-	if defaults.IsZero() {
-		return m.Clone()
-	}
-	if m == nil {
-		return defaults.Clone()
-	}
-
-	res, err := defaults.Clone()
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range m.Add {
-		res.Add[k] = v
-	}
-	for k, v := range m.Set {
-		res.Set[k] = v
-	}
-
-	// Deduplicate removes.
-	removed := make(map[string]struct{})
-	for _, k := range res.Remove {
-		removed[k] = struct{}{}
-	}
-	for _, k := range m.Remove {
-		if _, ok := removed[k]; !ok {
-			res.Remove = append(res.Remove, k)
-		}
-	}
-
-	return res, nil
-}
-
 // Clone returns a deep-copy of m unless m is nil
 func (m *HTTPHeaderModifiers) Clone() (*HTTPHeaderModifiers, error) {
 	if m == nil {
@@ -1632,4 +1592,45 @@ func (m *HTTPHeaderModifiers) Clone() (*HTTPHeaderModifiers, error) {
 	}
 	m = cpy.(*HTTPHeaderModifiers)
 	return m, nil
+}
+
+// MergeHTTPHeaderModifiers takes a base HTTPHeaderModifiers and merges in field
+// defined in overrides. Precedence is given to the overrides field if there is
+// a collision. The resulting object is returned leaving both base and overrides
+// unchanged. The `Add` field in override also replaces same-named keys of base
+// since we have no way to express multiple adds to the same key. We could
+// change that, but it makes the config syntax more complex for a huge edgecase.
+func MergeHTTPHeaderModifiers(base, overrides *HTTPHeaderModifiers) (*HTTPHeaderModifiers, error) {
+	if base.IsZero() {
+		return overrides.Clone()
+	}
+
+	merged, err := base.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	if overrides.IsZero() {
+		return merged, nil
+	}
+
+	for k, v := range overrides.Add {
+		merged.Add[k] = v
+	}
+	for k, v := range overrides.Set {
+		merged.Set[k] = v
+	}
+
+	// Deduplicate removes.
+	removed := make(map[string]struct{})
+	for _, k := range merged.Remove {
+		removed[k] = struct{}{}
+	}
+	for _, k := range overrides.Remove {
+		if _, ok := removed[k]; !ok {
+			merged.Remove = append(merged.Remove, k)
+		}
+	}
+
+	return merged, nil
 }
