@@ -36,14 +36,14 @@ The following sections detail how to export this data.
 
    ```sh
    kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
-     base64 -D > consul-agent-ca.pem
+     base64 --decode > consul-agent-ca.pem
    ```
 
 1. And the certificate authority signing key:
 
    ```sh
    kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
-      base64 -D > consul-agent-ca-key.pem
+      base64 --decode > consul-agent-ca-key.pem
    ```
 
 1. With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can

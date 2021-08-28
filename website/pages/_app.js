@@ -1,12 +1,12 @@
 import './style.css'
-import '@hashicorp/nextjs-scripts/lib/nprogress/style.css'
+import '@hashicorp/platform-util/nprogress/style.css'
 
 import Router from 'next/router'
 import Head from 'next/head'
-import NProgress from '@hashicorp/nextjs-scripts/lib/nprogress'
-import { ErrorBoundary } from '@hashicorp/nextjs-scripts/lib/bugsnag'
-import createConsentManager from '@hashicorp/nextjs-scripts/lib/consent-manager'
-import useAnchorLinkAnalytics from '@hashicorp/nextjs-scripts/lib/anchor-link-analytics'
+import NProgress from '@hashicorp/platform-util/nprogress'
+import { ErrorBoundary } from '@hashicorp/platform-runtime-error-monitoring'
+import createConsentManager from '@hashicorp/react-consent-manager/loader'
+import useAnchorLinkAnalytics from '@hashicorp/platform-util/anchor-link-analytics'
 import HashiHead from '@hashicorp/react-head'
 import HashiStackMenu from '@hashicorp/react-hashi-stack-menu'
 import AlertBanner from '@hashicorp/react-alert-banner'
@@ -39,7 +39,7 @@ export default function App({ Component, pageProps }) {
         />
       </HashiHead>
       {ALERT_BANNER_ACTIVE && (
-        <AlertBanner {...alertBannerData} product="consul" />
+        <AlertBanner {...alertBannerData} product="consul" hideOnMobile />
       )}
       <HashiStackMenu />
       <ProductSubnav />

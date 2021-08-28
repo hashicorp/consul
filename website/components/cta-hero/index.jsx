@@ -24,7 +24,7 @@ function CTA({ title, description, link }) {
   return (
     <div className={s.cta}>
       <InlineSvg className={s.stackIcon} src={ConsulStack} />
-      <h3>{title}</h3>
+      <h3 className="g-type-display-3">{title}</h3>
       <p className={s.description}>{description}</p>
       <Button
         title={link.text}

@@ -4,7 +4,7 @@
   display: flex;
   border-top: 1px solid var(--gray-5);
 
-  & .g-container {
+  & .g-grid-container {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
