@@ -12,7 +12,7 @@ description: >-
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
 
-Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise)<sup>1</sup>. Integrating with Terraform Enterprise provides features like enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. 
+Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise)<sup>1</sup>. Integrating with Terraform Enterprise provides features, such as, enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. 
 
 This page describes how the Terraform Cloud driver operates within Consul-Terraform-Sync.
 
@@ -42,7 +42,7 @@ Workspace automation requirements for Consul-Terraform-Sync:
 * Cannot be connected to a VCS
 * Cannot have an existing configuration version uploaded by another application
 
-Other workspace settings can be pre-configured or updated, like adding a [run notification](https://www.terraform.io/docs/cloud/workspaces/notifications.html) to send messages to a Slack channel when Consul-Terraform-Sync updates your network infrastructure.
+Other workspace settings can be pre-configured or updated, such as adding a [run notification](https://www.terraform.io/docs/cloud/workspaces/notifications.html) to send messages to a Slack channel when Consul-Terraform-Sync updates your network infrastructure.
 
 ## Configuration Version
 
@@ -61,7 +61,10 @@ sync-tasks/
   - `terraform` block - The corresponding provider source and versions for the task from the configuration files are placed into this block for the root module.
   - `provider` blocks - The provider blocks generated in the root module resemble the `terraform_provider` blocks from the configuration for Consul-Terraform-Sync. They have identical arguments present and are set from the intermediate variable created per provider.
   - `module` block - The module block is where the task's module is called as a [child module](https://www.terraform.io/docs/configuration/modules.html#calling-a-child-module). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
-- `variables.tf` - This file contains 3 types of variable declarations. The first type is the required `services` input variable which determines module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details). The second type is any additional Consul-Terraform-Sync provided [optional input variables](/docs/nia/terraform-modules#optional-input-variables) that the module may include. The final type is various intermediate variables used to configure providers. These intermediate provider variables are interpolated from the provider blocks and arguments configured in the Consul-Terraform-Sync configuration.
+- `variables.tf` - This file contains three types of variable declarations: 
+  -  `services` declares input variable that determine module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details). 
+  - Any additional [optional input variables](/docs/nia/terraform-modules#optional-input-variables) provided by Consul-Terraform-Sync that the module may include. 
+  - Various intermediate variables used to configure providers. Intermediate provider variables are interpolated from the provider blocks and arguments configured in the Consul-Terraform-Sync configuration.
 - `variables.module.tf` - This file is created if there are [variables configured for the task](/docs/nia/configuration#variable_files) and contains the interpolated variable declarations that match the variables from configuration. These are then used to proxy the configured variables to the module through explicit assignment in the module block.
 
 ## Variables
@@ -88,7 +91,7 @@ This section captures requirements for setting up Consul-Terraform-Sync to integ
 1. Name of your organization
 1. [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Enterprise
 
-Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need to have an account and organization set up, and a dedicated token. We recommend that the token is a team-level token restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access) level permissions. Below are the steps for the recommended setup.
+Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend that the token is a team-level token restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access) level permissions. Below are the steps for the recommended setup.
 
 The first step is to create an account with your Terraform Cloud service. After creating an account, create a new [organization](https://www.terraform.io/docs/cloud/users-teams-organizations/organizations.html#creating-organizations) or select an existing organization. The address of your Terraform Cloud service will be used to configure the [`hostname`](/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/docs/nia/configuration#organization) on the Terraform Cloud driver.
 
@@ -102,8 +105,8 @@ After setting the team's permissions, the final setup step is to [generate the a
 
 ### Recommendations
 
-We recommend users to configure workspaces managed by Consul-Terraform-Sync with [run notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) through the Terraform web application. Run notifications notify external systems about the progress of runs and could help notify users of Consul-Terraform-Sync events, particularly errored runs.
+We recommend configuring workspaces managed by Consul-Terraform-Sync with [run notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) through the Terraform web application. Run notifications notify external systems about the progress of runs and could help notify users of Consul-Terraform-Sync events, particularly errored runs.
 
 [![CTS Terraform Cloud Run Notifications](/img/nia/cts-tfc-run-notifications.png)](/img/nia/cts-tfc-run-notifications.png)
 
-In order to configure a run notification, users can [manually create a notification configuration](https://www.terraform.io/docs/cloud/workspaces/notifications.html#creating-a-notification-configuration) for workspaces automated by  Consul-Terraform-Sync. A workspace may already exist for a task if the workspace name is identical to the configured task's [`name`](/docs/nia/configuration#name-2). This may occur if Consul-Terraform-Sync has already already run and created the workspace for the task. This may also occur if the workspace is manually created for the task prior to Consul-Terraform-Sync running.
+In order to configure a run notification, users can [manually create a notification configuration](https://www.terraform.io/docs/cloud/workspaces/notifications.html#creating-a-notification-configuration) for workspaces automated by Consul-Terraform-Sync. A workspace may already exist for a task if the workspace name is identical to the configured task's [`name`](/docs/nia/configuration#name-2). This may occur if Consul-Terraform-Sync has already already run and created the workspace for the task. This may also occur if the workspace is manually created for the task prior to Consul-Terraform-Sync running.
