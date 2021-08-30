@@ -12,7 +12,7 @@ description: >-
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
 
-Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise)<sup>1</sup>. Integrating with Terraform Enterprise provides features, such as, enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. 
+Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise)<sup>1</sup>. Integrating with Terraform Enterprise provides features, such as enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. 
 
 This page describes how the Terraform Cloud driver operates within Consul-Terraform-Sync.
 
@@ -62,14 +62,14 @@ sync-tasks/
   - `provider` blocks - The provider blocks generated in the root module resemble the `terraform_provider` blocks from the configuration for Consul-Terraform-Sync. They have identical arguments present and are set from the intermediate variable created per provider.
   - `module` block - The module block is where the task's module is called as a [child module](https://www.terraform.io/docs/configuration/modules.html#calling-a-child-module). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
 - `variables.tf` - This file contains three types of variable declarations: 
-  -  `services` declares input variable that determine module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details). 
+  -  `services` declares input variables that determine module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details). 
   - Any additional [optional input variables](/docs/nia/terraform-modules#optional-input-variables) provided by Consul-Terraform-Sync that the module may include. 
   - Various intermediate variables used to configure providers. Intermediate provider variables are interpolated from the provider blocks and arguments configured in the Consul-Terraform-Sync configuration.
 - `variables.module.tf` - This file is created if there are [variables configured for the task](/docs/nia/configuration#variable_files) and contains the interpolated variable declarations that match the variables from configuration. These are then used to proxy the configured variables to the module through explicit assignment in the module block.
 
 ## Variables
 
-Consul-Terraform-Sync uses Terraform input variables to reflect the latest Consul service information and are used as parameters for your Terraform module. These input variables are dynamic and are updated by the driver throughout the runtime of Consul-Terraform-Sync.
+Consul-Terraform-Sync uses Terraform input variables to reflect the latest Consul service information. They are used as parameters for your Terraform module. Input variables are dynamic and are updated by the driver throughout the runtime of Consul-Terraform-Sync.
 
 You can view the latest service information in the Terraform UI by navigating to that workspace and clicking the "Variables" tab in the workspace navigation.
 
@@ -91,7 +91,7 @@ This section captures requirements for setting up Consul-Terraform-Sync to integ
 1. Name of your organization
 1. [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Enterprise
 
-Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend that the token is a team-level token restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access) level permissions. Below are the steps for the recommended setup.
+Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
 
 The first step is to create an account with your Terraform Cloud service. After creating an account, create a new [organization](https://www.terraform.io/docs/cloud/users-teams-organizations/organizations.html#creating-organizations) or select an existing organization. The address of your Terraform Cloud service will be used to configure the [`hostname`](/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/docs/nia/configuration#organization) on the Terraform Cloud driver.
 
