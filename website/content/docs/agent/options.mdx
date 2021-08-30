@@ -939,6 +939,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     on Connect because it is vital for `auto_config`, more specifically the CA
     and certificates infrastructure.
 
+    ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
+    Only one option may be specified.
+
   - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial
     `auto_config` RPC to the Consul servers. This can be overridden with the
     `CONSUL_INTRO_TOKEN` environment variable
@@ -1051,9 +1054,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
         - `segment` <EnterpriseAlert inline /> - The network segment name the client is requesting.
 
-      ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
-      Only one option may be specified.
-
 - `auto_encrypt` This object allows setting options for the `auto_encrypt` feature.
 
   The following sub-keys are available:
@@ -1082,6 +1082,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     only with a CA, or finally without a CA and without ACL enabled. In any case,
     the communication to the `auto_encrypt` endpoint is always TLS encrypted.
 
+    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
+    Only one option may be specified.
+
   - `dns_san` (Defaults to `[]`) When this option is being
     used, the certificates requested by `auto_encrypt` from the server have these
     `dns_san` set as DNS SAN.
@@ -1089,9 +1092,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `ip_san` (Defaults to `[]`) When this option is being used,
     the certificates requested by `auto_encrypt` from the server have these `ip_san`
     set as IP SAN.
-
-  ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
-  Only one option may be specified.
 
 - `bootstrap` Equivalent to the [`-bootstrap` command-line flag](#_bootstrap).
 
