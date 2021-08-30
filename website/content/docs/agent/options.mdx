@@ -547,12 +547,12 @@ definitions support being updated during a reload.
   "server": true,
   "watches": [
     {
-        "type": "checks",
-        "handler": "/usr/bin/health-check-handler.sh"
+      "type": "checks",
+      "handler": "/usr/bin/health-check-handler.sh"
     }
   ],
   "telemetry": {
-     "statsite_address": "127.0.0.1:2180"
+    "statsite_address": "127.0.0.1:2180"
   }
 }
 ```
@@ -609,8 +609,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     In "deny" mode, ACLs are an allowlist: any operation not specifically
     allowed is blocked. **Note**: this will not take effect until you've enabled ACLs.
 
-  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Boolean value, defaults to false. 
-    When true, the `list` permission will be required on the prefix being recursively read from the KV store. 
+  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Boolean value, defaults to false.
+    When true, the `list` permission will be required on the prefix being recursively read from the KV store.
     Regardless of being enabled, the full set of KV entries under the prefix will be filtered
     to remove any entries that the request's ACL token does not grant at least read
     permissions. This option is only available in Consul 1.0 and newer.
@@ -939,6 +939,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     on Connect because it is vital for `auto_config`, more specifically the CA
     and certificates infrastructure.
 
+    ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
+    Only one option may be specified.
+
   - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial
     `auto_config` RPC to the Consul servers. This can be overridden with the
     `CONSUL_INTRO_TOKEN` environment variable
@@ -1078,6 +1081,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     or only with a ACL enabled, or only with CA and `verify_server_hostname`, or
     only with a CA, or finally without a CA and without ACL enabled. In any case,
     the communication to the `auto_encrypt` endpoint is always TLS encrypted.
+
+    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
+    Only one option may be specified.
 
   - `dns_san` (Defaults to `[]`) When this option is being
     used, the certificates requested by `auto_encrypt` from the server have these
@@ -1605,7 +1611,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `use_cache` ((#http_config_use_cache)) Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
 
-  - `max_header_bytes` This setting controls the maximum number of bytes the consul http server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body.  If zero, or negative, http.DefaultMaxHeaderBytes is used, which equates to 1 Megabyte.
+  - `max_header_bytes` This setting controls the maximum number of bytes the consul http server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body. If zero, or negative, http.DefaultMaxHeaderBytes is used, which equates to 1 Megabyte.
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
