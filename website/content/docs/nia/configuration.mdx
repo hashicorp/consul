@@ -154,7 +154,7 @@ task {
     ]
     ```
 - `version` - (string) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
-- `working_dir` - (string) The working directory to manage generated artifacts by Consul-Terraform-Sync for this task, including Terraform configuration files. By default, a working directory named for each task is created as a subdirectory in the base [`working_dir`](#working_dir), e.g. `sync-tasks/task-name`.
+- `working_dir` - (string) The working directory to manage generated artifacts by Consul-Terraform-Sync for this task, including Terraform configuration files. By default, a working directory is created for each task as a subdirectory in the base [`working_dir`](#working_dir), e.g. `sync-tasks/task-name`.
 - `buffer_period` - Configures the buffer period for the task to dampen the effects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping.
   - `enabled` - (bool) Enable or disable buffer periods for this task. Specifying `min` will also enable it.
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
