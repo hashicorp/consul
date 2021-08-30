@@ -26,7 +26,7 @@ are deployed from this repo.
 
 ### Reporting an Issue:
 >Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 
->Questions should be directed to other community resources such as the: [Mailing List](https://groups.google.com/group/consul-tool/), [FAQ](https://www.consul.io/docs/faq.html), or [Guides](https://www.consul.io/docs/guides/index.html).
+>Questions should be directed to other community resources such as the: [Discuss Forum](https://discuss.hashicorp.com/c/consul/29), [FAQ](https://www.consul.io/docs/faq.html), or [Guides](https://www.consul.io/docs/guides/index.html).
 
 * Make sure you test against the latest released version. It is possible we 
 already fixed the bug you're experiencing. However, if you are on an older 
@@ -86,66 +86,32 @@ to work on the fork is to set it as a remote of the Consul project:
 By following these steps you can push to your fork to create a PR, but the code on disk still
 lives in the spot where the go cli tools are expecting to find it.
 
->Note: If you make any changes to the code, run `make format` to automatically format the code according to Go standards.
+>Note: If you make any changes to the code, run `gofmt -s -w` to automatically format the code according to Go standards.
 
 ## Testing
 
-### During Development: Run Relevant Test(s)
-
 During development, it may be more convenient to check your work-in-progress by running only the tests which you expect to be affected by your changes, as the full test suite can take several minutes to execute. [Go's built-in test tool](https://golang.org/pkg/cmd/go/internal/test/) allows specifying a list of packages to test and the `-run` option to only include test names matching a regular expression.
+The `go test -short` flag can also be used to skip slower tests.
 
 Examples (run from the repository root):
 - `go test -v ./connect` will run all tests in the connect package (see `./connect` folder)
 - `go test -v -run TestRetryJoin ./command/agent` will run all tests in the agent package (see `./command/agent` folder) with name substring `TestRetryJoin`
 
-### Before Submitting Changes: Run All Tests
+When a pull request is opened CI will run all tests and lint to verify the change.
 
-Before submitting changes, run **all** tests locally by typing `make test`. 
-The test suite may fail if over-parallelized, so if you are seeing stochastic 
-failures try `GOTEST_FLAGS="-p 2 -parallel 2" make test`. 
+## Go Module Dependencies
 
-Certain testing patterns such as creating a test `Client` in the `api` pkg 
-or a `TestAgent` followed by a session can lead to flaky tests. More generally, 
-any tests with components that rely on readiness of other components are often
-flaky. 
+If a dependency is added or change, run `go mod tidy` to update `go.mod` and `go.sum`.
 
-Our makefile has some tooling built in to help validate the stability of single 
-or package-wide tests. By running the `test-flake` goal we spin up a local docker 
-container that mirrors a CPU constrained version of our CI environment. Here we can 
-surface uncommon failures that are typically hard to reproduce by re-running 
-tests multiple times. 
+## Developer Documentation
 
-The makefile goal accepts the following variables as arguments:
+Documentation about the Consul code base is under [./contributing],
+and godoc package document can be read at [pkg.go.dev/github.com/hashicorp/consul].
 
-* **FLAKE_PKG** Target package (required)
+[./contributing]: ../contributing/README.md
+[pkg.go.dev/github.com/hashicorp/consul]: https://pkg.go.dev/github.com/hashicorp/consul
 
-* **FLAKE_TEST** Target test
-
-* **FLAKE_CPUS** Amount of CPU resources for container
-
-* **FLAKE_N** Number of times to run tests
-
-Examples:
-`make test-flake FLAKE_PKG=connect/proxy`
-`make test-flake FLAKE_PKG=connect/proxy FLAKE_TEST=TestUpstreamListener`
-`make test-flake FLAKE_PKG=connect/proxy FLAKE_TEST=TestUpstreamListener FLAKE_CPUS=0.15 FLAKE_N=30`
-
-The underlying script dumps the full Consul log output to `test.log` in 
-the directory of the target package. In the example above it would be 
-located at `consul/connect/proxy/test.log`. 
-
-Historically, the defaults for `FLAKE_CPUS` (0.15) and `FLAKE_N` (30) have been
-sufficient to surface a flaky test. If a test is run in this environment and 
-it does not fail after 30 iterations, it should be sufficiently stable.
-
-## Vendoring
-
-Consul currently uses Go Modules for vendoring.
-
-Please only apply the minimal vendor changes to get your PR to work. 
-Consul does not attempt to track the latest version for each dependency.
-
-## Checklists
+### Checklists
 
 Some common changes that many PRs require such as adding config fields, are
 documented through checklists.
