@@ -1,5 +1,54 @@
 ## UNRELEASED
 
+## 1.10.2 (August 27, 2021)
+
+SECURITY:
+
+* rpc: authorize raft requests [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) [[GH-10931](https://github.com/hashicorp/consul/issues/10931)]
+
+FEATURES:
+
+* connect: add support for unix domain socket config via API/CLI [[GH-10758](https://github.com/hashicorp/consul/issues/10758)]
+* ui: Adding support in Topology view for Routing Configurations [[GH-10872](https://github.com/hashicorp/consul/issues/10872)]
+* ui: Create Routing Configurations route and page [[GH-10835](https://github.com/hashicorp/consul/issues/10835)]
+* ui: Splitting up the socket mode and socket path in the Upstreams Instance List [[GH-10581](https://github.com/hashicorp/consul/issues/10581)]
+
+IMPROVEMENTS:
+
+* areas: **(Enterprise only)** Add 15s timeout to opening streams over pooled connections.
+* areas: **(Enterprise only)** Apply backpressure to area gossip packet ingestion when more than 512 packets are waiting to be ingested.
+* areas: **(Enterprise only)** Make implementation of WriteToAddress non-blocking to avoid slowing down memberlist's packetListen routine.
+* checks: Add Interval and Timeout to API response. [[GH-10717](https://github.com/hashicorp/consul/issues/10717)]
+* ci: make changelog-checker only validate PR number against main base [[GH-10844](https://github.com/hashicorp/consul/issues/10844)]
+* ci: upgrade to use Go 1.16.7 [[GH-10856](https://github.com/hashicorp/consul/issues/10856)]
+* deps: update to gogo/protobuf v1.3.2 [[GH-10813](https://github.com/hashicorp/consul/issues/10813)]
+* proxycfg: log correlation IDs for the proxy configuration snapshot's blocking queries. [[GH-10689](https://github.com/hashicorp/consul/issues/10689)]
+
+BUG FIXES:
+
+* acl: fixes a bug that prevented the default user token from being used to authorize service registration for connect proxies. [[GH-10824](https://github.com/hashicorp/consul/issues/10824)]
+* ca: fixed a bug when ca provider fail and provider state is stuck in `INITIALIZING` state. [[GH-10630](https://github.com/hashicorp/consul/issues/10630)]
+* ca: report an error when setting the ca config fail because of an index check. [[GH-10657](https://github.com/hashicorp/consul/issues/10657)]
+* cli: Ensure the metrics endpoint is accessible when Envoy is configured to use
+a non-default admin bind address. [[GH-10757](https://github.com/hashicorp/consul/issues/10757)]
+* cli: Fix a bug which prevented initializing a watch when using a namespaced
+token. [[GH-10795](https://github.com/hashicorp/consul/issues/10795)]
+* cli: Fix broken KV import command on Windows. [[GH-10820](https://github.com/hashicorp/consul/issues/10820)]
+* connect: ensure SAN validation for prepared queries validates against all possible prepared query targets [[GH-10873](https://github.com/hashicorp/consul/issues/10873)]
+* connect: fix crash that would result from multiple instances of a service resolving service config on a single agent. [[GH-10647](https://github.com/hashicorp/consul/issues/10647)]
+* connect: proxy upstreams inherit namespace from service if none are defined. [[GH-10688](https://github.com/hashicorp/consul/issues/10688)]
+* dns: fixes a bug with edns truncation where the response could exceed the size limit in some cases. [[GH-10009](https://github.com/hashicorp/consul/issues/10009)]
+* grpc: ensure that streaming gRPC requests work over mesh gateway based wan federation [[GH-10838](https://github.com/hashicorp/consul/issues/10838)]
+* http: log cancelled requests as such at the INFO level, instead of logging them as errored requests. [[GH-10707](https://github.com/hashicorp/consul/issues/10707)]
+* streaming: set the default wait timeout for health queries [[GH-10707](https://github.com/hashicorp/consul/issues/10707)]
+* txn: fixes Txn.Apply to properly authorize service registrations. [[GH-10798](https://github.com/hashicorp/consul/issues/10798)]
+* ui: Disabling policy form fields from users with 'read' permissions [[GH-10902](https://github.com/hashicorp/consul/issues/10902)]
+* ui: Fix Health Checks in K/V form Lock Sessions Info section [[GH-10767](https://github.com/hashicorp/consul/issues/10767)]
+* ui: Fix dropdown option duplication in the new intentions form [[GH-10706](https://github.com/hashicorp/consul/issues/10706)]
+* ui: Hide all metrics for ingress gateway services [[GH-10858](https://github.com/hashicorp/consul/issues/10858)]
+* ui: Properly encode non-URL safe characters in OIDC responses [[GH-10901](https://github.com/hashicorp/consul/issues/10901)]
+* ui: fixes a bug with some service failovers not showing the routing tab visualization [[GH-10913](https://github.com/hashicorp/consul/issues/10913)]
+
 ## 1.10.1 (July 15, 2021)
 
 KNOWN ISSUES:
@@ -148,6 +197,36 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.9 (August 27, 2021)
+
+SECURITY:
+
+* rpc: authorize raft requests [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) [[GH-10932](https://github.com/hashicorp/consul/issues/10932)]
+
+IMPROVEMENTS:
+
+* areas: **(Enterprise only)** Add 15s timeout to opening streams over pooled connections.
+* areas: **(Enterprise only)** Apply backpressure to area gossip packet ingestion when more than 512 packets are waiting to be ingested.
+* areas: **(Enterprise only)** Make implementation of WriteToAddress non-blocking to avoid slowing down memberlist's packetListen routine.
+* deps: update to gogo/protobuf v1.3.2 [[GH-10813](https://github.com/hashicorp/consul/issues/10813)]
+
+BUG FIXES:
+
+* acl: fixes a bug that prevented the default user token from being used to authorize service registration for connect proxies. [[GH-10824](https://github.com/hashicorp/consul/issues/10824)]
+* ca: fixed a bug when ca provider fail and provider state is stuck in `INITIALIZING` state. [[GH-10630](https://github.com/hashicorp/consul/issues/10630)]
+* ca: report an error when setting the ca config fail because of an index check. [[GH-10657](https://github.com/hashicorp/consul/issues/10657)]
+* cli: Ensure the metrics endpoint is accessible when Envoy is configured to use
+a non-default admin bind address. [[GH-10757](https://github.com/hashicorp/consul/issues/10757)]
+* cli: Fix a bug which prevented initializing a watch when using a namespaced
+token. [[GH-10795](https://github.com/hashicorp/consul/issues/10795)]
+* connect: proxy upstreams inherit namespace from service if none are defined. [[GH-10688](https://github.com/hashicorp/consul/issues/10688)]
+* dns: fixes a bug with edns truncation where the response could exceed the size limit in some cases. [[GH-10009](https://github.com/hashicorp/consul/issues/10009)]
+* txn: fixes Txn.Apply to properly authorize service registrations. [[GH-10798](https://github.com/hashicorp/consul/issues/10798)]
+* ui: Fix dropdown option duplication in the new intentions form [[GH-10706](https://github.com/hashicorp/consul/issues/10706)]
+* ui: Hide all metrics for ingress gateway services [[GH-10858](https://github.com/hashicorp/consul/issues/10858)]
+* ui: Properly encode non-URL safe characters in OIDC responses [[GH-10901](https://github.com/hashicorp/consul/issues/10901)]
+* ui: fixes a bug with some service failovers not showing the routing tab visualization [[GH-10913](https://github.com/hashicorp/consul/issues/10913)]
 
 ## 1.9.8 (July 15, 2021)
 
@@ -455,6 +534,32 @@ BUG FIXES:
 * server: skip deleted and deleting namespaces when migrating intentions to config entries [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
 * telemetry: fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
+
+## 1.8.15 (August 27, 2021)
+
+SECURITY:
+
+* rpc: authorize raft requests [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) [[GH-10933](https://github.com/hashicorp/consul/issues/10933)]
+
+IMPROVEMENTS:
+
+* areas: **(Enterprise only)** Add 15s timeout to opening streams over pooled connections.
+* areas: **(Enterprise only)** Apply backpressure to area gossip packet ingestion when more than 512 packets are waiting to be ingested.
+* areas: **(Enterprise only)** Make implementation of WriteToAddress non-blocking to avoid slowing down memberlist's packetListen routine.
+* deps: update to gogo/protobuf v1.3.2 [[GH-10813](https://github.com/hashicorp/consul/issues/10813)]
+
+BUG FIXES:
+
+* acl: fixes a bug that prevented the default user token from being used to authorize service registration for connect proxies. [[GH-10824](https://github.com/hashicorp/consul/issues/10824)]
+* ca: fixed a bug when ca provider fail and provider state is stuck in `INITIALIZING` state. [[GH-10630](https://github.com/hashicorp/consul/issues/10630)]
+* ca: report an error when setting the ca config fail because of an index check. [[GH-10657](https://github.com/hashicorp/consul/issues/10657)]
+* cli: Ensure the metrics endpoint is accessible when Envoy is configured to use
+a non-default admin bind address. [[GH-10757](https://github.com/hashicorp/consul/issues/10757)]
+* cli: Fix a bug which prevented initializing a watch when using a namespaced
+token. [[GH-10795](https://github.com/hashicorp/consul/issues/10795)]
+* connect: proxy upstreams inherit namespace from service if none are defined. [[GH-10688](https://github.com/hashicorp/consul/issues/10688)]
+* dns: fixes a bug with edns truncation where the response could exceed the size limit in some cases. [[GH-10009](https://github.com/hashicorp/consul/issues/10009)]
+* txn: fixes Txn.Apply to properly authorize service registrations. [[GH-10798](https://github.com/hashicorp/consul/issues/10798)]
 
 ## 1.8.14 (July 15, 2021)
 
