@@ -15,23 +15,24 @@ description: >-
 One of the main goals of service discovery is to provide a catalog of available
 services. To that end, the agent provides a simple service definition format
 to declare the availability of a service and to potentially associate it with
-a health check. A health check is considered to be application level if it is
-associated with a service. A service is defined in a configuration file
-or added at runtime over the HTTP interface.
+a health check. A health check associated with a service is considered to be an
+application-level check. Define services in a configuration file or add it at
+runtime using the HTTP interface.
 
-Use the [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
+Complete the [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?utm_source=consul.io&utm_medium=docs) to get hands-on experience registering a simple service with a health check on your local machine.
 
 ## Service Definition
 
-To configure a service, either provide the service definition as a
-`-config-file` option to the agent or place it inside the `-config-dir` of the
-agent. The file must end in the `.json` or `.hcl` extension to be loaded by
-Consul. Check definitions can be updated by sending a `SIGHUP` to the agent.
-Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
+Configure a service by providing the service definition to the agent. You can
+either specify the configuration file using the `-config-file` option, or specify
+the directory containing the service definition file with the `-config-dir` option.
+Consul can load service definitions saved as `.json` or `.hcl` files.
+
+Send a `SIGHUP` to the running agent or use [`consul reload`](/commands/reload) to check for new service definitions or to
+update existing services. Alternatively, the service can be [registered dynamically](/api-docs/agent/service#register-service)
 using the [HTTP API](/api).
 
-A service definition is a configuration that looks like the following. This
-example shows all possible fields, but note that only a few are required.
+A service definition contains a set of parameters that specify various aspects of the service, including how it is discovered by other services in the network. All possible parameters are included in the following example, but only the top-level `service` parameter and its `name` parameter child are required by default.
 
 ```json
 {
@@ -109,89 +110,63 @@ example shows all possible fields, but note that only a few are required.
 }
 ```
 
-A service definition must include a `name` and may optionally provide an
-`id`, `tags`, `address`, `meta`, `port`, `enable_tag_override`, and `check`.
-The `id` is set to the `name` if not provided. It is required that all
-services have a unique ID per node, so if names might conflict then
-unique IDs should be provided.
+The following table describes the available parameters for service definitions.
 
-The `tags` property is a list of values that are opaque to Consul but
-can be used to distinguish between `primary` or `secondary` nodes,
-different versions, or any other service level labels.
+### `service`
 
-We recommend using [valid DNS labels](https://en.wikipedia.org/wiki/Hostname#Restrictions_on_valid_hostnames)
-for service definition names and tags for [compatibility with external DNS](/docs/agent/services#service-and-tag-names-with-dns)
+This is the root-level parameter that defines the service. You can specify the parameters to configure the service.
 
-The `address` field is optional, and can be used to specify a service-specific IP address or a hostname.
-There is no server-side validation of this field, and it can be set to any string. When this value is not provided,
-the IP address of the agent node is used by default.
-The `port` field can be used as well to make a service-oriented architecture
-simpler to configure; this way, the address and port of a service can
-be discovered.
+| Parameter             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Default                       | Required                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------- |
+| `id`                  | String value that specifies the service ID. <p>If not specified, the value of the `name` field will be used. </p><p>Services must have unique IDs per node, so you should specify unique values if the default `name` will conflict with other services.</p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Value of the `name` parameter | Optional                     |
+| `name`                | Specifies the name of the service. <br/>The value for this parameter is used as the ID if the `id` parameter is not specified.<br/>We recommend using valid DNS labels for service definition names for compatibility with external DNSs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Required                     |
+| `tags`                | List of string values that can be used to add service-level labels. <br/>For example, you can define tags that distinguish between `primary` and `secondary` nodes or service versions. <br/>We recommend using valid DNS labels for service definition IDs for compatibility with external DNSs.<br/>Tag values are opaque to Consul.<br/>                                                                                                                                                                                                                                                                                                                                                                                                       | None                          | Optional                     |
+| `address`             | String value that specifies a service-specific IP address or hostname. <br/>If no value is specified, the IP address of the agent node is used by default. <br/>There is no service-side validation of this parameter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | IP address of the agent node  | Optional                     |
+| `meta`                | Object that defines a map of the max 64 key/value pairs. <br/>The meta object has the same limitations as the node meta object in the node definition. <br/>Meta data can be retrieved per individual instance of the service. All instances of a given service have their own copy of the meta data. <br/> See [Adding Meta Data](#adding-meta-data) for supported parameters.<br/>                                                                                                                                                                                                                                                                                                                                                              | None                          | Optional                     |
+| `tagged_addresses`    | Tagged addresses are additional addresses that may be defined for a node or service. See [Tagged Addresses](#tagged-addresses) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | None                          | Optional                     |
+| `port`                | Integer value that specifies a service-specific port number. The port number should be specified when the `address` parameter is defined to improve service discoverability.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Optional                      |
+| `socket_path`         | String value that specifies the path to the service socket. <br/>Specify this parameter to expose the service to the mesh if the service listens on a Unix Domain socket.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Optional                     |
+| `enable_tag_override` | Boolean value that determines if the anti-entropy feature for the service is enabled. <br/> If set to `true`, then external agents can update this service in the catalog and modify the tags.<br/> Subsequent local sync operations by this agent will ignore the updated tags. <br/> This parameter only applies to the locally-registered service. If multiple nodes register the same service, the `enable_tag_override` configuration, and all other service configuration items, operate independently. <br/>Updating the tags for services registered on one node is independent from the same service (by name) registered on another node. <br/> See [anti-entropy syncs](/docs/internals/anti-entropy) for additional information.<br/> | False                         | Optional                     |
+| `checks`              | Array of objects that define health checks for the service. See [Health Checks](#health-checks) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | None                          | Optional                     |
+| `kind`                | String value that identifies the service as a Connect proxy. See [Connect](#connect) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | None                          | Optional                     |
+| `proxy_destination`   | String value that specifies the _name_ of the destination service that the service currently being configured proxies to. <br/>This parameter is deprecated. Use `proxy.destination_service` instead. <br/>See [Connect](#connect) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | None                          | Optional                     |
+| `proxy`               | Object that defines the destination services that the service currently being configured proxies to. See [Proxy](#proxy) for additional information.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | None                          | Optional                     |
+| `connect`             | Object that configures a Consul Connect service mesh connection. See [Connect](#connect) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | None                          | Optional                     |
+| `weights`             | Object that configures the weight of the service in terms of its DNS service (SRV) response. See [DNS SRV Weights](#dns-srv-weights) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | None                          | Optional                     |
+| `token`               | String value specifying the ACL token to be used to register the service (if the ACL system is enabled). The token is required for the service to interact with the service catalog. See [Security Configurations](#security-configurations) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Required if ACLs are enabled |
+| `namespace`           | String value specifying the Consul Namespace where the service should be registered. See [Security Configurations](#security-configurations) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | None                          | Optional                     |
 
-The `meta` object is a map of max 64 key/values with string semantics. Key can contain
-only ASCII chars and no special characters (`A-Z` `a-z` `0-9` `_` and `-`).
-For performance and security reasons, values as well as keys are limited to 128
-characters for keys, 512 for values. This object has the same limitations as the node
-meta object in node definition.
-All those meta data can be retrieved individually per instance of the service
-and all the instances of a given service have their own copy of it.
+### Adding Meta Data
 
-Services may also contain a `token` field to provide an ACL token. This token is
-used for any interaction with the catalog for the service, including
-[anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
+You can add semantic meta data to the service using the `meta` parameter. This parameter defines a map of max 64 key/value pairs. You can specify the following parameters to define meta data for the service.
+
+| Parameter | Description                                                                                                                                                                                                                                                                      | Default | Required |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | -------- |
+| `KEY`     | String value that adds semantic metadata to the service. <br/>Keys can only have ASCII characters (`A` - `Z`, `a` - `z`, `0` - `9`, `_`, and `-`). <br/>Keys can not have special characters. <br/>Keys are limited to 128 characters.<br/>Values are limited to 512 characters. | None    | Optional |
+
+### Security Configurations
+
+If the ACL system is enabled, specify a value for the `token` parameter to provide an ACL token. This token is
+used for any interaction with the catalog for the service, including [anti-entropy syncs](/docs/internals/anti-entropy) and deregistration.
 
 Services registered in Consul clusters where both [Consul Namespaces](/docs/enterprise/namespaces)<EnterpriseAlert inline />
 and the ACL system are enabled can be registered to specific namespaces that are associated with
-ACL tokens scoped to that namespace. Services registered with a service definition
+ACL tokens scoped to the namespace. Services registered with a service definition
 will not inherit the namespace associated with the ACL token specified in the `token`
-field. The `namespace` field, in addition to the `token` field, must be
-included in the service definition for the service to be registered to the
+field. The `namespace` _and_ the `token` parameters must be included in the service definition for the service to be registered to the
 namespace that the ACL token is scoped to.
 
-The `enable_tag_override` can optionally be specified to disable the
-anti-entropy feature for this service. If `enable_tag_override` is set to
-`TRUE` then external agents can update this service in the
-[catalog](/api/catalog) and modify the tags. Subsequent
-local sync operations by this agent will ignore the updated tags. For
-example, if an external agent modified both the tags and the port for
-this service and `enable_tag_override` was set to `TRUE` then after the next
-sync cycle the service's port would revert to the original value but the
-tags would maintain the updated value. As a counter example: If an
-external agent modified both the tags and port for this service and
-`enable_tag_override` was set to `FALSE` then after the next sync cycle the
-service's port _and_ the tags would revert to the original value and all
-modifications would be lost.
+### Health Checks
 
-It's important to note that this applies only to the locally registered
-service. If you have multiple nodes all registering the same service
-their `enable_tag_override` configuration and all other service
-configuration items are independent of one another. Updating the tags
-for the service registered on one node is independent of the same
-service (by name) registered on another node. If `enable_tag_override` is
-not specified the default value is false. See [anti-entropy
-syncs](/docs/internals/anti-entropy) for more info.
-
-For Consul 0.9.3 and earlier you need to use `enableTagOverride`. Consul 1.0
-supports both `enable_tag_override` and `enableTagOverride` but the latter is
-deprecated and has been removed as of Consul 1.1.
-
-### Checks
-
-A service can have an associated health check. This is a powerful feature as
-it allows a web balancer to gracefully remove failing nodes, a database
-to replace a failed secondary, etc. The health check is strongly integrated in
-the DNS interface as well. If a service is failing its health check or a
-node has any failing system-level check, the DNS interface will omit that
+You can add health checks to your service definition. Health checks perform several safety functions, such as allowing a web balancer to gracefully remove failing nodes and allowing a database
+to replace a failed secondary. The health check functionality is strongly integrated into the DNS interface, as well. If a service is failing its health check or a node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 
-There are several check types that have differing required options as
-[documented here](/docs/agent/checks). The check name is automatically
-generated as `service:<service-id>`. If there are multiple service checks
+The health check name is automatically generated as `service:<service-id>`. If there are multiple service checks
 registered, the ID will be generated as `service:<service-id>:<num>` where
 `<num>` is an incrementing number starting from `1`.
 
--> **Note:** There is more information about [checks here](/docs/agent/checks).
+Consul includes several check types with different options. Refer to the [health checks documentation](/docs/agent/checks) for details.
 
 ### Proxy
 
@@ -202,51 +177,57 @@ for the available configuration options.
 
 ### Connect
 
-The `kind` field is used to optionally identify the service as a [Connect
-proxy](/docs/connect/proxies) instance. This value may be "connect-proxy" for
-[Connect-capable](/docs/connect) proxies representing another service,
-"mesh-gateway" for instances of a [mesh gateway](/docs/connect/mesh-gateway),
-"terminating-gateway" for instances of a [terminating gateway](/docs/connect/terminating-gateway),
-or "ingress-gateway" for instances of a [ingress gateway](/docs/connect/ingress-gateway).
-For typical non-proxy instances the `kind` field must be omitted. The `proxy` field
-is also required for Connect proxy registrations and is only valid if `kind` is
-`connect-proxy`. The only required `proxy` field for a `connect-proxy` is `destination_service_name`.
-For more detail please see [complete proxy configuration
-example](/docs/connect/registration/service-registration#complete-configuration-example)
+The `kind` parameter determines the service's role. Services can be configured to perform several roles, but you must omit the `kind` parameter for typical non-proxy instances.
 
--> **Deprecation Notice:** From version 1.2.0 to 1.3.0, proxy destination was
-specified using `proxy_destination` at the top level. This will continue to work
-until at least 1.5.0 but it's highly recommended to switch to using
-`proxy.destination_service_name`.
+The following roles are supported for service entries:
 
-The `connect` field can be specified to configure
-[Connect](/docs/connect) for a service. This field is available in
-Consul 1.2.0 and later. The `native` value can be set to true to advertise the
-service as [Connect-native](/docs/connect/native). The `sidecar_service`
-field is an optional nested service definition its behavior and defaults are
-described in [Sidecar Service
-Registration](/docs/connect/registration/sidecar-service). If `native` is true,
-it is an error to also specify a sidecar service registration.
+- `connect-proxy`: Defines the configuration for a connect proxy
+- `ingress-gateway`: Defines the configuration for an [ingress gateway](/docs/connect/config-entries/ingress-gateway)
+- `mesh-gateway`: Defines the configuration for a [mesh gateway](/docs/connect/gateways/mesh-gateway#mesh-gateway-configuration)
+- `terminating-gateway`: Defines the configuration for a [terminating gateway](/docs/connect/config-entries/terminating-gateway#terminating-gateway)
 
--> **Deprecation Notice:** From version 1.2.0 to 1.3.0 during beta, Connect
-supported "Managed" proxies which are specified with the `connect.proxy` field.
-[Managed Proxies are deprecated](/docs/connect/proxies/managed-deprecated)
-and the `connect.proxy` field will be removed in a future major release.
+In the service definition example described above, the service is registered as a proxy because the `kind` property is set to `connect-proxy`.
+The `proxy` parameter is also required for Connect proxy registrations and is only valid if `kind` is `connect-proxy`.
+Refer to the [Proxy Service Registration](/docs/connect/registration/service-registration) documentation for details about this type.
+
+When the `kind` parameter is set to `connect-proxy`, the only required parameter for the `proxy` configuration is `destination_service_name`.
+Refer to the [complete proxy configuration example](/docs/connect/registration/service-registration#complete-configuration-example) for additional information.
+
+The `connect` field can be specified to configure [Connect](/docs/connect) for a service. This field is available in Consul 1.2.0 and later. The following parameters are available.
+
+| Parameter         | Description                                                                                                                                       | Default                                                                                                    | Required |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
+| `native`          | Boolean value that advertises the service as [Connect-native](/docs/connect/native). <br/>If set to `true`, do not configure a `sidecar_service`. | `false`                                                                                                    | Optional |
+| `sidecar_service` | Object that defines a nested service definition. <br/>Do not configure if `native` is set to `true`.                                              | See [Sidecar Service Registration](/docs/connect/registration/sidecar-service) for default configurations. | Optional |
+
+-> **Non-service registration roles**: The `kind` values supported for configuration entries are different than what is supported for service registrations. Refer to the [Configuration Entries](/docs/connect/config-entries) documentation for information about non-service registration types.
+
+#### Deprecated parameters
+
+Different Consul Connect parameters are supported for different Consul versions. The following table describes changes applicable to service discovery.
+
+| Parameter           | Description                                                                                          | Consul version               | Status                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------- |
+| `proxy_destination` | Specified the proxy destination **in the root level** of the definition file.                        | 1.2.0 to 1.3.0               | Deprecated since 1.5.0. <br/> Use `proxy.destination_service_name` instead. |
+| `connect.proxy`     | Specified "managed" proxies, [which have been deprecated](/docs/connect/proxies/managed-deprecated). | 1.2.0 (beta) to 1.3.0 (beta) | Deprecated.                                                                 |
 
 ### DNS SRV Weights
 
-The `weights` field is an optional field to specify the weight of a service in
-DNS SRV responses. If this field is not specified, its default value is:
-`"weights": {"passing": 1, "warning": 1}`. When a service is `critical`, it is
-excluded from DNS responses. Services with warning checks are included in
-responses by default, but excluded if the optional param `only_passing = true`
-is present in agent DNS configuration or `?passing` is used via the API.
+You can configure how the service responds to DNS SRV requests by specifying a set of states/weights in the `weights` field.
 
-When DNS SRV requests are made, the response will include the weights specified
-given the state of the service. This allows some instances to be given higher
-weight if they have more capacity, and optionally allows reducing load on
-services with checks in `warning` status by giving passing instances a higher
-weight.
+#### `weights`
+
+When DNS SRV requests are made, the response will include the weights specified for the given state of the service.
+This allows some instances to be given higher weight if they have more capacity. It also allows load reduction on
+services with checks in `warning` status by giving passing instances a higher weight.
+
+| Parameter | Description                                                                 | Default                                                                                       | Required |
+| --------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | -------- |
+| `STATE`   | Integer value indicating its weight. A higher number indicates more weight. | If not specified, the following weights are used: <br/> `"passing" : 1` <br/> `"warning" : 1` | Optional |
+
+If a service is `critical`, it is excluded from DNS responses.
+Services with warning checks are included in responses by default, but excluded if the optional param `only_passing = true`
+is present in the agent DNS configuration or the `passing` query parameter is used via the API.
 
 ### Enable Tag Override and Anti-Entropy
 
@@ -277,12 +258,12 @@ deprecated and has been removed as of Consul 1.1.
 
 ### Tagged Addresses
 
-Tagged addresses are additional addresses which may be defined for a node or
+Tagged addresses are additional addresses that may be defined for a node or
 service. Tagged addresses can be used by remote agents and services as alternative
 addresses for communicating with the given node or service. Multiple tagged
 addresses may be configured on a node or service.
 
-The syntax for defining a tagged address is as follows.
+The following example describes the syntax for defining a tagged address.
 
 <CodeTabs heading="Tagged address format">
 
@@ -316,19 +297,19 @@ service {
 
 </CodeTabs>
 
-Consul supports several tagged address types. The various types and their use
-cases are detailed below.
+The following table provides an overview of the various tagged address types supported by Consul.
 
-#### LAN
+| Type    | Description                                                                                                                                                                                                                                                                                            | Tags                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| LAN     | LAN addresses are intended to be directly accessible only from services within the same Consul data center. See [LAN tags](#lan-tags) for details.                                                                                                                                                     | `lan` <br/> `lan_ipv4` <br/> `lan_ipv6` |
+| Virtual | Virtual tagged addresses are logical address types that can be configured on [Connect](/docs/connect)-enabled services. The virtual address provides a fixed IP address that can be used by downstream services when connecting to an upstream service. See [Virtual tags](#virtual-tags) for details. | `virtual`                               |
+| WAN     | Define a WAN address for the service or node when it should be accessed at an alternate address by services in a remote datacenter. See [WAN tags](#wan-tags) for details.                                                                                                                             | `wan` <br/> `wan_ipv4` <br/> `wan_ipv6` |
 
-LAN addresses are intended to be directly accessible only from services within
-the same Consul data center.
+#### LAN tags
 
-##### Supported tags
-
-* `lan` - The IPv4 LAN address at which the node or service is accessible.
-* `lan_ipv4` - The IPv4 LAN address at which the node or service is accessible.
-* `lan_ipv6` - The IPv6 LAN address at which the node or service is accessible.
+- `lan` - The IPv4 LAN address at which the node or service is accessible.
+- `lan_ipv4` - The IPv4 LAN address at which the node or service is accessible.
+- `lan_ipv6` - The IPv6 LAN address at which the node or service is accessible.
 
 <CodeTabs heading="Example LAN tagged address configuration">
 
@@ -387,26 +368,20 @@ service {
 </CodeBlockConfig>
 </CodeTabs>
 
-#### Virtual
+#### Virtual tags
 
-Virtual tagged addresses are logical address types which can be configured on
-[Connect](/docs/connect)-enabled services. The virtual address provides a fixed
-IP address that can be used by downstream services when connecting to an
-upstream service. Connections to the virtual address are load balanced across
-available instances of a service, provided the following conditions are satisfied:
+Connections to virtual addresses are load balanced across available instances of a service, provided the following conditions are satisfied:
 
 1. [Transparent proxy](/docs/connect/transparent-proxy) is enabled for the
    downstream and upstream services.
 1. The upstream service is not configured for individual instances to be
    [dialed directly](/docs/connect/config-entries/service-defaults#dialeddirectly).
 
--> **Note**: Virtual addresses are not required to be routable IPs within the
+Virtual addresses are not required to be routable IPs within the
 network. They are strictly a control plane construct used to provide a fixed
 address for the instances of a given logical service. Egress connections from
 the proxy to an upstream service will be destined to the IP address of an
 individual service instance, not the virtual address of the logical service.
-
-##### Supported tags
 
 Use the following address tag to specify the logical address at which the
 service can be reached by other services in the mesh.
@@ -454,12 +429,7 @@ service {
 </CodeBlockConfig>
 </CodeTabs>
 
-#### WAN
-
-Define a WAN address for the service or node when it should be accessed at an
-alternate address by services in a remote datacenter.
-
-##### Supported tags
+#### WAN tags
 
 One or more of the following address tags can be configured for a node or service
 to advertise how it should be accessed over the WAN.
@@ -527,7 +497,6 @@ service {
 
 </CodeBlockConfig>
 </CodeTabs>
-
 
 ## Multiple Service Definitions
 
