@@ -1,7 +1,7 @@
 # Techical Writer Review
 
-/website/content/docs/* @trujillo-adam
-/website/content/commands/* @trujillo-adam
-/website/content/api-docs/* @trujillo-adam
+/website/content/docs/* @hashicorp/consul-docs
+/website/content/commands/* @hashicorp/consul-docs
+/website/content/api-docs/* @hashicorp/consul-docs
 
 
