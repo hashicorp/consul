@@ -1,1 +1,1 @@
-Moved to [README.md](./README.md).
+Moved to [docs/README.md](../docs/README.md).

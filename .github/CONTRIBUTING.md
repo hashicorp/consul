@@ -105,10 +105,10 @@ If a dependency is added or change, run `go mod tidy` to update `go.mod` and `go
 
 ## Developer Documentation
 
-Documentation about the Consul code base is under [./contributing],
+Documentation about the Consul code base is under [./docs],
 and godoc package document can be read at [pkg.go.dev/github.com/hashicorp/consul].
 
-[./contributing]: ../contributing/README.md
+[./docs]: ../docs/README.md
 [pkg.go.dev/github.com/hashicorp/consul]: https://pkg.go.dev/github.com/hashicorp/consul
 
 ### Checklists
@@ -116,5 +116,5 @@ and godoc package document can be read at [pkg.go.dev/github.com/hashicorp/consu
 Some common changes that many PRs require such as adding config fields, are
 documented through checklists.
 
-Please check in `contributing/` for any `checklist-*.md` files that might help
+Please check in [docs/](../docs/) for any `checklist-*.md` files that might help
 with your change.
