@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/consul/vendor/github.com/hashicorp/go-hclog"
 	"io/ioutil"
 	"net"
 	"os"
