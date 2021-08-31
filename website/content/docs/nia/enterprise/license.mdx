@@ -35,6 +35,15 @@ Choose one of the following methods (in order of precedence) to set the license:
 
 ~> **Note**: the [options to set the license and the order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) are the same as Consul Enterprise server agents.
 
+### Updating the License
+
+The previous section describes options for [setting the license](#setting-the-license) needed to start running Consul-Terraform-Sync Enterprise. Use the following procedure to update the license when it expires or is near the expiration date:
+
+1. Update the license environment variable or configuration with the new license value or path to the new license file
+1. Stop and restart Consul-Terraform-Sync Enterprise
+
+Once Consul-Terraform-Sync Enterprise starts again, it will pick up the new license and run the tasks with any changes that may have occurred between the stop and restart period.
+
 ## Notification and Termination Behavior
 
 Licenses have an expiration date and a termination date. The termination date is a time at or after the license expires. Consul-Terraform-Sync Enterprise will cease to function once the termination date has passed.
