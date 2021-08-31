@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/hashicorp/consul/vendor/github.com/hashicorp/go-hclog"
 	"io/ioutil"
 	"net"
 	"os"
@@ -915,7 +916,8 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 	c.lock.RUnlock()
 
 	expected := c.ServerSNI(dc, "")
-	for _, chain := range conn.ConnectionState().VerifiedChains {
+	cs := conn.ConnectionState()
+	for _, chain := range cs.VerifiedChains {
 		if len(chain) == 0 {
 			continue
 		}
@@ -925,7 +927,7 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 			Roots: caPool,
 			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		}
-		for _, cert := range chain.PeerCertificates[1:] {
+		for _, cert := range cs.PeerCertificates[1:] {
 			opts.Intermediates.AddCert(cert)
 		}
 		_, err := cs.PeerCertificates[0].Verify(opts)
