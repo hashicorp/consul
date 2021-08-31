@@ -923,8 +923,8 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		opts := x509.VerifyOptions{
 			DNSName:       expected,
 			Intermediates: x509.NewCertPool(),
-			Roots: caPool,
-			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			Roots:         caPool,
+			KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		}
 		for _, cert := range cs.PeerCertificates[1:] {
 			opts.Intermediates.AddCert(cert)
