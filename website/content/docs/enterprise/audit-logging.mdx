@@ -41,9 +41,10 @@ communication channel used for agent communication.
 <Tabs>
 <Tab heading="Log to file">
 
-The following example configures a destination called "My Sink" which stores audit
-events at the file `/tmp/audit.json`. The log file will be rotated either every
-24 hours, or when the log file size is greater than 25165824 bytes (24 megabytes).
+The following example configures a destination called "My Sink". Since rotation is enabled,
+audit events will be stored at files named: `/tmp/audit-<TIMESTAMP>.json`. The log file will 
+be rotated either every 24 hours, or when the log file size is greater than 25165824 bytes 
+(24 megabytes).
 
 <CodeTabs>
 
