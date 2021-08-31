@@ -29,10 +29,9 @@ Note: the [options to set the license and order of precedence](/docs/enterprise/
 
 ### Updating the License
 
-After running Consul-Terraform-Sync Enterprise, your license will eventually approach expiration, and you'll want to update to a new license. To do so, have the new license value at hand or saved in a file to disk.
+The previous section describes options for [setting the license](#setting-the-license) needed to start running Consul-Terraform-Sync Enterprise. Use the following procedure to update the license when it expires or is near the expiration date:
 
-Steps to update to a new license:
-1. Update the license environment variable or configuration that you used to set the prior license with the new license value or file path
+1. Update the license environment variable or configuration with the new license value or path to the new license file
 1. Stop and restart Consul-Terraform-Sync Enterprise
 
 Once Consul-Terraform-Sync Enterprise starts again, it will pick up the new license and run the tasks with any changes that may have occurred between the stop and restart period.
