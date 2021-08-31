@@ -919,12 +919,16 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		if len(chain) == 0 {
 			continue
 		}
-		clientCert := chain[0]
-		_, err := clientCert.Verify(x509.VerifyOptions{
-			DNSName:   expected,
-			Roots:     caPool,
+		opts := x509.VerifyOptions{
+			DNSName:       expected,
+			Intermediates: x509.NewCertPool(),
+			Roots: caPool,
 			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-		})
+		}
+		for _, cert := range chain.PeerCertificates[1:] {
+			opts.Intermediates.AddCert(cert)
+		}
+		_, err := cs.PeerCertificates[0].Verify(opts)
 		if err == nil {
 			return nil
 		}
