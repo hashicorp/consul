@@ -793,10 +793,10 @@ jobs:
     environment:
       ENVOY_VERSION: "1.15.5"
 
-  envoy-integration-test-1_16_4:
+  envoy-integration-test-1_16_5:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.4"
+      ENVOY_VERSION: "1.16.5"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -954,7 +954,7 @@ workflows:
       - envoy-integration-test-1_15_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_4:
+      - envoy-integration-test-1_16_5:
           requires:
             - dev-build
   website:
