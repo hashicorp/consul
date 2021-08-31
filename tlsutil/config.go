@@ -935,7 +935,7 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		}
 		c.logger.Debug("AuthorizeServerConn failed certificate validation", "error", err)
 	}
-	return fmt.Errorf("AuthorizeServerConn failed certificate validation with a CommonName of %v", expected)
+	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a CommonName of %v", expected)
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into
