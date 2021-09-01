@@ -1,0 +1,4 @@
+```release-note:improvement
+checks: add failures_before_warning setting for interval checks.
+```
+
