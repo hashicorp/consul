@@ -660,8 +660,39 @@
         "path": "nia/terraform-modules"
       },
       {
+        "title": "Enterprise",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/enterprise"
+          },
+
+          {
+            "title": "License",
+            "path": "nia/enterprise/license"
+          },
+          {
+            "title": "Terraform Cloud Driver",
+            "href": "/docs/nia/network-drivers/terraform-cloud"
+          }
+        ]
+      },
+      {
         "title": "Network Drivers",
-        "path": "nia/network-drivers"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/network-drivers"
+          },
+          {
+            "title": "Terraform",
+            "path": "nia/network-drivers/terraform"
+          },
+          {
+            "title": "Terraform Cloud",
+            "path": "nia/network-drivers/terraform-cloud"
+          }
+        ]
       },
       {
         "title": "Compatibility",

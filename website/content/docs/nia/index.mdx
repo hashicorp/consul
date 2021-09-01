@@ -23,11 +23,13 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 **Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
-**Network Drivers** - Network drivers are used by Consul-Terraform-Sync to execute and update network infrastructure. Drivers transform Consul service level information into downstream changes by understanding and abstracting API and resource details tied to specific network infrastructure.
+**Network Drivers** - Consul-Terraform-Sync uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
 
 **Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
 **Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
+
+**Terraform Cloud** - Per the [Terraform documentation](https://www.terraform.io/docs/cloud/index.html), "Terraform Cloud" describes both Terraform Cloud and Terraform Enterprise, which are different distributions of the same application. Documentation will apply to both distributions unless specifically stated otherwise.
 
 **Terraform Module** - A [Terraform module](https://www.terraform.io/docs/configuration/modules.html) is a container for multiple Terraform resources that are used together.
 
