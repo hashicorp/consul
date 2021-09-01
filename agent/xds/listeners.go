@@ -1013,7 +1013,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 		// Resolvers are optional.
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
@@ -1048,7 +1048,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		if hasResolver {
 			// generate 1 filter chain for each service subset
 			for subsetName := range resolver.Subsets {
-				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
 					cfgSnap,
