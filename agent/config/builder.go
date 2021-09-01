@@ -1414,12 +1414,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 		if err := s.Validate(); err != nil {
 			return fmt.Errorf("service %q: %s", s.Name, err)
 		}
-		// Check for errors in the service check definitions
-		for _, c := range s.Checks {
-			if err := c.Validate(); err != nil {
-				return fmt.Errorf("check %q: %s", c.Name, err)
-			}
-		}
 	}
 	// Check for errors in the node check definitions
 	for _, c := range rt.Checks {
