@@ -1,0 +1,64 @@
+---
+layout: docs
+page_title: Consul-Terraform-Sync Enterprise License
+description: >-
+  Consul-Terraform-Sync Enterprise License
+---
+
+# Consul-Terraform-Sync Enterprise License
+<EnterpriseAlert>
+  Licenses are only required for Consul-Terraform-Sync Enterprise
+</EnterpriseAlert>
+
+Consul-Terraform-Sync Enterprise binaries require a [Consul Enterprise license](/docs/enterprise/license/overview) to run. There is no Consul-Terraform-Sync Enterprise specific license. As a result, Consul-Terraform-Sync Enterprise's licensing is very similar to Consul Enterprise.
+
+All Consul-Terraform-Sync Enterprise features are available with a valid Consul Enterprise license, regardless of your Consul Enterprise packaging or pricing model.
+
+To get a trial license for Consul-Terraform-Sync Enterprise, you can sign-up for the [trial license for Consul Enterprise](/docs/enterprise/license/faq#q-where-can-users-get-a-trial-license-for-consul-enterprise).
+
+## Setting the License
+
+Choose one of the following methods (in order of precedence) to set the license:
+
+1. Set the `CONSUL_LICENSE` environment variable to the license string.
+ ```shell-session
+ export CONSUL_LICENSE=<LICENSE_VALUE>
+ ```
+2. Set the `CONSUL_LICENSE_PATH` environment variable to the path of the file containing the license.
+ ```shell-session
+ export CONSUL_LICENSE_PATH=<PATH>/<TO>/<FILE>
+ ```
+3. Configure the [`license_path`](/docs/nia/configuration#license_path) option in the configuration file to point to the file containing the license.
+ ```hcl
+ license_path = "<PATH>/<TO>/<FILE>"
+ ```
+
+~> **Note**: the [options to set the license and the order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) are the same as Consul Enterprise server agents.
+
+### Updating the License
+
+The previous section describes options for [setting the license](#setting-the-license) needed to start running Consul-Terraform-Sync Enterprise. Use the following procedure to update the license when it expires or is near the expiration date:
+
+1. Update the license environment variable or configuration with the new license value or path to the new license file
+1. Stop and restart Consul-Terraform-Sync Enterprise
+
+Once Consul-Terraform-Sync Enterprise starts again, it will pick up the new license and run the tasks with any changes that may have occurred between the stop and restart period.
+
+## Notification and Termination Behavior
+
+Licenses have an expiration date and a termination date. The termination date is a time at or after the license expires. Consul-Terraform-Sync Enterprise will cease to function once the termination date has passed.
+
+The time between the expiration and termination dates is a grace period. Grace periods are generally 24-hours, but you should refer to your license agreement for complete terms of your grace period.
+
+When approaching expiration and termination, Consul-Terraform-Sync Enterprise will provide notifications in the system logs:
+
+| Time period                                 | Behavior                          |
+|---------------------------------------------|-----------------------------------|
+| 30 days before expiration                   | Warning-level log every 24-hours  |
+| 7 days before expiration                    | Warning-level log every 1 hour    |
+| 1 hour before expiration                    | Warning-level log every 1 minute  |
+| 1 day before expiration                     | Warning-level log every 5 minutes |
+| At or after expiration (before termination) | Error-level log every 1 minute    |
+| At or after termination                     | Error-level log and exit          |
+
+~> **Note**: Notification frequency and [grace period](/docs/enterprise/license/faq#q-is-there-a-grace-period-when-licenses-expire) behavior is the same as Consul Enterprise.
