@@ -50,7 +50,7 @@ type Namespaces struct {
 	c *Client
 }
 
-// Operator returns a handle to the operator endpoints.
+// Namespaces returns a handle to the namespaces endpoints.
 func (c *Client) Namespaces() *Namespaces {
 	return &Namespaces{c}
 }
