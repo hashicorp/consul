@@ -6,6 +6,7 @@ description: >-
 ---
 
 # Consul-Terraform-Sync Enterprise License
+
 <EnterpriseAlert>
   Licenses are only required for Consul-Terraform-Sync Enterprise
 </EnterpriseAlert>
@@ -21,19 +22,25 @@ To get a trial license for Consul-Terraform-Sync Enterprise, you can sign-up for
 Choose one of the following methods (in order of precedence) to set the license:
 
 1. Set the `CONSUL_LICENSE` environment variable to the license string.
- ```shell-session
- export CONSUL_LICENSE=<LICENSE_VALUE>
- ```
+
+```shell-session
+export CONSUL_LICENSE=<LICENSE_VALUE>
+```
+
 2. Set the `CONSUL_LICENSE_PATH` environment variable to the path of the file containing the license.
- ```shell-session
- export CONSUL_LICENSE_PATH=<PATH>/<TO>/<FILE>
- ```
+
+```shell-session
+export CONSUL_LICENSE_PATH=<PATH>/<TO>/<FILE>
+```
+
 3. Configure the [`license_path`](/docs/nia/configuration#license_path) option in the configuration file to point to the file containing the license.
- ```hcl
- license_path = "<PATH>/<TO>/<FILE>"
- ```
+
+```hcl
+license_path = "<PATH>/<TO>/<FILE>"
+```
 
 ~> **Note**: the [options to set the license and the order of precedence](/docs/enterprise/license/overview#binaries-without-built-in-licenses) are the same as Consul Enterprise server agents.
+Visit the [Enterprise License Tutorial](https://learn.hashicorp.com/tutorials/nomad/hashicorp-enterprise-license?in=consul/enterprise) for detailed steps on how to install the license key.
 
 ### Updating the License
 
@@ -53,7 +60,7 @@ The time between the expiration and termination dates is a grace period. Grace p
 When approaching expiration and termination, Consul-Terraform-Sync Enterprise will provide notifications in the system logs:
 
 | Time period                                 | Behavior                          |
-|---------------------------------------------|-----------------------------------|
+| ------------------------------------------- | --------------------------------- |
 | 30 days before expiration                   | Warning-level log every 24-hours  |
 | 7 days before expiration                    | Warning-level log every 1 hour    |
 | 1 hour before expiration                    | Warning-level log every 1 minute  |
