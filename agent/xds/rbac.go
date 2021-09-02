@@ -457,6 +457,16 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 	return rbac, nil
 }
 
+// removeSameSourceIntentions will iterate over intentions and remove any lower precedence
+// intentions that share the same source. Intentions are sorted by descending precedence
+// so once a source has been seen, additional intentions with the same source can be dropped.
+//
+// Example for the default/web service:
+// input: [(backend/* -> default/web), (backend/* -> default/*)]
+// output: [(backend/* -> default/web)]
+//
+// (backend/* -> default/*) was dropped because it is already known that any service
+// in the backend namespace can target default/web.
 func removeSameSourceIntentions(intentions structs.Intentions) structs.Intentions {
 	if len(intentions) < 2 {
 		return intentions
