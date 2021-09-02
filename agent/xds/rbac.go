@@ -489,10 +489,11 @@ func removeSameSourceIntentions(intentions structs.Intentions) structs.Intention
 // 'against' service name via wildcard rules.
 //
 // For instance:
-// - (web, api)               => false, because these have no wildcards
-// - (web, *)                 => true,  because "all services" includes "web"
-// - (default/web, default/*) => true,  because "all services in the default NS" includes "default/web"
-// - (default/*, */*)         => true,  "any service in any NS" includes "all services in the default NS"
+// - (web, api)               		=> false, because these have no wildcards
+// - (web, *)                 		=> true,  because "all services" includes "web"
+// - (default/web, default/*) 		=> true,  because "all services in the default NS" includes "default/web"
+// - (default/*, */*)         		=> true,  "any service in any NS" includes "all services in the default NS"
+// - (default/default/*, other/*/*) => false, "any service in "other" partition" does NOT include services in the default partition"
 func ixnSourceMatches(tester, against structs.ServiceName) bool {
 	// We assume that we can't have the same intention twice before arriving
 	// here.
@@ -505,13 +506,19 @@ func ixnSourceMatches(tester, against structs.ServiceName) bool {
 		return false
 	}
 
+	matchesAP := tester.PartitionOrDefault() == against.PartitionOrDefault() || against.PartitionOrDefault() == structs.WildcardSpecifier
 	matchesNS := tester.NamespaceOrDefault() == against.NamespaceOrDefault() || against.NamespaceOrDefault() == structs.WildcardSpecifier
 	matchesName := tester.Name == against.Name || against.Name == structs.WildcardSpecifier
-	return matchesNS && matchesName
+	return matchesAP && matchesNS && matchesName
 }
 
 // countWild counts the number of wildcard values in the given namespace and name.
 func countWild(src structs.ServiceName) int {
+	// If Partition is wildcard, panic because it's not supported
+	if src.PartitionOrDefault() == structs.WildcardSpecifier {
+		panic("invalid state: intention references wildcard partition")
+	}
+
 	// If NS is wildcard, it must be 2 since wildcards only follow exact
 	if src.NamespaceOrDefault() == structs.WildcardSpecifier {
 		return 2
