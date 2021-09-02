@@ -887,14 +887,3 @@ func makeServiceNameSlice(slice []string) []structs.ServiceName {
 	}
 	return out
 }
-
-func unmakeServiceNameSlice(slice []structs.ServiceName) []string {
-	if len(slice) == 0 {
-		return nil
-	}
-	var out []string
-	for _, src := range slice {
-		out = append(out, src.String())
-	}
-	return out
-}

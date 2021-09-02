@@ -296,15 +296,16 @@ func (p *rbacPermission) Flatten() *envoy_rbac_v3.Permission {
 	return andPermissions(parts)
 }
 
+// simplifyNotSourceSlice will collapse NotSources elements together if any element is
+// a subset of another.
+// For example "default/web" is a subset of "default/*" because it is covered by the wildcard.
 func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceName {
 	if len(notSources) <= 1 {
 		return notSources
 	}
 
-	// Collapse NotSources elements together if any element is a subset of
-	// another.
-
 	// Sort, keeping the least wildcarded elements first.
+	// More specific elements have a higher precedence over more wildcarded elements.
 	sort.SliceStable(notSources, func(i, j int) bool {
 		return countWild(notSources[i]) < countWild(notSources[j])
 	})
