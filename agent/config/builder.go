@@ -865,7 +865,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
 		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
 
-		ACLTokenReplication: boolValWithDefault(c.ACL.TokenReplication, boolVal(c.EnableACLReplication)),
+		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
 			DataDir:             dataDir,

@@ -180,7 +180,6 @@ type Config struct {
 	DisableUpdateCheck               *bool               `mapstructure:"disable_update_check"`
 	DiscardCheckOutput               *bool               `mapstructure:"discard_check_output"`
 	DiscoveryMaxStale                *string             `mapstructure:"discovery_max_stale"`
-	EnableACLReplication             *bool               `mapstructure:"enable_acl_replication"`
 	EnableAgentTLSForChecks          *bool               `mapstructure:"enable_agent_tls_for_checks"`
 	EnableCentralServiceConfig       *bool               `mapstructure:"enable_central_service_config"`
 	EnableDebug                      *bool               `mapstructure:"enable_debug"`

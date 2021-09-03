@@ -14,6 +14,8 @@ type DeprecatedConfig struct {
 	ACLMasterToken *string `mapstructure:"acl_master_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLReplicationToken *string `mapstructure:"acl_replication_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.enable_token_replication"
+	EnableACLReplication *bool `mapstructure:"enable_acl_replication"`
 
 	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
 	ACLDatacenter *string `mapstructure:"acl_datacenter"`
@@ -57,6 +59,13 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 		}
 		d.Config.ACL.TokenReplication = pBool(true)
 		warns = append(warns, deprecationWarning("acl_replication_token", "acl.tokens.replication"))
+	}
+
+	if dep.EnableACLReplication != nil {
+		if d.Config.ACL.TokenReplication == nil {
+			d.Config.ACL.TokenReplication = dep.EnableACLReplication
+		}
+		warns = append(warns, deprecationWarning("enable_acl_replication", "acl.enable_token_replication"))
 	}
 
 	if dep.ACLDatacenter != nil {
