@@ -18,7 +18,7 @@ func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.Enterpri
 		return BadRequestError{Reason: "Invalid query parameter: \"ns\" - Namespaces are a Consul Enterprise feature"}
 	}
 
-	return parseEntMetaPartition(req, entMeta)
+	return s.parseEntMetaPartition(req, entMeta)
 }
 
 func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, _ bool) error {
@@ -75,7 +75,7 @@ func (s *HTTPHandlers) uiTemplateDataTransform(data map[string]interface{}) erro
 	return nil
 }
 
-func parseEntMetaPartition(req *http.Request, meta *structs.EnterpriseMeta) error {
+func (s *HTTPHandlers) parseEntMetaPartition(req *http.Request, meta *structs.EnterpriseMeta) error {
 	if headerAP := req.Header.Get("X-Consul-Partition"); headerAP != "" {
 		return BadRequestError{Reason: "Invalid header: \"X-Consul-Partition\" - Partitions are a Consul Enterprise feature"}
 	}

@@ -235,7 +235,7 @@ func (s *HTTPHandlers) CatalogNodes(resp http.ResponseWriter, req *http.Request)
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	s.parseSource(req, &args.Source)
-	if err := parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 	args.NodeMetaFilters = s.parseMetaFilter(req)
