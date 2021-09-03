@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -791,23 +792,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Create the ACL
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testRegisterRules,
-		},
-		WriteRequest: structs.WriteRequest{
-			Token: "root",
-		},
-	}
-	var token string
-	if err := a.RPC("ACL.Apply", &arg, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	token := createToken(t, a, testRegisterRules)
 
 	// Create service (disallowed)
 	srv1 := &structs.NodeService{
@@ -927,6 +912,40 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	if token := a.State.ServiceToken(structs.NewServiceID("api", nil)); token != "" {
 		t.Fatalf("bad: %s", token)
 	}
+}
+
+type RPC interface {
+	RPC(method string, args interface{}, reply interface{}) error
+}
+
+func createToken(t *testing.T, rpc RPC, policyRules string) string {
+	t.Helper()
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  "the-policy",
+			Rules: policyRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err := rpc.RPC("ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	require.NoError(t, err)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: token,
+			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err = rpc.RPC("ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	require.NoError(t, err)
+	return token
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
@@ -1222,23 +1241,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, a.RPC, dc)
 
-	// Create the ACL
-	arg := structs.ACLRequest{
-		Datacenter: dc,
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testRegisterRules,
-		},
-		WriteRequest: structs.WriteRequest{
-			Token: "root",
-		},
-	}
-	var token string
-	if err := a.RPC("ACL.Apply", &arg, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	token := createToken(t, a, testRegisterRules)
 
 	// Create services using the root token
 	srv1 := &structs.NodeService{
