@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -69,6 +70,10 @@ const (
 )
 
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
+	slowHackValidUntil := time.Now().Add(1 * time.Minute)
+	slowHackDisabled := false
+	s.Logger.Info("HACK: forcing endpoints containing the string 'slow' to wait", "until", slowHackValidUntil)
+
 	// Loop state
 	var (
 		cfgSnap     *proxycfg.ConfigSnapshot
@@ -188,6 +193,26 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 
 			// index and hash the xDS structures
 			newResourceMap := indexResources(generator.Logger, newRes)
+
+			// HACK to prove a theory
+			if !slowHackDisabled && time.Now().Before(slowHackValidUntil) {
+				if em, ok := newResourceMap.Index[EndpointType]; ok {
+					var deleteme []string
+					for k, _ := range em {
+						if strings.Contains(k, "slow") {
+							deleteme = append(deleteme, k)
+						}
+					}
+					for _, k := range deleteme {
+						delete(em, k)
+					}
+				}
+			} else {
+				if !slowHackDisabled {
+					slowHackDisabled = true
+					s.Logger.Info("HACK: forcing endpoints containing the string 'slow' to no longer wait")
+				}
+			}
 
 			if err := populateChildIndexMap(newResourceMap); err != nil {
 				return status.Errorf(codes.Unavailable, "failed to index xDS resource versions: %v", err)
