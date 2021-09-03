@@ -275,40 +275,6 @@ func TestACLEndpoint_Apply_RootChange(t *testing.T) {
 	testutil.RequireErrorContains(t, err, "root ACL")
 }
 
-func TestACLEndpoint_Get(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-		},
-		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-	}
-	var out string
-	err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-	require.NoError(t, err)
-
-	getR := structs.ACLSpecificRequest{
-		Datacenter: "dc1",
-		ACL:        out,
-	}
-	var acls structs.IndexedACLs
-	err = msgpackrpc.CallWithCodec(codec, "ACL.Get", &getR, &acls)
-	require.NoError(t, err)
-	require.NotEqual(t, uint64(0), acls.Index)
-	require.Len(t, acls.ACLs, 1)
-	require.Equal(t, out, acls.ACLs[0].ID)
-}
-
 func TestACLEndpoint_GetPolicy(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -376,75 +342,6 @@ func TestACLEndpoint_GetPolicy_Management(t *testing.T) {
 	var resp structs.ACLPolicyResolveLegacyResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &req, &resp))
 	require.Equal(t, "manage", resp.Parent)
-}
-
-func TestACLEndpoint_List(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-	var expectedIDs []string
-
-	for i := 0; i < 5; i++ {
-		arg := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "User token",
-				Type: structs.ACLTokenTypeClient,
-			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
-		}
-		var out string
-		err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out)
-		require.NoError(t, err)
-		expectedIDs = append(expectedIDs, out)
-	}
-
-	getR := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
-	}
-	var acls structs.IndexedACLs
-	err := msgpackrpc.CallWithCodec(codec, "ACL.List", &getR, &acls)
-	require.NoError(t, err)
-	require.NotEqual(t, uint64(0), acls.Index)
-
-	// 5  + master
-	require.Len(t, acls.ACLs, 6)
-	var actualIDs []string
-	for i := 0; i < len(acls.ACLs); i++ {
-		s := acls.ACLs[i]
-		if s.ID == anonymousToken || s.ID == TestDefaultMasterToken {
-			continue
-		}
-
-		require.Equal(t, "User token", s.Name)
-
-		actualIDs = append(actualIDs, s.ID)
-	}
-
-	require.ElementsMatch(t, expectedIDs, actualIDs)
-}
-
-func TestACLEndpoint_List_Denied(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-	waitForLeaderEstablishment(t, srv)
-
-	getR := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var acls structs.IndexedACLs
-	err := msgpackrpc.CallWithCodec(codec, "ACL.List", &getR, &acls)
-	require.True(t, acl.IsErrPermissionDenied(err), "Err %v is not an acl.ErrPermissionDenied", err)
 }
 
 func TestACLEndpoint_ReplicationStatus(t *testing.T) {

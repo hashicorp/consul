@@ -6,10 +6,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
@@ -141,94 +139,10 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	return nil
 }
 
-// Get is used to retrieve a single ACL
-func (a *ACL) Get(args *structs.ACLSpecificRequest,
-	reply *structs.IndexedACLs) error {
-	if done, err := a.srv.ForwardRPC("ACL.Get", args, reply); done {
-		return err
-	}
-
-	// NOTE: This has no ACL check because legacy ACLs were managed with
-	// the secrets and therefore the argument to the Get request is
-	// authorization in and of itself.
-
-	// Verify we are allowed to serve this request
-	if !a.srv.config.ACLsEnabled {
-		return acl.ErrDisabled
-	}
-
-	return a.srv.blockingQuery(&args.QueryOptions,
-		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, token, err := state.ACLTokenGetBySecret(ws, args.ACL, nil)
-			if err != nil {
-				return err
-			}
-
-			// Converting an ACLToken to an ACL will return nil and an error
-			// (which we ignore) when it is unconvertible.
-			//
-			// This also means we won't have to check expiration times since
-			// any legacy tokens never had expiration times and no non-legacy
-			// tokens can be converted.
-
-			var acl *structs.ACL
-			if token != nil {
-				acl, _ = token.Convert()
-			}
-
-			reply.Index = index
-			if acl != nil {
-				reply.ACLs = structs.ACLs{acl}
-			} else {
-				reply.ACLs = nil
-			}
-			return nil
-		})
+func (a *ACL) Get(*structs.ACLSpecificRequest, *structs.IndexedACLs) error {
+	return fmt.Errorf("ACL.Get: the legacy ACL system has been removed")
 }
 
-// List is used to list all the ACLs
-func (a *ACL) List(args *structs.DCSpecificRequest,
-	reply *structs.IndexedACLs) error {
-	if done, err := a.srv.ForwardRPC("ACL.List", args, reply); done {
-		return err
-	}
-
-	// Verify we are allowed to serve this request
-	if !a.srv.config.ACLsEnabled {
-		return acl.ErrDisabled
-	}
-
-	// Verify token is permitted to list ACLs
-	// NOTES: Previously with legacy ACL there was no read-only ACL permissions
-	// and this check for ACLWrite is basically what it did before.
-	if authz, err := a.srv.ResolveToken(args.Token); err != nil {
-		return err
-	} else if authz.ACLWrite(nil) != acl.Allow {
-		return acl.ErrPermissionDenied
-	}
-
-	return a.srv.blockingQuery(&args.QueryOptions,
-		&reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, false, true, "", "", "", nil, nil)
-			if err != nil {
-				return err
-			}
-
-			now := time.Now()
-
-			var acls structs.ACLs
-			for _, token := range tokens {
-				if token.IsExpired(now) {
-					continue
-				}
-				if acl, err := token.Convert(); err == nil && acl != nil {
-					acls = append(acls, acl)
-				}
-			}
-
-			reply.Index, reply.ACLs = index, acls
-			return nil
-		})
+func (a *ACL) List(*structs.DCSpecificRequest, *structs.IndexedACLs) error {
+	return fmt.Errorf("ACL.List: the legacy ACL system has been removed")
 }
