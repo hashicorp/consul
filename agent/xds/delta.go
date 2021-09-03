@@ -384,6 +384,10 @@ type xDSDeltaType struct {
 	// sentToEnvoyOnce is true after we've sent one response to envoy.
 	sentToEnvoyOnce bool
 
+	// subscriptions is the list of currently subscribed envoy resources. If
+	// the wildcard is in play this will be empty.
+	subscriptions map[string]struct{}
+
 	// resourceVersions is the current view of CONFIRMED/ACKed updates to
 	// envoy's view of the loaded resources.
 	//
@@ -398,7 +402,16 @@ type xDSDeltaType struct {
 	pendingUpdates map[string]map[string]PendingUpdate
 }
 
+func (t *xDSDeltaType) subscribed(name string) bool {
+	if t.wildcard {
+		return true
+	}
+	_, subscribed := t.subscriptions[name]
+	return subscribed
+}
+
 type PendingUpdate struct {
+	Remove         bool
 	Version        string
 	ChildResources []string // optional
 }
@@ -414,6 +427,7 @@ func newDeltaType(
 		stream:           stream,
 		typeURL:          typeUrl,
 		allowEmptyFn:     allowEmptyFn,
+		subscriptions:    make(map[string]struct{}),
 		resourceVersions: make(map[string]string),
 		pendingUpdates:   make(map[string]map[string]PendingUpdate),
 	}
@@ -484,6 +498,11 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 		logger.Trace("setting initial resource versions for stream",
 			"resources", req.InitialResourceVersions)
 		t.resourceVersions = req.InitialResourceVersions
+		if !t.wildcard {
+			for k, _ := range req.InitialResourceVersions {
+				t.subscriptions[k] = struct{}{}
+			}
+		}
 	}
 
 	if !t.wildcard {
@@ -509,8 +528,13 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 			//
 			// We handle that here by ALWAYS wiping the version so the diff
 			// decides to send the value.
-			_, alreadySubscribed := t.resourceVersions[name]
-			t.resourceVersions[name] = "" // start with no version
+			_, alreadySubscribed := t.subscriptions[name]
+			t.subscriptions[name] = struct{}{}
+
+			// Reset the tracked version so we force a reply.
+			if _, alreadyTracked := t.resourceVersions[name]; alreadyTracked {
+				t.resourceVersions[name] = ""
+			}
 
 			if alreadySubscribed {
 				logger.Trace("re-subscribing resource for stream", "resource", name)
@@ -520,11 +544,12 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 		}
 
 		for _, name := range req.ResourceNamesUnsubscribe {
-			if _, ok := t.resourceVersions[name]; !ok {
+			if _, ok := t.subscriptions[name]; !ok {
 				continue
 			}
-			delete(t.resourceVersions, name)
+			delete(t.subscriptions, name)
 			logger.Trace("unsubscribing resource for stream", "resource", name)
+			// NOTE: we'll let the normal differential comparison handle cleaning up resourceVersions
 		}
 	}
 
@@ -538,26 +563,37 @@ func (t *xDSDeltaType) ack(nonce string) {
 	}
 
 	for name, obj := range pending {
-		if obj.Version == "" {
+		if obj.Remove {
+			if obj.Version != "" {
+				panic("ACK: version is not empty for: " + name)
+			}
 			delete(t.resourceVersions, name)
-		} else {
-			t.resourceVersions[name] = obj.Version
+			continue
 		}
-		if t.childType != nil && obj.Version != "" {
+
+		if obj.Version == "" {
+			panic("ACK: version is empty for: " + name)
+		}
+		t.resourceVersions[name] = obj.Version
+		if t.childType != nil {
 			// This branch only matters on UPDATE, since we already have
 			// mechanisms to clean up orphaned resources.
 			for _, childName := range obj.ChildResources {
-				if _, exist := t.childType.resourceVersions[childName]; exist {
-					t.generator.Logger.Trace(
-						"triggering implicit update of resource",
-						"typeUrl", t.typeURL,
-						"resource", name,
-						"childTypeUrl", t.childType.typeURL,
-						"childResource", childName,
-					)
-					// Basically manifest this as a re-subscribe
-					t.childType.resourceVersions[childName] = ""
+				if _, exist := t.childType.resourceVersions[childName]; !exist {
+					continue
 				}
+				if !t.subscribed(childName) {
+					continue
+				}
+				t.generator.Logger.Trace(
+					"triggering implicit update of resource",
+					"typeUrl", t.typeURL,
+					"resource", name,
+					"childTypeUrl", t.childType.typeURL,
+					"childResource", childName,
+				)
+				// Basically manifest this as a re-subscribe/re-sync
+				t.childType.resourceVersions[childName] = ""
 			}
 		}
 	}
@@ -640,30 +676,73 @@ func (t *xDSDeltaType) createDeltaResponse(
 		hasRelevantUpdates = false
 		updates            = make(map[string]PendingUpdate)
 	)
-	// First find things that need updating or deleting
-	for name, envoyVers := range t.resourceVersions {
-		currVers, ok := currentVersions[name]
-		if !ok {
-			if remove {
-				hasRelevantUpdates = true
+
+	if t.wildcard {
+		// First find things that need updating or deleting
+		for name, envoyVers := range t.resourceVersions {
+			currVers, ok := currentVersions[name]
+			if !ok {
+				if remove {
+					hasRelevantUpdates = true
+				}
+				updates[name] = PendingUpdate{Remove: true}
+			} else if currVers != envoyVers {
+				if upsert {
+					hasRelevantUpdates = true
+				}
+				updates[name] = PendingUpdate{Version: currVers}
 			}
-			updates[name] = PendingUpdate{Version: ""}
-		} else if currVers != envoyVers {
+		}
+
+		// Now find new things
+		for name, currVers := range currentVersions {
+			if _, known := t.resourceVersions[name]; known {
+				continue
+			}
 			if upsert {
 				hasRelevantUpdates = true
 			}
 			updates[name] = PendingUpdate{Version: currVers}
 		}
-	}
+	} else {
+		// First find things that need updating or deleting
 
-	// Now find new things
-	if t.wildcard {
-		for name, currVers := range currentVersions {
-			if _, ok := t.resourceVersions[name]; !ok {
+		// Walk the list of things currently stored in envoy
+		for name, envoyVers := range t.resourceVersions {
+			if t.subscribed(name) {
+				currVers, ok := currentVersions[name]
+				if ok {
+					if currVers != envoyVers {
+						if upsert {
+							hasRelevantUpdates = true
+						}
+						updates[name] = PendingUpdate{Version: currVers}
+					}
+				} else {
+					// TODO: should we do anything; this might be an eventual consistency hole
+					// i guess we'll let it ride?
+				}
+			} else {
+				if remove {
+					hasRelevantUpdates = true
+				}
+				updates[name] = PendingUpdate{Remove: true}
+			}
+		}
+
+		// Now find new things not in envoy yet
+		for name, _ := range t.subscriptions {
+			if _, known := t.resourceVersions[name]; known {
+				continue
+			}
+			currVers, ok := currentVersions[name]
+			if ok {
 				updates[name] = PendingUpdate{Version: currVers}
 				if upsert {
 					hasRelevantUpdates = true
 				}
+			} else {
+				// TODO: should we do anything here? or should we just wait and see?
 			}
 		}
 	}
@@ -679,12 +758,18 @@ func (t *xDSDeltaType) createDeltaResponse(
 	}
 	realUpdates := make(map[string]PendingUpdate)
 	for name, obj := range updates {
-		if obj.Version == "" {
+		if obj.Remove {
+			if obj.Version != "" {
+				panic("DIFF: version is not empty for: " + name)
+			}
 			if remove {
 				resp.RemovedResources = append(resp.RemovedResources, name)
-				realUpdates[name] = PendingUpdate{Version: ""}
+				realUpdates[name] = PendingUpdate{Remove: true}
 			}
 		} else if upsert {
+			if obj.Version == "" {
+				panic("DIFF: version is empty for: " + name)
+			}
 			resources, ok := resourceMap.Index[t.typeURL]
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown type url: %s", t.typeURL)
