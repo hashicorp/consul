@@ -19,6 +19,11 @@ type DeprecatedConfig struct {
 
 	// DEPRECATED (ACL-Legacy-Compat) - moved to "primary_datacenter"
 	ACLDatacenter *string `mapstructure:"acl_datacenter"`
+
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.default_policy"
+	ACLDefaultPolicy *string `mapstructure:"acl_default_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.down_policy"
+	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
 }
 
 func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
@@ -76,6 +81,20 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 		// when the acl_datacenter config is used it implicitly enables acls
 		d.Config.ACL.Enabled = pBool(true)
 		warns = append(warns, deprecationWarning("acl_datacenter", "primary_datacenter"))
+	}
+
+	if dep.ACLDefaultPolicy != nil {
+		if d.Config.ACL.DefaultPolicy == nil {
+			d.Config.ACL.DefaultPolicy = dep.ACLDefaultPolicy
+		}
+		warns = append(warns, deprecationWarning("acl_default_policy", "acl.default_policy"))
+	}
+
+	if dep.ACLDownPolicy != nil {
+		if d.Config.ACL.DownPolicy == nil {
+			d.Config.ACL.DownPolicy = dep.ACLDownPolicy
+		}
+		warns = append(warns, deprecationWarning("acl_down_policy", "acl.down_policy"))
 	}
 
 	return d.Config, warns

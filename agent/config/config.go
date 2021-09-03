@@ -131,10 +131,6 @@ type Cache struct {
 // changed and refactored at will since this will break existing setups.
 type Config struct {
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDefaultPolicy *string `mapstructure:"acl_default_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLEnableKeyListPolicy *bool `mapstructure:"acl_enable_key_list_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLTTL                           *string             `mapstructure:"acl_ttl"`

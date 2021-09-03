@@ -21,6 +21,9 @@ acl_token = "token3"
 acl_master_token = "token4"
 acl_replication_token = "token5"
 
+acl_default_policy = "deny"
+acl_down_policy = "async-cache"
+
 `},
 	}
 	patchLoadOptsShims(&opts)
@@ -31,6 +34,8 @@ acl_replication_token = "token5"
 		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
 		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
 		deprecationWarning("acl_datacenter", "primary_datacenter"),
+		deprecationWarning("acl_default_policy", "acl.default_policy"),
+		deprecationWarning("acl_down_policy", "acl.down_policy"),
 		deprecationWarning("acl_master_token", "acl.tokens.master"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
@@ -49,6 +54,8 @@ acl_replication_token = "token5"
 	require.Equal(t, "token3", rt.ACLTokens.ACLDefaultToken)
 	require.Equal(t, "token4", rt.ACLMasterToken)
 	require.Equal(t, "token5", rt.ACLTokens.ACLReplicationToken)
+	require.Equal(t, "deny", rt.ACLResolverSettings.ACLDefaultPolicy)
+	require.Equal(t, "async-cache", rt.ACLResolverSettings.ACLDownPolicy)
 }
 
 func TestLoad_DeprecatedConfig_ACLReplication(t *testing.T) {

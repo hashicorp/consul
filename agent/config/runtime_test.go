@@ -5921,6 +5921,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		deprecationWarning("acl_master_token", "acl.tokens.master"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
+		deprecationWarning("acl_default_policy", "acl.default_policy"),
+		deprecationWarning("acl_down_policy", "acl.down_policy"),
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
