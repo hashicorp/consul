@@ -42,13 +42,6 @@ const (
 	ACLTokenAccessor ACLTokenIDType = "accessor"
 )
 
-type ACLPolicyIDType string
-
-const (
-	ACLPolicyName ACLPolicyIDType = "name"
-	ACLPolicyID   ACLPolicyIDType = "id"
-)
-
 const (
 	// All policy ids with the first 120 bits set to all zeroes are
 	// reserved for builtin policies. Policy creation will ensure we
