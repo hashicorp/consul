@@ -1,5 +1,5 @@
 import Button from '@hashicorp/react-button'
-import s from './style.module.css'
+import s from '../../pages/downloads/style.module.css'
 
 export default {
   getStartedDescription:
