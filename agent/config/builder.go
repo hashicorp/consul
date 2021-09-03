@@ -877,8 +877,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		ACLTokens: token.Config{
 			DataDir:             dataDir,
 			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
-			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
+			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
 			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
 			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
 		},

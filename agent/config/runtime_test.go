@@ -5902,8 +5902,10 @@ func TestLoad_FullConfig(t *testing.T) {
 	entFullRuntimeConfig(expected)
 
 	expectedWarns := []string{
-		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
-		`The 'acl_agent_master_token' field is deprecated. Use the 'acl.tokens.agent_master' field instead.`,
+		deprecationWarning("acl_datacenter", "primary_datacenter"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
+		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
+		deprecationWarning("acl_token", "acl.tokens.default"),
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)

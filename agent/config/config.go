@@ -130,8 +130,6 @@ type Cache struct {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLAgentToken *string `mapstructure:"acl_agent_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLDefaultPolicy *string `mapstructure:"acl_default_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
@@ -143,9 +141,7 @@ type Config struct {
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLReplicationToken *string `mapstructure:"acl_replication_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLTTL *string `mapstructure:"acl_ttl"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLToken                         *string             `mapstructure:"acl_token"`
+	ACLTTL                           *string             `mapstructure:"acl_ttl"`
 	ACL                              ACL                 `mapstructure:"acl"`
 	Addresses                        Addresses           `mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string             `mapstructure:"advertise_addr"`
