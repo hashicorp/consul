@@ -1076,6 +1076,11 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
 	if sidecar != nil {
+		if err := sidecar.Validate(); err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, err.Error())
+			return nil, nil
+		}
 		// Make sure we are allowed to register the sidecar using the token
 		// specified (might be specific to sidecar or the same one as the overall
 		// request).

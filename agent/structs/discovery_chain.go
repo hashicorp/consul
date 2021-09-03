@@ -14,6 +14,7 @@ import (
 type CompiledDiscoveryChain struct {
 	ServiceName string
 	Namespace   string // the namespace that the chain was compiled within
+	Partition   string // the partition that the chain was compiled within
 	Datacenter  string // the datacenter that the chain was compiled within
 
 	// CustomizationHash is a unique hash of any data that affects the
@@ -85,17 +86,17 @@ func (c *CompiledDiscoveryChain) IsDefault() bool {
 
 	target := c.Targets[node.Resolver.Target]
 
-	return target.Service == c.ServiceName && target.Namespace == c.Namespace
+	return target.Service == c.ServiceName && target.Namespace == c.Namespace && target.Partition == c.Partition
 }
 
-// ID returns an ID that encodes the service, namespace, and datacenter.
+// ID returns an ID that encodes the service, namespace, partition, and datacenter.
 // This ID allows us to compare a discovery chain target to the chain upstream itself.
 func (c *CompiledDiscoveryChain) ID() string {
-	return chainID("", c.ServiceName, c.Namespace, c.Datacenter)
+	return chainID("", c.ServiceName, c.Namespace, c.Partition, c.Datacenter)
 }
 
 func (c *CompiledDiscoveryChain) CompoundServiceName() ServiceName {
-	entMeta := NewEnterpriseMetaInDefaultPartition(c.Namespace)
+	entMeta := NewEnterpriseMetaWithPartition(c.Partition, c.Namespace)
 	return NewServiceName(c.ServiceName, &entMeta)
 }
 
@@ -230,27 +231,28 @@ type DiscoveryTarget struct {
 	Name string `json:",omitempty"`
 }
 
-func NewDiscoveryTarget(service, serviceSubset, namespace, datacenter string) *DiscoveryTarget {
+func NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter string) *DiscoveryTarget {
 	t := &DiscoveryTarget{
 		Service:       service,
 		ServiceSubset: serviceSubset,
 		Namespace:     namespace,
+		Partition:     partition,
 		Datacenter:    datacenter,
 	}
 	t.setID()
 	return t
 }
 
-func chainID(subset, service, namespace, dc string) string {
+func chainID(subset, service, namespace, partition, dc string) string {
 	// NOTE: this format is similar to the SNI syntax for simplicity
 	if subset == "" {
-		return fmt.Sprintf("%s.%s.%s", service, namespace, dc)
+		return fmt.Sprintf("%s.%s.%s.%s", service, namespace, partition, dc)
 	}
-	return fmt.Sprintf("%s.%s.%s.%s", subset, service, namespace, dc)
+	return fmt.Sprintf("%s.%s.%s.%s.%s", subset, service, namespace, partition, dc)
 }
 
 func (t *DiscoveryTarget) setID() {
-	t.ID = chainID(t.ServiceSubset, t.Service, t.Namespace, t.Datacenter)
+	t.ID = chainID(t.ServiceSubset, t.Service, t.Namespace, t.Partition, t.Datacenter)
 }
 
 func (t *DiscoveryTarget) String() string {

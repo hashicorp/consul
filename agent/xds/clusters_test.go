@@ -697,9 +697,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 				}
 
 				// There should still be a cluster for non-passthrough requests
-				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(
-					t, "mongo", "default", "dc1",
-					connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
 				snap.ConnectProxy.WatchedUpstreamEndpoints["mongo"] = map[string]structs.CheckServiceNodes{
 					"mongo.default.dc1": {
 						structs.CheckServiceNode{

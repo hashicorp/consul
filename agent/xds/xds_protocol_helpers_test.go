@@ -1,11 +1,12 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/connect"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -591,7 +592,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{
 								Cluster: "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 						}),
 					},
 				},
@@ -612,7 +613,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_RouteConfig{
 								RouteConfig: makeTestRoute(t, "http2:db:inline"),
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
@@ -640,7 +641,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 									ConfigSource:    xdsNewADSConfig(),
 								},
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
@@ -668,7 +669,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 									ConfigSource:    xdsNewADSConfig(),
 								},
 							},
-							StatPrefix: "upstream.db.default.dc1",
+							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
@@ -736,7 +737,7 @@ func makeTestRoute(t *testing.T, fixtureName string) *envoy_route_v3.RouteConfig
 			Name: "db",
 			VirtualHosts: []*envoy_route_v3.VirtualHost{
 				{
-					Name:    "db.default.dc1",
+					Name:    "db.default.default.dc1",
 					Domains: []string{"*"},
 					Routes: []*envoy_route_v3.Route{
 						{

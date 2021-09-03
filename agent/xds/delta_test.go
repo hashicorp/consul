@@ -179,7 +179,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 		// now reconfigure the snapshot and JUST edit the endpoints to strike one of the two current endpoints for DB
 		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, "db", "db.default.dc1")
+		deleteAllButOneEndpoint(snap, "db", "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
 		// We never send an EDS reply about this change.
@@ -216,7 +216,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 	runStep(t, "simulate envoy NACKing an endpoint update", func(t *testing.T) {
 		// Trigger only an EDS update.
 		snap = newTestSnapshot(t, snap, "")
-		deleteAllButOneEndpoint(snap, "db", "db.default.dc1")
+		deleteAllButOneEndpoint(snap, "db", "db.default.default.dc1")
 		mgr.DeliverConfig(t, sid, snap)
 
 		// Send envoy an EDS update.

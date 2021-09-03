@@ -391,6 +391,7 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 	req := discoverychain.CompileRequest{
 		ServiceName:          source.Name,
 		EvaluateInNamespace:  source.NamespaceOrDefault(),
+		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
 		UseInDatacenter:      dc,
 	}
@@ -448,6 +449,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 		req := discoverychain.CompileRequest{
 			ServiceName:          sn.Name,
 			EvaluateInNamespace:  sn.NamespaceOrDefault(),
+			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
 			UseInDatacenter:      dc,
 		}
@@ -717,6 +719,7 @@ func testCompileDiscoveryChain(
 	req := discoverychain.CompileRequest{
 		ServiceName:           chainName,
 		EvaluateInNamespace:   entMeta.NamespaceOrDefault(),
+		EvaluateInPartition:   entMeta.PartitionOrDefault(),
 		EvaluateInDatacenter:  "dc1",
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
 		UseInDatacenter:       "dc1",
@@ -1200,6 +1203,7 @@ func protocolForService(
 	req := discoverychain.CompileRequest{
 		ServiceName:          svc.Name,
 		EvaluateInNamespace:  svc.NamespaceOrDefault(),
+		EvaluateInPartition:  svc.PartitionOrDefault(),
 		EvaluateInDatacenter: "dc1",
 		// Use a dummy trust domain since that won't affect the protocol here.
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
