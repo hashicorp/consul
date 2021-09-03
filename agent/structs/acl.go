@@ -91,9 +91,11 @@ func ACLIDReserved(id string) bool {
 
 const (
 	// ACLSet creates or updates a token.
+	// TODO(ACL-Legacy-Compat): remove
 	ACLSet ACLOp = "set"
 
 	// ACLDelete deletes a token.
+	// TODO(ACL-Legacy-Compat): remove
 	ACLDelete ACLOp = "delete"
 )
 

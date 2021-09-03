@@ -7,7 +7,6 @@
 package structs
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -18,20 +17,9 @@ const (
 	// ACLBootstrapInit is used to perform a scan for existing tokens which
 	// will decide whether bootstrapping is allowed for a cluster. This is
 	// initiated by the leader when it steps up, if necessary.
+	// TODO(ACL-Legacy-Compat): remove
 	ACLBootstrapInit ACLOp = "bootstrap-init"
-
-	// ACLBootstrapNow is used to perform a one-time ACL bootstrap operation on
-	// a cluster to get the first management token.
-	ACLBootstrapNow ACLOp = "bootstrap-now"
-
-	// ACLForceSet is deprecated, but left for backwards compatibility.
-	ACLForceSet ACLOp = "force-set"
 )
-
-// ACLBootstrapNotInitializedErr is returned when a bootstrap is attempted but
-// we haven't yet initialized ACL bootstrap. It provides some guidance to
-// operators on how to proceed.
-var ACLBootstrapNotInitializedErr = errors.New("ACL bootstrap not initialized, need to force a leader election and ensure all Consul servers support this feature")
 
 const (
 	// ACLTokenTypeClient tokens have rules applied
@@ -62,6 +50,7 @@ type ACLs []*ACL
 // equivalent. This will NOT fill in the other ACLToken fields or perform any other
 // upgrade (other than correcting an older HCL syntax that is no longer
 // supported).
+// TODO(ACL-Legacy-Compat): remove
 func (a *ACL) Convert() *ACLToken {
 	// Ensure that we correct any old HCL in legacy tokens to prevent old
 	// syntax from leaking elsewhere into the system.

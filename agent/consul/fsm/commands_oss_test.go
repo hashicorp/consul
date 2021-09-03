@@ -923,29 +923,6 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 	if !canBootstrap {
 		t.Fatalf("bad: shouldn't be able to bootstrap")
 	}
-
-	// Do a bootstrap.
-	bootstrap := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLBootstrapNow,
-		ACL: structs.ACL{
-			ID:   generateUUID(),
-			Name: "Bootstrap Token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-	}
-	buf, err = structs.Encode(structs.ACLRequestType, bootstrap)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	resp = fsm.Apply(makeLog(buf))
-	respACL, ok := resp.(*structs.ACL)
-	if !ok {
-		t.Fatalf("resp: %v", resp)
-	}
-	bootstrap.ACL.CreateIndex = respACL.CreateIndex
-	bootstrap.ACL.ModifyIndex = respACL.ModifyIndex
-	require.Equal(t, &bootstrap.ACL, respACL)
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
