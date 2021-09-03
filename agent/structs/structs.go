@@ -1256,7 +1256,7 @@ func (s *NodeService) Validate() error {
 			}
 
 			// cross DC Upstreams are only allowed for non "default" partitions
-			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != acl.DefaultPartitionName) {
+			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
 				result = multierror.Append(result, fmt.Errorf(
 					"upstreams cannot target another datacenter in non default partition"))
 				continue
