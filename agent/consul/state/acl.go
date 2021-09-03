@@ -800,7 +800,7 @@ func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta 
 	return nil, nil
 }
 
-// ACLTokenList is used to list out all of the ACLs in the state store.
+// ACLTokenList return a list of ACL Tokens that match the policy, role, and method.
 func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()

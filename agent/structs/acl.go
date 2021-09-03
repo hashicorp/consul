@@ -1242,7 +1242,6 @@ func (m *ACLAuthMethod) UnmarshalJSON(data []byte) (err error) {
 type ACLReplicationType string
 
 const (
-	ACLReplicateLegacy   ACLReplicationType = "legacy"
 	ACLReplicatePolicies ACLReplicationType = "policies"
 	ACLReplicateRoles    ACLReplicationType = "roles"
 	ACLReplicateTokens   ACLReplicationType = "tokens"
@@ -1250,8 +1249,6 @@ const (
 
 func (t ACLReplicationType) SingularNoun() string {
 	switch t {
-	case ACLReplicateLegacy:
-		return "legacy"
 	case ACLReplicatePolicies:
 		return "policy"
 	case ACLReplicateRoles:

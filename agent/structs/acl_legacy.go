@@ -90,6 +90,7 @@ func (a *ACL) Convert() *ACLToken {
 }
 
 // Convert attempts to convert an ACLToken into an ACLCompat.
+// TODO(ACL-Legacy-Compat): remove
 func (tok *ACLToken) Convert() (*ACL, error) {
 	if tok.Type == "" {
 		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
