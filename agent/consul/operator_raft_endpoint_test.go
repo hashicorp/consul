@@ -93,26 +93,8 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	}
 
 	// Create an ACL with operator read permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "read"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	rules := `operator = "read"`
+	token := createToken(t, codec, rules)
 
 	// Now it should go through.
 	arg.Token = token
@@ -241,27 +223,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator write permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "write"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "write" `)
 
 	// Now it should kick back for being an invalid config, which means it
 	// tried to do the operation.
@@ -371,27 +333,7 @@ func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL with operator write permissions.
-	var token string
-	{
-		var rules = `
-                    operator = "write"
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	token := createToken(t, codec, `operator = "write"`)
 
 	// Now it should kick back for being an invalid config, which means it
 	// tried to do the operation.

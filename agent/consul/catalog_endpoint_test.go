@@ -263,11 +263,16 @@ node "foo" {
 
 func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
 	t.Helper()
+	return createTokenWithPolicyName(t, "the-policy", cc, policyRules)
+}
+
+func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCodec, policyRules string) string {
+	t.Helper()
 
 	reqPolicy := structs.ACLPolicySetRequest{
 		Datacenter: "dc1",
 		Policy: structs.ACLPolicy{
-			Name:  "the-policy",
+			Name:  policyName,
 			Rules: policyRules,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -282,7 +287,7 @@ func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
 		Datacenter: "dc1",
 		ACLToken: structs.ACLToken{
 			SecretID: token,
-			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
