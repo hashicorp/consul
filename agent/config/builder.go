@@ -745,13 +745,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		primaryDatacenter = datacenter
 	}
 
-	enableTokenReplication := false
-	if c.ACLReplicationToken != nil {
-		enableTokenReplication = true
-	}
-
-	boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
-
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
@@ -870,9 +863,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		},
 
 		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
+		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
 
-		ACLTokenReplication: boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLTokenReplication: boolValWithDefault(c.ACL.TokenReplication, boolVal(c.EnableACLReplication)),
 
 		ACLTokens: token.Config{
 			DataDir:             dataDir,
@@ -880,7 +873,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
 			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
 			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
-			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
+			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot

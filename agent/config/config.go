@@ -136,10 +136,6 @@ type Config struct {
 	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLEnableKeyListPolicy *bool `mapstructure:"acl_enable_key_list_policy"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLMasterToken *string `mapstructure:"acl_master_token"`
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
-	ACLReplicationToken *string `mapstructure:"acl_replication_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLTTL                           *string             `mapstructure:"acl_ttl"`
 	ACL                              ACL                 `mapstructure:"acl"`
