@@ -85,7 +85,6 @@ func DefaultSource() Source {
 		dns_config = {
 			allow_stale = true
 			a_record_limit = 0
-			udp_answer_limit = 3
 			max_stale = "87600h"
 			recursor_timeout = "2s"
 		}

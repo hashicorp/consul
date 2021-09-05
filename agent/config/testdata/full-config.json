@@ -249,7 +249,6 @@
     "service_ttl": {
       "*": "32030s"
     },
-    "udp_answer_limit": 29909,
     "use_cache": true,
     "cache_max_age": "5m",
     "prefer_namespace": true

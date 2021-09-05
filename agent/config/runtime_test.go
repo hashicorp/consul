@@ -1984,15 +1984,6 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedErr: "DNS recursor address cannot be 0.0.0.0, :: or [::]",
 	})
 	run(t, testCase{
-		desc: "dns_config.udp_answer_limit invalid",
-		args: []string{
-			`-data-dir=` + dataDir,
-		},
-		json:        []string{`{ "dns_config": { "udp_answer_limit": -1 } }`},
-		hcl:         []string{`dns_config = { udp_answer_limit = -1 }`},
-		expectedErr: "dns_config.udp_answer_limit cannot be -1. Must be greater than or equal to zero",
-	})
-	run(t, testCase{
 		desc: "dns_config.a_record_limit invalid",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -2045,11 +2036,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "dns_config": { "udp_answer_limit": 1 } }`,
 			`{ "node_meta": { "` + randomString(130) + `": "a" } }`,
 		},
 		hcl: []string{
-			`dns_config = { udp_answer_limit = 1 }`,
 			`node_meta = { "` + randomString(130) + `" = "a" }`,
 		},
 		expectedErr: "Key is too long (limit: 128 characters)",
@@ -2060,11 +2049,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "dns_config": { "udp_answer_limit": 1 } }`,
 			`{ "node_meta": { "a": "` + randomString(520) + `" } }`,
 		},
 		hcl: []string{
-			`dns_config = { udp_answer_limit = 1 }`,
 			`node_meta = { "a" = "` + randomString(520) + `" }`,
 		},
 		expectedErr: "Value is too long (limit: 512 characters)",
@@ -2075,11 +2062,9 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "dns_config": { "udp_answer_limit": 1 } }`,
 			`{ "node_meta": {` + metaPairs(70, "json") + `} }`,
 		},
 		hcl: []string{
-			`dns_config = { udp_answer_limit = 1 }`,
 			`node_meta = {` + metaPairs(70, "hcl") + ` }`,
 		},
 		expectedErr: "Node metadata cannot contain more than 64 key/value pairs",
@@ -5441,7 +5426,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
 		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
-		DNSUDPAnswerLimit:                      29909,
 		DNSNodeMetaTXT:                         true,
 		DNSUseCache:                            true,
 		DNSCacheMaxAge:                         5 * time.Minute,

@@ -241,16 +241,6 @@ type RuntimeConfig struct {
 	// hcl: dns_config { service_ttl = map[string]"duration" }
 	DNSServiceTTL map[string]time.Duration
 
-	// DNSUDPAnswerLimit is used to limit the maximum number of DNS Resource
-	// Records returned in the ANSWER section of a DNS response for UDP
-	// responses without EDNS support (limited to 512 bytes).
-	// This parameter is deprecated, if you want to limit the number of
-	// records returned by A or AAAA questions, please use DNSARecordLimit
-	// instead.
-	//
-	// hcl: dns_config { udp_answer_limit = int }
-	DNSUDPAnswerLimit int
-
 	// DNSNodeMetaTXT controls whether DNS queries will synthesize
 	// TXT records for the node metadata and add them when not specifically
 	// request (query type = TXT). If unset this will default to true

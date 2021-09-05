@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -48,11 +47,6 @@ var DNSSummaries = []prometheus.SummaryDefinition{
 }
 
 const (
-	// UDP can fit ~25 A records in a 512B response, and ~14 AAAA
-	// records. Limit further to prevent unintentional configuration
-	// abuse that would have a negative effect on application response
-	// times.
-	maxUDPAnswerLimit        = 8
 	maxRecurseRecords        = 5
 	maxRecursionLevelDefault = 3
 
@@ -83,7 +77,6 @@ type dnsConfig struct {
 	RecursorTimeout  time.Duration
 	Recursors        []string
 	SegmentName      string
-	UDPAnswerLimit   int
 	ARecordLimit     int
 	NodeMetaTXT      bool
 	SOAConfig        dnsSOAConfig
@@ -161,7 +154,6 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		RecursorStrategy:   conf.DNSRecursorStrategy,
 		RecursorTimeout:    conf.DNSRecursorTimeout,
 		SegmentName:        conf.SegmentName,
-		UDPAnswerLimit:     conf.DNSUDPAnswerLimit,
 		NodeMetaTXT:        conf.DNSNodeMetaTXT,
 		DisableCompression: conf.DNSDisableCompression,
 		UseCache:           conf.DNSUseCache,
@@ -1131,7 +1123,7 @@ func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 // 1035. Enforce an arbitrary limit that can be further ratcheted down by
 // config, and then make sure the response doesn't exceed 512 bytes. Any extra
 // records will be trimmed along with answers.
-func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
+func trimUDPResponse(req, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
 	hasExtra := len(resp.Extra) > 0
 	maxSize := defaultMaxUDPSize
@@ -1151,24 +1143,13 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 		indexRRs(resp.Extra, index)
 	}
 
-	// This cuts UDP responses to a useful but limited number of responses.
-	maxAnswers := lib.MinInt(maxUDPAnswerLimit, udpAnswerLimit)
-	compress := resp.Compress
-	if maxSize == defaultMaxUDPSize && numAnswers > maxAnswers {
-		// We disable computation of Len ONLY for non-eDNS request (512 bytes)
-		resp.Compress = false
-		resp.Answer = resp.Answer[:maxAnswers]
-		if hasExtra {
-			syncExtra(index, resp)
-		}
-	}
+	// Enforce the given limit on the number bytes. The default is 512 as
+	// per the RFC, but EDNS0 allows for the user to specify larger sizes.
+	// The algorithm below will ensure the given limit is obeyed regardless
+	// of whether the response is sent compressed. This is because whether
+	// the response will be sent compressed has already been set by the caller
+	// (resp.Compress); this setting is factored into resp.Len() results.
 
-	// This enforces the given limit on the number bytes. The default is 512 as
-	// per the RFC, but EDNS0 allows for the user to specify larger sizes. Note
-	// that we temporarily switch to uncompressed so that we limit to a response
-	// that will not exceed 512 bytes uncompressed, which is more conservative and
-	// will allow our responses to be compliant even if some downstream server
-	// uncompresses them.
 	// Even when size is too big for one single record, try to send it anyway
 	// (useful for 512 bytes messages)
 	for len(resp.Answer) > 1 && resp.Len() > maxSize-7 {
@@ -1187,9 +1168,7 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 			syncExtra(index, resp)
 		}
 	}
-	// For 512 non-eDNS responses, while we compute size non-compressed,
-	// we send result compressed
-	resp.Compress = compress
+
 	return len(resp.Answer) < numAnswers
 }
 
@@ -1199,7 +1178,7 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 	originalSize := resp.Len()
 	originalNumRecords := len(resp.Answer)
 	if network != "tcp" {
-		trimmed = trimUDPResponse(req, resp, cfg.UDPAnswerLimit)
+		trimmed = trimUDPResponse(req, resp)
 	} else {
 		trimmed = trimTCPResponse(req, resp)
 	}
@@ -1351,7 +1330,7 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, datacenter, query string
 	// match the previous behavior. We can optimize by pushing more filtering
 	// into the query execution, but for now I think we need to get the full
 	// response. We could also choose a large arbitrary number that will
-	// likely work in practice, like 10*maxUDPAnswerLimit which should help
+	// likely work in practice, which should help
 	// reduce bandwidth if there are thousands of nodes available.
 
 	// Determine the TTL. The parse should never fail since we vet it when
@@ -1467,8 +1446,11 @@ func (d *DNSServer) serviceNodeRecords(cfg *dnsConfig, dc string, nodes structs.
 
 		if had_answer {
 			count++
+			// The default ARecordLimit has a value of 0 is intended to mean
+			// "no limit". That's why this comparison uses "==" rather than
+			// the more defensive ">=".
+			// Return early if a non-zero limit is reached.
 			if count == cfg.ARecordLimit {
-				// We stop only if greater than 0 or we reached the limit
 				return
 			}
 		}

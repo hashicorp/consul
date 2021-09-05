@@ -24,18 +24,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
-const (
-	configUDPAnswerLimit   = 4
-	defaultNumUDPResponses = 3
-	testUDPTruncateLimit   = 8
-
-	pctNodesWithIPv6 = 0.5
-
-	// generateNumNodes is the upper bounds for the number of hosts used
-	// in testing below.  Generate an arbitrarily large number of hosts.
-	generateNumNodes = testUDPTruncateLimit * defaultNumUDPResponses * configUDPAnswerLimit
-)
-
 // makeRecursor creates a generic DNS server which always returns
 // the provided reply. This is useful for mocking a DNS recursor with
 // an expected result.
@@ -4320,12 +4308,24 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
+
+	// With 100 nodes and 3 A records, there are 100 choose 3 = 161,700
+	// combinations available to select. Given that this test only conducts
+	// 10 sampling trials, non-unique samples should be highly unlikely if the
+	// results are random.
+	numNodes := 100
+	numSamplingTrials := 10
+
+	a := NewTestAgent(t, `
+		dns_config {
+			a_record_limit = 3
+		}
+	`)
+
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Register a large number of nodes.
-	for i := 0; i < generateNumNodes; i++ {
+	for i := 0; i < numNodes; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -4368,7 +4368,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 	for _, question := range questions {
 		uniques := map[string]struct{}{}
-		for i := 0; i < 10; i++ {
+		for i := 0; i < numSamplingTrials; i++ {
 			m := new(dns.Msg)
 			m.SetQuestion(question, dns.TypeANY)
 
@@ -4378,14 +4378,9 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 				t.Fatalf("err: %v", err)
 			}
 
-			// Response length should be truncated and we should get
-			// an A record for each response.
-			if len(in.Answer) != defaultNumUDPResponses {
-				t.Fatalf("Bad: %#v", len(in.Answer))
-			}
-
 			// Collect all the names.
 			var names []string
+			fmt.Printf("ANSWER LEN %d\n\n%+v\n\n", len(in.Answer), in.Answer)
 			for _, rec := range in.Answer {
 				switch v := rec.(type) {
 				case *dns.SRV:
@@ -4574,7 +4569,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Register a large number of nodes.
-	for i := 0; i < generateNumNodes; i++ {
+	for i := 0; i < 100; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -4638,9 +4633,15 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	}
 
 	t.Parallel()
+	// enable_truncate is necessary for the truncate bit to be set by the DNS server,
+	// allowing this test to ensure the expected truncation occurs.
+	// disable_compression allows us to trigger truncation without registering a
+	// large number of nodes. Even with a long service name, name compression can
+	// allow a moderate number of records even in just 512 bytes.
 	a := NewTestAgent(t, `
 		dns_config {
 			enable_truncate = true
+			disable_compression = true
 		}
 	`)
 	defer a.Shutdown()
@@ -4648,7 +4649,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 	longServiceName := "this-is-a-very-very-very-very-very-long-name-for-a-service"
 
-	// Register a lot of nodes.
+	// Register enough nodes to trigger truncation (without compression enabled)
 	for i := 0; i < 4; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -4734,101 +4735,114 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 				t.Fatalf("Bad: %#v %#v", srv, a)
 			}
 		}
-
-		// Check for the truncate bit
-		if !in.Truncated {
-			t.Fatalf("should have truncate bit")
-		}
 	}
 }
 
-func testDNSServiceLookupResponseLimits(t *testing.T, answerLimit int, qType uint16,
-	expectedService, expectedQuery, expectedQueryID int) (bool, error) {
+func TestDNS_ServiceLookup_LargeYetCompressedResponses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	// enable_truncate is necessary for the truncate bit to be set by the DNS server,
+	// allowing this test to ensure the expected truncation occurs.
 	a := NewTestAgent(t, `
-		node_name = "test-node"
 		dns_config {
-			udp_answer_limit = `+fmt.Sprintf("%d", answerLimit)+`
+			enable_truncate = true
 		}
 	`)
 	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	for i := 0; i < generateNumNodes; i++ {
-		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
-			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
-		}
+	longServiceName := "this-is-a-very-very-very-very-very-long-name-for-a-service"
+
+	for i := 0; i < 4; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
-			Address:    nodeAddress,
+			Address:    fmt.Sprintf("127.0.0.%d", i+1),
 			Service: &structs.NodeService{
-				Service: "api-tier",
-				Port:    8080,
+				Service: longServiceName,
+				Tags:    []string{"primary"},
+				Port:    12345,
 			},
 		}
 
 		var out struct{}
 		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Fatalf("err: %v", err)
 		}
 	}
-	var id string
+
+	// Register an equivalent prepared query.
 	{
 		args := &structs.PreparedQueryRequest{
 			Datacenter: "dc1",
 			Op:         structs.PreparedQueryCreate,
 			Query: &structs.PreparedQuery{
-				Name: "api-tier",
+				Name: longServiceName,
 				Service: structs.ServiceQuery{
-					Service: "api-tier",
+					Service: longServiceName,
+					Tags:    []string{"primary"},
 				},
 			},
 		}
-
+		var id string
 		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Fatalf("err: %v", err)
 		}
 	}
 
 	// Look up the service directly and via prepared query.
 	questions := []string{
-		"api-tier.service.consul.",
-		"api-tier.query.consul.",
-		id + ".query.consul.",
+		"_" + longServiceName + "._primary.service.consul.",
+		longServiceName + ".query.consul.",
 	}
-	for idx, question := range questions {
+	for _, question := range questions {
 		m := new(dns.Msg)
-		m.SetQuestion(question, qType)
+		m.SetQuestion(question, dns.TypeSRV)
 
-		c := &dns.Client{Net: "udp"}
+		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
 		if err != nil {
-			return false, fmt.Errorf("err: %v", err)
+			t.Fatalf("err: %v", err)
 		}
 
-		switch idx {
-		case 0:
-			if (expectedService > 0 && len(in.Answer) != expectedService) ||
-				(expectedService < -1 && len(in.Answer) < lib.AbsInt(expectedService)) {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s, sz:=%d", len(in.Answer), answerLimit, qType, question, in.Len())
+		if in.Truncated {
+			t.Fatalf("due to name compression, response should not have truncate bit")
+		}
+
+		// Make sure the response size is RFC 1035-compliant for UDP messages
+		in.Compress = false
+		if in.Len() <= 512 {
+			t.Fatalf("Uncompressed length (%d) should be > 512", in.Len())
+		}
+
+		in.Compress = true
+		if in.Len() > 512 {
+			t.Fatalf("Compressed length (%d) should be <= 512", in.Len())
+		}
+
+		// Make sure the ADDITIONAL section matches the ANSWER section.
+		if len(in.Answer) != len(in.Extra) {
+			t.Fatalf("Bad: %d vs. %d", len(in.Answer), len(in.Extra))
+		}
+		for i := 0; i < len(in.Answer); i++ {
+			srv, ok := in.Answer[i].(*dns.SRV)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Answer[i])
 			}
-		case 1:
-			if (expectedQuery > 0 && len(in.Answer) != expectedQuery) ||
-				(expectedQuery < -1 && len(in.Answer) < lib.AbsInt(expectedQuery)) {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s, sz:=%d", len(in.Answer), answerLimit, qType, question, in.Len())
+
+			a, ok := in.Extra[i].(*dns.A)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Extra[i])
 			}
-		case 2:
-			if (expectedQueryID > 0 && len(in.Answer) != expectedQueryID) ||
-				(expectedQueryID < -1 && len(in.Answer) < lib.AbsInt(expectedQueryID)) {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s, sz:=%d", len(in.Answer), answerLimit, qType, question, in.Len())
+
+			if srv.Target != a.Hdr.Name {
+				t.Fatalf("Bad: %#v %#v", srv, a)
 			}
-		default:
-			panic("abort")
 		}
 	}
-
-	return true, nil
 }
 
 func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType uint16,
@@ -4837,11 +4851,12 @@ func checkDNSService(t *testing.T, generateNumNodes int, aRecordLimit int, qType
 		node_name = "test-node"
 		dns_config {
 			a_record_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
-			udp_answer_limit = `+fmt.Sprintf("%d", aRecordLimit)+`
 		}
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	pctNodesWithIPv6 := 0.5
 
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
@@ -4919,51 +4934,38 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 
 	t.Parallel()
 	tests := []struct {
-		name                string
-		aRecordLimit        int
-		expectedAResults    int
-		expectedAAAAResults int
-		expectedSRVResults  int
-		numNodesTotal       int
-		udpSize             uint16
-		udpAnswerLimit      int
+		name               string
+		aRecordLimit       int
+		expectedAResults   int
+		expectedSRVResults int
+		numNodesTotal      int
+		udpSize            uint16
 	}{
-		// UDP + EDNS
-		{"udp-edns-1", 1, 1, 1, 30, 30, 8192, 3},
-		{"udp-edns-2", 2, 2, 1, 30, 30, 8192, 3},
-		{"udp-edns-3", 3, 3, 1, 30, 30, 8192, 3},
-		{"udp-edns-4", 4, 4, 1, 30, 30, 8192, 3},
-		{"udp-edns-5", 5, 5, 1, 30, 30, 8192, 3},
-		{"udp-edns-6", 6, 6, 1, 30, 30, 8192, 3},
-		{"udp-edns-max", 6, 3, 3, 3, 3, 8192, 3},
-		// All UDP without EDNS have a limit of 2 answers due to udpAnswerLimit
-		// Even SRV records are limit to 2 records
-		{"udp-limit-1", 1, 1, 1, 1, 1, 512, 2},
-		{"udp-limit-2", 2, 2, 2, 2, 2, 512, 2},
-		// AAAA results limited by size of payload
-		{"udp-limit-3", 3, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-4", 4, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-5", 5, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-6", 6, 2, 2, 2, 2, 512, 2},
-		{"udp-limit-max", 6, 2, 2, 2, 2, 512, 2},
-		// All UDP without EDNS and no udpAnswerLimit
-		// Size of records is limited by UDP payload
-		{"udp-1", 1, 1, 1, 1, 1, 512, 0},
-		{"udp-2", 2, 2, 2, 2, 2, 512, 0},
-		{"udp-3", 3, 2, 2, 2, 2, 512, 0},
-		{"udp-4", 4, 2, 2, 2, 2, 512, 0},
-		{"udp-5", 5, 2, 2, 2, 2, 512, 0},
-		{"udp-6", 6, 2, 2, 2, 2, 512, 0},
-		// Only 3 A and 3 SRV records on 512 bytes
-		{"udp-max", 6, 2, 2, 2, 2, 512, 0},
-
-		{"tcp-1", 1, 1, 1, 30, 30, 0, 0},
-		{"tcp-2", 2, 2, 2, 30, 30, 0, 0},
-		{"tcp-3", 3, 3, 3, 30, 30, 0, 0},
-		{"tcp-4", 4, 4, 4, 30, 30, 0, 0},
-		{"tcp-5", 5, 5, 5, 30, 30, 0, 0},
-		{"tcp-6", 6, 6, 5, 30, 30, 0, 0},
-		{"tcp-max", 6, 2, 2, 2, 2, 0, 0},
+		// UDP with EDNS
+		{"udp-edns-1", 1, 1, 30, 30, 8192},
+		{"udp-edns-2", 2, 2, 30, 30, 8192},
+		{"udp-edns-3", 3, 3, 30, 30, 8192},
+		{"udp-edns-4", 4, 4, 30, 30, 8192},
+		{"udp-edns-5", 5, 5, 30, 30, 8192},
+		{"udp-edns-6", 6, 6, 30, 30, 8192},
+		{"udp-edns-all-nodes", 6, 3, 3, 3, 8192},
+		// UDP without EDNS.
+		// Size of records is limited by UDP payload;
+		// only 2 A and 2 SRV records fit in 512 bytes.
+		{"udp-1", 1, 1, 1, 1, 512},
+		{"udp-2", 2, 2, 2, 2, 512},
+		{"udp-3", 3, 2, 2, 2, 512},
+		{"udp-4", 4, 2, 2, 2, 512},
+		{"udp-5", 5, 2, 2, 2, 512},
+		{"udp-6", 6, 2, 2, 2, 512},
+		// TCP
+		{"tcp-1", 1, 1, 30, 30, 0},
+		{"tcp-2", 2, 2, 30, 30, 0},
+		{"tcp-3", 3, 3, 30, 30, 0},
+		{"tcp-4", 4, 4, 30, 30, 0},
+		{"tcp-5", 5, 5, 30, 30, 0},
+		{"tcp-6", 6, 6, 30, 30, 0},
+		{"tcp-all-nodes", 6, 2, 2, 2, 0},
 	}
 	for _, test := range tests {
 		test := test // capture loop var
@@ -4994,76 +4996,6 @@ func TestDNS_ServiceLookup_ARecordLimits(t *testing.T) {
 	}
 }
 
-func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	// Build a matrix of config parameters (udpAnswerLimit), and the
-	// length of the response per query type and question.  Negative
-	// values imply the test must return at least the abs(value) number
-	// of records in the answer section.  This is required because, for
-	// example, on OS-X and Linux, the number of answers returned in a
-	// 512B response is different even though both platforms are x86_64
-	// and using the same version of Go.
-	//
-	// TODO(sean@): Why is it not identical everywhere when using the
-	// same compiler?
-	tests := []struct {
-		name                string
-		udpAnswerLimit      int
-		expectedAService    int
-		expectedAQuery      int
-		expectedAQueryID    int
-		expectedAAAAService int
-		expectedAAAAQuery   int
-		expectedAAAAQueryID int
-		expectedANYService  int
-		expectedANYQuery    int
-		expectedANYQueryID  int
-	}{
-		{"0", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-		{"1", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{"2", 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
-		{"3", 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
-		{"4", 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
-		{"5", 5, 5, 5, 5, 5, 5, 5, 5, 5, 5},
-		{"6", 6, 6, 6, 6, 6, 6, 5, 6, 6, -5},
-		{"7", 7, 7, 7, 6, 7, 7, 5, 7, 7, -5},
-		{"8", 8, 8, 8, 6, 8, 8, 5, 8, 8, -5},
-		{"9", 9, 8, 8, 6, 8, 8, 5, 8, 8, -5},
-		{"20", 20, 8, 8, 6, 8, 8, 5, 8, -5, -5},
-		{"30", 30, 8, 8, 6, 8, 8, 5, 8, -5, -5},
-	}
-	for _, test := range tests {
-		test := test // capture loop var
-		t.Run(fmt.Sprintf("A lookup %v", test), func(t *testing.T) {
-			t.Parallel()
-			ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID)
-			if !ok {
-				t.Fatalf("Expected service A lookup %s to pass: %v", test.name, err)
-			}
-		})
-
-		t.Run(fmt.Sprintf("AAAA lookup %v", test), func(t *testing.T) {
-			t.Parallel()
-			ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID)
-			if !ok {
-				t.Fatalf("Expected service AAAA lookup %s to pass: %v", test.name, err)
-			}
-		})
-
-		t.Run(fmt.Sprintf("ANY lookup %v", test), func(t *testing.T) {
-			t.Parallel()
-			ok, err := testDNSServiceLookupResponseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID)
-			if !ok {
-				t.Fatalf("Expected service ANY lookup %s to pass: %v", test.name, err)
-			}
-		})
-	}
-}
-
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -5081,6 +5013,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	a := NewTestAgent(t, `
 		recursors = ["`+recursor.Addr+`"]
 	`)
+
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -6817,8 +6750,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 		},
 	}
 
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
-	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); trimmed {
+	if trimmed := trimUDPResponse(req, resp); trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
 
@@ -6851,10 +6783,9 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
-	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
-	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
+	req, resp := &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < defaultMaxUDPSize; i++ {
 		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
 		srv := &dns.SRV{
 			Hdr: dns.RR_Header{
@@ -6875,26 +6806,37 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 
 		resp.Answer = append(resp.Answer, srv)
 		resp.Extra = append(resp.Extra, a)
-		if i < cfg.DNSUDPAnswerLimit {
-			expected.Answer = append(expected.Answer, srv)
-			expected.Extra = append(expected.Extra, a)
-		}
 	}
 
-	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); !trimmed {
+	// We don't know the exact trim, but we know the resulting answer
+	// data should match its extra data.
+	if trimmed := trimUDPResponse(req, resp); !trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
-	if !reflect.DeepEqual(resp, expected) {
-		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	for i := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Fatalf("should be SRV")
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Fatalf("should be A")
+		}
+		if srv.Target != a.Header().Name {
+			t.Fatalf("Bad %#v vs. %#v", *srv, *a)
+		}
 	}
 }
 
 func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
-	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
-	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
+	req, resp := &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < defaultMaxUDPSize; i++ {
 		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
 		srv := &dns.SRV{
 			Hdr: dns.RR_Header{
@@ -6924,14 +6866,29 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 		resp.Answer = append(resp.Answer, srv)
 		resp.Extra = append(resp.Extra, a)
 		resp.Ns = append(resp.Ns, ns)
-		if i < cfg.DNSUDPAnswerLimit {
-			expected.Answer = append(expected.Answer, srv)
-			expected.Extra = append(expected.Extra, a)
-		}
 	}
 
-	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); !trimmed {
+	// We don't know the exact trim, but we know the resulting answer
+	// data should match its extra data.
+	if trimmed := trimUDPResponse(req, resp); !trimmed {
 		t.Fatalf("Bad %#v", *resp)
+	}
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	for i := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Fatalf("should be SRV")
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Fatalf("should be A")
+		}
+		if srv.Target != a.Header().Name {
+			t.Fatalf("Bad %#v vs. %#v", *srv, *a)
+		}
 	}
 	require.LessOrEqual(t, resp.Len(), defaultMaxUDPSize)
 	require.Len(t, resp.Ns, 0)
@@ -6939,9 +6896,8 @@ func TestDNS_trimUDPResponse_TrimLimitWithNS(t *testing.T) {
 
 func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
-	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
+	req, resp := &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 5000; i++ {
 		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
 		srv := &dns.SRV{
@@ -6972,15 +6928,30 @@ func TestDNS_trimTCPResponse_TrimLimitWithNS(t *testing.T) {
 		resp.Answer = append(resp.Answer, srv)
 		resp.Extra = append(resp.Extra, a)
 		resp.Ns = append(resp.Ns, ns)
-		if i < cfg.DNSUDPAnswerLimit {
-			expected.Answer = append(expected.Answer, srv)
-			expected.Extra = append(expected.Extra, a)
-		}
 	}
 	req.Question = append(req.Question, dns.Question{Qtype: dns.TypeSRV})
 
+	// We don't know the exact trim, but we know the resulting answer
+	// data should match its extra data.
 	if trimmed := trimTCPResponse(req, resp); !trimmed {
 		t.Fatalf("Bad %#v", *resp)
+	}
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	for i := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Fatalf("should be SRV")
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Fatalf("should be A")
+		}
+		if srv.Target != a.Header().Name {
+			t.Fatalf("Bad %#v vs. %#v", *srv, *a)
+		}
 	}
 	require.LessOrEqual(t, resp.Len(), 65523)
 	require.Len(t, resp.Ns, 0)
@@ -6996,7 +6967,6 @@ func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
 
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 100; i++ {
@@ -7024,7 +6994,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 	// We don't know the exact trim, but we know the resulting answer
 	// data should match its extra data.
-	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); !trimmed {
+	if trimmed := trimUDPResponse(req, resp); !trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
 	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
@@ -7049,7 +7019,6 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `node_name = "test" data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 
@@ -7083,10 +7052,10 @@ func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 	respEDNS.Extra = append(respEDNS.Extra, resp.Extra...)
 
 	// Trim each response
-	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); !trimmed {
+	if trimmed := trimUDPResponse(req, resp); !trimmed {
 		t.Errorf("expected response to be trimmed: %#v", resp)
 	}
-	if trimmed := trimUDPResponse(reqEDNS, respEDNS, cfg.DNSUDPAnswerLimit); !trimmed {
+	if trimmed := trimUDPResponse(reqEDNS, respEDNS); !trimmed {
 		t.Errorf("expected edns to be trimmed: %#v", resp)
 	}
 
@@ -7352,10 +7321,9 @@ func TestDNS_syncExtra(t *testing.T) {
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	t.Parallel()
-	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1" node_name = "dummy"`)
 
 	req, m := dns.Msg{}, dns.Msg{}
-	trimUDPResponse(&req, &m, cfg.DNSUDPAnswerLimit)
+	trimUDPResponse(&req, &m)
 	if m.Compress {
 		t.Fatalf("compression should be off")
 	}
@@ -7363,7 +7331,7 @@ func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	// The trim function temporarily turns off compression, so we need to
 	// make sure the setting gets restored properly.
 	m.Compress = true
-	trimUDPResponse(&req, &m, cfg.DNSUDPAnswerLimit)
+	trimUDPResponse(&req, &m)
 	if !m.Compress {
 		t.Fatalf("compression should be on")
 	}

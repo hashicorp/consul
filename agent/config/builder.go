@@ -918,7 +918,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
 		DNSSOA:                soa,
-		DNSUDPAnswerLimit:     intVal(c.DNS.UDPAnswerLimit),
 		DNSNodeMetaTXT:        boolValWithDefault(c.DNS.NodeMetaTXT, true),
 		DNSUseCache:           boolVal(c.DNS.UseCache),
 		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
@@ -1324,9 +1323,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			"Both the ui_config.enabled and ui_config.dir (or -ui and -ui-dir) were specified, please provide only one.\n" +
 				"If trying to use your own web UI resources, use ui_config.dir or the -ui-dir flag.\n" +
 				"The web UI is included in the binary so use ui_config.enabled or the -ui flag to enable it")
-	}
-	if rt.DNSUDPAnswerLimit < 0 {
-		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be greater than or equal to zero", rt.DNSUDPAnswerLimit)
 	}
 	if rt.DNSARecordLimit < 0 {
 		return fmt.Errorf("dns_config.a_record_limit cannot be %d. Must be greater than or equal to zero", rt.DNSARecordLimit)

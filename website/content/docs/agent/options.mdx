@@ -1375,10 +1375,13 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
     responses will not be compressed. Compression was added and enabled by default
     in Consul 0.7.
 
-  - `udp_answer_limit` - Limit the number of resource
-    records contained in the answer section of a UDP-based DNS response. This parameter
-    applies only to UDP DNS queries that are less than 512 bytes. This setting is
-    deprecated and replaced in Consul 1.0.7 by [`a_record_limit`](#a_record_limit).
+  - `udp_answer_limit` - **Deprecated in Consul 1.0.7 and removed in 1.11.0.**
+    For UDP-based DNS queries without EDNS supported (limited to 512 bytes),
+    limit the maximum number of DNS resource records contained in the ANSWER section
+    of the response. Even without this option, Consul ensures that all DNS responses
+    are within the response size limit (512 bytes without EDNS support). Since Consul
+    1.0.7, the [`a_record_limit`](#a_record_limit) option is the recommended method to
+    limit the number of records returned by A, AAAA, and ANY queries (over UDP and TCP).
 
   - `a_record_limit` - Limit the number of resource
     records contained in the answer section of a A, AAAA or ANY DNS response (both
