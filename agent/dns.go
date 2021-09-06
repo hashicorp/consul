@@ -1072,13 +1072,37 @@ func dnsBinaryTruncate(resp *dns.Msg, maxSize int, index map[string]dns.RR, hasE
 // trimTCPResponse limit the MaximumSize of messages to 64k as it is the limit
 // of DNS responses
 func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
-	hasExtra := len(resp.Extra) > 0
-	// There is some overhead, 65535 does not work
-	maxSize := 65523 // 64k - 12 bytes DNS raw overhead
+	// NOTE: 65523 is a magic number that has been changed several times in the
+	// commit history without a clear explanation. TCP packets are wrapped in
+	// IP packets.
 
-	// We avoid some function calls and allocations by only handling the
-	// extra data when necessary.
-	var index map[string]dns.RR
+	// Per RFC 791, IP packets have:
+	// - A maximum total size of 65,535 (including header and data)
+	// - A minimum header size of 20 bytes
+	// - A maximum header size of 60 bytes (the Internet Header Length field
+	//   has a maximum value of 0xF, meaning 60 bytes)
+	// - Therefore, assuming a full IP header, an IP packet can fit at most
+	//   65,535 - 60 = 65,475 byte payload
+
+	// A TCP packet must fit in an IP packet payload. Per RFC 793, a TCP packet
+	// also has a header of 20-60 bytes (defined by the Data Offset field).
+	// Assuming a full IP and TCP header, this means the maximum TCP payload
+	// 65,535 - 60 - 60 = 65,415 bytes.
+
+	// The DNS packet is the TCP payload. Per RFC 1035, the DNS header size
+	// is 12 bytes. That could make sense if the max size of the DNS packet is
+	// indeed 64KB - 1 (65535), as 65535 - 12 = 65523. However, it seems like
+	// that *should* be accounted for in calls to dns.Msg.Len() [making it
+	// unnecessary to decrement from the maxSize]. And even if we did need
+	// to subtract the DNS header size for some reason, it seems like we
+	// should also need to subtract TCP and IP header sizes to ensure that
+	// the DNS packet fits within a single IP packet.
+
+	// TODO: look into whether this is the correct number to use. It seems like
+	// the number could instead be 65,415 or 65,415 - 12.
+
+	// Old, empirical comment: there is some overhead, 65535 does not work
+	maxSize := 65523 // 64k - 12 bytes DNS raw overhead
 
 	// It is not possible to return more than 4k records even with compression
 	// Since we are performing binary search it is not a big deal, but it
@@ -1091,49 +1115,46 @@ func trimTCPResponse(req, resp *dns.Msg) (trimmed bool) {
 	if len(resp.Answer) > truncateAt {
 		resp.Answer = resp.Answer[:truncateAt]
 	}
-	if hasExtra {
-		index = make(map[string]dns.RR, len(resp.Extra))
-		indexRRs(resp.Extra, index)
-	}
-	truncated := false
 
-	// This enforces the given limit on 64k, the max limit for DNS messages
-	for len(resp.Answer) > 1 && resp.Len() > maxSize {
-		truncated = true
-		// first try to remove the NS section may be it will truncate enough
-		if len(resp.Ns) != 0 {
-			resp.Ns = []dns.RR{}
-		}
-		// More than 100 bytes, find with a binary search
-		if resp.Len()-maxSize > 100 {
-			bestIndex := dnsBinaryTruncate(resp, maxSize, index, hasExtra)
-			resp.Answer = resp.Answer[:bestIndex]
-		} else {
-			resp.Answer = resp.Answer[:len(resp.Answer)-1]
-		}
-		if hasExtra {
-			syncExtra(index, resp)
-		}
-	}
-
-	return truncated
+	return trimResponseGeneric(req, resp, maxSize)
 }
 
-// trimUDPResponse makes sure a UDP response is not longer than allowed by RFC
-// 1035. Enforce an arbitrary limit that can be further ratcheted down by
-// config, and then make sure the response doesn't exceed 512 bytes. Any extra
-// records will be trimmed along with answers.
+// trimUDPResponse makes sure a UDP response is not longer than allowed: 512 bytes
+// without EDNS (per RFC 1035), or a user specified limit with EDNS. Any Extra
+// records will be trimmed along with Answers.
 func trimUDPResponse(req, resp *dns.Msg) (trimmed bool) {
-	numAnswers := len(resp.Answer)
-	hasExtra := len(resp.Extra) > 0
-	maxSize := defaultMaxUDPSize
+	maxSizeTotal := defaultMaxUDPSize
 
 	// Update to the maximum edns size
 	if edns := req.IsEdns0(); edns != nil {
-		if size := edns.UDPSize(); size > uint16(maxSize) {
-			maxSize = int(size)
+		if size := edns.UDPSize(); size > uint16(maxSizeTotal) {
+			maxSizeTotal = int(size)
 		}
 	}
+
+	// NOTE: 7 is a magic number added in commit 4f5d502 to stop an "overflow
+	// unpacking uint32" error from the DNS library. It was thought at the time
+	// that more room might be needed for "the header" for some reason, but
+	// it's unclear why that would be the case. The maximum allowed payload
+	// size of DNS without EDNS is 512, which doesn't include IP or UDP
+	// headers (per RFC 1035 4.2.1). The DNS header is 12 bytes (per RFC 1035),
+	// and it seems like that *should* be accounted for in calls to
+	// dns.Msg.Len(). The UDP header is 8 bytes (per RFC 768), which is closer
+	// to the unexplained 7 byte value but stould be irrelevant (as the UDP
+	// header is not included in the 512 limit per RFC 1035 4.2.1).
+
+	// TODO: look into why this "overhead" is needed at all and whether 7
+	// is the right number.
+	maxSizeBeforeOverhead := maxSizeTotal - 7
+
+	return trimResponseGeneric(req, resp, maxSizeBeforeOverhead)
+}
+
+// trimResponseGeneric provides shared functionality for both
+// trimUDPResponse and trimTCPResponse
+func trimResponseGeneric(req, resp *dns.Msg, maxSize int) (trimmed bool) {
+	numAnswersInitial := len(resp.Answer)
+	hasExtra := len(resp.Extra) > 0
 
 	// We avoid some function calls and allocations by only handling the
 	// extra data when necessary.
@@ -1143,16 +1164,11 @@ func trimUDPResponse(req, resp *dns.Msg) (trimmed bool) {
 		indexRRs(resp.Extra, index)
 	}
 
-	// Enforce the given limit on the number bytes. The default is 512 as
-	// per the RFC, but EDNS0 allows for the user to specify larger sizes.
-	// The algorithm below will ensure the given limit is obeyed regardless
+	// The algorithm below will ensure the specified limit is obeyed regardless
 	// of whether the response is sent compressed. This is because whether
 	// the response will be sent compressed has already been set by the caller
 	// (resp.Compress); this setting is factored into resp.Len() results.
-
-	// Even when size is too big for one single record, try to send it anyway
-	// (useful for 512 bytes messages)
-	for len(resp.Answer) > 1 && resp.Len() > maxSize-7 {
+	for len(resp.Answer) > 1 && resp.Len() > maxSize {
 		// first try to remove the NS section may be it will truncate enough
 		if len(resp.Ns) != 0 {
 			resp.Ns = []dns.RR{}
@@ -1169,7 +1185,7 @@ func trimUDPResponse(req, resp *dns.Msg) (trimmed bool) {
 		}
 	}
 
-	return len(resp.Answer) < numAnswers
+	return len(resp.Answer) < numAnswersInitial
 }
 
 // trimDNSResponse will trim the response for UDP and TCP
