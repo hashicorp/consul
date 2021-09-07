@@ -2,8 +2,10 @@ package uiserver
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,6 +23,9 @@ import (
 const (
 	compiledProviderJSPath = "assets/compiled-metrics-providers.js"
 )
+
+//go:embed dist
+var assets embed.FS
 
 // Handler is the http.Handler that serves the Consul UI. It may serve from the
 // compiled-in AssetFS or from and external dir. It provides a few important
@@ -87,15 +92,20 @@ func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
 func (h *Handler) handleIndex() (http.Handler, error) {
 	cfg := h.getRuntimeConfig()
 
-	var fs http.FileSystem
+	var fsys http.FileSystem
 	if cfg.UIConfig.Dir == "" {
-		fs = assetFS()
+		// strip the dist/ prefix
+		sub, err := fs.Sub(assets, "dist")
+		if err != nil {
+			return nil, err
+		}
+		fsys = http.FS(sub)
 	} else {
-		fs = http.Dir(cfg.UIConfig.Dir)
+		fsys = http.Dir(cfg.UIConfig.Dir)
 	}
 
 	// Render a new index.html with the new config values ready to serve.
-	buf, info, err := h.renderIndex(cfg, fs)
+	buf, info, err := h.renderIndex(cfg, fsys)
 	if _, ok := err.(*os.PathError); ok && cfg.UIConfig.Dir != "" {
 		// A Path error indicates that there is no index.html. This could happen if
 		// the user configured their own UI dir and is serving something that is not
@@ -105,16 +115,16 @@ func (h *Handler) handleIndex() (http.Handler, error) {
 		// breaking change although quite an edge case. Instead, continue but just
 		// return a 404 response for the index.html and log a warning.
 		h.logger.Warn("ui_config.dir does not contain an index.html. Index templating and redirects to index.html are disabled.")
-		return http.FileServer(fs), nil
+		return http.FileServer(fsys), nil
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a new fs that serves the rendered index file or falls back to the
+	// Create a new fsys that serves the rendered index file or falls back to the
 	// underlying FS.
-	fs = &bufIndexFS{
-		fs:            fs,
+	fsys = &bufIndexFS{
+		fs:            fsys,
 		indexRendered: buf,
 		indexInfo:     info,
 	}
@@ -122,7 +132,7 @@ func (h *Handler) handleIndex() (http.Handler, error) {
 	// Wrap the buffering FS our redirect FS. This needs to happen later so that
 	// redirected requests for /index.html get served the rendered version not the
 	// original.
-	return http.FileServer(&redirectFS{fs: fs}), nil
+	return http.FileServer(&redirectFS{fs: fsys}), nil
 }
 
 // getRuntimeConfig is a helper to atomically access the runtime config.
