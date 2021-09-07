@@ -2,6 +2,10 @@
 
 ## 1.10.2 (August 27, 2021)
 
+KNOWN ISSUES:
+
+* tls: The fix for [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) introduced an issue that could prevent TLS certificate validation when intermediate CA certificates used to sign server certificates are transmitted in the TLS session but are not present in all Consul server's configured CA certificates. This has the effect of preventing Raft RPCs between the affected servers. As a work around until the next patch releases, ensure that all intermediate CA certificates are present in all Consul server configurations prior to using certificates that they have signed.
+
 SECURITY:
 
 * rpc: authorize raft requests [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) [[GH-10931](https://github.com/hashicorp/consul/issues/10931)]
@@ -199,6 +203,10 @@ NOTES:
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
 
 ## 1.9.9 (August 27, 2021)
+
+KNOWN ISSUES:
+
+* tls: The fix for [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) introduced an issue that could prevent TLS certificate validation when intermediate CA certificates used to sign server certificates are transmitted in the TLS session but are not present in all Consul server's configured CA certificates. This has the effect of preventing Raft RPCs between the affected servers. As a work around until the next patch releases, ensure that all intermediate CA certificates are present in all Consul server configurations prior to using certificates that they have signed.
 
 SECURITY:
 
@@ -536,6 +544,10 @@ BUG FIXES:
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
 ## 1.8.15 (August 27, 2021)
+
+KNOWN ISSUES:
+
+* tls: The fix for [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) introduced an issue that could prevent TLS certificate validation when intermediate CA certificates used to sign server certificates are transmitted in the TLS session but are not present in all Consul server's configured CA certificates. This has the effect of preventing Raft RPCs between the affected servers. As a work around until the next patch releases, ensure that all intermediate CA certificates are present in all Consul server configurations prior to using certificates that they have signed.
 
 SECURITY:
 
