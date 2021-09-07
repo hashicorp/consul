@@ -937,7 +937,7 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		}
 		multierror.Append(errs, err)
 	}
-	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a CommonName of %v: %w", expected, errs)
+	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a SAN.DNSName of %v: %w", expected, errs)
 
 }
 
