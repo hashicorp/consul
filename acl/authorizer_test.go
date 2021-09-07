@@ -129,6 +129,16 @@ func (m *mockAuthorizer) NodeWrite(segment string, ctx *AuthorizerContext) Enfor
 	return ret.Get(0).(EnforcementDecision)
 }
 
+func (m *mockAuthorizer) MeshRead(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+func (m *mockAuthorizer) MeshWrite(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 // OperatorRead determines if the read-only Consul operator functions
 // can be used.	ret := m.Called(segment, ctx)
 func (m *mockAuthorizer) OperatorRead(ctx *AuthorizerContext) EnforcementDecision {

@@ -271,7 +271,7 @@ func (e *IngressGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
 func (e *IngressGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *IngressGatewayConfigEntry) GetRaftIndex() *RaftIndex {
@@ -407,15 +407,13 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 func (e *TerminatingGatewayConfigEntry) CanRead(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-
 	return authz.ServiceRead(e.Name, &authzContext) == acl.Allow
 }
 
 func (e *TerminatingGatewayConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *TerminatingGatewayConfigEntry) GetRaftIndex() *RaftIndex {

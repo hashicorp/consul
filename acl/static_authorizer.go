@@ -156,6 +156,20 @@ func (s *staticAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDeci
 	return Deny
 }
 
+func (s *staticAuthorizer) MeshRead(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) MeshWrite(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) OperatorRead(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow

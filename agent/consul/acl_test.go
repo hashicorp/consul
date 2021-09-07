@@ -1906,6 +1906,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		authz, err := r.ResolveToken("legacy-client")
 		require.NoError(t, err)
 		require.NotNil(t, authz)
+		require.Equal(t, acl.Deny, authz.MeshRead(nil))
 		require.Equal(t, acl.Deny, authz.OperatorRead(nil))
 		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
 	})

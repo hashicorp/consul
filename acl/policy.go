@@ -84,6 +84,7 @@ type PolicyRules struct {
 	PreparedQueryPrefixes []*PreparedQueryRule `hcl:"query_prefix,expand"`
 	Keyring               string               `hcl:"keyring"`
 	Operator              string               `hcl:"operator"`
+	Mesh                  string               `hcl:"mesh"`
 }
 
 // Policy is used to represent the policy specified by an ACL configuration.
@@ -285,6 +286,11 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 		return fmt.Errorf("Invalid operator policy: %#v", pr.Operator)
 	}
 
+	// Validate the mesh policy - this one is allowed to be empty
+	if pr.Mesh != "" && !isPolicyValid(pr.Mesh, false) {
+		return fmt.Errorf("Invalid mesh policy: %#v", pr.Mesh)
+	}
+
 	return nil
 }
 
@@ -318,6 +324,7 @@ func parseLegacy(rules string, conf *Config) (*Policy, error) {
 		PreparedQueries []*PreparedQueryRule `hcl:"query,expand"`
 		Keyring         string               `hcl:"keyring"`
 		Operator        string               `hcl:"operator"`
+		// NOTE: mesh resources not supported here
 	}
 
 	lp := &LegacyPolicy{}
@@ -446,6 +453,7 @@ func NewPolicyFromSource(id string, revision uint64, rules string, syntax Syntax
 	return policy, err
 }
 
+// TODO(ACL-Legacy): remove this
 func (policy *Policy) ConvertToLegacy() *Policy {
 	converted := &Policy{
 		ID:       policy.ID,
@@ -474,6 +482,7 @@ func (policy *Policy) ConvertToLegacy() *Policy {
 	return converted
 }
 
+// TODO(ACL-Legacy): remove this
 func (policy *Policy) ConvertFromLegacy() *Policy {
 	return &Policy{
 		ID:       policy.ID,

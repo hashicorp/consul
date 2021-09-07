@@ -315,7 +315,7 @@ func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
 func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {

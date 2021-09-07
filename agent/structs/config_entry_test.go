@@ -11,9 +11,194 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestConfigEntries_ACLs(t *testing.T) {
+	type testACL = configEntryTestACL
+	type testcase = configEntryACLTestCase
+
+	newAuthz := func(t *testing.T, src string) acl.Authorizer {
+		policy, err := acl.NewPolicyFromSource("", 0, src, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+		return authorizer
+	}
+
+	cases := []testcase{
+		// =================== proxy-defaults ===================
+		{
+			name:  "proxy-defaults",
+			entry: &ProxyConfigEntry{},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator deny",
+					authorizer: newAuthz(t, `operator = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator read",
+					authorizer: newAuthz(t, `operator = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator write",
+					authorizer: newAuthz(t, `operator = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "proxy-defaults: mesh deny",
+					authorizer: newAuthz(t, `mesh = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: mesh read",
+					authorizer: newAuthz(t, `mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: mesh write",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "proxy-defaults: operator deny and mesh read",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator deny and mesh write",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+			},
+		},
+		// =================== mesh ===================
+		{
+			name:  "mesh",
+			entry: &MeshConfigEntry{},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator deny",
+					authorizer: newAuthz(t, `operator = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator read",
+					authorizer: newAuthz(t, `operator = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator write",
+					authorizer: newAuthz(t, `operator = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "mesh: mesh deny",
+					authorizer: newAuthz(t, `mesh = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: mesh read",
+					authorizer: newAuthz(t, `mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: mesh write",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "mesh: operator deny and mesh read",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator deny and mesh write",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+			},
+		},
+	}
+
+	testConfigEntries_ListRelatedServices_AndACLs(t, cases)
+}
+
+type configEntryTestACL struct {
+	name       string
+	authorizer acl.Authorizer
+	canRead    bool
+	canWrite   bool
+}
+
+type configEntryACLTestCase struct {
+	name           string
+	entry          ConfigEntry
+	expectServices []ServiceID // optional
+	expectACLs     []configEntryTestACL
+}
+
+func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configEntryACLTestCase) {
+	// This test tests both of these because they are related functions.
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// verify test inputs
+			require.NoError(t, tc.entry.Normalize())
+			require.NoError(t, tc.entry.Validate())
+
+			if dce, ok := tc.entry.(discoveryChainConfigEntry); ok {
+				got := dce.ListRelatedServices()
+				require.Equal(t, tc.expectServices, got)
+			}
+
+			if len(tc.expectACLs) == 1 {
+				a := tc.expectACLs[0]
+				require.Empty(t, a.name)
+			} else {
+				for _, a := range tc.expectACLs {
+					require.NotEmpty(t, a.name)
+					t.Run(a.name, func(t *testing.T) {
+						require.Equal(t, a.canRead, tc.entry.CanRead(a.authorizer), "unexpected CanRead result")
+						require.Equal(t, a.canWrite, tc.entry.CanWrite(a.authorizer), "unexpected CanWrite result")
+					})
+				}
+			}
+		})
+	}
+}
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
 // command/config/write/config_write_test.go:TestParseConfigEntry
