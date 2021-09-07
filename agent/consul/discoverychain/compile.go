@@ -59,6 +59,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	var (
 		serviceName           = req.ServiceName
 		evaluateInNamespace   = req.EvaluateInNamespace
+		evaluateInPartition   = req.EvaluateInPartition
 		evaluateInDatacenter  = req.EvaluateInDatacenter
 		evaluateInTrustDomain = req.EvaluateInTrustDomain
 		useInDatacenter       = req.UseInDatacenter
@@ -69,6 +70,9 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	}
 	if evaluateInNamespace == "" {
 		return nil, fmt.Errorf("evaluateInNamespace is required")
+	}
+	if evaluateInPartition == "" {
+		return nil, fmt.Errorf("evaluateInPartition is required")
 	}
 	if evaluateInDatacenter == "" {
 		return nil, fmt.Errorf("evaluateInDatacenter is required")
@@ -85,6 +89,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 
 	c := &compiler{
 		serviceName:            serviceName,
+		evaluateInPartition:    evaluateInPartition,
 		evaluateInNamespace:    evaluateInNamespace,
 		evaluateInDatacenter:   evaluateInDatacenter,
 		evaluateInTrustDomain:  evaluateInTrustDomain,
@@ -122,6 +127,7 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 type compiler struct {
 	serviceName            string
 	evaluateInNamespace    string
+	evaluateInPartition    string
 	evaluateInDatacenter   string
 	evaluateInTrustDomain  string
 	useInDatacenter        string
@@ -323,6 +329,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 	return &structs.CompiledDiscoveryChain{
 		ServiceName:       c.serviceName,
 		Namespace:         c.evaluateInNamespace,
+		Partition:         c.evaluateInPartition,
 		Datacenter:        c.evaluateInDatacenter,
 		CustomizationHash: customizationHash,
 		Protocol:          c.protocol,
@@ -522,7 +529,7 @@ func (c *compiler) assembleChain() error {
 	if router == nil {
 		// If no router is configured, move on down the line to the next hop of
 		// the chain.
-		node, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", ""))
+		node, err := c.getSplitterOrResolverNode(c.newTarget(c.serviceName, "", "", "", ""))
 		if err != nil {
 			return err
 		}
@@ -562,6 +569,7 @@ func (c *compiler) assembleChain() error {
 		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
+		destPartition := router.PartitionOrDefault()
 
 		// Check to see if the destination is eligible for splitting.
 		var (
@@ -570,11 +578,11 @@ func (c *compiler) assembleChain() error {
 		)
 		if dest.ServiceSubset == "" {
 			node, err = c.getSplitterOrResolverNode(
-				c.newTarget(svc, "", destNamespace, ""),
+				c.newTarget(svc, "", destNamespace, destPartition, ""),
 			)
 		} else {
 			node, err = c.getResolverNode(
-				c.newTarget(svc, dest.ServiceSubset, destNamespace, ""),
+				c.newTarget(svc, dest.ServiceSubset, destNamespace, destPartition, ""),
 				false,
 			)
 		}
@@ -586,7 +594,7 @@ func (c *compiler) assembleChain() error {
 
 	// If we have a router, we'll add a catch-all route at the end to send
 	// unmatched traffic to the next hop in the chain.
-	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), ""))
+	defaultDestinationNode, err := c.getSplitterOrResolverNode(c.newTarget(router.Name, "", router.NamespaceOrDefault(), router.PartitionOrDefault(), ""))
 	if err != nil {
 		return err
 	}
@@ -617,7 +625,7 @@ func newDefaultServiceRoute(serviceName string, namespace string) *structs.Servi
 	}
 }
 
-func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+func (c *compiler) newTarget(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
 	if service == "" {
 		panic("newTarget called with empty service which makes no sense")
 	}
@@ -626,6 +634,7 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 		service,
 		serviceSubset,
 		defaultIfEmpty(namespace, c.evaluateInNamespace),
+		defaultIfEmpty(partition, c.evaluateInPartition),
 		defaultIfEmpty(datacenter, c.evaluateInDatacenter),
 	)
 
@@ -645,10 +654,11 @@ func (c *compiler) newTarget(service, serviceSubset, namespace, datacenter strin
 	return t
 }
 
-func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
+func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSubset, partition, namespace, datacenter string) *structs.DiscoveryTarget {
 	var (
 		service2       = t.Service
 		serviceSubset2 = t.ServiceSubset
+		partition2     = t.Partition
 		namespace2     = t.Namespace
 		datacenter2    = t.Datacenter
 	)
@@ -661,6 +671,9 @@ func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSub
 	if serviceSubset != "" {
 		serviceSubset2 = serviceSubset
 	}
+	if partition != "" {
+		partition2 = partition
+	}
 	if namespace != "" {
 		namespace2 = namespace
 	}
@@ -668,7 +681,7 @@ func (c *compiler) rewriteTarget(t *structs.DiscoveryTarget, service, serviceSub
 		datacenter2 = datacenter
 	}
 
-	return c.newTarget(service2, serviceSubset2, namespace2, datacenter2)
+	return c.newTarget(service2, serviceSubset2, namespace2, partition2, datacenter2)
 }
 
 func (c *compiler) getSplitterOrResolverNode(target *structs.DiscoveryTarget) (*structs.DiscoveryGraphNode, error) {
@@ -735,7 +748,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 		}
 
 		node, err := c.getResolverNode(
-			c.newTarget(splitID.ID, split.ServiceSubset, splitID.NamespaceOrDefault(), ""),
+			c.newTarget(splitID.ID, split.ServiceSubset, splitID.NamespaceOrDefault(), splitID.PartitionOrDefault(), ""),
 			false,
 		)
 		if err != nil {
@@ -806,6 +819,7 @@ RESOLVE_AGAIN:
 	// Handle redirects right up front.
 	//
 	// TODO(rb): What about a redirected subset reference? (web/v2, but web redirects to alt/"")
+
 	if resolver.Redirect != nil {
 		redirect := resolver.Redirect
 
@@ -813,6 +827,7 @@ RESOLVE_AGAIN:
 			target,
 			redirect.Service,
 			redirect.ServiceSubset,
+			target.Partition,
 			redirect.Namespace,
 			redirect.Datacenter,
 		)
@@ -828,6 +843,7 @@ RESOLVE_AGAIN:
 			target,
 			"",
 			resolver.DefaultSubset,
+			"",
 			"",
 			"",
 		)
@@ -962,6 +978,7 @@ RESOLVE_AGAIN:
 						target,
 						failover.Service,
 						failover.ServiceSubset,
+						target.Partition,
 						failover.Namespace,
 						dc,
 					)
@@ -975,6 +992,7 @@ RESOLVE_AGAIN:
 					target,
 					failover.Service,
 					failover.ServiceSubset,
+					target.Partition,
 					failover.Namespace,
 					"",
 				)

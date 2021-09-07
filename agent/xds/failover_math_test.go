@@ -15,22 +15,22 @@ func TestFirstHealthyTarget(t *testing.T) {
 	warning := proxycfg.TestUpstreamNodesInStatus(t, "warning")
 	critical := proxycfg.TestUpstreamNodesInStatus(t, "critical")
 
-	warnOnlyPassingTarget := structs.NewDiscoveryTarget("all-warn", "", "default", "dc1")
+	warnOnlyPassingTarget := structs.NewDiscoveryTarget("all-warn", "", "default", "default", "dc1")
 	warnOnlyPassingTarget.Subset.OnlyPassing = true
-	failOnlyPassingTarget := structs.NewDiscoveryTarget("all-fail", "", "default", "dc1")
+	failOnlyPassingTarget := structs.NewDiscoveryTarget("all-fail", "", "default", "default", "dc1")
 	failOnlyPassingTarget.Subset.OnlyPassing = true
 
 	targets := map[string]*structs.DiscoveryTarget{
-		"all-ok.default.dc1":               structs.NewDiscoveryTarget("all-ok", "", "default", "dc1"),
-		"all-warn.default.dc1":             structs.NewDiscoveryTarget("all-warn", "", "default", "dc1"),
-		"all-fail.default.dc1":             structs.NewDiscoveryTarget("all-fail", "", "default", "dc1"),
+		"all-ok.default.dc1":               structs.NewDiscoveryTarget("all-ok", "", "default", "default", "dc1"),
+		"all-warn.default.dc1":             structs.NewDiscoveryTarget("all-warn", "", "default", "default", "dc1"),
+		"all-fail.default.default.dc1":     structs.NewDiscoveryTarget("all-fail", "", "default", "default", "dc1"),
 		"all-warn-onlypassing.default.dc1": warnOnlyPassingTarget,
 		"all-fail-onlypassing.default.dc1": failOnlyPassingTarget,
 	}
 	targetHealth := map[string]structs.CheckServiceNodes{
 		"all-ok.default.dc1":               passing,
 		"all-warn.default.dc1":             warning,
-		"all-fail.default.dc1":             critical,
+		"all-fail.default.default.dc1":     critical,
 		"all-warn-onlypassing.default.dc1": warning,
 		"all-fail-onlypassing.default.dc1": critical,
 	}
@@ -49,8 +49,8 @@ func TestFirstHealthyTarget(t *testing.T) {
 			expect:  "all-warn.default.dc1",
 		},
 		{
-			primary: "all-fail.default.dc1",
-			expect:  "all-fail.default.dc1",
+			primary: "all-fail.default.default.dc1",
+			expect:  "all-fail.default.default.dc1",
 		},
 		{
 			primary: "all-warn-onlypassing.default.dc1",
@@ -82,7 +82,7 @@ func TestFirstHealthyTarget(t *testing.T) {
 			expect: "all-ok.default.dc1",
 		},
 		{
-			primary: "all-fail.default.dc1",
+			primary: "all-fail.default.default.dc1",
 			secondary: []string{
 				"all-ok.default.dc1",
 			},
@@ -96,7 +96,7 @@ func TestFirstHealthyTarget(t *testing.T) {
 			expect: "all-ok.default.dc1",
 		},
 		{
-			primary: "all-fail.default.dc1",
+			primary: "all-fail.default.default.dc1",
 			secondary: []string{
 				"all-warn-onlypassing.default.dc1",
 				"all-warn.default.dc1",

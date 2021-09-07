@@ -6,16 +6,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCompileConfigEntries(
-	t testing.T,
+func TestCompileConfigEntries(t testing.T,
 	serviceName string,
 	evaluateInNamespace string,
+	evaluateInPartition string,
 	evaluateInDatacenter string,
 	evaluateInTrustDomain string,
 	useInDatacenter string,
-	setup func(req *CompileRequest),
-	entries ...structs.ConfigEntry,
-) *structs.CompiledDiscoveryChain {
+	setup func(req *CompileRequest), entries ...structs.ConfigEntry) *structs.CompiledDiscoveryChain {
 	set := structs.NewDiscoveryChainConfigEntries()
 
 	set.AddEntries(entries...)
@@ -23,6 +21,7 @@ func TestCompileConfigEntries(
 	req := CompileRequest{
 		ServiceName:           serviceName,
 		EvaluateInNamespace:   evaluateInNamespace,
+		EvaluateInPartition:   evaluateInPartition,
 		EvaluateInDatacenter:  evaluateInDatacenter,
 		EvaluateInTrustDomain: evaluateInTrustDomain,
 		UseInDatacenter:       useInDatacenter,

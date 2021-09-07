@@ -135,6 +135,11 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			ns = u.DestinationNamespace
 		}
 
+		partition := s.proxyID.PartitionOrDefault()
+		if u.DestinationPartition != "" {
+			partition = u.DestinationPartition
+		}
+
 		cfg, err := parseReducedUpstreamConfig(u.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. We'll fall back on
@@ -162,14 +167,14 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		case structs.UpstreamDestTypeService:
 			fallthrough
 
-			// TODO (partition): pass Partition to DiscoveryChainRequest?
-		case "": // Treat unset as the default Service type
+		case "":
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,
 				QueryOptions:           structs.QueryOptions{Token: s.token},
 				Name:                   u.DestinationName,
 				EvaluateInDatacenter:   dc,
 				EvaluateInNamespace:    ns,
+				EvaluateInPartition:    partition,
 				OverrideMeshGateway:    s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway),
 				OverrideProtocol:       cfg.Protocol,
 				OverrideConnectTimeout: cfg.ConnectTimeout(),

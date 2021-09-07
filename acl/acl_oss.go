@@ -2,6 +2,8 @@
 
 package acl
 
+const DefaultPartitionName = ""
+
 type EnterpriseConfig struct {
 	// no fields in OSS
 }

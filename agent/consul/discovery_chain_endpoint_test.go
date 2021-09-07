@@ -54,8 +54,8 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		return &resp, nil
 	}
 
-	newTarget := func(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
-		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, datacenter)
+	newTarget := func(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
 		return t
@@ -68,6 +68,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Name:                 "web",
 			EvaluateInDatacenter: "dc1",
 			EvaluateInNamespace:  "default",
+			EvaluateInPartition:  "default",
 			Datacenter:           "dc1",
 		})
 		if !acl.IsErrPermissionDenied(err) {
@@ -80,6 +81,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Name:                 "web",
 			EvaluateInDatacenter: "dc1",
 			EvaluateInNamespace:  "default",
+			EvaluateInPartition:  "default",
 			Datacenter:           "dc1",
 			QueryOptions:         structs.QueryOptions{Token: denyToken.SecretID},
 		})
@@ -92,51 +94,81 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 		Chain: &structs.CompiledDiscoveryChain{
 			ServiceName: "web",
 			Namespace:   "default",
+			Partition:   "default",
 			Datacenter:  "dc1",
 			Protocol:    "tcp",
-			StartNode:   "resolver:web.default.dc1",
+			StartNode:   "resolver:web.default.default.dc1",
 			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:web.default.dc1": {
+				"resolver:web.default.default.dc1": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
-					Name: "web.default.dc1",
+					Name: "web.default.default.dc1",
 					Resolver: &structs.DiscoveryResolver{
 						Default:        true,
 						ConnectTimeout: 5 * time.Second,
-						Target:         "web.default.dc1",
+						Target:         "web.default.default.dc1",
 					},
 				},
 			},
 			Targets: map[string]*structs.DiscoveryTarget{
-				"web.default.dc1": newTarget("web", "", "default", "dc1"),
+				"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 			},
 		},
 	}
 
 	// various ways with good token
 	for _, tc := range []struct {
-		evalDC string
-		evalNS string
-		expect *structs.DiscoveryChainResponse
+		evalDC   string
+		evalNS   string
+		evalPart string
+		expect   *structs.DiscoveryChainResponse
 	}{
 		{
-			evalDC: "dc1",
-			evalNS: "default",
-			expect: expectDefaultResponse_DC1_Default,
+			evalDC:   "dc1",
+			evalNS:   "default",
+			evalPart: "default",
+			expect:   expectDefaultResponse_DC1_Default,
 		},
 		{
-			evalDC: "",
-			evalNS: "default",
-			expect: expectDefaultResponse_DC1_Default,
+			evalDC:   "",
+			evalNS:   "default",
+			evalPart: "default",
+			expect:   expectDefaultResponse_DC1_Default,
 		},
 		{
-			evalDC: "dc1",
-			evalNS: "",
-			expect: expectDefaultResponse_DC1_Default,
+			evalDC:   "dc1",
+			evalNS:   "",
+			evalPart: "default",
+			expect:   expectDefaultResponse_DC1_Default,
 		},
 		{
-			evalDC: "",
-			evalNS: "",
-			expect: expectDefaultResponse_DC1_Default,
+			evalDC:   "",
+			evalNS:   "",
+			evalPart: "default",
+			expect:   expectDefaultResponse_DC1_Default,
+		},
+		{
+			evalDC:   "dc1",
+			evalNS:   "default",
+			evalPart: "",
+			expect:   expectDefaultResponse_DC1_Default,
+		},
+		{
+			evalDC:   "",
+			evalNS:   "default",
+			evalPart: "",
+			expect:   expectDefaultResponse_DC1_Default,
+		},
+		{
+			evalDC:   "dc1",
+			evalNS:   "",
+			evalPart: "",
+			expect:   expectDefaultResponse_DC1_Default,
+		},
+		{
+			evalDC:   "",
+			evalNS:   "",
+			evalPart: "",
+			expect:   expectDefaultResponse_DC1_Default,
 		},
 	} {
 		tc := tc
@@ -146,6 +178,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				Name:                 "web",
 				EvaluateInDatacenter: tc.evalDC,
 				EvaluateInNamespace:  tc.evalNS,
+				EvaluateInPartition:  tc.evalPart,
 				Datacenter:           "dc1",
 				QueryOptions:         structs.QueryOptions{Token: allowToken.SecretID},
 			})
@@ -177,6 +210,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Name:                 "web",
 			EvaluateInDatacenter: "dc1",
 			EvaluateInNamespace:  "default",
+			EvaluateInPartition:  "default",
 			Datacenter:           "dc1",
 			QueryOptions:         structs.QueryOptions{Token: allowToken.SecretID},
 		})
@@ -186,21 +220,22 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Chain: &structs.CompiledDiscoveryChain{
 				ServiceName: "web",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc1",
+				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": {
+					"resolver:web.default.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc1",
+						Name: "web.default.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							ConnectTimeout: 33 * time.Second,
-							Target:         "web.default.dc1",
+							Target:         "web.default.default.dc1",
 						},
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": newTarget("web", "", "default", "dc1"),
+					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 				},
 			},
 		}

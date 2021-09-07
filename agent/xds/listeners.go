@@ -1134,7 +1134,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
 		protocol:   protocol,
-		filterName: fmt.Sprintf("%s.%s.%s", service.Name, service.NamespaceOrDefault(), cfgSnap.Datacenter),
+		filterName: fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
 		routeName:  cluster, // Set cluster name for route config since each will have its own
 		cluster:    cluster,
 		statPrefix: "upstream.",
@@ -1279,12 +1279,13 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	useRDS := true
 
 	var (
-		clusterName                        string
-		destination, datacenter, namespace string
+		clusterName                                   string
+		destination, datacenter, partition, namespace string
 	)
 
+	// TODO (SNI partition) add partition for SNI
 	if chain != nil {
-		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
+		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
 	}
 	if (chain == nil || chain.IsDefault()) && u != nil {
 		useRDS = false
@@ -1297,6 +1298,9 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		}
 		if destination == "" {
 			destination = u.DestinationName
+		}
+		if partition == "" {
+			partition = u.DestinationPartition
 		}
 		if namespace == "" {
 			namespace = u.DestinationNamespace
@@ -1328,7 +1332,12 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		namespace = structs.IntentionDefaultNamespace
 	}
 
-	filterName := fmt.Sprintf("%s.%s.%s", destination, namespace, datacenter)
+	// Default the partition to match how SNIs are generated
+	if partition == "" {
+		partition = structs.IntentionDefaultNamespace
+	}
+
+	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
 	if u != nil && u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 		// Avoid encoding dc and namespace for prepared queries.
 		// Those are defined in the query itself and are not available here.
@@ -1395,8 +1404,8 @@ func (s *ResourceGenerator) makeUpstreamListenerForDiscoveryChain(
 
 	useRDS := true
 	var (
-		clusterName                        string
-		destination, datacenter, namespace string
+		clusterName                                   string
+		destination, datacenter, partition, namespace string
 	)
 	if chain == nil || chain.IsDefault() {
 		useRDS = false
@@ -1405,13 +1414,13 @@ func (s *ResourceGenerator) makeUpstreamListenerForDiscoveryChain(
 		if dc == "" {
 			dc = cfgSnap.Datacenter
 		}
-		destination, datacenter, namespace = u.DestinationName, dc, u.DestinationNamespace
+		destination, datacenter, partition, namespace = u.DestinationName, dc, u.DestinationPartition, u.DestinationNamespace
 
 		sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
 		clusterName = CustomizeClusterName(sni, chain)
 
 	} else {
-		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
+		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
 
 		if cfg.Protocol == "tcp" {
 			useRDS = false
@@ -1434,7 +1443,12 @@ func (s *ResourceGenerator) makeUpstreamListenerForDiscoveryChain(
 	if namespace == "" {
 		namespace = structs.IntentionDefaultNamespace
 	}
-	filterName := fmt.Sprintf("%s.%s.%s", destination, namespace, datacenter)
+
+	// Default the partition to match how SNIs are generated
+	if partition == "" {
+		partition = structs.IntentionDefaultNamespace
+	}
+	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
 
 	if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 		// Avoid encoding dc and namespace for prepared queries.

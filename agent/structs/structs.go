@@ -1250,6 +1250,17 @@ func (s *NodeService) Validate() error {
 			bindAddrs    = make(map[string]struct{})
 		)
 		for _, u := range s.Proxy.Upstreams {
+			destinationPartition := u.DestinationPartition
+			if destinationPartition == "" {
+				destinationPartition = acl.DefaultPartitionName
+			}
+
+			// cross DC Upstreams are only allowed for non "default" partitions
+			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
+				result = multierror.Append(result, fmt.Errorf(
+					"upstreams cannot target another datacenter in non default partition"))
+				continue
+			}
 			if err := u.Validate(); err != nil {
 				result = multierror.Append(result, err)
 				continue

@@ -176,10 +176,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						ConnectTimeout: 22 * time.Second,
 					},
 				}
-				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
 
 				snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
 					"foo": fooChain,

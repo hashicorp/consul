@@ -224,8 +224,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 	// Outside of transparent mode we only watch the chain target, B,
 	// since A is a virtual service and traffic will not be sent to it.
 	if !watchedChainEndpoints && s.proxyCfg.Mode == structs.ProxyModeTransparent {
-		// TODO(partitions): add partition to the disco chain
-		chainEntMeta := structs.NewEnterpriseMetaWithPartition("" /*TODO*/, chain.Namespace)
+		chainEntMeta := structs.NewEnterpriseMetaWithPartition(chain.Partition, chain.Namespace)
 
 		opts := targetWatchOpts{
 			upstreamID: id,
@@ -358,6 +357,7 @@ func (s *handlerUpstreams) watchDiscoveryChain(ctx context.Context, snap *Config
 		Name:                   opts.name,
 		EvaluateInDatacenter:   opts.datacenter,
 		EvaluateInNamespace:    opts.namespace,
+		EvaluateInPartition:    opts.partition,
 		OverrideProtocol:       opts.cfg.Protocol,
 		OverrideConnectTimeout: opts.cfg.ConnectTimeout(),
 		OverrideMeshGateway:    opts.meshGateway,

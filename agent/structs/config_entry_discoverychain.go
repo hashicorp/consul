@@ -379,8 +379,6 @@ type ServiceRouteDestination struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
-	// NOTE: Partition is not represented here by design. Do not add it.
-
 	// PrefixRewrite allows for the proxied request to have its matching path
 	// prefix modified before being sent to the destination. Described more
 	// below in the envoy implementation section.
@@ -660,8 +658,6 @@ type ServiceSplit struct {
 	// If this field is specified then this route is ineligible for further
 	// splitting.
 	Namespace string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // ServiceResolverConfigEntry defines which instances of a service should
@@ -846,6 +842,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if e.Redirect != nil {
+		if e.PartitionOrEmpty() != acl.DefaultPartitionName && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross datacenters redirect is not allowed for non default partition")
+		}
 		r := e.Redirect
 
 		if len(e.Failover) > 0 {
@@ -873,7 +872,11 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if len(e.Failover) > 0 {
+
 		for subset, f := range e.Failover {
+			if e.PartitionOrEmpty() != acl.DefaultPartitionName && len(f.Datacenters) != 0 {
+				return fmt.Errorf("Cross datacenters failover is not allowed for non default partition")
+			}
 			if subset != "*" && !isSubset(subset) {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
@@ -988,6 +991,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 		if redirectID != svcID {
 			found[redirectID] = struct{}{}
 		}
+
 	}
 
 	if len(e.Failover) > 0 {
@@ -1052,8 +1056,6 @@ type ServiceResolverRedirect struct {
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
 	Datacenter string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // There are some restrictions on what is allowed in here:
@@ -1088,8 +1090,6 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
@@ -1344,8 +1344,6 @@ type DiscoveryChainRequest struct {
 	EvaluateInDatacenter string
 	EvaluateInNamespace  string
 	EvaluateInPartition  string
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 
 	// OverrideMeshGateway allows for the mesh gateway setting to be overridden
 	// for any resolver in the compiled chain.
