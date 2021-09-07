@@ -859,12 +859,16 @@
         "path": "enterprise/federation"
       },
       {
+        "title": "Network Segments",
+        "path": "enterprise/network-segments"
+      },
+      {
         "title": "Namespaces",
         "path": "enterprise/namespaces"
       },
       {
-        "title": "Network Segments",
-        "path": "enterprise/network-segments"
+        "title": "NIA with TFE",
+        "path": "/docs/nia/enterprise"
       },
       {
         "title": "Sentinel",
