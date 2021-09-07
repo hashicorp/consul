@@ -369,6 +369,11 @@ func TestIntention_String(t *testing.T) {
 
 	testID := generateUUID()
 
+	partitionPrefix := DefaultEnterpriseMetaInDefaultPartition().PartitionOrEmpty()
+	if partitionPrefix != "" {
+		partitionPrefix += "/"
+	}
+
 	cases := map[string]testcase{
 		"legacy allow": {
 			&Intention{
@@ -377,7 +382,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionAllow,
 			},
-			`default/foo => default/bar (ID: ` + testID + `, Precedence: 9, Action: ALLOW)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (ID: ` + testID + `, Precedence: 9, Action: ALLOW)`,
 		},
 		"legacy deny": {
 			&Intention{
@@ -386,7 +391,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionDeny,
 			},
-			`default/foo => default/bar (ID: ` + testID + `, Precedence: 9, Action: DENY)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (ID: ` + testID + `, Precedence: 9, Action: DENY)`,
 		},
 		"L4 allow": {
 			&Intention{
@@ -394,7 +399,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionAllow,
 			},
-			`default/foo => default/bar (Precedence: 9, Action: ALLOW)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: ALLOW)`,
 		},
 		"L4 deny": {
 			&Intention{
@@ -402,7 +407,7 @@ func TestIntention_String(t *testing.T) {
 				DestinationName: "bar",
 				Action:          IntentionActionDeny,
 			},
-			`default/foo => default/bar (Precedence: 9, Action: DENY)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Action: DENY)`,
 		},
 		"L7 one perm": {
 			&Intention{
@@ -417,7 +422,7 @@ func TestIntention_String(t *testing.T) {
 					},
 				},
 			},
-			`default/foo => default/bar (Precedence: 9, Permissions: 1)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Permissions: 1)`,
 		},
 		"L7 two perms": {
 			&Intention{
@@ -438,14 +443,14 @@ func TestIntention_String(t *testing.T) {
 					},
 				},
 			},
-			`default/foo => default/bar (Precedence: 9, Permissions: 2)`,
+			partitionPrefix + `default/foo => ` + partitionPrefix + `default/bar (Precedence: 9, Permissions: 2)`,
 		},
 	}
 
 	for name, tc := range cases {
 		tc := tc
 		// Add a bunch of required fields.
-		tc.ixn.DefaultNamespaces(DefaultEnterpriseMetaInDefaultPartition())
+		tc.ixn.FillPartitionAndNamespace(DefaultEnterpriseMetaInDefaultPartition(), true)
 		tc.ixn.UpdatePrecedence()
 
 		t.Run(name, func(t *testing.T) {

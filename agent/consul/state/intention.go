@@ -3,12 +3,12 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -1008,7 +1008,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 			return true
 		}
 		return false
-	}, structs.WildcardEnterpriseMetaInDefaultPartition())
+	}, target.WildcardEnterpriseMetaForPartition())
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to fetch catalog service list: %v", err)
 	}

@@ -2233,8 +2233,6 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 
 			err = tc.entry.Validate()
 			if tc.validateErr != "" {
-				// require.Error(t, err)
-				// require.Contains(t, err.Error(), tc.validateErr)
 				testutil.RequireErrorContains(t, err, tc.validateErr)
 				return
 			}

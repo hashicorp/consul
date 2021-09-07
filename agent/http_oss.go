@@ -21,6 +21,18 @@ func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.Enterpri
 	return s.parseEntMetaPartition(req, entMeta)
 }
 
+func (s *HTTPHandlers) validateEnterpriseIntentionPartition(logName, partition string) error {
+	if partition == "" {
+		return nil
+	} else if strings.ToLower(partition) == "default" {
+		return nil
+	}
+
+	// No special handling for wildcard namespaces as they are pointless in OSS.
+
+	return BadRequestError{Reason: "Invalid " + logName + "(" + partition + ")" + ": Partitions is a Consul Enterprise feature"}
+}
+
 func (s *HTTPHandlers) validateEnterpriseIntentionNamespace(logName, ns string, _ bool) error {
 	if ns == "" {
 		return nil

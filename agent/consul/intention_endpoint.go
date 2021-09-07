@@ -173,7 +173,7 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 ) (*structs.IntentionMutation, error) {
 	// This variant is just for legacy UUID-based intentions.
 
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
@@ -257,12 +257,12 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 		return nil, acl.ErrPermissionDenied
 	}
 
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	// Prior to v1.9.0 renames of the destination side of an intention were
 	// allowed, but that behavior doesn't work anymore.
 	if ixn.DestinationServiceName() != args.Intention.DestinationServiceName() {
-		return nil, fmt.Errorf("Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+		return nil, fmt.Errorf("Cannot modify Destination partition/namespace/name for an intention once it exists.")
 	}
 
 	// Default source type
@@ -308,7 +308,7 @@ func (s *Intention) computeApplyChangesUpsert(
 		return nil, fmt.Errorf("ID must not be specified")
 	}
 
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
@@ -389,7 +389,7 @@ func (s *Intention) computeApplyChangesDelete(
 	entMeta *structs.EnterpriseMeta,
 	args *structs.IntentionRequest,
 ) (*structs.IntentionMutation, error) {
-	args.Intention.DefaultNamespaces(entMeta)
+	args.Intention.FillPartitionAndNamespace(entMeta, true)
 
 	if !args.Intention.CanWrite(authz) {
 		sn := args.Intention.SourceServiceName()
@@ -753,8 +753,14 @@ func (s *Intention) aclAccessorID(secretID string) string {
 }
 
 func (s *Intention) validateEnterpriseIntention(ixn *structs.Intention) error {
+	if err := s.srv.validateEnterpriseIntentionPartition(ixn.SourcePartition); err != nil {
+		return fmt.Errorf("Invalid source partition %q: %v", ixn.SourcePartition, err)
+	}
 	if err := s.srv.validateEnterpriseIntentionNamespace(ixn.SourceNS, true); err != nil {
 		return fmt.Errorf("Invalid source namespace %q: %v", ixn.SourceNS, err)
+	}
+	if err := s.srv.validateEnterpriseIntentionPartition(ixn.DestinationPartition); err != nil {
+		return fmt.Errorf("Invalid destination partition %q: %v", ixn.DestinationPartition, err)
 	}
 	if err := s.srv.validateEnterpriseIntentionNamespace(ixn.DestinationNS, true); err != nil {
 		return fmt.Errorf("Invalid destination namespace %q: %v", ixn.DestinationNS, err)
