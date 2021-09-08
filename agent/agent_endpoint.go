@@ -39,12 +39,11 @@ type Self struct {
 	Member      serf.Member
 	Stats       map[string]map[string]string
 	Meta        map[string]string
-	XDS         *XDSSelf `json:"xDS,omitempty"`
+	XDS         *xdsSelf `json:"xDS,omitempty"`
 }
 
-type XDSSelf struct {
+type xdsSelf struct {
 	SupportedProxies map[string][]string
-	Port             int
 }
 
 func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -67,13 +66,12 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
-	var xds *XDSSelf
+	var xds *xdsSelf
 	if s.agent.grpcServer != nil {
-		xds = &XDSSelf{
+		xds = &xdsSelf{
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
 			},
-			Port: s.agent.config.XDSPort,
 		}
 	}
 
@@ -96,14 +94,9 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Server:            s.agent.config.ServerMode,
 		Version:           s.agent.config.Version,
 	}
-	debugConfig := s.agent.config.Sanitized()
-	// Backwards compat for the envoy command. Never use DebugConfig for
-	// programmatic access to data.
-	debugConfig["GRPCPort"] = s.agent.config.XDSPort
-
 	return Self{
 		Config:      config,
-		DebugConfig: debugConfig,
+		DebugConfig: s.agent.config.Sanitized(),
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
 		Stats:       s.agent.Stats(),

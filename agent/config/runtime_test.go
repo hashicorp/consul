@@ -338,8 +338,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GossipWANProbeTimeout = 100 * time.Millisecond
 			rt.GossipWANSuspicionMult = 3
 			rt.ConsulServerHealthInterval = 10 * time.Millisecond
-			rt.XDSPort = 8502
-			rt.XDSAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
+			rt.GRPCPort = 8502
+			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			rt.RPCConfig.EnableStreaming = true
 		},
 	})
@@ -1048,8 +1048,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("0.0.0.0:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1121,8 +1121,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1145,8 +1145,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:2"), tcpAddr("[2001:db8::1]:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("1.2.3.4:3"), tcpAddr("[2001:db8::1]:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1181,8 +1181,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3"), unixAddr("unix://https"), tcpAddr("[2001:db8::30]:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -5477,8 +5477,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
 		EncryptVerifyOutgoing:                  true,
-		XDSPort:                                4881,
-		XDSAddrs:                               []net.Addr{tcpAddr("32.31.61.91:4881")},
+		GRPCPort:                               4881,
+		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:                     []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:                     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},

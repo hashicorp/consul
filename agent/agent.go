@@ -621,7 +621,8 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	if err := a.listenAndServeXDS(); err != nil {
+	// Start gRPC server.
+	if err := a.listenAndServeGRPC(); err != nil {
 		return err
 	}
 
@@ -669,8 +670,8 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) listenAndServeXDS() error {
-	if len(a.config.XDSAddrs) < 1 {
+func (a *Agent) listenAndServeGRPC() error {
+	if len(a.config.GRPCAddrs) < 1 {
 		return nil
 	}
 
@@ -690,9 +691,13 @@ func (a *Agent) listenAndServeXDS() error {
 	if a.config.HTTPSPort <= 0 {
 		tlsConfig = nil
 	}
-	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
+	var err error
+	a.grpcServer, err = xdsServer.GRPCServer(tlsConfig)
+	if err != nil {
+		return err
+	}
 
-	ln, err := a.startListeners(a.config.XDSAddrs)
+	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
 		return err
 	}

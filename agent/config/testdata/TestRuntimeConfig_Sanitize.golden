@@ -94,8 +94,8 @@
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
             "EnterpriseMeta": {},
-            "FailuresBeforeWarning": 0,
             "FailuresBeforeCritical": 0,
+            "FailuresBeforeWarning": 0,
             "GRPC": "",
             "GRPCUseTLS": false,
             "H2PING": "",
@@ -188,6 +188,8 @@
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
+    "GRPCAddrs": [],
+    "GRPCPort": 0,
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",
@@ -296,8 +298,8 @@
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
-                "FailuresBeforeWarning": 0,
                 "FailuresBeforeCritical": 0,
+                "FailuresBeforeWarning": 0,
                 "GRPC": "",
                 "GRPCUseTLS": false,
                 "H2PING": "",
@@ -415,7 +417,5 @@
     "VerifyServerHostname": false,
     "Version": "",
     "VersionPrerelease": "",
-    "Watches": [],
-    "XDSAddrs": [],
-    "XDSPort": 0
+    "Watches": []
 }
