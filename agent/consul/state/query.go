@@ -128,3 +128,21 @@ func indexFromKeyValueQuery(arg interface{}) ([]byte, error) {
 	b.String(q.Value)
 	return b.Bytes(), nil
 }
+
+type AuthMethodQuery struct {
+	Value             string
+	AuthMethodEntMeta structs.EnterpriseMeta
+	structs.EnterpriseMeta
+}
+
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q AuthMethodQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q AuthMethodQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}

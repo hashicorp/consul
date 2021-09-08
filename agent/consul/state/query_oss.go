@@ -42,3 +42,16 @@ func prefixIndexFromServiceNameAsString(arg interface{}) ([]byte, error) {
 
 	return nil, fmt.Errorf("unexpected type %T for Query prefix index", arg)
 }
+
+// indexFromAuthMethodQuery builds an index key where Query.Value is lowercase, and is
+// a required value.
+func indexFromAuthMethodQuery(arg interface{}) ([]byte, error) {
+	q, ok := arg.(AuthMethodQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Value))
+	return b.Bytes(), nil
+}
