@@ -90,7 +90,7 @@ func aclTokenListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) 
 }
 
 func aclTokenListByRole(tx ReadTxn, role string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLTokens, "roles", role)
+	return tx.Get(tableACLTokens, indexRoles, Query{Value: role})
 }
 
 func aclTokenListByAuthMethod(tx ReadTxn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {

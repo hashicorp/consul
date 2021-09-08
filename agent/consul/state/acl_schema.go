@@ -61,7 +61,10 @@ func tokensTableSchema() *memdb.TableSchema {
 				Name:         indexRoles,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &TokenRolesIndex{},
+				Indexer: indexerMulti{
+					readIndex:       readIndex(indexFromQuery),
+					writeIndexMulti: writeIndexMulti(indexRolesFromACLToken),
+				},
 			},
 			indexAuthMethod: {
 				Name:         indexAuthMethod,
@@ -374,6 +377,31 @@ func indexPoliciesFromACLToken(raw interface{}) ([][]byte, error) {
 			return nil, err
 		}
 		vals[i] = id
+	}
+
+	return vals, nil
+}
+
+func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
+	token, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+	links := token.Roles
+
+	numLinks := len(links)
+	if numLinks == 0 {
+		return nil, errMissingValueForIndex
+	}
+
+	vals := make([][]byte, 0, numLinks)
+
+	for _, link := range links {
+		id, err := uuidStringToBytes(link.ID)
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, id)
 	}
 
 	return vals, nil
