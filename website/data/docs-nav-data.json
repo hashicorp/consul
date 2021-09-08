@@ -868,7 +868,7 @@
       },
       {
         "title": "NIA with TFE",
-        "path": "/docs/nia/enterprise"
+        "href": "/docs/nia/enterprise"
       },
       {
         "title": "Sentinel",
