@@ -109,7 +109,7 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	return reply, nil
 }
 
-// ConfigCreate applies the given config entry update.
+// ConfigApply applies the given config entry update.
 func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ConfigEntryRequest{
 		Op: structs.ConfigEntryUpsert,

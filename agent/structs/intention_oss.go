@@ -47,21 +47,35 @@ func (_ *IntentionQueryCheck) FillAuthzContext(_ *acl.AuthorizerContext) {
 	// do nothing
 }
 
-// DefaultNamespaces will populate both the SourceNS and DestinationNS fields
-// if they are empty with the proper defaults.
-func (ixn *Intention) DefaultNamespaces(_ *EnterpriseMeta) {
-	// Until we support namespaces, we force all namespaces to be default
+// FillPartitionAndNamespace will fill in empty source and destination partition/namespaces.
+// If fillDefault is true, all fields are defaulted when the given enterprise meta does not
+// specify them.
+//
+// fillDefault MUST be true on servers to ensure that all fields are populated on writes.
+// fillDefault MUST be false on clients so that servers can correctly fill in the
+// namespace/partition of the ACL token.
+func (ixn *Intention) FillPartitionAndNamespace(entMeta *EnterpriseMeta, fillDefault bool) {
+	if ixn == nil {
+		return
+	}
+	var ns = entMeta.NamespaceOrEmpty()
+	if fillDefault {
+		if ns == "" {
+			ns = IntentionDefaultNamespace
+		}
+	}
 	if ixn.SourceNS == "" {
-		ixn.SourceNS = IntentionDefaultNamespace
+		ixn.SourceNS = ns
 	}
 	if ixn.DestinationNS == "" {
-		ixn.DestinationNS = IntentionDefaultNamespace
+		ixn.DestinationNS = ns
 	}
+
+	ixn.SourcePartition = ""
+	ixn.DestinationPartition = ""
 }
 
-// FillNonDefaultNamespaces will populate the SourceNS and DestinationNS fields
-// if they are empty with the proper defaults, but only if the proper defaults
-// are themselves not "default".
-func (ixn *Intention) FillNonDefaultNamespaces(_ *EnterpriseMeta) {
-	// do nothing
+func (ixn *Intention) NormalizePartitionFields() {
+	ixn.SourcePartition = ""
+	ixn.DestinationPartition = ""
 }

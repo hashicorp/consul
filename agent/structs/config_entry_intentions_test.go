@@ -1296,7 +1296,7 @@ func TestMigrateIntentions(t *testing.T) {
 	}
 
 	anyTime := time.Now().UTC()
-	entMeta := NodeEnterpriseMetaInDefaultPartition()
+	entMeta := DefaultEnterpriseMetaInDefaultPartition()
 
 	cases := map[string]testcase{
 		"nil": {},
@@ -1487,7 +1487,7 @@ func TestMigrateIntentions(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			got := MigrateIntentions(tc.in)
-			require.ElementsMatch(t, tc.expect, got)
+			require.Equal(t, tc.expect, got)
 		})
 	}
 }

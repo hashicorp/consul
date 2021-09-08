@@ -38,6 +38,9 @@ func (s *Server) startIntentionConfigEntryMigration(ctx context.Context) error {
 		// datacenter is composed entirely of compatible servers and there are
 		// no more legacy intentions.
 		if s.DatacenterSupportsIntentionsAsConfigEntries() {
+			// NOTE: we only have to migrate legacy intentions from the default
+			// partition because partitions didn't exist when legacy intentions
+			// were canonical
 			_, ixns, err := s.fsm.State().LegacyIntentions(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
 			if err != nil {
 				return err
@@ -88,6 +91,9 @@ func (s *Server) legacyIntentionMigration(ctx context.Context) error {
 		}
 
 		state := s.fsm.State()
+		// NOTE: we only have to migrate legacy intentions from the default
+		// partition because partitions didn't exist when legacy intentions
+		// were canonical
 		_, ixns, err := state.LegacyIntentions(nil, structs.WildcardEnterpriseMetaInDefaultPartition())
 		if err != nil {
 			return err

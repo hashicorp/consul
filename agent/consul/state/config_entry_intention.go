@@ -128,7 +128,7 @@ func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.Ent
 
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
-	iter, err := getConfigEntryKindsWithTxn(tx, structs.ServiceIntentions, structs.WildcardEnterpriseMetaInDefaultPartition())
+	iter, err := getConfigEntryKindsWithTxn(tx, structs.ServiceIntentions, entMeta.WildcardEnterpriseMetaForPartition())
 	if err != nil {
 		return 0, nil, false, fmt.Errorf("failed config entry lookup: %s", err)
 	}

@@ -74,6 +74,8 @@ func TestIntentionApply_new(t *testing.T) {
 		actual.Hash = ixn.Intention.Hash
 		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
+		// Partition fields will be normalized on Intention.Get
+		ixn.Intention.NormalizePartitionFields()
 		require.Equal(t, ixn.Intention, actual)
 	}
 
@@ -97,7 +99,7 @@ func TestIntentionApply_new(t *testing.T) {
 
 		var reply string
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn2, &reply)
-		testutil.RequireErrorContains(t, err, "Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+		testutil.RequireErrorContains(t, err, "Cannot modify Destination partition/namespace/name for an intention once it exists.")
 	})
 }
 
@@ -265,6 +267,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		actual.Hash = ixn.Intention.Hash
 		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
+		// Partition fields will be normalized on Intention.Get
+		ixn.Intention.NormalizePartitionFields()
 		require.Equal(t, ixn.Intention, actual)
 	}
 }

@@ -155,6 +155,8 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			expected.UpdatePrecedence()
 			//nolint:staticcheck
 			expected.SetHash()
+
+			expected.NormalizePartitionFields()
 		}
 		require.True(t, watchFired(ws), "watch fired")
 
@@ -1083,7 +1085,7 @@ func TestStore_IntentionsList(t *testing.T) {
 		require.Equal(t, lastIndex, idx)
 
 		testIntention := func(src, dst string) *structs.Intention {
-			return &structs.Intention{
+			ret := &structs.Intention{
 				ID:              testUUID(),
 				SourceNS:        "default",
 				SourceName:      src,
@@ -1095,6 +1097,10 @@ func TestStore_IntentionsList(t *testing.T) {
 				CreatedAt:       testTimeA,
 				UpdatedAt:       testTimeA,
 			}
+			if !legacy {
+				ret.NormalizePartitionFields()
+			}
+			return ret
 		}
 
 		testConfigEntry := func(dst string, srcs ...string) *structs.ServiceIntentionsConfigEntry {

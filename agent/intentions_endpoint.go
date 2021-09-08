@@ -54,6 +54,9 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
+	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
+		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+	}
 
 	args := structs.IntentionRequest{
 		Op: structs.IntentionOpCreate,
@@ -64,7 +67,8 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 		return nil, fmt.Errorf("Failed to decode request body: %s", err)
 	}
 
-	args.Intention.FillNonDefaultNamespaces(&entMeta)
+	// TODO(partitions): reject non-empty/non-default partitions from the decoded body
+	args.Intention.FillPartitionAndNamespace(&entMeta, false)
 
 	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
 		return nil, err
@@ -79,12 +83,19 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 }
 
 func (s *HTTPHandlers) validateEnterpriseIntention(ixn *structs.Intention) error {
+	if err := s.validateEnterpriseIntentionPartition("SourcePartition", ixn.SourcePartition); err != nil {
+		return err
+	}
+	if err := s.validateEnterpriseIntentionPartition("DestinationPartition", ixn.DestinationPartition); err != nil {
+		return err
+	}
 	if err := s.validateEnterpriseIntentionNamespace("SourceNS", ixn.SourceNS, true); err != nil {
 		return err
 	}
 	if err := s.validateEnterpriseIntentionNamespace("DestinationNS", ixn.DestinationNS, true); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -131,6 +142,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 		}
 
 		args.Match.Entries[i] = structs.IntentionMatchEntry{
+			Partition: entMeta.PartitionOrEmpty(),
 			Namespace: ns,
 			Name:      name,
 		}
@@ -214,10 +226,12 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	// We parse them the same way as matches to extract namespace/name
 	args.Check.SourceName = source[0]
 	if args.Check.SourceType == structs.IntentionSourceConsul {
+		// TODO(partitions): this func should return partition
 		ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
+		args.Check.SourcePartition = entMeta.PartitionOrEmpty()
 		args.Check.SourceNS = ns
 		args.Check.SourceName = name
 	}
@@ -227,6 +241,7 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
+	args.Check.DestinationPartition = entMeta.PartitionOrEmpty()
 	args.Check.DestinationNS = ns
 	args.Check.DestinationName = name
 
@@ -269,6 +284,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
+		args.Exact.SourcePartition = entMeta.PartitionOrEmpty()
 		args.Exact.SourceNS = ns
 		args.Exact.SourceName = name
 	}
@@ -278,6 +294,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
+		args.Exact.DestinationPartition = entMeta.PartitionOrEmpty()
 		args.Exact.DestinationNS = ns
 		args.Exact.DestinationName = name
 	}
@@ -394,6 +411,9 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
 	}
+	if entMeta.PartitionOrDefault() != structs.PartitionOrDefault("") {
+		return nil, BadRequestError{Reason: "Cannot use a partition with this endpoint"}
+	}
 
 	args := structs.IntentionRequest{
 		Op: structs.IntentionOpUpdate,
@@ -404,7 +424,7 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
-	args.Intention.FillNonDefaultNamespaces(&entMeta)
+	args.Intention.FillPartitionAndNamespace(&entMeta, false)
 
 	// Use the ID from the URL
 	args.Intention.ID = id
@@ -444,12 +464,14 @@ func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Req
 	args.Intention.ID = ""
 
 	// Use the intention identity from the URL.
+	args.Intention.SourcePartition = exact.SourcePartition
 	args.Intention.SourceNS = exact.SourceNS
 	args.Intention.SourceName = exact.SourceName
+	args.Intention.DestinationPartition = exact.DestinationPartition
 	args.Intention.DestinationNS = exact.DestinationNS
 	args.Intention.DestinationName = exact.DestinationName
 
-	args.Intention.FillNonDefaultNamespaces(&entMeta)
+	args.Intention.FillPartitionAndNamespace(&entMeta, false)
 
 	var ignored string
 	if err := s.agent.RPC("Intention.Apply", &args, &ignored); err != nil {
@@ -494,10 +516,12 @@ func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.
 		Op: structs.IntentionOpDelete,
 		Intention: &structs.Intention{
 			// NOTE: ID is explicitly empty here
-			SourceNS:        exact.SourceNS,
-			SourceName:      exact.SourceName,
-			DestinationNS:   exact.DestinationNS,
-			DestinationName: exact.DestinationName,
+			SourcePartition:      exact.SourcePartition,
+			SourceNS:             exact.SourceNS,
+			SourceName:           exact.SourceName,
+			DestinationPartition: exact.DestinationPartition,
+			DestinationNS:        exact.DestinationNS,
+			DestinationName:      exact.DestinationName,
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
@@ -533,6 +557,7 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
+		exact.SourcePartition = entMeta.PartitionOrEmpty()
 		exact.SourceNS = ns
 		exact.SourceName = name
 	}
@@ -542,6 +567,7 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
+		exact.DestinationPartition = entMeta.PartitionOrEmpty()
 		exact.DestinationNS = ns
 		exact.DestinationName = name
 	}
@@ -549,6 +575,7 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 	return &exact, nil
 }
 
+// TODO(partitions): update to handle partitions
 func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta) (string, string, error) {
 	// Get the index to the '/'. If it doesn't exist, we have just a name
 	// so just set that and return.

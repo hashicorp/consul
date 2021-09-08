@@ -59,6 +59,18 @@ func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, writ
 	return nil
 }
 
+func (s *Server) validateEnterpriseIntentionPartition(partition string) error {
+	if partition == "" {
+		return nil
+	} else if strings.ToLower(partition) == "default" {
+		return nil
+	}
+
+	// No special handling for wildcard partitions as they are pointless in OSS.
+
+	return errors.New("Partitions is a Consul Enterprise feature")
+}
+
 func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 	if ns == "" {
 		return nil
