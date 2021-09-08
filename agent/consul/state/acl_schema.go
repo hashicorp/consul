@@ -70,9 +70,9 @@ func tokensTableSchema() *memdb.TableSchema {
 				Name:         indexAuthMethod,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "AuthMethod",
-					Lowercase: false,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromAuthMethodQuery),
+					writeIndex: writeIndex(indexAuthMethodFromACLToken),
 				},
 			},
 			indexLocal: {
@@ -405,4 +405,23 @@ func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
 	}
 
 	return vals, nil
+}
+
+func indexAuthMethodFromACLToken(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+
+	if p.AuthMethod == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.AuthMethod))
+
+	//TODO (partition) split this to ent/oss?
+	b.String(strings.ToLower(p.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta().NamespaceOrDefault()))
+
+	return b.Bytes(), nil
 }

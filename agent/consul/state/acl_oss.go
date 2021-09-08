@@ -94,7 +94,7 @@ func aclTokenListByRole(tx ReadTxn, role string, _ *structs.EnterpriseMeta) (mem
 }
 
 func aclTokenListByAuthMethod(tx ReadTxn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLTokens, "authmethod", authMethod)
+	return tx.Get(tableACLTokens, indexAuthMethod, AuthMethodQuery{Value: authMethod})
 }
 
 func aclTokenDeleteWithToken(tx WriteTxn, token *structs.ACLToken, idx uint64) error {
