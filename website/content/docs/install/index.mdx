@@ -50,41 +50,44 @@ a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
 1. Build Consul for your target system. The binary will be placed in `./bin`
    (relative to the git checkout).
 
-<!--
-   The tabs below *should* be indented with the step immediately above,
-   but that is not currently possible.
+   <!--
+      The tabs below are intended to be indented with the step immediately
+      above, but getting that to work is tricky.
 
-   The pre-commit linting rules will automatically unindent the <Tab>
-   element upon commit. This causes compilation to fail, because <Tabs>
-   and all its contained <Tab> elements need to be at the same indent level
-   for compilation. As a temporary solution, the <Tabs> will be unindented.
--->
+      The pre-commit linting rules will automatically unindent the <Tab>
+      element upon commit. This causes compilation to fail, because <Tabs>
+      and all its contained <Tab> elements need to be at the same indent level
+      for compilation.
 
-<Tabs>
-<Tab heading="Compile for your current system">
+      To circumvent the pre-commit linting rules, commit with:
+      $ git commit --no-verify
+   -->
+   
+   <Tabs>
+   <Tab heading="Compile for your current system">
 
-```shell-session
-$ make dev
-```
+   ```shell-session
+   $ make dev
+   ```
 
-</Tab>
-<Tab heading="Cross-compile for another system">
+   </Tab>
+   <Tab heading="Cross-compile for another system">
 
-Specify your target system by setting the following environment variables
-before building:
+   Specify your target system by setting the following environment variables
+   before building:
 
-- `GOOS`: Target operating system. Valid values include:
-  `linux`, `darwin`, `windows`, `solaris`, `freebsd`.
-- `GOARCH`: Target architecture. Valid values include:
-  `386`, `amd64`, `arm`, `arm64`
+   - `GOOS`: Target operating system. Valid values include:
+     `linux`, `darwin`, `windows`, `solaris`, `freebsd`.
+   - `GOARCH`: Target architecture. Valid values include:
+     `386`, `amd64`, `arm`, `arm64`
 
-```shell-session
-$ export GOOS=linux GOARCH=amd64
-$ make dev
-```
+   ```shell-session
+   $ export GOOS=linux GOARCH=amd64
+   $ make dev
+   ```
 
-</Tab>
-</Tabs>
+   </Tab>
+   </Tabs>
 
 ## Verifying the Installation
 
