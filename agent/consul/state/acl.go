@@ -10,6 +10,105 @@ import (
 	pbacl "github.com/hashicorp/consul/proto/pbacl"
 )
 
+type TokenRolesIndex struct {
+}
+
+func (s *TokenRolesIndex) FromObject(obj interface{}) (bool, [][]byte, error) {
+	token, ok := obj.(*structs.ACLToken)
+	if !ok {
+		return false, nil, fmt.Errorf("object is not an ACLToken")
+	}
+
+	links := token.Roles
+
+	numLinks := len(links)
+	if numLinks == 0 {
+		return false, nil, nil
+	}
+
+	vals := make([][]byte, 0, numLinks)
+	for _, link := range links {
+		vals = append(vals, []byte(link.ID+"\x00"))
+	}
+
+	return true, vals, nil
+}
+
+func (s *TokenRolesIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+	arg, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("argument must be a string: %#v", args[0])
+	}
+	// Add the null character as a terminator
+	arg += "\x00"
+	return []byte(arg), nil
+}
+
+func (s *TokenRolesIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
+	val, err := s.FromArgs(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Strip the null terminator, the rest is a prefix
+	n := len(val)
+	if n > 0 {
+		return val[:n-1], nil
+	}
+	return val, nil
+}
+
+type TokenExpirationIndex struct {
+	LocalFilter bool
+}
+
+func (s *TokenExpirationIndex) encodeTime(t time.Time) []byte {
+	val := t.Unix()
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(val))
+	return buf
+}
+
+func (s *TokenExpirationIndex) FromObject(obj interface{}) (bool, []byte, error) {
+	token, ok := obj.(*structs.ACLToken)
+	if !ok {
+		return false, nil, fmt.Errorf("object is not an ACLToken")
+	}
+	if s.LocalFilter != token.Local {
+		return false, nil, nil
+	}
+	if !token.HasExpirationTime() {
+		return false, nil, nil
+	}
+	if token.ExpirationTime.Unix() < 0 {
+		return false, nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", token.ExpirationTime)
+	}
+
+	buf := s.encodeTime(*token.ExpirationTime)
+
+	return true, buf, nil
+}
+
+func (s *TokenExpirationIndex) FromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("must provide only a single argument")
+	}
+	arg, ok := args[0].(time.Time)
+	if !ok {
+		return nil, fmt.Errorf("argument must be a time.Time: %#v", args[0])
+	}
+	if arg.Unix() < 0 {
+		return nil, fmt.Errorf("argument must be a time.Time after the unix epoch: %s", args[0])
+	}
+
+	buf := s.encodeTime(arg)
+
+	return buf, nil
+}
+
 // ACLTokens is used when saving a snapshot
 func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get(tableACLTokens, "id")
