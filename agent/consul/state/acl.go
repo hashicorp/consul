@@ -738,7 +738,7 @@ func (s *Store) ACLTokenGetBySecret(ws memdb.WatchSet, secret string, entMeta *s
 
 // ACLTokenGetByAccessor is used to look up an existing ACL token by its AccessorID.
 func (s *Store) ACLTokenGetByAccessor(ws memdb.WatchSet, accessor string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLToken, error) {
-	return s.aclTokenGet(ws, accessor, "accessor", entMeta)
+	return s.aclTokenGet(ws, accessor, indexAccessor, entMeta)
 }
 
 // aclTokenGet looks up a token using one of the indexes provided
@@ -761,7 +761,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 
 	tokens := make(structs.ACLTokens, 0)
 	for _, accessor := range accessors {
-		token, err := aclTokenGetTxn(tx, ws, accessor, "accessor", nil)
+		token, err := aclTokenGetTxn(tx, ws, accessor, indexAccessor, nil)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed acl token lookup: %v", err)
 		}
@@ -968,7 +968,7 @@ func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string, entMeta *struc
 // ACLTokenDeleteByAccessor is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
 func (s *Store) ACLTokenDeleteByAccessor(idx uint64, accessor string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclTokenDelete(idx, accessor, "accessor", entMeta)
+	return s.aclTokenDelete(idx, accessor, indexAccessor, entMeta)
 }
 
 func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
@@ -976,7 +976,7 @@ func (s *Store) ACLTokenBatchDelete(idx uint64, tokenIDs []string) error {
 	defer tx.Abort()
 
 	for _, tokenID := range tokenIDs {
-		if err := aclTokenDeleteTxn(tx, idx, tokenID, "accessor", nil); err != nil {
+		if err := aclTokenDeleteTxn(tx, idx, tokenID, indexAccessor, nil); err != nil {
 			return err
 		}
 	}

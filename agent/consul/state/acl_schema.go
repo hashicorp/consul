@@ -16,6 +16,7 @@ const (
 	tableACLBindingRules = "acl-binding-rules"
 	tableACLAuthMethods  = "acl-auth-methods"
 
+	indexAccessor   = "accessor"
 	indexPolicies   = "policies"
 	indexRoles      = "roles"
 	indexAuthMethod = "authmethod"
@@ -27,13 +28,14 @@ func tokensTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: tableACLTokens,
 		Indexes: map[string]*memdb.IndexSchema{
-			"accessor": {
-				Name: "accessor",
+			indexAccessor: {
+				Name: indexAccessor,
 				// DEPRECATED (ACL-Legacy-Compat) - we should not AllowMissing here once legacy compat is removed
 				AllowMissing: true,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "AccessorID",
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromUUIDString),
+					writeIndex: writeIndex(indexAccessorIDFromACLToken),
 				},
 			},
 			indexID: {
@@ -288,4 +290,37 @@ func authMethodsTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+func indexFromUUIDString(raw interface{}) ([]byte, error) {
+	index, ok := raw.(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for UUID string index", raw)
+	}
+	uuid, err := uuidStringToBytes(index)
+	if err != nil {
+		return nil, err
+	}
+	var b indexBuilder
+	b.Raw(uuid)
+	return b.Bytes(), nil
+}
+
+func indexAccessorIDFromACLToken(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+
+	if p.AccessorID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	uuid, err := uuidStringToBytes(p.AccessorID)
+	if err != nil {
+		return nil, err
+	}
+	var b indexBuilder
+	b.Raw(uuid)
+	return b.Bytes(), nil
 }
