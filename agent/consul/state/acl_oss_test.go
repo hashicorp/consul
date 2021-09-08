@@ -38,9 +38,8 @@ func testIndexerTableACLTokens() map[string]indexerTestCase {
 	policyID1 := "123e4567-e89a-12d7-a456-426614174001"
 	policyID2 := "123e4567-e89a-12d7-a456-426614174002"
 	obj := &structs.ACLToken{
-		AccessorID:     "123e4567-e89a-12d7-a456-426614174abc",
-		SecretID:       "123e4567-e89a-12d7-a456-426614174abd",
-		EnterpriseMeta: structs.EnterpriseMeta{Partition: "Ap1", Namespace: "Ns1"},
+		AccessorID: "123e4567-e89a-12d7-a456-426614174abc",
+		SecretID:   "123e4567-e89a-12d7-a456-426614174abd",
 		Policies: []structs.ACLTokenPolicyLink{
 			{ID: policyID1}, {ID: policyID2},
 		},
