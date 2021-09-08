@@ -373,100 +373,15 @@ func indexPoliciesFromACLToken(raw interface{}) ([][]byte, error) {
 		return nil, errMissingValueForIndex
 	}
 
-	vals := make([][]byte, numLinks)
+	vals := make([][]byte, 0, numLinks)
 
-	for i, link := range links {
+	for _, link := range links {
 		id, err := uuidStringToBytes(link.ID)
 		if err != nil {
 			return nil, err
 		}
-		vals[i] = id
+		vals = append(vals, id)
 	}
 
 	return vals, nil
-}
-
-func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
-	token, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
-	links := token.Roles
-
-	numLinks := len(links)
-	if numLinks == 0 {
-		return nil, errMissingValueForIndex
-	}
-
-	vals := make([][]byte, numLinks)
-
-	for i, link := range links {
-		id, err := uuidStringToBytes(link.ID)
-		if err != nil {
-			return nil, err
-		}
-		vals[i] = id
-	}
-
-	return vals, nil
-}
-
-func indexFromBoolQuery(raw interface{}) ([]byte, error) {
-	q, ok := raw.(BoolQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
-	}
-	var b indexBuilder
-	b.Bool(q.Value)
-	return b.Bytes(), nil
-}
-
-func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
-	}
-
-	var b indexBuilder
-	b.Bool(p.Local)
-	return b.Bytes(), nil
-}
-
-func indexFromTimeQuery(arg interface{}) ([]byte, error) {
-	p, ok := arg.(*TimeQuery)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for TimeQuery index", arg)
-	}
-
-	var b indexBuilder
-	b.Time(p.Value)
-	return b.Bytes(), nil
-}
-
-func indexExpiresLocalFromACLToken(raw interface{}) ([]byte, error) {
-	return indexExpiresFromACLToken(raw, true)
-}
-
-func indexExpiresGlobalFromACLToken(raw interface{}) ([]byte, error) {
-	return indexExpiresFromACLToken(raw, false)
-}
-
-func indexExpiresFromACLToken(raw interface{}, local bool) ([]byte, error) {
-	p, ok := raw.(*structs.ACLToken)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
-	}
-	if p.Local != local {
-		return nil, errMissingValueForIndex
-	}
-	if !p.HasExpirationTime() {
-		return nil, errMissingValueForIndex
-	}
-	if p.ExpirationTime.Unix() < 0 {
-		return nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", p.ExpirationTime)
-	}
-
-	var b indexBuilder
-	b.Time(*p.ExpirationTime)
-	return b.Bytes(), nil
 }
