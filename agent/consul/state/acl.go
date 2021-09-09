@@ -163,7 +163,7 @@ func (s *TokenExpirationIndex) FromArgs(args ...interface{}) ([]byte, error) {
 
 // ACLTokens is used when saving a snapshot
 func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-tokens", "id")
+	iter, err := s.tx.Get(tableACLTokens, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -772,7 +772,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 		}
 	}
 
-	idx := maxIndexTxn(tx, "acl-tokens")
+	idx := maxIndexTxn(tx, tableACLTokens)
 
 	return idx, tokens, nil
 }
@@ -884,7 +884,7 @@ func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan stru
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := tx.Get("acl-tokens", "needs-upgrade", true)
+	iter, err := tx.Get(tableACLTokens, "needs-upgrade", true)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed acl token listing: %v", err)
 	}
@@ -906,7 +906,7 @@ func (s *Store) ACLTokenMinExpirationTime(local bool) (time.Time, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	item, err := tx.First("acl-tokens", s.expiresIndexName(local))
+	item, err := tx.First(tableACLTokens, s.expiresIndexName(local))
 	if err != nil {
 		return time.Time{}, fmt.Errorf("failed acl token listing: %v", err)
 	}
@@ -926,7 +926,7 @@ func (s *Store) ACLTokenListExpired(local bool, asOf time.Time, max int) (struct
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := tx.Get("acl-tokens", s.expiresIndexName(local))
+	iter, err := tx.Get(tableACLTokens, s.expiresIndexName(local))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed acl token listing: %v", err)
 	}

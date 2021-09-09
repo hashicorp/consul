@@ -42,9 +42,9 @@ func tokensTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "SecretID",
-					Lowercase: false,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromStringCaseSensitive),
+					writeIndex: writeIndex(indexSecretIDFromACLToken),
 				},
 			},
 			indexPolicies: {
@@ -322,5 +322,31 @@ func indexAccessorIDFromACLToken(raw interface{}) ([]byte, error) {
 	}
 	var b indexBuilder
 	b.Raw(uuid)
+	return b.Bytes(), nil
+}
+
+func indexSecretIDFromACLToken(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+
+	if p.SecretID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(p.SecretID)
+	return b.Bytes(), nil
+}
+
+func indexFromStringCaseSensitive(raw interface{}) ([]byte, error) {
+	q, ok := raw.(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for string prefix query", raw)
+	}
+
+	var b indexBuilder
+	b.String(q)
 	return b.Bytes(), nil
 }

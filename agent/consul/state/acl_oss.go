@@ -57,12 +57,12 @@ func (s *Store) ACLPolicyUpsertValidateEnterprise(*structs.ACLPolicy, *structs.A
 
 func aclTokenInsert(tx WriteTxn, token *structs.ACLToken) error {
 	// insert the token into memdb
-	if err := tx.Insert("acl-tokens", token); err != nil {
+	if err := tx.Insert(tableACLTokens, token); err != nil {
 		return fmt.Errorf("failed inserting acl token: %v", err)
 	}
 
 	// update the overall acl-tokens index
-	if err := indexUpdateMaxTxn(tx, token.ModifyIndex, "acl-tokens"); err != nil {
+	if err := indexUpdateMaxTxn(tx, token.ModifyIndex, tableACLTokens); err != nil {
 		return fmt.Errorf("failed updating acl tokens index: %v", err)
 	}
 
@@ -70,48 +70,48 @@ func aclTokenInsert(tx WriteTxn, token *structs.ACLToken) error {
 }
 
 func aclTokenGetFromIndex(tx ReadTxn, id string, index string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch("acl-tokens", index, id)
+	return tx.FirstWatch(tableACLTokens, index, id)
 }
 
 func aclTokenListAll(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-tokens", "id")
+	return tx.Get(tableACLTokens, "id")
 }
 
 func aclTokenListLocal(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-tokens", "local", true)
+	return tx.Get(tableACLTokens, "local", true)
 }
 
 func aclTokenListGlobal(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-tokens", "local", false)
+	return tx.Get(tableACLTokens, "local", false)
 }
 
 func aclTokenListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-tokens", "policies", policy)
+	return tx.Get(tableACLTokens, "policies", policy)
 }
 
 func aclTokenListByRole(tx ReadTxn, role string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-tokens", "roles", role)
+	return tx.Get(tableACLTokens, "roles", role)
 }
 
 func aclTokenListByAuthMethod(tx ReadTxn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-tokens", "authmethod", authMethod)
+	return tx.Get(tableACLTokens, "authmethod", authMethod)
 }
 
 func aclTokenDeleteWithToken(tx WriteTxn, token *structs.ACLToken, idx uint64) error {
 	// remove the token
-	if err := tx.Delete("acl-tokens", token); err != nil {
+	if err := tx.Delete(tableACLTokens, token); err != nil {
 		return fmt.Errorf("failed deleting acl token: %v", err)
 	}
 
 	// update the overall acl-tokens index
-	if err := indexUpdateMaxTxn(tx, idx, "acl-tokens"); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableACLTokens); err != nil {
 		return fmt.Errorf("failed updating acl tokens index: %v", err)
 	}
 	return nil
 }
 
 func aclTokenMaxIndex(tx ReadTxn, _ *structs.ACLToken, entMeta *structs.EnterpriseMeta) uint64 {
-	return maxIndexTxn(tx, "acl-tokens")
+	return maxIndexTxn(tx, tableACLTokens)
 }
 
 func aclTokenUpsertValidateEnterprise(tx WriteTxn, token *structs.ACLToken, existing *structs.ACLToken) error {
