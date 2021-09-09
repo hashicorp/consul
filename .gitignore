@@ -27,10 +27,6 @@ website/build/
 website/npm-debug.log
 website/vendor
 
-# Developers should not modify these ui files directly and instead rely on CI
-# to update ui artifacts automatically.
-/agent/uiserver/dist/
-
 ### Terraform gitignore ###
 # Local .terraform directories
 **/.terraform/*
