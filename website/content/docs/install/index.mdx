@@ -38,22 +38,13 @@ command-line, make sure to place it somewhere on your `PATH`.
 ## Compiling from Source
 
 To compile from source, you will need [Go](https://golang.org) installed and
-configured properly (including a `GOPATH` environment variable set), as well as
 a copy of [`git`](https://www.git-scm.com/) in your `PATH`.
 
-1. Clone the Consul repository from GitHub into your `GOPATH`:
+1. Clone the Consul repository from GitHub:
 
    ```shell
-   $ mkdir -p $GOPATH/src/github.com/hashicorp && cd !$
    $ git clone https://github.com/hashicorp/consul.git
    $ cd consul
-   ```
-
-1. Bootstrap the project. This will download and compile libraries and tools
-   needed to compile Consul:
-
-   ```shell
-   $ make tools
    ```
 
 1. Build Consul for your target system. The binary will be placed in `./bin`
@@ -82,13 +73,13 @@ $ make dev
 Specify your target system by setting the following environment variables
 before building:
 
-- `XC_OS`: Target operating system. Valid values include:
+- `GOOS`: Target operating system. Valid values include:
   `linux`, `darwin`, `windows`, `solaris`, `freebsd`.
-- `XC_ARCH`: Target architecture. Valid values include:
+- `GOARCH`: Target architecture. Valid values include:
   `386`, `amd64`, `arm`, `arm64`
 
 ```shell-session
-$ export XC_OS=linux XC_ARCH=amd64
+$ export GOOS=linux GOARCH=amd64
 $ make dev
 ```
 
