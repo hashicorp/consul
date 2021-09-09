@@ -78,14 +78,6 @@ func aclTokenListAll(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterato
 	return tx.Get(tableACLTokens, "id")
 }
 
-func aclTokenListLocal(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLTokens, "local", true)
-}
-
-func aclTokenListGlobal(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLTokens, "local", false)
-}
-
 func aclTokenListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(tableACLTokens, indexPolicies, Query{Value: policy})
 }

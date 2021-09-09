@@ -133,3 +133,7 @@ func (b *indexBuilder) Raw(v []byte) {
 func (b *indexBuilder) Bytes() []byte {
 	return (*bytes.Buffer)(b).Bytes()
 }
+
+func (b *indexBuilder) Bool(v bool) {
+	b.Raw([]byte{intFromBool(v)})
+}

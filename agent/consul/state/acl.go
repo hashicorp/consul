@@ -1769,3 +1769,31 @@ func aclAuthMethodDeleteTxn(tx WriteTxn, idx uint64, name string, entMeta *struc
 
 	return aclAuthMethodDeleteWithMethod(tx, method, idx)
 }
+
+func aclTokenListLocal(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	// if the namespace is the wildcard that will also be handled as the local index uses
+	// the NamespaceMultiIndex instead of the NamespaceIndex
+	q := BoolQuery{
+		Value:          true,
+		EnterpriseMeta: *entMeta,
+	}
+	return tx.Get(tableACLTokens, indexLocality, q)
+}
+
+func aclTokenListGlobal(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	// if the namespace is the wildcard that will also be handled as the local index uses
+	// the NamespaceMultiIndex instead of the NamespaceIndex
+	q := BoolQuery{
+		Value:          false,
+		EnterpriseMeta: *entMeta,
+	}
+	return tx.Get(tableACLTokens, indexLocality, q)
+}
