@@ -1795,3 +1795,11 @@ func aclTokenListGlobal(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.Resu
 	}
 	return tx.Get(tableACLTokens, indexLocality, q)
 }
+
+// intFromBool returns 1 if cond is true, 0 otherwise.
+func intFromBool(cond bool) byte {
+	if cond {
+		return 1
+	}
+	return 0
+}
