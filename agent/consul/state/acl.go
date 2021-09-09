@@ -850,9 +850,9 @@ func (s *Store) ACLTokenListExpired(local bool, asOf time.Time, max int) (struct
 
 func (s *Store) expiresIndexName(local bool) string {
 	if local {
-		return "expires-local"
+		return indexExpiresLocal
 	}
-	return "expires-global"
+	return indexExpiresGlobal
 }
 
 // ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
