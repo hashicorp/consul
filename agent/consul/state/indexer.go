@@ -140,27 +140,3 @@ func (b *indexBuilder) Bytes() []byte {
 func (b *indexBuilder) Bool(v bool) {
 	b.Raw([]byte{intFromBool(v)})
 }
-
-type TimeQuery struct {
-	Value time.Time
-	structs.EnterpriseMeta
-}
-
-// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
-// receiver for this method. Remove once that is fixed.
-func (q TimeQuery) NamespaceOrDefault() string {
-	return q.EnterpriseMeta.NamespaceOrDefault()
-}
-
-// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
-// receiver for this method. Remove once that is fixed.
-func (q TimeQuery) PartitionOrDefault() string {
-	return q.EnterpriseMeta.PartitionOrDefault()
-}
-
-func (b *indexBuilder) Time(t time.Time) {
-	val := t.Unix()
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(val))
-	(*bytes.Buffer)(b).Write(buf)
-}

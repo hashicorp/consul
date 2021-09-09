@@ -16,14 +16,12 @@ const (
 	tableACLBindingRules = "acl-binding-rules"
 	tableACLAuthMethods  = "acl-auth-methods"
 
-	indexAccessor      = "accessor"
-	indexPolicies      = "policies"
-	indexRoles         = "roles"
-	indexAuthMethod    = "authmethod"
-	indexLocality      = "locality"
-	indexName          = "name"
-	indexExpiresGlobal = "expires-global"
-	indexExpiresLocal  = "expires-local"
+	indexAccessor   = "accessor"
+	indexPolicies   = "policies"
+	indexRoles      = "roles"
+	indexAuthMethod = "authmethod"
+	indexLocality   = "locality"
+	indexName       = "name"
 )
 
 func tokensTableSchema() *memdb.TableSchema {
@@ -409,4 +407,25 @@ func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
 	}
 
 	return vals, nil
+}
+
+func indexFromBoolQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(BoolQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
+	}
+	var b indexBuilder
+	b.Bool(q.Value)
+	return b.Bytes(), nil
+}
+
+func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
+	}
+
+	var b indexBuilder
+	b.Raw([]byte{intFromBool(p.Local)})
+	return b.Bytes(), nil
 }
