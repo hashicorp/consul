@@ -37,15 +37,23 @@ func testIndexerTableACLPolicies() map[string]indexerTestCase {
 func testIndexerTableACLTokens() map[string]indexerTestCase {
 	policyID1 := "123e4567-e89a-12d7-a456-426614174001"
 	policyID2 := "123e4567-e89a-12d7-a456-426614174002"
+	roleID1 := "123e4567-e89a-12d7-a457-426614174001"
+	roleID2 := "123e4567-e89a-12d7-a457-426614174002"
 	obj := &structs.ACLToken{
 		AccessorID: "123e4567-e89a-12d7-a456-426614174abc",
 		SecretID:   "123e4567-e89a-12d7-a456-426614174abd",
+
 		Policies: []structs.ACLTokenPolicyLink{
 			{ID: policyID1}, {ID: policyID2},
+		},
+		Roles: []structs.ACLTokenRoleLink{
+			{ID: roleID1}, {ID: roleID2},
 		},
 	}
 	encodedPID1 := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x40, 0x01}
 	encodedPID2 := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x40, 0x02}
+	encodedRID1 := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x57, 0x42, 0x66, 0x14, 0x17, 0x40, 0x1}
+	encodedRID2 := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x57, 0x42, 0x66, 0x14, 0x17, 0x40, 0x2}
 	return map[string]indexerTestCase{
 		indexPolicies: {
 			read: indexValue{
@@ -57,6 +65,18 @@ func testIndexerTableACLTokens() map[string]indexerTestCase {
 			writeMulti: indexValueMulti{
 				source:   obj,
 				expected: [][]byte{encodedPID1, encodedPID2},
+			},
+		},
+		indexRoles: {
+			read: indexValue{
+				source: Query{
+					Value: roleID1,
+				},
+				expected: encodedRID1,
+			},
+			writeMulti: indexValueMulti{
+				source:   obj,
+				expected: [][]byte{encodedRID1, encodedRID2},
 			},
 		},
 	}
