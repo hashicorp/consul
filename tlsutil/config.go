@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/logging"
 )
@@ -842,15 +843,11 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 		Intermediates: x509.NewCertPool(),
 	}
 
-	certs := tlsConn.ConnectionState().PeerCertificates
-	for i, cert := range certs {
-		if i == 0 {
-			continue
-		}
+	cs := tlsConn.ConnectionState()
+	for _, cert := range cs.PeerCertificates[1:] {
 		opts.Intermediates.AddCert(cert)
 	}
-
-	_, err = certs[0].Verify(opts)
+	_, err = cs.PeerCertificates[0].Verify(opts)
 	if err != nil {
 		tlsConn.Close()
 		return nil, err
@@ -915,22 +912,29 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 	c.lock.RUnlock()
 
 	expected := c.ServerSNI(dc, "")
-	for _, chain := range conn.ConnectionState().VerifiedChains {
+	cs := conn.ConnectionState()
+	var errs error
+	for _, chain := range cs.VerifiedChains {
 		if len(chain) == 0 {
 			continue
 		}
-		clientCert := chain[0]
-		_, err := clientCert.Verify(x509.VerifyOptions{
-			DNSName:   expected,
-			Roots:     caPool,
-			KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-		})
+		opts := x509.VerifyOptions{
+			DNSName:       expected,
+			Intermediates: x509.NewCertPool(),
+			Roots:         caPool,
+			KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		}
+		for _, cert := range cs.PeerCertificates[1:] {
+			opts.Intermediates.AddCert(cert)
+		}
+		_, err := cs.PeerCertificates[0].Verify(opts)
 		if err == nil {
 			return nil
 		}
-		c.logger.Debug("AuthorizeServerConn failed certificate validation", "error", err)
+		multierror.Append(errs, err)
 	}
-	return fmt.Errorf("a TLS certificate with a CommonName of %v is required for this operation", expected)
+	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a SAN.DNSName of %v: %w", expected, errs)
+
 }
 
 // ParseCiphers parse ciphersuites from the comma-separated string into
