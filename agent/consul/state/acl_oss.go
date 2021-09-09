@@ -4,6 +4,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -272,4 +273,20 @@ func aclAuthMethodUpsertValidateEnterprise(_ ReadTxn, method *structs.ACLAuthMet
 
 func (s *Store) ACLAuthMethodUpsertValidateEnterprise(method *structs.ACLAuthMethod, existing *structs.ACLAuthMethod) error {
 	return nil
+}
+
+func indexAuthMethodFromACLToken(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+
+	if p.AuthMethod == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.AuthMethod))
+
+	return b.Bytes(), nil
 }
