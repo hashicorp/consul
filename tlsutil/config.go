@@ -843,15 +843,11 @@ func (c *Configurator) wrapTLSClient(dc string, conn net.Conn) (net.Conn, error)
 		Intermediates: x509.NewCertPool(),
 	}
 
-	certs := tlsConn.ConnectionState().PeerCertificates
-	for i, cert := range certs {
-		if i == 0 {
-			continue
-		}
+	cs := tlsConn.ConnectionState()
+	for _, cert := range cs.PeerCertificates[1:] {
 		opts.Intermediates.AddCert(cert)
 	}
-
-	_, err = certs[0].Verify(opts)
+	_, err = cs.PeerCertificates[0].Verify(opts)
 	if err != nil {
 		tlsConn.Close()
 		return nil, err
