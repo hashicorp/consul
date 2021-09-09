@@ -16,12 +16,14 @@ const (
 	tableACLBindingRules = "acl-binding-rules"
 	tableACLAuthMethods  = "acl-auth-methods"
 
-	indexAccessor   = "accessor"
-	indexPolicies   = "policies"
-	indexRoles      = "roles"
-	indexAuthMethod = "authmethod"
-	indexLocality   = "locality"
-	indexName       = "name"
+	indexAccessor      = "accessor"
+	indexPolicies      = "policies"
+	indexRoles         = "roles"
+	indexAuthMethod    = "authmethod"
+	indexLocality      = "locality"
+	indexName          = "name"
+	indexExpiresGlobal = "expires-global"
+	indexExpiresLocal  = "expires-local"
 )
 
 func tokensTableSchema() *memdb.TableSchema {
@@ -427,5 +429,44 @@ func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
 
 	var b indexBuilder
 	b.Raw([]byte{intFromBool(p.Local)})
+	return b.Bytes(), nil
+}
+
+func indexFromTimeQuery(arg interface{}) ([]byte, error) {
+	p, ok := arg.(*TimeQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for TimeQuery index", arg)
+	}
+
+	var b indexBuilder
+	b.Time(p.Value)
+	return b.Bytes(), nil
+}
+
+func indexExpiresLocalFromACLToken(raw interface{}) ([]byte, error) {
+	return indexExpiresFromACLToken(raw, true)
+}
+
+func indexExpiresGlobalFromACLToken(raw interface{}) ([]byte, error) {
+	return indexExpiresFromACLToken(raw, false)
+}
+
+func indexExpiresFromACLToken(raw interface{}, local bool) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+	if p.Local != local {
+		return nil, errMissingValueForIndex
+	}
+	if !p.HasExpirationTime() {
+		return nil, errMissingValueForIndex
+	}
+	if p.ExpirationTime.Unix() < 0 {
+		return nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", p.ExpirationTime)
+	}
+
+	var b indexBuilder
+	b.Time(*p.ExpirationTime)
 	return b.Bytes(), nil
 }
