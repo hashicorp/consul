@@ -1024,11 +1024,20 @@ func (r isReadRequest) IsRead() bool {
 }
 
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
-	caPEM, pk, err := tlsutil.GenerateCA(tlsutil.CAOpts{Days: 5, Domain: "consul"})
+	caPEM, caPK, err := tlsutil.GenerateCA(tlsutil.CAOpts{Days: 5, Domain: "consul"})
+	require.NoError(t, err)
+
+	caSigner, err := tlsutil.ParseSigner(caPK)
 	require.NoError(t, err)
 
 	dir := testutil.TempDir(t, "certs")
 	err = ioutil.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
+	require.NoError(t, err)
+
+	intermediatePEM, intermediatePK, err := tlsutil.GenerateCert(tlsutil.CertOpts{IsCA: true, CA: caPEM, Signer: caSigner, Days: 5})
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
 	require.NoError(t, err)
 
 	newCert := func(t *testing.T, caPEM, pk, node, name string) {
@@ -1053,7 +1062,7 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	newCert(t, caPEM, pk, "srv1", "server.dc1.consul")
+	newCert(t, caPEM, caPK, "srv1", "server.dc1.consul")
 
 	_, connectCApk, err := connect.GeneratePrivateKey()
 	require.NoError(t, err)
@@ -1110,8 +1119,26 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 	setupAgentTLSCert := func(name string) func(t *testing.T) string {
 		return func(t *testing.T) string {
-			newCert(t, caPEM, pk, "node1", name)
+			newCert(t, caPEM, caPK, "node1", name)
 			return filepath.Join(dir, "node1-"+name)
+		}
+	}
+
+	setupAgentTLSCertWithIntermediate := func(name string) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			newCert(t, intermediatePEM, intermediatePK, "node1", name)
+			certPrefix := filepath.Join(dir, "node1-"+name)
+			f, err := os.OpenFile(certPrefix+".pem", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := f.Write([]byte(intermediatePEM)); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.Close(); err != nil {
+				t.Fatal(err)
+			}
+			return certPrefix
 		}
 	}
 
@@ -1170,6 +1197,11 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		{
 			name:      "TLS byte with server cert in same DC",
 			setupCert: setupAgentTLSCert("server.dc1.consul"),
+			conn:      useTLSByte,
+		},
+		{
+			name:      "TLS byte with server cert in same DC and with unknown intermediate",
+			setupCert: setupAgentTLSCertWithIntermediate("server.dc1.consul"),
 			conn:      useTLSByte,
 		},
 		{
