@@ -275,16 +275,22 @@ environment and adapt these configurations accordingly.
 - **Secure UI Access** - Access to Consul’s builtin UI can be secured in various ways:
 
   - **mTLS** - Enabling the HTTPS with mutual TLS authentication is recommended, but requires extra tooling to terminate
-    the mTLS connection, preferably on an operator's local machine using a proxy script.
+    the mTLS connection, preferably on an operator's local machine using a proxy script. To do this, follow the tutorial on
+    [Configuring the Consul UI for HTTPS](https://learn.hashicorp.com/tutorials/consul/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
+    and in Step 2 use "Option 1: add a client certificate to your browser".
 
   - **TLS** - Enabling the HTTPS is recommended where mTLS may not be required for UI access, such as when ACLs are
-    configured with a default deny.
+    configured with a default deny. To do this, follow the tutorial on
+    [Configuring the Consul UI for HTTPS](https://learn.hashicorp.com/tutorials/consul/tls-encryption-openssl-secure#configure-the-consul-ui-for-https)
+    and in Step 2 use "Option 2: verify_incoming_rpc".
 
   - **ACL** - ACLs with a default deny policy enables safer UI access by preventing unauthorized access to sensitive
-    components within the cluster.
+    components within the cluster. To do this, follow the tutorial on
+    [Securing Consul with Access Control Lists (ACLs)](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production),
+    which includes a section on [creating ACL tokens that provide a desired level UI access](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#consul-ui-token).
 
-  - **Restrict HTTP Writes** - Using the allow_write_http_from configuration option enables agent endpoints restricting
-    write capabilities to a list of CIDRs.
+  - **Restrict HTTP Writes** - Using the [`allow_write_http_from`](/docs/agent/options#allow_write_http_from)
+    configuration option to restrict write access for agent endpoints to hosts on the specified list of CIDRs.
 
     **Example Agent Configuration**
 
