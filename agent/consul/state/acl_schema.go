@@ -62,7 +62,7 @@ func tokensTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerMulti{
-					readIndex:       readIndex(indexFromQuery),
+					readIndex:       readIndex(indexFromUUIDQuery),
 					writeIndexMulti: writeIndexMulti(indexRolesFromACLToken),
 				},
 			},
