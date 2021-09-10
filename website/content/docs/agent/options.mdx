@@ -61,9 +61,8 @@ The options below are all specified on the command-line.
   address is advertised. However, in some cases, there may be a routable address
   that cannot be bound. This flag enables gossiping a different address to support
   this. If this address is not routable, the node will be in a constant flapping
-  state as other nodes will treat the non-routability as a failure. In Consul 1.0
-  and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template.
+  state as other nodes will treat the non-routability as a failure. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-advertise-wan` ((#\_advertise-wan)) - The advertise WAN address is used
   to change the address that we advertise to server nodes joining through the WAN.
@@ -73,7 +72,8 @@ The options below are all specified on the command-line.
   and private datacenters. This flag enables server nodes gossiping through the public
   network for the WAN while using private VLANs for gossiping to each other and their
   client agents, and it allows client agents to be reached at this address when being
-  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](#translate_wan_addrs). In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template
+  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-bootstrap` ((#\_bootstrap)) - This flag is used to control if a server
   is in "bootstrap" mode. It is important that no more than one server **per** datacenter
@@ -99,9 +99,8 @@ The options below are all specified on the command-line.
   `"[::]"`, Consul will [advertise](/docs/agent/options#_advertise) the public
   IPv6 address. If there are multiple public IPv6 addresses available, Consul will
   exit with an error at startup. Consul uses both TCP and UDP and the same port for
-  both. If you have any firewalls, be sure to allow both protocols. In Consul 1.0
-  and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template that needs to resolve to a single address. Some example templates:
+  both. If you have any firewalls, be sure to allow both protocols. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that must resolve at runtime to a single address. Some example templates:
 
   ```shell
   # Using address within a specific CIDR
@@ -121,17 +120,15 @@ The options below are all specified on the command-line.
 - `-serf-wan-bind` ((#\_serf_wan_bind)) - The address that should be bound
   to for Serf WAN gossip communications. By default, the value follows the same rules
   as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind`
-  option is used. This is available in Consul 0.7.1 and later. In Consul 1.0 and
-  later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  option is used. This is available in Consul 0.7.1 and later. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-serf-lan-bind` ((#\_serf_lan_bind)) - The address that should be bound
   to for Serf LAN gossip communications. This is an IP address that should be reachable
   by all other LAN nodes in the cluster. By default, the value follows the same rules
   as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind`
-  option is used. This is available in Consul 0.7.1 and later. In Consul 1.0 and
-  later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  option is used. This is available in Consul 0.7.1 and later. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-check_output_max_size` - Override the default
   limit of 4k for maximum size of checks, this is a positive value. By limiting this
@@ -142,7 +139,7 @@ The options below are all specified on the command-line.
 - `-client` ((#\_client)) - The address to which Consul will bind client
   interfaces, including the HTTP and DNS servers. By default, this is "127.0.0.1",
   allowing only loopback connections. In Consul 1.0 and later this can be set to
-  a space-separated list of addresses to bind to, or a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  a space-separated list of addresses to bind to, or a [go-sockaddr]
   template that can potentially resolve to multiple addresses.
 
 - `-config-file` ((#\_config_file)) - A configuration file to load. For
@@ -299,9 +296,12 @@ The options below are all specified on the command-line.
   By default, the agent won't join any nodes when it starts up. Note that using [`retry_join`](#retry_join) could be more appropriate to help mitigate node startup race conditions when automating
   a Consul cluster deployment.
 
-  In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  In Consul 1.1.0 and later this can be dynamically defined with a
+  [go-sockaddr]
+  template that is resolved at runtime.
+
+  If using Enterprise network segments, see [additional documentation on
+  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
 
 - `-retry-join` ((#\_retry_join)) - Similar to [`-join`](#_join) but allows retrying a join until
   it is successful. Once it joins successfully to a member in a list of members
@@ -309,15 +309,23 @@ The options below are all specified on the command-line.
   membership via gossip. This is useful for cases where you know the address will
   eventually be available. This option can be specified multiple times to
   specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
-  addresses. In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template. If Consul is running on the non-default Serf LAN port, the port must
+  addresses. IPv6 must use the "bracketed" syntax. If multiple values
+  are given, they are tried and retried in the order listed until the first
+  succeeds.
+
+  In Consul 1.1.0 and later this can be dynamically defined with a
+  [go-sockaddr]
+  template that is resolved at runtime.
+
+  If Consul is running on the non-default Serf LAN port, the port must
   be specified in the join address, or configured as the agent's default Serf port
   using the [`ports.serf_lan`](#serf_lan_port) configuration option or
   [`-serf-lan-port`](#_serf_lan_port) command line flag.
-  IPv6 must use the "bracketed" syntax. If multiple values
-  are given, they are tried and retried in the order listed until the first
-  succeeds. Here are some examples:
+
+  If using network segments (Enterprise), see [additional documentation on
+  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+
+  Here are some examples of using `-retry-join`:
 
   ```shell
   # Using a DNS entry
@@ -369,18 +377,16 @@ The options below are all specified on the command-line.
   startup will fail. By default, the agent won't [`-join-wan`](#_join_wan) any nodes
   when it starts up.
 
-  In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template.
+  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-retry-join-wan` ((#\_retry_join_wan)) - Similar to [`retry-join`](#_retry_join)
   but allows retrying a wan join if the first attempt fails. This is useful for cases
   where we know the address will become available eventually. As of Consul 0.9.3
   [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
 
-  In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-retry-interval-wan` ((#\_retry_interval_wan)) - Time to wait between
   [`-join-wan`](#_join_wan) attempts. Defaults to 30s.
@@ -435,7 +441,7 @@ The options below are all specified on the command-line.
   but allows retrying discovery of fallback addresses for the mesh gateways in the
   primary datacenter if the first attempt fails. This is useful for cases where we
   know the address will become available eventually. [Cloud Auto-Joining](#cloud-auto-joining)
-  is supported as well as [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  is supported as well as [go-sockaddr]
   templates. This was added in Consul 1.8.0.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
@@ -453,10 +459,11 @@ The options below are all specified on the command-line.
 
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
-  communicate with other agents within its network segment. Review the [Network Segments
-  tutorial](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters) for
-  more details. By default, this is an empty string, which is the default network
-  segment.
+  communicate with other agents within its network segment. Ensure the [join
+  operation uses the correct port for this segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+  Review the [Network Segments documentation](/docs/enterprise/network-segments)
+  for more details. By default, this is an empty string, which is the `<default>`
+  network segment.
 
 - `-serf-lan-allowed-cidrs` ((#\_serf_lan_allowed_cidrs)) - The Serf LAN allowed CIDRs allow to accept incoming
   connections for Serf only from several networks (multiple values are supported).
@@ -777,7 +784,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `addresses` - This is a nested object that allows setting
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
-  of addresses to bind to, or a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that can potentially resolve to multiple addresses.
+  of addresses to bind to, or a [go-sockaddr] template that can potentially resolve to multiple addresses.
 
   `http`, `https` and `xds` all support binding to a Unix domain socket. A
   socket can be specified in the form `unix:///path/to/socket`. A new domain
@@ -821,6 +828,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   `reconnect_timeout` setting when determining when this node may be removed from the cluster.
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
+  This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
 
 - `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](#_serf_lan_allowed_cidrs).
 
@@ -1849,9 +1857,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
-- `segments` <EnterpriseAlert inline /> - This is a list of nested objects
-  that allows setting the bind/advertise information for network segments. This can
-  only be set on servers. Review the [Network Segments tutorial](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters)
+- `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
+  that specifies user-defined network segments, not including the `<default>` segment, which is
+  created automatically. Review the [Network Segments documentation](/docs/enterprise/network-segments)
   for more details.
 
   - `name` ((#segment_name)) - The name of the segment. Must be a string
@@ -2385,3 +2393,7 @@ items which are reloaded include:
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
 - Watches
+
+<!-- list of reference-style links -->
+
+[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template
