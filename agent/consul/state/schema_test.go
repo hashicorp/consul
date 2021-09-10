@@ -40,6 +40,7 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		// acl
 		tableACLPolicies: testIndexerTableACLPolicies,
 		tableACLRoles:    testIndexerTableACLRoles,
+		tableACLTokens:   testIndexerTableACLTokens,
 		// catalog
 		tableChecks:          testIndexerTableChecks,
 		tableServices:        testIndexerTableServices,

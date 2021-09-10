@@ -52,7 +52,10 @@ func tokensTableSchema() *memdb.TableSchema {
 				// Need to allow missing for the anonymous token
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &TokenPoliciesIndex{},
+				Indexer: indexerMulti{
+					readIndex:       readIndex(indexFromUUIDQuery),
+					writeIndexMulti: writeIndexMulti(indexPoliciesFromACLToken),
+				},
 			},
 			indexRoles: {
 				Name:         indexRoles,
@@ -349,4 +352,29 @@ func indexFromStringCaseSensitive(raw interface{}) ([]byte, error) {
 	var b indexBuilder
 	b.String(q)
 	return b.Bytes(), nil
+}
+
+func indexPoliciesFromACLToken(raw interface{}) ([][]byte, error) {
+	token, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+	links := token.Policies
+
+	numLinks := len(links)
+	if numLinks == 0 {
+		return nil, errMissingValueForIndex
+	}
+
+	vals := make([][]byte, numLinks)
+
+	for i, link := range links {
+		id, err := uuidStringToBytes(link.ID)
+		if err != nil {
+			return nil, err
+		}
+		vals[i] = id
+	}
+
+	return vals, nil
 }
