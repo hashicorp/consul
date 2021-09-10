@@ -70,9 +70,9 @@ func tokensTableSchema() *memdb.TableSchema {
 				Name:         indexAuthMethod,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "AuthMethod",
-					Lowercase: false,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromAuthMethodQuery),
+					writeIndex: writeIndex(indexAuthMethodFromACLToken),
 				},
 			},
 			indexLocal: {

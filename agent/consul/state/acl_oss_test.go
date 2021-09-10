@@ -49,6 +49,7 @@ func testIndexerTableACLTokens() map[string]indexerTestCase {
 		Roles: []structs.ACLTokenRoleLink{
 			{ID: roleID1}, {ID: roleID2},
 		},
+		AuthMethod: "test-Auth-Method",
 	}
 	encodedPID1 := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x40, 0x01}
 	encodedPID2 := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x40, 0x02}
@@ -77,6 +78,18 @@ func testIndexerTableACLTokens() map[string]indexerTestCase {
 			writeMulti: indexValueMulti{
 				source:   obj,
 				expected: [][]byte{encodedRID1, encodedRID2},
+			},
+		},
+		indexAuthMethod: {
+			read: indexValue{
+				source: AuthMethodQuery{
+					Value: "test-Auth-Method",
+				},
+				expected: []byte("test-auth-method\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("test-auth-method\x00"),
 			},
 		},
 	}
