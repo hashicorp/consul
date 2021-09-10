@@ -394,14 +394,14 @@ func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
 		return nil, errMissingValueForIndex
 	}
 
-	vals := make([][]byte, 0, numLinks)
+	vals := make([][]byte, numLinks)
 
-	for _, link := range links {
+	for i, link := range links {
 		id, err := uuidStringToBytes(link.ID)
 		if err != nil {
 			return nil, err
 		}
-		vals = append(vals, id)
+		vals[i] = id
 	}
 
 	return vals, nil
