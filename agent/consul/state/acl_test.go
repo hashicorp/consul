@@ -3737,7 +3737,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
 		require.ElementsMatch(t, tokens, res)
-		require.Equal(t, uint64(4), s.maxIndex("acl-tokens"))
+		require.Equal(t, uint64(4), s.maxIndex(tableACLTokens))
 	}()
 }
 
