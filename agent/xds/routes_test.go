@@ -799,10 +799,12 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 		}
 
 		webChain := discoverychain.TestCompileConfigEntries(t, "web",
-			o.entMetas["web"].NamespaceOrDefault(), "dc1",
+			o.entMetas["web"].NamespaceOrDefault(),
+			o.entMetas["web"].PartitionOrDefault(), "dc1",
 			connect.TestClusterID+".consul", "dc1", nil, entries...)
 		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
-			o.entMetas["foo"].NamespaceOrDefault(), "dc1",
+			o.entMetas["foo"].NamespaceOrDefault(),
+			o.entMetas["web"].PartitionOrDefault(), "dc1",
 			connect.TestClusterID+".consul", "dc1", nil, entries...)
 
 		snap.IngressGateway.DiscoveryChain[webUpstream.Identifier()] = webChain

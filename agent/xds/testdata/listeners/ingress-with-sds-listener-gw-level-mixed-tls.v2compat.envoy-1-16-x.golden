@@ -17,7 +17,7 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
-                "statPrefix": "upstream.insecure.default.dc1",
+                "statPrefix": "upstream.insecure.default.default.dc1",
                 "cluster": "insecure.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
@@ -42,7 +42,7 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
-                "statPrefix": "upstream.secure.default.dc1",
+                "statPrefix": "upstream.secure.default.default.dc1",
                 "cluster": "secure.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
