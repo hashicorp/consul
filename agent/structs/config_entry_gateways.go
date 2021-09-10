@@ -173,12 +173,12 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
 				return fmt.Errorf("Services[%d].%v", i, err)
 			}
-
+			sn := NewServiceName(s.Name, &s.EnterpriseMeta)
 			if err := s.RequestHeaders.Validate(listener.Protocol); err != nil {
-				return fmt.Errorf("request headers %s (service %q on listener on port %d)", err, s.Name, listener.Port)
+				return fmt.Errorf("request headers %s (service %q on listener on port %d)", err, sn.String(), listener.Port)
 			}
 			if err := s.ResponseHeaders.Validate(listener.Protocol); err != nil {
-				return fmt.Errorf("response headers %s (service %q on listener on port %d)", err, s.Name, listener.Port)
+				return fmt.Errorf("response headers %s (service %q on listener on port %d)", err, sn.String(), listener.Port)
 			}
 
 			if listener.Protocol == "tcp" {
