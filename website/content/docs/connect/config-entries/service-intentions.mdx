@@ -281,7 +281,7 @@ spec:
     {
       name: 'Name',
       description:
-        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Using a wildcard is incompatible with specifying L7 [`Permissions`](https://www.consul.io/docs/connect/config-entries/service-intentions#permissions) since those can only be enforced for services with the right protocol.",
+        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
       type: 'string: <required>',
       yaml: false,
     },
@@ -290,7 +290,7 @@ spec:
       type: `string: "default"`,
       enterprise: true,
       description:
-        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. Using a wildcard is incompatible with specifying L7 [`Permissions`](https://www.consul.io/docs/connect/config-entries/service-intentions#permissions) since those can only be enforced for services with the right protocol.",
+        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
       yaml: false,
     },
     {
@@ -324,7 +324,7 @@ spec:
           hcl: false,
           type: 'string: <required>',
           description:
-            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Using a wildcard is incompatible with specifying L7 [`permissions`](https://www.consul.io/docs/connect/config-entries/service-intentions#permissions) since those can only be enforced for services with the right protocol.",
+            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
         },
         {
           name: 'namespace',
@@ -332,7 +332,7 @@ spec:
           enterprise: true,
           type: 'string: <optional>',
           description:
-            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details. Using a wildcard is incompatible with specifying L7 [`permissions`](https://www.consul.io/docs/connect/config-entries/service-intentions#permissions) since those can only be enforced for services with the right protocol.",
+            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details. Wildcard intentions cannot be used when defining L7 [`Permissions`](/docs/connect/config-entries/service-intentions#permissions).",
         },
       ],
     },
@@ -397,7 +397,7 @@ spec:
                       intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
                       This should be omitted for an L4 intention as it is mutually exclusive with
                       the \`Action\` field.<br><br>
-                      Setting \`Permissions\` is not valid if a wildcard is used for the \`Name\` or \`Namespace\` since they can only be
+                      Setting \`Permissions\` is not valid if a wildcard is used for the \`Name\` or \`Namespace\` because they can only be
                       applied to services with a compatible protocol.`,
         yaml: `The list of all [additional L7 attributes](#intentionpermission) that extend the intention match criteria.<br><br>
                       Permission precedence is applied top to bottom. For any given request the
@@ -408,7 +408,7 @@ spec:
                       This should be omitted for an L4 intention as it is mutually exclusive with
                       the \`action\` field.<br><br>
                       Setting \`permissions\` is not valid if a wildcard is used for the \`spec.destination.name\` or \`spec.destination.namespace\` 
-                      since they can only be applied to services with a compatible protocol.`,
+                      because they can only be applied to services with a compatible protocol.`,
       },
     },
     {
