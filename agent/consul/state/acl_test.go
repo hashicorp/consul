@@ -3819,13 +3819,19 @@ func TestTokenPoliciesIndex(t *testing.T) {
 		Name:         "global",
 		AllowMissing: true,
 		Unique:       false,
-		Indexer:      &TokenExpirationIndex{LocalFilter: false},
+		Indexer: indexerSingle{
+			readIndex:  readIndex(indexFromTimeQuery),
+			writeIndex: writeIndex(indexExpiresGlobalFromACLToken),
+		},
 	}
 	localIndex := &memdb.IndexSchema{
 		Name:         "local",
 		AllowMissing: true,
 		Unique:       false,
-		Indexer:      &TokenExpirationIndex{LocalFilter: true},
+		Indexer: indexerSingle{
+			readIndex:  readIndex(indexFromTimeQuery),
+			writeIndex: writeIndex(indexExpiresLocalFromACLToken),
+		},
 	}
 	schema := &memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
