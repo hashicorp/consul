@@ -94,8 +94,9 @@ accepted.
 
 ### Wildcard Intentions
 
-An intention source or destination may also be the special wildcard
-value `*`. This matches _any_ value and is used as a catch-all.
+You can use the `*` wildcard when defining an intention source or destination. The wildcard matches _any_ value and can serve as a "catch-all" entry for intentions that should have a wide scope.     
+
+You can use a wildcard to match service names. If you are using Consul Enterprise, you can also use a wildcard to match a namespace.
 
 This example says that the "web" service cannot connect to _any_ service:
 
@@ -119,6 +120,22 @@ Sources = [
   {
     Name   = "*"
     Action = "deny"
+  }
+]
+```
+
+<EnterpriseAlert inline /> This example grants Prometheus
+access to any service in any namespace.
+
+```hcl
+Kind = "service-intentions"
+Name = "*"
+Namespace = "*"
+Sources = [
+  {
+    Name      = "prometheus"
+    Namespace = "monitoring"
+    Action = "allow"
   }
 ]
 ```
