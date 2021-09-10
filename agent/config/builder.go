@@ -787,7 +787,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
 			if err := entry.Validate(); err != nil {
-				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %w", i, err)
 			}
 			configEntries = append(configEntries, entry)
 		}
