@@ -13,6 +13,7 @@ import (
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -564,7 +565,7 @@ func notPrincipal(id *envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
 }
 
 func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
-	pattern := makeSpiffePattern(src.NamespaceOrDefault(), src.Name)
+	pattern := makeSpiffePattern(src.PartitionOrDefault(), src.NamespaceOrDefault(), src.Name)
 
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_Authenticated_{
@@ -578,21 +579,41 @@ func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
 		},
 	}
 }
-func makeSpiffePattern(sourceNS, sourceName string) string {
-	const (
-		anyPath        = `[^/]+`
-		spiffeTemplate = `^spiffe://%s/ns/%s/dc/%s/svc/%s$`
-	)
-	switch {
-	case sourceNS != structs.WildcardSpecifier && sourceName != structs.WildcardSpecifier:
-		return fmt.Sprintf(spiffeTemplate, anyPath, sourceNS, anyPath, sourceName)
-	case sourceNS != structs.WildcardSpecifier && sourceName == structs.WildcardSpecifier:
-		return fmt.Sprintf(spiffeTemplate, anyPath, sourceNS, anyPath, anyPath)
-	case sourceNS == structs.WildcardSpecifier && sourceName == structs.WildcardSpecifier:
-		return fmt.Sprintf(spiffeTemplate, anyPath, anyPath, anyPath, anyPath)
-	default:
+
+func makeSpiffePattern(sourceAP, sourceNS, sourceName string) string {
+	if sourceNS == structs.WildcardSpecifier && sourceName != structs.WildcardSpecifier {
 		panic(fmt.Sprintf("not possible to have a wildcarded namespace %q but an exact service %q", sourceNS, sourceName))
 	}
+	if sourceAP == structs.WildcardSpecifier {
+		panic("not possible to have a wildcarded source partition")
+	}
+
+	const anyPath = `[^/]+`
+
+	// Match on any namespace or service if it is a wildcard, or on a specific value otherwise.
+	ns := sourceNS
+	if sourceNS == structs.WildcardSpecifier {
+		ns = anyPath
+	}
+
+	svc := sourceName
+	if sourceName == structs.WildcardSpecifier {
+		svc = anyPath
+	}
+
+	id := connect.SpiffeIDService{
+		Namespace: ns,
+		Service:   svc,
+
+		// Trust domain and datacenter are not verified by RBAC, so we match on any value.
+		Host:       anyPath,
+		Datacenter: anyPath,
+
+		// Partition can only ever be an exact value.
+		Partition: sourceAP,
+	}
+
+	return fmt.Sprintf(`^%s://%s%s$`, id.URI().Scheme, id.Host, id.URI().Path)
 }
 
 func anyPermission() *envoy_rbac_v3.Permission {
