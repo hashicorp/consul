@@ -375,9 +375,11 @@ type Upstream struct {
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 
-	// IngressHosts are a list of hosts that should route to this upstream from
-	// an ingress gateway. This cannot and should not be set by a user, it is
-	// used internally to store the association of hosts to an upstream service.
+	// IngressHosts are a list of hosts that should route to this upstream from an
+	// ingress gateway. This cannot and should not be set by a user, it is used
+	// internally to store the association of hosts to an upstream service.
+	// TODO(banks): we shouldn't need this any more now we pass through full
+	// listener config in the ingress snapshot.
 	IngressHosts []string `json:"-" bexpr:"-"`
 
 	// CentrallyConfigured indicates whether the upstream was defined in a proxy

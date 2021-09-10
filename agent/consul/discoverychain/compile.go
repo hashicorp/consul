@@ -274,7 +274,9 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	c.flattenAdjacentSplitterNodes()
+	if err := c.flattenAdjacentSplitterNodes(); err != nil {
+		return nil, err
+	}
 
 	if err := c.removeUnusedNodes(); err != nil {
 		return nil, err
@@ -394,7 +396,7 @@ func (c *compiler) detectCircularReferences() error {
 	return nil
 }
 
-func (c *compiler) flattenAdjacentSplitterNodes() {
+func (c *compiler) flattenAdjacentSplitterNodes() error {
 	for {
 		anyChanged := false
 		for _, node := range c.nodes {
@@ -416,9 +418,16 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 				for _, innerSplit := range nextNode.Splits {
 					effectiveWeight := split.Weight * innerSplit.Weight / 100
 
+					// Copy the definition from the inner node but merge in the parent
+					// to preserve any config it needs to pass through.
+					newDef, err := innerSplit.Definition.MergeParent(split.Definition)
+					if err != nil {
+						return err
+					}
 					newDiscoverySplit := &structs.DiscoverySplit{
-						Weight:   structs.NormalizeServiceSplitWeight(effectiveWeight),
-						NextNode: innerSplit.NextNode,
+						Definition: newDef,
+						Weight:     structs.NormalizeServiceSplitWeight(effectiveWeight),
+						NextNode:   innerSplit.NextNode,
 					}
 
 					fixedSplits = append(fixedSplits, newDiscoverySplit)
@@ -432,7 +441,7 @@ func (c *compiler) flattenAdjacentSplitterNodes() {
 		}
 
 		if !anyChanged {
-			return
+			return nil
 		}
 	}
 }
@@ -723,9 +732,16 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	c.recordNode(splitNode)
 
 	var hasLB bool
-	for _, split := range splitter.Splits {
+	for i := range splitter.Splits {
+		// We don't use range variables here because we'll take the address of
+		// this split and store that in a DiscoveryGraphNode and the range
+		// variables share memory addresses between iterations which is exactly
+		// wrong for us here.
+		split := splitter.Splits[i]
+
 		compiledSplit := &structs.DiscoverySplit{
-			Weight: split.Weight,
+			Definition: &split,
+			Weight:     split.Weight,
 		}
 		splitNode.Splits = append(splitNode.Splits, compiledSplit)
 

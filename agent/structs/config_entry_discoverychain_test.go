@@ -1325,6 +1325,165 @@ func TestServiceSplitterConfigEntry(t *testing.T) {
 	}
 }
 
+func TestServiceSplitMergeParent(t *testing.T) {
+
+	type testCase struct {
+		name                string
+		split, parent, want *ServiceSplit
+		wantErr             string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		got, err := tc.split.MergeParent(tc.parent)
+		if tc.wantErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.wantErr)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "all header manip fields set",
+			split: &ServiceSplit{
+				Weight:  50.0,
+				Service: "foo",
+				RequestHeaders: &HTTPHeaderModifiers{
+					Add: map[string]string{
+						"child-only":      "1",
+						"both-want-child": "2",
+					},
+					Set: map[string]string{
+						"child-only":      "3",
+						"both-want-child": "4",
+					},
+					Remove: []string{"child-only-req", "both-req"},
+				},
+				ResponseHeaders: &HTTPHeaderModifiers{
+					Add: map[string]string{
+						"child-only":       "5",
+						"both-want-parent": "6",
+					},
+					Set: map[string]string{
+						"child-only":       "7",
+						"both-want-parent": "8",
+					},
+					Remove: []string{"child-only-resp", "both-resp"},
+				},
+			},
+			parent: &ServiceSplit{
+				Weight:  25.0,
+				Service: "bar",
+				RequestHeaders: &HTTPHeaderModifiers{
+					Add: map[string]string{
+						"parent-only":     "9",
+						"both-want-child": "10",
+					},
+					Set: map[string]string{
+						"parent-only":     "11",
+						"both-want-child": "12",
+					},
+					Remove: []string{"parent-only-req", "both-req"},
+				},
+				ResponseHeaders: &HTTPHeaderModifiers{
+					Add: map[string]string{
+						"parent-only":      "13",
+						"both-want-parent": "14",
+					},
+					Set: map[string]string{
+						"parent-only":      "15",
+						"both-want-parent": "16",
+					},
+					Remove: []string{"parent-only-resp", "both-resp"},
+				},
+			},
+			want: &ServiceSplit{
+				Weight:  50.0,
+				Service: "foo",
+				RequestHeaders: &HTTPHeaderModifiers{
+					Add: map[string]string{
+						"child-only":      "1",
+						"both-want-child": "2",
+						"parent-only":     "9",
+					},
+					Set: map[string]string{
+						"child-only":      "3",
+						"both-want-child": "4",
+						"parent-only":     "11",
+					},
+					Remove: []string{"parent-only-req", "both-req", "child-only-req"},
+				},
+				ResponseHeaders: &HTTPHeaderModifiers{
+					Add: map[string]string{
+						"child-only":       "5",
+						"parent-only":      "13",
+						"both-want-parent": "14",
+					},
+					Set: map[string]string{
+						"child-only":       "7",
+						"parent-only":      "15",
+						"both-want-parent": "16",
+					},
+					Remove: []string{"child-only-resp", "both-resp", "parent-only-resp"},
+				},
+			},
+		},
+		{
+			name: "no header manip",
+			split: &ServiceSplit{
+				Weight:  50,
+				Service: "foo",
+			},
+			parent: &ServiceSplit{
+				Weight:  50,
+				Service: "bar",
+			},
+			want: &ServiceSplit{
+				Weight:  50,
+				Service: "foo",
+			},
+		},
+		{
+			name: "nil parent",
+			split: &ServiceSplit{
+				Weight:  50,
+				Service: "foo",
+			},
+			parent: nil,
+			want: &ServiceSplit{
+				Weight:  50,
+				Service: "foo",
+			},
+		},
+		{
+			name:  "nil child",
+			split: nil,
+			parent: &ServiceSplit{
+				Weight:  50,
+				Service: "foo",
+			},
+			want: &ServiceSplit{
+				Weight:  50,
+				Service: "foo",
+			},
+		},
+		{
+			name:   "both nil",
+			split:  nil,
+			parent: nil,
+			want:   nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestServiceRouterConfigEntry(t *testing.T) {
 
 	httpMatch := func(http *ServiceRouteHTTPMatch) *ServiceRouteMatch {

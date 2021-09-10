@@ -3,12 +3,13 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "db",
+      "name": "9191",
       "virtualHosts": [
         {
           "name": "db",
           "domains": [
-            "*"
+            "db.ingress.*",
+            "db.ingress.*:9191"
           ],
           "routes": [
             {
@@ -397,6 +398,44 @@
                 "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
+          ],
+          "requestHeadersToAdd": [
+            {
+              "header": {
+                "key": "foo",
+                "value": "bar"
+              },
+              "append": true
+            },
+            {
+              "header": {
+                "key": "bar",
+                "value": "baz"
+              },
+              "append": false
+            }
+          ],
+          "requestHeadersToRemove": [
+            "qux"
+          ],
+          "responseHeadersToAdd": [
+            {
+              "header": {
+                "key": "foo",
+                "value": "bar"
+              },
+              "append": true
+            },
+            {
+              "header": {
+                "key": "bar",
+                "value": "baz"
+              },
+              "append": false
+            }
+          ],
+          "responseHeadersToRemove": [
+            "qux"
           ]
         }
       ],

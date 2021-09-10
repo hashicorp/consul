@@ -190,6 +190,33 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "ingress-with-chain-and-router-header-manip",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				k := proxycfg.IngressListenerKey{Port: 9191, Protocol: "http"}
+				l := snap.IngressGateway.Listeners[k]
+				l.Services[0].RequestHeaders = &structs.HTTPHeaderModifiers{
+					Add: map[string]string{
+						"foo": "bar",
+					},
+					Set: map[string]string{
+						"bar": "baz",
+					},
+					Remove: []string{"qux"},
+				}
+				l.Services[0].ResponseHeaders = &structs.HTTPHeaderModifiers{
+					Add: map[string]string{
+						"foo": "bar",
+					},
+					Set: map[string]string{
+						"bar": "baz",
+					},
+					Remove: []string{"qux"},
+				}
+				snap.IngressGateway.Listeners[k] = l
+			},
+		},
+		{
 			name:   "terminating-gateway-lb-config",
 			create: proxycfg.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {

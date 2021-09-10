@@ -192,6 +192,13 @@ type DiscoveryRoute struct {
 
 // compiled form of ServiceSplit
 type DiscoverySplit struct {
+	Definition *ServiceSplit `json:",omitempty"`
+	// Weight is not necessarily a duplicate of Definition.Weight since when
+	// multiple splits are compiled down to a single set of splits the effective
+	// weight of a split leg might not be the same as in the original definition.
+	// Proxies should use this compiled weight. The Definition is provided above
+	// for any other significant configuration that the proxy might need to apply
+	// to that leg of the split.
 	Weight   float32 `json:",omitempty"`
 	NextNode string  `json:",omitempty"`
 }

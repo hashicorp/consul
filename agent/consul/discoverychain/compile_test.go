@@ -339,6 +339,9 @@ func testcase_RouterWithDefaults_WithNoopSplit_DefaultResolver() compileTestCase
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight: 100,
+						},
 						Weight:   100,
 						NextNode: "resolver:main.default.default.dc1",
 					},
@@ -401,6 +404,9 @@ func testcase_NoopSplit_DefaultResolver_ProtocolFromProxyDefaults() compileTestC
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight: 100,
+						},
 						Weight:   100,
 						NextNode: "resolver:main.default.default.dc1",
 					},
@@ -470,6 +476,9 @@ func testcase_RouterWithDefaults_WithNoopSplit_WithResolver() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight: 100,
+						},
 						Weight:   100,
 						NextNode: "resolver:main.default.default.dc1",
 					},
@@ -604,6 +613,9 @@ func testcase_NoopSplit_DefaultResolver() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight: 100,
+						},
 						Weight:   100,
 						NextNode: "resolver:main.default.default.dc1",
 					},
@@ -657,6 +669,9 @@ func testcase_NoopSplit_WithResolver() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight: 100,
+						},
 						Weight:   100,
 						NextNode: "resolver:main.default.default.dc1",
 					},
@@ -717,10 +732,18 @@ func testcase_SubsetSplit() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:        60,
+							ServiceSubset: "v2",
+						},
 						Weight:   60,
 						NextNode: "resolver:v2.main.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:        40,
+							ServiceSubset: "v1",
+						},
 						Weight:   40,
 						NextNode: "resolver:v1.main.default.default.dc1",
 					},
@@ -786,10 +809,18 @@ func testcase_ServiceSplit() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  60,
+							Service: "foo",
+						},
 						Weight:   60,
 						NextNode: "resolver:foo.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  40,
+							Service: "bar",
+						},
 						Weight:   40,
 						NextNode: "resolver:bar.default.default.dc1",
 					},
@@ -875,6 +906,11 @@ func testcase_SplitBypassesSplit() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:        100,
+							Service:       "next",
+							ServiceSubset: "bypassed",
+						},
 						Weight:   100,
 						NextNode: "resolver:bypassed.next.default.default.dc1",
 					},
@@ -1352,6 +1388,9 @@ func testcase_NoopSplit_WithDefaultSubset() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight: 100,
+						},
 						Weight:   100,
 						NextNode: "resolver:v2.main.default.default.dc1",
 					},
@@ -1660,10 +1699,18 @@ func testcase_MultiDatacenterCanary() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  60,
+							Service: "main-dc2",
+						},
 						Weight:   60,
 						NextNode: "resolver:main.default.default.dc2",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  40,
+							Service: "main-dc3",
+						},
 						Weight:   40,
 						NextNode: "resolver:main.default.default.dc3",
 					},
@@ -1728,7 +1775,22 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 			Name: "svc-split-again",
 			Splits: []structs.ServiceSplit{
 				{Weight: 75, Service: "main", ServiceSubset: "v1"},
-				{Weight: 25, Service: "svc-split-one-more-time"},
+				{
+					Weight:  25,
+					Service: "svc-split-one-more-time",
+					RequestHeaders: &structs.HTTPHeaderModifiers{
+						Set: map[string]string{
+							"parent": "1",
+							"shared": "from-parent",
+						},
+					},
+					ResponseHeaders: &structs.HTTPHeaderModifiers{
+						Set: map[string]string{
+							"parent": "2",
+							"shared": "from-parent",
+						},
+					},
+				},
 			},
 		},
 		&structs.ServiceSplitterConfigEntry{
@@ -1736,7 +1798,23 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 			Name: "svc-split-one-more-time",
 			Splits: []structs.ServiceSplit{
 				{Weight: 80, Service: "main", ServiceSubset: "v2"},
-				{Weight: 20, Service: "main", ServiceSubset: "v3"},
+				{
+					Weight:        20,
+					Service:       "main",
+					ServiceSubset: "v3",
+					RequestHeaders: &structs.HTTPHeaderModifiers{
+						Set: map[string]string{
+							"child":  "3",
+							"shared": "from-child",
+						},
+					},
+					ResponseHeaders: &structs.HTTPHeaderModifiers{
+						Set: map[string]string{
+							"child":  "4",
+							"shared": "from-parent",
+						},
+					},
+				},
 			},
 		},
 	)
@@ -1820,18 +1898,66 @@ func testcase_AllBellsAndWhistles() compileTestCase {
 				Name: "svc-split.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  60,
+							Service: "svc-redirect",
+						},
 						Weight:   60,
 						NextNode: "resolver:prod.redirected.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:        75,
+							Service:       "main",
+							ServiceSubset: "v1",
+						},
 						Weight:   30,
 						NextNode: "resolver:v1.main.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:        80,
+							Service:       "main",
+							ServiceSubset: "v2",
+							// Should inherit these from parent verbatim as there was no
+							// child-split header manip.
+							RequestHeaders: &structs.HTTPHeaderModifiers{
+								Set: map[string]string{
+									"parent": "1",
+									"shared": "from-parent",
+								},
+							},
+							ResponseHeaders: &structs.HTTPHeaderModifiers{
+								Set: map[string]string{
+									"parent": "2",
+									"shared": "from-parent",
+								},
+							},
+						},
 						Weight:   8,
 						NextNode: "resolver:v2.main.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:        20,
+							Service:       "main",
+							ServiceSubset: "v3",
+							// Should get a merge of child and parent rules
+							RequestHeaders: &structs.HTTPHeaderModifiers{
+								Set: map[string]string{
+									"parent": "1",
+									"child":  "3",
+									"shared": "from-child",
+								},
+							},
+							ResponseHeaders: &structs.HTTPHeaderModifiers{
+								Set: map[string]string{
+									"parent": "2",
+									"child":  "4",
+									"shared": "from-parent",
+								},
+							},
+						},
 						Weight:   2,
 						NextNode: "resolver:v3.main.default.default.dc1",
 					},
@@ -2329,14 +2455,26 @@ func testcase_LBSplitterAndResolver() compileTestCase {
 				Name: "main.default",
 				Splits: []*structs.DiscoverySplit{
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  60,
+							Service: "foo",
+						},
 						Weight:   60,
 						NextNode: "resolver:foo.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  20,
+							Service: "bar",
+						},
 						Weight:   20,
 						NextNode: "resolver:bar.default.default.dc1",
 					},
 					{
+						Definition: &structs.ServiceSplit{
+							Weight:  20,
+							Service: "baz",
+						},
 						Weight:   20,
 						NextNode: "resolver:baz.default.default.dc1",
 					},

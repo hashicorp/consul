@@ -83,6 +83,10 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
