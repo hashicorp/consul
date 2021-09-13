@@ -14,7 +14,7 @@ Feature: dc / kvs / update: KV Update
       kv: "[Name]"
     ---
     Then the url should be /datacenter/kv/[EncodedName]/edit
-    And the title should be "Edit Key/Value - Consul"
+    And the title should be "Edit Key / Value - Consul"
     # Turn the Code Editor off so we can fill the value easier
     And I click "[name=json]"
     Then I fill in with yaml
@@ -55,7 +55,7 @@ Feature: dc / kvs / update: KV Update
     And I submit
     Then a PUT request was made to "/v1/kv/key?dc=datacenter&ns=@!namespace&flags=12" with the body "   "
     Then the url should be /datacenter/kv
-    And the title should be "Key/Value - Consul"
+    And the title should be "Key / Value - Consul"
     And "[data-notification]" has the "notification-update" class
     And "[data-notification]" has the "success" class
   Scenario: Update to a key change value to ''
