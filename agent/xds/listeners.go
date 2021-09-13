@@ -513,18 +513,17 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 }
 
 func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
+	var mergedCfg structs.GatewayTLSSDSConfig
+
 	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
+	if gwSDS != nil {
+		mergedCfg.ClusterName = gwSDS.ClusterName
+		mergedCfg.CertResource = gwSDS.CertResource
+	}
 
 	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
 	if !ok {
 		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
-	}
-
-	var mergedCfg structs.GatewayTLSSDSConfig
-
-	if gwSDS != nil {
-		mergedCfg.ClusterName = gwSDS.ClusterName
-		mergedCfg.CertResource = gwSDS.CertResource
 	}
 
 	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
@@ -661,28 +660,27 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	return resources, nil
 }
 
-func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) (string, error) {
+func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) string {
 	key := proxycfg.IngressListenerKeyFromListener(l)
 
 	// If the upstream service doesn't have any TLS overrides then it can just use
 	// the combined filterchain with all the merged routes.
 	if !ingressServiceHasSDSOverrides(s) {
-		return key.RouteName(), nil
+		return key.RouteName()
 	}
 
 	// Return a specific route for this service as it needs a custom FilterChain
-	// to serve it's custom cert so we should attach it's routes to a separate
-	// Route too. We need this to be consistent between OSS and Enterprise to
-	// avoid xDS config golden files in tests conflicting so we can't use
-	// ServiceID.String() which normalizes to included all identifiers in
-	// Enterprise.
+	// to serve its custom cert so we should attach its routes to a separate Route
+	// too. We need this to be consistent between OSS and Enterprise to avoid xDS
+	// config golden files in tests conflicting so we can't use ServiceID.String()
+	// which normalizes to included all identifiers in Enterprise.
 	sn := s.ToServiceName()
 	svcIdentifier := sn.Name
 	if !sn.InDefaultPartition() || !sn.InDefaultNamespace() {
 		// Non-default partition/namespace, use a full identifier
 		svcIdentifier = sn.String()
 	}
-	return fmt.Sprintf("%s_%s", key.RouteName(), svcIdentifier), nil
+	return fmt.Sprintf("%s_%s", key.RouteName(), svcIdentifier)
 }
 
 func ingressServiceHasSDSOverrides(s structs.IngressService) bool {
@@ -693,7 +691,7 @@ func ingressServiceHasSDSOverrides(s structs.IngressService) bool {
 
 // ingress services that specify custom TLS certs via SDS overrides need to get
 // their own filter chain and routes. This will generate all the extra filter
-// chains an ingress listener needs. It maybe be empty and expects the default
+// chains an ingress listener needs. It may be empty and expects the default
 // catch-all chain and route to contain all the other services that share the
 // default TLS config.
 func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
@@ -718,10 +716,7 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 			// Service has a certificate resource override. Return a new filter chain
 			// with the right TLS cert and a filter that will load only the routes for
 			// this service.
-			routeName, err := routeNameForUpstream(listenerCfg, svc)
-			if err != nil {
-				return nil, err
-			}
+			routeName := routeNameForUpstream(listenerCfg, svc)
 			filterOpts.filterName = routeName
 			filterOpts.routeName = routeName
 			filter, err := makeListenerFilter(filterOpts)

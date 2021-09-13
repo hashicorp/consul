@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/consul/agent/connect"
-
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -306,7 +305,7 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
-	// SDSConfig is the gateway-level SDS configuration. Listener/service level
+	// TLSConfig is the gateway-level TLS configuration. Listener/service level
 	// config is preserved in the Listeners map below.
 	TLSConfig structs.GatewayTLSConfig
 

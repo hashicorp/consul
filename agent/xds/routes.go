@@ -217,11 +217,8 @@ func (s *ResourceGenerator) routesForIngressGateway(
 				return nil, err
 			}
 
-			// See if this upstream has it's own route/filter chain
-			svcRouteName, err := routeNameForUpstream(lCfg, *svc)
-			if err != nil {
-				return nil, err
-			}
+			// See if this upstream has its own route/filter chain
+			svcRouteName := routeNameForUpstream(lCfg, *svc)
 
 			// If the routeName is the same as the default one, merge the virtual host
 			// to the default route
