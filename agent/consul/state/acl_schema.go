@@ -428,7 +428,7 @@ func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
 	}
 
 	var b indexBuilder
-	b.Raw([]byte{intFromBool(p.Local)})
+	b.Bool(p.Local)
 	return b.Bytes(), nil
 }
 
