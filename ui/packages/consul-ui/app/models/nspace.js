@@ -1,10 +1,11 @@
 import Model, { attr } from '@ember-data/model';
 
-export const PRIMARY_KEY = 'Name';
+export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
 export const NSPACE_KEY = 'Namespace';
 
 export default class Nspace extends Model {
+  @attr('string') Partition;
   @attr('string') uid;
   @attr('string') Name;
 

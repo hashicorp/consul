@@ -51,6 +51,9 @@ export default class ServiceInstance extends Model {
   @alias('Service.Meta') Meta;
   @alias('Service.Namespace') Namespace;
 
+  // FIXME: Is parition top level or Service.Partition?
+  @attr('string') Partition;
+
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'service') ServiceChecks;
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;
 

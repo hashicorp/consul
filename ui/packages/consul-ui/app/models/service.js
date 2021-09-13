@@ -28,6 +28,7 @@ export default class Service extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string') Kind;
   @attr('number') ChecksPassing;
   @attr('number') ChecksCritical;

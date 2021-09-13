@@ -10,6 +10,7 @@ export default class Topology extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string') Protocol;
   @attr('boolean') FilteredByACLs;
   @attr('boolean') TransparentProxy;
