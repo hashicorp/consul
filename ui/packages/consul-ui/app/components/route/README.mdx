@@ -12,8 +12,8 @@ routes.
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
 | `name` | `String` | `undefined` | The name of the route in ember routeName format e.g. `dc.services.index`. This is generally the `routeName` variable that is available to you in all Consul UI route/page level templates.|
-| `title` | `String` | `undefined` | The title for this page (eventually passed through to the `{{page-title}}` helper. This argument should be omitted if a title change isn't required. |
-| `titleSeparator` | `String` | `undefined` | This can be used in the top-level route to configure the separator for the `{{page-title}}` helper |
+| `title` | `String` | `undefined` | Deprecated: The title for this page (eventually passed through to the `{{page-title}}` helper. This argument should be omitted if a title change isn't required. Also see the exported `<Title />` component which is now preferred |
+| `titleSeparator` | `String` | `undefined` | Deprecated: This can be used in the top-level route to configure the separator for the `{{page-title}}` helper. Also see the exported `<Title />` component which is now preferred |
 
 ## Exports
 
@@ -21,16 +21,28 @@ routes.
 | --- | --- | --- | --- |
 | `model` | `Object` | `undefined` | Arbitrary hash of data passed down from the parent route/outlet |
 | `params` | `Object` | `undefined` | An object/merge of **all** optional route params and normal route params |
+| `Title` | `Component` | `` | An inline component to allow you to set a title within the Route component |
+| `Announcer` | `Component` | `` | An inline component to allow you to specify where the route announcer is rendered. This should be at the very top of your app probably under your `<Route />` in `application.hbs` |
 
 ```hbs
+<!-- application.hbs -->
 <Route
   @name={{routeName}}
-  @title="Page Title"
-  @titleSeparator=" - "
 as |route|>
+  <route.Announcer />
+  ...
+</Route>
+
+<!-- All route templates that change the title -->
+<Route
+  @name={{routeName}}
+as |route|>
+  <h1><route.Title @title="Page Title" /></h1>
   {{route.model.dc.Name}}
 </Route>
 ```
 
 Every page/route template has a `routeName` variable exposed specifically to
 allow you to use this to set the `@name` of the route.
+
+The `<Title @title=""/>` component should be used to control the title of the page. This component also yields the value of the `@title` attribute allowing you to use it to avoid repeating the title of the page for things like reusing the same value for a `<h1>`. The `Title` component is one of the only components which uses an attribute to specify textual copy, this makes it hard to add further HTML elements to the value of `@title` which would not be supported in the HTML `<title>` element.
