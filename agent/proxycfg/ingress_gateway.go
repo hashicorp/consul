@@ -154,8 +154,8 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 func makeUpstream(g *structs.GatewayService) structs.Upstream {
 	upstream := structs.Upstream{
 		DestinationName:      g.Service.Name,
-		DestinationNamespace: g.Service.NamespaceOrEmpty(),
-		DestinationPartition: g.Gateway.PartitionOrEmpty(),
+		DestinationNamespace: g.Service.NamespaceOrDefault(),
+		DestinationPartition: g.Gateway.PartitionOrDefault(),
 		LocalBindPort:        g.Port,
 		IngressHosts:         g.Hosts,
 		// Pass the protocol that was configured on the ingress listener in order
