@@ -1741,11 +1741,3 @@ func intFromBool(cond bool) byte {
 	}
 	return 0
 }
-
-// intFromBool returns 1 if cond is true, 0 otherwise.
-func intFromBool(cond bool) byte {
-	if cond {
-		return 1
-	}
-	return 0
-}
