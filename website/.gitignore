@@ -4,5 +4,8 @@ node_modules
 out
 .mdx-data
 
+# temporary docs-preview test
+temp-docs-preview
+
 # As per Next.js conventions (https://nextjs.org/docs/basic-features/environment-variables#default-environment-variables)
 .env*.local
