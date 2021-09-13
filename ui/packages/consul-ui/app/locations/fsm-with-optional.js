@@ -165,7 +165,7 @@ export default class FSMWithOptionalLocation {
 
   optionalParams() {
     let optional = this.optional || {};
-    return Object.keys(OPTIONAL).reduce((prev, item) => {
+    return ['partition', 'nspace'].reduce((prev, item) => {
       let value = '';
       if (typeof optional[item] !== 'undefined') {
         value = optional[item].match;
@@ -263,7 +263,7 @@ export default class FSMWithOptionalLocation {
         optional = undefined;
       }
       optional = Object.values(optional || this.optional || {});
-      optional = optional.map(item => item.value || item, []);
+      optional = optional.filter(item => Boolean(item)).map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }
