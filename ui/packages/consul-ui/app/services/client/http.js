@@ -5,6 +5,7 @@ import { next } from '@ember/runloop';
 import { CACHE_CONTROL, CONTENT_TYPE } from 'consul-ui/utils/http/headers';
 import {
   HEADERS_TOKEN as CONSUL_TOKEN,
+  HEADERS_PARTITION as CONSUL_PARTITION,
   HEADERS_NAMESPACE as CONSUL_NAMESPACE,
   HEADERS_DATACENTER as CONSUL_DATACENTER,
 } from 'consul-ui/utils/http/consul';
@@ -224,15 +225,16 @@ export default class HttpService extends Service {
                   return prev;
                 }, {}),
                 ...params.clientHeaders,
-                // Add a 'pretend' Datacenter/Nspace header, they are not
-                // headers the come from the request but we add them here so
-                // we can use them later for store reconciliation.
-                // Namespace will look at the ns query parameter first,
-                // followed by the Namespace property of the users token,
-                // defaulting back to 'default' which will mainly be used in
-                // OSS
+                // Add a 'pretend' Datacenter/Nspace/Partition header, they are
+                // not headers the come from the request but we add them here so
+                // we can use them later for store reconciliation. Namespace
+                // will look at the ns query parameter first, followed by the
+                // Namespace property of the users token, defaulting back to
+                // 'default' which will mainly be used in OSS
                 [CONSUL_DATACENTER]: params.data.dc,
                 [CONSUL_NAMESPACE]: params.data.ns || token.Namespace || 'default',
+                // FIXME: Is the default partition '' or 'default'?
+                [CONSUL_PARTITION]: params.data.partition || token.Partition || 'default',
               };
               const respond = function(cb) {
                 return cb(headers, e.data.response);
