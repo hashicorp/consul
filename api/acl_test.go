@@ -234,12 +234,20 @@ func TestAPI_ACLPolicy_List(t *testing.T) {
 }
 
 func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
+	return prepTokenPoliciesInPartition(t, acl, "")
+}
+
+func prepTokenPoliciesInPartition(t *testing.T, acl *ACL, partition string) (policies []*ACLPolicy) {
+	var wqPart *WriteOptions
+	if partition != "" {
+		wqPart = &WriteOptions{Partition: partition}
+	}
 	policy, _, err := acl.PolicyCreate(&ACLPolicy{
 		Name:        "one",
 		Description: "one description",
 		Rules:       `acl = "read"`,
 		Datacenters: []string{"dc1", "dc2"},
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -250,7 +258,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 		Description: "two description",
 		Rules:       `node_prefix "" { policy = "read" }`,
 		Datacenters: []string{"dc1", "dc2"},
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -260,7 +268,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 		Name:        "three",
 		Description: "three description",
 		Rules:       `service_prefix "" { policy = "read" }`,
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
@@ -270,7 +278,7 @@ func prepTokenPolicies(t *testing.T, acl *ACL) (policies []*ACLPolicy) {
 		Name:        "four",
 		Description: "four description",
 		Rules:       `agent "foo" { policy = "write" }`,
-	}, nil)
+	}, wqPart)
 
 	require.NoError(t, err)
 	require.NotNil(t, policy)
