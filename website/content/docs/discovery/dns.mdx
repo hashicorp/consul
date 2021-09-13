@@ -325,3 +325,34 @@ to the `default` namespace:
 
 Finally, both the namespace and datacenter may be omitted and the service will be resolved
 in the `default` namespace and in the datacenter of the local agent.
+
+## DNS with ACLs
+
+In order to use the DNS interface when
+[Access Control Lists (ACLs)](/docs/security/acl/acl-system)
+are enabled, you must first create ACL tokens with the necessary policies.
+
+Consul agents resolve DNS requests using one of the preconfigured tokens below,
+listed in order of precedence:
+
+1. The agent's [`default` token](/docs/agent/options#acl_tokens_default).
+2. The built-in [`anonymous` token](/docs/security/acl/acl-system#builtin-tokens).
+   Because the anonymous token is used when any request is made to Consul without
+   explicitly specifying a token, production deployments should not apply policies
+   needed for DNS to this token.
+
+Consul will either accept or deny the request depending on whether the token
+has the appropriate authorization. The following table describes the available
+DNS lookups and required policies when ACLs are enabled:
+
+| Lookup                                                     | Type                                               | Description                                                                                                                                                                       | ACLs Required                                                                                                                                                                           |
+| ---------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*.node.consul`                                            | [Node](#node-lookups)                              | Allow resolving DNS requests for the target node (i.e., `<target>.node.consul`)                                                                                                   | [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                                                                                  |
+| `*.service.consul`, `*.connect.consul`, `*.ingress.consul` | [Service: standard](#service-lookups)              | Allow resolving DNS requests for target service (e.g., `<target>.service.consul`) instances running on ACL-authorized nodes                                                       | [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules)                                                                    |
+| `*.query.consul`                                           | [Service: prepared query](#prepared-query-lookups) | Allow resolving DNS requests for [service instances specified](/api/query#service-1) by the target prepared query (i.e., `<target>.query.consul`) running on ACL-authorized nodes | [`query:read`](/docs/security/acl/acl-rules#prepared-query-rules), [`service:read`](/docs/security/acl/acl-rules#service-rules), [`node:read`](/docs/security/acl/acl-rules#node-rules) |
+
+For guidance on how to configure an appropriate token for DNS, refer to the
+securing Consul with ACLs guides for:
+
+- [Production Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production#token-for-dns)
+- [Development Environments](https://learn.hashicorp.com/tutorials/consul/access-control-setup#additional-acl-configuration)
