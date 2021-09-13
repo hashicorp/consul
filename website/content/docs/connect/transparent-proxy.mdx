@@ -115,7 +115,7 @@ Traffic redirection interferes with [Kubernetes HTTP health
 probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) since the
 probes expect that kubelet can directly reach the application container on the probe's endpoint, but that traffic will
 be redirected through the sidecar proxy, causing errors because kubelet itself is not encrypting that traffic using a
-mesh proxy. For this reason, Consul allows you to (overwrite Kubernetes HTTP health probes)[/docs/k8s/connect/health] to point to the proxy instead.
+mesh proxy. For this reason, Consul allows you to [overwrite Kubernetes HTTP health probes](/docs/k8s/connect/health) to point to the proxy instead.
 This can be done using the Helm value `connectInject.transparentProxy.defaultOverwriteProbes`
 or the Pod annotation `consul.hashicorp.com/transparent-proxy-overwrite-probes`.
 
