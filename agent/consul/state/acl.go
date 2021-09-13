@@ -10,54 +10,6 @@ import (
 	pbacl "github.com/hashicorp/consul/proto/pbacl"
 )
 
-type TokenExpirationIndex struct {
-	LocalFilter bool
-}
-
-func (s *TokenExpirationIndex) encodeTime(t time.Time) []byte {
-	val := t.Unix()
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(val))
-	return buf
-}
-
-func (s *TokenExpirationIndex) FromObject(obj interface{}) (bool, []byte, error) {
-	token, ok := obj.(*structs.ACLToken)
-	if !ok {
-		return false, nil, fmt.Errorf("object is not an ACLToken")
-	}
-	if s.LocalFilter != token.Local {
-		return false, nil, nil
-	}
-	if !token.HasExpirationTime() {
-		return false, nil, nil
-	}
-	if token.ExpirationTime.Unix() < 0 {
-		return false, nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", token.ExpirationTime)
-	}
-
-	buf := s.encodeTime(*token.ExpirationTime)
-
-	return true, buf, nil
-}
-
-func (s *TokenExpirationIndex) FromArgs(args ...interface{}) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("must provide only a single argument")
-	}
-	arg, ok := args[0].(time.Time)
-	if !ok {
-		return nil, fmt.Errorf("argument must be a time.Time: %#v", args[0])
-	}
-	if arg.Unix() < 0 {
-		return nil, fmt.Errorf("argument must be a time.Time after the unix epoch: %s", args[0])
-	}
-
-	buf := s.encodeTime(arg)
-
-	return buf, nil
-}
-
 // ACLTokens is used when saving a snapshot
 func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get(tableACLTokens, "id")
@@ -1768,7 +1720,7 @@ func aclAuthMethodDeleteTxn(tx WriteTxn, idx uint64, name string, entMeta *struc
 	return aclAuthMethodDeleteWithMethod(tx, method, idx)
 }
 
-func aclTokenListLocal(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclTokenList(tx ReadTxn, entMeta *structs.EnterpriseMeta, local bool) (memdb.ResultIterator, error) {
 	// TODO: accept non-pointer value
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -1776,21 +1728,7 @@ func aclTokenListLocal(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.Resul
 	// if the namespace is the wildcard that will also be handled as the local index uses
 	// the NamespaceMultiIndex instead of the NamespaceIndex
 	q := BoolQuery{
-		Value:          true,
-		EnterpriseMeta: *entMeta,
-	}
-	return tx.Get(tableACLTokens, indexLocality, q)
-}
-
-func aclTokenListGlobal(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	// TODO: accept non-pointer value
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
-	// if the namespace is the wildcard that will also be handled as the local index uses
-	// the NamespaceMultiIndex instead of the NamespaceIndex
-	q := BoolQuery{
-		Value:          false,
+		Value:          local,
 		EnterpriseMeta: *entMeta,
 	}
 	return tx.Get(tableACLTokens, indexLocality, q)
