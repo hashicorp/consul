@@ -1,7 +1,6 @@
 import Route from '@ember/routing/route';
-import { get, setProperties } from '@ember/object';
+import { get, setProperties, action } from '@ember/object';
 import { inject as service } from '@ember/service';
-import HTTPError from 'consul-ui/utils/http/error';
 
 // paramsFor
 import { routes } from 'consul-ui/router';
@@ -68,6 +67,18 @@ export default class BaseRoute extends Route {
     return value;
   }
 
+  // FIXME: this is only required due to intention_id trying to do too much
+  model() {
+    const model = {};
+    if (
+      typeof this.queryParams !== 'undefined' &&
+      typeof this.queryParams.searchproperty !== 'undefined'
+    ) {
+      model.searchProperties = this.queryParams.searchproperty.empty[0];
+    }
+    return model;
+  }
+
   /**
    * Set the routeName for the controller so that it is available in the template
    * for the route/controller.. This is mainly used to give a route name to the
@@ -75,6 +86,7 @@ export default class BaseRoute extends Route {
    */
   setupController(controller, model) {
     setProperties(controller, {
+      ...model,
       routeName: this.routeName,
     });
     super.setupController(...arguments);
@@ -106,5 +118,31 @@ export default class BaseRoute extends Route {
     } else {
       return params;
     }
+  }
+
+  @action
+  async replaceWith(routeName, obj) {
+    await Promise.resolve();
+    let params = [];
+    if (typeof obj === 'string') {
+      params = [obj];
+    }
+    if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
+      params = Object.values(obj);
+    }
+    return super.replaceWith(routeName, ...params);
+  }
+
+  @action
+  async transitionTo(routeName, obj) {
+    await Promise.resolve();
+    let params = [];
+    if (typeof obj === 'string') {
+      params = [obj];
+    }
+    if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
+      params = Object.values(obj);
+    }
+    return super.transitionTo(routeName, ...params);
   }
 }
