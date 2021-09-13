@@ -2,11 +2,12 @@
   @name={{routeName}}
 as |route|>
   <Consul::Intention::Form
-    @nspace={{nspace}}
-    @dc={{dc}}
-    @src={{src}}
+    @nspace={{'*'}}
+    @dc={{route.params.dc}}
+    @partition={{route.params.partition}}
+    @src={{route.params.intention_id}}
     @autofill={{hash
-      DestinationName=service
+      DestinationName=route.params.name
     }}
     @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
   />

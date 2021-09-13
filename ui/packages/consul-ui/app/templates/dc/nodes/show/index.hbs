@@ -1,0 +1,9 @@
+<Route
+  @name={{routeName}}
+as |route|>
+{{#if (eq route.model.item.Checks.length 0)}}
+  {{did-insert (route-action 'replaceWith' 'dc.nodes.show.services')}}
+{{else}}
+  {{did-insert (route-action 'replaceWith' 'dc.nodes.show.healthchecks')}}
+{{/if}}
+</Route>

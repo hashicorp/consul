@@ -1,16 +1,23 @@
 <Route
   @name={{routeName}}
-  @title='Consul'
-  @titleSeparator=" - "
->
+as |route|>
 
-{{#if (env 'CONSUL_ACLS_ENABLED')}}
+{{! Add the a11y route announcer }}
+<route.Announcer
+  @title="Consul"
+/>
+{{! Tell CSS what we have enabled }}
+{{#if (can "use acls")}}
   {{document-attrs class="has-acls"}}
 {{/if}}
-{{#if (env 'CONSUL_NSPACES_ENABLED')}}
+{{#if (can "use nspaces")}}
   {{document-attrs class="has-nspaces"}}
 {{/if}}
+{{#if (can "use partitions")}}
+  {{document-attrs class="has-partitions"}}
+{{/if}}
 
+{{! Tell CSS about our theme }}
 <DataSource
   @src="settings://consul:theme"
 as |source|>
@@ -21,26 +28,113 @@ as |source|>
 {{/each-in}}
 </DataSource>
 
-{{#if (not-eq router.currentRouteName 'application')}}
-  <HashicorpConsul
-    id="wrapper"
-    @dcs={{dcs}}
-    @dc={{or dc dcs.firstObject}}
-    @nspaces={{nspaces}}
-    @nspace={{or nspace nspaces.firstObject}}
-    @onchange={{action "reauthorize"}}
-  as |consul|>
-    <Outlet
-    @name="application"
-    @model={{hash
-      app=consul
+{{! If ACLs are enabled try get a token }}
+{{#if (can "use acls")}}
+<DataSource
+  @src="settings://consul:token"
+  @onchange={{action (mut token) value="data"}}
+/>
+{{/if}}
+
+{{! redirect if we aren't on a URL with dc information }}
+{{#if (eq route.currentName 'index')}}
+  {{did-insert (route-action 'replaceWith' 'dc.services.index'
+    (hash
+      dc=(env 'CONSUL_DATACENTER_LOCAL')
+    )
+  )}}
+{{else}}
+{{! If we are notfound, guess the params we need }}
+{{#if (eq route.currentName 'notfound')}}
+  <DataSource
+    @src={{uri '/*/*/*/notfound/${path}'
+      (hash
+        path=route.params.notfound
+      )
     }}
-    as |o|>
-      {{outlet}}
-    </Outlet>
-    <Consul::Loader
-      class="view-loader"
-    />
-  </HashicorpConsul>
+    @onchange={{action (mut notfound) value="data"}}
+  />
+{{/if}}
+
+{{! Make sure we guess and default to the right params when not found }}
+{{#let
+  (or notfound.dc route.params.dc (env "CONSUL_DATACENTER_LOCAL"))
+  (if (can "use partitions") (or route.params.partition notfound.partition token.Partition 'default') 'default')
+  (if (can "use nspaces") (or route.params.nspace notfound.nspace token.Namespace 'default') 'default')
+as |dc partition nspace|}}
+
+{{! Make sure we have enough to show the app chrome}}
+{{!FIXME}}
+{{#if (gt dc.length 0)}}
+
+    {{! Don't show anything until we have a list of DCs }}
+    <DataSource
+      @src={{uri '/*/*/*/datacenters'}}
+    as |dcs|>
+
+{{#let
+  dcs.data
+as |dcs|}}
+  {{#if (and dcs nspace partition)}}
+
+    {{! figure out our current DC and convert it to a model }}
+    <DataSource
+      @src={{uri '/${partition}/*/${dc}/datacenter/${name}'
+        (hash
+          dc=dc
+          partition=partition
+          name=dc
+        )
+      }}
+    as |dc|>
+    {{#if dc.data}}
+      <HashicorpConsul
+        id="wrapper"
+        @dcs={{dcs}}
+        @dc={{dc.data}}
+        @partition={{partition}}
+        @nspace={{nspace}}
+        @user={{hash
+          token=token
+        }}
+        @onchange={{action "reauthorize"}}
+      as |consul|>
+
+{{#if error}}
+        {{! If we got an error from anything, show an error page }}
+        <AppError
+          @error={{error}}
+          @login={{consul.login.open}}
+        />
+{{else}}
+        {{! Otherwise show the rest of the app}}
+        <Outlet
+          @name="application"
+          @model={{hash
+            app=consul
+            user=(hash
+              token=token
+            )
+            dc=dc.data
+            dcs=dcs
+          }}
+        as |o|>
+          {{outlet}}
+        </Outlet>
+
+        {{! loading component for when we need it}}
+        <Consul::Loader
+          class="view-loader"
+        />
+{{/if}}
+
+      </HashicorpConsul>
+{{/if}}
+    </DataSource>
+  {{/if}}
+{{/let}}
+    </DataSource>
+{{/if}}
+{{/let}}
 {{/if}}
 </Route>

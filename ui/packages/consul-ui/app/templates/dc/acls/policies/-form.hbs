@@ -1,10 +1,23 @@
 <form>
-  <PolicyForm @form={{form}} @nspace={{nspace}} @item={{item}}>
+  <PolicyForm @form={{form}} @partition={{partition}} @nspace={{nspace}} @item={{item}}>
     {{!don't show template selection here, i.e. Service Identity}}
     <BlockSlot @name="template" />
   </PolicyForm>
 {{#if (not create) }}
-  <TokenList @caption="Applied to the following tokens:" @items={{items}} />
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-policy/${id}'
+        (hash
+          partition=partition
+          nspace=nspace
+          dc=dc
+          id=(or id '')
+        )
+      }}
+    as |loader|>
+    {{#if (gt loader.data.length 0)}}
+      <TokenList @caption="Applied to the following tokens:" @items={{loader.data}} />
+    {{/if}}
+    </DataSource>
 {{/if}}
     <div>
 {{#if (and create (can "create tokens")) }}
@@ -12,7 +25,8 @@
         <button type="submit" {{ action "create" item}} disabled={{if (or item.isPristine item.isInvalid (eq item.Name '')) 'disabled'}}>Save</button>
 {{ else }}
   {{#if (can "write policy" item=item)}}
-        <button type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
+        <button
+          type="submit" {{ action "update" item}} disabled={{if item.isInvalid 'disabled'}}>Save</button>
   {{/if}}
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>

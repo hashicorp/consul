@@ -2,12 +2,25 @@
   @name={{routeName}}
   @title={{item.Node}}
 as |route|>
-  <DataLoader as |loader|>
-
-    <BlockSlot @name="data">
-      <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
-      <EventSource @src={{tomography}} />
-    </BlockSlot>
+  <DataSource @src={{
+    uri '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+      name=route.params.name
+    )
+  }} as |tomography|>
+  <DataLoader
+    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+      )
+    }}
+  as |loader|>
 
     <BlockSlot @name="error">
       <AppError
@@ -42,6 +55,10 @@ as |route|>
     </BlockSlot>
 
     <BlockSlot @name="loaded">
+{{#let
+  loader.data
+  tomography.data
+as |item tomography|}}
       <AppView>
           <BlockSlot @name="notification" as |status type|>
             <Consul::LockSession::Notifications
@@ -56,7 +73,7 @@ as |route|>
           </BlockSlot>
           <BlockSlot @name="header">
               <h1>
-                {{ item.Node }}
+                <route.Title @title={{item.Node}} />
               </h1>
               <label for="toolbar-toggle"></label>
           </BlockSlot>
@@ -78,13 +95,19 @@ as |route|>
           <BlockSlot @name="content">
             <Outlet
               @name={{routeName}}
-              @model={{route.model}}
+              @model={{assign
+                (hash
+                  item=item
+                  tomography=tomography
+                ) route.model
+              }}
             as |o|>
               {{outlet}}
             </Outlet>
           </BlockSlot>
       </AppView>
-
+{{/let}}
     </BlockSlot>
   </DataLoader>
+  </DataSource>
 </Route>

@@ -1,6 +1,9 @@
 <Route
   @name={{routeName}}
 as |route|>
+{{#let
+  route.model.proxy
+as |proxy|}}
   <div class="tab-section">
   {{#if (gt proxy.Service.Proxy.Expose.Paths.length 0)}}
     <p>
@@ -17,4 +20,5 @@ as |route|>
     </EmptyState>
   {{/if}}
   </div>
+{{/let}}
 </Route>

@@ -1,11 +1,24 @@
 <form>
   <RoleForm @form={{form}} @item={{item}} @dc={{dc}} @nspace={{nspace}} />
-{{#if (and (not create) (gt items.length 0))}}
-  <h2>Where is this role used?</h2>
-  <p>
-    We're only able to show information for the primary datacenter and the current datacenter. This list may not show every case where this role is applied.
-  </p>
-  <TokenList @caption="Tokens" @items={{items}} />
+{{#if (not create)}}
+  <DataSource
+    @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-role/${id}'
+      (hash
+        partition=partition
+        nspace=nspace
+        dc=dc
+        id=(or id '')
+      )
+    }}
+  as |loader|>
+  {{#if (gt loader.data.length 0)}}
+    <h2>Where is this role used?</h2>
+    <p>
+      We're only able to show information for the primary datacenter and the current datacenter. This list may not show every case where this role is applied.
+    </p>
+    <TokenList @caption="Tokens" @items={{loader.data}} />
+  {{/if}}
+  </DataSource>
 {{/if}}
     <div>
 {{#if (and create (can "create roles")) }}

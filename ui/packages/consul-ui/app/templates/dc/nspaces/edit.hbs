@@ -1,7 +1,34 @@
 <Route
   @name={{routeName}}
-  @title={{if create 'New Namespace' 'Edit Namespace'}}
 as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/namespace/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.name '')
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+
+  loader.data
+  loader.data.isNew
+as |dc partition nspace item create|}}
   <AppView>
     <BlockSlot @name="notification" as |status type item error|>
       <Consul::Nspace::Notifications
@@ -17,11 +44,7 @@ as |route|>
     </BlockSlot>
     <BlockSlot @name="header">
       <h1>
-  {{#if create }}
-        New Namespace
-  {{else}}
-        Edit {{item.Name}}
-  {{/if}}
+        <route.Title @title={{if create "New Namespace" (concat "Edit " item.Name)}} />
       </h1>
     </BlockSlot>
     <BlockSlot @name="actions">
@@ -30,4 +53,7 @@ as |route|>
       {{ partial 'dc/nspaces/form'}}
     </BlockSlot>
   </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

@@ -1,6 +1,12 @@
 <Route
   @name={{routeName}}
 as |route|>
+{{#let
+  route.model.tomography
+as |tomography|}}
+{{#if (not tomography.distances)}}
+  {{did-insert (route-action 'replaceWith' 'dc.nodes.show')}}
+{{else}}
   <div class="tab-section">
     <div class="definition-table">
       <dl>
@@ -26,4 +32,6 @@ as |route|>
     </div>
     <Consul::Tomography::Graph @distances={{tomography.distances}} />
   </div>
+{{/if}}
+{{/let}}
 </Route>

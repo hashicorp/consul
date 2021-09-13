@@ -1,7 +1,28 @@
 <Route
   @name={{routeName}}
-  @title={{if item.ID 'Edit Intention' 'New Intention'}}
 as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/intention/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.intention_id '')
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+        <AppError
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+  loader.data
+as |item|}}
   <AppView>
       <BlockSlot @name="breadcrumbs">
           <ol>
@@ -12,22 +33,30 @@ as |route|>
           <h1>
   {{#if item.IsEditable}}
     {{#if item.ID}}
-            Edit Intention
+            <route.Title @title="Edit Intention" />
     {{else}}
-            New Intention
+            <route.Title @title="New Intention" />
     {{/if}}
   {{else}}
-            View Intention
+            <route.Title @title="View Intention" />
   {{/if}}
           </h1>
       </BlockSlot>
       <BlockSlot @name="content">
         <Consul::Intention::Form
           @item={{item}}
-          @dc={{dc}}
-          @nspace={{nspace}}
-          @onsubmit={{transition-to 'dc.intentions.index' dc}}
+          @dc={{route.params.dc}}
+          @nspace={{route.params.nspace}}
+          @partition={{route.params.partition}}
+          @onsubmit={{route-action 'transitionTo' 'dc.intentions.index'
+            (hash
+              dc=route.params.dc
+            )
+          }}
         />
       </BlockSlot>
   </AppView>
+{{/let}}
+  </BlockSlot>
+</DataLoader>
 </Route>

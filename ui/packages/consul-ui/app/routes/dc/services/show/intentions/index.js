@@ -13,18 +13,4 @@ export default class IndexRoute extends Route {
       replace: true,
     },
   };
-
-  async model(params) {
-    return {
-      dc: this.modelFor('dc').dc.Name,
-      nspace: this.optionalParams().nspace || 'default',
-      slug: this.paramsFor('dc.services.show').name,
-      searchProperties: this.queryParams.searchproperty.empty[0],
-    };
-  }
-
-  setupController(controller, model) {
-    super.setupController(...arguments);
-    controller.setProperties(model);
-  }
 }
