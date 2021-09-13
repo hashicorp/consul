@@ -21,7 +21,13 @@ as |modal|>
     <RoleForm @form={{form}} @dc={{dc}} @nspace={{nspace}}>
       <BlockSlot @name="policy">
 
-        <PolicySelector @source={{source}} @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}}>
+        <PolicySelector
+          @source={{source}}
+          @dc={{dc}}
+          @partition={{partition}}
+          @nspace={{nspace}}
+          @items={{item.Policies}}
+        >
           <BlockSlot @name="trigger">
             <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
               <span>Create new policy</span>
@@ -62,7 +68,16 @@ as |modal|>
   </BlockSlot>
 </ModalDialog>
 
-<ChildSelector @disabled={{disabled}} @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
+<ChildSelector
+  @disabled={{disabled}}
+  @repo={{repo}}
+  @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
+  @type="role"
+  @placeholder="Search for role"
+  @items={{items}}
+>
   <BlockSlot @name="label">
     Apply an existing role
   </BlockSlot>

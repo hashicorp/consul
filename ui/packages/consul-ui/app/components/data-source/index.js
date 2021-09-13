@@ -89,6 +89,14 @@ export default class DataSource extends Component {
 
   @action
   disconnect() {
+    // FIXME? Should we be doing this here
+    if (
+      typeof this.data !== 'undefined' &&
+      typeof this.data.length === 'undefined' &&
+      typeof this.data.rollbackAttributes === 'function'
+    ) {
+      this.data.rollbackAttributes();
+    }
     this.close();
     this._listeners.remove();
     this._lazyListeners.remove();
@@ -168,6 +176,15 @@ export default class DataSource extends Component {
         });
       }
     }
+  }
+  @action
+  async invalidate() {
+    this.source.readyState = 2;
+    this.disconnect();
+    schedule('afterRender', () => {
+      // FIXME: Lazy data-sources
+      this.connect([]);
+    });
   }
 
   // keep this argumentless

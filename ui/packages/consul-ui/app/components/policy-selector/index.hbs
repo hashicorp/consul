@@ -2,6 +2,7 @@
   @disabled={{disabled}}
   @repo={{repo}}
   @dc={{dc}}
+  @partition={{partition}}
   @nspace={{nspace}}
   @type="policy"
   @placeholder="Search for policy"
@@ -79,7 +80,14 @@
       <BlockSlot @name="details">
 {{#if (eq item.template '')}}
         <DataSource
-          @src={{concat '/' item.Namespace '/' dc '/policy/' item.ID}}
+          @src={{uri '/${partition}/${item.Namespace}/${dc}/policy/${id}'
+            (hash
+              partition=item.Partition
+              nspace=item.Namespace
+              dc=dc
+              id=item.ID
+            )
+          }}
           @onchange={{action (mut loadedItem) value="data"}}
           @loading="lazy"
         />

@@ -11,9 +11,7 @@
     </:home-nav>
 
     <:main-nav>
-  {{#if @dc}}
       <ul>
-
         <li
           class="dcs"
           data-test-datacenter-menu
@@ -28,7 +26,7 @@
             <BlockSlot @name="menu">
 {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
               <DataSource
-                @src="/*/*/datacenters"
+                @src="/*/*/*/datacenters"
                 @onchange={{action (mut @dcs) value="data"}}
                 @loading="lazy"
               />
@@ -51,8 +49,61 @@
           </PopoverMenu>
         </li>
 
-    {{#let (or this.nspaces @nspaces) as |nspaces|}}
-    {{#if (can "choose nspaces" nspaces=nspaces)}}
+    {{#if (can "choose partitions")}}
+          <li
+            class="partitions"
+            data-test-partition-menu
+          >
+              <PopoverMenu
+                aria-label="Admin Partitions"
+                @position="left"
+              as |components api|>
+                <BlockSlot @name="trigger">
+                  {{@partition}}
+                </BlockSlot>
+                <BlockSlot @name="menu">
+                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                    <DataSource
+                      @src={{uri
+                        '/*/*/${dc}/partitions'
+                        (hash
+                          dc=@dc.Name
+                        )
+                      }}
+                      @onchange={{action (mut this.partitions) value="data"}}
+                    />
+                  {{!FIXME: Do partitions do the same as namespace deletion? }}
+                  {{#each (reject-by 'DeletedAt' this.partitions) as |item|}}
+                    <MenuItem
+                      class={{if (eq @partition item.Name) 'is-active'}}
+                      @href={{href-to '.' params=(hash
+                        partition=item.Name
+                        nspace=(if (gt @nspace.length 0) @nspace undefined)
+                      )}}
+                    >
+                      <BlockSlot @name="label">
+                        {{item.Name}}
+                      </BlockSlot>
+                    </MenuItem>
+                  {{/each}}
+          {{#if (and false (can 'manage partitions'))}}
+                    <MenuSeparator />
+                    <MenuItem
+                      data-test-main-nav-partitions
+                      @href={{href-to 'dc.nspaces' @dc.Name}}
+                    >
+                      <BlockSlot @name="label">
+                        Manage Admin Partitions
+                      </BlockSlot>
+                    </MenuItem>
+          {{/if}}
+                  {{/let}}
+                </BlockSlot>
+              </PopoverMenu>
+          </li>
+    {{/if}}
+
+    {{#if (can "choose nspaces")}}
           <li
             class="nspaces"
             data-test-nspace-menu
@@ -62,7 +113,7 @@
                 @position="left"
               as |components api|>
                 <BlockSlot @name="trigger">
-                  {{@nspace.Name}}
+                  {{@nspace}}
                 </BlockSlot>
               {{#if (is-href 'dc.nspaces')}}
                 <BlockSlot @name="header">
@@ -74,14 +125,23 @@
                 <BlockSlot @name="menu">
                   {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
                     <DataSource
-                      @src="/*/*/namespaces"
+                      @src={{uri
+                      '/${partition}/*/${dc}/namespaces'
+                        (hash
+                          partition=@partition
+                          dc=@dc.Name
+                        )
+                      }}
                       @onchange={{action (mut this.nspaces) value="data"}}
                       @loading="lazy"
                     />
-                  {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
+                  {{#each (reject-by 'DeletedAt' this.nspaces) as |item|}}
                     <MenuItem
-                      class={{if (eq @nspace.Name item.Name) 'is-active'}}
-                      @href={{href-to '.' params=(hash nspace=item.Name)}}
+                      class={{if (eq @nspace item.Name) 'is-active'}}
+                      @href={{href-to '.' params=(hash
+                        partition=(if (gt @partition.length 0) @partition undefined)
+                        nspace=item.Name
+                      )}}
                     >
                       <BlockSlot @name="label">
                         {{item.Name}}
@@ -104,7 +164,6 @@
               </PopoverMenu>
           </li>
     {{/if}}
-    {{/let}}
 {{#if (can "read services")}}
           <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
@@ -158,8 +217,6 @@
           </li>
 {{/if}}
       </ul>
-  {{/if}}
-
     </:main-nav>
 
     <:complementary-nav>
@@ -207,13 +264,17 @@
             </PopoverMenu>
           </li>
           <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-              <a href={{href-to 'settings'}}>Settings</a>
+              <a href={{href-to 'settings' params=(hash
+                nspace=undefined
+                partition=undefined
+              )}}>Settings</a>
           </li>
   {{#if (can 'authenticate')}}
           <li data-test-main-nav-auth>
             <AuthDialog
               @dc={{@dc.Name}}
-              @nspace={{@nspace.Name}}
+              @nspace={{@nspace}}
+              @partition={{@partition}}
               @onchange={{this.reauthorize}} as |authDialog components|
             >
               {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
