@@ -1720,7 +1720,7 @@ func aclAuthMethodDeleteTxn(tx WriteTxn, idx uint64, name string, entMeta *struc
 	return aclAuthMethodDeleteWithMethod(tx, method, idx)
 }
 
-func aclTokenList(tx ReadTxn, entMeta *structs.EnterpriseMeta, local bool) (memdb.ResultIterator, error) {
+func aclTokenList(tx ReadTxn, entMeta *structs.EnterpriseMeta, locality bool) (memdb.ResultIterator, error) {
 	// TODO: accept non-pointer value
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
@@ -1728,7 +1728,7 @@ func aclTokenList(tx ReadTxn, entMeta *structs.EnterpriseMeta, local bool) (memd
 	// if the namespace is the wildcard that will also be handled as the local index uses
 	// the NamespaceMultiIndex instead of the NamespaceIndex
 	q := BoolQuery{
-		Value:          local,
+		Value:          locality,
 		EnterpriseMeta: *entMeta,
 	}
 	return tx.Get(tableACLTokens, indexLocality, q)
