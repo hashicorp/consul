@@ -70,12 +70,19 @@ export default class RepositoryService extends Service {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
       const checkNspace = meta.nspace !== '';
+      const checkPartition = meta.partition !== '';
       this.store.peekAll(this.getModelName()).forEach(item => {
         const dc = get(item, 'Datacenter');
         if (dc === meta.dc) {
           if (checkNspace) {
             const nspace = get(item, 'Namespace');
             if (typeof nspace !== 'undefined' && nspace !== meta.nspace) {
+              return;
+            }
+          }
+          if (checkPartition) {
+            const partition = get(item, 'Partition');
+            if (typeof partiton !== 'undefined' && partition !== meta.partition) {
               return;
             }
           }
@@ -92,7 +99,12 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
+  // @deprecated
   findAllByDatacenter(params, configuration = {}) {
+    return this.findAll(...arguments);
+  }
+
+  findAll(params = {}, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
@@ -105,6 +117,7 @@ export default class RepositoryService extends Service {
       return this.create({
         Datacenter: params.dc,
         Namespace: params.ns,
+        Partition: params.partition,
       });
     }
     if (typeof configuration.cursor !== 'undefined') {

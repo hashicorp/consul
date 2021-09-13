@@ -11,7 +11,7 @@ export default class ServiceInstanceService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/service-instances/for-service/:id')
+  @dataSource('/:partition/:ns/:dc/service-instances/for-service/:id')
   async findByService(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -24,7 +24,7 @@ export default class ServiceInstanceService extends RepositoryService {
     );
   }
 
-  @dataSource('/:ns/:dc/service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id')
   async findBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -37,7 +37,7 @@ export default class ServiceInstanceService extends RepositoryService {
     );
   }
 
-  @dataSource('/:ns/:dc/proxy-service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/proxy-service-instance/:serviceId/:node/:id')
   async findProxyBySlug(params, configuration = {}) {
     const instance = await this.findBySlug(...arguments);
     let proxy = this.store.peekRecord('proxy', instance.uid);
