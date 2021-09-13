@@ -10,7 +10,9 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
       }
       return page;
     } else {
-      return page.fillIn(name, value);
+      const $el = document.querySelector(`[name="${name}"]`);
+      fillIn($el, value);
+      return page;
     }
   };
   scenario
@@ -20,10 +22,12 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
     .then('I fill in "$name" with "$value"', function(name, value) {
       return currentPage().fillIn(name, value);
     })
-    .then(['I fill in with yaml\n$yaml', 'I fill in with json\n$json'], function(data) {
-      return Object.keys(data).reduce(function(prev, item, i, arr) {
+    .then(['I fill in with yaml\n$yaml', 'I fill in with json\n$json'], async function(data) {
+      const res = Object.keys(data).reduce(function(prev, item, i, arr) {
         return fillInElement(prev, item, data[item]);
       }, currentPage());
+      await new Promise(resolve => setTimeout(resolve, 0));
+      return res;
     })
     .then(
       [
@@ -36,7 +40,7 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
         `I${dont} fill in the $property form on the $component component with json\n$json`,
         `I${dont} fill in the $property on the $component component with yaml\n$yaml`,
       ],
-      function(negative, property, component, data, next) {
+      async function(negative, property, component, data, next) {
         switch (true) {
           case typeof component === 'string':
             property = `${component}.${property}`;
