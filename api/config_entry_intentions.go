@@ -5,6 +5,7 @@ import "time"
 type ServiceIntentionsConfigEntry struct {
 	Kind      string
 	Name      string
+	Partition string `json:",omitempty"`
 	Namespace string `json:",omitempty"`
 
 	Sources []*SourceIntention
@@ -17,6 +18,7 @@ type ServiceIntentionsConfigEntry struct {
 
 type SourceIntention struct {
 	Name        string
+	Partition   string                 `json:",omitempty"`
 	Namespace   string                 `json:",omitempty"`
 	Action      IntentionAction        `json:",omitempty"`
 	Permissions []*IntentionPermission `json:",omitempty"`
@@ -30,29 +32,13 @@ type SourceIntention struct {
 	LegacyUpdateTime *time.Time        `json:",omitempty" alias:"legacy_update_time"`
 }
 
-func (e *ServiceIntentionsConfigEntry) GetKind() string {
-	return e.Kind
-}
-
-func (e *ServiceIntentionsConfigEntry) GetName() string {
-	return e.Name
-}
-
-func (e *ServiceIntentionsConfigEntry) GetNamespace() string {
-	return e.Namespace
-}
-
-func (e *ServiceIntentionsConfigEntry) GetMeta() map[string]string {
-	return e.Meta
-}
-
-func (e *ServiceIntentionsConfigEntry) GetCreateIndex() uint64 {
-	return e.CreateIndex
-}
-
-func (e *ServiceIntentionsConfigEntry) GetModifyIndex() uint64 {
-	return e.ModifyIndex
-}
+func (e *ServiceIntentionsConfigEntry) GetKind() string            { return e.Kind }
+func (e *ServiceIntentionsConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceIntentionsConfigEntry) GetPartition() string       { return e.Partition }
+func (e *ServiceIntentionsConfigEntry) GetNamespace() string       { return e.Namespace }
+func (e *ServiceIntentionsConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *ServiceIntentionsConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
+func (e *ServiceIntentionsConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type IntentionPermission struct {
 	Action IntentionAction

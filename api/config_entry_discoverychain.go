@@ -8,6 +8,7 @@ import (
 type ServiceRouterConfigEntry struct {
 	Kind      string
 	Name      string
+	Partition string `json:",omitempty"`
 	Namespace string `json:",omitempty"`
 
 	Routes []ServiceRoute `json:",omitempty"`
@@ -19,6 +20,7 @@ type ServiceRouterConfigEntry struct {
 
 func (e *ServiceRouterConfigEntry) GetKind() string            { return e.Kind }
 func (e *ServiceRouterConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceRouterConfigEntry) GetPartition() string       { return e.Partition }
 func (e *ServiceRouterConfigEntry) GetNamespace() string       { return e.Namespace }
 func (e *ServiceRouterConfigEntry) GetMeta() map[string]string { return e.Meta }
 func (e *ServiceRouterConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
@@ -61,8 +63,9 @@ type ServiceRouteHTTPMatchQueryParam struct {
 }
 
 type ServiceRouteDestination struct {
-	Service               string               `json:",omitempty"`
-	ServiceSubset         string               `json:",omitempty" alias:"service_subset"`
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
+	// Referencing other partitions is not supported.
 	Namespace             string               `json:",omitempty"`
 	PrefixRewrite         string               `json:",omitempty" alias:"prefix_rewrite"`
 	RequestTimeout        time.Duration        `json:",omitempty" alias:"request_timeout"`
@@ -112,6 +115,7 @@ func (e *ServiceRouteDestination) UnmarshalJSON(data []byte) error {
 type ServiceSplitterConfigEntry struct {
 	Kind      string
 	Name      string
+	Partition string `json:",omitempty"`
 	Namespace string `json:",omitempty"`
 
 	Splits []ServiceSplit `json:",omitempty"`
@@ -123,15 +127,17 @@ type ServiceSplitterConfigEntry struct {
 
 func (e *ServiceSplitterConfigEntry) GetKind() string            { return e.Kind }
 func (e *ServiceSplitterConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceSplitterConfigEntry) GetPartition() string       { return e.Partition }
 func (e *ServiceSplitterConfigEntry) GetNamespace() string       { return e.Namespace }
 func (e *ServiceSplitterConfigEntry) GetMeta() map[string]string { return e.Meta }
 func (e *ServiceSplitterConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
 func (e *ServiceSplitterConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceSplit struct {
-	Weight          float32
-	Service         string               `json:",omitempty"`
-	ServiceSubset   string               `json:",omitempty" alias:"service_subset"`
+	Weight        float32
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
+	// Referencing other partitions is not supported.
 	Namespace       string               `json:",omitempty"`
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
 	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
@@ -140,6 +146,7 @@ type ServiceSplit struct {
 type ServiceResolverConfigEntry struct {
 	Kind      string
 	Name      string
+	Partition string `json:",omitempty"`
 	Namespace string `json:",omitempty"`
 
 	DefaultSubset  string                             `json:",omitempty" alias:"default_subset"`
@@ -195,6 +202,7 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 
 func (e *ServiceResolverConfigEntry) GetKind() string            { return e.Kind }
 func (e *ServiceResolverConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceResolverConfigEntry) GetPartition() string       { return e.Partition }
 func (e *ServiceResolverConfigEntry) GetNamespace() string       { return e.Namespace }
 func (e *ServiceResolverConfigEntry) GetMeta() map[string]string { return e.Meta }
 func (e *ServiceResolverConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
@@ -208,15 +216,17 @@ type ServiceResolverSubset struct {
 type ServiceResolverRedirect struct {
 	Service       string `json:",omitempty"`
 	ServiceSubset string `json:",omitempty" alias:"service_subset"`
-	Namespace     string `json:",omitempty"`
-	Datacenter    string `json:",omitempty"`
+	// Referencing other partitions is not supported.
+	Namespace  string `json:",omitempty"`
+	Datacenter string `json:",omitempty"`
 }
 
 type ServiceResolverFailover struct {
-	Service       string   `json:",omitempty"`
-	ServiceSubset string   `json:",omitempty" alias:"service_subset"`
-	Namespace     string   `json:",omitempty"`
-	Datacenters   []string `json:",omitempty"`
+	Service       string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
+	// Referencing other partitions is not supported.
+	Namespace   string   `json:",omitempty"`
+	Datacenters []string `json:",omitempty"`
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
