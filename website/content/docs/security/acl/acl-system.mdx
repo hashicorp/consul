@@ -22,6 +22,10 @@ To learn how to setup the ACL system on an existing Consul datacenter, use the [
 ## ACL System Overview
 
 The ACL system is designed to be easy to use and fast to enforce while providing administrative insight.
+The diagram below shows the relationships between most of the components of the ACL system:
+
+![ACL system component relationships](/img/acl-token-policy-rule-relationship.png)
+
 At the highest level, there are two major components to the ACL system:
 
 - **ACL Policies** - Policies allow the grouping of a set of rules into a logical unit that can be reused and linked with
@@ -236,18 +240,18 @@ be used to explicitly deny access to resources.
 The following table summarizes the ACL resources that are available for constructing
 rules:
 
-| Resource                                            | Scope                                                                                                                                                                                                 |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`acl`](/docs/acl/acl-rules#acl-resource-rules)     | Operations for managing the ACL system [ACL API](/api/acl/acl)                                                                                                                                        |
-| [`agent`](/docs/acl/acl-rules#agent-rules)          | Utility operations in the [Agent API](/api/agent), other than service and check registration                                                                                                          |
-| [`event`](/docs/acl/acl-rules#event-rules)          | Listing and firing events in the [Event API](/api/event)                                                                                                                                              |
-| [`key`](/docs/acl/acl-rules#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv)                                                                                                                                             |
-| [`keyring`](/docs/acl/acl-rules#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring)                                                                                                                                        |
-| [`node`](/docs/acl/acl-rules#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), [Network Coordinate API](/api/coordinate), and [Agent API](/api/agent) |
-| [`operator`](/docs/acl/acl-rules#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator), other than the [Keyring API](/api/operator/keyring)                                                                                    |
-| [`query`](/docs/acl/acl-rules#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query)                                                                                                                                     |
-| [`service`](/docs/acl/acl-rules#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Intentions API](/api/connect/intentions), [Prepared Query API](/api/query), and [Agent API](/api/agent)                                         |
-| [`session`](/docs/acl/acl-rules#session-rules)      | Session operations in the [Session API](/api/session)                                                                                                                                                 |
+| Resource                                            | Scope                                                                                                                                                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`acl`](/docs/acl/acl-rules#acl-resource-rules)     | Operations for managing the ACL system [ACL API](/api/acl/acl)                                                                                                                                           |
+| [`agent`](/docs/acl/acl-rules#agent-rules)          | Utility operations in the [Agent API](/api/agent), other than service and check registration                                                                                                             |
+| [`event`](/docs/acl/acl-rules#event-rules)          | Listing and firing events in the [Event API](/api/event)                                                                                                                                                 |
+| [`key`](/docs/acl/acl-rules#key-value-rules)        | Key/value store operations in the [KV Store API](/api/kv)                                                                                                                                                |
+| [`keyring`](/docs/acl/acl-rules#keyring-rules)      | Keyring operations in the [Keyring API](/api/operator/keyring)                                                                                                                                           |
+| [`node`](/docs/acl/acl-rules#node-rules)            | Node-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Prepared Query API](/api/query), [Network Coordinate API](/api/coordinate), and [Agent API](/api/agent)    |
+| [`operator`](/docs/acl/acl-rules#operator-rules)    | Cluster-level operations in the [Operator API](/api/operator), other than the [Keyring API](/api/operator/keyring)                                                                                       |
+| [`query`](/docs/acl/acl-rules#prepared-query-rules) | Prepared query operations in the [Prepared Query API](/api/query)                                                                                                                                        |
+| [`service`](/docs/acl/acl-rules#service-rules)      | Service-level catalog operations in the [Catalog API](/api/catalog), [Health API](/api/health), [Intentions API](/api/connect/intentions), [Prepared Query API](/api/query), and [Agent API](/api/agent) |
+| [`session`](/docs/acl/acl-rules#session-rules)      | Session operations in the [Session API](/api/session)                                                                                                                                                    |
 
 Since Consul snapshots actually contain ACL tokens, the [Snapshot API](/api/snapshot)
 requires a token with "write" privileges for the ACL system.
