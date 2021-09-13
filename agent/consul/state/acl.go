@@ -711,13 +711,12 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	// all tokens so our checks just ensure that global == local
 
 	needLocalityFilter := false
+
 	if policy == "" && role == "" && methodName == "" {
 		if global == local {
 			iter, err = aclTokenListAll(tx, entMeta)
-		} else if global {
-			iter, err = aclTokenListGlobal(tx, entMeta)
 		} else {
-			iter, err = aclTokenListLocal(tx, entMeta)
+			iter, err = aclTokenList(tx, entMeta, local)
 		}
 
 	} else if policy != "" && role == "" && methodName == "" {
@@ -1768,4 +1767,26 @@ func aclAuthMethodDeleteTxn(tx WriteTxn, idx uint64, name string, entMeta *struc
 	}
 
 	return aclAuthMethodDeleteWithMethod(tx, method, idx)
+}
+
+func aclTokenList(tx ReadTxn, entMeta *structs.EnterpriseMeta, locality bool) (memdb.ResultIterator, error) {
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	// if the namespace is the wildcard that will also be handled as the local index uses
+	// the NamespaceMultiIndex instead of the NamespaceIndex
+	q := BoolQuery{
+		Value:          locality,
+		EnterpriseMeta: *entMeta,
+	}
+	return tx.Get(tableACLTokens, indexLocality, q)
+}
+
+// intFromBool returns 1 if cond is true, 0 otherwise.
+func intFromBool(cond bool) byte {
+	if cond {
+		return 1
+	}
+	return 0
 }

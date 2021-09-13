@@ -20,7 +20,7 @@ const (
 	indexPolicies   = "policies"
 	indexRoles      = "roles"
 	indexAuthMethod = "authmethod"
-	indexLocal      = "local"
+	indexLocality   = "locality"
 	indexName       = "name"
 )
 
@@ -75,17 +75,13 @@ func tokensTableSchema() *memdb.TableSchema {
 					writeIndex: writeIndex(indexAuthMethodFromACLToken),
 				},
 			},
-			indexLocal: {
-				Name:         indexLocal,
+			indexLocality: {
+				Name:         indexLocality,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.ConditionalIndex{
-					Conditional: func(obj interface{}) (bool, error) {
-						if token, ok := obj.(*structs.ACLToken); ok {
-							return token.Local, nil
-						}
-						return false, nil
-					},
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromBoolQuery),
+					writeIndex: writeIndex(indexLocalFromACLToken),
 				},
 			},
 			"expires-global": {
@@ -405,4 +401,25 @@ func indexRolesFromACLToken(raw interface{}) ([][]byte, error) {
 	}
 
 	return vals, nil
+}
+
+func indexFromBoolQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(BoolQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for BoolQuery index", raw)
+	}
+	var b indexBuilder
+	b.Bool(q.Value)
+	return b.Bytes(), nil
+}
+
+func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
+	}
+
+	var b indexBuilder
+	b.Bool(p.Local)
+	return b.Bytes(), nil
 }

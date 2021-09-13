@@ -96,6 +96,18 @@ type BoolQuery struct {
 	structs.EnterpriseMeta
 }
 
+// NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q BoolQuery) NamespaceOrDefault() string {
+	return q.EnterpriseMeta.NamespaceOrDefault()
+}
+
+// PartitionOrDefault exists because structs.EnterpriseMeta uses a pointer
+// receiver for this method. Remove once that is fixed.
+func (q BoolQuery) PartitionOrDefault() string {
+	return q.EnterpriseMeta.PartitionOrDefault()
+}
+
 // KeyValueQuery is a type used to query for both a key and a value that may
 // include an enterprise identifier.
 type KeyValueQuery struct {
