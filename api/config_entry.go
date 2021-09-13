@@ -30,6 +30,7 @@ const (
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
+	GetPartition() string
 	GetNamespace() string
 	GetMeta() map[string]string
 	GetCreateIndex() uint64
@@ -133,6 +134,10 @@ type UpstreamConfiguration struct {
 type UpstreamConfig struct {
 	// Name is only accepted within a service-defaults config entry.
 	Name string `json:",omitempty"`
+
+	// Partition is only accepted within a service-defaults config entry.
+	Partition string `json:",omitempty"`
+
 	// Namespace is only accepted within a service-defaults config entry.
 	Namespace string `json:",omitempty"`
 
@@ -205,6 +210,7 @@ type UpstreamLimits struct {
 type ServiceConfigEntry struct {
 	Kind             string
 	Name             string
+	Partition        string                  `json:",omitempty"`
 	Namespace        string                  `json:",omitempty"`
 	Protocol         string                  `json:",omitempty"`
 	Mode             ProxyMode               `json:",omitempty"`
@@ -219,33 +225,18 @@ type ServiceConfigEntry struct {
 	ModifyIndex uint64
 }
 
-func (s *ServiceConfigEntry) GetKind() string {
-	return s.Kind
-}
-
-func (s *ServiceConfigEntry) GetName() string {
-	return s.Name
-}
-
-func (s *ServiceConfigEntry) GetNamespace() string {
-	return s.Namespace
-}
-
-func (s *ServiceConfigEntry) GetMeta() map[string]string {
-	return s.Meta
-}
-
-func (s *ServiceConfigEntry) GetCreateIndex() uint64 {
-	return s.CreateIndex
-}
-
-func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
-	return s.ModifyIndex
-}
+func (s *ServiceConfigEntry) GetKind() string            { return s.Kind }
+func (s *ServiceConfigEntry) GetName() string            { return s.Name }
+func (s *ServiceConfigEntry) GetPartition() string       { return s.Partition }
+func (s *ServiceConfigEntry) GetNamespace() string       { return s.Namespace }
+func (s *ServiceConfigEntry) GetMeta() map[string]string { return s.Meta }
+func (s *ServiceConfigEntry) GetCreateIndex() uint64     { return s.CreateIndex }
+func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex }
 
 type ProxyConfigEntry struct {
 	Kind             string
 	Name             string
+	Partition        string                  `json:",omitempty"`
 	Namespace        string                  `json:",omitempty"`
 	Mode             ProxyMode               `json:",omitempty"`
 	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
@@ -257,29 +248,13 @@ type ProxyConfigEntry struct {
 	ModifyIndex      uint64
 }
 
-func (p *ProxyConfigEntry) GetKind() string {
-	return p.Kind
-}
-
-func (p *ProxyConfigEntry) GetName() string {
-	return p.Name
-}
-
-func (p *ProxyConfigEntry) GetNamespace() string {
-	return p.Namespace
-}
-
-func (p *ProxyConfigEntry) GetMeta() map[string]string {
-	return p.Meta
-}
-
-func (p *ProxyConfigEntry) GetCreateIndex() uint64 {
-	return p.CreateIndex
-}
-
-func (p *ProxyConfigEntry) GetModifyIndex() uint64 {
-	return p.ModifyIndex
-}
+func (p *ProxyConfigEntry) GetKind() string            { return p.Kind }
+func (p *ProxyConfigEntry) GetName() string            { return p.Name }
+func (p *ProxyConfigEntry) GetPartition() string       { return p.Partition }
+func (p *ProxyConfigEntry) GetNamespace() string       { return p.Namespace }
+func (p *ProxyConfigEntry) GetMeta() map[string]string { return p.Meta }
+func (p *ProxyConfigEntry) GetCreateIndex() uint64     { return p.CreateIndex }
+func (p *ProxyConfigEntry) GetModifyIndex() uint64     { return p.ModifyIndex }
 
 func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	switch kind {

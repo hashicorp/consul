@@ -10,7 +10,11 @@ type IngressGatewayConfigEntry struct {
 	// service. This should match the name provided in the service definition.
 	Name string
 
-	// Namespace is the namespace the IngressGateway is associated with
+	// Partition is the partition the IngressGateway is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the IngressGateway is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 
@@ -34,7 +38,7 @@ type IngressGatewayConfigEntry struct {
 }
 
 type GatewayTLSConfig struct {
-	// Indicates that TLS should be enabled for this gateway service
+	// Indicates that TLS should be enabled for this gateway service.
 	Enabled bool
 }
 
@@ -67,7 +71,7 @@ type IngressService struct {
 	// protocol and means that the listener will forward traffic to all services.
 	//
 	// A name can be specified on multiple listeners, and will be exposed on both
-	// of the listeners
+	// of the listeners.
 	Name string
 
 	// Hosts is a list of hostnames which should be associated to this service on
@@ -83,38 +87,24 @@ type IngressService struct {
 	// using a "tcp" listener.
 	Hosts []string
 
-	// Allow HTTP header manipulation to be configured.
-	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
-	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+	// Referencing other partitions is not supported.
 
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
 
-func (i *IngressGatewayConfigEntry) GetKind() string {
-	return i.Kind
-}
-
-func (i *IngressGatewayConfigEntry) GetName() string {
-	return i.Name
-}
-
-func (i *IngressGatewayConfigEntry) GetNamespace() string {
-	return i.Namespace
-}
-
-func (i *IngressGatewayConfigEntry) GetMeta() map[string]string {
-	return i.Meta
-}
-
-func (i *IngressGatewayConfigEntry) GetCreateIndex() uint64 {
-	return i.CreateIndex
-}
-
-func (i *IngressGatewayConfigEntry) GetModifyIndex() uint64 {
-	return i.ModifyIndex
-}
+func (i *IngressGatewayConfigEntry) GetKind() string            { return i.Kind }
+func (i *IngressGatewayConfigEntry) GetName() string            { return i.Name }
+func (i *IngressGatewayConfigEntry) GetPartition() string       { return i.Partition }
+func (i *IngressGatewayConfigEntry) GetNamespace() string       { return i.Namespace }
+func (i *IngressGatewayConfigEntry) GetMeta() map[string]string { return i.Meta }
+func (i *IngressGatewayConfigEntry) GetCreateIndex() uint64     { return i.CreateIndex }
+func (i *IngressGatewayConfigEntry) GetModifyIndex() uint64     { return i.ModifyIndex }
 
 // TerminatingGatewayConfigEntry manages the configuration for a terminating gateway
 // with the given name.
@@ -140,55 +130,45 @@ type TerminatingGatewayConfigEntry struct {
 	// queries.
 	ModifyIndex uint64
 
-	// Namespace is the namespace the config entry is associated with
+	// Partition is the partition the config entry is associated with.
+	// Partitioning is a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
+	// Namespace is the namespace the config entry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 }
 
 // A LinkedService is a service represented by a terminating gateway
 type LinkedService struct {
-	// The namespace the service is registered in
+	// Referencing other partitions is not supported.
+
+	// Namespace is where the service is registered.
 	Namespace string `json:",omitempty"`
 
-	// Name is the name of the service, as defined in Consul's catalog
+	// Name is the name of the service, as defined in Consul's catalog.
 	Name string `json:",omitempty"`
 
 	// CAFile is the optional path to a CA certificate to use for TLS connections
-	// from the gateway to the linked service
+	// from the gateway to the linked service.
 	CAFile string `json:",omitempty" alias:"ca_file"`
 
 	// CertFile is the optional path to a client certificate to use for TLS connections
-	// from the gateway to the linked service
+	// from the gateway to the linked service.
 	CertFile string `json:",omitempty" alias:"cert_file"`
 
 	// KeyFile is the optional path to a private key to use for TLS connections
-	// from the gateway to the linked service
+	// from the gateway to the linked service.
 	KeyFile string `json:",omitempty" alias:"key_file"`
 
-	// SNI is the optional name to specify during the TLS handshake with a linked service
+	// SNI is the optional name to specify during the TLS handshake with a linked service.
 	SNI string `json:",omitempty"`
 }
 
-func (g *TerminatingGatewayConfigEntry) GetKind() string {
-	return g.Kind
-}
-
-func (g *TerminatingGatewayConfigEntry) GetName() string {
-	return g.Name
-}
-
-func (g *TerminatingGatewayConfigEntry) GetNamespace() string {
-	return g.Namespace
-}
-
-func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string {
-	return g.Meta
-}
-
-func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64 {
-	return g.CreateIndex
-}
-
-func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64 {
-	return g.ModifyIndex
-}
+func (g *TerminatingGatewayConfigEntry) GetKind() string            { return g.Kind }
+func (g *TerminatingGatewayConfigEntry) GetName() string            { return g.Name }
+func (g *TerminatingGatewayConfigEntry) GetPartition() string       { return g.Partition }
+func (g *TerminatingGatewayConfigEntry) GetNamespace() string       { return g.Namespace }
+func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string { return g.Meta }
+func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64     { return g.CreateIndex }
+func (g *TerminatingGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyIndex }
