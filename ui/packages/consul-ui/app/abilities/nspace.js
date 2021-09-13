@@ -16,7 +16,7 @@ export default class NspaceAbility extends BaseAbility {
   }
 
   get canChoose() {
-    return this.canUse && (this.nspaces || []).length > 0;
+    return this.canUse;
   }
 
   get canUse() {

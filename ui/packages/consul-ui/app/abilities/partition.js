@@ -16,7 +16,7 @@ export default class PartitionAbility extends BaseAbility {
   }
 
   get canChoose() {
-    return this.canUse && (this.partitions || []).length > 0;
+    return this.canUse;
   }
 
   get canUse() {
