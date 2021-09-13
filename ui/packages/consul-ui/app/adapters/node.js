@@ -39,6 +39,7 @@ export default class NodeAdapter extends Adapter {
     `;
   }
 
+  // this does not require a partition parameter
   requestForQueryLeader(request, { dc, uri }) {
     return request`
       GET /v1/status/leader?${{ dc }}

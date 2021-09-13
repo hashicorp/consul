@@ -17,12 +17,13 @@ export default class TokenAdapter extends Adapter {
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
+  async requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return request`
+    const respond = await request`
       GET /v1/acl/token/${id}?${{ dc }}
+      Cache-Control: no-store
 
       ${{
         ns,
@@ -30,6 +31,8 @@ export default class TokenAdapter extends Adapter {
         index,
       }}
     `;
+    respond((headers, body) => delete headers['x-consul-index']);
+    return respond;
   }
 
   requestForCreateRecord(request, serialized, data) {
