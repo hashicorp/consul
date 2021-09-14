@@ -192,7 +192,7 @@ func aclBindingRuleListByAuthMethod(tx ReadTxn, method string, _ *structs.Enterp
 }
 
 func aclBindingRuleDeleteWithRule(tx WriteTxn, rule *structs.ACLBindingRule, idx uint64) error {
-	// remove the rule
+	// remove the acl-binding-rule
 	if err := tx.Delete(tableACLBindingRules, rule); err != nil {
 		return fmt.Errorf("failed deleting acl binding rule: %v", err)
 	}
