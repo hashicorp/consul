@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/lib"
@@ -121,7 +123,11 @@ func (s *ServiceDefinition) Validate() error {
 	if err := s.NodeService().Validate(); err != nil {
 		result = multierror.Append(result, err)
 	}
-
+	for _, c := range s.Checks {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("check %q: %s", c.Name, err)
+		}
+	}
 	return result
 }
 

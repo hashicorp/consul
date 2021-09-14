@@ -41,6 +41,7 @@ type CheckDefinition struct {
 	Timeout                        time.Duration
 	TTL                            time.Duration
 	SuccessBeforePassing           int
+	FailuresBeforeWarning          int
 	FailuresBeforeCritical         int
 	DeregisterCriticalServiceAfter time.Duration
 	OutputMaxSize                  int
@@ -196,6 +197,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Timeout:                        c.Timeout,
 		TTL:                            c.TTL,
 		SuccessBeforePassing:           c.SuccessBeforePassing,
+		FailuresBeforeWarning:          c.FailuresBeforeWarning,
 		FailuresBeforeCritical:         c.FailuresBeforeCritical,
 		DeregisterCriticalServiceAfter: c.DeregisterCriticalServiceAfter,
 	}

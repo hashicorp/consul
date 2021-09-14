@@ -1,14 +1,18 @@
 {
-    "ACLDatacenter": "",
-    "ACLDefaultPolicy": "",
-    "ACLDisabledTTL": "0s",
-    "ACLDownPolicy": "",
     "ACLEnableKeyListPolicy": false,
     "ACLMasterToken": "hidden",
-    "ACLPolicyTTL": "0s",
-    "ACLRoleTTL": "0s",
+    "ACLResolverSettings": {
+        "ACLDefaultPolicy": "",
+        "ACLDownPolicy": "",
+        "ACLPolicyTTL": "0s",
+        "ACLRoleTTL": "0s",
+        "ACLTokenTTL": "0s",
+        "ACLsEnabled": false,
+        "Datacenter": "",
+        "EnterpriseMeta": {},
+        "NodeName": ""
+    },
     "ACLTokenReplication": false,
-    "ACLTokenTTL": "0s",
     "ACLTokens": {
         "ACLAgentMasterToken": "hidden",
         "ACLAgentToken": "hidden",
@@ -90,6 +94,7 @@
             "DeregisterCriticalServiceAfter": "0s",
             "DockerContainerID": "",
             "EnterpriseMeta": {},
+            "FailuresBeforeWarning": 0,
             "FailuresBeforeCritical": 0,
             "GRPC": "",
             "GRPCUseTLS": false,
@@ -147,6 +152,7 @@
     "DNSNodeTTL": "0s",
     "DNSOnlyPassing": false,
     "DNSPort": 0,
+    "DNSRecursorStrategy": "",
     "DNSRecursorTimeout": "0s",
     "DNSRecursors": [],
     "DNSSOA": {
@@ -182,8 +188,6 @@
     "EnterpriseRuntimeConfig": {},
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
-    "GRPCAddrs": [],
-    "GRPCPort": 0,
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",
@@ -292,6 +296,7 @@
                 "CheckID": "",
                 "DeregisterCriticalServiceAfter": "0s",
                 "DockerContainerID": "",
+                "FailuresBeforeWarning": 0,
                 "FailuresBeforeCritical": 0,
                 "GRPC": "",
                 "GRPCUseTLS": false,
@@ -410,5 +415,7 @@
     "VerifyServerHostname": false,
     "Version": "",
     "VersionPrerelease": "",
-    "Watches": []
+    "Watches": [],
+    "XDSAddrs": [],
+    "XDSPort": 0
 }
