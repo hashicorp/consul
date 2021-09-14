@@ -98,7 +98,7 @@ func systemMetadataSetTxn(tx WriteTxn, idx uint64, entry *structs.SystemMetadata
 	if err := tx.Insert(tableSystemMetadata, entry); err != nil {
 		return fmt.Errorf("failed inserting system metadata: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableSystemMetadata, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableSystemMetadata, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
@@ -184,7 +184,7 @@ func systemMetadataDeleteTxn(tx WriteTxn, idx uint64, key string) error {
 	if err := tx.Delete(tableSystemMetadata, existing); err != nil {
 		return fmt.Errorf("failed removing system metadata: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableSystemMetadata, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableSystemMetadata, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil

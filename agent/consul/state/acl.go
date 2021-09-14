@@ -12,7 +12,7 @@ import (
 
 // ACLTokens is used when saving a snapshot
 func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get(tableACLTokens, "id")
+	iter, err := s.tx.Get(tableACLTokens, indexID)
 	if err != nil {
 		return nil, err
 	}
