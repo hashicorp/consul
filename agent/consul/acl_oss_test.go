@@ -26,3 +26,6 @@ type EnterpriseACLResolverTestDelegate struct{}
 func (d *EnterpriseACLResolverTestDelegate) RPC(string, interface{}, interface{}) (bool, error) {
 	return false, nil
 }
+
+func (d *EnterpriseACLResolverTestDelegate) UseTestLocalData(_ []interface{}) {}
+func (d *EnterpriseACLResolverTestDelegate) UseDefaultData()                  {}
