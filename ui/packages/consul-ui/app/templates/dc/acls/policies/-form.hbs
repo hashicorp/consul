@@ -1,5 +1,10 @@
 <form>
-  <PolicyForm @form={{form}} @partition={{partition}} @nspace={{nspace}} @item={{item}}>
+  <PolicyForm
+    @form={{form}}
+    @partition={{partition}}
+    @nspace={{nspace}}
+    @item={{item}}
+  >
     {{!don't show template selection here, i.e. Service Identity}}
     <BlockSlot @name="template" />
   </PolicyForm>

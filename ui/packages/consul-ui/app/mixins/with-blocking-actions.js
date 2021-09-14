@@ -111,8 +111,9 @@ export default Mixin.create({
     use: function(item) {
       return this.repo
         .findBySlug({
-          dc: this.modelFor('dc').dc.Name,
+          dc: get(item, 'Datacenter'),
           ns: get(item, 'Namespace'),
+          partition: get(item, 'Partition'),
           id: get(item, 'AccessorID'),
         })
         .then(item => {
@@ -121,6 +122,7 @@ export default Mixin.create({
               AccessorID: get(item, 'AccessorID'),
               SecretID: get(item, 'SecretID'),
               Namespace: get(item, 'Namespace'),
+              Partition: get(item, 'Partition'),
             },
           });
         });

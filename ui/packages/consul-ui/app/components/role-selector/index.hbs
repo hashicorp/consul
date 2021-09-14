@@ -18,7 +18,12 @@ as |modal|>
   <BlockSlot @name="body">
 
   <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
-    <RoleForm @form={{form}} @dc={{dc}} @nspace={{nspace}}>
+    <RoleForm
+      @form={{form}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @partition={{partition}}
+    >
       <BlockSlot @name="policy">
 
         <PolicySelector
@@ -39,7 +44,14 @@ as |modal|>
     </RoleForm>
 
     <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
-    <PolicyForm data-test-policy-form @name="role[policy]" @form={{policyForm}} @dc={{dc}} />
+    <PolicyForm
+      data-test-policy-form
+      @name="role[policy]"
+      @form={{policyForm}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @partition={{partition}}
+    />
 
   </BlockSlot>
   <BlockSlot @name="actions" as |close|>

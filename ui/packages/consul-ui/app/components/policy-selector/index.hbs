@@ -39,7 +39,13 @@
           <h2>New Policy</h2>
         </BlockSlot>
         <BlockSlot @name="body">
-          <PolicyForm @form={{form}} @nspace={{nspace}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
+          <PolicyForm
+            @form={{form}}
+            @nspace={{nspace}}
+            @partition={{partition}}
+            @dc={{dc}}
+            @allowServiceIdentity={{allowServiceIdentity}}
+          />
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
           <button type="submit"
@@ -80,7 +86,7 @@
       <BlockSlot @name="details">
 {{#if (eq item.template '')}}
         <DataSource
-          @src={{uri '/${partition}/${item.Namespace}/${dc}/policy/${id}'
+          @src={{uri '/${partition}/${nspace}/${dc}/policy/${id}'
             (hash
               partition=item.Partition
               nspace=item.Namespace

@@ -1,5 +1,11 @@
 <form>
-  <RoleForm @form={{form}} @item={{item}} @dc={{dc}} @nspace={{nspace}} />
+  <RoleForm
+    @form={{form}}
+    @item={{item}}
+    @dc={{dc}}
+    @nspace={{nspace}}
+    @partition={{partition}}
+  />
 {{#if (not create)}}
   <DataSource
     @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-role/${id}'
