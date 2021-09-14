@@ -221,6 +221,37 @@ task {
 - `regexp` - (string) Optional if [`task.services`](/docs/nia/configuration#services) is configured. Either `regexp` or `task.services` or both must be configured. Only services that have a name which matches the regular expression are used by the task. If not provided, `regexp` will default to an exact match on `task.services` list. For example, if `task.services = ["api", "web"]`, then `regexp` will default to `^api$|^web$`. See [Task Execution: Catalog Services Condition](/docs/nia/tasks#catalog-services-condition) for more details on the relationship between `task.services` and `regexp`. Some resources for more information on regular expressions: [regular expression syntax](https://github.com/google/re2/wiki/Syntax), [try out regular expression string matching](https://golang.org/pkg/regexp/#Regexp.MatchString).
 - `source_includes_var` - (bool: false) Whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable). Please refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
 
+
+#### Consul KV Condition
+A consul-kv condition block configures a task to only execute on changes to a Consul KV entry. The condition can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path.
+
+See [Task Execution: Consul KV Condition](/docs/nia/tasks#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
+
+```hcl
+task {
+  name = "consul_kv_condition_task"
+  description = "execute on changes to Consul KV entry"
+  source = "path/to/consul-kv-module"
+  providers = ["my-provider"]
+  services = ["web-api"]
+
+  condition "consul-kv" {
+    path                = "my-key"
+    recurse             = false
+    datacenter          = "dc1"
+    namespace           = "default"
+    source_includes_var = false
+  }
+}
+```
+
+- `path` - (string: required) The path of the key that is used by the task.
+- `recurse` - (bool: false) Whether or not the path should be treated as a prefix instead of a literal match.
+- `datacenter` - (string) The datacenter of the services to query for the task. If not provided, the datacenter will default to the datacenter of the agent that Consul-Terraform-Sync queries.
+- `namespace` <EnterpriseAlert inline /> - (string) The namespace of the services to query for the task. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token or default to the `default` namespace.
+- `source_includes_var` - (bool: false) Whether or not the module configured at [`task.source`](#source) includes the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable). Please refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
+
+
 ## Network Drivers
 
 A driver is required for Consul-Terraform-Sync to propagate network infrastructure change. The `driver` block configures the subprocess that Consul-Terraform-Sync runs in automation. The default driver is the [Terraform driver](#terraform-driver) which automates Terraform as a local installation of the Terraform CLI.
