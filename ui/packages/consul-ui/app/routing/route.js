@@ -1,6 +1,7 @@
 import Route from '@ember/routing/route';
 import { get, setProperties, action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import HTTPError from 'consul-ui/utils/http/error';
 
 // paramsFor
 import { routes } from 'consul-ui/router';
