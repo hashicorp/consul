@@ -13,11 +13,14 @@
           id=(or id '')
         )
       }}
-    as |loader|>
-    {{#if (gt loader.data.length 0)}}
-      <TokenList @caption="Applied to the following tokens:" @items={{loader.data}} />
+      @onchange={{action (mut items) value="data"}}
+    />
+    {{#if (gt items.length 0)}}
+      <TokenList
+        @caption="Applied to the following tokens:"
+        @items={{items}}
+      />
     {{/if}}
-    </DataSource>
 {{/if}}
     <div>
 {{#if (and create (can "create tokens")) }}
