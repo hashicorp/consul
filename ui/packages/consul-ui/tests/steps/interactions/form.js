@@ -57,7 +57,7 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
         } catch (e) {
           obj = currentPage();
         }
-        return Object.keys(data).reduce(function(prev, item, i, arr) {
+        const res = Object.keys(data).reduce(function(prev, item, i, arr) {
           const name = `${obj.prefix || property}[${item}]`;
           if (negative) {
             try {
@@ -72,6 +72,8 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
             return fillInElement(prev, name, data[item]);
           }
         }, obj);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        return res;
       }
     )
     .then(['I type "$text" into "$selector"'], function(text, selector) {
