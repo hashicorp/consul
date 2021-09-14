@@ -4213,7 +4213,7 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, rules, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-binding-rules"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLBindingRules))
 	}()
 }
 
