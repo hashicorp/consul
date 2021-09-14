@@ -24,9 +24,19 @@ and requires all Consul servers to be upgraded in order to operate.
 This provides a mechanism to bootstrap ACLs without having any secrets present in Consul's
 configuration files.
 
+**vv Cross ref option 1: text**
+
 | Method | Path             | Produces           |
 | ------ | ---------------- | ------------------ |
 | `PUT`  | `/acl/bootstrap` | `application/json` |
+
+The corresponding CLI command is [`consul acl bootstrap`](/commands/acl/bootstrap).
+
+**vv Cross ref option 2: table**
+
+| Method | Path             | Produces           | Corresponding CLI Command                         |
+| ------ | ---------------- | ------------------ | ------------------------------------------------- |
+| `PUT`  | `/acl/bootstrap` | `application/json` | [`consul acl bootstrap`](/commands/acl/bootstrap) |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking),
@@ -387,10 +397,7 @@ $ curl \
 
 ## OIDC Authorization URL Request
 
-<EnterpriseAlert>
-  {' '}
-  This is an enterprise only endpoint.
-</EnterpriseAlert>
+<EnterpriseAlert> This is an enterprise only endpoint.</EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to obtain an authorization
 URL from Consul to start an [OIDC login flow](/docs/acl/auth-methods/oidc).
@@ -466,10 +473,7 @@ $ curl \
 
 ## OIDC Callback
 
-<EnterpriseAlert>
-  {' '}
-  This is an enterprise only endpoint.
-</EnterpriseAlert>
+<EnterpriseAlert> This is an enterprise only endpoint.</EnterpriseAlert>
 
 This endpoint was added in Consul 1.8.0 and is used to exchange an OIDC
 authorization code for an OIDC ID Token. The ID token will in turn be exchanged
