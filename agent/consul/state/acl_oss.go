@@ -188,7 +188,7 @@ func aclBindingRuleList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIter
 }
 
 func aclBindingRuleListByAuthMethod(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLBindingRules, indexAuthMethod, method)
+	return tx.Get(tableACLBindingRules, indexAuthMethod, Query{Value: method})
 }
 
 func aclBindingRuleDeleteWithRule(tx WriteTxn, rule *structs.ACLBindingRule, idx uint64) error {
