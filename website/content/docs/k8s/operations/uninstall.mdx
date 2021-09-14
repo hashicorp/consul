@@ -6,8 +6,11 @@ description: Uninstall Consul on Kubernetes
 
 # Uninstall Consul
 
-Uninstalling Consul requires running `helm delete` **and** then manually cleaning
-up some resources that Helm does not delete.
+You can uninstall Consul using Helm commands or the Consul K8s CLI.
+
+## Helm commands
+
+Run the `helm delete` **and** manually remove resources that Helm does not delete.
 
 1. First, run `helm delete`:
 
@@ -38,31 +41,31 @@ up some resources that Helm does not delete.
 
 1. If installing with ACLs enabled, you will need to then delete the ACL secrets:
 
-```shell-session
-$ kubectl get secret | grep consul | grep Opaque
-consul-acl-replication-acl-token    Opaque                                1      41m
-consul-bootstrap-acl-token          Opaque                                1      41m
-consul-client-acl-token             Opaque                                1      41m
-consul-connect-inject-acl-token     Opaque                                1      37m
-consul-controller-acl-token         Opaque                                1      37m
-consul-federation                   Opaque                                4      41m
-consul-mesh-gateway-acl-token       Opaque                                1      41m
-```
+   ```shell-session
+   $ kubectl get secret | grep consul | grep Opaque
+   consul-acl-replication-acl-token    Opaque                                1      41m
+   consul-bootstrap-acl-token          Opaque                                1      41m
+   consul-client-acl-token             Opaque                                1      41m
+   consul-connect-inject-acl-token     Opaque                                1      37m
+   consul-controller-acl-token         Opaque                                1      37m
+   consul-federation                   Opaque                                4      41m
+   consul-mesh-gateway-acl-token       Opaque                                1      41m
+   ```
 
-Ensure that the secrets you're about to delete are all created by Consul and not
-created by someone else that happen to have the word `consul`.
+   Ensure that the secrets you're about to delete are all created by Consul and not
+   created by another user with the word `consul`.
 
-```shell-session
-$ kubectl get secret | grep consul | grep Opaque | awk '{print $1}' | xargs kubectl delete secret
-secret "consul-acl-replication-acl-token" deleted
-secret "consul-bootstrap-acl-token" deleted
-secret "consul-client-acl-token" deleted
-secret "consul-connect-inject-acl-token" deleted
-secret "consul-controller-acl-token" deleted
-secret "consul-federation" deleted
-secret "consul-mesh-gateway-acl-token" deleted
-secret "consul-gossip-encryption-key" deleted
-```
+   ```shell-session
+   $ kubectl get secret | grep consul | grep Opaque | awk '{print $1}' | xargs kubectl delete secret
+   secret "consul-acl-replication-acl-token" deleted
+   secret "consul-bootstrap-acl-token" deleted
+   secret "consul-client-acl-token" deleted
+   secret "consul-connect-inject-acl-token" deleted
+   secret "consul-controller-acl-token" deleted
+   secret "consul-federation" deleted
+   secret "consul-mesh-gateway-acl-token" deleted
+   secret "consul-gossip-encryption-key" deleted
+   ```
 
 1. If installing with `controller.enabled` then you will need to delete the
    webhook certificate:
@@ -91,3 +94,13 @@ secret "consul-gossip-encryption-key" deleted
    $ kubectl delete serviceaccount consul-tls-init
    serviceaccount "consul-tls-init" deleted
    ```
+
+## Consul K8s CLI
+
+Issue the `consul-k8s uninstall` command to remove Consul from Kubernetes.
+
+```shell-session
+consul-k8s uninstall <OPTIONS>
+```
+
+You can specify the specific installation name, namespace, etc. using the applicable options. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli#uninstall) topic for details.
