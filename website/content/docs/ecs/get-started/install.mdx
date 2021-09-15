@@ -37,8 +37,6 @@ resource "aws_ecs_task_definition" "my_task" {
   network_mode             = "awsvpc"
   cpu                      = 256
   memory                   = 512
-  execution_role_arn       = "arn:aws:iam::111111111111:role/execution-role"
-  task_role_arn            = "arn:aws:iam::111111111111:role/task-role"
   container_definitions = jsonencode(
     [{
       name             = "example-client-app"
@@ -86,8 +84,6 @@ module "my_task" {
   version = "<latest version>"
 
   family              = "my_task"
-  execution_role_arn  = "arn:aws:iam::111111111111:role/execution-role"
-  task_role_arn       = "arn:aws:iam::111111111111:role/task-role"
   container_definitions = [
     {
       name             = "example-client-app"
@@ -107,7 +103,7 @@ module "my_task" {
   ]
 
   port                       = "9090"
-  consul_server_service_name = module.dev_consul_server.ecs_service_name
+  retry_join = "<address of the Consul server>"
 }
 ```
 
