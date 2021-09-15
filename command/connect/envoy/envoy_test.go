@@ -90,7 +90,7 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 			// save it as a nil so we know to remove again
 			old[pair[0]] = nil
 		}
-		os.Setenv(pair[0], pair[1])
+		require.NoError(t, os.Setenv(pair[0], pair[1]))
 	}
 	// Return a func that will reset to old values
 	return func() {
@@ -106,6 +106,7 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 
 type generateConfigTestCase struct {
 	Name              string
+	TLSServer         bool
 	Flags             []string
 	Env               []string
 	Files             map[string]string
@@ -452,9 +453,10 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "Error loading CA File: open some/path: no such file or directory",
 		},
 		{
-			Name:  "existing-ca-file",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
-			Env:   []string{"CONSUL_HTTP_SSL=1"},
+			Name:      "existing-ca-file",
+			TLSServer: true,
+			Flags:     []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
+			Env:       []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
@@ -499,9 +501,10 @@ func TestGenerateConfig(t *testing.T) {
 			WantErr: "lstat some/path: no such file or directory",
 		},
 		{
-			Name:  "existing-ca-path",
-			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
-			Env:   []string{"CONSUL_HTTP_SSL=1"},
+			Name:      "existing-ca-path",
+			TLSServer: true,
+			Flags:     []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
+			Env:       []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
@@ -887,14 +890,20 @@ func TestGenerateConfig(t *testing.T) {
 
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
-			srv := httptest.NewServer(testMockAgent(tc))
+			var srv *httptest.Server
+			if tc.TLSServer {
+				srv = httptest.NewTLSServer(testMockAgent(tc))
+			} else {
+				srv = httptest.NewServer(testMockAgent(tc))
+			}
 			defer srv.Close()
-			client, err := api.NewClient(&api.Config{Address: srv.URL})
-			require.NoError(err)
 
 			testDirPrefix := testDir + string(filepath.Separator)
 			myEnv := copyAndReplaceAll(tc.Env, "@@TEMPDIR@@", testDirPrefix)
 			defer testSetAndResetEnv(t, myEnv)()
+
+			client, err := api.NewClient(&api.Config{Address: srv.URL, TLSConfig: api.TLSConfig{InsecureSkipVerify: true}})
+			require.NoError(err)
 
 			ui := cli.NewMockUi()
 			c := New(ui)
@@ -1073,6 +1082,7 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 
 		if namespacesEnabled {
 			svc[string(kind)].Namespace = namespaceFromQuery(r)
+			svc[string(kind)].Partition = partitionFromQuery(r)
 		}
 
 		cfgJSON, err := json.Marshal(svc)
@@ -1090,6 +1100,15 @@ func namespaceFromQuery(r *http.Request) string {
 	// use-default.
 	if queryNs := r.URL.Query().Get("ns"); queryNs != "" {
 		return queryNs
+	}
+	return "default"
+}
+
+func partitionFromQuery(r *http.Request) string {
+	// Use the partition in the request if there is one, otherwise
+	// use-default.
+	if queryAP := r.URL.Query().Get("partition"); queryAP != "" {
+		return queryAP
 	}
 	return "default"
 }
@@ -1115,6 +1134,7 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 
 		if namespacesEnabled {
 			svc.Namespace = namespaceFromQuery(r)
+			svc.Partition = partitionFromQuery(r)
 		}
 
 		cfgJSON, err := json.Marshal(svc)

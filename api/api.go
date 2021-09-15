@@ -660,6 +660,14 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
+	if config.Namespace == "" {
+		config.Namespace = defConfig.Namespace
+	}
+
+	if config.Partition == "" {
+		config.Partition = defConfig.Partition
+	}
+
 	parts := strings.SplitN(config.Address, "://", 2)
 	if len(parts) == 2 {
 		switch parts[0] {
