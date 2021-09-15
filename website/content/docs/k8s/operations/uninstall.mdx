@@ -64,8 +64,7 @@ secret "consul-mesh-gateway-acl-token" deleted
 secret "consul-gossip-encryption-key" deleted
 ```
 
-1. If installing with `tls.enabled` then there will be a `ServiceAccount`
-   that is left behind:
+If installing with `tls.enabled` then there will be a `ServiceAccount` that is left behind:
 
    ```shell-session
    $ kubectl get serviceaccount consul-tls-init
