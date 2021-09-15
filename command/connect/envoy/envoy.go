@@ -482,6 +482,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		Token:                 httpCfg.Token,
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
+		Partition:             httpCfg.Partition,
 		EnvoyVersion:          c.envoyVersion,
 		Datacenter:            httpCfg.Datacenter,
 		PrometheusBackendPort: c.prometheusBackendPort,
@@ -524,18 +525,6 @@ func (c *cmd) generateConfig() ([]byte, error) {
 	} else {
 		// Set the source service name from the proxy's own registration
 		args.ProxySourceService = svc.Service
-	}
-	if svc.Namespace != "" {
-		// In most cases where namespaces are enabled this will already be set
-		// correctly because the http client that fetched this will need to have
-		// had the namespace set on it which is also how we initially populate
-		// this. However in the case of "default" namespace being accessed because
-		// there was no namespace argument, args.Namespace will be empty even
-		// though Namespaces are actually being used and the namespace of the request was
-		// inferred from the ACL token or defaulted to the "default" namespace.
-		// Overriding it here ensures that we always set the Namespace arg if the
-		// cluster is using namespaces regardless.
-		args.Namespace = svc.Namespace
 	}
 
 	if svc.Datacenter != "" {
