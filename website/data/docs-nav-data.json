@@ -576,6 +576,10 @@
           {
             "title": "Install",
             "path": "ecs/get-started/install"
+          },
+          {
+            "title": "Migrate Existing Tasks",
+            "path": "ecs/get-started/migrate-existing-tasks"
           }
         ]
       },
