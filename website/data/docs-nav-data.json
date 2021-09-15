@@ -556,7 +556,7 @@
     ]
   },
   {
-    "title": "AWS ECS <sup>Tech Preview</sup>",
+    "title": "AWS ECS <sup>BETA</sup>",
     "routes": [
       {
         "title": "Overview",
