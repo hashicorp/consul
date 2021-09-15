@@ -1,0 +1,9 @@
+{
+    "product": {
+      "name": "Consul",
+      "slug": "consul"
+    },
+    "mainBranch": "main",
+    "latestVersion": "1.9.6"
+  }
+  
