@@ -121,6 +121,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 						Entries: []structs.IntentionMatchEntry{
 							{
 								Namespace: svc.Service.NamespaceOrDefault(),
+								Partition: svc.Service.PartitionOrDefault(),
 								Name:      svc.Service.Name,
 							},
 						},
