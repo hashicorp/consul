@@ -1,21 +1,32 @@
-
-<div class="tab-section">
-{{#if true}}
-  <p>A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.</p>
-  <Consul::AuthMethod::NspaceList @items={{item.NamespaceRules}} />
-{{else}}
-  <EmptyState>
-    <BlockSlot @name="header">
-      <h2>No namespace rules</h2>
-    </BlockSlot>
-    <BlockSlot @name="body">
-      <p>A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.</p>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-      <li class="docs-link">
-        <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/auth-methods#namespacerules" rel="noopener noreferrer" target="_blank">Read the documentation</a>
-      </li>
-    </BlockSlot>
-  </EmptyState>
-{{/if}}
-</div>
+<Route
+  @routeName={{routeName}}
+as |route|>
+{{#let
+  route.model.item
+as |item|}}
+  <div class="tab-section">
+  {{#if (gt item.NamespaceRules.length 0)}}
+    <p>
+      A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.
+    </p>
+    <Consul::AuthMethod::NspaceList @items={{item.NamespaceRules}} />
+  {{else}}
+    <EmptyState>
+      <BlockSlot @name="header">
+        <h2>No namespace rules</h2>
+      </BlockSlot>
+      <BlockSlot @name="body">
+        <p>
+          A set of rules that can control which namespace tokens created via this auth method will be created within. Unlike binding rules, the first matching namespace rule wins.
+        </p>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+        <li class="docs-link">
+          <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/auth-methods#namespacerules" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+        </li>
+      </BlockSlot>
+    </EmptyState>
+  {{/if}}
+  </div>
+{{/let}}
+</Route>

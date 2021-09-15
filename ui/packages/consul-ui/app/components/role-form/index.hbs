@@ -29,6 +29,7 @@
     <PolicySelector
       @disabled={{not (can "write role" item=item)}}
       @dc={{dc}}
+      @partition={{partition}}
       @nspace={{nspace}}
       @items={{item.Policies}}
     />

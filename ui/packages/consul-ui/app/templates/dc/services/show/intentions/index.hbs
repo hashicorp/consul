@@ -3,11 +3,12 @@
 as |route|>
   <DataLoader
     @src={{uri
-      '/${nspace}/${dc}/intentions/for-service/${slug}'
+      '/${partition}/${nspace}/${dc}/intentions/for-service/${slug}'
       (hash
-        nspace=nspace
-        dc=dc
-        slug=slug
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        slug=route.params.name
       )
     }}
   as |api|>
@@ -56,9 +57,16 @@ as |route|>
           @filter={{filters}}
         />
   {{/if}}
-
+        {{!FIXME: Check param order }}
         <DataWriter
-          @sink={{concat '/' dc '/' nspace '/intention/'}}
+          @sink={{uri
+            '/${partition}/${dc}/${nspace}/intention/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
           @type="intention"
           @ondelete={{refresh-route}}
         as |writer|>

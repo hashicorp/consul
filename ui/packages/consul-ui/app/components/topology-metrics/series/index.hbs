@@ -1,9 +1,9 @@
 {{#if (not @noMetricsReason)}}
   <DataSource
-    @src={{uri
-      '/${nspace}/${dc}/metrics/summary-for-service/${service}/${protocol}'
+    @src={{uri '/${partition}/${nspace}/${dc}/metrics/summary-for-service/${service}/${protocol}'
       (hash
         nspace=@nspace
+        partition=@partition
         dc=@dc
         service=@service
         protocol=@protocol

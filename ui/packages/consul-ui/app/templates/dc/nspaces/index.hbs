@@ -1,8 +1,24 @@
 <Route
   @name={{routeName}}
-  @title='Namespaces'
 as |route|>
-  <EventSource @src={{items}} />
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/namespaces'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
   {{#let
 
     (hash
@@ -21,7 +37,7 @@ as |route|>
       )
     )
 
-    items
+    loader.data
 
   as |sort filters items|}}
 
@@ -35,7 +51,7 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="header">
         <h1>
-          Namespaces
+          <route.Title @title="Namespaces" />
         </h1>
       </BlockSlot>
       <BlockSlot @name="actions">
@@ -103,4 +119,6 @@ as |route|>
       </BlockSlot>
     </AppView>
   {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

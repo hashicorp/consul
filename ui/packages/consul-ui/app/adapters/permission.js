@@ -21,7 +21,7 @@ export default class PermissionAdapter extends Adapter {
       resources = resources.map(item => ({ ...item, Partition: partition }));
     }
     return request`
-      POST /v1/internal/acl/authorize?${{ dc, index }}
+      POST /v1/internal/acl/authorize?${{ dc }}
 
       ${resources}
     `;

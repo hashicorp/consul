@@ -11,6 +11,7 @@ export default class Proxy extends ServiceInstanceModel {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  // FIXME: Does this need a partition?
   @attr('string') ServiceName;
   @attr('string') ServiceID;
   @attr('string') NodeName;

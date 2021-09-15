@@ -22,7 +22,11 @@
       token=token
     ) (hash
       AuthProfile=(component 'auth-profile' item=token)
-      AuthForm=(component 'auth-form' dc=dc nspace=nspace onsubmit=(action sink.open value="data"))
+      AuthForm=(component 'auth-form'
+        dc=dc
+        partition=partition
+        nspace=nspace
+        onsubmit=(action sink.open value="data"))
     ) as |api components|}}
       <State @matches="authorized">
         {{#yield-slot name="authorized"}}

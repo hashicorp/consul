@@ -13,7 +13,22 @@
 html.is-debug body > .brand-loader {
   display: none !important;
 }
-
+html:not(.with-data-source) .data-source-debug {
+  display: none;
+}
+html.with-route-announcer .route-title {
+  @extend %unvisually-hidden;
+}
+.data-source-debug {
+  color: red;
+}
+.data-source-debug input:checked + pre code::after {
+  content: attr(data-json);
+  display: block;
+}
+.data-source-debug input {
+  display: none;
+}
 .docs {
   .tabular-collection,
   .list-collection {

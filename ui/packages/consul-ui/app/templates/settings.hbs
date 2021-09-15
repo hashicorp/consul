@@ -1,36 +1,65 @@
-{{page-title "Settings"}}
-<AppView>
-  <BlockSlot @name="header">
-    <h1>
-      Settings
-    </h1>
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader
+  @src={{uri 'settings://consul:client'}}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+  (or loader.data (hash
+      blocking=true
+    )
+  )
+as |item|}}
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title="Settings" />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <Notice
+        @type="info"
+      as |notice|>
+        <notice.Header>
+          <h2>Local Storage</h2>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            These settings are immediately saved to local storage and persisted through browser usage.
+          </p>
+        </notice.Body>
+      </Notice>
+      <form>
+      {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
+        <fieldset data-test-blocking-queries>
+          <h2>Blocking Queries</h2>
+          <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
+          <div class="type-toggle">
+            <label>
+              <input
+                type="checkbox"
+                name="client[blocking]"
+                checked={{if item.blocking 'checked'}}
+                onchange={{route-action 'change' 'client' item}}
+              />
+              <span>{{if item.blocking 'On' 'Off'}}</span>
+            </label>
+          </div>
+        </fieldset>
+      {{/if}}
+      </form>
+    </BlockSlot>
+  </AppView>
+{{/let}}
   </BlockSlot>
-  <BlockSlot @name="content">
-    <Notice
-      @type="info"
-    as |notice|>
-      <notice.Header>
-        <h2>Local Storage</h2>
-      </notice.Header>
-      <notice.Body>
-        <p>
-          These settings are immediately saved to local storage and persisted through browser usage.
-        </p>
-      </notice.Body>
-    </Notice>
-    <form>
-    {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
-      <fieldset data-test-blocking-queries>
-        <h2>Blocking Queries</h2>
-        <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
-        <div class="type-toggle">
-          <label>
-            <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked'}} onchange={{action 'change'}} />
-            <span>{{if item.client.blocking 'On' 'Off'}}</span>
-          </label>
-        </div>
-      </fieldset>
-    {{/if}}
-    </form>
-  </BlockSlot>
-</AppView>
+</DataLoader>
+</Route>

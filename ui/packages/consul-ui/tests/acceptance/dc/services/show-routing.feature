@@ -44,17 +44,18 @@ Feature: dc / services / show-routing: Show Routing for Service
     ---
     And I don't see routing on the tabs
     And I don't see the "[data-test-error]" element
-    And I visit the service page for yaml
-    ---
-      dc: dc2
-      service: service-1
-    ---
-    And I see routing on the tabs
-    And I visit the service page for yaml
-    ---
-      dc: dc1
-      service: service-0
-    ---
-    Then a GET request wasn't made to "/v1/discovery-chain/service-0?dc=dc1&ns=@namespace"
-    And I don't see routing on the tabs
-    And I don't see the "[data-test-error]" element
+    # FIXME: Does one dc not having connect and another having connect ever actually happen
+    # And I visit the service page for yaml
+    # ---
+    #   dc: dc2
+    #   service: service-1
+    # ---
+    # And I see routing on the tabs
+    # And I visit the service page for yaml
+    # ---
+    #   dc: dc1
+    #   service: service-0
+    # ---
+    # Then a GET request wasn't made to "/v1/discovery-chain/service-0?dc=dc1&ns=@namespace"
+    # And I don't see routing on the tabs
+    # And I don't see the "[data-test-error]" element

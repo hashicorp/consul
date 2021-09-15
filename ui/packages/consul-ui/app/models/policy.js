@@ -11,6 +11,7 @@ export default class Policy extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string', { defaultValue: () => '' }) Name;
   @attr('string', { defaultValue: () => '' }) Description;
   @attr('string', { defaultValue: () => '' }) Rules;

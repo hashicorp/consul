@@ -1,9 +1,8 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
-import { set, get, action } from '@ember/object';
+import { set, action } from '@ember/object';
 
 export default class TopologyRoute extends Route {
-  @service('ui-config') config;
   @service('data-source/service') data;
   @service('repository/intention') repo;
   @service('feedback') feedback;
@@ -47,45 +46,19 @@ export default class TopologyRoute extends Route {
   }
 
   afterModel(model, transition) {
+    const params = {
+      ...this.optionalParams(),
+      ...this.paramsFor('dc'),
+      ...this.paramsFor('dc.services.show'),
+    };
     this.intentions = this.data.source(
-      uri => uri`/${model.nspace}/${model.dc.Name}/intentions/for-service/${model.slug}`
+      uri =>
+        uri`/${params.partition}/${params.nspace}/${params.dc}/intentions/for-service/${params.name}`
     );
   }
 
   async deactivate(transition) {
     const intentions = await this.intentions;
     intentions.destroy();
-  }
-
-  async model() {
-    const parent = this.routeName
-      .split('.')
-      .slice(0, -1)
-      .join('.');
-    const model = this.modelFor(parent);
-    const dc = get(model, 'dc');
-    const nspace = get(model, 'nspace');
-
-    const item = get(model, 'items.firstObject');
-    let kind = get(item, 'Service.Kind');
-    if (typeof kind === 'undefined') {
-      kind = '';
-    }
-    const topology = await this.data.source(
-      uri => uri`/${nspace}/${dc.Name}/topology/${model.slug}/${kind}`
-    );
-    let hasMetricsProvider = await this.config.findByPath('metrics_provider');
-    hasMetricsProvider = !!hasMetricsProvider;
-
-    return {
-      ...model,
-      topology,
-      hasMetricsProvider,
-    };
-  }
-
-  setupController(controller, model) {
-    super.setupController(...arguments);
-    controller.setProperties(model);
   }
 }

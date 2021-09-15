@@ -1,9 +1,24 @@
 <Route
   @name={{routeName}}
-  @title="Services"
 as |route|>
 
-<EventSource @src={{items}} />
+  <DataLoader @src={{
+      uri '/${partition}/${nspace}/${dc}/services'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )
+  }} as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
 
 {{#let
 
@@ -33,16 +48,17 @@ as |route|>
       change=(action (mut searchproperty) value="target.selectedItems")
       default=searchProperties
     )
+
   )
 
-  (reject-by 'Kind' 'connect-proxy' items)
+  (reject-by 'Kind' 'connect-proxy' api.data)
 
 as |sort filters items|}}
 
   <AppView>
     <BlockSlot @name="header">
         <h1>
-          Services <em>{{format-number items.length}} total</em>
+          <route.Title @title="Services" /> <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
     </BlockSlot>
@@ -113,4 +129,7 @@ as |sort filters items|}}
   </AppView>
 
 {{/let}}
+
+    </BlockSlot>
+  </DataLoader>
 </Route>

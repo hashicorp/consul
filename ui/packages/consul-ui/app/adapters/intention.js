@@ -21,6 +21,7 @@ export default class IntentionAdapter extends Adapter {
     }
 
       ${{
+        partition: '',
         ns: '*',
         index,
         filter,

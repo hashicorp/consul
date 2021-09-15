@@ -7,11 +7,11 @@ import { SLUG_KEY } from 'consul-ui/models/kv';
 const API_KEYS_KEY = 'keys';
 
 export default class KvAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, partition, index, id, separator }) {
+  async requestForQuery(request, { dc, ns, partition, index, id, separator }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return request`
+    const respond = await request`
       GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, separator }}
 
       ${{
@@ -20,9 +20,11 @@ export default class KvAdapter extends Adapter {
         index,
       }}
     `;
+    await respond((headers, body) => delete headers['x-consul-index']);
+    return respond;
   }
 
-  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
+  async requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }

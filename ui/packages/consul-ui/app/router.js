@@ -133,7 +133,7 @@ export const routes = {
         abilities: ['access acls'],
       },
       edit: {
-        _options: { path: '/:id' },
+        _options: { path: '/:acl' },
       },
       create: {
         _options: {
@@ -174,7 +174,7 @@ export const routes = {
       tokens: {
         _options: {
           path: '/tokens',
-          abilities: ['read tokens'],
+          abilities: env('CONSUL_ACLS_ENABLED') ? ['read tokens'] : ['access acls'],
         },
         edit: {
           _options: { path: '/:id' },
@@ -219,7 +219,7 @@ export const routes = {
     _options: { path: '/setting' },
   },
   notfound: {
-    _options: { path: '/*path' },
+    _options: { path: '/*notfound' },
   },
 };
 if (env('CONSUL_NSPACES_ENABLED')) {

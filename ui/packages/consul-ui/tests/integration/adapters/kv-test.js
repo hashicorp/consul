@@ -10,32 +10,38 @@ module('Integration | Adapter | kv', function(hooks) {
   const id = 'key-name/here';
   const undefinedNspace = 'default';
   [undefinedNspace, 'team-1', undefined].forEach(nspace => {
-    test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
+    test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, async function(assert) {
       const adapter = this.owner.lookup('adapter:kv');
       const client = this.owner.lookup('service:client/http');
-      const request = client.requestParams.bind(client);
+      const request = function() {
+        return () => client.requestParams.bind(client)(...arguments);
+      };
       const expected = `GET /v1/kv/${id}?keys&dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQuery(request, {
+      let actual = await adapter.requestForQuery(request, {
         dc: dc,
         id: id,
         ns: nspace,
       });
+      actual = actual();
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
-    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
+    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, async function(assert) {
       const adapter = this.owner.lookup('adapter:kv');
       const client = this.owner.lookup('service:client/http');
-      const request = client.requestParams.bind(client);
+      const request = function() {
+        return () => client.requestParams.bind(client)(...arguments);
+      };
       const expected = `GET /v1/kv/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(request, {
+      let actual = await adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
       });
+      actual = actual();
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
@@ -132,20 +138,20 @@ module('Integration | Adapter | kv', function(hooks) {
     const adapter = this.owner.lookup('adapter:kv');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    assert.throws(function() {
+    assert.rejects(
       adapter.requestForQuery(request, {
         dc: dc,
-      });
-    });
+      })
+    );
   });
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:kv');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    assert.throws(function() {
+    assert.rejects(
       adapter.requestForQueryRecord(request, {
         dc: dc,
-      });
-    });
+      })
+    );
   });
 });

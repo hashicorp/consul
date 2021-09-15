@@ -1,11 +1,12 @@
 {{did-insert this.connect}}
 {{will-destroy this.disconnect}}
-
-{{#if this.title}}
-  {{page-title this.title separator=@titleSeparator}}
-{{/if}}
-
 {{yield (hash
   model=this.model
   params=this.params
+  currentName=this.router.currentRoute.name
+
+  refresh=this.refresh
+
+  Title=(component "route/title")
+  Announcer=(component "route/announcer")
 )}}

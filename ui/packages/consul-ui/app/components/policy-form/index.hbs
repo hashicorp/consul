@@ -18,7 +18,7 @@
         {{#each templates as |template|}}
             <label data-test-radiobutton={{concat 'template_' template.template}}>
               <span>{{template.name}}</span>
-              <input type="radio" name={{concat name '[template]'}} value={{template.template}} checked={{eq item.template template.template}} onchange={{action (changeset-set item 'template') value='target.value'}}/>
+              <input type="radio" name={{concat name '[template]'}} value={{template.template}} checked={{eq item.template template.template}} onchange={{action (optional (changeset-set item 'template')) value='target.value'}}/>
             </label>
         {{/each}}
     </div>
@@ -72,7 +72,8 @@
     </label>
 {{#if (eq item.template 'node-identity')}}
 
-    <DataSource @src="/*/*/datacenters"
+    <DataSource
+      @src={{uri '/*/*/*/datacenters'}}
       @onchange={{action (mut datacenters) value="data"}}
     />
     <label class="type-select" data-test-datacenter>
@@ -95,7 +96,8 @@
       </label>
     </div>
   {{#if isScoped }}
-    <DataSource @src="/*/*/datacenters"
+    <DataSource
+      @src={{uri '/*/*/*/datacenters'}}
       @onchange={{action (mut datacenters) value="data"}}
     />
 
