@@ -50,8 +50,8 @@ The following containers in a task require an ACL token:
   This token is unique for the Consul service, and is shared by instances of the service.
 
 The ACL controller automatically creates ACL tokens for mesh-enabled tasks in an ECS cluster.
-The `acl-controller` Terraform module creates the ACL token used by `consul-client` containers, and
-then starts the ACL controller task. The controller watches for tasks in the cluster. It checks tags
+The `acl-controller` Terraform module creates the ACL controller task. The controller creates the
+ACL token used by `consul-client` containers at startup and then watches for tasks in the cluster. It checks tags
 to determine if the task is mesh-enabled. If so, it creates the service ACL token for the task, if the
 token does not yet exist.
 
