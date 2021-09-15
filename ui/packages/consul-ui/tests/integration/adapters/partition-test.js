@@ -5,34 +5,43 @@ module('Integration | Adapter | partition', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'slug';
-  test('requestForQuery returns the correct url/method', function(assert) {
+  test('requestForQuery returns the correct url/method', async function(assert) {
     const adapter = this.owner.lookup('adapter:partition');
     const client = this.owner.lookup('service:client/http');
-    const expected = `GET /v1/partition?dc=${dc}`;
-    const actual = adapter.requestForQuery(client.url, {
+    const request = function() {
+      return () => client.requestParams.bind(client)(...arguments);
+    };
+    const expected = `GET /v1/partitions?dc=${dc}`;
+    let actual = await adapter.requestForQuery(request, {
       dc: dc,
     });
-    assert.equal(actual, expected);
+    actual = actual();
+    assert.equal(`${actual.method} ${actual.url}`, expected);
   });
-  test('requestForQueryRecord returns the correct url/method', function(assert) {
+  test('requestForQueryRecord returns the correct url/method', async function(assert) {
     const adapter = this.owner.lookup('adapter:partition');
     const client = this.owner.lookup('service:client/http');
-    const request = client.requestParams.bind(client);
+    const request = function() {
+      return () => client.requestParams.bind(client)(...arguments);
+    };
     const expected = `GET /v1/partition/${id}?dc=${dc}`;
-    const actual = adapter.requestForQueryRecord(request, {
+    let actual = await adapter.requestForQueryRecord(request, {
       dc: dc,
       id: id,
     });
-    assert.equal(actual, expected);
+    actual = actual();
+    assert.equal(`${actual.method} ${actual.url}`, expected);
   });
   test("requestForQueryRecord throws if you don't specify an id", function(assert) {
     const adapter = this.owner.lookup('adapter:partition');
     const client = this.owner.lookup('service:client/http');
-    const request = client.requestParams.bind(client);
-    assert.throws(function() {
+    const request = function() {
+      return () => client.requestParams.bind(client)(...arguments);
+    };
+    assert.rejects(
       adapter.requestForQueryRecord(request, {
         dc: dc,
-      });
-    });
+      })
+    );
   });
 });

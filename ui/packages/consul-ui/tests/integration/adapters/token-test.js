@@ -51,18 +51,21 @@ module('Integration | Adapter | token', function(hooks) {
       });
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
-    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
+    test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, async function(assert) {
       const adapter = this.owner.lookup('adapter:token');
       const client = this.owner.lookup('service:client/http');
-      const request = client.requestParams.bind(client);
+      const request = function() {
+        return () => client.requestParams.bind(client)(...arguments);
+      };
       const expected = `GET /v1/acl/token/${id}?dc=${dc}${
         shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
       }`;
-      let actual = adapter.requestForQueryRecord(request, {
+      let actual = await adapter.requestForQueryRecord(request, {
         dc: dc,
         id: id,
         ns: nspace,
       });
+      actual = actual();
       assert.equal(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
@@ -175,11 +178,11 @@ module('Integration | Adapter | token', function(hooks) {
     const adapter = this.owner.lookup('adapter:token');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    assert.throws(function() {
+    assert.rejects(
       adapter.requestForQueryRecord(request, {
         dc: dc,
-      });
-    });
+      })
+    );
   });
   test('requestForSelf returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:token');
