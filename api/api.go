@@ -1117,7 +1117,9 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	var buf bytes.Buffer
 	io.Copy(&buf, resp.Body)
 	closeResponseBody(resp)
-	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+
+	trimmed := strings.TrimSpace(string(buf.Bytes()))
+	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, trimmed)
 }
 
 func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
