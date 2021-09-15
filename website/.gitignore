@@ -21,3 +21,4 @@ package.json
 prettier.config.js
 .eslintrc.js
 .stylelintrc.js
+vercel.json
