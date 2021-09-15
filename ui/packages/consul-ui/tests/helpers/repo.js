@@ -20,13 +20,16 @@ const stubAdapterResponse = function(cb, payload, adapter) {
   set(adapter, 'client', {
     request: function(cb) {
       return cb(function() {
+        const params = client.requestParams(...arguments);
+        payload.headers['X-Consul-Namespace'] = params.data.ns || 'default';
+        payload.headers['X-Consul-Partition'] = params.data.partition || 'default';
         return Promise.resolve(function(cb) {
-          return cb({}, payloadClone);
+          return cb(payload.headers, payloadClone.payload);
         });
       });
     },
   });
-  return cb(payload).then(function(result) {
+  return cb(payload.payload).then(function(result) {
     set(adapter, 'client', client);
     return result;
   });
@@ -61,6 +64,11 @@ export default function(name, method, service, stub, test, assert) {
       headers: {
         cookie: cookies,
       },
+    }).then(function(payload) {
+      return {
+        headers: {},
+        payload: payload,
+      };
     });
   };
   const parseResponse = function(response) {

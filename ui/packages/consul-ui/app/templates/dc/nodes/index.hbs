@@ -1,9 +1,34 @@
 <Route
   @name={{routeName}}
-  @title="Nodes"
 as |route|>
-  <EventSource @src={{items}} />
-  <EventSource @src={{leader}} />
+
+  <DataSource @src={{
+    uri '/${partition}/${nspace}/${dc}/leader'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+    )
+  }} as |leader|>
+
+    <DataLoader
+      @src={{uri '/${partition}/${nspace}/${dc}/nodes'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+          )
+      }}
+    as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
   {{#let
 
     (hash
@@ -26,13 +51,15 @@ as |route|>
       )
     )
 
-    items
+    api.data
 
-  as |sort filters items|}}
+    leader.data
+
+  as |sort filters items leader|}}
     <AppView>
       <BlockSlot @name="header">
         <h1>
-          Nodes <em>{{format-number items.length}} total</em>
+          <route.Title @title="Nodes" /> <em>{{format-number items.length}} total</em>
         </h1>
         <label for="toolbar-toggle"></label>
       </BlockSlot>
@@ -75,4 +102,7 @@ as |route|>
       </BlockSlot>
     </AppView>
   {{/let}}
+    </BlockSlot>
+    </DataLoader>
+  </DataSource>
   </Route>

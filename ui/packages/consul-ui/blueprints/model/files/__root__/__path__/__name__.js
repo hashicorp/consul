@@ -15,4 +15,4 @@ export default class <%= classifiedModuleName %>Model extends Model {
 
   // @attr('number') SyncTime; // Does this Model support blocking queries?
   // @attr() meta; // {} // Does this Model support blocking queries?
-};
+}

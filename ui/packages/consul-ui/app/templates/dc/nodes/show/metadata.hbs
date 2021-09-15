@@ -2,8 +2,8 @@
   @name={{routeName}}
 as |route|>
   <div class="tab-section">
-  {{#if item.Meta}}
-    <Consul::Metadata::List @items={{entries item.Meta}} />
+  {{#if route.model.item.Meta}}
+    <Consul::Metadata::List @items={{entries route.model.item.Meta}} />
   {{else}}
     <EmptyState>
       <BlockSlot @name="body">

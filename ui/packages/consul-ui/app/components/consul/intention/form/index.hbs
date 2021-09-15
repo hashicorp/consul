@@ -6,6 +6,7 @@
   @type="intention"
   @dc={{@dc}}
   @nspace={{@nspace}}
+  @partition={{@partition}}
   @autofill={{@autofill}}
   @item={{@item}}
   @src={{@src}}
@@ -73,15 +74,27 @@ as |api|>
   {{/let}}
 
       <DataSource
-        @src={{concat '/*/' @dc '/services'}}
+        @src={{uri '/${partition}/*/${dc}/services'
+          (hash
+            partition=@partition
+            dc=@dc
+          )
+        }}
         @onchange={{action this.createServices item}}
       />
-    {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+
+    {{#if (can 'use nspaces')}}
         <DataSource
-          @src="/*/*/namespaces"
+          @src={{uri '/${partition}/*/${dc}/namespaces'
+            (hash
+              partition=@partition
+              dc=@dc
+            )
+          }}
           @onchange={{action this.createNspaces item}}
         />
     {{/if}}
+
     {{#if (and api.isCreate this.isManagedByCRDs)}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
     {{/if}}

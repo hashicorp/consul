@@ -1,0 +1,12 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <AppError
+    @login={{route.model.app.login.open}}
+    @error={{hash
+      status=404
+      message="Unable to find that page"
+    }}
+  />
+</Route>
+

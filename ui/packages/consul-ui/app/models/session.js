@@ -12,6 +12,7 @@ export default class Session extends Model {
   @attr('string') Name;
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string') Node;
   @attr('string') Behavior;
   @attr('string') TTL;

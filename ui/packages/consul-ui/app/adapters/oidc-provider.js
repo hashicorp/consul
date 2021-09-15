@@ -1,47 +1,38 @@
 import Adapter from './application';
 import { inject as service } from '@ember/service';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
-
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
 
 export default class OidcProviderAdapter extends Adapter {
   @service('env') env;
 
-  requestForQuery(request, { dc, ns, index, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, uri }) {
     return request`
       GET /v1/internal/ui/oidc-auth-methods?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{
+        ns,
+        partition,
         index,
-        ...this.formatNspace(ns),
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, id }) {
+  requestForQueryRecord(request, { dc, ns, partition, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
     return request`
-      POST /v1/acl/oidc/auth-url?${{ dc }}
+      POST /v1/acl/oidc/auth-url?${{ dc, ns, partition }}
       Cache-Control: no-store
 
       ${{
-        ...Namespace(ns),
         AuthMethod: id,
         RedirectURI: `${this.env.var('CONSUL_BASE_UI_URL')}/oidc/callback`,
       }}
     `;
   }
 
-  requestForAuthorize(request, { dc, ns, id, code, state }) {
+  requestForAuthorize(request, { dc, ns, partition, id, code, state }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -52,11 +43,10 @@ export default class OidcProviderAdapter extends Adapter {
       throw new Error('You must specify an state');
     }
     return request`
-      POST /v1/acl/oidc/callback?${{ dc }}
+      POST /v1/acl/oidc/callback?${{ dc, ns, partition }}
       Cache-Control: no-store
 
       ${{
-        ...Namespace(ns),
         AuthMethod: id,
         Code: code,
         State: state,

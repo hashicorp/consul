@@ -1,0 +1,15 @@
+{{page-title @title separator=@separator}}
+{{#if (not-eq @render false)}}
+{{@title}}
+{{/if}}
+<Portal @target="route-announcer">
+<div
+  class="route-title"
+  ...attributes
+  aria-live="assertive"
+  aria-atomic="true"
+>
+  {{! Using a handlebars concat here avoid whitespace issues}}
+  {{concat 'Navigated to ' @title}}
+</div>
+</Portal>

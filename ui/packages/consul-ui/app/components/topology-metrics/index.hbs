@@ -30,6 +30,7 @@
       <TopologyMetrics::Stats
         data-test-topology-metrics-downstream-stats
         @nspace={{or item.Namespace 'default'}}
+        @partition={{or item.Partition 'default'}}
         @dc={{item.Datacenter}}
         @endpoint='downstream-summary-for-service'
         @service={{@service.Service.Service}}
@@ -48,6 +49,7 @@
     {{#if @hasMetricsProvider}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
+        @partition={{or service.Service.Partition 'default'}}
         @dc={{@dc}}
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
@@ -56,6 +58,7 @@
       {{#if this.mainNotIngressService}}
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
+        @partition={{or service.Service.Partition 'default'}}
         @dc={{@dc}}
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}
@@ -104,6 +107,7 @@
         {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
         <TopologyMetrics::Stats
           @nspace={{or item.Namespace 'default'}}
+          @partition={{or item.Partition 'default'}}
           @dc={{item.Datacenter}}
           @endpoint='upstream-summary-for-service'
           @service={{@service.Service.Service}}

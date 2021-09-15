@@ -1,17 +1,17 @@
-{{#let items.firstObject as |item|}}
 <Route
   @name={{routeName}}
-  @title={{item.Service.Service}}
 as |route|>
-    <DataLoader as |loader|>
 
-      <BlockSlot @name="data">
-        <EventSource @src={{items}} @onerror={{action loader.dispatchError}} />
-        {{#if (not loader.error)}}
-          <EventSource @src={{proxies}} />
-          <EventSource @src={{chain}} />
-        {{/if}}
-      </BlockSlot>
+    <DataLoader
+      @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
+        (hash
+          partition=route.params.partition
+          nspace=route.params.nspace
+          dc=route.params.dc
+          name=route.params.name
+        )
+      }}
+    as |loader|>
 
       <BlockSlot @name="error">
         <AppError
@@ -46,6 +46,55 @@ as |route|>
       </BlockSlot>
 
       <BlockSlot @name="loaded">
+{{#let
+  loader.data
+  loader.data.firstObject
+  route.model.dc
+as |items item dc|}}
+
+    {{#if item.IsOrigin}}
+      <DataSource
+        @src={{uri '/${partition}/${nspace}/${dc}/proxies/for-service/${name}'
+          (hash
+            partition=route.params.partition
+            nspace=route.params.nspace
+            dc=route.params.dc
+            name=route.params.name
+          )
+        }}
+        @onchange={{action (mut proxies) value="data"}}
+      />
+        {{! currently we use the discovery chain endpoint to understand whether }}
+        {{! connect is enabled/disabled. We get a 500 error when its disabled }}
+        {{! and use this to set MeshEnabled on the Datacenter }}
+        {{! if once chain is set, i.e. we've checked this dc we remove the DataSource }}
+        {{! which will mark it for closure, which possibly could be reopened if }}
+        {{! the user clicks the routing/disco-chain  tab}}
+        {{#if (not chain)}}
+          <DataSource
+            @src={{uri '/${partition}/${nspace}/${dc}/discovery-chain/${name}'
+              (hash
+                partition=route.params.partition
+                nspace=route.params.nspace
+                dc=route.params.dc
+                name=route.params.name
+              )
+            }}
+            @onchange={{action (mut chain) value="data"}}
+          />
+        {{/if}}
+      {{/if}}
+  {{#let
+  (hash
+      topology=(and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')))
+      services=(eq item.Service.Kind 'terminating-gateway')
+      upstreams=(eq item.Service.Kind 'ingress-gateway')
+      instances=true
+      intentions=(not-eq item.Service.Kind 'terminating-gateway')
+      routing=(and dc.MeshEnabled item.IsOrigin)
+      tags=(not item.Service.Kind)
+  )
+  as |tabs|}}
         <AppView>
           <BlockSlot @name="notification" as |status type item error|>
             <TopologyMetrics::Notifications
@@ -61,7 +110,7 @@ as |route|>
           </BlockSlot>
           <BlockSlot @name="header">
               <h1>
-                {{item.Service.Service}}
+                <route.Title @title={{item.Service.Service}} />
               </h1>
               <Consul::ExternalSource @item={{item.Service}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
@@ -70,53 +119,74 @@ as |route|>
             {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
               <TabNav @items={{
                 compact
-                    (array
-          (if (and dc.MeshEnabled item.IsMeshOrigin (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')))
+                  (array
+                    (if tabs.topology
                       (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
-          '')
-          (if (eq item.Service.Kind 'terminating-gateway')
+                    '')
+                    (if tabs.services
                       (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
-          '')
-          (if (eq item.Service.Kind 'ingress-gateway')
+                    '')
+                    (if tabs.upstreams
                       (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
-          '')
+                    '')
+                    (if tabs.instances
                       (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-          (if (not-eq item.Service.Kind 'terminating-gateway')
+                    '')
+                    (if tabs.intentions
                       (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
-          '')
-          (if (and dc.MeshEnabled item.IsOrigin)
+                    '')
+                    (if tabs.routing
                       (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
-          '')
-          (if (not item.Service.Kind)
+                    '')
+                    (if tabs.tags
                       (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
-          '')
-                    )
+                    '')
+                  )
               }}/>
             {{/if}}
           </BlockSlot>
           <BlockSlot @name="actions">
-            {{#if urls.service}}
-              <a href={{render-template urls.service (hash
+            <DataSource
+                @src={{uri '/${partition}/${nspace}/${dc}/ui-config'
+                (hash
+                  partition=route.params.partition
+                  nspace=route.params.nspace
+                  dc=route.params.dc
+                )
+              }}
+            as |config|>
+            {{#if config.data.dashboard_url_templates.service}}
+              <a href={{render-template config.data.dashboard_url_templates.service (hash
                 Datacenter=dc.Name
                 Service=(hash Name=item.Service.Service)
               )}}
                 target="_blank"
                 rel="noopener noreferrer"
-                data-test-dashboard-anchor>
+                data-test-dashboard-anchor
+              >
                 Open Dashboard
               </a>
             {{/if}}
+            </DataSource>
           </BlockSlot>
           <BlockSlot @name="content">
+          {{! if its not an origin service we don't care as to whether connect }}
+          {{! is enabled or not (we figure that out using the chain var) }}
+          {{#if (or (not item.IsOrigin) chain)}}
             <Outlet
               @name={{routeName}}
-              @model={{route.model}}
+              @model={{assign (hash
+                items=items
+                tabs=tabs
+              ) route.model}}
             as |o|>
               {{outlet}}
             </Outlet>
+          {{/if}}
           </BlockSlot>
         </AppView>
+  {{/let}}
+{{/let}}
       </BlockSlot>
     </DataLoader>
 </Route>
-{{/let}}

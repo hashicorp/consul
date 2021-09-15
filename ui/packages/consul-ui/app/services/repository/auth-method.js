@@ -21,12 +21,12 @@ export default class AuthMethodService extends RepositoryService {
     return SLUG_KEY;
   }
 
-  @dataSource('/:ns/:dc/auth-methods')
+  @dataSource('/:partition/:ns/:dc/auth-methods')
   async findAllByDatacenter() {
     return super.findAllByDatacenter(...arguments);
   }
 
-  @dataSource('/:ns/:dc/auth-method/:id')
+  @dataSource('/:partition/:ns/:dc/auth-method/:id')
   async findBySlug() {
     return super.findBySlug(...arguments);
   }

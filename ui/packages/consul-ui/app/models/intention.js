@@ -12,6 +12,7 @@ export default class Intention extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Description;
+  // FIXME: Will we have Source/DestinationPartition?
   @attr('string', { defaultValue: () => 'default' }) SourceNS;
   @attr('string', { defaultValue: () => '*' }) SourceName;
   @attr('string', { defaultValue: () => 'default' }) DestinationNS;

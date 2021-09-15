@@ -20,6 +20,7 @@
   <RoleSelector
     @disabled={{not (can "write token" item=item)}}
     @dc={{dc}}
+    @partition={{partition}}
     @nspace={{nspace}}
     @items={{item.Roles}}
   />
@@ -29,6 +30,7 @@
   <PolicySelector
     @disabled={{not (can "write token" item=item)}}
     @dc={{dc}}
+    @partition={{partition}}
     @nspace={{nspace}}
     @items={{item.Policies}}
   />

@@ -8,7 +8,7 @@ Feature: dc / kvs / index
       dc: dc-1
     ---
     Then the url should be /dc-1/kv
-    And the title should be "Key/Value - Consul"
+    And the title should be "Key / Value - Consul"
     Then I see 3 kv models
   Scenario: Viewing kvs with no write access
     Given 1 datacenter model with the value "dc-1"

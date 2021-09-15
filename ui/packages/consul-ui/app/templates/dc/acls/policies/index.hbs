@@ -1,7 +1,28 @@
 <Route
   @name={{routeName}}
-  @title="Policies"
 as |route|>
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/policies'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+    {{#if (eq loader.error.status '401')}}
+      <Consul::Acl::Disabled />
+    {{else}}
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    {{/if}}
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
   {{#let
 
     (hash
@@ -28,12 +49,10 @@ as |route|>
       )
     )
 
-    items
+    loader.data
 
   as |sort filters items|}}
     <AppView
-      @authorized={{isAuthorized}}
-      @enabled={{isEnabled}}
       @login={{route.model.app.login.open}}
       >
       <BlockSlot @name="notification" as |status type item error|>
@@ -46,7 +65,7 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="header">
         <h1>
-          Policies
+          <route.Title @title="Policies" />
         </h1>
       </BlockSlot>
       <BlockSlot @name="actions">
@@ -55,6 +74,8 @@ as |route|>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0) }}
         <Consul::Policy::SearchBar
+          @partition={{route.params.partition}}
+
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
 
@@ -115,4 +136,6 @@ as |route|>
     </AppView>
 
   {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

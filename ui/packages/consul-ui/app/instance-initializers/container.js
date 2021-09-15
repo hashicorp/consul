@@ -13,7 +13,7 @@ export default {
     let repositories = container
       .get('container-debug-adapter:main')
       .catalogEntriesByType('service')
-      .filter(item => item.startsWith('repository/'));
+      .filter(item => item.startsWith('repository/') || item === 'ui-config');
 
     // during testing we get -test files in here, filter those out but only in debug envs
     runInDebug(() => (repositories = repositories.filter(item => !item.endsWith('-test'))));

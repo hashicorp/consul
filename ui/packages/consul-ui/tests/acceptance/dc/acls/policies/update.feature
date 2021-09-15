@@ -26,13 +26,12 @@ Feature: dc / acls / policies / update: ACL Policy Update
     And I click validDatacenters
     And I click datacenter
     And I submit
-    Then a PUT request was made to "/v1/acl/policy/policy-id?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/policy/policy-id?dc=datacenter&ns=@!namespace" from yaml
     ---
       body:
         Name: [Name]
         Description: [Description]
         Rules: [Rules]
-        Namespace: @namespace
         Datacenters:
           - datacenter
 

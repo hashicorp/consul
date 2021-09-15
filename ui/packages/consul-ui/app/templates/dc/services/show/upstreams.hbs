@@ -1,7 +1,24 @@
 <Route
   @name={{routeName}}
 as |route|>
-  <EventSource @src={{items}} />
+  <DataLoader @src={{
+      uri '/${partition}/${nspace}/${dc}/gateways/for-service/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+      )
+  }} as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
   <div class="tab-section">
   {{#let
 
@@ -25,9 +42,11 @@ as |route|>
       )
     )
 
-    items
+    route.params.nspace
+    route.params.dc
+    loader.data
 
-  as |sort filters items|}}
+  as |sort filters nspace dc items|}}
   {{#if (gt items.length 0)}}
       <input type="checkbox" id="toolbar-toggle" />
       <Consul::Upstream::SearchBar
@@ -70,4 +89,6 @@ as |route|>
         </DataCollection>
   {{/let}}
   </div>
+    </BlockSlot>
+  </DataLoader>
 </Route>

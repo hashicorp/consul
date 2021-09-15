@@ -9,7 +9,14 @@
     <span><YieldSlot @name="label">{{yield}}</YieldSlot></span>
     {{#if isOpen}}
       <DataSource
-        @src={{concat '/' nspace '/' dc '/' (pluralize type)}}
+        @src={{uri '/${partition}/${nspace}/${dc}/${type}'
+          (hash
+            partition=partition
+            nspace=nspace
+            dc=dc
+            type=(pluralize type)
+          )
+        }}
         @onchange={{action (mut allOptions) value="data"}}
       />
     {{/if}}

@@ -7,12 +7,12 @@ export default class ServiceService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/services')
+  @dataSource('/:partition/:ns/:dc/services')
   async findAllByDatacenter() {
-    return super.findAllByDatacenter(...arguments);
+    return super.findAll(...arguments);
   }
 
-  @dataSource('/:ns/:dc/gateways/for-service/:gateway')
+  @dataSource('/:partition/:ns/:dc/gateways/for-service/:gateway')
   findGatewayBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
