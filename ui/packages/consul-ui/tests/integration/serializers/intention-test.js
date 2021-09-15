@@ -28,7 +28,10 @@ module('Integration | Serializer | intention', function(hooks) {
       );
       const actual = serializer.respondForQuery(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [DC]: dc,
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },
@@ -70,7 +73,10 @@ module('Integration | Serializer | intention', function(hooks) {
       });
       const actual = serializer.respondForQueryRecord(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [DC]: dc,
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },

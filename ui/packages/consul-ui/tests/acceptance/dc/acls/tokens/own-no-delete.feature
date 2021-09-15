@@ -6,6 +6,7 @@ Feature: dc / acls / tokens / own-no-delete: The your current token has no delet
     ---
       AccessorID: token
       SecretID: ee52203d-989f-4f7a-ab5a-2bef004164ca
+      Namespace: @!namespace
     ---
   Scenario: On the listing page
     Given settings from yaml

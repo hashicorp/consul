@@ -1,5 +1,7 @@
 import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
+import { env } from '../../../../env';
+
 const NAME = 'kv';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
@@ -26,14 +28,17 @@ const undefinedNspace = 'default';
         return service.findAllBySlug({ id, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
+        const expectedNspace = env('CONSUL_NSPACES_ENABLED')
+          ? nspace || undefinedNspace
+          : 'default';
         assert.deepEqual(
           actual,
           expected(function(payload) {
             return payload.map(item => {
               return {
                 Datacenter: dc,
-                Namespace: nspace || undefinedNspace,
-                uid: `["${nspace || undefinedNspace}","${dc}","${item}"]`,
+                Namespace: expectedNspace,
+                uid: `["${expectedNspace}","${dc}","${item}"]`,
                 Key: item,
               };
             });

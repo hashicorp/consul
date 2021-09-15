@@ -42,7 +42,9 @@ module('Unit | Serializer | kv', function(hooks) {
     ['respondForCreateRecord', 'respondForUpdateRecord'].forEach(function(item) {
       const actual = serializer[item](
         function(cb) {
-          const headers = {};
+          const headers = {
+            'X-Consul-Namespace': 'default',
+          };
           const body = true;
           return cb(headers, body);
         },
@@ -71,7 +73,9 @@ module('Unit | Serializer | kv', function(hooks) {
     ['respondForCreateRecord', 'respondForUpdateRecord'].forEach(function(item) {
       const actual = serializer[item](
         function(cb) {
-          const headers = {};
+          const headers = {
+            'X-Consul-Namespace': 'default',
+          };
           const body = {
             Key: uid,
             Datacenter: dc,

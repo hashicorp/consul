@@ -1,9 +1,9 @@
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
-// if (true) {
-//   OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
-// }
-//
+if (env('CONSUL_PARTITIONS_ENABLED')) {
+  OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+}
+
 if (env('CONSUL_NSPACES_ENABLED')) {
   OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
@@ -193,9 +193,9 @@ export default class FSMWithOptionalLocation {
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }
-    // if (typeof hash.partition !== 'undefined') {
-    //   hash.partition = `-${hash.partition}`;
-    // }
+    if (typeof hash.partition !== 'undefined') {
+      hash.partition = `-${hash.partition}`;
+    }
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
     }

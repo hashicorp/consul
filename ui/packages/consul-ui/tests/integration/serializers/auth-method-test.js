@@ -27,13 +27,16 @@ module('Integration | Serializer | auth-method', function(hooks) {
         );
         const actual = serializer.respondForQuery(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },
           {
             dc: dc,
-            ns: nspace,
+            ns: nspace || undefinedNspace,
           }
         );
         assert.deepEqual(actual, expected);
@@ -51,14 +54,17 @@ module('Integration | Serializer | auth-method', function(hooks) {
           Datacenter: dc,
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: nspace || '',
+            [NSPACE.toLowerCase()]: nspace || undefinedNspace,
           },
           Namespace: payload.Namespace || undefinedNspace,
           uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
         });
         const actual = serializer.respondForQueryRecord(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },

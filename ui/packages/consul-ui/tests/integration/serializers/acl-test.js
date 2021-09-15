@@ -28,7 +28,9 @@ module('Integration | Serializer | acl', function(hooks) {
       );
       const actual = serializer.respondForQuery(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },
@@ -49,7 +51,7 @@ module('Integration | Serializer | acl', function(hooks) {
         Datacenter: dc,
         [META]: {
           [DC.toLowerCase()]: dc,
-          [NSPACE.toLowerCase()]: '',
+          [NSPACE.toLowerCase()]: nspace,
         },
         // TODO: default isn't required here, once we've
         // refactored out our Serializer this can go
@@ -58,7 +60,10 @@ module('Integration | Serializer | acl', function(hooks) {
       });
       const actual = serializer.respondForQueryRecord(
         function(cb) {
-          const headers = {};
+          const headers = {
+            [DC]: dc,
+            [NSPACE]: nspace,
+          };
           const body = payload;
           return cb(headers, body);
         },

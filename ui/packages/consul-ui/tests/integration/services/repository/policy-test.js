@@ -62,23 +62,8 @@ const undefinedNspace = 'default';
         return service.findBySlug({ id, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
-        assert.deepEqual(
-          actual,
-          expected(function(payload) {
-            const item = payload;
-            return Object.assign({}, item, {
-              Datacenter: dc,
-              Namespace: item.Namespace || undefinedNspace,
-              uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.ID}"]`,
-              meta: {
-                cacheControl: undefined,
-                cursor: undefined,
-                dc: dc,
-                nspace: item.Namespace || undefinedNspace,
-              },
-            });
-          })
-        );
+        assert.equal(actual.uid, `["${nspace || undefinedNspace}","${dc}","${actual.ID}"]`);
+        assert.equal(actual.Datacenter, dc);
       }
     );
   });

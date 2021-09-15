@@ -30,7 +30,10 @@ module('Integration | Serializer | role', function(hooks) {
         );
         const actual = serializer.respondForQuery(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },
@@ -53,14 +56,17 @@ module('Integration | Serializer | role', function(hooks) {
           Policies: createPolicies(payload),
           [META]: {
             [DC.toLowerCase()]: dc,
-            [NSPACE.toLowerCase()]: nspace || '',
+            [NSPACE.toLowerCase()]: nspace || undefinedNspace,
           },
           Namespace: payload.Namespace || undefinedNspace,
           uid: `["${payload.Namespace || undefinedNspace}","${dc}","${id}"]`,
         });
         const actual = serializer.respondForQueryRecord(
           function(cb) {
-            const headers = {};
+            const headers = {
+              [DC]: dc,
+              [NSPACE]: nspace || undefinedNspace,
+            };
             const body = payload;
             return cb(headers, body);
           },

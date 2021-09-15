@@ -1,34 +1,23 @@
 import Adapter from './application';
 import { inject as service } from '@ember/service';
 import { SLUG_KEY } from 'consul-ui/models/token';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
-import { env } from 'consul-ui/env';
-import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
-let Namespace;
-if (env('CONSUL_NSPACES_ENABLED')) {
-  Namespace = nonEmptySet('Namespace');
-} else {
-  Namespace = () => ({});
-}
-
-// TODO: Update to use this.formatDatacenter()
 export default class TokenAdapter extends Adapter {
   @service('store') store;
 
-  requestForQuery(request, { dc, ns, index, role, policy }) {
+  requestForQuery(request, { dc, ns, partition, index, role, policy }) {
     return request`
       GET /v1/acl/tokens?${{ role, policy, dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -36,7 +25,8 @@ export default class TokenAdapter extends Adapter {
       GET /v1/acl/token/${id}?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
@@ -44,7 +34,9 @@ export default class TokenAdapter extends Adapter {
 
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/token?${params}
@@ -56,7 +48,6 @@ export default class TokenAdapter extends Adapter {
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
@@ -71,13 +62,15 @@ export default class TokenAdapter extends Adapter {
       // https://www.consul.io/api/acl/legacy.html#update-acl-token
       // as we are using the old API we don't need to specify a nspace
       return request`
-        PUT /v1/acl/update?${this.formatDatacenter(data[DATACENTER_KEY])}
+        PUT /v1/acl/update?${this.formatDatacenter(data.Datacenter)}
 
         ${serialized}
       `;
     }
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      ...this.formatDatacenter(data.Datacenter),
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/token/${data[SLUG_KEY]}?${params}
@@ -89,15 +82,15 @@ export default class TokenAdapter extends Adapter {
         ServiceIdentities: serialized.ServiceIdentities,
         NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
-        ...Namespace(serialized.Namespace),
       }}
     `;
   }
 
   requestForDeleteRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${params}
@@ -123,8 +116,9 @@ export default class TokenAdapter extends Adapter {
       throw new Error('You must specify an id');
     }
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/acl/token/${id}/clone?${params}
@@ -158,8 +152,9 @@ export default class TokenAdapter extends Adapter {
         // eventually the id is created with this dc value and the id taken from the
         // json response of `acls/token/*/clone`
         const params = {
-          ...this.formatDatacenter(data[DATACENTER_KEY]),
-          ...this.formatNspace(data[NSPACE_KEY]),
+          dc: data.Datacenter,
+          ns: data.Namespace,
+          partition: data.Partition,
         };
         return serializer.respondForQueryRecord(respond, params);
       },

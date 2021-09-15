@@ -3,7 +3,11 @@ import { get } from '@ember/object';
 import { next } from '@ember/runloop';
 
 import { CACHE_CONTROL, CONTENT_TYPE } from 'consul-ui/utils/http/headers';
-import { HEADERS_TOKEN as CONSUL_TOKEN } from 'consul-ui/utils/http/consul';
+import {
+  HEADERS_TOKEN as CONSUL_TOKEN,
+  HEADERS_NAMESPACE as CONSUL_NAMESPACE,
+  HEADERS_DATACENTER as CONSUL_DATACENTER,
+} from 'consul-ui/utils/http/consul';
 
 import createURL from 'consul-ui/utils/http/create-url';
 import createHeaders from 'consul-ui/utils/http/create-headers';
@@ -26,8 +30,9 @@ export const restartWhenAvailable = function(client) {
     throw e;
   };
 };
-const stringifyQueryParams = createQueryParams(encodeURIComponent);
-const parseURL = createURL(encodeURIComponent, stringifyQueryParams);
+const QueryParams = {
+  stringify: createQueryParams(encodeURIComponent),
+};
 const parseHeaders = createHeaders();
 
 const parseBody = function(strs, ...values) {
@@ -72,21 +77,34 @@ const parseBody = function(strs, ...values) {
 
 const CLIENT_HEADERS = [CACHE_CONTROL, 'X-Request-ID', 'X-Range', 'Refresh'];
 export default class HttpService extends Service {
-  @service('dom')
-  dom;
-
-  @service('client/connections')
-  connections;
-
-  @service('client/transports/xhr')
-  transport;
-
-  @service('settings')
-  settings;
+  @service('dom') dom;
+  @service('env') env;
+  @service('client/connections') connections;
+  @service('client/transports/xhr') transport;
+  @service('settings') settings;
 
   init() {
     super.init(...arguments);
     this._listeners = this.dom.listeners();
+    this.parseURL = createURL(encodeURIComponent, obj => QueryParams.stringify(this.sanitize(obj)));
+  }
+
+  sanitize(obj) {
+    if (!this.env.var('CONSUL_NSPACES_ENABLED')) {
+      delete obj.ns;
+    } else {
+      if (typeof obj.ns === 'undefined' || obj.ns === null || obj.ns === '') {
+        delete obj.ns;
+      }
+    }
+    if (!this.env.var('CONSUL_PARTITIONS_ENABLED')) {
+      delete obj.partition;
+    } else {
+      if (typeof obj.partition === 'undefined' || obj.partition === null || obj.partition === '') {
+        delete obj.partition;
+      }
+    }
+    return obj;
   }
 
   willDestroy() {
@@ -95,11 +113,13 @@ export default class HttpService extends Service {
   }
 
   url() {
-    return parseURL(...arguments);
+    return this.parseURL(...arguments);
   }
 
   body() {
-    return parseBody(...arguments);
+    const res = parseBody(...arguments);
+    this.sanitize(res[0]);
+    return res;
   }
 
   requestParams(strs, ...values) {
@@ -146,7 +166,7 @@ export default class HttpService extends Service {
           }
         }
       } else {
-        const str = stringifyQueryParams(params.data);
+        const str = QueryParams.stringify(params.data);
         if (str.length > 0) {
           if (params.url.indexOf('?') !== -1) {
             params.url = `${params.url}&${str}`;
@@ -204,6 +224,15 @@ export default class HttpService extends Service {
                   return prev;
                 }, {}),
                 ...params.clientHeaders,
+                // Add a 'pretend' Datacenter/Nspace header, they are not
+                // headers the come from the request but we add them here so
+                // we can use them later for store reconciliation.
+                // Namespace will look at the ns query parameter first,
+                // followed by the Namespace property of the users token,
+                // defaulting back to 'default' which will mainly be used in
+                // OSS
+                [CONSUL_DATACENTER]: params.data.dc,
+                [CONSUL_NAMESPACE]: params.data.ns || token.Namespace || 'default',
               };
               const respond = function(cb) {
                 return cb(headers, e.data.response);
