@@ -639,10 +639,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		targetSpiffeID := connect.SpiffeIDService{
 			Host:       cfgSnap.Roots.TrustDomain,
 			Namespace:  target.Namespace,
+			Partition:  target.Partition,
 			Datacenter: target.Datacenter,
 			Service:    target.Service,
-
-			// TODO(partitions) Store partition
 		}
 
 		if failoverThroughMeshGateway {
@@ -676,10 +675,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				id := connect.SpiffeIDService{
 					Host:       cfgSnap.Roots.TrustDomain,
 					Namespace:  target.Namespace,
+					Partition:  target.Partition,
 					Datacenter: target.Datacenter,
 					Service:    target.Service,
-
-					// TODO(partitions) Store partition
 				}
 
 				// Failover targets might be subsets of the same service, so these are deduplicated.
