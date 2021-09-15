@@ -134,7 +134,7 @@ variable "consul_kv" {
 }
 ```
 
-If you include the `consul_kv` variable in your module, we recommend that you also document this usage in the README. Users of your module will then know to set the consul-kv condition [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) configuration to be true. When this field is set to true, Consul-Terraform-Sync will declare the `consul_kv` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
+If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs Consul-Terraform-Sync to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
 
 ### Module Input Variables
 

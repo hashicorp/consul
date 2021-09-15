@@ -156,7 +156,7 @@ task {
 }
 ```
 
-The value of the Consul KV pair or pairs is available in the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable) if the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) value is set to true. In order to use this variable, module authors must add `consul_kv` as an input variable to their module in addition to the required `services` variable. Modules should have the condition type and `source_includes_var` configuration value documented for users to reference when configuring a task.
+If the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) field is set to `true`, then the value of the Consul KV pair(s) will be available in the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). To use the variable, add `consul_kv` as an input variable to the module, in addition to the required `services` variable. The condition type and `source_includes_var` configuration value should be documented in the module so that users can reference them when configuring a task.
 
 ## Task Automation
 
