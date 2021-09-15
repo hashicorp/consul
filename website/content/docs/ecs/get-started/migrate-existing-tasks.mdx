@@ -11,9 +11,8 @@ This guide explains how to migrate your existing ECS Tasks to use our [`mesh-tas
 
 ## Define Tasks in Terraform
 
-Your tasks must first be specified in Terraform using [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
-and [`ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) resources so that
-they can later be converted to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
+Your tasks must first be specified in Terraform using the [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
+resource so that they can then be converted to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
 
 For example, your tasks should be defined with Terraform similar to the following:
 
@@ -57,7 +56,7 @@ resource "aws_ecs_service" "my_task" {
 }
 ```
 
-## Convert Tasks to Mesh Module
+## Convert to the `mesh-task` Module
 
 In order to add the necessary sidecar containers for your task to join the mesh,
 you must use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
@@ -72,12 +71,12 @@ module "my_task" {
   source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
   version = "<latest version>"
 
-  family              = "my_task"
+  family                = "my_task"
   container_definitions = [
     {
-      name             = "example-client-app"
-      image            = "docker.io/org/my_task:v0.0.1"
-      essential        = true
+      name         = "example-client-app"
+      image        = "docker.io/org/my_task:v0.0.1"
+      essential    = true
       portMappings = [
         {
           containerPort = 9090
@@ -91,83 +90,21 @@ module "my_task" {
     }
   ]
 
-  port                       = "9090"
-  retry_join                 = "<address of the Consul server>"
+  port       = "9090"
+  retry_join = "<address of the Consul server>"
 }
 ```
 
-All possible inputs are documented on the [module reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs)
-however there are some important inputs worth highlighting:
+The main differences are:
 
-- You do not need the `execution_role_arn` or `task_role_arn` fields. The `mesh-task` module will create the task and execution roles.
-- `family` is used as the [task definition family](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#family) and the name of the service that is registered in Consul.
-- `container_definitions` accepts an array of [container definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions).
-  These are your application containers and are the same as `container_definitions` key in the
-  `aws_ecs_task_definition` resource without the `jsonencode() function`.
-
-  For example, if your original task definition looked like:
-
-  ```hcl
-  resource "aws_ecs_task_definition" "my_task" {
-    ...
-    container_definitions = jsonencode(
-      [
-        {
-          name             = "example-client-app"
-          image            = "docker.io/org/my_task:v0.0.1"
-          essential        = true
-          ...
-        }
-      ]
-    )
-  }
-  ```
-
-  Then remove the `jsonencode()` function and use the rest of the value
-  as the input for the `mesh-task` module:
-
-  ```hcl
-  module "my_task" {
-    source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
-    version = "<latest version>"
-
-    ...
-    container_definitions = [
-      {
-        name             = "example-client-app"
-        image            = "docker.io/org/my_task:v0.0.1"
-        essential        = true
-        ...
-      }
-    ]
-  }
-  ```
-
-- `port` is the port that your application listens on. This should be set to a
-  string, not an integer, i.e. `port = "9090"`, not `port = 9090`.
-- `retry_join` is passed to the `-retry-join` option for the Consul agent. This tells
-  the agent the location of your Consul server so that it can join the Consul cluster.
+- You must remove the `execution_role_arn` and `task_role_arn` fields. The `mesh-task` module will create the task and execution roles.
+- You must add the `port` field. This is the port that your application listens on.
+- You must add the `retry_join` field. This specifies the location of your Consul servers so that your task can join the mesh.
+- You must remove the `jsonencode()` function from the `container_definitions` field.
 
 The `mesh-task` module will create a new version of your task definition with the
 necessary sidecar containers added so you can delete your existing `aws_ecs_task_definition`
 resource.
 
-Your `aws_ecs_service` resource can remain unchanged except for the `task_definition`
-input which should reference the new module's output of the task definition's ARN:
-
-```hcl
-resource "aws_ecs_service" "my_task" {
-  ...
-  task_definition = module.my_task.task_definition_arn
-}
-```
-
--> **NOTE:** If your tasks run in a public subnet, they must have `assign_public_ip = true`
-in their [`network_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service#network_configuration) block so that ECS can pull the Docker images.
-
-After running `terraform apply`, you should see your tasks registered in
-the Consul UI.
-
-## Complete Installation
-
-Now that your task(s) are migrated to the `mesh-task` module, see the [Install Guide](/docs/ecs/get-started/install) to install Consul on ECS.
+Now that your task(s) are migrated to the `mesh-task` module, see the [Installation Guide](/docs/ecs/get-started/install) to continue installing
+Consul on ECS.
