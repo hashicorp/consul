@@ -38,35 +38,4 @@ export default class NspaceSerializer extends Serializer {
       query
     );
   }
-
-  respondForQueryRecord(respond, serialized, data) {
-    // We don't attachHeaders here yet, mainly because we don't use blocking
-    // queries on form views yet, and by the time we do Serializers should
-    // have been refactored to not use attachHeaders
-    return respond((headers, body) => {
-      return body;
-    });
-  }
-
-  respondForCreateRecord(respond, serialized, data) {
-    return respond((headers, body) => {
-      // The data properties sent to be saved in the backend or the same ones
-      // that we receive back if its successfull therefore we can just ignore
-      // the result and avoid ember-data syncing problems
-      return {};
-    });
-  }
-
-  respondForUpdateRecord(respond, serialized, data) {
-    return respond((headers, body) => {
-      return body;
-    });
-  }
-
-  respondForDeleteRecord(respond, serialized, data) {
-    return respond((headers, body) => {
-      // Deletes only need the primaryKey/uid returning
-      return body;
-    });
-  }
 }

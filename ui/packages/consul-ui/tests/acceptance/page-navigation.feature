@@ -56,7 +56,6 @@ Feature: page-navigation
     Then the last GET requests included from yaml
     ---
       - /v1/catalog/datacenters
-      - /v1/namespaces
       - /v1/internal/ui/node/node-0?dc=dc1&ns=@namespace
       - /v1/coordinate/nodes?dc=dc1
     ---
@@ -72,7 +71,6 @@ Feature: page-navigation
     Then the last GET requests included from yaml
     ---
       - /v1/catalog/datacenters
-      - /v1/namespaces
       - /v1/kv/keyname?dc=dc1&ns=@namespace
       - /v1/session/info/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc1&ns=@namespace
     ---
@@ -85,7 +83,6 @@ Feature: page-navigation
     Then the last GET requests included from yaml
     ---
       - /v1/catalog/datacenters
-      - /v1/namespaces
       - /v1/acl/policies?dc=dc1&ns=@namespace
     ---
 

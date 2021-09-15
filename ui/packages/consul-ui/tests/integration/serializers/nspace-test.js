@@ -65,6 +65,7 @@ module('Integration | Serializer | nspace', function(hooks) {
         },
         {
           id: id,
+          dc: dc,
         }
       );
       assert.deepEqual(actual, expected);
