@@ -180,11 +180,11 @@ func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
 }
 
 func aclBindingRuleGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch(tableACLBindingRules, "id", id)
+	return tx.FirstWatch(tableACLBindingRules, indexID, id)
 }
 
 func aclBindingRuleList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLBindingRules, "id")
+	return tx.Get(tableACLBindingRules, indexID)
 }
 
 func aclBindingRuleListByAuthMethod(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {

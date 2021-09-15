@@ -48,7 +48,7 @@ func (s *Restore) ACLRole(role *structs.ACLRole) error {
 
 // ACLBindingRules is used when saving a snapshot
 func (s *Snapshot) ACLBindingRules() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get(tableACLBindingRules, "id")
+	iter, err := s.tx.Get(tableACLBindingRules, indexID)
 	if err != nil {
 		return nil, err
 	}

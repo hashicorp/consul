@@ -268,8 +268,9 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromUUIDString),
+					writeIndex: writeIndex(indexIDFromACLBindingRule),
 				},
 			},
 			indexAuthMethod: {
@@ -283,6 +284,19 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+func indexIDFromACLBindingRule(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLBindingRule)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLBindingRule index", raw)
+	}
+	vv, err := uuidStringToBytes(p.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return vv, err
 }
 
 func indexAuthMethodFromACLBindingRule(raw interface{}) ([]byte, error) {
