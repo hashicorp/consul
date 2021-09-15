@@ -38,7 +38,7 @@ This diagram shows the timeline of a task starting up and all its containers:
   - `mesh-init` registers the service for this task and its sidecar proxy into Consul. It runs `consul connect envoy -bootstrap` to generate Envoy’s bootstrap JSON file and write it to a shared volume. After registration and bootstrapping, `mesh-init` exits.
 - **T1:** The `sidecar-proxy` container starts. It runs Envoy by executing `envoy -c <path-to-bootstrap-json>`.
 - **T2:** The `sidecar-proxy` container is marked as healthy by ECS. It uses a health check that detects if its public listener port is open. At this time, the user’s application containers are started since all the Consul machinery is ready to service requests.
-- **T3:** Consul marks the service as healthy by running the health checks specified in the task Terraform. The service will now receive traffic. At this time the only running containers are `consul-client`, `sidecar-proxy` and the user’s application container(s).
+- **T3:** The service will now receive traffic. At this time the only running containers are `consul-client`, `sidecar-proxy` and the user’s application container(s).
 
 ### Automatic ACL Token Provisioning
 
