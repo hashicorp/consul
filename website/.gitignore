@@ -1,11 +1,23 @@
 node_modules
 .DS_Store
+
+# preview output
 .next
 out
-.mdx-data
 
-# temporary docs-preview test
-temp-docs-preview
-
+# preview
+components
+pages
+public
 # As per Next.js conventions (https://nextjs.org/docs/basic-features/environment-variables#default-environment-variables)
 .env*.local
+.env.consul
+.env.waypoint
+tsconfig.json
+next-env.d.ts
+next.config.js
+npm-shrinkwrap.json
+package.json
+prettier.config.js
+.eslintrc.js
+.stylelintrc.js
