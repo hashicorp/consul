@@ -5,12 +5,14 @@ import {
   HEADERS_SYMBOL as META,
   HEADERS_DATACENTER as DC,
   HEADERS_NAMESPACE as NSPACE,
+  HEADERS_PARTITION as PARTITION,
 } from 'consul-ui/utils/http/consul';
 module('Integration | Serializer | intention', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
   const id = 'intention-name';
   const nspace = 'default';
+  const partition = 'default';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
     const serializer = this.owner.lookup('serializer:intention');
     const request = {
@@ -23,7 +25,8 @@ module('Integration | Serializer | intention', function(hooks) {
           // TODO: default isn't required here, once we've
           // refactored out our Serializer this can go
           Namespace: nspace,
-          uid: `["${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
+          Partition: partition,
+          uid: `["${partition}","${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
         })
       );
       const actual = serializer.respondForQuery(
@@ -31,6 +34,7 @@ module('Integration | Serializer | intention', function(hooks) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,
+            [PARTITION]: partition,
           };
           const body = payload;
           return cb(headers, body);
@@ -39,6 +43,7 @@ module('Integration | Serializer | intention', function(hooks) {
           dc: dc,
         }
       );
+      assert.equal(actual[0].Partition, expected[0].Partition);
       assert.equal(actual[0].Namespace, expected[0].Namespace);
       assert.equal(actual[0].Datacenter, expected[0].Datacenter);
       assert.equal(actual[0].uid, expected[0].uid);
@@ -65,17 +70,20 @@ module('Integration | Serializer | intention', function(hooks) {
         [META]: {
           [DC.toLowerCase()]: dc,
           [NSPACE.toLowerCase()]: nspace,
+          [PARTITION.toLowerCase()]: partition,
         },
         // TODO: default isn't required here, once we've
         // refactored out our Serializer this can go
         Namespace: nspace,
-        uid: `["${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
+        Partition: partition,
+        uid: `["${partition}","${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
       });
       const actual = serializer.respondForQueryRecord(
         function(cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,
+            [PARTITION]: partition,
           };
           const body = payload;
           return cb(headers, body);
@@ -84,6 +92,7 @@ module('Integration | Serializer | intention', function(hooks) {
           dc: dc,
         }
       );
+      assert.equal(actual.Partition, expected.Partition);
       assert.equal(actual.Namespace, expected.Namespace);
       assert.equal(actual.Datacenter, expected.Datacenter);
       assert.equal(actual.uid, expected.uid);

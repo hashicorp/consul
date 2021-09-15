@@ -16,7 +16,8 @@ return `
     "Name": "${name.split(' ').join('-').toLowerCase()}",
     "DisplayName": "${name}",
     "Kind": "${fake.helpers.randomize(['no-icon', 'google', 'okta', 'auth0', 'microsoft'])}",
-    "Namespace": "default"
+    "Namespace": "default",
+    "Partition": "default"
   }
 `})
   }

@@ -13,6 +13,7 @@ export default class NspaceSerializer extends Serializer {
           cb(
             headers,
             body.map(function(item) {
+              item.Namespace = item.Name;
               if (get(item, 'ACLs.PolicyDefaults')) {
                 item.ACLs.PolicyDefaults = item.ACLs.PolicyDefaults.map(function(item) {
                   item.template = '';

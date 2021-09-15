@@ -9,7 +9,14 @@ export default class PartitionSerializer extends Serializer {
     return super.respondForQuery(
       cb =>
         respond((headers, body) => {
-          return cb(headers, body.Partitions);
+          return cb(
+            headers,
+            body.Partitions.map(item => {
+              item.Partition = item.Name;
+              item.Namespace = '';
+              return item;
+            })
+          );
         }),
       query
     );

@@ -6,6 +6,7 @@ import {
   HEADERS_SYMBOL as META,
   HEADERS_DATACENTER as DC,
   HEADERS_NAMESPACE as NSPACE,
+  HEADERS_PARTITION as PARTITION,
 } from 'consul-ui/utils/http/consul';
 
 module('Integration | Serializer | discovery-chain', function(hooks) {
@@ -15,6 +16,7 @@ module('Integration | Serializer | discovery-chain', function(hooks) {
     const dc = 'dc-1';
     const id = 'slug';
     const nspace = 'default';
+    const partition = 'default';
     const request = {
       url: `/v1/discovery-chain/${id}?dc=${dc}`,
     };
@@ -22,13 +24,14 @@ module('Integration | Serializer | discovery-chain', function(hooks) {
       const expected = {
         Datacenter: dc,
         [META]: {},
-        uid: `["${nspace}","${dc}","${id}"]`,
+        uid: `["${partition}","${nspace}","${dc}","${id}"]`,
       };
       const actual = serializer.respondForQueryRecord(
         function(cb) {
           const headers = {
             [DC]: dc,
             [NSPACE]: nspace,
+            [PARTITION]: partition,
           };
           const body = payload;
           return cb(headers, body);

@@ -11,8 +11,10 @@ export default class PartitionModel extends Model {
   @attr('string') Description;
   @attr('string') Datacenter;
 
-  // FIXME: Double check entire hierarchy again
-  // @attr('string') Namespace; // Does this Model support namespaces?
+  @attr('string') Namespace; // always ""
+  // Partition is the same as Name but please don't alias as we want to keep
+  // mutating the response here instead
+  @attr('string') Partition;
 
   @attr('number') SyncTime;
   @attr() meta;
