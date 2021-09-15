@@ -2103,15 +2103,15 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			require.NotNil(t, authz)
 
 			// spot check some random perms
-			assert.Equal(t, acl.Deny, authz.ACLRead(nil))
-			assert.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 			// ensure we didn't bleed over to the other synthetic policy
-			assert.Equal(t, acl.Deny, authz.NodeWrite("test-node2", nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node2", nil))
 			// check our own synthetic policy
-			assert.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
-			assert.Equal(t, acl.Allow, authz.NodeWrite("test-node1", nil))
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeWrite("test-node1", nil))
 			// ensure node identity for other DC is ignored
-			assert.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
 		})
 		t.Run("synthetic-policy-4", func(t *testing.T) { // node identity
 			authz, err := r.ResolveToken("found-synthetic-policy-4")
