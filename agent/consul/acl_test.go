@@ -567,14 +567,13 @@ func (d *ACLResolverTestDelegate) defaultTokenReadFn(errAfterCached error) func(
 func (d *ACLResolverTestDelegate) plainTokenReadFn(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 	if d.testTokens != nil {
 		token, ok := d.testTokens[args.TokenID]
-		if !ok {
-			return nil
-		}
-		if token != nil {
+		if ok {
+			if token == nil {
+				return acl.ErrNotFound
+			}
 			reply.Token = token
-			return nil
 		}
-		return acl.ErrNotFound
+		return nil
 	}
 
 	_, token, err := testIdentityForToken(args.TokenID)
@@ -602,15 +601,9 @@ func (d *ACLResolverTestDelegate) plainPolicyResolveFn(args *structs.ACLPolicyBa
 
 	for _, policyID := range args.PolicyIDs {
 		if d.testPolicies != nil {
-			policy, ok := d.testPolicies[policyID]
-			if !ok {
-				return nil
-			}
-			if policy != nil {
+			if policy := d.testPolicies[policyID]; policy != nil {
 				reply.Policies = append(reply.Policies, policy)
-				return nil
 			}
-			return acl.ErrNotFound
 		} else {
 			_, policy, _ := testPolicyForID(policyID)
 			if policy != nil {
@@ -642,15 +635,9 @@ func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchG
 
 	for _, roleID := range args.RoleIDs {
 		if d.testRoles != nil {
-			role, ok := d.testRoles[roleID]
-			if !ok {
-				return nil
-			}
-			if role != nil {
+			if role := d.testRoles[roleID]; role != nil {
 				reply.Roles = append(reply.Roles, role)
-				return nil
 			}
-			return acl.ErrNotFound
 		} else {
 			_, role, _ := testRoleForID(roleID)
 			if role != nil {
