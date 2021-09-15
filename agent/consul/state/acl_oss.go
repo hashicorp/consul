@@ -75,7 +75,7 @@ func aclTokenGetFromIndex(tx ReadTxn, id string, index string, entMeta *structs.
 }
 
 func aclTokenListAll(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLTokens, "id")
+	return tx.Get(tableACLTokens, indexID)
 }
 
 func aclTokenListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
