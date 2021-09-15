@@ -11,7 +11,6 @@ const dc = 'dc-1';
 const id = 'token-name';
 const now = new Date().getTime();
 const nspace = 'default';
-const undefinedPartition = 'default';
 const partition = 'default';
 test('findByDatacenter returns the correct data for list endpoint', function(assert) {
   get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {

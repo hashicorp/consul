@@ -41,7 +41,7 @@ const partition = 'default';
           ? nspace || undefinedNspace
           : 'default';
         const expectedPartition = env('CONSUL_PARTITIONS_ENABLED')
-          ? partitions || undefinedPartitions
+          ? partition || undefinedPartition
           : 'default';
         assert.deepEqual(
           actual,

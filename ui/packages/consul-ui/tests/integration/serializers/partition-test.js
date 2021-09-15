@@ -9,7 +9,6 @@ module('Integration | Serializer | partition', function(hooks) {
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
     const serializer = this.owner.lookup('serializer:partition');
     const dc = 'dc-1';
-    const partition = 'default';
     const request = {
       url: `/v1/partitions?dc=${dc}`,
     };

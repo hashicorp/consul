@@ -4,7 +4,6 @@ import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import {
   HEADERS_DATACENTER as DC,
-  HEADERS_NAMESPACE as NSPACE,
   HEADERS_PARTITION as PARTITION,
 } from 'consul-ui/utils/http/consul';
 // Nspaces don't need any nspace
