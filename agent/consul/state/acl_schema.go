@@ -276,13 +276,28 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 				Name:         indexAuthMethod,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "AuthMethod",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexAuthMethodFromACLBindingRule,
 				},
 			},
 		},
 	}
+}
+
+func indexAuthMethodFromACLBindingRule(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLBindingRule)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLBindingRule index", raw)
+	}
+
+	if p.AuthMethod == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.AuthMethod))
+	return b.Bytes(), nil
 }
 
 func authMethodsTableSchema() *memdb.TableSchema {
