@@ -527,6 +527,20 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		args.ProxySourceService = svc.Service
 	}
 
+	// In most cases where namespaces and partitions are enabled they will already be set
+	// correctly because the http client that fetched this will provide them explicitly.
+	// However, if these arguments were not provided, they will be empty even
+	// though Namespaces and Partitions are actually being used.
+	// Overriding them ensures that we always set the Namespace and Partition args
+	// if the cluster is using them. This prevents us from defaulting to the "default"
+	// when a non-default partition or namespace was inferred from the ACL token.
+	if svc.Namespace != "" {
+		args.Namespace = svc.Namespace
+	}
+	if svc.Partition != "" {
+		args.Partition = svc.Partition
+	}
+
 	if svc.Datacenter != "" {
 		// The agent will definitely have the definitive answer here.
 		args.Datacenter = svc.Datacenter
