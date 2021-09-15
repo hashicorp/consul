@@ -152,10 +152,7 @@ func testIndexerTableACLBindingRules() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
 		indexID: {
 			read: indexValue{
-				source: Query{
-					Value:          obj.ID,
-					EnterpriseMeta: structs.EnterpriseMeta{},
-				},
+				source:   obj.ID,
 				expected: encodedID,
 			},
 			write: indexValue{
