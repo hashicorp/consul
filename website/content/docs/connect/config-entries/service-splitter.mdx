@@ -146,6 +146,68 @@ spec:
 
 </CodeTabs>
 
+
+### Set HTTP Headers
+
+Split traffic between two subsets with extra headers added so clients can tell
+which version (not yet supported in Kubernetes CRD):
+
+<CodeTabs tabs={[ "HCL", "JSON" ]}>
+
+```hcl
+Kind = "service-splitter"
+Name = "web"
+Splits = [
+  {
+    Weight        = 90
+    ServiceSubset = "v1"
+    ResponseHeaders {
+      Set {
+        "X-Web-Version": "v1"
+      }
+    }
+  },
+  {
+    Weight        = 10
+    ServiceSubset = "v2"
+    ResponseHeaders {
+      Set {
+        "X-Web-Version": "v2"
+      }
+    }
+  },
+]
+```
+
+```json
+{
+  "Kind": "service-splitter",
+  "Name": "web",
+  "Splits": [
+    {
+      "Weight": 90,
+      "ServiceSubset": "v1",
+      "ResponseHeaders": {
+        "Set": {
+          "X-Web-Version": "v1"
+        }
+      }
+    },
+    {
+      "Weight": 10,
+      "ServiceSubset": "v2",
+      "ResponseHeaders": {
+        "Set": {
+          "X-Web-Version": "v2"
+        }
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
 ## Available Fields
 
 <ConfigEntryReference
@@ -230,6 +292,22 @@ spec:
           type: 'string: ""',
           description:
             'The namespace to resolve the service from instead of the current namespace. If empty the current namespace is assumed.',
+        },
+        {
+          yaml: false,
+          name: 'RequestHeaders',
+          type: 'HTTPHeaderModifiers: <optional>',
+          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+          that will be applied to requests routed to this split.
+          This cannot be used with a \`tcp\` listener.`,
+        },
+        {
+          yaml: false,
+          name: 'ResponseHeaders',
+          type: 'HTTPHeaderModifiers: <optional>',
+          description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+          that will be applied to responses from this split.
+          This cannot be used with a \`tcp\` listener.`,
         },
       ],
     },
