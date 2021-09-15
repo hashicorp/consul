@@ -82,19 +82,6 @@ func resolveToken(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
 
 func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 	switch token {
-	case "missing-policy":
-		return true, &structs.ACLToken{
-			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
-			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: "not-found",
-				},
-				{
-					ID: "acl-ro",
-				},
-			},
-		}, nil
 	case "missing-role":
 		return true, &structs.ACLToken{
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
@@ -105,16 +92,6 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 				},
 				{
 					ID: "acl-ro",
-				},
-			},
-		}, nil
-	case "missing-policy-on-role":
-		return true, &structs.ACLToken{
-			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
-			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
-			Roles: []structs.ACLTokenRoleLink{
-				{
-					ID: "missing-policy",
 				},
 			},
 		}, nil
@@ -329,21 +306,6 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Policies: []structs.ACLRolePolicyLink{
 				{
 					ID: "service-wr",
-				},
-			},
-			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
-		}, nil
-	case "missing-policy":
-		return true, &structs.ACLRole{
-			ID:          "missing-policy",
-			Name:        "missing-policy",
-			Description: "missing-policy",
-			Policies: []structs.ACLRolePolicyLink{
-				{
-					ID: "not-found",
-				},
-				{
-					ID: "acl-ro",
 				},
 			},
 			RaftIndex: structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
@@ -1787,6 +1749,7 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 	}
 
 	runTwiceAndReset("Missing Identity", func(t *testing.T) {
+		delegate.UseTestLocalData(nil)
 		authz, err := r.ResolveToken("doesn't exist")
 		require.Nil(t, authz)
 		require.Error(t, err)
@@ -1794,6 +1757,25 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 	})
 
 	runTwiceAndReset("Missing Policy", func(t *testing.T) {
+		delegate.UseTestLocalData([]interface{}{
+			&structs.ACLToken{
+				AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
+				SecretID:   "missing-policy",
+				Policies: []structs.ACLTokenPolicyLink{
+					{ID: "not-found"},
+					{ID: "acl-ro"},
+				},
+			},
+			"policy-not-found:not-found",
+			&structs.ACLPolicy{
+				ID:          "acl-ro",
+				Name:        "acl-ro",
+				Description: "acl-ro",
+				Rules:       `acl = "read"`,
+				Syntax:      acl.SyntaxCurrent,
+				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+			},
+		})
 		authz := resolveToken(t, r, "missing-policy")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
@@ -1801,6 +1783,33 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 	})
 
 	runTwiceAndReset("Missing Role", func(t *testing.T) {
+		delegate.UseTestLocalData([]interface{}{
+			&structs.ACLToken{
+				AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
+				SecretID:   "missing-role",
+				Roles: []structs.ACLTokenRoleLink{
+					{ID: "not-found"},
+					{ID: "acl-ro"},
+				},
+			},
+			"role-not-found:not-found",
+			&structs.ACLRole{
+				ID:          "acl-ro",
+				Name:        "acl-ro",
+				Description: "acl-ro",
+				Policies: []structs.ACLRolePolicyLink{
+					{ID: "acl-ro"},
+				},
+			},
+			&structs.ACLPolicy{
+				ID:          "acl-ro",
+				Name:        "acl-ro",
+				Description: "acl-ro",
+				Rules:       `acl = "read"`,
+				Syntax:      acl.SyntaxCurrent,
+				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+			},
+		})
 		authz := resolveToken(t, r, "missing-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
