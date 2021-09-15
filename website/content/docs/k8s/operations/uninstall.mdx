@@ -50,7 +50,7 @@ up some resources that Helm does not delete.
   ```
 
   4. Ensure that the secrets you're about to delete are all created by Consul and not 
-  created by someone else that happen to have the word `consul`.
+  created by someone else that happen to have the word `consul`:
 
   ```shell-session
   $ kubectl get secret | grep consul | grep Opaque | awk '{print $1}' | xargs kubectl delete secret
