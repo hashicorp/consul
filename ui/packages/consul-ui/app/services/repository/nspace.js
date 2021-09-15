@@ -58,6 +58,7 @@ export default class NspaceEnabledService extends RepositoryService {
     let item;
     if (params.id === '') {
       item = await this.create({
+        Datacenter: params.dc,
         Partition: params.partition,
         ACLs: {
           PolicyDefaults: [],

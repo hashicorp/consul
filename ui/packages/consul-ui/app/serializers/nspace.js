@@ -14,6 +14,7 @@ export default class NspaceSerializer extends Serializer {
             headers,
             body.map(function(item) {
               item.Namespace = item.Name;
+              item.Datacenter = query.dc;
               if (get(item, 'ACLs.PolicyDefaults')) {
                 item.ACLs.PolicyDefaults = item.ACLs.PolicyDefaults.map(function(item) {
                   item.template = '';
@@ -37,5 +38,37 @@ export default class NspaceSerializer extends Serializer {
         ),
       query
     );
+  }
+
+  respondForQueryRecord(respond, serialized, data) {
+    return super.respondForQuery(
+      cb =>
+        respond((headers, body) => {
+          body.Datacenter = serialized.dc;
+          body.Namespace = body.Name;
+          return cb(headers, body);
+        }),
+      serialized,
+      data
+    );
+  }
+
+  respondForCreateRecord(respond, serialized, data) {
+    return super.respondForCreateRecord(
+      cb =>
+        respond((headers, body) => {
+          body.Datacenter = serialized.dc;
+          body.Namespace = body.Name;
+          return cb(headers, body);
+        }),
+      serialized,
+      data
+    );
+  }
+
+  respondForUpdateRecord(respond, serialized, data) {
+    return respond((headers, body) => {
+      return body;
+    });
   }
 }
