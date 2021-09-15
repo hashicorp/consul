@@ -25,7 +25,7 @@ export default class CoordinateService extends RepositoryService {
 
   @dataSource('/:partition/:ns/:dc/coordinates/for-node/:id')
   async findAllByNode(params, configuration) {
-    const coordinates = await this.findAll(params, configuration);
+    const coordinates = await this.findAllByDatacenter(params, configuration);
 
     let results = {};
     if (coordinates.length > 1) {
