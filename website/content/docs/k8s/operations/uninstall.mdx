@@ -33,8 +33,8 @@ up some resources that Helm does not delete.
   persistentvolumeclaim "data-default-hashicorp-consul-server-2" deleted
   ```
 
-~> **NOTE:** This will delete **all** data stored in Consul and it can't be
-   recovered unless you've taken other backups.
+  ~> **NOTE:** This will delete **all** data stored in Consul and it can't be
+     recovered unless you've taken other backups.
 
   3. If installing with ACLs enabled, you will need to then delete the ACL secrets:
 
