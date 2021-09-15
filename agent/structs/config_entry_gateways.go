@@ -171,7 +171,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		serviceNames := make(map[ServiceID]struct{})
 		for i, s := range listener.Services {
 			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
-				return fmt.Errorf("Services[%d].%v", i, err)
+				return fmt.Errorf("services[%d]: %w", i, err)
 			}
 			sn := NewServiceName(s.Name, &s.EnterpriseMeta)
 			if err := s.RequestHeaders.Validate(listener.Protocol); err != nil {
@@ -401,7 +401,7 @@ func (e *TerminatingGatewayConfigEntry) Validate() error {
 		cid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
 
 		if err := validateInnerEnterpriseMeta(&svc.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
-			return fmt.Errorf("Service %q: %v", cid.String(), err)
+			return fmt.Errorf("service %q: %w", cid, err)
 		}
 
 		// Check for duplicates within the entry

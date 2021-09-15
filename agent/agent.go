@@ -2459,6 +2459,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			maxOutputSize = chkType.OutputMaxSize
 		}
 
+		// FailuresBeforeWarning has to default to same value as FailuresBeforeCritical
+		if chkType.FailuresBeforeWarning == 0 {
+			chkType.FailuresBeforeWarning = chkType.FailuresBeforeCritical
+		}
+
 		// Get the address of the proxy for this service if it exists
 		// Need its config to know whether we should reroute checks to it
 		var proxy *structs.NodeService
@@ -2473,7 +2478,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 		}
 
-		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
+		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeWarning, chkType.FailuresBeforeCritical)
 		sid := check.CompoundServiceID()
 
 		cid := check.CompoundCheckID()

@@ -64,22 +64,7 @@ secret "consul-mesh-gateway-acl-token" deleted
 secret "consul-gossip-encryption-key" deleted
 ```
 
-1. If installing with `controller.enabled` then you will need to delete the
-   webhook certificate:
-
-   ```shell-session
-   $ kubectl get secret consul-controller-webhook-cert
-   NAME                             TYPE                DATA   AGE
-   consul-controller-webhook-cert   kubernetes.io/tls   2      47m
-   ```
-
-   ```shell-session
-   $ kubectl delete secret consul-controller-webhook-cert
-   secret "consul-consul-controller-webhook-cert" deleted
-   ```
-
-1. If installing with `tls.enabled` then there will be a `ServiceAccount`
-   that is left behind:
+If installing with `tls.enabled` then there will be a `ServiceAccount` that is left behind:
 
    ```shell-session
    $ kubectl get serviceaccount consul-tls-init
