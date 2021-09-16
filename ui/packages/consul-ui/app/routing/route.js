@@ -84,7 +84,10 @@ export default class BaseRoute extends Route {
     return value;
   }
 
-  // FIXME: this is only required due to intention_id trying to do too much
+  // TODO: this is only required due to intention_id trying to do too much
+  // therefore we need to change the route parameter intention_id to just
+  // intention or id or similar then we can revert to only returning a model if
+  // we have searchProps (or a child route overwrites model)
   model() {
     const model = {};
     if (

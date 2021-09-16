@@ -18,10 +18,10 @@ export default class DcService extends RepositoryService {
     const items = this.store.peekAll('dc');
     const item = items.findBy('Name', params.name);
     if (typeof item === 'undefined') {
-      // FIXME: HTTPError
+      // TODO: We should use a HTTPError error here and remove all occurances of
+      // the custom shaped ember-data error throughout the app
       const e = new Error('Page not found');
       e.status = '404';
-      // FIXME: EDError
       throw { errors: [e] };
     }
     return item;

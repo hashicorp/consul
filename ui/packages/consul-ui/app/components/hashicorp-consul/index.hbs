@@ -72,7 +72,6 @@
                       }}
                       @onchange={{action (mut this.partitions) value="data"}}
                     />
-                  {{!FIXME: Do partitions do the same as namespace deletion? }}
                   {{#each (reject-by 'DeletedAt' this.partitions) as |item|}}
                     <MenuItem
                       class={{if (eq @partition item.Name) 'is-active'}}
