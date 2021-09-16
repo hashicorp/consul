@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 pushd $(dirname ${BASH_SOURCE[0]}) > /dev/null
 SCRIPT_DIR=$(pwd)

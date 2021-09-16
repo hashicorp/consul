@@ -9,6 +9,7 @@ export default class ServiceInstanceSerializer extends Serializer {
 
   extractUid(item) {
     return this.hash([
+      item.Partition || 'default',
       item.Namespace || 'default',
       item.Datacenter,
       item.Node.Node,
@@ -46,6 +47,7 @@ export default class ServiceInstanceSerializer extends Serializer {
       Node: {
         Datacenter: node.Datacenter,
         Namespace: node.Namespace,
+        Partition: node.Partition,
         ID: node.ID,
         Node: node.Node,
         Address: node.Address,
@@ -74,6 +76,7 @@ export default class ServiceInstanceSerializer extends Serializer {
         body.forEach(item => {
           item.Datacenter = query.dc;
           item.Namespace = query.ns || 'default';
+          item.Partition = query.partition || 'default';
           item.uid = this.extractUid(item);
         });
         return cb(headers, body);
@@ -88,6 +91,7 @@ export default class ServiceInstanceSerializer extends Serializer {
         body.forEach(item => {
           item.Datacenter = query.dc;
           item.Namespace = query.ns || 'default';
+          item.Partition = query.partition || 'default';
           item.uid = this.extractUid(item);
         });
         body = body.find(function(item) {
@@ -104,6 +108,7 @@ export default class ServiceInstanceSerializer extends Serializer {
           throw e;
         }
         body.Namespace = body.Service.Namespace;
+        body.Partition = body.Service.Partition;
         return cb(headers, body);
       });
     }, query);

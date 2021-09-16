@@ -30,19 +30,17 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     ---
   Scenario: Add Policy-less Role
     And I click submit on the roles.form
-    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: New-Role
-        Namespace: @namespace
         Description: New Role Description
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Description: The Description
-        Namespace: @namespace
         Roles:
           - Name: New-Role
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
@@ -54,22 +52,20 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     And I click "#new-role .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
     And I click submit on the roles.form
-    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: New-Role
         Description: New Role Description
-        Namespace: @namespace
         Policies:
           - ID: policy-1
             Name: policy
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Description: The Description
-        Namespace: @namespace
         Roles:
           - Name: New-Role
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
@@ -87,32 +83,29 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     ---
     # This next line is actually the popped up policyForm due to the way things currently work
     And I click submit on the roles.form
-    Then a PUT request was made to "/v1/acl/policy?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/policy?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: New-Policy
         Description: New Policy Description
-        Namespace: @namespace
         Rules: key {}
     ---
     And I click submit on the roles.form
-    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: New-Role
         Description: New Role Description
-        Namespace: @namespace
         Policies:
         # TODO: Ouch, we need to do deep partial comparisons here
           - ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
             Name: New-Policy
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Description: The Description
-        Namespace: @namespace
         Roles:
           - Name: New-Role
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
@@ -130,21 +123,19 @@ Feature: dc / acls / roles / as-many / add-new: Add new
     # This next line is actually the popped up policyForm due to the way things currently work
     And I click submit on the roles.form
     And I click submit on the roles.form
-    Then a PUT request was made to "/v1/acl/role?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/role?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: New-Role
         Description: New Role Description
-        Namespace: @namespace
         ServiceIdentities:
           - ServiceName: New-Service-Identity
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/token/key?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Description: The Description
-        Namespace: @namespace
         Roles:
           - Name: New-Role
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1

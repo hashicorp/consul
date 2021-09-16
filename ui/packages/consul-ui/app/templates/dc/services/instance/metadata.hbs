@@ -1,6 +1,9 @@
 <Route
   @name={{routeName}}
 as |route|>
+{{#let
+  route.model.item
+as |item|}}
   <div class="tab-section">
       <section class="tags">
         <h2>Tags</h2>
@@ -31,4 +34,5 @@ as |route|>
       {{/if}}
       </section>
   </div>
+{{/let}}
 </Route>

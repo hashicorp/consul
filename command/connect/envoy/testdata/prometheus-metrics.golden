@@ -13,6 +13,7 @@
     "id": "test-proxy",
     "metadata": {
       "namespace": "default",
+      "partition": "default",
       "envoy_version": "1.18.4"
     }
   },
@@ -228,6 +229,10 @@
       },
       {
         "tag_name": "consul.source.namespace",
+        "fixed_value": "default"
+      },
+      {
+        "tag_name": "consul.source.partition",
         "fixed_value": "default"
       },
       {

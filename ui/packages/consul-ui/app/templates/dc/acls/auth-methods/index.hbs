@@ -1,7 +1,29 @@
 <Route
   @name={{routeName}}
-  @title="Auth Methods"
 as |route|>
+
+  <DataLoader
+    @src={{
+      uri '/${partition}/${nspace}/${dc}/auth-methods'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+    {{#if (eq loader.error.status '401')}}
+      <Consul::Acl::Disabled />
+    {{else}}
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    {{/if}}
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
   {{#let
 
     (hash
@@ -28,20 +50,17 @@ as |route|>
       )
     )
 
-    items
+    loader.data
 
   as |sort filters items|}}
 
 
     <AppView
-      @authorized={{isAuthorized}}
-      @enabled={{isEnabled}}
       @login={{route.model.app.login.open}}
       >
       <BlockSlot @name="header">
         <h1>
-          {{route.model.hi}}
-          Auth Methods
+          <route.Title @title="Auth Methods" />
         </h1>
       </BlockSlot>
       <BlockSlot @name="toolbar">
@@ -101,4 +120,6 @@ as |route|>
       </BlockSlot>
     </AppView>
   {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

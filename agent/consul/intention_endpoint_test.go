@@ -175,8 +175,9 @@ func TestIntentionApply_createWithID(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.IntentionOpCreate,
 		Intention: &structs.Intention{
-			ID:         generateUUID(),
-			SourceName: "test",
+			ID:              generateUUID(),
+			SourceName:      "test",
+			DestinationName: "test2",
 		},
 	}
 	var reply string

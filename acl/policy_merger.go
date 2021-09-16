@@ -236,7 +236,7 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 	}
 }
 
-func (p *policyRulesMergeContext) update(merged *PolicyRules) {
+func (p *policyRulesMergeContext) fill(merged *PolicyRules) {
 	merged.ACL = p.aclRule
 	merged.Keyring = p.keyringRule
 	merged.Operator = p.operatorRule
@@ -354,8 +354,8 @@ func (m *PolicyMerger) Policy() *Policy {
 		ID: fmt.Sprintf("%x", m.idHasher.Sum(nil)),
 	}
 
-	m.policyRulesMergeContext.update(&merged.PolicyRules)
-	m.enterprisePolicyRulesMergeContext.update(&merged.EnterprisePolicyRules)
+	m.policyRulesMergeContext.fill(&merged.PolicyRules)
+	m.enterprisePolicyRulesMergeContext.fill(&merged.EnterprisePolicyRules)
 
 	return merged
 }

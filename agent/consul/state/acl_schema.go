@@ -16,12 +16,14 @@ const (
 	tableACLBindingRules = "acl-binding-rules"
 	tableACLAuthMethods  = "acl-auth-methods"
 
-	indexAccessor   = "accessor"
-	indexPolicies   = "policies"
-	indexRoles      = "roles"
-	indexAuthMethod = "authmethod"
-	indexLocality   = "locality"
-	indexName       = "name"
+	indexAccessor      = "accessor"
+	indexPolicies      = "policies"
+	indexRoles         = "roles"
+	indexAuthMethod    = "authmethod"
+	indexLocality      = "locality"
+	indexName          = "name"
+	indexExpiresGlobal = "expires-global"
+	indexExpiresLocal  = "expires-local"
 )
 
 func tokensTableSchema() *memdb.TableSchema {
@@ -84,17 +86,23 @@ func tokensTableSchema() *memdb.TableSchema {
 					writeIndex: writeIndex(indexLocalFromACLToken),
 				},
 			},
-			"expires-global": {
-				Name:         "expires-global",
+			indexExpiresGlobal: {
+				Name:         indexExpiresGlobal,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &TokenExpirationIndex{LocalFilter: false},
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromTimeQuery),
+					writeIndex: writeIndex(indexExpiresGlobalFromACLToken),
+				},
 			},
-			"expires-local": {
-				Name:         "expires-local",
+			indexExpiresLocal: {
+				Name:         indexExpiresLocal,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer:      &TokenExpirationIndex{LocalFilter: true},
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromTimeQuery),
+					writeIndex: writeIndex(indexExpiresLocalFromACLToken),
+				},
 			},
 
 			//DEPRECATED (ACL-Legacy-Compat) - This index is only needed while we support upgrading v1 to v2 acls
@@ -260,21 +268,50 @@ func bindingRulesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.UUIDFieldIndex{
-					Field: "ID",
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromUUIDString),
+					writeIndex: writeIndex(indexIDFromACLBindingRule),
 				},
 			},
 			indexAuthMethod: {
 				Name:         indexAuthMethod,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "AuthMethod",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexAuthMethodFromACLBindingRule,
 				},
 			},
 		},
 	}
+}
+
+func indexIDFromACLBindingRule(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLBindingRule)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLBindingRule index", raw)
+	}
+	vv, err := uuidStringToBytes(p.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return vv, err
+}
+
+func indexAuthMethodFromACLBindingRule(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLBindingRule)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLBindingRule index", raw)
+	}
+
+	if p.AuthMethod == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.AuthMethod))
+	return b.Bytes(), nil
 }
 
 func authMethodsTableSchema() *memdb.TableSchema {
@@ -421,5 +458,44 @@ func indexLocalFromACLToken(raw interface{}) ([]byte, error) {
 
 	var b indexBuilder
 	b.Bool(p.Local)
+	return b.Bytes(), nil
+}
+
+func indexFromTimeQuery(arg interface{}) ([]byte, error) {
+	p, ok := arg.(*TimeQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for TimeQuery index", arg)
+	}
+
+	var b indexBuilder
+	b.Time(p.Value)
+	return b.Bytes(), nil
+}
+
+func indexExpiresLocalFromACLToken(raw interface{}) ([]byte, error) {
+	return indexExpiresFromACLToken(raw, true)
+}
+
+func indexExpiresGlobalFromACLToken(raw interface{}) ([]byte, error) {
+	return indexExpiresFromACLToken(raw, false)
+}
+
+func indexExpiresFromACLToken(raw interface{}, local bool) ([]byte, error) {
+	p, ok := raw.(*structs.ACLToken)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLToken index", raw)
+	}
+	if p.Local != local {
+		return nil, errMissingValueForIndex
+	}
+	if !p.HasExpirationTime() {
+		return nil, errMissingValueForIndex
+	}
+	if p.ExpirationTime.Unix() < 0 {
+		return nil, fmt.Errorf("token expiration time cannot be before the unix epoch: %s", p.ExpirationTime)
+	}
+
+	var b indexBuilder
+	b.Time(*p.ExpirationTime)
 	return b.Bytes(), nil
 }

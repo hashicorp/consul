@@ -216,10 +216,10 @@ func (s *ACLNodeIdentity) EstimateSize() int {
 	return len(s.NodeName) + len(s.Datacenter)
 }
 
-func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
+func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy {
 	// Given that we validate this string name before persisting, we do not
 	// have to escape it before doing the following interpolation.
-	rules := fmt.Sprintf(aclPolicyTemplateNodeIdentity, s.NodeName)
+	rules := aclNodeIdentityRules(s.NodeName, entMeta)
 
 	hasher := fnv.New128a()
 	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
@@ -231,8 +231,7 @@ func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
 	policy.Rules = rules
 	policy.Syntax = acl.SyntaxCurrent
 	policy.Datacenters = []string{s.Datacenter}
-	// TODO(partitions,acls): this needs to be fed the correct partition
-	policy.EnterpriseMeta = *DefaultEnterpriseMetaInDefaultPartition()
+	policy.EnterpriseMeta.Merge(entMeta)
 	policy.SetHash(true)
 	return policy
 }

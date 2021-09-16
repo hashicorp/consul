@@ -21,9 +21,9 @@ export default class BindingRuleService extends RepositoryService {
     return SLUG_KEY;
   }
 
-  @dataSource('/:ns/:dc/binding-rules')
-  async findAllByDatacenter() {
-    return super.findAllByDatacenter(...arguments);
+  @dataSource('/:partition/:ns/:dc/binding-rules/for-auth-method/:authmethod')
+  async findAllByAuthMethod() {
+    return super.findAll(...arguments);
   }
 
   status(obj) {

@@ -1,7 +1,7 @@
 import Adapter from './application';
 // TODO: Update to use this.formatDatacenter()
 export default class ProxyAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -11,7 +11,8 @@ export default class ProxyAdapter extends Adapter {
       X-Range: ${id}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;

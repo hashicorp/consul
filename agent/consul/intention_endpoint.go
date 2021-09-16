@@ -585,7 +585,7 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		return err
 	}
 
-	// Finish defaulting the namespace fields.
+	// Finish defaulting the namespace and partition fields.
 	for i := range args.Match.Entries {
 		if args.Match.Entries[i].Namespace == "" {
 			args.Match.Entries[i].Namespace = entMeta.NamespaceOrDefault()
@@ -593,6 +593,14 @@ func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.In
 		if err := s.srv.validateEnterpriseIntentionNamespace(args.Match.Entries[i].Namespace, true); err != nil {
 			return fmt.Errorf("Invalid match entry namespace %q: %v",
 				args.Match.Entries[i].Namespace, err)
+		}
+
+		if args.Match.Entries[i].Partition == "" {
+			args.Match.Entries[i].Partition = entMeta.PartitionOrDefault()
+		}
+		if err := s.srv.validateEnterpriseIntentionPartition(args.Match.Entries[i].Partition); err != nil {
+			return fmt.Errorf("Invalid match entry partition %q: %v",
+				args.Match.Entries[i].Partition, err)
 		}
 	}
 

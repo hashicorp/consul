@@ -38,9 +38,10 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 
 	var testcases = map[string]func() map[string]indexerTestCase{
 		// acl
-		tableACLPolicies: testIndexerTableACLPolicies,
-		tableACLRoles:    testIndexerTableACLRoles,
-		tableACLTokens:   testIndexerTableACLTokens,
+		tableACLBindingRules: testIndexerTableACLBindingRules,
+		tableACLPolicies:     testIndexerTableACLPolicies,
+		tableACLRoles:        testIndexerTableACLRoles,
+		tableACLTokens:       testIndexerTableACLTokens,
 		// catalog
 		tableChecks:          testIndexerTableChecks,
 		tableServices:        testIndexerTableServices,

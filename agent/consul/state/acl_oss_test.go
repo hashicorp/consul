@@ -141,3 +141,34 @@ func testIndexerTableACLRoles() map[string]indexerTestCase {
 		},
 	}
 }
+
+func testIndexerTableACLBindingRules() map[string]indexerTestCase {
+	obj := &structs.ACLBindingRule{
+		ID:         "123e4567-e89a-12d7-a456-426614174abc",
+		AuthMethod: "BinDingRuLe",
+	}
+	encodedID := []byte{0x12, 0x3e, 0x45, 0x67, 0xe8, 0x9a, 0x12, 0xd7, 0xa4, 0x56, 0x42, 0x66, 0x14, 0x17, 0x4a, 0xbc}
+
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source:   obj.ID,
+				expected: encodedID,
+			},
+			write: indexValue{
+				source:   obj,
+				expected: encodedID,
+			},
+		},
+		indexAuthMethod: {
+			read: indexValue{
+				source:   Query{Value: "BinDingRuLe"},
+				expected: []byte("bindingrule\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("bindingrule\x00"),
+			},
+		},
+	}
+}

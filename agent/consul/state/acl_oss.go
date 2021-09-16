@@ -75,7 +75,7 @@ func aclTokenGetFromIndex(tx ReadTxn, id string, index string, entMeta *structs.
 }
 
 func aclTokenListAll(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLTokens, "id")
+	return tx.Get(tableACLTokens, indexID)
 }
 
 func aclTokenListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
@@ -167,12 +167,12 @@ func (s *Store) ACLRoleUpsertValidateEnterprise(role *structs.ACLRole, existing 
 
 func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
 	// insert the role into memdb
-	if err := tx.Insert("acl-binding-rules", rule); err != nil {
+	if err := tx.Insert(tableACLBindingRules, rule); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
 	}
 
 	// update the overall acl-binding-rules index
-	if err := indexUpdateMaxTxn(tx, rule.ModifyIndex, "acl-binding-rules"); err != nil {
+	if err := indexUpdateMaxTxn(tx, rule.ModifyIndex, tableACLBindingRules); err != nil {
 		return fmt.Errorf("failed updating acl binding-rules index: %v", err)
 	}
 
@@ -180,32 +180,32 @@ func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
 }
 
 func aclBindingRuleGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch("acl-binding-rules", "id", id)
+	return tx.FirstWatch(tableACLBindingRules, indexID, id)
 }
 
 func aclBindingRuleList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-binding-rules", "id")
+	return tx.Get(tableACLBindingRules, indexID)
 }
 
 func aclBindingRuleListByAuthMethod(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-binding-rules", "authmethod", method)
+	return tx.Get(tableACLBindingRules, indexAuthMethod, Query{Value: method})
 }
 
 func aclBindingRuleDeleteWithRule(tx WriteTxn, rule *structs.ACLBindingRule, idx uint64) error {
-	// remove the rule
-	if err := tx.Delete("acl-binding-rules", rule); err != nil {
+	// remove the acl-binding-rule
+	if err := tx.Delete(tableACLBindingRules, rule); err != nil {
 		return fmt.Errorf("failed deleting acl binding rule: %v", err)
 	}
 
 	// update the overall acl-binding-rules index
-	if err := indexUpdateMaxTxn(tx, idx, "acl-binding-rules"); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableACLBindingRules); err != nil {
 		return fmt.Errorf("failed updating acl binding rules index: %v", err)
 	}
 	return nil
 }
 
 func aclBindingRuleMaxIndex(tx ReadTxn, _ *structs.ACLBindingRule, entMeta *structs.EnterpriseMeta) uint64 {
-	return maxIndexTxn(tx, "acl-binding-rules")
+	return maxIndexTxn(tx, tableACLBindingRules)
 }
 
 func aclBindingRuleUpsertValidateEnterprise(tx ReadTxn, rule *structs.ACLBindingRule, existing *structs.ACLBindingRule) error {

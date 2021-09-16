@@ -89,6 +89,10 @@ type BootstrapTplArgs struct {
 	// as registered with the Consul agent.
 	Namespace string
 
+	// Partition is the Consul Enterprise Partition of the proxy service instance
+	// as registered with the Consul agent.
+	Partition string
+
 	// Datacenter is the datacenter where the proxy service instance is registered.
 	Datacenter string
 
@@ -141,6 +145,7 @@ const bootstrapTemplate = `{
     "id": "{{ .ProxyID }}",
     "metadata": {
       "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
+      "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}",
       "envoy_version": "{{ .EnvoyVersion }}"
     }
   },

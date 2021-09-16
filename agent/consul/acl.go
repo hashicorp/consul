@@ -757,10 +757,12 @@ func (r *ACLResolver) filterPoliciesByScope(policies structs.ACLPolicies) struct
 }
 
 func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (structs.ACLPolicies, error) {
-	policyIDs := identity.PolicyIDs()
-	roleIDs := identity.RoleIDs()
-	serviceIdentities := identity.ServiceIdentityList()
-	nodeIdentities := identity.NodeIdentityList()
+	var (
+		policyIDs         = identity.PolicyIDs()
+		roleIDs           = identity.RoleIDs()
+		serviceIdentities = identity.ServiceIdentityList()
+		nodeIdentities    = identity.NodeIdentityList()
+	)
 
 	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
 		policy := identity.EmbeddedPolicy()
@@ -794,7 +796,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	// Generate synthetic policies for all service identities in effect.
 	syntheticPolicies := r.synthesizePoliciesForServiceIdentities(serviceIdentities, identity.EnterpriseMetadata())
-	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForNodeIdentities(nodeIdentities)...)
+	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForNodeIdentities(nodeIdentities, identity.EnterpriseMetadata())...)
 
 	// For the new ACLs policy replication is mandatory for correct operation on servers. Therefore
 	// we only attempt to resolve policies locally
@@ -805,6 +807,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	policies = append(policies, syntheticPolicies...)
 	filtered := r.filterPoliciesByScope(policies)
+	// TODO(partitions,acls): filter these by the partition/namespace of the token trying to use them?
 	return filtered, nil
 }
 
@@ -821,14 +824,14 @@ func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities [
 	return syntheticPolicies
 }
 
-func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(nodeIdentities) == 0 {
 		return nil
 	}
 
 	syntheticPolicies := make([]*structs.ACLPolicy, 0, len(nodeIdentities))
 	for _, n := range nodeIdentities {
-		syntheticPolicies = append(syntheticPolicies, n.SyntheticPolicy())
+		syntheticPolicies = append(syntheticPolicies, n.SyntheticPolicy(entMeta))
 	}
 
 	return syntheticPolicies
@@ -1242,6 +1245,7 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	}
 
 	if r.delegate.UseLegacyACLs() {
+		// TODO(partitions,acls): do we have to care about legacy acls?
 		identity, authorizer, err := r.resolveTokenLegacy(token)
 		r.handleACLDisabledError(err)
 		return identity, authorizer, err

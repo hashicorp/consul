@@ -660,6 +660,14 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
+	if config.Namespace == "" {
+		config.Namespace = defConfig.Namespace
+	}
+
+	if config.Partition == "" {
+		config.Partition = defConfig.Partition
+	}
+
 	parts := strings.SplitN(config.Address, "://", 2)
 	if len(parts) == 2 {
 		switch parts[0] {
@@ -1117,7 +1125,9 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	var buf bytes.Buffer
 	io.Copy(&buf, resp.Body)
 	closeResponseBody(resp)
-	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+
+	trimmed := strings.TrimSpace(string(buf.Bytes()))
+	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, trimmed)
 }
 
 func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {

@@ -13,7 +13,7 @@ export default class DiscoveryChainService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/discovery-chain/:id')
+  @dataSource('/:partition/:ns/:dc/discovery-chain/:id')
   findBySlug(params, configuration = {}) {
     const datacenter = this.dcs.peekOne(params.dc);
     if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {

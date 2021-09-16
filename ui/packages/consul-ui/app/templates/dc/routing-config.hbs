@@ -1,5 +1,29 @@
-{{page-title @model.slug}}
+<Route
+  @name={{routeName}}
+as |route|>
 
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/discovery-chain/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+  loader.data
+as |item|}}
 <AppView>
   <BlockSlot @name="breadcrumbs">
     <ol>
@@ -8,15 +32,19 @@
   </BlockSlot>
   <BlockSlot @name="header">
     <h1>
-      {{@model.slug}}
+      <route.Title @title={{item.Chain.ServiceName}} />
     </h1>
     <Consul::Source @source={{t "routes.dc.routing-config.source"}} @withInfo={{true}} />
   </BlockSlot>
   <BlockSlot @name="content">
     <div class="container">
       <Consul::DiscoveryChain
-        @chain={{@model.chain.Chain}}
+        @chain={{item.Chain}}
       />
     </div>
   </BlockSlot>
 </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

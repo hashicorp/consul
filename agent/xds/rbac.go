@@ -13,6 +13,7 @@ import (
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -296,15 +297,16 @@ func (p *rbacPermission) Flatten() *envoy_rbac_v3.Permission {
 	return andPermissions(parts)
 }
 
+// simplifyNotSourceSlice will collapse NotSources elements together if any element is
+// a subset of another.
+// For example "default/web" is a subset of "default/*" because it is covered by the wildcard.
 func simplifyNotSourceSlice(notSources []structs.ServiceName) []structs.ServiceName {
 	if len(notSources) <= 1 {
 		return notSources
 	}
 
-	// Collapse NotSources elements together if any element is a subset of
-	// another.
-
 	// Sort, keeping the least wildcarded elements first.
+	// More specific elements have a higher precedence over more wildcarded elements.
 	sort.SliceStable(notSources, func(i, j int) bool {
 		return countWild(notSources[i]) < countWild(notSources[j])
 	})
@@ -457,6 +459,16 @@ func makeRBACRules(intentions structs.Intentions, intentionDefaultAllow bool, is
 	return rbac, nil
 }
 
+// removeSameSourceIntentions will iterate over intentions and remove any lower precedence
+// intentions that share the same source. Intentions are sorted by descending precedence
+// so once a source has been seen, additional intentions with the same source can be dropped.
+//
+// Example for the default/web service:
+// input: [(backend/* -> default/web), (backend/* -> default/*)]
+// output: [(backend/* -> default/web)]
+//
+// (backend/* -> default/*) was dropped because it is already known that any service
+// in the backend namespace can target default/web.
 func removeSameSourceIntentions(intentions structs.Intentions) structs.Intentions {
 	if len(intentions) < 2 {
 		return intentions
@@ -489,10 +501,11 @@ func removeSameSourceIntentions(intentions structs.Intentions) structs.Intention
 // 'against' service name via wildcard rules.
 //
 // For instance:
-// - (web, api)               => false, because these have no wildcards
-// - (web, *)                 => true,  because "all services" includes "web"
-// - (default/web, default/*) => true,  because "all services in the default NS" includes "default/web"
-// - (default/*, */*)         => true,  "any service in any NS" includes "all services in the default NS"
+// - (web, api)               		=> false, because these have no wildcards
+// - (web, *)                 		=> true,  because "all services" includes "web"
+// - (default/web, default/*) 		=> true,  because "all services in the default NS" includes "default/web"
+// - (default/*, */*)         		=> true,  "any service in any NS" includes "all services in the default NS"
+// - (default/default/*, other/*/*) => false, "any service in "other" partition" does NOT include services in the default partition"
 func ixnSourceMatches(tester, against structs.ServiceName) bool {
 	// We assume that we can't have the same intention twice before arriving
 	// here.
@@ -505,13 +518,19 @@ func ixnSourceMatches(tester, against structs.ServiceName) bool {
 		return false
 	}
 
+	matchesAP := tester.PartitionOrDefault() == against.PartitionOrDefault() || against.PartitionOrDefault() == structs.WildcardSpecifier
 	matchesNS := tester.NamespaceOrDefault() == against.NamespaceOrDefault() || against.NamespaceOrDefault() == structs.WildcardSpecifier
 	matchesName := tester.Name == against.Name || against.Name == structs.WildcardSpecifier
-	return matchesNS && matchesName
+	return matchesAP && matchesNS && matchesName
 }
 
 // countWild counts the number of wildcard values in the given namespace and name.
 func countWild(src structs.ServiceName) int {
+	// If Partition is wildcard, panic because it's not supported
+	if src.PartitionOrDefault() == structs.WildcardSpecifier {
+		panic("invalid state: intention references wildcard partition")
+	}
+
 	// If NS is wildcard, it must be 2 since wildcards only follow exact
 	if src.NamespaceOrDefault() == structs.WildcardSpecifier {
 		return 2
@@ -546,7 +565,7 @@ func notPrincipal(id *envoy_rbac_v3.Principal) *envoy_rbac_v3.Principal {
 }
 
 func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
-	pattern := makeSpiffePattern(src.NamespaceOrDefault(), src.Name)
+	pattern := makeSpiffePattern(src.PartitionOrDefault(), src.NamespaceOrDefault(), src.Name)
 
 	return &envoy_rbac_v3.Principal{
 		Identifier: &envoy_rbac_v3.Principal_Authenticated_{
@@ -560,21 +579,41 @@ func idPrincipal(src structs.ServiceName) *envoy_rbac_v3.Principal {
 		},
 	}
 }
-func makeSpiffePattern(sourceNS, sourceName string) string {
-	const (
-		anyPath        = `[^/]+`
-		spiffeTemplate = `^spiffe://%s/ns/%s/dc/%s/svc/%s$`
-	)
-	switch {
-	case sourceNS != structs.WildcardSpecifier && sourceName != structs.WildcardSpecifier:
-		return fmt.Sprintf(spiffeTemplate, anyPath, sourceNS, anyPath, sourceName)
-	case sourceNS != structs.WildcardSpecifier && sourceName == structs.WildcardSpecifier:
-		return fmt.Sprintf(spiffeTemplate, anyPath, sourceNS, anyPath, anyPath)
-	case sourceNS == structs.WildcardSpecifier && sourceName == structs.WildcardSpecifier:
-		return fmt.Sprintf(spiffeTemplate, anyPath, anyPath, anyPath, anyPath)
-	default:
+
+func makeSpiffePattern(sourceAP, sourceNS, sourceName string) string {
+	if sourceNS == structs.WildcardSpecifier && sourceName != structs.WildcardSpecifier {
 		panic(fmt.Sprintf("not possible to have a wildcarded namespace %q but an exact service %q", sourceNS, sourceName))
 	}
+	if sourceAP == structs.WildcardSpecifier {
+		panic("not possible to have a wildcarded source partition")
+	}
+
+	const anyPath = `[^/]+`
+
+	// Match on any namespace or service if it is a wildcard, or on a specific value otherwise.
+	ns := sourceNS
+	if sourceNS == structs.WildcardSpecifier {
+		ns = anyPath
+	}
+
+	svc := sourceName
+	if sourceName == structs.WildcardSpecifier {
+		svc = anyPath
+	}
+
+	id := connect.SpiffeIDService{
+		Namespace: ns,
+		Service:   svc,
+
+		// Trust domain and datacenter are not verified by RBAC, so we match on any value.
+		Host:       anyPath,
+		Datacenter: anyPath,
+
+		// Partition can only ever be an exact value.
+		Partition: sourceAP,
+	}
+
+	return fmt.Sprintf(`^%s://%s%s$`, id.URI().Scheme, id.Host, id.URI().Path)
 }
 
 func anyPermission() *envoy_rbac_v3.Permission {

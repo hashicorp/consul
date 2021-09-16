@@ -911,6 +911,7 @@ func intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	return result, nil
 }
 
+// TODO(partitions): Update for partitions
 // intentionMatchGetParams returns the tx.Get parameters to find all the
 // intentions for a certain entry.
 func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {

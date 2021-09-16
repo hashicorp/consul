@@ -9,6 +9,7 @@ export default class BindingRule extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string', { defaultValue: () => '' }) Description;
   @attr('string') AuthMethod;
   @attr('string', { defaultValue: () => '' }) Selector;

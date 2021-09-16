@@ -1,44 +1,69 @@
-{{#if isAuthorized }}
-  {{page-title item.Name}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
-<AppView
-  @authorized={{isAuthorized}}
-  @enabled={{isEnabled}}
-  >
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-            <li><a data-test-back href={{href-to 'dc.acls.auth-methods'}}>All Auth Methods</a></li>
-        </ol>
-    </BlockSlot>
-    <BlockSlot @name="header">
-      <h1>
-      {{#if isAuthorized }}
-        {{item.Name}}
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/auth-method/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.id
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      {{#if (eq loader.error.status '401')}}
+        <Consul::Acl::Disabled />
       {{else}}
-        Access Controls
+        <AppError
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
       {{/if}}
-      </h1>
-      <Consul::AuthMethod::Type @item={{item}} />
     </BlockSlot>
-    <BlockSlot @name="nav">
-      <TabNav @items={{
-      compact
-        (array
-          (hash label="General info" href=(href-to "dc.acls.auth-methods.show.auth-method") selected=(is-href "dc.acls.auth-methods.show.auth-method"))
-    (if (env "CONSUL_NSPACES_ENABLED")
-          (hash label="Namespace rules" href=(href-to "dc.acls.auth-methods.show.nspace-rules") selected=(is-href "dc.acls.auth-methods.show.nspace-rules"))
-    '')
-          (hash label="Binding rules" href=(href-to "dc.acls.auth-methods.show.binding-rules") selected=(is-href "dc.acls.auth-methods.show.binding-rules"))
-        )
-      }}/>
+
+    <BlockSlot @name="loaded">
+{{#let
+  loader.data
+as |item|}}
+  <AppView>
+      <BlockSlot @name="breadcrumbs">
+          <ol>
+              <li><a data-test-back href={{href-to 'dc.acls.auth-methods'}}>All Auth Methods</a></li>
+          </ol>
+      </BlockSlot>
+      <BlockSlot @name="header">
+        <h1>
+          <route.Title @title={{item.Name}} />
+        </h1>
+        <Consul::AuthMethod::Type @item={{item}} />
+      </BlockSlot>
+      <BlockSlot @name="nav">
+        <TabNav @items={{
+          compact
+            (array
+              (hash label="General info" href=(href-to "dc.acls.auth-methods.show.auth-method") selected=(is-href "dc.acls.auth-methods.show.auth-method"))
+        (if (can "use nspaces")
+              (hash label="Namespace rules" href=(href-to "dc.acls.auth-methods.show.nspace-rules") selected=(is-href "dc.acls.auth-methods.show.nspace-rules"))
+        '')
+              (hash label="Binding rules" href=(href-to "dc.acls.auth-methods.show.binding-rules") selected=(is-href "dc.acls.auth-methods.show.binding-rules"))
+            )
+          }}
+        />
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <Outlet
+          @name={{routeName}}
+          @model={{hash
+            item=item
+          }}
+        as |o|>
+          {{outlet}}
+        </Outlet>
+      </BlockSlot>
+  </AppView>
+{{/let}}
     </BlockSlot>
-    <BlockSlot @name="content">
-      <Outlet
-        @name={{routeName}}
-      as |o|>
-        {{outlet}}
-      </Outlet>
-    </BlockSlot>
-</AppView>
+  </DataLoader>
+</Route>

@@ -1,8 +1,22 @@
-## DataSource
+# DataSource
+
+Use the `@dataSource` decorator in your repositories to define URI to async
+method mapping.
+
+```javascript
+class SomethingRepository extends Service {
+  @dataSource('/:partition/:nspace/:dc/services')
+  async youCouldCallItAnythingTodoWithGettingServices(params) {
+    console.log(params);
+    // {partition: "partition", nspace: "nspace", dc: "dc"}
+    return getTheThing(params);
+  }
+}
+```
 
 ```hbs preview-template
 <DataSource
-  @src="/nspace/dc/services"
+  @src="/partition/nspace/dc/services"
   @loading="eager"
   @disabled={{false}}
 as |source|>
@@ -12,7 +26,7 @@ as |source|>
 </DataSource>
 ```
 
-### Arguments
+## Attributes
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -34,14 +48,14 @@ Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `
 `DataSource` is not just restricted to HTTP API data, and can be configured to listen for data changes using a variety of methods and sources. For example we have also configured `DataSource` to listen to `LocalStorage` changes using the `settings://` pseudo-protocol in the URI (See examples below).
 
 
-### Examples
+## Examples
 
 Straightforward usage can use `mut` to easily update data within a template using an event handler approach.
 
 ```hbs
   {{! listen for HTTP API changes}}
   <DataSource
-    @src="/nspace/dc/services"
+    @src="/partition/nspace/dc/services"
     @onchange={{action (mut items) value="data"}}
     @onerror={{action (mut error) value="error"}}
   />
@@ -71,7 +85,7 @@ A property approach to easily update data within a template
 ```hbs
   {{! listen for HTTP API changes}}
   <DataSource
-    @src="/nspace/dc/services"
+    @src="/partition/nspace/dc/services"
   as |source|>
     {{#if source.error}}
       Something went wrong!
@@ -101,19 +115,19 @@ DataSources can also be recursively nested for loading in series as opposed to i
 
   {{! listen for HTTP API changes}}
   <DataSource
-    @src="/nspace/dc/services"
+    @src="/partition/nspace/dc/services"
     @onerror={{action (mut error) value="error"}}
   as |source|>
 
     <source.Source
-      @src="/nspace/dc/service/{{source.data.firstObject.Name}}"
+      @src="/partition/nspace/dc/service/{{source.data.firstObject.Name}}"
       @onerror={{action (mut error) value="error"}}
     as |source|>
 
       {{source.data.Service.Service.Name}} <== Detailed information for the first service
 
       <source.Source
-        @src="/nspace/dc/proxy/for-service/{{source.data.Service.ID}}"
+        @src="/partition/nspace/dc/proxy/for-service/{{source.data.Service.ID}}"
         @onerror={{action (mut error) value="error"}}
         @onchange={{action (mut loaded) true}}
       as |source|>
@@ -127,7 +141,7 @@ DataSources can also be recursively nested for loading in series as opposed to i
   </DataSource>
 ```
 
-### See
+## See
 
 - [Component Source Code](./index.js)
 - [Template Source Code](./index.hbs)

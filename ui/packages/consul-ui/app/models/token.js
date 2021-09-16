@@ -11,6 +11,7 @@ export default class Token extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string') IDPName;
   @attr('string') SecretID;
 

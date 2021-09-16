@@ -787,7 +787,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
 			}
 			if err := entry.Validate(); err != nil {
-				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %s", i, err)
+				return RuntimeConfig{}, fmt.Errorf("config_entries.bootstrap[%d]: %w", i, err)
 			}
 			configEntries = append(configEntries, entry)
 		}
@@ -1415,6 +1415,12 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			return fmt.Errorf("service %q: %s", s.Name, err)
 		}
 	}
+	// Check for errors in the node check definitions
+	for _, c := range rt.Checks {
+		if err := c.CheckType().Validate(); err != nil {
+			return fmt.Errorf("check %q: %w", c.Name, err)
+		}
+	}
 
 	// Validate the given Connect CA provider config
 	validCAProviders := map[string]bool{
@@ -1584,6 +1590,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
 		SuccessBeforePassing:           intVal(v.SuccessBeforePassing),
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
+		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),

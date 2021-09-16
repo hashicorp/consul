@@ -14,6 +14,7 @@ export default class Kv extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('number') LockIndex;
   @attr('number') Flags;
   @nullValue(undefined) @attr('string') Value;

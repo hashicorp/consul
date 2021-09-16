@@ -17,6 +17,9 @@
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
 ${env('CONSUL_NSPACES_ENABLE', false) ? `
             "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
 ` : `
