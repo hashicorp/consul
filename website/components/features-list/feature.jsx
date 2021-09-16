@@ -1,5 +1,5 @@
 import s from './style.module.css'
-import Link from 'next/link'
+import Button from '@hashicorp/react-button'
 
 export default function Feature({
   number,
@@ -24,12 +24,17 @@ export default function Feature({
               </div>
             ))}
           </div>
-          <Link href={cta.url}>
-            <a className={s.cta}>
-              <span>{cta.text}</span>
-              <img src="/img/icons/arrow.svg" alt="cta-arrow" />
-            </a>
-          </Link>
+          <div className={s.ctaContainer}>
+            <Button
+              title={cta.text}
+              url={cta.url}
+              linkType="inbound"
+              theme={{
+                brand: 'neutral',
+                variant: 'primary',
+              }}
+            />
+          </div>
         </div>
       </div>
       <div className={s.featureImage}>

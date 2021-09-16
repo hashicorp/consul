@@ -1,7 +1,6 @@
 import Head from 'next/head'
-import { features } from '../../data/consul-on-kubernetes'
-import FeaturesList from '../../components/features-list'
-// import s from './style.module.css'
+import { features } from 'data/consul-on-kubernetes'
+import FeaturesList from 'components/features-list'
 
 export default function ConsulOnKubernetesPage() {
   return (

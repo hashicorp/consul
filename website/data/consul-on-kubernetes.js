@@ -27,7 +27,7 @@ export const features = [
     ],
     cta: {
       text: 'Try It Now',
-      url: '/',
+      url: '#TODO',
     },
     image: '/img/features/multi-platform.png',
   },
@@ -59,7 +59,7 @@ export const features = [
     ],
     cta: {
       text: 'Try It Now',
-      url: '/',
+      url: '#TODO',
     },
     image: '/img/features/workflow.png',
   },
@@ -89,7 +89,7 @@ export const features = [
     ],
     cta: {
       text: 'Try It Now',
-      url: '/',
+      url: '#TODO',
     },
     image: '/img/features/observable.png',
   },
@@ -124,7 +124,7 @@ export const features = [
     ],
     cta: {
       text: 'Try It Now',
-      url: '/',
+      url: '#TODO',
     },
     image: '/img/features/secure.png',
   },
