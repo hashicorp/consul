@@ -678,6 +678,12 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	if query.DestinationNS == "" {
 		query.DestinationNS = entMeta.NamespaceOrDefault()
 	}
+	if query.SourcePartition == "" {
+		query.SourcePartition = entMeta.PartitionOrDefault()
+	}
+	if query.DestinationPartition == "" {
+		query.DestinationPartition = entMeta.PartitionOrDefault()
+	}
 
 	if err := s.srv.validateEnterpriseIntentionNamespace(query.SourceNS, false); err != nil {
 		return fmt.Errorf("Invalid source namespace %q: %v", query.SourceNS, err)
