@@ -35,3 +35,4 @@ func (d *EnterpriseACLResolverTestDelegate) UseTestLocalData(data []interface{})
 	}
 }
 func (d *EnterpriseACLResolverTestDelegate) UseDefaultData() {}
+func (d *EnterpriseACLResolverTestDelegate) Reset()          {}

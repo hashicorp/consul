@@ -511,6 +511,7 @@ func (d *ACLResolverTestDelegate) Reset() {
 	d.tokenCached = false
 	d.policyCached = false
 	d.roleCached = false
+	d.EnterpriseACLResolverTestDelegate.Reset()
 }
 
 var errRPC = fmt.Errorf("Induced RPC Error")
