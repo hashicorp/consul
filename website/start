@@ -1,1 +1,1 @@
-npx @hashicorp/docs-preview@docs-preview
+npx --yes @hashicorp/docs-preview@docs-preview
