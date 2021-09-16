@@ -1,5 +1,50 @@
 ## UNRELEASED
 
+SECURITY:
+
+* rpc: authorize raft requests [CVE-2021-37219](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-37219) [[GH-10925](https://github.com/hashicorp/consul/issues/10925)]
+
+FEATURES:
+
+* config: add agent config flag for enterprise clients to indicate they wish to join a particular partition [[GH-10572](https://github.com/hashicorp/consul/issues/10572)]
+* connect: include optional partition prefixes in SPIFFE identifiers [[GH-10507](https://github.com/hashicorp/consul/issues/10507)]
+* partitions: **(Enterprise only)** Adds admin partitions, a new feature to enhance Consul's multitenancy capabilites.
+* ui: Add UI support to use Vault as an external source for a service [[GH-10769](https://github.com/hashicorp/consul/issues/10769)]
+* ui: Adds a copy button to each composite row in tokens list page, if Secret ID returns an actual ID [[GH-10735](https://github.com/hashicorp/consul/issues/10735)]
+
+IMPROVEMENTS:
+
+* acl: replication routine to report the last error message. [[GH-10612](https://github.com/hashicorp/consul/issues/10612)]
+* api: Enable setting query options on agent health and maintenance endpoints. [[GH-10691](https://github.com/hashicorp/consul/issues/10691)]
+* checks: add failures_before_warning setting for interval checks. [[GH-10969](https://github.com/hashicorp/consul/issues/10969)]
+* config: **(Enterprise Only)** Allow specifying permission mode for audit logs. [[GH-10732](https://github.com/hashicorp/consul/issues/10732)]
+* config: add `dns_config.recursor_strategy` flag to control the order which DNS recursors are queried [[GH-10611](https://github.com/hashicorp/consul/issues/10611)]
+* connect/ca: cease including the common name field in generated x509 non-CA certificates [[GH-10424](https://github.com/hashicorp/consul/issues/10424)]
+* connect: Support manipulating HTTP headers in the mesh. [[GH-10613](https://github.com/hashicorp/consul/issues/10613)]
+* connect: update supported envoy versions to 1.18.4, 1.17.4, 1.16.5 [[GH-10961](https://github.com/hashicorp/consul/issues/10961)]
+* debug: Add a new /v1/agent/metrics/stream API endpoint for streaming of metrics [[GH-10399](https://github.com/hashicorp/consul/issues/10399)]
+* debug: rename cluster capture target to members, to be more consistent with the terms used by the API. [[GH-10804](https://github.com/hashicorp/consul/issues/10804)]
+* structs: prohibit config entries from referencing more than one partition at a time [[GH-10478](https://github.com/hashicorp/consul/issues/10478)]
+* telemetry: add a new `agent.tls.cert.expiry` metric for tracking when the Agent TLS certificate expires. [[GH-10768](https://github.com/hashicorp/consul/issues/10768)]
+* telemetry: add a new `mesh.active-root-ca.expiry` metric for tracking when the root certificate expires. [[GH-9924](https://github.com/hashicorp/consul/issues/9924)]
+
+DEPRECATIONS:
+
+* config: the `ports.grpc` and `addresses.grpc` configuration settings have been renamed to `ports.xds` and `addresses.xds` to better match their function. [[GH-10588](https://github.com/hashicorp/consul/issues/10588)]
+
+BUG FIXES:
+
+* api: Fix default values used for optional fields in autopilot configuration update (POST to `/v1/operator/autopilot/configuration`) [[GH-10558](https://github.com/hashicorp/consul/issues/10558)] [[GH-10559](https://github.com/hashicorp/consul/issues/10559)]
+* api: Revert early out errors from license APIs to allow v1.10+ clients to
+manage licenses on older servers [[GH-10952](https://github.com/hashicorp/consul/issues/10952)]
+* check root and intermediate CA expiry before using it to sign a leaf certificate. [[GH-10500](https://github.com/hashicorp/consul/issues/10500)]
+* connect/ca: ensure edits to the key type/bits for the connect builtin CA will regenerate the roots [[GH-10330](https://github.com/hashicorp/consul/issues/10330)]
+* connect/ca: require new vault mount points when updating the key type/bits for the vault connect CA provider [[GH-10331](https://github.com/hashicorp/consul/issues/10331)]
+* dns: return an empty answer when asked for an addr dns with type other then A and AAAA. [[GH-10401](https://github.com/hashicorp/consul/issues/10401)]
+* tls: consider presented intermediates during server connection tls handshake. [[GH-10964](https://github.com/hashicorp/consul/issues/10964)]
+* use the MaxQueryTime instead of RPCHoldTimeout for blocking RPC queries 
+ [[GH-8978](https://github.com/hashicorp/consul/pull/8978)]. [[GH-10299](https://github.com/hashicorp/consul/issues/10299)]
+
 ## 1.10.2 (August 27, 2021)
 
 KNOWN ISSUES:
