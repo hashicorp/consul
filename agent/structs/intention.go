@@ -331,7 +331,8 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
 	if ixn.DestinationName == "" {
 		// This is likely a strange form of legacy intention data validation
-		// that happened within the authorization check to be extra confusing.
+		// that happened within the authorization check, since intentions without
+		// a destination cannot be written.
 		// This may be able to be removed later.
 		return false
 	}
