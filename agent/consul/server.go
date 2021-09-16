@@ -672,6 +672,10 @@ func (s *Server) setupRaft() error {
 		}
 	}()
 
+	// Disable shutdown on removal for bootstrap or Dev Mode
+	if s.config.Bootstrap || s.config.DevMode {
+		s.config.RaftConfig.ShutdownOnRemove = false
+	}
 	var serverAddressProvider raft.ServerAddressProvider = nil
 	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
 		serverAddressProvider = s.serverLookup
