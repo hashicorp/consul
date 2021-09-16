@@ -566,20 +566,28 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Example Installation",
+            "title": "Example Installation on ECS Fargate",
             "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
+          },
+          {
+            "title": "Example Installation on ECS EC2",
+            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2"
           },
           {
             "title": "Requirements",
             "path": "ecs/get-started/requirements"
           },
           {
-            "title": "Install",
+            "title": "Installation",
             "path": "ecs/get-started/install"
           },
           {
             "title": "Production Installation",
             "path": "ecs/get-started/production-installation"
+          },
+          {
+            "title": "Migrate Existing Tasks",
+            "path": "ecs/get-started/migrate-existing-tasks"
           }
         ]
       },
