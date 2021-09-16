@@ -529,6 +529,9 @@ func DefaultConfig() *Config {
 	// 0.8.0 or later.
 	conf.RaftConfig.ProtocolVersion = 3
 
+	// Disable shutdown on removal
+	conf.RaftConfig.ShutdownOnRemove = false
+
 	// Check every 5 seconds to see if there are enough new entries for a snapshot, can be overridden
 	conf.RaftConfig.SnapshotInterval = 30 * time.Second
 
