@@ -1539,6 +1539,7 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: structs.IntentionDefaultNamespace,
+					Partition: acl.DefaultPartitionName,
 					Name:      "terminating-gateway",
 				},
 			},
@@ -1661,6 +1662,7 @@ service_prefix "terminating-gateway" { policy = "read" }
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: structs.IntentionDefaultNamespace,
+					Partition: acl.DefaultPartitionName,
 					Name:      "terminating-gateway",
 				},
 			},

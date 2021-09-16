@@ -577,6 +577,7 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 		Entries: []structs.IntentionMatchEntry{
 			{
 				Namespace: entMeta.NamespaceOrEmpty(),
+				Partition: entMeta.PartitionOrDefault(),
 				Name:      name,
 			},
 		},
