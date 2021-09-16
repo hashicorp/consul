@@ -1,0 +1,3 @@
+```release-note:bug
+only disable `ShutdownOnRemove` for -dev and -bootstrap modes.
+```
