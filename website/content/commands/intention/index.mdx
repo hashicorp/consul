@@ -52,6 +52,7 @@ $ consul intention create web db
 Create an intention to deny "db" from initiating connections to _any_ service:
 
 ```shell-session
+# Wrap "*" in quotes to prevent wildcard expansion by the shell
 $ consul intention create -deny db '*'
 Created: db => * (deny)
 ```

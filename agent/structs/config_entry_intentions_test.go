@@ -56,21 +56,21 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 		},
 		"no name": {
 			entry:       &ServiceIntentionsConfigEntry{},
-			validateErr: "Name is required",
+			validateErr: "Destination.Name: service name is required",
 		},
 		"dest name has partial wildcard": {
 			entry: &ServiceIntentionsConfigEntry{
 				Kind: ServiceIntentions,
 				Name: "test*",
 			},
-			validateErr: "Name: wildcard character '*' cannot be used with partial values",
+			validateErr: "Destination.Name: the wildcard character '*' must be used by itself, not in partial values (\"test*\")",
 		},
 		"empty": {
 			entry: &ServiceIntentionsConfigEntry{
 				Kind: ServiceIntentions,
 				Name: "test",
 			},
-			validateErr: "At least one source is required",
+			validateErr: "Sources: at least one source is required",
 		},
 		"source specified twice": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -87,7 +87,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[1] defines "` + fooName.String() + `" more than once`,
+			validateErr: `Sources[1]: defines "` + fooName.String() + `" more than once`,
 		},
 		"no source name": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -99,7 +99,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Name is required`,
+			validateErr: `Sources[0].Name: field is required`,
 		},
 		"source name has partial wildcard": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -112,7 +112,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Name: wildcard character '*' cannot be used with partial values`,
+			validateErr: `Sources[0].Name: the wildcard character '*' must be used by itself, not in partial values ("foo*")`,
 		},
 		"description too long": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -126,7 +126,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Description exceeds maximum length 512`,
+			validateErr: `Sources[0].Description: exceeds maximum length 512`,
 		},
 		"config entry meta not allowed on legacy writes": {
 			legacy: true,
@@ -146,7 +146,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					"key1": "val1",
 				},
 			},
-			validateErr: `Meta must be omitted for legacy intention writes`,
+			validateErr: `Meta: must be omitted for legacy intention writes`,
 		},
 		"config entry meta too many keys": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -160,7 +160,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				},
 				Meta: makeStringMap(65, 5, 5),
 			},
-			validateErr: `Meta exceeds maximum element count 64`,
+			validateErr: `exceeds maximum element count 64`,
 		},
 		"config entry meta key too large": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -221,7 +221,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Sources[0].LegacyMeta must be omitted",
+			validateErr: "Sources[0].LegacyMeta: must be omitted",
 		},
 		"legacy meta too many keys": {
 			legacy: true,
@@ -239,7 +239,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Meta exceeds maximum element count 64`,
+			validateErr: `Sources[0].Meta: exceeds maximum element count 64`,
 		},
 		"legacy meta key too large": {
 			legacy: true,
@@ -309,7 +309,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Sources[0].LegacyID must be set",
+			validateErr: "Sources[0].LegacyID: must be set",
 		},
 		"action required for L4": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -322,7 +322,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Action must be set to 'allow' or 'deny'`,
+			validateErr: `Sources[0].Action: must be set to 'allow' or 'deny'`,
 		},
 		"action must be allow or deny for L4": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -336,7 +336,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Action must be set to 'allow' or 'deny'`,
+			validateErr: `Sources[0].Action: must be set to 'allow' or 'deny'`,
 		},
 		"action must not be set for L7": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -356,7 +356,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Action must be omitted if Permissions are specified`,
+			validateErr: `Sources[0].Action: must be omitted if Permissions are specified`,
 		},
 		"permission action must be set": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -374,7 +374,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].Action must be set to 'allow' or 'deny'`,
+			validateErr: `Sources[0].Permissions[0].Action: must be set to 'allow' or 'deny'`,
 		},
 		"permission action must allow or deny": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -393,7 +393,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].Action must be set to 'allow' or 'deny'`,
+			validateErr: `Sources[0].Permissions[0].Action: must be set to 'allow' or 'deny'`,
 		},
 		"permission missing http": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -411,7 +411,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP is required`,
+			validateErr: `Sources[0].Permissions[0].HTTP: field is required`,
 		},
 		"permission has too many path components (1)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -434,7 +434,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP should only contain at most one of PathExact, PathPrefix, or PathRegex`,
+			validateErr: `Sources[0].Permissions[0].HTTP: should only contain at most one of PathExact, PathPrefix, or PathRegex`,
 		},
 		"permission has too many path components (2)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -457,7 +457,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP should only contain at most one of PathExact, PathPrefix, or PathRegex`,
+			validateErr: `Sources[0].Permissions[0].HTTP: should only contain at most one of PathExact, PathPrefix, or PathRegex`,
 		},
 		"permission has too many path components (3)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -480,7 +480,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP should only contain at most one of PathExact, PathPrefix, or PathRegex`,
+			validateErr: `Sources[0].Permissions[0].HTTP: should only contain at most one of PathExact, PathPrefix, or PathRegex`,
 		},
 		"permission has too many path components (4)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -503,7 +503,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP should only contain at most one of PathExact, PathPrefix, or PathRegex`,
+			validateErr: `Sources[0].Permissions[0].HTTP: should only contain at most one of PathExact, PathPrefix, or PathRegex`,
 		},
 		"permission has invalid path exact": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -524,7 +524,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.PathExact doesn't start with '/': "x"`,
+			validateErr: `Sources[0].Permissions[0].HTTP.PathExact: doesn't start with '/': "x"`,
 		},
 		"permission has invalid path prefix": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -545,7 +545,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.PathPrefix doesn't start with '/': "x"`,
+			validateErr: `Sources[0].Permissions[0].HTTP.PathPrefix: doesn't start with '/': "x"`,
 		},
 		"permission header missing name": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -568,7 +568,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] missing required Name field`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: missing required Name field`,
 		},
 		"permission header has too many parts (1)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -597,7 +597,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (2)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -626,7 +626,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (3)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -655,7 +655,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (4)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -684,7 +684,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (5)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -713,7 +713,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (6)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -742,7 +742,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (7)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -771,7 +771,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (8)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -800,7 +800,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (9)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -829,7 +829,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (10)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -858,7 +858,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission header has too many parts (11)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -887,7 +887,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Header[0] should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Header[0]: should only contain one of Present, Exact, Prefix, Suffix, or Regex`,
 		},
 		"permission invalid method": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -907,7 +907,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Methods contains an invalid method "YOINK"`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Methods: contains an invalid method "YOINK"`,
 		},
 		"permission repeated method": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -927,7 +927,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP.Methods contains "POST" more than once`,
+			validateErr: `Sources[0].Permissions[0].HTTP.Methods: contains "POST" more than once`,
 		},
 		"permission should not be empty (1)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -948,7 +948,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP should not be empty`,
+			validateErr: `Sources[0].Permissions[0].HTTP: should not be empty`,
 		},
 		"permission should not be empty (2)": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -966,7 +966,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions[0].HTTP should not be empty`,
+			validateErr: `Sources[0].Permissions[0].HTTP: should not be empty`,
 		},
 		"permission kitchen sink": {
 			entry: &ServiceIntentionsConfigEntry{
@@ -1018,7 +1018,7 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 					},
 				},
 			},
-			validateErr: `Sources[0].Permissions cannot be specified on intentions with wildcarded destinations`,
+			validateErr: `Sources[0].Permissions: cannot be specified on intentions with wildcarded destinations`,
 		},
 		"L4 normalize": {
 			entry: &ServiceIntentionsConfigEntry{

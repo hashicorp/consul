@@ -188,7 +188,7 @@ func TestIntentionValidate(t *testing.T) {
 				x.SourceNS = "*"
 				x.SourceName = "foo"
 			},
-			"follow wildcard",
+			"cannot be used with a wildcard ('*') namespace",
 		},
 
 		{
@@ -209,7 +209,7 @@ func TestIntentionValidate(t *testing.T) {
 				x.DestinationNS = "*"
 				x.DestinationName = "foo"
 			},
-			"follow wildcard",
+			"cannot be used with a wildcard ('*') namespace",
 		},
 
 		{

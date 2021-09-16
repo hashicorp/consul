@@ -230,35 +230,35 @@ func (x *Intention) Validate() error {
 	if x.SourceNS != WildcardSpecifier {
 		if strings.Contains(x.SourceNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
-				"SourceNS: wildcard character '*' cannot be used with partial values"))
+				"SourceNS: the wildcard character '*' must be used by itself, not in partial values (%q)", x.SourceNS))
 		}
 	}
 	if x.SourceName != WildcardSpecifier {
 		if strings.Contains(x.SourceName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
-				"SourceName: wildcard character '*' cannot be used with partial values"))
+				"SourceName: the wildcard character '*' must be used by itself, not in partial values (%q)", x.SourceName))
 		}
 
 		if x.SourceNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
-				"SourceName: exact value cannot follow wildcard namespace"))
+				"SourceName: a non-wildcard service name (%q) cannot be used with a wildcard ('*') namespace", x.SourceName))
 		}
 	}
 	if x.DestinationNS != WildcardSpecifier {
 		if strings.Contains(x.DestinationNS, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
-				"DestinationNS: wildcard character '*' cannot be used with partial values"))
+				"DestinationNS: the wildcard character '*' must be used by itself, not in partial values (%q)", x.DestinationNS))
 		}
 	}
 	if x.DestinationName != WildcardSpecifier {
 		if strings.Contains(x.DestinationName, WildcardSpecifier) {
 			result = multierror.Append(result, fmt.Errorf(
-				"DestinationName: wildcard character '*' cannot be used with partial values"))
+				"DestinationName: the wildcard character '*' must be used by itself, not in partial values (%q)", x.DestinationName))
 		}
 
 		if x.DestinationNS == WildcardSpecifier {
 			result = multierror.Append(result, fmt.Errorf(
-				"DestinationName: exact value cannot follow wildcard namespace"))
+				"DestinationName: a non-wildcard service name (%q) cannot be used with a wildcard ('*') namespace", x.DestinationName))
 		}
 	}
 

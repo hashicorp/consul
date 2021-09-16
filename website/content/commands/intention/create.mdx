@@ -65,3 +65,11 @@ Create intentions from a directory using shell expansion:
 ```shell-session
 $ consul intention create -file intentions/*.json
 ```
+
+<EnterpriseAlert inline /> Create an intention from any service in any namespace
+to the assets-public service in the default namespace:
+
+```shell-session
+# Wrap "*/*" in quotes to prevent wildcard expansion by the shell
+$ consul intention create "*/*" default/assets-public
+```

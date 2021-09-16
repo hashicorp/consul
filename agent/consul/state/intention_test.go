@@ -324,7 +324,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 			LegacyCreateTime: &testTimeA,
 			LegacyUpdateTime: &testTimeA,
 		},
-	}), `Sources[0].LegacyID must be set`)
+	}), `Sources[0].LegacyID: must be set`)
 
 	// Create intention and create config entry
 	{
