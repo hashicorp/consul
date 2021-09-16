@@ -59,6 +59,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: s.proxyID.NamespaceOrDefault(),
+					Partition: s.proxyID.PartitionOrDefault(),
 					Name:      s.proxyCfg.DestinationServiceName,
 				},
 			},

@@ -139,6 +139,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: structs.IntentionDefaultNamespace,
+					Partition: structs.IntentionDefaultNamespace,
 					Name:      "web",
 				},
 			},
