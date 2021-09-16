@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import { features } from '../../data/consul-on-kubernetes'
 import FeaturesList from '../../components/features-list'
 // import s from './style.module.css'
 
@@ -12,26 +13,7 @@ export default function ConsulOnKubernetesPage() {
       {/* hero */}
 
       <section>
-        <FeaturesList
-          title="Why Consul on Kubernetes"
-          features={[
-            {
-              title: '',
-              subtitle: '',
-              infoSections: [
-                {
-                  title: '',
-                  content: '',
-                },
-              ],
-              cta: {
-                text: '',
-                url: '',
-              },
-              image: '',
-            },
-          ]}
-        />
+        <FeaturesList title="Why Consul on Kubernetes" features={features} />
       </section>
 
       {/* features list section */}

@@ -1,0 +1,9 @@
+.root {
+  background-color: #000;
+  padding: 128px 190px 0 190px;
+  color: #fff;
+
+  & a {
+    color: #fff;
+  }
+}
