@@ -992,6 +992,9 @@ func (s *Server) Leave() error {
 
 	addr := s.raftTransport.LocalAddr()
 
+	// we are leaving the cluster, we should shut down our raft loop
+	s.config.RaftConfig.ShutdownOnRemove = true
+
 	// If we are the current leader, and we have any other peers (cluster has multiple
 	// servers), we should do a RemoveServer/RemovePeer to safely reduce the quorum size.
 	// If we are not the leader, then we should issue our leave intention and wait to be
