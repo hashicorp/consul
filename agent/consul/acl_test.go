@@ -2188,6 +2188,42 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		require.Equal(t, acl.Deny, authz.OperatorRead(nil))
 		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
 	})
+
+	runTwiceAndReset("service and intention wildcard write", func(t *testing.T) {
+		delegate.UseTestLocalData([]interface{}{
+			&structs.ACLToken{
+				AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
+				SecretID:   "with-intentions",
+				Policies: []structs.ACLTokenPolicyLink{
+					{ID: "ixn-write"},
+				},
+			},
+			&structs.ACLPolicy{
+				ID:          "ixn-write",
+				Name:        "ixn-write",
+				Description: "ixn-write",
+				Rules:       `service_prefix "" { policy = "write" intentions = "write" }`,
+				Syntax:      acl.SyntaxCurrent,
+				RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
+			},
+		})
+		authz, err := r.ResolveToken("with-intentions")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Allow, authz.ServiceRead("", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("bar", nil))
+		require.Equal(t, acl.Allow, authz.ServiceWrite("", nil))
+		require.Equal(t, acl.Allow, authz.ServiceWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceWrite("bar", nil))
+		require.Equal(t, acl.Allow, authz.IntentionRead("", nil))
+		require.Equal(t, acl.Allow, authz.IntentionRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.IntentionRead("bar", nil))
+		require.Equal(t, acl.Allow, authz.IntentionWrite("", nil))
+		require.Equal(t, acl.Allow, authz.IntentionWrite("foo", nil))
+		require.Equal(t, acl.Allow, authz.IntentionWrite("bar", nil))
+		require.Equal(t, acl.Deny, authz.NodeRead("server", nil))
+	})
 }
 
 func TestACLResolver_Legacy(t *testing.T) {
