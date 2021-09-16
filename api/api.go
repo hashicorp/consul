@@ -82,6 +82,15 @@ const (
 	HTTPPartitionEnvName = "CONSUL_PARTITION"
 )
 
+type StatusError struct {
+	Code int
+	Body string
+}
+
+func (e StatusError) Error() string {
+	return fmt.Sprintf("Unexpected response code: %d (%s)", e.Code, e.Body)
+}
+
 // QueryOptions are used to parameterize a query
 type QueryOptions struct {
 	// Namespace overrides the `default` namespace
@@ -1090,12 +1099,11 @@ func encodeBody(obj interface{}) (io.Reader, error) {
 
 // requireOK is used to wrap doRequest and check for a 200
 func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *http.Response, error) {
-	return requireHttpCodes(d, resp, e, []int{200})
+	return requireHttpCodes(d, resp, e, 200)
 }
 
 // requireHttpCodes checks for the "allowable" http codes for a response
-func requireHttpCodes(d time.Duration, resp *http.Response, e error, httpCodes []int) (time.Duration, *http.Response, error) {
-	// todo -- use HTTP codes for httpCodes and not ints
+func requireHttpCodes(d time.Duration, resp *http.Response, e error, httpCodes ...int) (time.Duration, *http.Response, error) {
 	if e != nil {
 		if resp != nil {
 			closeResponseBody(resp)
@@ -1140,7 +1148,7 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	closeResponseBody(resp)
 
 	trimmed := strings.TrimSpace(string(buf.Bytes()))
-	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, trimmed)
+	return StatusError{Code: resp.StatusCode, Body: trimmed}
 }
 
 func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
