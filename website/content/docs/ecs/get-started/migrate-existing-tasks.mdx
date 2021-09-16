@@ -1,0 +1,115 @@
+---
+layout: docs
+page_title: Migrate Existing Tasks - AWS ECS
+description: >-
+  Migrate Existing Tasks
+---
+
+# Migrate Existing Tasks
+
+This topic describes how to migrate your existing ECS Tasks to use our [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
+
+## Define Tasks in Terraform
+
+Your tasks must first be specified in Terraform using the [`ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition)
+resource so that they can then be converted to use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
+
+For example, your tasks should be defined with Terraform similar to the following:
+
+```hcl
+resource "aws_ecs_task_definition" "my_task" {
+  family                   = "my_task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = "arn:aws:iam::111111111111:role/execution-role"
+  task_role_arn            = "arn:aws:iam::111111111111:role/task-role"
+  container_definitions = jsonencode(
+    [{
+      name             = "example-client-app"
+      image            = "docker.io/org/my_task:v0.0.1"
+      essential        = true
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+      cpu         = 0
+      mountPoints = []
+      volumesFrom = []
+    }]
+  )
+}
+
+resource "aws_ecs_service" "my_task" {
+  name            = "my_task"
+  cluster         = "arn:aws:ecs:us-east-1:111111111111:cluster/my-cluster"
+  task_definition = aws_ecs_task_definition.my_task.arn
+  desired_count   = 1
+  network_configuration {
+    subnets = ["subnet-abc123"]
+  }
+  launch_type            = "FARGATE"
+}
+```
+
+## Convert to the `mesh-task` Module
+
+In order to add the necessary sidecar containers for your task to join the mesh,
+you must use the [`mesh-task` module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task).
+
+The `mesh-task` module uses inputs similar to your old ECS task definition but
+creates a new version of the task definition with additional containers.
+
+The `mesh-task` module is used as follows:
+
+```hcl
+module "my_task" {
+  source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  version = "<latest version>"
+
+  family                = "my_task"
+  container_definitions = [
+    {
+      name         = "example-client-app"
+      image        = "docker.io/org/my_task:v0.0.1"
+      essential    = true
+      portMappings = [
+        {
+          containerPort = 9090
+          hostPort      = 9090
+          protocol      = "tcp"
+        }
+      ]
+      cpu         = 0
+      mountPoints = []
+      volumesFrom = []
+    }
+  ]
+
+  port       = "9090"
+  retry_join = "<address of the Consul server>"
+}
+```
+
+The main differences are:
+
+- You must remove the `execution_role_arn` and `task_role_arn` fields. The `mesh-task` module will create the task and execution roles.
+- You must set the `port` field to the port that your application listens on.
+  If your application has no listening port, set `outbound_only = true` and remove the `port` field.
+- You must add the `retry_join` field. This specifies the location of your Consul servers so that your task can join the mesh.
+- You must remove the `jsonencode()` function from the `container_definitions` field.
+
+The `mesh-task` module will create a new version of your task definition with the
+necessary sidecar containers added so you can delete your existing `aws_ecs_task_definition`
+resource.
+
+## Next Steps
+
+Now that your task(s) are migrated to the `mesh-task` module,
+
+- Start at the [ECS Service section](/docs/ecs/get-started/install#ecs-service) of the Installation Guide to continue installing Consul on ECS.
+- Refer to the [`mesh-task` reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs) for all available inputs to your mesh tasks.
