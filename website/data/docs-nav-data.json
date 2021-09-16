@@ -582,6 +582,10 @@
             "path": "ecs/get-started/install"
           },
           {
+            "title": "Production Installation",
+            "path": "ecs/get-started/production-installation"
+          },
+          {
             "title": "Migrate Existing Tasks",
             "path": "ecs/get-started/migrate-existing-tasks"
           }
