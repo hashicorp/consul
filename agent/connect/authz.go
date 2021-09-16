@@ -18,7 +18,7 @@ func AuthorizeIntentionTarget(
 
 	switch matchType {
 	case structs.IntentionMatchDestination:
-		if ixn.DestinationPartition != targetAP {
+		if structs.PartitionOrDefault(ixn.DestinationPartition) != structs.PartitionOrDefault(targetAP) {
 			return false, false
 		}
 
@@ -33,7 +33,7 @@ func AuthorizeIntentionTarget(
 		}
 
 	case structs.IntentionMatchSource:
-		if ixn.SourcePartition != targetAP {
+		if structs.PartitionOrDefault(ixn.SourcePartition) != structs.PartitionOrDefault(targetAP) {
 			return false, false
 		}
 
