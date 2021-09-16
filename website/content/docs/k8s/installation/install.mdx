@@ -15,7 +15,11 @@ For pure-Kubernetes workloads, this enables Consul to also exist purely
 within Kubernetes. For heterogeneous workloads, Consul agents can join
 a server running inside or outside of Kubernetes.
 
-You can install Consul on Kubernetes using the Helm chart or by using the Consul K8s CLI tool <sup>ALPHA</sup>.
+You can install Consul on Kubernetes using the following methods:
+
+1. [Helm chart install](#helm-chart-installation)
+1. [Consul K8s CLI install <sup>ALPHA</sup>.](#consul-k8s-cli-installation)
+
 Refer to the [architecture](/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
 For a hands-on experience with Consul as a service mesh
 for Kubernetes, follow the [Getting Started with Consul service
@@ -72,11 +76,11 @@ hashicorp/consul	0.32.0       	1.10.0      Official HashiCorp Consul Chart
 
 1. Issue the following command to install Consul with the default configuration using Helm 3:
 
-```shell-session
-$ helm install consul hashicorp/consul --set global.name=consul
-NAME: consul
-...
-```
+````shell-session
+  $ helm install consul hashicorp/consul --set global.name=consul
+  NAME: consul
+  ...
+  ```
 
 The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment.
 After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent.
@@ -95,12 +99,12 @@ use the following config file:
 
 ```yaml
 global:
-  name: consul
+name: consul
 connectInject:
-  enabled: true
+enabled: true
 controller:
-  enabled: true
-```
+enabled: true
+````
 
 </CodeBlockConfig>
 

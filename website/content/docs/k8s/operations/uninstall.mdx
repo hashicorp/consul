@@ -100,7 +100,15 @@ Run the `helm delete` **and** manually remove resources that Helm does not delet
 Issue the `consul-k8s uninstall` command to remove Consul from Kubernetes.
 
 ```shell-session
-consul-k8s uninstall <OPTIONS>
+$ consul-k8s uninstall <OPTIONS>
 ```
 
-You can specify the specific installation name, namespace, etc. using the applicable options. Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli#uninstall) topic for details.
+You can specify the installation name, namespace, and data retention behavior using the applicable options.
+
+In the following example, Consul will be uninstalled and the data removed without prompting you to verify the operations:
+
+```shell-session
+$ consul-k8s uninstall -auto-approve=true -wipe-data=true
+```
+
+Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli#uninstall) topic for details.
