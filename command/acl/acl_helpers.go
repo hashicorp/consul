@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/pkg/errors"
 )
 
 func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error) {
@@ -71,23 +72,26 @@ func GetPolicyIDFromPartial(client *api.Client, partialID string) (string, error
 	return policyID, nil
 }
 
-func GetPolicyIDByName(client *api.Client, name string) (string, error) {
+func GetPolicyByName(client *api.Client, name string) (*api.ACLPolicy, error) {
 	if name == "" {
-		return "", fmt.Errorf("No name specified")
+		return nil, fmt.Errorf("No name specified")
 	}
 
-	policies, _, err := client.ACL().PolicyList(nil)
+	policy, _, err := client.ACL().PolicyReadByName(name, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find policy with name %s", name)
+	}
+
+	return policy, nil
+}
+
+func GetPolicyIDByName(client *api.Client, name string) (string, error) {
+	policy, err := GetPolicyByName(client, name)
 	if err != nil {
 		return "", err
 	}
 
-	for _, policy := range policies {
-		if policy.Name == name {
-			return policy.ID, nil
-		}
-	}
-
-	return "", fmt.Errorf("No such policy with name %s", name)
+	return policy.ID, nil
 }
 
 func GetRulesFromLegacyToken(client *api.Client, tokenID string, isSecret bool) (string, error) {
