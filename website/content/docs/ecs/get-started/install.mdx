@@ -62,7 +62,7 @@ however there are some important inputs worth highlighting:
   This is where you include application containers.
 - `port` is the port that your application listens on. This should be set to a
   string, not an integer, i.e. `port = "9090"`, not `port = 9090`.
-- `retry_join` is passed to the `-retry-join` option for the Consul agent. This tells
+- `retry_join` is passed to the [`-retry-join`](/docs/agent/options#_retry_join) option for the Consul agent. This tells
   the agent the location of your Consul server so that it can join the Consul cluster.
 
 To define an ECS service, reference the mesh-task module's `task_definition_arn` output value
@@ -91,10 +91,9 @@ proxy to listen on a different port for each upstream service your application
 needs to call. You then must modify your application to make requests to the sidecar
 proxy on that port.
 
-For example, say your application `web` wants to make calls to my other application
+For example, if your application `web` makes calls to another application called `backend`, then you would first configure the `mesh-task` module's upstream(s):
 `backend`.
 
-First, you must configure the `mesh-task` module's upstream(s):
 
 ```hcl
 module "web" {
