@@ -98,7 +98,8 @@ module "my_task" {
 The main differences are:
 
 - You must remove the `execution_role_arn` and `task_role_arn` fields. The `mesh-task` module will create the task and execution roles.
-- You must add the `port` field. This is the port that your application listens on.
+- You must set the `port` field to the port that your application listens on.
+  If your application has no listening port, set `outbound_only = true` and remove the `port` field.
 - You must add the `retry_join` field. This specifies the location of your Consul servers so that your task can join the mesh.
 - You must remove the `jsonencode()` function from the `container_definitions` field.
 
@@ -106,5 +107,9 @@ The `mesh-task` module will create a new version of your task definition with th
 necessary sidecar containers added so you can delete your existing `aws_ecs_task_definition`
 resource.
 
-Now that your task(s) are migrated to the `mesh-task` module, see the [Installation Guide](/docs/ecs/get-started/install) to continue installing
-Consul on ECS.
+## Next Steps
+
+Now that your task(s) are migrated to the `mesh-task` module,
+
+- Start at the [ECS Service section](/docs/ecs/get-started/install#ecs-service) of the Installation Guide to continue installing Consul on ECS.
+- Refer to the [`mesh-task` reference documentation](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task?tab=inputs) for all available inputs to your mesh tasks.
