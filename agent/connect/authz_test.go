@@ -11,12 +11,27 @@ func TestAuthorizeIntentionTarget(t *testing.T) {
 		name      string
 		target    string
 		targetNS  string
+		targetAP  string
 		ixn       *structs.Intention
 		matchType structs.IntentionMatchType
 		auth      bool
 		match     bool
 	}{
 		// Source match type
+		{
+			name:     "matching source target and namespace, but not partition",
+			target:   "db",
+			targetNS: structs.IntentionDefaultNamespace,
+			targetAP: "foo",
+			ixn: &structs.Intention{
+				SourceName:      "db",
+				SourceNS:        structs.IntentionDefaultNamespace,
+				SourcePartition: "not-foo",
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      false,
+			match:     false,
+		},
 		{
 			name:     "match exact source, not matching namespace",
 			target:   "web",
@@ -95,6 +110,20 @@ func TestAuthorizeIntentionTarget(t *testing.T) {
 		},
 
 		// Destination match type
+		{
+			name:     "matching destination target and namespace, but not partition",
+			target:   "db",
+			targetNS: structs.IntentionDefaultNamespace,
+			targetAP: "foo",
+			ixn: &structs.Intention{
+				SourceName:      "db",
+				SourceNS:        structs.IntentionDefaultNamespace,
+				SourcePartition: "not-foo",
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      false,
+			match:     false,
+		},
 		{
 			name:     "match exact destination, not matching namespace",
 			target:   "web",
@@ -188,7 +217,7 @@ func TestAuthorizeIntentionTarget(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			auth, match := AuthorizeIntentionTarget(tc.target, tc.targetNS, tc.ixn, tc.matchType)
+			auth, match := AuthorizeIntentionTarget(tc.target, tc.targetNS, tc.targetAP, tc.ixn, tc.matchType)
 			assert.Equal(t, tc.auth, auth)
 			assert.Equal(t, tc.match, match)
 		})

@@ -263,6 +263,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				id:          svc.String(),
 				name:        svc.Name,
 				namespace:   svc.NamespaceOrDefault(),
+				partition:   svc.PartitionOrDefault(),
 				datacenter:  s.source.Datacenter,
 				cfg:         cfg,
 				meshGateway: meshGateway,

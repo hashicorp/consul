@@ -3132,6 +3132,7 @@ func (s *Store) ServiceTopology(
 
 	matchEntry := structs.IntentionMatchEntry{
 		Namespace: entMeta.NamespaceOrDefault(),
+		Partition: entMeta.PartitionOrDefault(),
 		Name:      service,
 	}
 	_, srcIntentions, err := compatIntentionMatchOneTxn(
@@ -3147,7 +3148,16 @@ func (s *Store) ServiceTopology(
 	}
 
 	for _, un := range upstreamNames {
-		decision, err := s.IntentionDecision(un.Name, un.NamespaceOrDefault(), srcIntentions, structs.IntentionMatchDestination, defaultAllow, false)
+		opts := IntentionDecisionOpts{
+			Target:           un.Name,
+			Namespace:        un.NamespaceOrDefault(),
+			Partition:        un.PartitionOrDefault(),
+			Intentions:       srcIntentions,
+			MatchType:        structs.IntentionMatchDestination,
+			DefaultDecision:  defaultAllow,
+			AllowPermissions: false,
+		}
+		decision, err := s.IntentionDecision(opts)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
 				sn.String(), un.String(), err)
@@ -3256,7 +3266,16 @@ func (s *Store) ServiceTopology(
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
 	for _, dn := range downstreamNames {
-		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), dstIntentions, structs.IntentionMatchSource, defaultAllow, false)
+		opts := IntentionDecisionOpts{
+			Target:           dn.Name,
+			Namespace:        dn.NamespaceOrDefault(),
+			Partition:        dn.PartitionOrDefault(),
+			Intentions:       dstIntentions,
+			MatchType:        structs.IntentionMatchSource,
+			DefaultDecision:  defaultAllow,
+			AllowPermissions: false,
+		}
+		decision, err := s.IntentionDecision(opts)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
 				dn.String(), sn.String(), err)

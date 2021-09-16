@@ -11,13 +11,17 @@ import (
 // The return value of `auth` is only valid if the second value `match` is true.
 // If `match` is false, then the intention doesn't match this target and any result should be ignored.
 func AuthorizeIntentionTarget(
-	target, targetNS string,
+	target, targetNS, targetAP string,
 	ixn *structs.Intention,
 	matchType structs.IntentionMatchType,
 ) (auth bool, match bool) {
 
 	switch matchType {
 	case structs.IntentionMatchDestination:
+		if ixn.DestinationPartition != targetAP {
+			return false, false
+		}
+
 		if ixn.DestinationNS != structs.WildcardSpecifier && ixn.DestinationNS != targetNS {
 			// Non-matching namespace
 			return false, false
@@ -29,6 +33,10 @@ func AuthorizeIntentionTarget(
 		}
 
 	case structs.IntentionMatchSource:
+		if ixn.SourcePartition != targetAP {
+			return false, false
+		}
+
 		if ixn.SourceNS != structs.WildcardSpecifier && ixn.SourceNS != targetNS {
 			// Non-matching namespace
 			return false, false

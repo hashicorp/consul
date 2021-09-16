@@ -1204,6 +1204,7 @@ func TestStore_IntentionsList(t *testing.T) {
 //
 // Note that this doesn't need to test the intention sort logic exhaustively
 // since this is tested in their sort implementation in the structs.
+// TODO(partitions): Update for partition matching
 func TestStore_IntentionMatch_table(t *testing.T) {
 	type testCase struct {
 		Name     string
@@ -1391,6 +1392,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 
 // Equivalent to TestStore_IntentionMatch_table but for IntentionMatchOne which
 // matches a single service
+// TODO(partitions): Update for partition matching
 func TestStore_IntentionMatchOne_table(t *testing.T) {
 	type testCase struct {
 		Name     string
@@ -1869,11 +1871,22 @@ func TestStore_IntentionDecision(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			entry := structs.IntentionMatchEntry{
 				Namespace: structs.IntentionDefaultNamespace,
+				Partition: acl.DefaultPartitionName,
 				Name:      tc.src,
 			}
 			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
 			if err != nil {
 				require.NoError(t, err)
+			}
+
+			opts := s.IntentionDecisionOpts{
+				target:           tc.dst,
+				namespace:        structs.IntentionDefaultNamespace,
+				partition:        structs.IntentionDefaultNamespace,
+				intentions:       intentions,
+				matchType:        tc.matchType,
+				defaultDecision:  tc.defaultDecision,
+				allowPermissions: tc.allowPermissions,
 			}
 			decision, err := s.IntentionDecision(tc.dst, structs.IntentionDefaultNamespace, intentions, tc.matchType, tc.defaultDecision, tc.allowPermissions)
 			require.NoError(t, err)

@@ -721,18 +721,28 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	// which is much more important.
 	defaultDecision := authz.IntentionDefaultAllow(nil)
 
-	state := s.srv.fsm.State()
+	store := s.srv.fsm.State()
 
 	entry := structs.IntentionMatchEntry{
 		Namespace: query.SourceNS,
+		Partition: query.SourcePartition,
 		Name:      query.SourceName,
 	}
-	_, intentions, err := state.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+	_, intentions, err := store.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
 	if err != nil {
 		return fmt.Errorf("failed to query intentions for %s/%s", query.SourceNS, query.SourceName)
 	}
 
-	decision, err := state.IntentionDecision(query.DestinationName, query.DestinationNS, intentions, structs.IntentionMatchDestination, defaultDecision, false)
+	opts := state.IntentionDecisionOpts{
+		Target:           query.DestinationName,
+		Namespace:        query.DestinationNS,
+		Partition:        query.DestinationPartition,
+		Intentions:       intentions,
+		MatchType:        structs.IntentionMatchDestination,
+		DefaultDecision:  defaultDecision,
+		AllowPermissions: false,
+	}
+	decision, err := store.IntentionDecision(opts)
 	if err != nil {
 		return fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
 			query.SourceNS, query.SourceName, query.DestinationNS, query.DestinationName, err)
