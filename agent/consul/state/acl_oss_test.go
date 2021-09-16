@@ -172,3 +172,23 @@ func testIndexerTableACLBindingRules() map[string]indexerTestCase {
 		},
 	}
 }
+
+func testIndexerTableACLAuthMethods() map[string]indexerTestCase {
+	obj := &structs.ACLAuthMethod{
+		Name:           "ThEAuthMethod",
+		EnterpriseMeta: structs.EnterpriseMeta{},
+	}
+	encodedName := []byte{0x74, 0x68, 0x65, 0x61, 0x75, 0x74, 0x68, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x0}
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source:   obj.Name,
+				expected: encodedName,
+			},
+			write: indexValue{
+				source:   obj,
+				expected: encodedName,
+			},
+		},
+	}
+}
