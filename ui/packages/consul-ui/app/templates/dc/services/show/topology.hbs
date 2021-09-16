@@ -1,7 +1,31 @@
 <Route
   @name={{routeName}}
 as |route|>
-  <EventSource @src={{topology}} />
+  <DataLoader @src={{
+      uri '/${partition}/${nspace}/${dc}/topology/${name}/${kind}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+        kind=(or route.model.items.firstObject.Service.Kind '')
+      )
+  }} as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+  route.params.nspace
+  route.model.dc
+  route.model.items
+  loader.data
+as |nspace dc items topology|}}
   <div class="tab-section">
     {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not topology.DefaultAllow) (not topology.WildcardIntention))}}
       <EmptyState>
@@ -100,21 +124,36 @@ as |route|>
         {{/if}}
     {{/if}}
 
-
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/ui-config'
+        (hash
+          partition=route.params.partition
+          nspace=route.params.nspace
+          dc=route.params.dc
+        )
+      }}
+    as |config|>
+    {{#if config.data}}
       <TopologyMetrics
         @nspace={{nspace}}
         @dc={{dc.Name}}
         @service={{items.firstObject}}
         @topology={{topology}}
 
-        @metricsHref={{render-template urls.service (hash
+        @metricsHref={{render-template config.data.dashboard_url_templates.service (hash
           Datacenter=dc.Name
           Service=items.firstObject
         )}}
         @isRemoteDC={{not dc.Local}}
-        @hasMetricsProvider={{hasMetricsProvider}}
+        @hasMetricsProvider={{gt config.data.metrics_provider.length 0}}
         @oncreate={{route-action 'createIntention'}}
       />
     {{/if}}
+    </DataSource>
+
+    {{/if}}
   </div>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

@@ -5,12 +5,9 @@ import { tracked } from '@glimmer/tracking';
 
 export default class RouteComponent extends Component {
   @service('routlet') routlet;
+  @service('router') router;
 
   @tracked model;
-
-  get title() {
-    return this.args.title;
-  }
 
   get params() {
     return this.routlet.paramsFor(this.args.name);

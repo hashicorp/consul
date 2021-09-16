@@ -1,10 +1,29 @@
 <Route
   @name={{routeName}}
 as |route|>
-  <EventSource @src={{chain}} />
-  <div class="tab-section">
-    <Consul::DiscoveryChain
-      @chain={{chain.Chain}}
-    />
-  </div>
+  <DataLoader @src={{
+      uri '/${partition}/${nspace}/${dc}/discovery-chain/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+      )
+  }} as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+      <div class="tab-section">
+        <Consul::DiscoveryChain
+          @chain={{loader.data.Chain}}
+        />
+      </div>
+    </BlockSlot>
+  </DataLoader>
 </Route>

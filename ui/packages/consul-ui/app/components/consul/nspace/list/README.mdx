@@ -4,7 +4,7 @@ class: ember
 ## Consul::Nspace::List
 
 ```hbs
-<DataSource @src="/default/dc-1/namespaces" as |source|>
+<DataSource @src="/partition/default/dc-1/namespaces" as |source|>
   <Consul::Nspace::List
     @items={{source.data}}
     @ondelete={{action (noop)}}

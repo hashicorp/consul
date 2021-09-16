@@ -2,7 +2,7 @@ import Adapter from './application';
 
 // TODO: Update to use this.formatDatacenter()
 export default class DiscoveryChainAdapter extends Adapter {
-  requestForQueryRecord(request, { dc, ns, index, id, uri }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -11,7 +11,8 @@ export default class DiscoveryChainAdapter extends Adapter {
       X-Request-ID: ${uri}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;

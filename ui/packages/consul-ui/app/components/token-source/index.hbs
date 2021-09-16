@@ -1,7 +1,7 @@
 <StateChart @src={{chart}} @initial={{if (eq type 'oidc') 'provider' 'secret'}} as |State Guard Action dispatch state|>
   <Guard @name="isSecret" @cond={{action 'isSecret'}} />
   {{!-- This `or` can be completely removed post 1.10 as 1.10 has optional params with default values --}}
-  {{#let (concat '/' (or nspace '') '/' dc) as |path|}}
+  {{#let (concat '/' (or partition '') '/' (or nspace '') '/' dc) as |path|}}
     <State @matches="secret">
       <DataSource
         @src={{concat path '/token/self/' value}}

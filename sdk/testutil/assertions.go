@@ -14,6 +14,6 @@ func RequireErrorContains(t testing.TB, err error, expectedErrorMessage string) 
 		t.Fatal("An error is expected but got nil.")
 	}
 	if !strings.Contains(err.Error(), expectedErrorMessage) {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("expected err %v to contain %q", err, expectedErrorMessage)
 	}
 }

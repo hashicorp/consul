@@ -77,7 +77,13 @@
 {{#if (env 'CONSUL_SSO_ENABLED')}}
     {{!-- This `or` can be completely removed post 1.10 as 1.10 has optional params with default values --}}
     <DataSource
-      @src={{concat '/' (or nspace '') '/' dc '/oidc/providers'}}
+      @src={{uri '/${partition}/${nspace}/${dc}/oidc/providers'
+        (hash
+          partition=partition
+          nspace=(or nspace '')
+          dc=dc
+        )
+      }}
       @onchange={{queue (action (mut providers) value="data")}}
       @onerror={{queue (action (mut error) value="error.errors.firstObject")}}
       @loading="lazy"
@@ -96,9 +102,11 @@
 {{/if}}
   </div>
   <State @matches="loading">
+  {{!FIXME: default partition?}}
     <TokenSource
       @dc={{dc}}
       @nspace={{or value.Namespace nspace}}
+      @partition={{or value.Partition 'default'}}
       @type={{if value.Name 'oidc' 'secret'}}
       @value={{if value.Name value.Name value}}
       @onchange={{queue (action dispatch "RESET") (action onsubmit)}}

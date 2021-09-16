@@ -1,16 +1,18 @@
 <Route
   @name={{routeName}}
-  @title={{item.Service.ID}}
 as |route|>
-  <DataLoader as |loader|>
-
-    <BlockSlot @name="data">
-        <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
-      {{#if (not loader.error)}}
-        <EventSource @src={{proxy}} />
-        <EventSource @src={{proxyMeta}} />
-      {{/if}}
-    </BlockSlot>
+  <DataLoader
+    @src={{uri '/${partition}/${nspace}/${dc}/service-instance/${id}/${node}/${name}'
+        (hash
+          partition=route.params.partition
+          nspace=route.params.nspace
+          dc=route.params.dc
+          id=route.params.id
+          node=route.params.node
+          name=route.params.name
+        )
+      }}
+  as |loader|>
 
     <BlockSlot @name="error">
       <AppError
@@ -45,6 +47,45 @@ as |route|>
     </BlockSlot>
 
     <BlockSlot @name="loaded">
+{{#let
+
+  loader.data
+
+as |item|}}
+      {{#if item.IsOrigin}}
+        <DataSource
+          @src={{uri '/${partition}/${nspace}/${dc}/proxy-instance/${id}/${node}/${name}'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+              id=route.params.id
+              node=route.params.node
+              name=route.params.name
+            )
+          }}
+        as |meta|>
+          {{! We only really need meta to get the correct ServiceID }}
+          {{! but we may as well use the NodeName and ServiceName }}
+          {{! from meta also, but they should be the same as the instance }}
+          {{! so if we can ever get ServiceID from elsewhere we could save }}
+          {{! a HTTP request/long poll here }}
+          {{#if meta.data.ServiceID}}
+            <DataSource
+              @src={{uri '/${partition}/${nspace}/${dc}/proxy-service-instance/${id}/${node}/${name}'
+                (hash
+                  partition=route.params.partition
+                  nspace=route.params.nspace
+                  dc=route.params.dc
+                  id=meta.data.ServiceID
+                  node=meta.data.NodeName
+                  name=meta.data.ServiceName
+                )
+              }}
+              @onchange={{action (mut proxy) value="data"}}/>
+          {{/if}}
+        </DataSource>
+      {{/if}}
       <AppView>
           <BlockSlot @name="breadcrumbs">
               <ol>
@@ -54,7 +95,7 @@ as |route|>
           </BlockSlot>
           <BlockSlot @name="header">
             <h1>
-              {{ item.Service.ID }}
+              <route.Title @title={{item.Service.ID}} />
             </h1>
             <Consul::ExternalSource @item={{item}} />
             <Consul::Kind @item={{item}} @withInfo={{true}} />
@@ -97,12 +138,16 @@ as |route|>
               }}/>
             <Outlet
               @name={{routeName}}
-              @model={{route.model}}
+              @model={{assign (hash
+                proxy=proxy
+                item=item
+              ) route.model}}
             as |o|>
               {{outlet}}
             </Outlet>
           </BlockSlot>
       </AppView>
+{{/let}}
     </BlockSlot>
   </DataLoader>
 </Route>

@@ -2,28 +2,29 @@ import Adapter from './application';
 import isFolder from 'consul-ui/utils/isFolder';
 import keyToArray from 'consul-ui/utils/keyToArray';
 import { SLUG_KEY } from 'consul-ui/models/kv';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
 // TODO: Update to use this.formatDatacenter()
 const API_KEYS_KEY = 'keys';
 
 export default class KvAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, id, separator }) {
+  async requestForQuery(request, { dc, ns, partition, index, id, separator }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
-    return request`
+    const respond = await request`
       GET /v1/kv/${keyToArray(id)}?${{ [API_KEYS_KEY]: null, dc, separator }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
+    await respond((headers, body) => delete headers['x-consul-index']);
+    return respond;
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id }) {
+  async requestForQueryRecord(request, { dc, ns, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -31,7 +32,8 @@ export default class KvAdapter extends Adapter {
       GET /v1/kv/${keyToArray(id)}?${{ dc }}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;
@@ -41,8 +43,9 @@ export default class KvAdapter extends Adapter {
   // https://github.com/hashicorp/consul/issues/3804
   requestForCreateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
     };
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${params}
@@ -54,9 +57,10 @@ export default class KvAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
       flags: data.Flags,
-      ...this.formatNspace(data[NSPACE_KEY]),
     };
     return request`
       PUT /v1/kv/${keyToArray(data[SLUG_KEY])}?${params}
@@ -72,8 +76,9 @@ export default class KvAdapter extends Adapter {
       recurse = null;
     }
     const params = {
-      ...this.formatDatacenter(data[DATACENTER_KEY]),
-      ...this.formatNspace(data[NSPACE_KEY]),
+      dc: data.Datacenter,
+      ns: data.Namespace,
+      partition: data.Partition,
       recurse,
     };
     return request`

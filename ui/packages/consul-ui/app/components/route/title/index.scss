@@ -1,0 +1,6 @@
+%route-title {
+  @extend %visually-hidden;
+}
+.route-title {
+  @extend %route-title;
+}

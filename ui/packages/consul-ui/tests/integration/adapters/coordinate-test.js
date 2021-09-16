@@ -6,8 +6,9 @@ module('Integration | Adapter | coordinate', function(hooks) {
   test('requestForQuery returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:coordinate');
     const client = this.owner.lookup('service:client/http');
+    const request = client.requestParams.bind(client);
     const expected = `GET /v1/coordinate/nodes?dc=${dc}`;
-    const actual = adapter.requestForQuery(client.requestParams.bind(client), {
+    const actual = adapter.requestForQuery(request, {
       dc: dc,
     });
     assert.equal(`${actual.method} ${actual.url}`, expected);
@@ -15,10 +16,11 @@ module('Integration | Adapter | coordinate', function(hooks) {
   test('requestForQuery returns the correct body', function(assert) {
     const adapter = this.owner.lookup('adapter:coordinate');
     const client = this.owner.lookup('service:client/http');
+    const request = client.body.bind(client);
     const expected = {
       index: 1,
     };
-    const [actual] = adapter.requestForQuery(client.body, {
+    const [actual] = adapter.requestForQuery(request, {
       dc: dc,
       index: 1,
     });

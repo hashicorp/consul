@@ -2,10 +2,9 @@
   "AccessorID": "${location.pathname.get(3)}",
   "SecretID":"${fake.random.uuid()}",
   "IDPName": "${fake.hacker.noun()}",
-  "Namespace": "${
-    typeof location.search.ns !== 'undefined' ? location.search.ns :
-      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
-  }",
+${typeof location.search.ns !== 'undefined' ? `
+  "Namespace": "${location.search.ns}",
+` : ``}
   ${ location.pathname.get(3) === '00000000-0000-0000-0000-000000000002' ?
     `
       "Name": "${fake.hacker.noun()}",

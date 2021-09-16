@@ -513,10 +513,15 @@ func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDepreca
 	}
 	tagJSONs = append(tagJSONs, tags...)
 
-	// Default the namespace here since it is also done for cluster SNI
+	// Default the namespace and partition here since it is also done for cluster SNI
 	ns := args.Namespace
 	if ns == "" {
 		ns = api.IntentionDefaultNamespace
+	}
+
+	ap := args.Partition
+	if ap == "" {
+		ap = api.IntentionDefaultNamespace
 	}
 
 	// Add some default tags if not already overridden. Note this is a slice not a
@@ -539,6 +544,10 @@ func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDepreca
 		{
 			name: "consul.source.namespace",
 			val:  ns,
+		},
+		{
+			name: "consul.source.partition",
+			val:  ap,
 		},
 		{
 			name: "consul.source.datacenter",

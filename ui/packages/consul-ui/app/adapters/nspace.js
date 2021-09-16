@@ -3,29 +3,38 @@ import { SLUG_KEY } from 'consul-ui/models/nspace';
 
 // namespaces aren't categorized by datacenter, therefore no dc
 export default class NspaceAdapter extends Adapter {
-  requestForQuery(request, { index, uri }) {
+  requestForQuery(request, { dc, partition, index, uri }) {
     return request`
-      GET /v1/namespaces
+      GET /v1/namespaces?${{ dc }}
       X-Request-ID: ${uri}
 
-      ${{ index }}
+      ${{
+        partition,
+        index,
+      }}
     `;
   }
 
-  requestForQueryRecord(request, { index, id }) {
+  requestForQueryRecord(request, { dc, partition, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an name');
     }
     return request`
-      GET /v1/namespace/${id}
+      GET /v1/namespace/${id}?${{ dc }}
 
-      ${{ index }}
+      ${{
+        partition,
+        index,
+      }}
     `;
   }
 
   requestForCreateRecord(request, serialized, data) {
     return request`
-      PUT /v1/namespace/${data[SLUG_KEY]}
+      PUT /v1/namespace/${data[SLUG_KEY]}?${{
+      dc: data.Datacenter,
+      partition: data.Partition,
+    }}
 
       ${{
         Name: serialized.Name,
@@ -40,7 +49,10 @@ export default class NspaceAdapter extends Adapter {
 
   requestForUpdateRecord(request, serialized, data) {
     return request`
-      PUT /v1/namespace/${data[SLUG_KEY]}
+      PUT /v1/namespace/${data[SLUG_KEY]}?${{
+      dc: data.Datacenter,
+      partition: data.Partition,
+    }}
 
       ${{
         Description: serialized.Description,
@@ -54,7 +66,10 @@ export default class NspaceAdapter extends Adapter {
 
   requestForDeleteRecord(request, serialized, data) {
     return request`
-      DELETE /v1/namespace/${data[SLUG_KEY]}
+      DELETE /v1/namespace/${data[SLUG_KEY]}?${{
+      dc: data.Datacenter,
+      partition: data.Partition,
+    }}
     `;
   }
 }

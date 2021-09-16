@@ -1,9 +1,9 @@
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
-// if (true) {
-//   OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
-// }
-//
+if (env('CONSUL_PARTITIONS_ENABLED')) {
+  OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+}
+
 if (env('CONSUL_NSPACES_ENABLED')) {
   OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
@@ -165,7 +165,7 @@ export default class FSMWithOptionalLocation {
 
   optionalParams() {
     let optional = this.optional || {};
-    return Object.keys(OPTIONAL).reduce((prev, item) => {
+    return ['partition', 'nspace'].reduce((prev, item) => {
       let value = '';
       if (typeof optional[item] !== 'undefined') {
         value = optional[item].match;
@@ -193,9 +193,9 @@ export default class FSMWithOptionalLocation {
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }
-    // if (typeof hash.partition !== 'undefined') {
-    //   hash.partition = `-${hash.partition}`;
-    // }
+    if (typeof hash.partition !== 'undefined') {
+      hash.partition = `-${hash.partition}`;
+    }
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
     }
@@ -263,7 +263,7 @@ export default class FSMWithOptionalLocation {
         optional = undefined;
       }
       optional = Object.values(optional || this.optional || {});
-      optional = optional.map(item => item.value || item, []);
+      optional = optional.filter(item => Boolean(item)).map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

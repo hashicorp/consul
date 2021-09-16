@@ -1,7 +1,25 @@
 <Route
   @name={{routeName}}
 as |route|>
-  <EventSource @src={{sessions}} />
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/sessions/for-node/${node}'
+    (hash
+      partition=route.params.partition
+      nspace=route.params.nspace
+      dc=route.params.dc
+      node=route.params.name
+    )
+  }} as |api|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let api.data as |sessions|}}
   <div class="tab-section">
   {{#if (gt sessions.length 0)}}
       <Consul::LockSession::List
@@ -33,4 +51,7 @@ as |route|>
       </EmptyState>
   {{/if}}
   </div>
+{{/let}}
+  </BlockSlot>
+</DataLoader>
 </Route>

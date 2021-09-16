@@ -2330,17 +2330,17 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "check": { "name": "a", "args": ["/bin/true"] } }`,
-			`{ "check": { "name": "b", "args": ["/bin/false"] } }`,
+			`{ "check": { "name": "a", "args": ["/bin/true"], "interval": "1s" } }`,
+			`{ "check": { "name": "b", "args": ["/bin/false"], "interval": "1s" } }`,
 		},
 		hcl: []string{
-			`check = { name = "a" args = ["/bin/true"] }`,
-			`check = { name = "b" args = ["/bin/false"] }`,
+			`check = { name = "a" args = ["/bin/true"] interval = "1s"}`,
+			`check = { name = "b" args = ["/bin/false"] interval = "1s" }`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
-				{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
+				{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
+				{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2351,14 +2351,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true, "interval": "1s" } }`,
 		},
 		hcl: []string{
-			`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true interval = "1s" }`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
+				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2478,7 +2478,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"name": "y",
 							"DockerContainerID": "z",
 							"DeregisterCriticalServiceAfter": "10s",
-							"ScriptArgs": ["a", "b"]
+							"ScriptArgs": ["a", "b"],
+							"Interval": "2s"
 						}
 					}
 				}`,
@@ -2500,6 +2501,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
 						ScriptArgs = ["a", "b"]
+						Interval = "2s"
 					}
 				}`,
 		},
@@ -2517,12 +2519,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					EnableTagOverride: true,
 					Checks: []*structs.CheckType{
 						{
-							CheckID:                        types.CheckID("x"),
+							CheckID:                        "x",
 							Name:                           "y",
 							DockerContainerID:              "z",
 							DeregisterCriticalServiceAfter: 10 * time.Second,
 							ScriptArgs:                     []string{"a", "b"},
 							OutputMaxSize:                  checks.DefaultBufSize,
+							Interval:                       2 * time.Second,
 						},
 					},
 					Weights: &structs.Weights{
@@ -5299,7 +5302,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSServerName:                  "bdeb5f6a",
 				TLSSkipVerify:                  true,
 				Timeout:                        1813 * time.Second,
-				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			{
@@ -5326,7 +5328,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSServerName:                  "6adc3bfb",
 				TLSSkipVerify:                  true,
 				Timeout:                        18506 * time.Second,
-				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			{
@@ -5353,7 +5354,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSServerName:                  "7BdnzBYk",
 				TLSSkipVerify:                  true,
 				Timeout:                        5954 * time.Second,
-				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
@@ -5559,7 +5559,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "4f191d4F",
 						TLSSkipVerify:                  true,
 						Timeout:                        38333 * time.Second,
-						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
 				},
@@ -5611,30 +5610,14 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "f43ouY7a",
 						TLSSkipVerify:                  true,
 						Timeout:                        34738 * time.Second,
-						TTL:                            22773 * time.Second,
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
-						CheckID:    "UHsDeLxG",
-						Name:       "PQSaPWlT",
-						Notes:      "jKChDOdl",
-						Status:     "5qFz6OZn",
-						ScriptArgs: []string{"NMtYWlT9", "vj74JXsm"},
-						HTTP:       "1LBDJhw4",
-						Header: map[string][]string{
-							"cXPmnv1M": {"imDqfaBx", "NFxZ1bQe"},
-							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
-						},
-						Method:                         "wzByP903",
-						Body:                           "4I8ucZgZ",
+						CheckID:                        "UHsDeLxG",
+						Name:                           "PQSaPWlT",
+						Notes:                          "jKChDOdl",
+						Status:                         "5qFz6OZn",
 						OutputMaxSize:                  checks.DefaultBufSize,
-						TCP:                            "2exjZIGE",
-						H2PING:                         "jTDuR1DC",
-						Interval:                       5656 * time.Second,
-						DockerContainerID:              "5tDBWpfA",
-						Shell:                          "rlTpLM8s",
-						TLSServerName:                  "sOv5WTtp",
-						TLSSkipVerify:                  true,
 						Timeout:                        4868 * time.Second,
 						TTL:                            11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
@@ -5770,7 +5753,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "axw5QPL5",
 						TLSSkipVerify:                  true,
 						Timeout:                        18913 * time.Second,
-						TTL:                            44743 * time.Second,
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
@@ -5795,7 +5777,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "7uwWOnUS",
 						TLSSkipVerify:                  true,
 						Timeout:                        38282 * time.Second,
-						TTL:                            1181 * time.Second,
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
@@ -5820,7 +5801,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "ECSHk8WF",
 						TLSSkipVerify:                  true,
 						Timeout:                        38483 * time.Second,
-						TTL:                            10943 * time.Second,
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},

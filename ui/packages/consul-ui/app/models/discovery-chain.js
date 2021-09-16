@@ -8,6 +8,7 @@ export default class DiscoveryChain extends Model {
   @attr('string') ServiceName;
 
   @attr('string') Datacenter;
+  // FIXME: Does this need partition?
   @attr() Chain; // {}
   @attr() meta; // {}
 }

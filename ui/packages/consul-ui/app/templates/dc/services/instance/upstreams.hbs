@@ -20,9 +20,12 @@ as |route|>
       )
     )
 
-    proxy.Service.Proxy.Upstreams
+    route.params.dc
+    route.params.nspace
+    route.model.proxy
+    route.model.proxy.Service.Proxy.Upstreams
 
-  as |sort filters items|}}
+  as |sort filters dc nspace proxy items|}}
       {{#if (gt items.length 0)}}
         <input type="checkbox" id="toolbar-toggle" />
         <Consul::UpstreamInstance::SearchBar

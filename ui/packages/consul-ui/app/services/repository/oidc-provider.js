@@ -19,12 +19,12 @@ export default class OidcProviderService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/oidc/providers')
+  @dataSource('/:partition/:ns/:dc/oidc/providers')
   async findAllByDatacenter() {
     return super.findAllByDatacenter(...arguments);
   }
 
-  @dataSource('/:ns/:dc/oidc/provider/:id')
+  @dataSource('/:partition/:ns/:dc/oidc/provider/:id')
   async findBySlug(params) {
     // This addition is mainly due to ember-data book-keeping This is one of
     // the only places where Consul w/namespaces enabled doesn't return a
@@ -52,7 +52,7 @@ export default class OidcProviderService extends RepositoryService {
     });
   }
 
-  @dataSource('/:ns/:dc/oidc/authorize/:id/:code/:state')
+  @dataSource('/:partition/:ns/:dc/oidc/authorize/:id/:code/:state')
   authorize(params, configuration = {}) {
     return this.store.authorize(this.getModelName(), params);
   }

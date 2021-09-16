@@ -1,0 +1,13 @@
+<Route
+  @name={{routeName}}
+as |route|>
+{{#if route.model.tabs.topology}}
+  {{did-insert (route-action 'replaceWith' 'dc.services.show.topology')}}
+{{else if route.model.tabs.upstreams}}
+  {{did-insert (route-action 'replaceWith' 'dc.services.show.upstreams')}}
+{{else if route.model.tabs.services}}
+  {{did-insert (route-action 'replaceWith' 'dc.services.show.services')}}
+{{else}}
+  {{did-insert (route-action 'replaceWith' 'dc.services.show.instances')}}
+{{/if}}
+</Route>

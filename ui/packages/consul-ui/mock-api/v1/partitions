@@ -1,0 +1,30 @@
+{
+  "Partitions": [
+    {
+      "Name": "default",
+      "Description": "Builtin Default Partition"
+    }
+${range(
+      env(
+        'CONSUL_PARTITION_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_PARTITION_MAX', 10)
+          ) + parseInt(env('CONSUL_PARTITION_MIN', 1))
+        )
+      ) - 1
+).map(i => `
+${i === 0 ? `
+    ,
+` : ``}
+    {
+      "Name": "${fake.hacker.noun()}-partition-${i}",
+  ${fake.random.boolean() ? `
+      "Description": "${fake.lorem.sentence()}",
+  ` : ``}
+      "CreateIndex": 12,
+      "ModifyIndex": 16
+    }
+  `)}
+  ]
+}

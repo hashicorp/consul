@@ -1,6 +1,9 @@
 <Route
   @name={{routeName}}
 as |route|>
+{{#let
+  route.model.item
+as |item|}}
   <div class="tab-section">
     {{#if item.Service.TaggedAddresses }}
       <TabularCollection
@@ -29,4 +32,5 @@ as |route|>
       </p>
     {{/if}}
   </div>
+{{/let}}
 </Route>

@@ -1,10 +1,12 @@
 import { set, get } from '@ember/object';
+import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/intention';
 import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'intention';
 export default class IntentionRepository extends RepositoryService {
+  @service('env') env;
   managedByCRDs = false;
 
   getModelName() {
@@ -57,17 +59,29 @@ export default class IntentionRepository extends RepositoryService {
     return res;
   }
 
-  @dataSource('/:ns/:dc/intentions')
-  async findAllByDatacenter() {
-    return super.findAllByDatacenter(...arguments);
+  @dataSource('/:partition/:ns/:dc/intentions')
+  async findAll() {
+    return super.findAll(...arguments);
   }
 
-  @dataSource('/:ns/:dc/intention/:id')
-  async findBySlug() {
-    return super.findBySlug(...arguments);
+  @dataSource('/:partition/:ns/:dc/intention/:id')
+  async findBySlug(params) {
+    let item;
+    if (params.id === '') {
+      const defaultNspace = this.env.var('CONSUL_NSPACES_ENABLED') ? '*' : 'default';
+      item = await this.create({
+        SourceNS: params.nspace || defaultNspace,
+        DestinationNS: params.nspace || defaultNspace,
+        Datacenter: params.dc,
+        Partition: params.partition,
+      });
+    } else {
+      item = super.findBySlug(...arguments);
+    }
+    return item;
   }
 
-  @dataSource('/:ns/:dc/intentions/for-service/:id')
+  @dataSource('/:partition/:ns/:dc/intentions/for-service/:id')
   async findByService(params, configuration = {}) {
     const query = {
       dc: params.dc,

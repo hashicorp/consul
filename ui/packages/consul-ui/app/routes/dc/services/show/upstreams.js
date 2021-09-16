@@ -1,4 +1,4 @@
-import Route from './services';
+import Route from 'consul-ui/routing/route';
 
 export default class UpstreamsRoute extends Route {
   queryParams = {
@@ -13,5 +13,4 @@ export default class UpstreamsRoute extends Route {
       replace: true,
     },
   };
-  templateName = 'dc/services/show/upstreams';
 }

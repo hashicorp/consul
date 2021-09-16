@@ -30,6 +30,7 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.TTL = s.TTL
 	t.SuccessBeforePassing = int(s.SuccessBeforePassing)
 	t.FailuresBeforeCritical = int(s.FailuresBeforeCritical)
+	t.FailuresBeforeWarning = int(s.FailuresBeforeWarning)
 	t.ProxyHTTP = s.ProxyHTTP
 	t.ProxyGRPC = s.ProxyGRPC
 	t.DeregisterCriticalServiceAfter = s.DeregisterCriticalServiceAfter
@@ -62,6 +63,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.TTL = t.TTL
 	s.SuccessBeforePassing = int32(t.SuccessBeforePassing)
 	s.FailuresBeforeCritical = int32(t.FailuresBeforeCritical)
+	s.FailuresBeforeWarning = int32(t.FailuresBeforeWarning)
 	s.ProxyHTTP = t.ProxyHTTP
 	s.ProxyGRPC = t.ProxyGRPC
 	s.DeregisterCriticalServiceAfter = t.DeregisterCriticalServiceAfter

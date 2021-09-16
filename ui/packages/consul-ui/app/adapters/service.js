@@ -1,8 +1,7 @@
 import Adapter from './application';
 
-// TODO: Update to use this.formatDatacenter()
 export default class ServiceAdapter extends Adapter {
-  requestForQuery(request, { dc, ns, index, gateway, uri }) {
+  requestForQuery(request, { dc, ns, partition, index, gateway, uri }) {
     if (typeof gateway !== 'undefined') {
       return request`
         GET /v1/internal/ui/gateway-services-nodes/${gateway}?${{ dc }}
@@ -10,7 +9,8 @@ export default class ServiceAdapter extends Adapter {
         X-Request-ID: ${uri}
 
         ${{
-          ...this.formatNspace(ns),
+          ns,
+          partition,
           index,
         }}
       `;
@@ -20,14 +20,15 @@ export default class ServiceAdapter extends Adapter {
         X-Request-ID: ${uri}
 
         ${{
-          ...this.formatNspace(ns),
+          ns,
+          partition,
           index,
         }}
     `;
     }
   }
 
-  requestForQueryRecord(request, { dc, ns, index, id, uri }) {
+  requestForQueryRecord(request, { dc, ns, partition, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -36,7 +37,8 @@ export default class ServiceAdapter extends Adapter {
       X-Request-ID: ${uri}
 
       ${{
-        ...this.formatNspace(ns),
+        ns,
+        partition,
         index,
       }}
     `;

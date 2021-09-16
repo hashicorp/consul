@@ -10,5 +10,6 @@ export default class Coordinate extends Model {
   @attr() Coord; // {Vec, Error, Adjustment, Height}
   @attr('string') Segment;
   @attr('string') Datacenter;
+  @attr('string') Partition;
   @attr('number') SyncTime;
 }

@@ -1,6 +1,5 @@
-import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
+import Adapter from './application';
 import { get } from '@ember/object';
-import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
 // Intentions have different namespacing to the rest of the UI in that the don't
 // have a Namespace property, the DestinationNS is essentially its namespace.
@@ -22,7 +21,8 @@ export default class IntentionAdapter extends Adapter {
     }
 
       ${{
-        ...this.formatNspace('*'),
+        partition: '',
+        ns: '*',
         index,
         filter,
       }}
@@ -76,7 +76,7 @@ export default class IntentionAdapter extends Adapter {
       PUT /v1/connect/intentions/exact?${{
         source: `${data.SourceNS}/${data.SourceName}`,
         destination: `${data.DestinationNS}/${data.DestinationName}`,
-        [API_DATACENTER_KEY]: data[DATACENTER_KEY],
+        dc: data.Datacenter,
       }}
 
       ${body}
@@ -95,7 +95,7 @@ export default class IntentionAdapter extends Adapter {
       DELETE /v1/connect/intentions/exact?${{
         source: `${data.SourceNS}/${data.SourceName}`,
         destination: `${data.DestinationNS}/${data.DestinationName}`,
-        [API_DATACENTER_KEY]: data[DATACENTER_KEY],
+        dc: data.Datacenter,
       }}
     `;
   }
