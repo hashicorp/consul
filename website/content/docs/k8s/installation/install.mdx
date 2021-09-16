@@ -70,8 +70,7 @@ NAME            	CHART VERSION	APP VERSION	DESCRIPTION
 hashicorp/consul	0.32.0       	1.10.0      Official HashiCorp Consul Chart
 ```
 
-Now you're ready to install Consul! To install Consul with the default
-configuration using Helm 3 run:
+1. Issue the following command to install Consul with the default configuration using Helm 3:
 
 ```shell-session
 $ helm install consul hashicorp/consul --set global.name=consul
@@ -80,7 +79,7 @@ NAME: consul
 ```
 
 The Helm chart does everything to set up a recommended Consul-on-Kubernetes deployment.
-After installation, a Consul cluster will be formed, a will be leader elected, and every node will have a running Consul agent.
+After installation, a Consul cluster will be formed, a leader will be elected, and every node will have a running Consul agent.
 
 ### Customizing Your Installation
 

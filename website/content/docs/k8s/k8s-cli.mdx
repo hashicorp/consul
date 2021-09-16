@@ -14,12 +14,18 @@ This topic describes the commands, subcommands, and available options for using 
 
 ## Download and Build the Binary
 
-1. Clone the [consul-k8s-cli](https://github.com/hashicorp/consul-k8s-cli) project.
-1. Navigate to the `consul-k8s-cli` directory and issue the following command to build the tool:
+1. Clone the [consul-k8s](https://github.com/hashicorp/consul-k8s/tree/cli-install/cli) project.
+1. Navigate to the `consul-k8s/cli` directory and issue the following command to build the tool:
 
    ```shell-session
-   go build -o bin/consul-k8s
+   go build .
    ```
+
+1. (Optional) Move the binary to you `$PATH` for ease of use, e.g.:
+
+```shell-session
+mv consul-k8s /usr/local/bin/consul-k8s
+```
 
 ## Usage
 
@@ -47,7 +53,7 @@ The following options are available.
 | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | -------- |
 | `-auto-approve` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Boolean value that enables you to skip the installation confirmation prompt.                                                                                                                                                                                                                                                                                                          | `false`                                 | Optional |
 | `-dry-run`                                                                                                                                    | Boolean value that validates the installation and returns a summary.                                                                                                                                                                                                                                                                                                                  | `false`                                 | Optional |
-| `-name`                                                                                                                                       | String value for the name of the installation. The specified value will be prefixed to resources installed on the cluster.                                                                                                                                                                                                                                                            | none                                    | Optional |
+| `-config-file`                                                                                                                                | String value that specifies the path to a file containing custom installation configurations, e.g., Consul Helm chart values file. <br/> You can use the `-config-file` flag multiple times to specify multiple files.                                                                                                                                                                | none                                    | Optional |
 | `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation.                                                                                                                                                                                                                                                                                                                 | `consul`                                | Optional |
 | `-preset`                                                                                                                                     | String value that installs Consul based on a preset configuration. You can specify the following values: <br/> `demo`: Installs a single replica server with sidecar injection enabled; useful for testing service mesh functionality. <br/> `secure`: Installs a single replica server with sidecar injection, ACLs, and TLS enabled; useful for testing service mesh functionality. | Configuration of the Consul Helm chart. | Optional |
 | `-set`                                                                                                                                        | String value that enables you to set a customizeable value. <br/> You can use the `-set` flag multiple times to set multiple values. <br/> Consul Helm chart values are supported.                                                                                                                                                                                                    | none                                    | Optional |
