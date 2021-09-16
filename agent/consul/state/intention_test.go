@@ -1879,16 +1879,16 @@ func TestStore_IntentionDecision(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			opts := s.IntentionDecisionOpts{
-				target:           tc.dst,
-				namespace:        structs.IntentionDefaultNamespace,
-				partition:        structs.IntentionDefaultNamespace,
-				intentions:       intentions,
-				matchType:        tc.matchType,
-				defaultDecision:  tc.defaultDecision,
-				allowPermissions: tc.allowPermissions,
+			opts := IntentionDecisionOpts{
+				Target:           tc.dst,
+				Namespace:        structs.IntentionDefaultNamespace,
+				Partition:        acl.DefaultPartitionName,
+				Intentions:       intentions,
+				MatchType:        tc.matchType,
+				DefaultDecision:  tc.defaultDecision,
+				AllowPermissions: tc.allowPermissions,
 			}
-			decision, err := s.IntentionDecision(tc.dst, structs.IntentionDefaultNamespace, intentions, tc.matchType, tc.defaultDecision, tc.allowPermissions)
+			decision, err := s.IntentionDecision(opts)
 			require.NoError(t, err)
 			require.Equal(t, tc.expect, decision)
 		})
