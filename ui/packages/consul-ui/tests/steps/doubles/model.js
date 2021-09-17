@@ -7,6 +7,9 @@ export default function(scenario, create, set, win = window, doc = document) {
       return create(number, model);
     })
     .given(['$number $model model[s]? with the value "$value"'], function(number, model, value) {
+      if (model === 'dc') {
+        doc.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
+      }
       return create(number, model, value);
     })
     .given(
