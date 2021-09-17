@@ -499,7 +499,7 @@ func (t *xDSDeltaType) Recv(req *envoy_discovery_v3.DeltaDiscoveryRequest) bool 
 			"resources", req.InitialResourceVersions)
 		t.resourceVersions = req.InitialResourceVersions
 		if !t.wildcard {
-			for k, _ := range req.InitialResourceVersions {
+			for k := range req.InitialResourceVersions {
 				t.subscriptions[k] = struct{}{}
 			}
 		}
@@ -727,7 +727,7 @@ func (t *xDSDeltaType) createDeltaResponse(
 		}
 
 		// Now find new things not in envoy yet
-		for name, _ := range t.subscriptions {
+		for name := range t.subscriptions {
 			if _, known := t.resourceVersions[name]; known {
 				continue
 			}
