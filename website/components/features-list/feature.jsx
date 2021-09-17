@@ -1,5 +1,5 @@
-import s from './style.module.css'
 import Button from '@hashicorp/react-button'
+import s from './style.module.css'
 
 export default function Feature({
   number,
@@ -11,6 +11,7 @@ export default function Feature({
 }) {
   return (
     <div className={s.featureContainer}>
+      <img src={image} alt={title} />
       <div className={s.featureTextContainer}>
         <span className={s.listNumber}>{number}</span>
         <div className={s.featureText}>
@@ -37,7 +38,6 @@ export default function Feature({
           </div>
         </div>
       </div>
-      <img src={image} alt={title} />
     </div>
   )
 }
