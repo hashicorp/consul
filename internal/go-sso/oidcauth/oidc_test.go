@@ -27,6 +27,7 @@ func setupForOIDC(t *testing.T) (*Authenticator, *oidcauthtest.Server) {
 		OIDCDiscoveryCACert: srv.CACert(),
 		OIDCClientID:        "abc",
 		OIDCClientSecret:    "def",
+		OIDCACRValues:       []string{"acr1", "acr2"},
 		JWTSupportedAlgs:    []string{"ES256"},
 		BoundAudiences:      []string{"abc"},
 		AllowedRedirectURIs: []string{"https://example.com"},
@@ -43,6 +44,7 @@ func setupForOIDC(t *testing.T) (*Authenticator, *oidcauthtest.Server) {
 			"/nested/Groups": "groups",
 		},
 	}
+
 	require.NoError(t, config.Validate())
 
 	oa, err := New(config, hclog.NewNullLogger())
@@ -72,6 +74,8 @@ func TestOIDC_AuthURL(t *testing.T) {
 			"redirect_uri":  "https://example.com",
 			"response_type": "code",
 			"scope":         "openid",
+			// optional values
+			"acr_values": "acr1 acr2",
 		}
 
 		au, err := url.Parse(authURL)
