@@ -1,0 +1,15 @@
+.ckHero {
+  background-position: top right;
+  background-repeat: no-repeat;
+  composes: g-hero from global;
+
+  & .headline {
+    max-width: 384px;
+
+    & .inboundButton {
+      &::before {
+        background: transparent !important;
+      }
+    }
+  }
+}
