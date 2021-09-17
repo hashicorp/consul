@@ -100,6 +100,7 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 			Resources: makeTestResources(t,
 				makeTestEndpoints(t, snap, "tcp:db"),
 				// SAME_AS_INITIAL_VERSION: makeTestEndpoints(t, snap, "tcp:geo-cache"),
+				// SAME_AS_INITIAL_VERSION: "fake-endpoints",
 			),
 		})
 
@@ -123,23 +124,11 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 			),
 		})
 
-		// cleanup unused resources now that we've created/updated relevant things
-		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-			TypeUrl: EndpointType,
-			Nonce:   hexString(4),
-			RemovedResources: []string{
-				"fake-endpoints", // correcting the errant subscription
-			},
-		})
-
 		// And no other response yet
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 
 		// ACKs the listener
 		envoy.SendDeltaReqACK(t, ListenerType, 3)
-
-		// ACK the endpoint removal
-		envoy.SendDeltaReqACK(t, EndpointType, 4)
 
 		// If we re-subscribe to something even if there are no changes we get a
 		// fresh copy.
@@ -151,13 +140,13 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: EndpointType,
-			Nonce:   hexString(5),
+			Nonce:   hexString(4),
 			Resources: makeTestResources(t,
 				makeTestEndpoints(t, snap, "tcp:geo-cache"),
 			),
 		})
 
-		envoy.SendDeltaReqACK(t, EndpointType, 5)
+		envoy.SendDeltaReqACK(t, EndpointType, 4)
 
 		// And no other response yet
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
@@ -202,13 +191,13 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		})
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: EndpointType,
-			Nonce:   hexString(6),
+			Nonce:   hexString(5),
 			Resources: makeTestResources(t,
 				makeTestEndpoints(t, snap, "tcp:db"),
 			),
 		})
 
-		envoy.SendDeltaReqACK(t, EndpointType, 6)
+		envoy.SendDeltaReqACK(t, EndpointType, 5)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})
@@ -222,24 +211,24 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_TCP(t *testing.T) {
 		// Send envoy an EDS update.
 		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 			TypeUrl: EndpointType,
+			Nonce:   hexString(6),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db[0]"),
+			),
+		})
+
+		envoy.SendDeltaReqNACK(t, EndpointType, 6, &rpcstatus.Status{})
+
+		// Send it again.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
 			Nonce:   hexString(7),
 			Resources: makeTestResources(t,
 				makeTestEndpoints(t, snap, "tcp:db[0]"),
 			),
 		})
 
-		envoy.SendDeltaReqNACK(t, EndpointType, 7, &rpcstatus.Status{})
-
-		// Send it again.
-		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
-			TypeUrl: EndpointType,
-			Nonce:   hexString(8),
-			Resources: makeTestResources(t,
-				makeTestEndpoints(t, snap, "tcp:db[0]"),
-			),
-		})
-
-		envoy.SendDeltaReqACK(t, EndpointType, 8)
+		envoy.SendDeltaReqACK(t, EndpointType, 7)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
 	})

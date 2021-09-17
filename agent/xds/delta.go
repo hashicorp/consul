@@ -719,14 +719,10 @@ func (t *xDSDeltaType) createDeltaResponse(
 						updates[name] = PendingUpdate{Version: currVers}
 					}
 				} else {
-					// TODO: should we do anything; this might be an eventual consistency hole
-					// i guess we'll let it ride?
+					// Should we do anything here? This might be an eventual
+					// consistency issue, but it's unclear what we could do
+					// other than just wait until it resolves.
 				}
-			} else {
-				if remove {
-					hasRelevantUpdates = true
-				}
-				updates[name] = PendingUpdate{Remove: true}
 			}
 		}
 
@@ -742,7 +738,9 @@ func (t *xDSDeltaType) createDeltaResponse(
 					hasRelevantUpdates = true
 				}
 			} else {
-				// TODO: should we do anything here? or should we just wait and see?
+				// Should we do anything here? This might be an eventual
+				// consistency issue, but it's unclear what we could do
+				// other than just wait until it resolves.
 			}
 		}
 	}
