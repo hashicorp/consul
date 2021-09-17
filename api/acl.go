@@ -333,6 +333,7 @@ type OIDCAuthMethodConfig struct {
 	OIDCClientID        string   `json:",omitempty"`
 	OIDCClientSecret    string   `json:",omitempty"`
 	OIDCScopes          []string `json:",omitempty"`
+	OIDCACRValues       []string `json:",omitempty"`
 	AllowedRedirectURIs []string `json:",omitempty"`
 	VerboseOIDCLogging  bool     `json:",omitempty"`
 	// just for type=jwt
@@ -360,6 +361,7 @@ func (c *OIDCAuthMethodConfig) RenderToConfig() map[string]interface{} {
 		"OIDCClientID":        c.OIDCClientID,
 		"OIDCClientSecret":    c.OIDCClientSecret,
 		"OIDCScopes":          c.OIDCScopes,
+		"OIDCACRValues":       c.OIDCACRValues,
 		"AllowedRedirectURIs": c.AllowedRedirectURIs,
 		"VerboseOIDCLogging":  c.VerboseOIDCLogging,
 		// just for type=jwt
