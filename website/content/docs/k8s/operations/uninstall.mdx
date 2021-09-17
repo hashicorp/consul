@@ -10,18 +10,17 @@ You can uninstall Consul using Helm commands or the Consul K8s CLI.
 
 ## Helm commands
 
-Run the `helm delete` **and** manually remove resources that Helm does not delete.
+Run the `helm uninstall` **and** manually remove resources that Helm does not delete.
 
-1. First, run `helm delete`:
+1. First, run `helm uninstall`:
 
    ```shell-session
-   $ helm delete hashicorp
+   $ helm uninstall hashicorp
    release "hashicorp" uninstalled
    ```
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
-   for the persistent volumes that store Consul's data. These are not deleted by Helm due to a [bug](https://github.com/helm/helm/issues/5156).
-   To delete, run:
+   for the persistent volumes that store Consul's data. A [bug](https://github.com/helm/helm/issues/5156) in Helm prevents PVCs from being deleted. Issue the following commands:
 
    ```shell-session
    $ kubectl get pvc -l chart=consul-helm
@@ -52,7 +51,7 @@ Run the `helm delete` **and** manually remove resources that Helm does not delet
    consul-mesh-gateway-acl-token       Opaque                                1      41m
    ```
 
-   Ensure that the secrets you're about to delete are all created by Consul and not
+1. Ensure that the secrets you're about to delete are all created by Consul and not
    created by another user with the word `consul`.
 
    ```shell-session
@@ -67,22 +66,7 @@ Run the `helm delete` **and** manually remove resources that Helm does not delet
    secret "consul-gossip-encryption-key" deleted
    ```
 
-1. If installing with `controller.enabled` then you will need to delete the
-   webhook certificate:
-
-   ```shell-session
-   $ kubectl get secret consul-controller-webhook-cert
-   NAME                             TYPE                DATA   AGE
-   consul-controller-webhook-cert   kubernetes.io/tls   2      47m
-   ```
-
-   ```shell-session
-   $ kubectl delete secret consul-controller-webhook-cert
-   secret "consul-consul-controller-webhook-cert" deleted
-   ```
-
-1. If installing with `tls.enabled` then there will be a `ServiceAccount`
-   that is left behind:
+1. If installing with `tls.enabled` then, run the following commands to delete the `ServiceAccount` left behind:
 
    ```shell-session
    $ kubectl get serviceaccount consul-tls-init
