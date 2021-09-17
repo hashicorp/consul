@@ -6,7 +6,7 @@ export default function FeaturesList({ title, features }) {
     <div
       className={s.featureListContainer}
       style={{
-        backgroundImage: `url(${require('./images/top-right-design.svg')})`,
+        backgroundImage: `url(${require('./images/top-right-design.svg')}), url(${require('./images/bottom-left-design.svg')})`,
       }}
     >
       <div className="g-grid-container">

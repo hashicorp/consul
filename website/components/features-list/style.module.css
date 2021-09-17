@@ -1,7 +1,7 @@
 .featureListContainer {
   background-color: #000;
   padding-top: 128px;
-  background-position: 100% 0;
+  background-position: right top, left bottom;
   background-repeat: no-repeat;
   color: #fff;
 }
@@ -38,7 +38,7 @@
 
 .featuresContainer {
   padding-top: 157px;
-  padding-bottom: 100px;
+  padding-bottom: 394px;
   display: grid;
   row-gap: 120px;
 }
@@ -51,10 +51,12 @@
 
 .listNumber {
   composes: g-type-display-5 from global;
-  padding: 7px 18px 5px 14px;
+  width: 40px;
+  height: 40px;
   background-color: var(--consul);
-  width: max-content;
-  height: max-content;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-right: 64px;
 }
 
@@ -69,25 +71,12 @@
   margin-bottom: 0;
 }
 
-.infoSection {
-  margin-top: 32px;
-  margin-bottom: 40px;
-  display: grid;
-  row-gap: 24px;
-
-  & .infoSectionItem {
-    & p {
-      margin: 0;
-    }
-
-    & ul {
-      margin: 0;
-    }
-  }
-}
-
-.ctaContainer {
+.ctaButton {
   margin-left: -20px;
+
+  &::before {
+    background: transparent !important;
+  }
 }
 
 .infoTitle {
@@ -105,5 +94,18 @@
   }
   & > img {
     margin-left: 13px;
+  }
+}
+
+.infoSection {
+  composes: g-type-body from global;
+  margin-top: 32px;
+  margin-bottom: 40px;
+  display: grid;
+  row-gap: 24px;
+
+  & p,
+  & ul {
+    margin: 0;
   }
 }
