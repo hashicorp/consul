@@ -177,7 +177,9 @@ func newTestServerScenarioInner(
 		nil, /*checkFetcher HTTPCheckFetcher*/
 		nil, /*cfgFetcher ConfigFetcher*/
 	)
-	s.AuthCheckFrequency = authCheckFrequency
+	if authCheckFrequency > 0 {
+		s.AuthCheckFrequency = authCheckFrequency
+	}
 
 	errCh := make(chan error, 1)
 	go func() {
