@@ -491,7 +491,7 @@ func validateProposedConfigEntryInServiceGraph(
 		enforceIngressProtocolsMatch bool
 	)
 
-	wildcardEntMeta := kindName.WildcardEnterpriseMetaForPartition()
+	wildcardEntMeta := kindName.WithWildcardNamespace()
 
 	switch kindName.Kind {
 	case structs.ProxyDefaults:

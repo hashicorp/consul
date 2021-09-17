@@ -1540,7 +1540,7 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 func updateAllServiceIndexesOfNode(tx WriteTxn, idx uint64, nodeID string, entMeta *structs.EnterpriseMeta) error {
 	services, err := tx.Get(tableServices, indexNode, Query{
 		Value:          nodeID,
-		EnterpriseMeta: *entMeta.WildcardEnterpriseMetaForPartition(),
+		EnterpriseMeta: *entMeta.WithWildcardNamespace(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
@@ -2359,7 +2359,7 @@ func parseCheckServiceNodes(
 		q := NodeServiceQuery{
 			Node:           sn.Node,
 			Service:        "", // node checks have no service
-			EnterpriseMeta: *sn.EnterpriseMeta.WildcardEnterpriseMetaForPartition(),
+			EnterpriseMeta: *sn.EnterpriseMeta.WithWildcardNamespace(),
 		}
 		iter, err := tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {

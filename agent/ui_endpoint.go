@@ -633,7 +633,7 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	//
 	// TODO(partitions,acls): need to revisit this
 	var authzContext acl.AuthorizerContext
-	entMeta.WildcardEnterpriseMetaForPartition().FillAuthzContext(&authzContext)
+	entMeta.WithWildcardNamespace().FillAuthzContext(&authzContext)
 
 	if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied

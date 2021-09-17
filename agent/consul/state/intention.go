@@ -1017,7 +1017,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 			return true
 		}
 		return false
-	}, target.WildcardEnterpriseMetaForPartition())
+	}, target.WithWildcardNamespace())
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to fetch catalog service list: %v", err)
 	}
