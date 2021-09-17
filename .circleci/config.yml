@@ -242,10 +242,6 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
-      - run: &rerun-fails-report
-          name: "Re-run fails report"
-          command: |
-            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
       - run: *notify-slack-failure
 
   go-test-race:
