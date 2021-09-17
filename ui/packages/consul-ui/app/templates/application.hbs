@@ -95,9 +95,7 @@ as |dcs|>
 
 as |dc dcs|}}
 
-{{#if (gt dc.length 0)}}
-
-  {{#if (and dcs nspace partition)}}
+  {{#if (and (gt dc.length 0) dcs nspace partition)}}
 
     {{! figure out our current DC and convert it to a model }}
     <DataSource
@@ -154,7 +152,6 @@ as |dc dcs|}}
 {{/if}}
     </DataSource>
   {{/if}}
-{{/if}}
 {{/let}}
 </DataSource>
 {{/let}}
