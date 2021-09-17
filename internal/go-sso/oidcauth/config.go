@@ -90,6 +90,11 @@ type Config struct {
 	// Valid only if Type=oidc
 	OIDCScopes []string
 
+	// Space-separated list of OIDC Authorization Context Class Reference values
+	//
+	// Valid only if Type=oidc
+	OIDCACRValues []string
+
 	// Comma-separated list of allowed values for redirect_uri
 	//
 	// Valid only if Type=oidc
@@ -215,6 +220,8 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("'OIDCClientSecret' must not be set for type %q", c.Type)
 		case len(c.OIDCScopes) != 0:
 			return fmt.Errorf("'OIDCScopes' must not be set for type %q", c.Type)
+		case len(c.OIDCACRValues) != 0:
+			return fmt.Errorf("'OIDCACRValues' must not be set for type %q", c.Type)
 		case len(c.AllowedRedirectURIs) != 0:
 			return fmt.Errorf("'AllowedRedirectURIs' must not be set for type %q", c.Type)
 		case c.VerboseOIDCLogging:

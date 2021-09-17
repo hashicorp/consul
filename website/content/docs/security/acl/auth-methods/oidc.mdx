@@ -70,6 +70,8 @@ parameters are required to properly configure an auth method of type
 
 - `OIDCScopes` `(array<string>)` - A list of OIDC scopes.
 
+- `OIDCACRValues` `(array<string>)` - A list of Authentication Context Class Reference values to use for the authentication request. See [OIDC reference](https://openid.net/specs/openid-connect-core-1_0.html#rfc.section.3.1.2.1) for more info on this parameter.  Added in v1.11.0.
+
 - `JWTSupportedAlgs` `(array<string>)` - JWTSupportedAlgs is a list of
   supported signing algorithms. Defaults to `RS256`. ([Available
   algorithms](https://github.com/hashicorp/consul/blob/main/vendor/github.com/coreos/go-oidc/jose.go#L7))
