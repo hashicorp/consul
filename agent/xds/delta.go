@@ -384,7 +384,7 @@ type xDSDeltaType struct {
 	// sentToEnvoyOnce is true after we've sent one response to envoy.
 	sentToEnvoyOnce bool
 
-	// subscriptions is the set of currently subscribed envoy resources. 
+	// subscriptions is the set of currently subscribed envoy resources.
 	// If wildcard == true, this will be empty.
 	subscriptions map[string]struct{}
 
