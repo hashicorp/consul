@@ -37,9 +37,7 @@ export default function Feature({
           </div>
         </div>
       </div>
-      <div className={s.featureImage}>
-        <img src={image} alt={title} />
-      </div>
+      <img src={image} alt={title} />
     </div>
   )
 }
