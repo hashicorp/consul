@@ -15,6 +15,9 @@ export default function(scenario, create, set, win = window, doc = document) {
     .given(
       ['$number $model model[s]? from yaml\n$yaml', '$number $model model[s]? from json\n$json'],
       function(number, model, data) {
+        if (model === 'dc') {
+          doc.cookie = `CONSUL_DATACENTER_LOCAL=${data[0]}`;
+        }
         return create(number, model, data);
       }
     )
