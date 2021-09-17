@@ -53,6 +53,10 @@ type ACLToken struct {
 	// Namespaces are a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 
+	// Partition is the partition the ACLToken is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
+
 	// AuthMethodNamespace is the namespace the token's AuthMethod is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	AuthMethodNamespace string `json:",omitempty"`
@@ -78,6 +82,10 @@ type ACLTokenListEntry struct {
 	// Namespace is the namespace the ACLTokenListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLTokenListEntry is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 
 	// AuthMethodNamespace is the namespace the token's AuthMethod is associated with.
 	// Namespacing is a Consul Enterprise feature.
@@ -138,6 +146,10 @@ type ACLPolicy struct {
 	// Namespace is the namespace the ACLPolicy is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLPolicy is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 type ACLPolicyListEntry struct {
@@ -152,6 +164,10 @@ type ACLPolicyListEntry struct {
 	// Namespace is the namespace the ACLPolicyListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLPolicyListEntry is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 type ACLRolePolicyLink = ACLLink
@@ -171,6 +187,10 @@ type ACLRole struct {
 	// Namespace is the namespace the ACLRole is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLRole is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 // BindingRuleBindType is the type of binding rule mechanism used.
@@ -198,6 +218,10 @@ type ACLBindingRule struct {
 	// Namespace is the namespace the ACLBindingRule is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLBindingRule is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 type ACLAuthMethod struct {
@@ -226,6 +250,10 @@ type ACLAuthMethod struct {
 	// Namespace is the namespace the ACLAuthMethod is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLAuthMethod is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
@@ -293,6 +321,10 @@ type ACLAuthMethodListEntry struct {
 	// Namespace is the namespace the ACLAuthMethodListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition the ACLAuthMethodListEntry is associated with.
+	// Partitions are a Consul Enterprise feature.
+	Partition string `json:",omitempty"`
 }
 
 // This is nearly identical to the ACLAuthMethod MarshalJSON
