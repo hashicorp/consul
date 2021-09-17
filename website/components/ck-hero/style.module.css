@@ -2,6 +2,24 @@
   background-position: top right;
   background-repeat: no-repeat;
   composes: g-hero from global;
+  padding-top: 145px;
+  padding-bottom: 163px;
+}
+
+.container {
+  composes: g-grid-container from global;
+
+  @media (--small) {
+    max-width: 664px;
+  }
+
+  @media (--medium) {
+    max-width: 1024px;
+  }
+
+  @media (--large) {
+    max-width: 1408px;
+  }
 
   & .headline {
     max-width: 384px;
@@ -12,4 +30,15 @@
       }
     }
   }
+}
+
+.title {
+  composes: g-type-display-1 from global;
+  margin: 0;
+}
+
+.subtitle {
+  composes: g-type-body-large from global;
+  margin-top: 16px;
+  margin-bottom: 48px;
 }

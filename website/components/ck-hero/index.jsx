@@ -9,10 +9,10 @@ export default function CKHero({ title, subtitle, ctas, media }) {
         backgroundImage: `url(${require('./img/background-design.svg')})`,
       }}
     >
-      <div className="g-grid-container">
+      <div className={s.container}>
         <div className={s.headline}>
-          <h1 className="g-type-display-1">{title}</h1>
-          <p className="g-type-body-large">{subtitle}</p>
+          <h1 className={s.title}>{title}</h1>
+          <p className={s.subtitle}>{subtitle}</p>
           {ctas.map(({ text, url }, idx) => (
             <Button
               key={text}
