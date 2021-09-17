@@ -2,6 +2,7 @@ package xds
 
 import (
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -399,6 +400,153 @@ func TestServer_DeltaAggregatedResources_v3_BasicProtocol_HTTP2(t *testing.T) {
 		envoy.SendDeltaReqACK(t, RouteType, 5)
 
 		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+	})
+
+	envoy.Close()
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timed out waiting for handler to finish")
+	}
+}
+
+func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T) {
+	// This illustrates a scenario related to https://github.com/hashicorp/consul/issues/10563
+
+	aclResolve := func(id string) (acl.Authorizer, error) {
+		// Allow all
+		return acl.RootAuthorizer("manage"), nil
+	}
+	scenario := newTestServerDeltaScenario(t, aclResolve, "web-sidecar-proxy", "", 0)
+	server, mgr, errCh, envoy := scenario.server, scenario.mgr, scenario.errCh, scenario.envoy
+
+	// This mutateFn causes any endpoint with a name containing "geo-cache" to be
+	// omitted from the response while the hack is active.
+	var slowHackDisabled uint32
+	server.ResourceMapMutateFn = func(resourceMap *IndexedResources) {
+		if atomic.LoadUint32(&slowHackDisabled) == 1 {
+			return
+		}
+		if em, ok := resourceMap.Index[EndpointType]; ok {
+			var deleteme []string
+			for k, _ := range em {
+				if strings.Contains(k, "geo-cache") {
+					deleteme = append(deleteme, k)
+				}
+			}
+			for _, k := range deleteme {
+				delete(em, k)
+			}
+		}
+	}
+
+	sid := structs.NewServiceID("web-sidecar-proxy", nil)
+
+	// Register the proxy to create state needed to Watch() on
+	mgr.RegisterProxy(t, sid)
+
+	var snap *proxycfg.ConfigSnapshot
+	runStep(t, "get into initial state", func(t *testing.T) {
+		snap = newTestSnapshot(t, nil, "")
+
+		// Send initial cluster discover.
+		envoy.SendDeltaReq(t, ClusterType, &envoy_discovery_v3.DeltaDiscoveryRequest{})
+
+		// Check no response sent yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		requireProtocolVersionGauge(t, scenario, "v3", 1)
+
+		// Deliver a new snapshot (tcp with one tcp upstream)
+		mgr.DeliverConfig(t, sid, snap)
+
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: ClusterType,
+			Nonce:   hexString(1),
+			Resources: makeTestResources(t,
+				makeTestCluster(t, snap, "tcp:local_app"),
+				makeTestCluster(t, snap, "tcp:db"),
+				makeTestCluster(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// Envoy then tries to discover endpoints for those clusters.
+		envoy.SendDeltaReq(t, EndpointType, &envoy_discovery_v3.DeltaDiscoveryRequest{
+			ResourceNamesSubscribe: []string{
+				"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+				"geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+			},
+		})
+
+		// It also (in parallel) issues the cluster ACK
+		envoy.SendDeltaReqACK(t, ClusterType, 1)
+
+		// We should get a response immediately since the config is already present in
+		// the server for endpoints. Note that this should not be racy if the server
+		// is behaving well since the Cluster send above should be blocked until we
+		// deliver a new config version.
+		//
+		// NOTE: we do NOT return back geo-cache yet
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(2),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:db"),
+				// makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// And no other response yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// Envoy now sends listener request
+		envoy.SendDeltaReq(t, ListenerType, nil)
+
+		// It also (in parallel) issues the endpoint ACK
+		envoy.SendDeltaReqACK(t, EndpointType, 2)
+
+		// And should get a response immediately.
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: ListenerType,
+			Nonce:   hexString(3),
+			Resources: makeTestResources(t,
+				makeTestListener(t, snap, "tcp:public_listener"),
+				makeTestListener(t, snap, "tcp:db"),
+				makeTestListener(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// And no other response yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// ACKs the listener
+		envoy.SendDeltaReqACK(t, ListenerType, 3)
+	})
+
+	// Disable hack. Need to wait for one more event to wake up the loop.
+	atomic.StoreUint32(&slowHackDisabled, 1)
+
+	runStep(t, "delayed endpoint update finally comes in", func(t *testing.T) {
+		// Trigger the xds.Server select{} to wake up and notice our hack is disabled.
+		// The actual contents of this change are irrelevant.
+		snap = newTestSnapshot(t, snap, "")
+		mgr.DeliverConfig(t, sid, snap)
+
+		assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
+			TypeUrl: EndpointType,
+			Nonce:   hexString(4),
+			Resources: makeTestResources(t,
+				makeTestEndpoints(t, snap, "tcp:geo-cache"),
+			),
+		})
+
+		// And no other response yet
+		assertDeltaChanBlocked(t, envoy.deltaStream.sendCh)
+
+		// It also (in parallel) issues the endpoint ACK
+		envoy.SendDeltaReqACK(t, EndpointType, 4)
+
 	})
 
 	envoy.Close()

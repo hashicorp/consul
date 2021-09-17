@@ -152,6 +152,9 @@ type Server struct {
 
 	DisableV2Protocol bool
 
+	// ResourceMapMutateFn exclusively exists for testing purposes.
+	ResourceMapMutateFn func(resourceMap *IndexedResources)
+
 	activeStreams *activeStreamCounters
 }
 

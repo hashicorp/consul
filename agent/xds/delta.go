@@ -189,6 +189,10 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			// index and hash the xDS structures
 			newResourceMap := indexResources(generator.Logger, newRes)
 
+			if s.ResourceMapMutateFn != nil {
+				s.ResourceMapMutateFn(newResourceMap)
+			}
+
 			if err := populateChildIndexMap(newResourceMap); err != nil {
 				return status.Errorf(codes.Unavailable, "failed to index xDS resource versions: %v", err)
 			}
