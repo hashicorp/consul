@@ -710,18 +710,13 @@ func (t *xDSDeltaType) createDeltaResponse(
 		// Walk the list of things currently stored in envoy
 		for name, envoyVers := range t.resourceVersions {
 			if t.subscribed(name) {
-				currVers, ok := currentVersions[name]
-				if ok {
+				if currVers, ok := currentVersions[name]; ok {
 					if currVers != envoyVers {
 						if upsert {
 							hasRelevantUpdates = true
 						}
 						updates[name] = PendingUpdate{Version: currVers}
 					}
-				} else {
-					// Should we do anything here? This might be an eventual
-					// consistency issue, but it's unclear what we could do
-					// other than just wait until it resolves.
 				}
 			}
 		}
@@ -731,16 +726,11 @@ func (t *xDSDeltaType) createDeltaResponse(
 			if _, known := t.resourceVersions[name]; known {
 				continue
 			}
-			currVers, ok := currentVersions[name]
-			if ok {
+			if currVers, ok := currentVersions[name]; ok {
 				updates[name] = PendingUpdate{Version: currVers}
 				if upsert {
 					hasRelevantUpdates = true
 				}
-			} else {
-				// Should we do anything here? This might be an eventual
-				// consistency issue, but it's unclear what we could do
-				// other than just wait until it resolves.
 			}
 		}
 	}
