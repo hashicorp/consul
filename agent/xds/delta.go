@@ -384,8 +384,8 @@ type xDSDeltaType struct {
 	// sentToEnvoyOnce is true after we've sent one response to envoy.
 	sentToEnvoyOnce bool
 
-	// subscriptions is the list of currently subscribed envoy resources. If
-	// the wildcard is in play this will be empty.
+	// subscriptions is the set of currently subscribed envoy resources. 
+	// If wildcard == true, this will be empty.
 	subscriptions map[string]struct{}
 
 	// resourceVersions is the current view of CONFIRMED/ACKed updates to
