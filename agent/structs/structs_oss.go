@@ -46,10 +46,6 @@ func (m *EnterpriseMeta) WildcardEnterpriseMetaForPartition() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
-func (m *EnterpriseMeta) NewEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
 // TODO(partition): stop using this
 func NewEnterpriseMetaInDefaultPartition(_ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
