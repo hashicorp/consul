@@ -98,7 +98,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Name:           structs.MeshConfigMesh,
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
-			EnterpriseMeta: *s.proxyID.DefaultEnterpriseMetaForPartition(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
 		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return snap, err
