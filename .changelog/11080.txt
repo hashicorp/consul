@@ -1,0 +1,3 @@
+```release-note:improvement
+api: add partition field to acl structs
+```
