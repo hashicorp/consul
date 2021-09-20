@@ -220,7 +220,6 @@ jobs:
       - run:
           name: go test
           command: |
-            mkdir -p $TEST_RESULTS_DIR
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
             echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
@@ -228,10 +227,14 @@ jobs:
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+              --debug \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
-              -cover -coverprofile=coverage.txt \
-              $PACKAGE_NAMES
+              -cover -coverprofile=coverage.txt
 
       - store_test_results:
           path: *TEST_RESULTS_DIR
@@ -239,6 +242,10 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
+      - run: &rerun-fails-report
+          name: "Re-run fails report"
+          command: |
+            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
       - run: *notify-slack-failure
 
   go-test-race:
@@ -301,11 +308,16 @@ jobs:
           command: |
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             go env
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
             gotestsum \
               --jsonfile /tmp/jsonfile/go-test-32bit.log \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
-              -short ./...
+              -short
 
       - store_test_results:
           path: *TEST_RESULTS_DIR
