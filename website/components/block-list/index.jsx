@@ -5,9 +5,13 @@ export default function BlockList({ blocks }) {
     <div className={s.blocksContainer}>
       {blocks.map(({ image, title, description }) => (
         <div key={title} className={s.block}>
-          <img src={image} alt={title} />
-          <h5 className="g-type-display-5">{title}</h5>
-          <p>{description}</p>
+          <div className={s.imageContainer}>
+            <img src={image} alt={title} />
+          </div>
+          <div>
+            <h5 className={s.title}>{title}</h5>
+            <p className={s.description}>{description}</p>
+          </div>
         </div>
       ))}
     </div>
