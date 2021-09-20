@@ -430,7 +430,7 @@ func TestServer_DeltaAggregatedResources_v3_SlowEndpointPopulation(t *testing.T)
 		}
 		if em, ok := resourceMap.Index[EndpointType]; ok {
 			var deleteme []string
-			for k, _ := range em {
+			for k := range em {
 				if strings.Contains(k, "geo-cache") {
 					deleteme = append(deleteme, k)
 				}
