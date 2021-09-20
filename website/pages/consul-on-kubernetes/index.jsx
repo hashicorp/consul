@@ -11,11 +11,11 @@ export default function ConsulOnKubernetesPage() {
 
       {/* hero */}
 
+      {/* side by side section */}
+
       <section>
         <FeaturesList title="Why Consul on Kubernetes" features={features} />
       </section>
-
-      {/* features list section */}
 
       {/* get started section */}
     </div>
