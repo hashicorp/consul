@@ -99,3 +99,14 @@ func indexNameFromIndexEntry(raw interface{}) ([]byte, error) {
 	b.String(strings.ToLower(p.Key))
 	return b.Bytes(), nil
 }
+
+func indexFromString(raw interface{}) ([]byte, error) {
+	q, ok := raw.(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for string prefix query", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q))
+	return b.Bytes(), nil
+}
