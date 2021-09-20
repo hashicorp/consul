@@ -156,7 +156,8 @@ type Server struct {
 }
 
 // activeStreamCounters simply encapsulates two counters accessed atomically to
-// ensure alignment is correct.
+// ensure alignment is correct. This further requires that activeStreamCounters
+// be a pointer field.
 type activeStreamCounters struct {
 	xDSv3 uint64
 	xDSv2 uint64
