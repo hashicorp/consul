@@ -15,10 +15,14 @@
     display: flex;
   }
 
-  & img {
+  & .imageContainer {
     max-width: 490px;
     margin: 0 auto;
-    margin-bottom: 40px;
+    padding-bottom: 40px;
+
+    & img {
+      max-width: 100%;
+    }
   }
 
   @media (--large) {
@@ -30,7 +34,7 @@
       width: 488px;
     }
 
-    & img {
+    & .imageContainer {
       margin: 0;
     }
   }
@@ -58,6 +62,10 @@
   justify-content: center;
   align-items: center;
   margin-right: 64px;
+
+  @media (--small) {
+    margin-right: 30px;
+  }
 }
 
 .featureTitle {
@@ -83,18 +91,6 @@
   composes: g-type-display-5 from global;
   margin-top: 0;
   margin-bottom: 8px;
-}
-
-.cta {
-  display: flex;
-  color: #fff;
-
-  & > span {
-    vertical-align: center;
-  }
-  & > img {
-    margin-left: 13px;
-  }
 }
 
 .infoSection {

@@ -11,7 +11,9 @@ export default function Feature({
 }) {
   return (
     <div className={s.featureContainer}>
-      <img src={image} alt={title} />
+      <div className={s.imageContainer}>
+        <img src={image} alt={title} />
+      </div>
       <div className={s.featureTextContainer}>
         <span className={s.listNumber}>{number}</span>
         <div className={s.featureText}>
