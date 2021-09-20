@@ -9,7 +9,7 @@ export default function CKHero({ title, subtitle, ctas, media }) {
         backgroundImage: `url(${require('./img/background-design.svg')})`,
       }}
     >
-      <div className={s.container}>
+      <div className="g-grid-container">
         <div className={s.headline}>
           <h1 className={s.title}>{title}</h1>
           <p className={s.subtitle}>{subtitle}</p>
