@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -181,4 +182,15 @@ func TestAPI_OperatorAutopilotServerHealth_429(t *testing.T) {
 	out, err := client.Operator().AutopilotServerHealth(nil)
 	require.NoError(t, err)
 	require.Equal(t, &reply, out)
+
+	mapi.withReply("GET", "/v1/operator/autopilot/health", nil, 500, nil).Once()
+	_, err = client.Operator().AutopilotServerHealth(nil)
+
+	var statusE StatusError
+	if errors.As(err, &statusE) {
+		require.Equal(t, 500, statusE.Code)
+	} else {
+		t.Error("Failed to unwrap error as StatusError")
+	}
+
 }
