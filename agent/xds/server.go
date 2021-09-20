@@ -152,7 +152,7 @@ type Server struct {
 
 	DisableV2Protocol bool
 
-	activeStreams activeStreamCounters
+	activeStreams *activeStreamCounters
 }
 
 // activeStreamCounters simply encapsulates two counters accessed atomically to
@@ -197,6 +197,7 @@ func NewServer(
 		CheckFetcher:       checkFetcher,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,
+		activeStreams:      &activeStreamCounters{},
 	}
 }
 
