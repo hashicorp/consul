@@ -27,17 +27,18 @@ export default function CKHero({ title, subtitle, ctas, media }) {
             />
           ))}
         </div>
-        {media && media.type === 'image' ? (
-          <div className="image">
-            <img alt={media.alt} src={media.source} />
-          </div>
-        ) : media && media.type === 'video' ? (
-          <div className="video">
-            <video muted playsInline>
-              <source src={media.source} type="video/mp4" />
-            </video>
-          </div>
-        ) : null}
+        {media &&
+          (media.type === 'image' ? (
+            <div className="image">
+              <img alt={media.alt} src={media.source} />
+            </div>
+          ) : media.type === 'video' ? (
+            <div className="video">
+              <video muted playsInline>
+                <source src={media.source} type="video/mp4" />
+              </video>
+            </div>
+          ) : null)}
       </div>
     </div>
   )
