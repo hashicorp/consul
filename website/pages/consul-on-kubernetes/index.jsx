@@ -1,6 +1,6 @@
 import Head from 'next/head'
-import { blocks } from '/data/consul-on-kubernetes'
-import BlockList from '/components/block-list'
+import { blocks } from 'data/consul-on-kubernetes'
+import BlockList from 'components/block-list'
 
 export default function ConsulOnKubernetesPage() {
   return (
@@ -11,7 +11,9 @@ export default function ConsulOnKubernetesPage() {
       {/* hero */}
 
       {/* side by side section */}
-      <BlockList blocks={blocks} />
+      <section className="g-grid-container">
+        <BlockList blocks={blocks} />
+      </section>
 
       {/* features list section */}
 
