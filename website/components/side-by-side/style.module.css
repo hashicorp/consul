@@ -1,3 +1,8 @@
-.leftSide {
-  background: var(--consul-secondary);
+.sideBySide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  & .leftSide {
+    background: var(--consul-secondary);
+  }
 }
