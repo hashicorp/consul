@@ -29,7 +29,7 @@ export const features = [
       text: 'Try It Now',
       url: '#TODO',
     },
-    image: '/img/features/multi-platform.png',
+    image: '/img/consul-k8/features/multi-platform.png',
   },
   {
     title: 'Kube-native Workflow',
@@ -61,7 +61,7 @@ export const features = [
       text: 'Try It Now',
       url: '#TODO',
     },
-    image: '/img/features/workflow.png',
+    image: '/img/consul-k8/features/workflow.png',
   },
   {
     title: 'Observable',
@@ -91,7 +91,7 @@ export const features = [
       text: 'Try It Now',
       url: '#TODO',
     },
-    image: '/img/features/observable.png',
+    image: '/img/consul-k8/features/observable.png',
   },
   {
     title: 'Secure',
@@ -126,6 +126,6 @@ export const features = [
       text: 'Try It Now',
       url: '#TODO',
     },
-    image: '/img/features/secure.png',
+    image: '/img/consul-k8/features/secure.png',
   },
 ]
