@@ -446,7 +446,7 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 				},
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
-					Value:  5,
+					Value:  4,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
 			},
