@@ -22,6 +22,7 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -556,13 +557,57 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) 
 	return info != nil && info.IsRead() && lib.IsErrEOF(err)
 }
 
-// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
-// Returns a bool of if forwarding was performed, as well as any error
+// ForwardRPC is used to forward an RPC request to a remote DC or to the local
+// leader Returns a bool of if forwarding was performed, as well as any error
 func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error) {
+	forwardToDC := func(dc string) error {
+		return s.forwardDC(method, dc, info, reply)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		return s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
+			method, info, reply)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
+
+// ForwardGRPC is used to forward an RPC request to a remote DC or to the local
+// leader Returns a bool of if forwarding was performed, as well as any error
+func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
+	forwardToDC := func(dc string) error {
+		conn, err := connPool.ClientConn(dc)
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		conn, err := connPool.ClientConnLeader()
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
+
+// forwardRPC requests to a remote datacenter by calling f if the target dc
+// does not match the config. Does nothing but return handled=false if dc is
+// not specified, or if it matches the Datacenter in config.
+//
+// It also checks if the current server is not the leader and forwards the
+// request to the leader if it is not.
+func (s *Server) forwardRPC(
+	info structs.RPCInfo,
+	forwardToDC func(dc string) error,
+	forwardToLeader func(leader *metadata.Server) error,
+) (handled bool, err error) {
 	firstCheck := time.Now()
 
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
+	if dc == "" {
+		dc = s.config.Datacenter
+	}
 	if dc != s.config.Datacenter {
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
@@ -581,8 +626,7 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface
 			}
 		}
 
-		err := s.forwardDC(method, dc, info, reply)
-		return true, err
+		return true, forwardToDC(dc)
 	}
 
 	// Check if we can allow a stale read, ensure our local DB is initialized
@@ -608,8 +652,7 @@ CHECK_LEADER:
 
 	// Handle the case of a known leader
 	if leader != nil {
-		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, info, reply)
+		rpcErr = forwardToLeader(leader)
 		if rpcErr == nil {
 			return true, nil
 		}
