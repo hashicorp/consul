@@ -1542,30 +1542,6 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	}
 }
 
-func TestLeader_ACLLegacyReplication(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	// This test relies on configuring a secondary DC with no route to the primary DC
-	// Having no route will cause the ACL mode checking of the primary to "fail". In this
-	// scenario legacy ACL replication should be enabled without also running new ACL
-	// replication routines.
-	cb := func(c *Config) {
-		c.Datacenter = "dc2"
-		c.ACLTokenReplication = true
-	}
-	_, srv, _ := testACLServerWithConfig(t, cb, true)
-	waitForLeaderEstablishment(t, srv)
-
-	require.True(t, srv.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclPolicyReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclRoleReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclTokenReplicationRoutineName))
-}
-
 func TestDatacenterSupportsFederationStates(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
