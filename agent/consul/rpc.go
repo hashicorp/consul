@@ -557,8 +557,12 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) 
 	return info != nil && info.IsRead() && lib.IsErrEOF(err)
 }
 
-// ForwardRPC is used to forward an RPC request to a remote DC or to the local
-// leader Returns a bool of if forwarding was performed, as well as any error
+// ForwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
 func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error) {
 	forwardToDC := func(dc string) error {
 		return s.forwardDC(method, dc, info, reply)
@@ -570,8 +574,12 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface
 	return s.forwardRPC(info, forwardToDC, forwardToLeader)
 }
 
-// ForwardGRPC is used to forward an RPC request to a remote DC or to the local
-// leader Returns a bool of if forwarding was performed, as well as any error
+// ForwardGRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
 func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
 	forwardToDC := func(dc string) error {
 		conn, err := connPool.ClientConn(dc)
@@ -590,19 +598,41 @@ func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f 
 	return s.forwardRPC(info, forwardToDC, forwardToLeader)
 }
 
-// forwardRPC requests to a remote datacenter by calling f if the target dc
-// does not match the config. Does nothing but return handled=false if dc is
-// not specified, or if it matches the Datacenter in config.
+// forwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
 //
-// It also checks if the current server is not the leader and forwards the
-// request to the leader if it is not.
+// If info.RequestDatacenter() does not match the local datacenter, then the
+// request will be forwarded to the DC using forwardToDC.
+//
+// Stale read requests will be handled locally if the current node has an
+// initialized raft database, otherwise requests will be forwarded to the local
+// leader using forwardToLeader.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
 func (s *Server) forwardRPC(
 	info structs.RPCInfo,
 	forwardToDC func(dc string) error,
 	forwardToLeader func(leader *metadata.Server) error,
 ) (handled bool, err error) {
-	firstCheck := time.Now()
+	// Forward the request to the requested datacenter.
+	if handled, err := s.forwardRequestToOtherDatacenter(info, forwardToDC); handled || err != nil {
+		return handled, err
+	}
 
+	// See if we should let this server handle the read request without
+	// shipping the request to the leader.
+	if s.canServeReadRequest(info) {
+		return false, nil
+	}
+
+	return s.forwardRequestToLeader(info, forwardToLeader)
+}
+
+// forwardRequestToOtherDatacenter is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardToDC func(dc string) error) (handled bool, err error) {
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
 	if dc == "" {
@@ -629,11 +659,20 @@ func (s *Server) forwardRPC(
 		return true, forwardToDC(dc)
 	}
 
-	// Check if we can allow a stale read, ensure our local DB is initialized
-	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
-		return false, nil
-	}
+	return false, nil
+}
 
+// canServeReadRequest determines if the request is a stale read request and
+// the current node can safely process that request.
+func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
+	// Check if we can allow a stale read, ensure our local DB is initialized
+	return info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero()
+}
+
+// forwardRequestToLeader is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
+	firstCheck := time.Now()
 CHECK_LEADER:
 	// Fail fast if we are in the process of leaving
 	select {
