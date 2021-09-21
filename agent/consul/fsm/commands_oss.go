@@ -500,7 +500,6 @@ func (c *FSM) applyACLTokenSetOperation(buf []byte, index uint64) interface{} {
 		CAS:                          req.CAS,
 		AllowMissingPolicyAndRoleIDs: req.AllowMissingLinks,
 		ProhibitUnprivileged:         req.ProhibitUnprivileged,
-		Legacy:                       false,
 		FromReplication:              req.FromReplication,
 	}
 	return c.state.ACLTokenBatchSet(index, req.Tokens, opts)
@@ -524,7 +523,7 @@ func (c *FSM) applyACLTokenBootstrap(buf []byte, index uint64) interface{} {
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "bootstrap"}})
-	return c.state.ACLBootstrap(index, req.ResetIndex, &req.Token, false)
+	return c.state.ACLBootstrap(index, req.ResetIndex, &req.Token)
 }
 
 func (c *FSM) applyACLPolicySetOperation(buf []byte, index uint64) interface{} {

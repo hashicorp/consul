@@ -432,6 +432,7 @@ func (t *ACLToken) HasExpirationTime() bool {
 	return t.ExpirationTime != nil && !t.ExpirationTime.IsZero()
 }
 
+// TODO(ACL-Legacy-Compat): remove
 func (t *ACLToken) UsesNonLegacyFields() bool {
 	return len(t.Policies) > 0 ||
 		len(t.ServiceIdentities) > 0 ||

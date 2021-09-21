@@ -199,7 +199,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(0), index)
 
 	// Perform a regular bootstrap.
-	require.NoError(t, s.ACLBootstrap(3, 0, token1.Clone(), false))
+	require.NoError(t, s.ACLBootstrap(3, 0, token1.Clone()))
 
 	// Make sure we can't bootstrap again
 	canBootstrap, index, err = s.CanBootstrapACLToken()
@@ -208,7 +208,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure another attempt fails.
-	err = s.ACLBootstrap(4, 0, token2.Clone(), false)
+	err = s.ACLBootstrap(4, 0, token2.Clone())
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapNotAllowedErr, err)
 
@@ -225,12 +225,12 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	compareTokens(t, token1, tokens[0])
 
 	// bootstrap reset
-	err = s.ACLBootstrap(32, index-1, token2.Clone(), false)
+	err = s.ACLBootstrap(32, index-1, token2.Clone())
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapInvalidResetIndexErr, err)
 
 	// bootstrap reset
-	err = s.ACLBootstrap(32, index, token2.Clone(), false)
+	err = s.ACLBootstrap(32, index, token2.Clone())
 	require.NoError(t, err)
 
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)

@@ -74,7 +74,7 @@ func (s *Restore) ACLAuthMethod(method *structs.ACLAuthMethod) error {
 
 // ACLBootstrap is used to perform a one-time ACL bootstrap operation on a
 // cluster to get the first management token.
-func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, legacy bool) error {
+func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -91,7 +91,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 		}
 	}
 
-	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
+	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{}); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := tx.Insert(tableIndex, &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
@@ -429,7 +429,7 @@ type ACLTokenSetOptions struct {
 	CAS                          bool
 	AllowMissingPolicyAndRoleIDs bool
 	ProhibitUnprivileged         bool
-	Legacy                       bool
+	Legacy                       bool // TODO(ACL-Legacy-Compat): remove
 	FromReplication              bool
 }
 
