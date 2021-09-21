@@ -54,8 +54,8 @@ export default function Feature({
             url={cta.url}
             linkType="inbound"
             theme={{
-              brand: 'neutral',
-              variant: 'primary',
+              variant: 'tertiary-neutral',
+              background: 'dark',
             }}
             className={s.ctaButton}
           />

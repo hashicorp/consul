@@ -88,14 +88,6 @@
   margin-bottom: 0;
 }
 
-.ctaButton {
-  margin-left: -20px;
-
-  &::before {
-    background: transparent !important;
-  }
-}
-
 .infoTitle {
   composes: g-type-display-5 from global;
   margin-top: 0;
