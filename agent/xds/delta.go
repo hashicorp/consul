@@ -568,16 +568,10 @@ func (t *xDSDeltaType) ack(nonce string) {
 
 	for name, obj := range pending {
 		if obj.Remove {
-			if obj.Version != "" {
-				panic("ACK: version is not empty for: " + name)
-			}
 			delete(t.resourceVersions, name)
 			continue
 		}
 
-		if obj.Version == "" {
-			panic("ACK: version is empty for: " + name)
-		}
 		t.resourceVersions[name] = obj.Version
 		if t.childType != nil {
 			// This branch only matters on UPDATE, since we already have
@@ -751,17 +745,11 @@ func (t *xDSDeltaType) createDeltaResponse(
 	realUpdates := make(map[string]PendingUpdate)
 	for name, obj := range updates {
 		if obj.Remove {
-			if obj.Version != "" {
-				panic("DIFF: version is not empty for: " + name)
-			}
 			if remove {
 				resp.RemovedResources = append(resp.RemovedResources, name)
 				realUpdates[name] = PendingUpdate{Remove: true}
 			}
 		} else if upsert {
-			if obj.Version == "" {
-				panic("DIFF: version is empty for: " + name)
-			}
 			resources, ok := resourceMap.Index[t.typeURL]
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown type url: %s", t.typeURL)
