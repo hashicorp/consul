@@ -1,0 +1,3 @@
+```release-note:bug
+xds: fixed a bug where Envoy sidecars could enter a state where they failed to receive xds updates from Consul
+```
