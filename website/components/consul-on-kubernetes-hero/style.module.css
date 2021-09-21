@@ -1,15 +1,12 @@
 .ckHero {
   background-position: top right;
   background-repeat: no-repeat;
+  background-color: var(--black);
   composes: g-hero from global;
-  padding-top: 145px;
-  padding-bottom: 163px;
-
-  /* background-color: var(--black);
   color: var(--white);
   padding: 145px 0 163px;
   position: relative;
-  overflow: hidden; */
+  overflow: hidden;
 
   & .headline {
     max-width: 384px;
@@ -17,16 +14,61 @@
     flex-shrink: 0;
     flex-basis: calc(50% - 16px);
     width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
 
-    & .inboundButton {
-      &::before {
-        background: transparent !important;
+    @media (--large) {
+      text-align: left;
+      margin: 0;
+    }
+
+    & .buttons {
+      justify-content: center;
+      margin-left: -12px;
+      margin-right: -12px;
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+
+      & .button {
+        margin: 0 12px;
+      }
+
+      @media (--large) {
+        margin: 24px -8px 0;
+        justify-content: unset;
+
+        & .button {
+          margin: 0 8px;
+        }
       }
     }
   }
 
   & .media {
     flex-basis: calc(50% - 48px);
+    max-width: 816px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    width: 100%;
+
+    @media (--small) {
+      padding-left: 0;
+      padding-right: 0;
+      margin-top: 40px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    @media (--medium) {
+      padding-left: 0;
+      padding-right: 0;
+      margin-top: 40px;
+      margin-left: auto;
+      margin-right: auto;
+    }
 
     & img,
     & video {
@@ -57,4 +99,9 @@
   position: relative;
   align-items: center;
   justify-content: space-between;
+
+  @media (--medium) {
+    display: block;
+    text-align: center;
+  }
 }
