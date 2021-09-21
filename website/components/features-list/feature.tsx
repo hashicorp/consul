@@ -1,5 +1,25 @@
+import { ReactNode } from 'react'
 import Button from '@hashicorp/react-button'
 import s from './style.module.css'
+
+interface InfoSection {
+  heading: string
+  content: ReactNode
+}
+
+interface Cta {
+  text: string
+  url: string
+}
+
+export interface FeatureProps {
+  number: number
+  title: string
+  subtitle: string
+  infoSections: InfoSection[]
+  cta: Cta
+  image: string
+}
 
 export default function Feature({
   number,
@@ -8,7 +28,7 @@ export default function Feature({
   infoSections,
   cta,
   image,
-}) {
+}: FeatureProps) {
   return (
     <div className={s.featureContainer}>
       <div className={s.imageContainer}>

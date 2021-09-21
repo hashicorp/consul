@@ -35,6 +35,10 @@
     flex-direction: row-reverse;
     justify-content: space-between;
 
+    & .featureTextContainer {
+      margin-right: 60px;
+    }
+
     & .featureText {
       max-width: 488px;
     }

@@ -1,7 +1,13 @@
 import Feature from './feature'
 import s from './style.module.css'
+import { FeatureProps } from './feature'
 
-export default function FeaturesList({ title, features }) {
+interface FeaturesListProps {
+  title: string
+  features: Omit<FeatureProps, 'number'>[]
+}
+
+export default function FeaturesList({ title, features }: FeaturesListProps) {
   return (
     <div
       className={s.featureListContainer}
