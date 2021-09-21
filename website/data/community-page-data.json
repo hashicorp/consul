@@ -1,0 +1,16 @@
+{
+  "pageTitle": "Community | Consul by HashiCorp",
+  "heading": "Community",
+  "subheading": "Waypoint is a newly-launched open source project. The project team depends on the community’s engagement and feedback. Get involved today.",
+  "product": "consul",
+  "links": [
+    {
+      "header": "Community Forum",
+      "body": "<a href=\"https://discuss.hashicorp.com/c/waypoint\">Waypoint Community Forum</a>"
+    },
+    {
+      "header": "Bug Tracker",
+      "body": "<a href=\"https://github.com/hashicorp/waypoint/issues\">Issue tracker on GitHub</a>. Please only use this for reporting bugs. Do not ask for general help here; use the Community Form for that."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "start": "npx --yes @hashicorp/docs-preview@docs-preview",
+    "dev": "npm run start",
+    "clean": "rm -rf ./docs-preview",
+    "generate:readme": "next-hashicorp markdown-blocks README.md",
+    "format": "next-hashicorp format content/**/* data/**/*",
+    "lint": "next-hashicorp lint content/**/* data/**/*"
+  },
+  "devDependencies": {
+    "@hashicorp/platform-cli": "^1.2.0"
+  }
+}
