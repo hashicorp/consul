@@ -1,7 +1,12 @@
 import Button from '@hashicorp/react-button'
 import s from './style.module.css'
 
-export default function CKHero({ title, subtitle, ctas, media }) {
+export default function ConsulOnKubernetesHero({
+  title,
+  subtitle,
+  ctas,
+  media,
+}) {
   return (
     <div
       className={s.ckHero}
