@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3770,4 +3772,81 @@ func TestACLResolver_ACLsEnabled(t *testing.T) {
 		})
 	}
 
+}
+
+func TestACLResolver_ResolveTokenToIdentityAndAuthorizer_UpdatesPurgeTheCache(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  "the-policy",
+			Rules: `key_prefix "" { policy = "read"}`,
+		},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+	var respPolicy = structs.ACLPolicy{}
+	err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &respPolicy)
+	require.NoError(t, err)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: token,
+			Policies: []structs.ACLTokenPolicyLink{{Name: "the-policy"}},
+		},
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+	var respToken structs.ACLToken
+	err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &reqToken, &respToken)
+	require.NoError(t, err)
+
+	runStep(t, "first resolve", func(t *testing.T) {
+		_, authz, err := srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
+	})
+
+	runStep(t, "update the policy and resolve again", func(t *testing.T) {
+		reqPolicy := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				ID:    respPolicy.ID,
+				Name:  "the-policy",
+				Rules: `{"key_prefix": {"": {"policy": "deny"}}}`,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+		require.NoError(t, err)
+
+		_, authz, err := srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
+	})
+
+	runStep(t, "delete the token", func(t *testing.T) {
+		req := structs.ACLTokenDeleteRequest{
+			Datacenter:   "dc1",
+			TokenID:      respToken.AccessorID,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		var resp string
+		err := msgpackrpc.CallWithCodec(codec, "ACL.TokenDelete", &req, &resp)
+		require.NoError(t, err)
+
+		_, _, err = srv.acls.ResolveTokenToIdentityAndAuthorizer(token)
+		require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
+	})
 }
