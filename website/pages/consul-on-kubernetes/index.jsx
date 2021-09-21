@@ -10,14 +10,14 @@ export default function ConsulOnKubernetesPage() {
       <Head>
         <title key="title">Consul on Kubernetes</title>
       </Head>
+
       {/* hero */}
 
-      {/* side by side section */}
       <section>
         <SideBySide
           left={
             <div>
-              <h4 className="g-type-display-4">Overview</h4>
+              <h4 className="g-type-display-2">Overview</h4>
               <p className="g-type-body">
                 Kubernetes and service mesh tend to go hand and hand.
                 Organizations that adopt Kubernetes are looking for a way to
@@ -40,7 +40,7 @@ export default function ConsulOnKubernetesPage() {
           }
           right={
             <div>
-              <h4 className="g-type-display-4">Challenges</h4>
+              <h4 className="g-type-display-2">Challenges</h4>
               <BlockList blocks={blocks} />
             </div>
           }
