@@ -149,7 +149,7 @@ func (u *UsageMetricsReporter) Run(ctx context.Context) {
 }
 
 func (u *UsageMetricsReporter) runOnce() {
-	u.logger.Debug("Starting usage run")
+	u.logger.Trace("Starting usage run")
 	state := u.stateProvider.State()
 
 	_, nodeUsage, err := state.NodeUsage()
@@ -171,7 +171,7 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	_, kvUsage, err := state.KVUsage()
 	if err != nil {
-		u.logger.Warn("failed to retrieve kv entries from state store", "error", err)
+		u.logger.Warn("failed to retrieve kv entry usage from state store", "error", err)
 	}
 
 	u.emitKVUsage(kvUsage)

@@ -48,7 +48,7 @@ func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 func TestStateStore_Usage_KVUsage(t *testing.T) {
 	s := testStateStore(t)
 
-	// No nodes have been registered, and thus no usage entry exists
+	// No keys have been registered, and thus no usage entry exists
 	idx, usage, err := s.KVUsage()
 	require.NoError(t, err)
 	require.Equal(t, idx, uint64(0))
