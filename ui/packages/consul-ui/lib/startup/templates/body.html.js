@@ -41,6 +41,26 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
   }
   </script>
+${
+  environment === 'production'
+    ? `
+{{if .ACLsEnabled}}
+  <script data-${appName}-routing src="${rootURL}assets/acls/routes.js"></script>
+{{end}}
+`
+    : `
+<script>
+  if(document.cookie['CONSUL_ACLS_ENABLED']) {
+    const appName = '${appName}';
+    const appNameJS = appName.split('-').map((item, i) => i ? \`\${item.substr(0, 1).toUpperCase()}\${item.substr(1)}\` : item).join('');
+    const $script = document.createElement('script');
+    $script.setAttribute('src', '${rootURL}assets/acls/routes.js');
+    $script.dataset[\`\${appNameJS}Routes\`] = null;
+    document.body.appendChild($script);
+  }
+</script>
+`
+}
   <script src="${rootURL}assets/init.js"></script>
   <script src="${rootURL}assets/vendor.js"></script>
   ${environment === 'test' ? `<script src="${rootURL}assets/test-support.js"></script>` : ``}

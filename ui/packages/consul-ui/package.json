@@ -85,6 +85,7 @@
     "d3-selection": "^2.0.0",
     "d3-shape": "^2.0.0",
     "dayjs": "^1.9.3",
+    "deepmerge": "^4.2.2",
     "ember-assign-helper": "^0.3.0",
     "ember-auto-import": "^1.5.3",
     "ember-can": "^3.0.0",
