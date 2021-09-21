@@ -1,0 +1,10 @@
+.sideBySideTitle {
+  composes: g-type-display-2 from global;
+  margin-top: 0;
+  margin-bottom: 64px;
+}
+
+.leftSideText {
+  composes: g-type-body from global;
+  margin-bottom: 54px;
+}

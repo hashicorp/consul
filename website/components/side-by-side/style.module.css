@@ -4,7 +4,7 @@
 
   &::before {
     background: var(--consul-secondary);
-    width: calc(100% / 2);
+    width: 50%;
     content: '';
     position: absolute;
     top: 0;
