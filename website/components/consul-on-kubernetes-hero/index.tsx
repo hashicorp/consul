@@ -1,12 +1,30 @@
 import Button from '@hashicorp/react-button'
 import s from './style.module.css'
 
+interface Cta {
+  url: string
+  text: string
+}
+
+interface Media {
+  type: 'image' | 'video'
+  source: string
+  alt?: string
+}
+
+interface ConsulOnKubernetesHeroProps {
+  title: string
+  subtitle: string
+  ctas: Cta[]
+  media?: Media
+}
+
 export default function ConsulOnKubernetesHero({
   title,
   subtitle,
   ctas,
   media,
-}) {
+}: ConsulOnKubernetesHeroProps) {
   return (
     <div
       className={s.ckHero}
@@ -14,7 +32,7 @@ export default function ConsulOnKubernetesHero({
         backgroundImage: `url(${require('./img/background-design.svg')})`,
       }}
     >
-      <div className="g-grid-container">
+      <div className={s.contentWrapper}>
         <div className={s.headline}>
           <h1 className={s.title}>{title}</h1>
           <p className={s.subtitle}>{subtitle}</p>

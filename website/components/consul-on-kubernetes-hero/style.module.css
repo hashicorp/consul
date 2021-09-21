@@ -5,8 +5,18 @@
   padding-top: 145px;
   padding-bottom: 163px;
 
+  /* background-color: var(--black);
+  color: var(--white);
+  padding: 145px 0 163px;
+  position: relative;
+  overflow: hidden; */
+
   & .headline {
     max-width: 384px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: calc(50% - 16px);
+    width: 100%;
 
     & .inboundButton {
       &::before {
@@ -39,4 +49,12 @@
   composes: g-type-body-large from global;
   margin-top: 16px;
   margin-bottom: 48px;
+}
+
+.contentWrapper {
+  composes: g-grid-container from global;
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: space-between;
 }
