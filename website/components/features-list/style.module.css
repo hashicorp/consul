@@ -6,6 +6,10 @@
   color: #fff;
 }
 
+.contentWrapper {
+  composes: g-grid-container from global;
+}
+
 .featureContainer {
   display: flex;
   align-items: center;
@@ -13,6 +17,7 @@
 
   & .featureTextContainer {
     display: flex;
+    margin-right: 60px;
   }
 
   & .imageContainer {
@@ -31,7 +36,7 @@
     justify-content: space-between;
 
     & .featureText {
-      width: 488px;
+      max-width: 488px;
     }
 
     & .imageContainer {
@@ -55,7 +60,7 @@
 
 .listNumber {
   composes: g-type-display-5 from global;
-  width: 40px;
+  min-width: 40px;
   height: 40px;
   background-color: var(--consul);
   display: flex;

@@ -15,13 +15,15 @@ export default function Feature({
         <img src={image} alt={title} />
       </div>
       <div className={s.featureTextContainer}>
-        <span className={s.listNumber}>{number}</span>
+        <div className={s.listNumber}>
+          <span>{number}</span>
+        </div>
         <div className={s.featureText}>
           <h3 className={s.featureTitle}>{title}</h3>
           <p className={s.featureSubtitle}>{subtitle}</p>
           <div className={s.infoSection}>
             {infoSections.map(({ heading, content }) => (
-              <div key={`${title}-${heading}`}>
+              <div key={heading}>
                 <h4 className={s.infoTitle}>{heading}</h4>
                 {content}
               </div>

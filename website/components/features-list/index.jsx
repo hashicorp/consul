@@ -9,7 +9,7 @@ export default function FeaturesList({ title, features }) {
         backgroundImage: `url(${require('./images/top-right-design.svg')}), url(${require('./images/bottom-left-design.svg')})`,
       }}
     >
-      <div className="g-grid-container">
+      <div className={s.contentWrapper}>
         <h2 className={s.title}>{title}</h2>
         <div className={s.featuresContainer}>
           {features.map((feature, i) => (
