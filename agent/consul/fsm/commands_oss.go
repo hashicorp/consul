@@ -265,10 +265,8 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return req.ACL.ID
-	case structs.ACLDelete:
-		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID, nil)
 	// Legacy commands that have been removed
-	case "bootstrap-now", "force-set":
+	case "bootstrap-now", "force-set", "delete":
 		return fmt.Errorf("command %v has been removed with the legacy ACL system", req.Op)
 	default:
 		c.logger.Warn("Invalid ACL operation", "operation", req.Op)

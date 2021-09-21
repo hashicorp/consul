@@ -93,10 +93,6 @@ const (
 	// ACLSet creates or updates a token.
 	// TODO(ACL-Legacy-Compat): remove
 	ACLSet ACLOp = "set"
-
-	// ACLDelete deletes a token.
-	// TODO(ACL-Legacy-Compat): remove
-	ACLDelete ACLOp = "delete"
 )
 
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no

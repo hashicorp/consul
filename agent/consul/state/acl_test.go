@@ -1511,34 +1511,6 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		require.Nil(t, rtoken)
 	})
 
-	t.Run("Secret", func(t *testing.T) {
-		t.Parallel()
-		s := testACLTokensStateStore(t)
-
-		token := &structs.ACLToken{
-			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
-			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-			Local: true,
-		}
-
-		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
-
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
-		require.NoError(t, err)
-		require.NotNil(t, rtoken)
-
-		require.NoError(t, s.ACLTokenDeleteBySecret(3, "34ec8eb3-095d-417a-a937-b439af7a8e8b", nil))
-
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
-		require.NoError(t, err)
-		require.Nil(t, rtoken)
-	})
-
 	t.Run("Multiple", func(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
@@ -1592,7 +1564,6 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		s := testACLTokensStateStore(t)
 
 		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID, nil))
-		require.Error(t, s.ACLTokenDeleteBySecret(3, "anonymous", nil))
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -1601,7 +1572,6 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		// deletion of non-existent policies is not an error
 		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "ea58a09c-2100-4aef-816b-8ee0ade77dcd", nil))
-		require.NoError(t, s.ACLTokenDeleteBySecret(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d", nil))
 	})
 }
 

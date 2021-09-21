@@ -806,13 +806,6 @@ func (s *Store) expiresIndexName(local bool) string {
 	return indexExpiresGlobal
 }
 
-// ACLTokenDeleteBySecret is used to remove an existing ACL from the state store. If
-// the ACL does not exist this is a no-op and no error is returned.
-// Deprecated (ACL-Legacy-Compat)
-func (s *Store) ACLTokenDeleteBySecret(idx uint64, secret string, entMeta *structs.EnterpriseMeta) error {
-	return s.aclTokenDelete(idx, secret, "id", entMeta)
-}
-
 // ACLTokenDeleteByAccessor is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
 func (s *Store) ACLTokenDeleteByAccessor(idx uint64, accessor string, entMeta *structs.EnterpriseMeta) error {
