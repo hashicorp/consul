@@ -119,7 +119,7 @@ export default class ConsulIntentionForm extends Component {
   change(e, form, item) {
     const target = e.target;
 
-    let name, selected, match;
+    let name, selected;
     switch (target.name) {
       case 'SourceName':
       case 'DestinationName':
@@ -140,21 +140,24 @@ export default class ConsulIntentionForm extends Component {
         // basically the difference between
         // `item.DestinationName` and just `DestinationName`
         // see if the name is already in the list
-        match = this.services.filterBy('Name', name);
-        if (match.length === 0) {
-          // if its not make a new 'fake' Service that doesn't exist yet
-          // and add it to the possible services to make an intention between
-          selected = { Name: name };
-          switch (target.name) {
-            case 'SourceName':
-            case 'DestinationName':
+
+        // if its not make a new 'fake' Service that doesn't exist yet
+        // and add it to the possible services to make an intention between
+        switch (target.name) {
+          case 'SourceName':
+          case 'DestinationName':
+            if (this.services.filterBy('Name', name).length === 0) {
+              selected = { Name: name };
               this.services = [selected].concat(this.services.toArray());
-              break;
-            case 'SourceNS':
-            case 'DestinationNS':
+            }
+            break;
+          case 'SourceNS':
+          case 'DestinationNS':
+            if (this.nspaces.filterBy('Name', name).length === 0) {
+              selected = { Name: name };
               this.nspaces = [selected].concat(this.nspaces.toArray());
-              break;
-          }
+            }
+            break;
         }
         this[target.name] = selected;
         break;
