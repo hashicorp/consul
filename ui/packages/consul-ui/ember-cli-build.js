@@ -163,6 +163,9 @@ module.exports = function(defaults, $ = process.env) {
   app.import('vendor/metrics-providers/prometheus.js', {
     outputFile: 'assets/metrics-providers/prometheus.js',
   });
+  app.import('vendor/acls/routes.js', {
+    outputFile: 'assets/acls/routes.js',
+  });
   app.import('vendor/init.js', {
     outputFile: 'assets/init.js',
   });

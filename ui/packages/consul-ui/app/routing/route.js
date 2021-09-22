@@ -15,6 +15,22 @@ export default class BaseRoute extends Route {
   @service('repository/permission') permissions;
   @service('router') router;
 
+  redirect(model, transition) {
+    // remove any references to index as it is the same as the root routeName
+    const routeName = this.routeName
+      .split('.')
+      .filter(item => item !== 'index')
+      .join('.');
+    const to = get(routes, `${routeName}._options.redirect`);
+    if (typeof to !== 'undefined') {
+      // TODO: Does this need to return?
+      // Almost remember things getting strange if you returned from here
+      // which is why I didn't do it originally so be sure to look properly if
+      // you feel like adding a return
+      this.replaceWith(`${routeName}${to}`, model);
+    }
+  }
+
   /**
    * Inspects a custom `abilities` array on the router for this route. Every
    * abililty needs to 'pass' for the route not to throw a 403 error. Anything
