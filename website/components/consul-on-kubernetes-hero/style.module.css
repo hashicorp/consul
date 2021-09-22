@@ -2,7 +2,6 @@
   background-position: top right;
   background-repeat: no-repeat;
   background-color: var(--black);
-  composes: g-hero from global;
   color: var(--white);
   padding: 145px 0 163px;
   overflow: hidden;
@@ -50,25 +49,29 @@
   & .media {
     max-width: 720px;
     flex-basis: calc(50% - 48px);
+    margin: 40px auto 0;
 
     @media (--medium) {
-      margin-top: 40px;
       padding-left: 48px;
       padding-right: 48px;
     }
 
     @media (--small) {
-      padding-left: 0;
-      padding-right: 0;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    @media (--large) {
+      margin: 0;
     }
 
     & img,
     & video {
       max-width: 100%;
 
-      @media (--medium) {
+      /* @media (--small) {
         padding: 0 16px;
-      }
+      } */
     }
   }
 }
@@ -87,9 +90,14 @@
 
 .contentWrapper {
   composes: g-grid-container from global;
+  display: block;
+  position: relative;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
 
-  @media (--medium) {
-    display: block;
-    text-align: center;
+  @media (--large) {
+    display: flex;
+    text-align: left;
   }
 }
