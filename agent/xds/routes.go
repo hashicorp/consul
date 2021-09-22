@@ -270,8 +270,11 @@ func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Ups
 			return &s
 		}
 		if s.Name == structs.WildcardSpecifier &&
-			s.NamespaceOrDefault() == wantSID.NamespaceOrDefault() {
-			foundSameNSWildcard = &s
+			s.NamespaceOrDefault() == wantSID.NamespaceOrDefault() &&
+			s.PartitionOrDefault() == wantSID.PartitionOrDefault() {
+			// Make a copy so we don't take a reference to the loop variable
+			found := s
+			foundSameNSWildcard = &found
 		}
 	}
 	// Didn't find an exact match. Return the wildcard from same service if we
