@@ -159,20 +159,30 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "custom-upstream",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-upstream",
-					})
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+						})
+				}
 			},
 		},
 		{
 			name:   "custom-upstream-ignored-with-disco-chain",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-upstream",
-					})
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+						})
+				}
 			},
 		},
 		{
