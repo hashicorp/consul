@@ -1,0 +1,3 @@
+```release-note:bug
+ui: **(Enterprise Only)** Fixes a visual issue where namespaces would "double up" in the Source/Destination select menu when creating/editing intentions
+```
