@@ -61,7 +61,7 @@ func (s *Restore) ACLBindingRule(rule *structs.ACLBindingRule) error {
 
 // ACLAuthMethods is used when saving a snapshot
 func (s *Snapshot) ACLAuthMethods() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-auth-methods", "id")
+	iter, err := s.tx.Get(tableACLAuthMethods, indexID)
 	if err != nil {
 		return nil, err
 	}
