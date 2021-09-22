@@ -19,7 +19,7 @@ export default function BlockList({ blocks }: BlockListProps) {
             <img src={image} alt={title} />
           </div>
           <div>
-            <h5 className={s.title}>{title}</h5>
+            <h3 className={s.title}>{title}</h3>
             <p className={s.description}>{description}</p>
           </div>
         </div>
