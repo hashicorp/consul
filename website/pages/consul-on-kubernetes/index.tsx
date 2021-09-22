@@ -11,7 +11,8 @@ export default function ConsulOnKubernetesPage() {
       {/* hero */}
 
       {/* side by side section */}
-      <section className="g-grid-container">
+      {/* block list will be a node within the sidebyside section once that is complete */}
+      <section>
         <BlockList
           blocks={[
             {
