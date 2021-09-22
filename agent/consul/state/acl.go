@@ -1786,6 +1786,4 @@ func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
 
 	// update acl-binding-rules index
 	return updateTableIndexEntries(tx, tableACLBindingRules, rule.ModifyIndex, &rule.EnterpriseMeta)
-
-	return nil
 }
