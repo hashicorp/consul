@@ -22,6 +22,7 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -555,18 +556,93 @@ func canRetry(info structs.RPCInfo, err error) bool {
 	return info != nil && info.IsRead() && lib.IsErrEOF(err)
 }
 
-// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
-// Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) ForwardRPC(method string, req structs.RPCInfo, reply interface{}) (bool, error) {
-	var firstCheck time.Time
+// ForwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error) {
+	forwardToDC := func(dc string) error {
+		return s.forwardDC(method, dc, info, reply)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		return s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
+			method, info, reply)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
 
+// ForwardGRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
+	forwardToDC := func(dc string) error {
+		conn, err := connPool.ClientConn(dc)
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+
+	// forwardToLeader is nil because in this version there are no gRPC
+	// requests that need leader forwarding
+	return s.forwardRPC(info, forwardToDC, nil)
+}
+
+// forwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// If info.RequestDatacenter() does not match the local datacenter, then the
+// request will be forwarded to the DC using forwardToDC.
+//
+// Stale read requests will be handled locally if the current node has an
+// initialized raft database, otherwise requests will be forwarded to the local
+// leader using forwardToLeader.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) forwardRPC(
+	info structs.RPCInfo,
+	forwardToDC func(dc string) error,
+	forwardToLeader func(leader *metadata.Server) error,
+) (handled bool, err error) {
+	// Forward the request to the requested datacenter.
+	if handled, err := s.forwardRequestToOtherDatacenter(info, forwardToDC); handled || err != nil {
+		return handled, err
+	}
+
+	// See if we should let this server handle the read request without
+	// shipping the request to the leader.
+	//
+	// Also, in 1.10.x and earlier gRPC had no writes and had no need for
+	// leader forwarding, so treat forwardToLeader being nil as implying that it should
+	// just be serviced by the current server.
+
+	if s.canServeReadRequest(info) || forwardToLeader == nil {
+		return false, nil
+	}
+
+	return s.forwardRequestToLeader(info, forwardToLeader)
+}
+
+// forwardRequestToOtherDatacenter is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardToDC func(dc string) error) (handled bool, err error) {
 	// Handle DC forwarding
-	dc := req.RequestDatacenter()
+	dc := info.RequestDatacenter()
+	if dc == "" {
+		dc = s.config.Datacenter
+	}
 	if dc != s.config.Datacenter {
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
 		// it, falling back on the anonymous token on the other end.
-		if token := req.TokenSecret(); token != "" {
+		if token := info.TokenSecret(); token != "" {
 			done, ident, err := s.ResolveIdentityFromToken(token)
 			if done {
 				if err != nil && !acl.IsErrNotFound(err) {
@@ -574,21 +650,29 @@ func (s *Server) ForwardRPC(method string, req structs.RPCInfo, reply interface{
 				}
 				if ident != nil && ident.IsLocal() {
 					// Strip it from the request.
-					req.SetTokenSecret("")
-					defer req.SetTokenSecret(token)
+					info.SetTokenSecret("")
+					defer info.SetTokenSecret(token)
 				}
 			}
 		}
 
-		err := s.forwardDC(method, dc, req, reply)
-		return true, err
+		return true, forwardToDC(dc)
 	}
 
+	return false, nil
+}
+
+// canServeReadRequest determines if the request is a stale read request and
+// the current node can safely process that request.
+func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 	// Check if we can allow a stale read, ensure our local DB is initialized
-	if req.IsRead() && req.AllowStaleRead() && !s.raft.LastContact().IsZero() {
-		return false, nil
-	}
+	return info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero()
+}
 
+// forwardRequestToLeader is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
+	firstCheck := time.Now()
 CHECK_LEADER:
 	// Fail fast if we are in the process of leaving
 	select {
@@ -607,9 +691,8 @@ CHECK_LEADER:
 
 	// Handle the case of a known leader
 	if leader != nil {
-		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, req, reply)
-		if rpcErr != nil && canRetry(req, rpcErr) {
+		rpcErr = forwardToLeader(leader)
+		if rpcErr != nil && canRetry(info, rpcErr) {
 			goto RETRY
 		}
 		return true, rpcErr
@@ -617,9 +700,6 @@ CHECK_LEADER:
 
 RETRY:
 	// Gate the request until there is a leader
-	if firstCheck.IsZero() {
-		firstCheck = time.Now()
-	}
 	if time.Since(firstCheck) < s.config.RPCHoldTimeout {
 		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
 		select {
