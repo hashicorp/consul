@@ -83,7 +83,7 @@ type IngressService struct {
 	// TLS configuration overrides for this service. At least one entry must exist
 	// in Hosts to use set and the Listener must also have a default Cert loaded
 	// from SDS.
-	TLS *GatewayServiceTLSConfig
+	TLS *GatewayServiceTLSConfig `json:",omitempty"`
 
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
@@ -160,6 +160,77 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 	return nil
 }
 
+// validateServiceSDS validates the SDS config for a specific service on a
+// specific listener. It checks inherited config properties from listener and
+// gateway level and ensures they are valid all the way down. If called on
+// several services some of these checks will be duplicated but that isn't a big
+// deal and it's significantly easier to reason about and read if this is in one
+// place rather than threaded through the multi-level loop in Validate with
+// other checks.
+func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc IngressService) error {
+	// First work out if there is valid gateway-level SDS config
+	gwSDSClusterSet := false
+	gwSDSCertSet := false
+	if e.TLS.SDS != nil {
+		// Gateway level SDS config must set ClusterName if it specifies a default
+		// certificate. Just a clustername is OK though if certs are specified
+		// per-listener.
+		if e.TLS.SDS.ClusterName == "" && e.TLS.SDS.CertResource != "" {
+			return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set")
+		}
+		// Note we rely on the fact that ClusterName must be non-empty if any SDS
+		// properties are defined at this level (as validated above)  in validation
+		// below that uses this variable. If that changes we will need to change the
+		// code below too.
+		gwSDSClusterSet = (e.TLS.SDS.ClusterName != "")
+		gwSDSCertSet = (e.TLS.SDS.CertResource != "")
+	}
+
+	// Validate listener-level SDS config.
+	lisSDSCertSet := false
+	lisSDSClusterSet := false
+	if lis.TLS != nil && lis.TLS.SDS != nil {
+		lisSDSCertSet = (lis.TLS.SDS.CertResource != "")
+		lisSDSClusterSet = (lis.TLS.SDS.ClusterName != "")
+	}
+
+	// If SDS was setup at gw level but without a default CertResource, the
+	// listener MUST set a CertResource.
+	if gwSDSClusterSet && !gwSDSCertSet && !lisSDSCertSet {
+		return fmt.Errorf("TLS.SDS.CertResource is required if ClusterName is set for gateway (listener on port %d)", lis.Port)
+	}
+
+	// If listener set a cluster name then it requires a cert resource too.
+	if lisSDSClusterSet && !lisSDSCertSet {
+		return fmt.Errorf("TLS.SDS.CertResource is required if ClusterName is set for listener (listener on port %d)", lis.Port)
+	}
+
+	// If a listener-level cert is given, we need a cluster from at least one
+	// level.
+	if lisSDSCertSet && !lisSDSClusterSet && !gwSDSClusterSet {
+		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (listener on port %d)", lis.Port)
+	}
+
+	// Validate service-level SDS config
+	sid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
+
+	svcSDSSet := (svc.TLS != nil && svc.TLS.SDS != nil && svc.TLS.SDS.CertResource != "")
+
+	// Service SDS is only supported with Host names because we need to bind
+	// specific service certs to one or more SNI hostnames.
+	if svcSDSSet && len(svc.Hosts) < 1 {
+		return fmt.Errorf("A service specifying TLS.SDS.CertResource must have at least one item in Hosts (service %q on listener on port %d)",
+			sid.String(), lis.Port)
+	}
+	// If this service specified a certificate, there must be an SDS cluster set
+	// at one of the three levels.
+	if svcSDSSet && svc.TLS.SDS.ClusterName == "" && !lisSDSClusterSet && !gwSDSClusterSet {
+		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (service %q on listener on port %d)",
+			sid.String(), lis.Port)
+	}
+	return nil
+}
+
 func (e *IngressGatewayConfigEntry) Validate() error {
 	if err := validateConfigEntryMeta(e.Meta); err != nil {
 		return err
@@ -172,24 +243,6 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		"grpc":  true,
 	}
 	declaredPorts := make(map[int]bool)
-
-	// Validate SDS TLS configs make sense
-	gwSDSClusterSet := false
-	gwSDSCertSet := false
-	if e.TLS.SDS != nil {
-		// Gateway level SDS config must set ClusterName if it specifies a default
-		// certificate. Just a clustername is OK though if certs are specified
-		// per-listener.
-		if e.TLS.SDS.ClusterName == "" && e.TLS.SDS.CertResource != "" {
-			return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set")
-		}
-		// Note we rely on the fact that ClusterName must be non-empty if any SDS
-		// properties are defined (validated above) at this level in validation
-		// below that uses this variable. If that changes we will need to change the
-		// code below too.
-		gwSDSClusterSet = (e.TLS.SDS.ClusterName != "")
-		gwSDSCertSet = (e.TLS.SDS.CertResource != "")
-	}
 
 	for _, listener := range e.Listeners {
 		if _, ok := declaredPorts[listener.Port]; ok {
@@ -209,31 +262,6 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 		if listener.Protocol != "http" && len(listener.Services) > 1 {
 			return fmt.Errorf("Multiple services per listener are only supported for protocol = 'http' (listener on port %d)",
 				listener.Port)
-		}
-
-		// Validate listener-level SDS config.
-		lisSDSCertSet := false
-		lisSDSClusterSet := false
-		if listener.TLS != nil && listener.TLS.SDS != nil {
-			lisSDSCertSet = (listener.TLS.SDS.CertResource != "")
-			lisSDSClusterSet = (listener.TLS.SDS.ClusterName != "")
-		}
-
-		// If SDS was setup at gw level but without a default CertResource, the
-		// listener MUST set a CertResource.
-		if gwSDSClusterSet && !gwSDSCertSet && !lisSDSCertSet {
-			return fmt.Errorf("TLS.SDS.CertResource is required if ClusterName is set for gateway (listener on port %d)", listener.Port)
-		}
-
-		// If listener set a cluster name then it requires a cert resource too.
-		if lisSDSClusterSet && !lisSDSCertSet {
-			return fmt.Errorf("TLS.SDS.CertResource is required if ClusterName is set for listener (listener on port %d)", listener.Port)
-		}
-
-		// If a listener-level cert is given, we need a cluster from at least one
-		// level.
-		if lisSDSCertSet && !lisSDSClusterSet && !gwSDSClusterSet {
-			return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (listener on port %d)", listener.Port)
 		}
 
 		declaredHosts := make(map[string]bool)
@@ -273,14 +301,9 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 			}
 			serviceNames[sid] = struct{}{}
 
-			svcSDSSet := (s.TLS != nil && s.TLS.SDS != nil && s.TLS.SDS.CertResource != "")
-			if svcSDSSet && len(s.Hosts) < 1 {
-				return fmt.Errorf("A service specifying TLS.SDS.CertResource must have at least one item in Hosts (service %q on listener on port %d)",
-					sid.String(), listener.Port)
-			}
-			if svcSDSSet && s.TLS.SDS.ClusterName == "" && !lisSDSClusterSet && !gwSDSClusterSet {
-				return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (service %q on listener on port %d)",
-					sid.String(), listener.Port)
+			// Validate SDS configuration for this service
+			if err := e.validateServiceSDS(listener, s); err != nil {
+				return err
 			}
 
 			for _, h := range s.Hosts {
