@@ -30,7 +30,7 @@ export default function ConsulOnKubernetesPage() {
       <section>
         <SideBySide
           left={
-            <div>
+            <>
               <h2 className={s.sideBySideTitle}>Overview</h2>
               <p className={s.leftSideText}>
                 Kubernetes and service mesh tend to go hand and hand.
@@ -52,10 +52,10 @@ export default function ConsulOnKubernetesPage() {
                   brand: 'consul',
                 }}
               />
-            </div>
+            </>
           }
           right={
-            <div>
+            <>
               <h2 className={s.sideBySideTitle}>Challenges</h2>
               <BlockList
                 blocks={[
@@ -85,7 +85,7 @@ export default function ConsulOnKubernetesPage() {
                   },
                 ]}
               />
-            </div>
+            </>
           }
         />
       </section>
