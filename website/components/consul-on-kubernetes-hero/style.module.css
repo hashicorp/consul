@@ -37,11 +37,10 @@
 
       @media (--large) {
         justify-content: flex-start;
-        margin: 0 -15px;
       }
 
-      & .button {
-        margin: 0 15px;
+      & .button:not(:last-of-type) {
+        margin-right: 30px;
       }
     }
   }
@@ -69,10 +68,6 @@
     & img,
     & video {
       max-width: 100%;
-
-      /* @media (--small) {
-        padding: 0 16px;
-      } */
     }
   }
 }
