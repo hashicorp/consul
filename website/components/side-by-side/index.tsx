@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import classNames from 'classNames'
+import classNames from 'classnames'
 import s from './style.module.css'
 
 interface SideBySideProps {
