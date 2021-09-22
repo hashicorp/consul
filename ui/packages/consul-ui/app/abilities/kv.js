@@ -10,4 +10,15 @@ export default class KVAbility extends BaseAbility {
     }
     return resources;
   }
+  get canRead() {
+    return true;
+  }
+
+  get canList() {
+    return true;
+  }
+
+  get canWrite() {
+    return true;
+  }
 }
