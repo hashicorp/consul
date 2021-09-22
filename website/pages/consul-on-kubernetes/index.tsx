@@ -11,7 +11,7 @@ export default function ConsulOnKubernetesPage() {
 
       <ConsulOnKubernetesHero
         title="Consul on Kubernetes"
-        subtitle="A robust service mesh for discovering and securely connecting applications on Kubernetes."
+        description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
         ctas={[
           { text: 'Get Started', url: '#TODO' },
           { text: 'Try HCP Consul', url: '#TODO' },

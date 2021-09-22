@@ -14,14 +14,14 @@ interface Media {
 
 interface ConsulOnKubernetesHeroProps {
   title: string
-  subtitle: string
+  description: string
   ctas: Cta[]
   media: Media
 }
 
 export default function ConsulOnKubernetesHero({
   title,
-  subtitle,
+  description,
   ctas,
   media,
 }: ConsulOnKubernetesHeroProps) {
@@ -29,13 +29,13 @@ export default function ConsulOnKubernetesHero({
     <div
       className={s.ckHero}
       style={{
-        backgroundImage: `url(${require('./img/background-design.svg')})`,
+        backgroundImage: `url(${require('./images/background-design.svg')})`,
       }}
     >
       <div className={s.contentWrapper}>
         <div className={s.headline}>
           <h1 className={s.title}>{title}</h1>
-          <p className={s.subtitle}>{subtitle}</p>
+          <p className={s.description}>{description}</p>
           <div className={s.buttons}>
             {ctas.map(({ text, url }, idx) => (
               <Button
