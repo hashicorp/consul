@@ -14,14 +14,6 @@ import (
 )
 
 const (
-	// ACLBootstrapInit is used to perform a scan for existing tokens which
-	// will decide whether bootstrapping is allowed for a cluster. This is
-	// initiated by the leader when it steps up, if necessary.
-	// TODO(ACL-Legacy-Compat): remove
-	ACLBootstrapInit ACLOp = "bootstrap-init"
-)
-
-const (
 	// ACLTokenTypeClient tokens have rules applied
 	ACLTokenTypeClient = "client"
 

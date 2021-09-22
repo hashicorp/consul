@@ -254,19 +254,13 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
-	case structs.ACLBootstrapInit:
-		enabled, _, err := c.state.CanBootstrapACLToken()
-		if err != nil {
-			return err
-		}
-		return enabled
 	case structs.ACLSet:
 		if err := c.state.ACLTokenSet(index, req.ACL.Convert(), true); err != nil {
 			return err
 		}
 		return req.ACL.ID
 	// Legacy commands that have been removed
-	case "bootstrap-now", "force-set", "delete":
+	case "bootstrap-now", "bootstrap-init", "force-set", "delete":
 		return fmt.Errorf("command %v has been removed with the legacy ACL system", req.Op)
 	default:
 		c.logger.Warn("Invalid ACL operation", "operation", req.Op)
