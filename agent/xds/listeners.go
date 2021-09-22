@@ -257,7 +257,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if cfg.EnvoyListenerJSON != "" {
 			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 			if err != nil {
-				return nil, err
+				s.Logger.Warn("failed to parse envoy_listener_json",
+					"upstream", u.Identifier(),
+					"error", err)
+				continue
 			}
 			resources = append(resources, upstreamListener)
 			continue

@@ -165,7 +165,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
-							Name: snap.Proxy.Upstreams[i].DestinationName + ":custom-upstream",
+							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
 						})
 				}
 			},
@@ -180,7 +180,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
-							Name: snap.Proxy.Upstreams[i].DestinationName + ":custom-upstream",
+							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
 						})
 				}
 			},
