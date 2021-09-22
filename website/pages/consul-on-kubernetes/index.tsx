@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import BlockList from 'components/block-list'
+import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
 
 export default function ConsulOnKubernetesPage() {
@@ -8,7 +9,20 @@ export default function ConsulOnKubernetesPage() {
       <Head>
         <title key="title">Consul on Kubernetes</title>
       </Head>
-      {/* hero */}
+
+      <ConsulOnKubernetesHero
+        title="Consul on Kubernetes"
+        description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
+        ctas={[
+          { text: 'Get Started', url: '#TODO' },
+          { text: 'Try HCP Consul', url: '#TODO' },
+        ]}
+        media={{
+          type: 'image',
+          source: require('./images/sample-video.png'),
+          alt: 'sample image',
+        }}
+      />
 
       {/* side by side section */}
       {/* block list will be a node within the sidebyside section once that is complete */}
@@ -42,10 +56,6 @@ export default function ConsulOnKubernetesPage() {
           ]}
         />
       </section>
-
-      {/* hero */}
-
-      {/* side by side section */}
 
       <section>
         <FeaturesList
