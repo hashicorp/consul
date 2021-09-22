@@ -24,6 +24,8 @@ type DeprecatedConfig struct {
 	ACLDefaultPolicy *string `mapstructure:"acl_default_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.down_policy"
 	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.token_ttl"
+	ACLTTL *string `mapstructure:"acl_ttl"`
 }
 
 func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
@@ -95,6 +97,13 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 			d.Config.ACL.DownPolicy = dep.ACLDownPolicy
 		}
 		warns = append(warns, deprecationWarning("acl_down_policy", "acl.down_policy"))
+	}
+
+	if dep.ACLTTL != nil {
+		if d.Config.ACL.TokenTTL == nil {
+			d.Config.ACL.TokenTTL = dep.ACLTTL
+		}
+		warns = append(warns, deprecationWarning("acl_ttl", "acl.token_ttl"))
 	}
 
 	return d.Config, warns

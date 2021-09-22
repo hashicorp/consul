@@ -856,7 +856,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			Datacenter:       datacenter,
 			NodeName:         b.nodeName(c.NodeName),
 			ACLPolicyTTL:     b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-			ACLTokenTTL:      b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+			ACLTokenTTL:      b.durationVal("acl.token_ttl", c.ACL.TokenTTL),
 			ACLRoleTTL:       b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
 			ACLDownPolicy:    stringVal(c.ACL.DownPolicy),
 			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),

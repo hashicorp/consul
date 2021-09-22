@@ -3,6 +3,7 @@ package config
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +25,8 @@ acl_replication_token = "token5"
 acl_default_policy = "deny"
 acl_down_policy = "async-cache"
 
+acl_ttl = "3h"
+
 `},
 	}
 	patchLoadOptsShims(&opts)
@@ -39,6 +42,7 @@ acl_down_policy = "async-cache"
 		deprecationWarning("acl_master_token", "acl.tokens.master"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
+		deprecationWarning("acl_ttl", "acl.token_ttl"),
 	}
 	sort.Strings(result.Warnings)
 	require.Equal(t, expectWarns, result.Warnings)
@@ -56,6 +60,7 @@ acl_down_policy = "async-cache"
 	require.Equal(t, "token5", rt.ACLTokens.ACLReplicationToken)
 	require.Equal(t, "deny", rt.ACLResolverSettings.ACLDefaultPolicy)
 	require.Equal(t, "async-cache", rt.ACLResolverSettings.ACLDownPolicy)
+	require.Equal(t, 3*time.Hour, rt.ACLResolverSettings.ACLTokenTTL)
 }
 
 func TestLoad_DeprecatedConfig_ACLReplication(t *testing.T) {
