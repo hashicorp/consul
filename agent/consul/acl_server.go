@@ -95,6 +95,7 @@ func (s *Server) updateSerfTags(key, value string) {
 	s.updateEnterpriseSerfTags(key, value)
 }
 
+// TODO:
 func (s *Server) updateACLAdvertisement() {
 	// One thing to note is that once in new ACL mode the server will
 	// never transition to legacy ACL mode. This is not currently a

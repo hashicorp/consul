@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
@@ -31,13 +30,6 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.Tags["build"] = c.config.Build
 	if c.config.AdvertiseReconnectTimeout != 0 {
 		conf.Tags[libserf.ReconnectTimeoutTag] = c.config.AdvertiseReconnectTimeout.String()
-	}
-	if c.acls.ACLsEnabled() {
-		// we start in legacy mode and then transition to normal
-		// mode once we know the cluster can handle it.
-		conf.Tags["acls"] = string(structs.ACLModeLegacy)
-	} else {
-		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
 
 	// We use the Intercept variant here to ensure that serf and memberlist logs

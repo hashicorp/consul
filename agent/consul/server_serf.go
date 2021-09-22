@@ -73,10 +73,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 
 	if s.acls.ACLsEnabled() {
-		// we start in legacy mode and allow upgrading later
-		conf.Tags["acls"] = string(structs.ACLModeLegacy)
+		conf.Tags[metadata.TagACLs] = string(structs.ACLModeEnabled)
 	} else {
-		conf.Tags["acls"] = string(structs.ACLModeDisabled)
+		conf.Tags[metadata.TagACLs] = string(structs.ACLModeDisabled)
 	}
 
 	// feature flag: advertise support for federation states

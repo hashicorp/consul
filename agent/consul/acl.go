@@ -83,10 +83,12 @@ const (
 	// currently used will backoff as it detects that it is remaining in legacy mode.
 	// However the initial min value is kept small so that new cluster creation
 	// can enter into new ACL mode quickly.
+	// TODO(ACL-Legacy-Compat): remove
 	aclModeCheckMinInterval = 50 * time.Millisecond
 
 	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
 	// checks if it should be using the new or legacy ACL system.
+	// TODO(ACL-Legacy-Compat): remove
 	aclModeCheckMaxInterval = 30 * time.Second
 
 	// Maximum number of re-resolution requests to be made if the token is modified between
@@ -170,7 +172,6 @@ func tokenSecretCacheID(token string) string {
 
 type ACLResolverDelegate interface {
 	ACLDatacenter(legacy bool) string
-	UseLegacyACLs() bool
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
@@ -442,6 +443,7 @@ func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.Aut
 	}
 }
 
+// TODO: remove
 func (r *ACLResolver) resolveTokenLegacy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 	defer metrics.MeasureSince([]string{"acl", "resolveTokenLegacy"}, time.Now())
 
@@ -1244,13 +1246,6 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 		return ident, authz, nil
 	}
 
-	if r.delegate.UseLegacyACLs() {
-		// TODO(partitions,acls): do we have to care about legacy acls?
-		identity, authorizer, err := r.resolveTokenLegacy(token)
-		r.handleACLDisabledError(err)
-		return identity, authorizer, err
-	}
-
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
 
 	identity, policies, err := r.resolveTokenToIdentityAndPolicies(token)
@@ -1308,12 +1303,6 @@ func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity,
 
 	if ident, _, ok := r.resolveLocallyManagedToken(token); ok {
 		return ident, nil
-	}
-
-	if r.delegate.UseLegacyACLs() {
-		identity, _, err := r.resolveTokenLegacy(token)
-		r.handleACLDisabledError(err)
-		return identity, err
 	}
 
 	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
