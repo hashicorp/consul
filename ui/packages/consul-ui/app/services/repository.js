@@ -99,6 +99,13 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
+  cached(params) {
+    const entries = Object.entries(params);
+    return this.store.peekAll(this.getModelName()).filter(item => {
+      return entries.every(([key, value]) => item[key] === value);
+    });
+  }
+
   // @deprecated
   findAllByDatacenter(params, configuration = {}) {
     return this.findAll(...arguments);
