@@ -86,6 +86,11 @@ func TestKVImportPrefixCommand(t *testing.T) {
 			"key": "foo",
 			"flags": 0,
 			"value": "YmFyCg=="
+		},
+		{
+			"key": "foo/b/",
+			"flags": 0,
+			"value": null
 		}
 	]`
 
@@ -120,5 +125,19 @@ func TestKVImportPrefixCommand(t *testing.T) {
 
 	if strings.TrimSpace(string(pair.Value)) != "bar" {
 		t.Fatalf("bad: expected: bar, got %s", pair.Value)
+	}
+
+	// Ensure trailing slash is preserved on import
+	pair, _, err = client.KV().Get("sub/foo/b/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pair == nil {
+		t.Fatalf("bad: expected: %+v, got nil", pair)
+	}
+
+	if len(pair.Value) != 0 {
+		t.Fatalf("bad: expected: null, got %s", string(pair.Value))
 	}
 }
