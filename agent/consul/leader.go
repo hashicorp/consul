@@ -68,11 +68,6 @@ func (s *Server) monitorLeadership() {
 	// cleanup and to ensure we never run multiple leader loops.
 	raftNotifyCh := s.raftNotifyCh
 
-	aclModeCheckWait := aclModeCheckMinInterval
-	var aclUpgradeCh <-chan time.Time
-	if s.config.ACLsEnabled {
-		aclUpgradeCh = time.After(aclModeCheckWait)
-	}
 	var weAreLeaderCh chan struct{}
 	var leaderLoop sync.WaitGroup
 	for {
@@ -104,33 +99,6 @@ func (s *Server) monitorLeadership() {
 				leaderLoop.Wait()
 				weAreLeaderCh = nil
 				s.logger.Info("cluster leadership lost")
-			}
-		case <-aclUpgradeCh:
-			if atomic.LoadInt32(&s.useNewACLs) == 0 {
-				aclModeCheckWait = aclModeCheckWait * 2
-				if aclModeCheckWait > aclModeCheckMaxInterval {
-					aclModeCheckWait = aclModeCheckMaxInterval
-				}
-				aclUpgradeCh = time.After(aclModeCheckWait)
-
-				if canUpgrade := s.canUpgradeToNewACLs(weAreLeaderCh != nil); canUpgrade {
-					if weAreLeaderCh != nil {
-						if err := s.initializeACLs(&lib.StopChannelContext{StopCh: weAreLeaderCh}, true); err != nil {
-							s.logger.Error("error transitioning to using new ACLs", "error", err)
-							continue
-						}
-					}
-
-					s.logger.Debug("transitioning out of legacy ACL mode")
-					atomic.StoreInt32(&s.useNewACLs, 1)
-					s.updateACLAdvertisement()
-
-					// setting this to nil ensures that we will never hit this case again
-					aclUpgradeCh = nil
-				}
-			} else {
-				// establishLeadership probably transitioned us
-				aclUpgradeCh = nil
 			}
 		case <-s.shutdownCh:
 			return
@@ -305,15 +273,7 @@ WAIT:
 // state is up-to-date.
 func (s *Server) establishLeadership(ctx context.Context) error {
 	start := time.Now()
-	// check for the upgrade here - this helps us transition to new ACLs much
-	// quicker if this is a new cluster or this is a test agent
-	if canUpgrade := s.canUpgradeToNewACLs(true); canUpgrade {
-		if err := s.initializeACLs(ctx, true); err != nil {
-			return err
-		}
-		atomic.StoreInt32(&s.useNewACLs, 1)
-		s.updateACLAdvertisement()
-	} else if err := s.initializeACLs(ctx, false); err != nil {
+	if err := s.initializeACLs(ctx); err != nil {
 		return err
 	}
 
@@ -400,7 +360,7 @@ func (s *Server) revokeLeadership() {
 
 // initializeACLs is used to setup the ACLs if we are the leader
 // and need to do this.
-func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
+func (s *Server) initializeACLs(ctx context.Context) error {
 	if !s.config.ACLsEnabled {
 		return nil
 	}
@@ -573,11 +533,6 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
 	} else {
-		if upgrade {
-			s.stopACLReplication()
-		}
-
-		// ACL replication is now mandatory
 		s.startACLReplication(ctx)
 	}
 

@@ -134,10 +134,6 @@ type Server struct {
 
 	aclAuthMethodValidators authmethod.Cache
 
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
-	// useNewACLs is used to determine whether we can use new ACLs or not
-	useNewACLs int32
-
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
@@ -428,7 +424,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	s.aclConfig = newACLConfig(logger)
-	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
 		Delegate:    s,
@@ -1346,11 +1341,7 @@ func (s *Server) Stats() map[string]map[string]string {
 	}
 
 	if s.config.ACLsEnabled {
-		if s.UseLegacyACLs() {
-			stats["consul"]["acl"] = "legacy"
-		} else {
-			stats["consul"]["acl"] = "enabled"
-		}
+		stats["consul"]["acl"] = "enabled"
 	} else {
 		stats["consul"]["acl"] = "disabled"
 	}

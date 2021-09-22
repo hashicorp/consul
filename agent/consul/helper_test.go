@@ -165,16 +165,6 @@ func joinWAN(t *testing.T, member, leader *Server) {
 	}
 }
 
-func waitForNewACLs(t *testing.T, server *Server) {
-	t.Helper()
-
-	retry.Run(t, func(r *retry.R) {
-		require.False(r, server.UseLegacyACLs(), "Server cannot use new ACLs")
-	})
-
-	require.False(t, server.UseLegacyACLs(), "Server cannot use new ACLs")
-}
-
 func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
 	t.Helper()
 	retry.Run(t, func(r *retry.R) {

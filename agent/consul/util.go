@@ -4,10 +4,11 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // CanServersUnderstandProtocol checks to see if all the servers in the given
@@ -212,18 +213,4 @@ func (s *serversACLMode) update(srv *metadata.Server) bool {
 	}
 
 	return true
-}
-
-// ServersGetACLMode checks all the servers in a particular datacenter and determines
-// what the minimum ACL mode amongst them is and what the leaders ACL mode is.
-// The "found" return value indicates whether there were any servers considered in
-// this datacenter. If that is false then the other mode return values are meaningless
-// as they will be ACLModeEnabled and ACLModeUnkown respectively.
-func ServersGetACLMode(provider checkServersProvider, leaderAddr string, datacenter string) (found bool, mode structs.ACLMode, leaderMode structs.ACLMode) {
-	var state serversACLMode
-	state.init(leaderAddr)
-
-	provider.CheckServers(datacenter, state.update)
-
-	return state.found, state.mode, state.leaderMode
 }

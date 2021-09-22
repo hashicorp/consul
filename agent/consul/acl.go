@@ -77,20 +77,6 @@ const (
 	// due to the data being more variable in its size.
 	aclBatchUpsertSize = 256 * 1024
 
-	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
-	// aclModeCheckMinInterval is the minimum amount of time between checking if the
-	// agent should be using the new or legacy ACL system. All the places it is
-	// currently used will backoff as it detects that it is remaining in legacy mode.
-	// However the initial min value is kept small so that new cluster creation
-	// can enter into new ACL mode quickly.
-	// TODO(ACL-Legacy-Compat): remove
-	aclModeCheckMinInterval = 50 * time.Millisecond
-
-	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
-	// checks if it should be using the new or legacy ACL system.
-	// TODO(ACL-Legacy-Compat): remove
-	aclModeCheckMaxInterval = 30 * time.Second
-
 	// Maximum number of re-resolution requests to be made if the token is modified between
 	// resolving the token and resolving its policies that would remove one of its policies.
 	tokenPolicyResolutionMaxRetries = 5
