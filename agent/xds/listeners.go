@@ -252,6 +252,20 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// default config if there is an error so it's safe to continue.
 			s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 		}
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				s.Logger.Error("failed to parse envoy_listener_json",
+					"upstream", u.Identifier(),
+					"error", err)
+				continue
+			}
+			resources = append(resources, upstreamListener)
+			continue
+		}
+
 		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
