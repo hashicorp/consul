@@ -35,6 +35,10 @@ var Gauges = []prometheus.GaugeDefinition{
 		Name: []string{"consul", "members", "servers"},
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
+	{
+		Name: []string{"consul", "kv", "entries"},
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.10.3.",
+	},
 }
 
 type getMembersFunc func() []serf.Member
@@ -144,6 +148,7 @@ func (u *UsageMetricsReporter) Run(ctx context.Context) {
 }
 
 func (u *UsageMetricsReporter) runOnce() {
+	u.logger.Trace("Starting usage run")
 	state := u.stateProvider.State()
 	_, nodes, err := state.NodeCount()
 	if err != nil {
@@ -164,6 +169,13 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	servers, clients := u.memberUsage()
 	u.emitMemberUsage(servers, clients)
+
+	_, kvUsage, err := state.KVUsage()
+	if err != nil {
+		u.logger.Warn("failed to retrieve kv entry usage from state store", "error", err)
+	}
+
+	u.emitKVUsage(kvUsage)
 }
 
 func (u *UsageMetricsReporter) memberUsage() (int, map[string]int) {

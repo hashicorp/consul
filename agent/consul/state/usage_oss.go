@@ -9,10 +9,18 @@ import (
 
 type EnterpriseServiceUsage struct{}
 
+type EnterpriseKVUsage struct{}
+
 func addEnterpriseServiceInstanceUsage(map[string]int, memdb.Change) {}
 
 func addEnterpriseServiceUsage(map[string]int, map[structs.ServiceName]uniqueServiceState) {}
 
+func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
+
 func compileEnterpriseUsage(tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
+	return usage, nil
+}
+
+func compileEnterpriseKVUsage(tx ReadTxn, usage KVUsage) (KVUsage, error) {
 	return usage, nil
 }
