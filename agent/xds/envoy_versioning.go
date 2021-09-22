@@ -11,10 +11,10 @@ import (
 var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
-	minSupportedVersion = version.Must(version.NewVersion("1.15.0"))
+	minSupportedVersion = version.Must(version.NewVersion("1.16.0"))
 
-	minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
-	minVersionAllowingMultipleIncrementalXDSChanges          = version.Must(version.NewVersion("1.16.0"))
+	// add min version constraints for associated feature flags when necessary, for example:
+	// minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
@@ -27,24 +27,15 @@ type unsupportedVersion struct {
 
 type supportedProxyFeatures struct {
 	// add version dependent feature flags here
-
-	// GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS is needed to paper
-	// over some weird envoy behavior.
 	//
-	// For some reason Envoy versions prior to 1.16.0 when sent an empty CDS
-	// list via the incremental xDS protocol will correctly ack the message and
-	// just never request LDS resources.
-	GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS bool
-
-	// IncrementalXDSUpdatesMustBeSerial is needed to avoid an envoy crash.
+	// For example, we previously had flags for Envoy < 1.16 called:
 	//
-	// Versions of Envoy prior to 1.16.0 could crash if multiple in-flight
-	// changes to resources were happening during incremental xDS. To prevent
-	// that we force serial updates on those older versions.
+	// GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
+	// IncrementalXDSUpdatesMustBeSerial
 	//
-	// issue: https://github.com/envoyproxy/envoy/issues/11877
-	// PR:    https://github.com/envoyproxy/envoy/pull/12069
-	IncrementalXDSUpdatesMustBeSerial bool
+	// Which then manifested in the code for checks with this struct populated.
+	// By dropping support for 1.15, we no longer have any special flags here
+	// but leaving this flagging functionality for future one-offs.
 }
 
 func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
@@ -82,13 +73,12 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	sf := supportedProxyFeatures{}
 
-	if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
-		sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
-	}
-
-	if version.LessThan(minVersionAllowingMultipleIncrementalXDSChanges) {
-		sf.IncrementalXDSUpdatesMustBeSerial = true
-	}
+	// add version contraints to poipulate feature flags here when necessary, for example:
+	/*
+		if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
+			sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
+		}
+	*/
 
 	return sf, nil
 }

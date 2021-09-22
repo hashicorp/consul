@@ -11,10 +11,8 @@ var EnvoyVersions = []string{
 	"1.18.4",
 	"1.17.4",
 	"1.16.5",
-	"1.15.5",
 }
 
 var EnvoyVersionsV2 = []string{
 	"1.16.5",
-	"1.15.5",
 }

@@ -38,51 +38,22 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	case structs.ServiceKindMeshGateway:
 		res, err := s.clustersFromSnapshotMeshGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	case structs.ServiceKindIngressGateway:
 		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
-}
-
-func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.Message) ([]proto.Message, error) {
-	switch {
-	case !s.IncrementalXDS:
-		return resources, nil
-	case !s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS:
-		return resources, nil
-	case len(resources) > 0:
-		return resources, nil
-	}
-
-	// For more justification for this hacky fix, check the comments associated
-	// with s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
-
-	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
-	return []proto.Message{
-		&envoy_cluster_v3.Cluster{
-			Name:                 stubName,
-			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
-			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
-				ClusterName: stubName,
-				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
-					{LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{}},
-				},
-			},
-		},
-	}, nil
 }
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
