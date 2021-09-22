@@ -15,6 +15,10 @@ type delegateMock struct {
 	mock.Mock
 }
 
+var (
+	_ delegate = &delegateMock{}
+)
+
 func (m *delegateMock) GetLANCoordinate() (lib.CoordinateSet, error) {
 	ret := m.Called()
 	return ret.Get(0).(lib.CoordinateSet), ret.Error(1)
@@ -81,6 +85,6 @@ func (m *delegateMock) Stats() map[string]map[string]string {
 	return m.Called().Get(0).(map[string]map[string]string)
 }
 
-func (m *delegateMock) ReloadConfig(config consul.ReloadableConfig) error {
+func (m *delegateMock) ReloadConfig(config *consul.Config) error {
 	return m.Called(config).Error(0)
 }
