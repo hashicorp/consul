@@ -16,7 +16,7 @@ class SomethingRepository extends Service {
 
 ```hbs preview-template
 <DataSource
-  @src="/partition/nspace/dc/services"
+  @src={{uri "/partition/nspace/dc/services"}}
   @loading="eager"
   @disabled={{false}}
 as |source|>
@@ -25,6 +25,9 @@ as |source|>
 {{/each}}
 </DataSource>
 ```
+
+
+Please make sure you use the `uri` helper to specify src URIs, this ensures that it is very difficult to miss any URL encoding problems. If you don't use the `uri` helper then an error will be thrown.
 
 ## Attributes
 
@@ -55,7 +58,7 @@ Straightforward usage can use `mut` to easily update data within a template usin
 ```hbs
   {{! listen for HTTP API changes}}
   <DataSource
-    @src="/partition/nspace/dc/services"
+    @src={{uri "/partition/nspace/dc/services"}}
     @onchange={{action (mut items) value="data"}}
     @onerror={{action (mut error) value="error"}}
   />
@@ -72,7 +75,7 @@ Straightforward usage can use `mut` to easily update data within a template usin
 
   {{! listen for Settings (local storage) changes}}
   <DataSource
-    @src="settings://consul:token"
+    @src={{uri "settings://consul:token"}}
     @onchange={{action (mut token) value="data"}}
     @onerror={{action (mut error) value="error"}}
   />
@@ -85,7 +88,7 @@ A property approach to easily update data within a template
 ```hbs
   {{! listen for HTTP API changes}}
   <DataSource
-    @src="/partition/nspace/dc/services"
+    @src={{uri "/partition/nspace/dc/services"}}
   as |source|>
     {{#if source.error}}
       Something went wrong!
@@ -115,19 +118,19 @@ DataSources can also be recursively nested for loading in series as opposed to i
 
   {{! listen for HTTP API changes}}
   <DataSource
-    @src="/partition/nspace/dc/services"
+    @src={{uri "/partition/nspace/dc/services"}}
     @onerror={{action (mut error) value="error"}}
   as |source|>
 
     <source.Source
-      @src="/partition/nspace/dc/service/{{source.data.firstObject.Name}}"
+      @src={{uri "/partition/nspace/dc/service/{{source.data.firstObject.Name}}"}}
       @onerror={{action (mut error) value="error"}}
     as |source|>
 
       {{source.data.Service.Service.Name}} <== Detailed information for the first service
 
       <source.Source
-        @src="/partition/nspace/dc/proxy/for-service/{{source.data.Service.ID}}"
+        @src={{uri "/partition/nspace/dc/proxy/for-service/{{source.data.Service.ID}}"}}
         @onerror={{action (mut error) value="error"}}
         @onchange={{action (mut loaded) true}}
       as |source|>
