@@ -19,4 +19,5 @@
 .description {
   composes: g-type-body-small from global;
   margin: 0;
+  color: var(--gray-2);
 }

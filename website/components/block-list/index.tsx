@@ -1,14 +1,9 @@
 import s from './style.module.css'
 
-interface Image {
-  source: string
-  alt: string
-}
-
 interface Block {
   title: string
   description: string
-  image: Image
+  image: string
 }
 
 interface BlockListProps {
