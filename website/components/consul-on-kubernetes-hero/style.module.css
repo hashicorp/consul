@@ -50,6 +50,7 @@
     max-width: 720px;
     flex-basis: calc(50% - 16px);
     margin: 40px auto 0;
+    display: flex;
 
     @media (--medium) {
       padding-left: 48px;
