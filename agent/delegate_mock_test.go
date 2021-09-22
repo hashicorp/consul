@@ -15,6 +15,10 @@ type delegateMock struct {
 	mock.Mock
 }
 
+var (
+	_ delegate = &delegateMock{}
+)
+
 func (m *delegateMock) GetLANCoordinate() (lib.CoordinateSet, error) {
 	ret := m.Called()
 	return ret.Get(0).(lib.CoordinateSet), ret.Error(1)
@@ -51,6 +55,11 @@ func (m *delegateMock) RemoveFailedNode(node string, prune bool) error {
 	return m.Called(node, prune).Error(0)
 }
 
+func (m *delegateMock) ResolveToken(secretID string) (acl.Authorizer, error) {
+	ret := m.Called(secretID)
+	return ret.Get(0).(acl.Authorizer), ret.Error(1)
+}
+
 func (m *delegateMock) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
 	ret := m.Called(token)
 	return ret.Get(0).(structs.ACLIdentity), ret.Error(1)
@@ -63,6 +72,10 @@ func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *structs
 
 func (m *delegateMock) RPC(method string, args interface{}, reply interface{}) error {
 	return m.Called(method, args, reply).Error(0)
+}
+
+func (m *delegateMock) ACLsEnabled() bool {
+	return m.Called().Bool(0)
 }
 
 func (m *delegateMock) UseLegacyACLs() bool {
@@ -81,6 +94,6 @@ func (m *delegateMock) Stats() map[string]map[string]string {
 	return m.Called().Get(0).(map[string]map[string]string)
 }
 
-func (m *delegateMock) ReloadConfig(config consul.ReloadableConfig) error {
+func (m *delegateMock) ReloadConfig(config *consul.Config) error {
 	return m.Called(config).Error(0)
 }
