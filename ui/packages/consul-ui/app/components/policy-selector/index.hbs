@@ -88,8 +88,8 @@
         <DataSource
           @src={{uri '/${partition}/${nspace}/${dc}/policy/${id}'
             (hash
-              partition=item.Partition
-              nspace=item.Namespace
+              partition=partition
+              nspace=nspace
               dc=dc
               id=item.ID
             )
