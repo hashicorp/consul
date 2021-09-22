@@ -1779,6 +1779,8 @@ func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
 }
 
 func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
+	rule.EnterpriseMeta.Normalize()
+
 	// insert the role into memdb
 	if err := tx.Insert(tableACLBindingRules, rule); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
