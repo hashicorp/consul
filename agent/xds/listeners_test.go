@@ -160,6 +160,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
 							Name: snap.Proxy.Upstreams[i].DestinationName + ":custom-upstream",
@@ -172,6 +175,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
 					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
 						customListenerJSON(t, customListenerJSONOptions{
 							Name: snap.Proxy.Upstreams[i].DestinationName + ":custom-upstream",

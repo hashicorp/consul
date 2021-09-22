@@ -31,13 +31,11 @@ func TestUpstreams(t testing.T) Upstreams {
 			DestinationName:  "geo-cache",
 			LocalBindPort:    8181,
 			LocalBindAddress: "127.10.10.10",
-			Config:           map[string]interface{}{},
 		},
 		{
 			DestinationName:     "upstream_socket",
 			LocalBindSocketPath: "/tmp/upstream.sock",
 			LocalBindSocketMode: "0700",
-			Config:              map[string]interface{}{},
 		},
 	}
 }
