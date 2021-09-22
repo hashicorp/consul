@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import BlockList from 'components/block-list'
 import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
 
@@ -24,6 +25,37 @@ export default function ConsulOnKubernetesPage() {
       />
 
       {/* side by side section */}
+      {/* block list will be a node within the sidebyside section once that is complete */}
+      <section>
+        <BlockList
+          blocks={[
+            {
+              title: 'Multi-Cluster environments',
+              description:
+                'Organizations typically prefer to utilize a more distributed model for Kubernetes deployments. Rather than maintain a single cluster, they connect multiple environments for testing, staging, and production purposes.',
+              image: require('./images/blocks/multi-cluster.svg'),
+            },
+            {
+              title: 'Connecting K8s to non-K8s',
+              description:
+                'Creating consistency when connecting Kubernetes to non-Kubernetes environments can be challenging, workflows need additional automation to accommodate many virtual machines or containers.',
+              image: require('./images/blocks/connecting.svg'),
+            },
+            {
+              title: 'Securing K8s networking',
+              description:
+                'Securing Kubernetes networking with multiple layers of network policies can be challenging. Policies can be handled at the application layer, container/OS or at the networking level. ',
+              image: require('./images/blocks/securing.svg'),
+            },
+            {
+              title: 'Kubernetes Monitoring',
+              description:
+                'Obtaining insights on what’s going on and the health of Kubernetes clusters can be complicated. In addition, security issues and vulnerabilities need to be properly tracked.  ',
+              image: require('./images/blocks/monitoring.svg'),
+            },
+          ]}
+        />
+      </section>
 
       <section>
         <FeaturesList
@@ -61,7 +93,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/multi-platform.svg'),
+              image: require('./images/features/multi-platform.svg'),
             },
             {
               title: 'Kube-native Workflow',
@@ -93,7 +125,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/workflow.svg'),
+              image: require('./images/features/workflow.svg'),
             },
             {
               title: 'Observable',
@@ -124,7 +156,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/observable.svg'),
+              image: require('./images/features/observable.svg'),
             },
             {
               title: 'Secure',
@@ -159,7 +191,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/secure.svg'),
+              image: require('./images/features/secure.svg'),
             },
           ]}
         />
