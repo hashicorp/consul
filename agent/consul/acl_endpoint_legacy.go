@@ -10,7 +10,9 @@ func (a *ACL) Bootstrap(*structs.DCSpecificRequest, *structs.ACL) error {
 	return fmt.Errorf("ACL.Bootstrap: the legacy ACL system has been removed")
 }
 
-func (a *ACL) Apply(*structs.ACLRequest, *string) error {
+type LegacyACLRequest struct{}
+
+func (a *ACL) Apply(*LegacyACLRequest, *string) error {
 	return fmt.Errorf("ACL.Apply: the legacy ACL system has been removed")
 }
 

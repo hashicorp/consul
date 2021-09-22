@@ -452,7 +452,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Persist a legacy ACL token - this is not done in newer code
 	// but we want to ensure that restoring legacy tokens works as
 	// expected so we must inject one here manually
-	_, err = sink.Write([]byte{byte(structs.ACLRequestType)})
+	_, err = sink.Write([]byte{byte(structs.DeprecatedACLRequestType)})
 	require.NoError(t, err)
 
 	acl := structs.ACL{

@@ -32,9 +32,6 @@ const (
 	ACLModeUnknown ACLMode = "3"
 )
 
-// ACLOp is used in RPCs to encode ACL operations.
-type ACLOp string
-
 type ACLTokenIDType string
 
 const (
@@ -88,12 +85,6 @@ session_prefix "" {
 func ACLIDReserved(id string) bool {
 	return strings.HasPrefix(id, ACLReservedPrefix)
 }
-
-const (
-	// ACLSet creates or updates a token.
-	// TODO(ACL-Legacy-Compat): remove
-	ACLSet ACLOp = "set"
-)
 
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no
 // longer be done since the cluster was bootstrapped

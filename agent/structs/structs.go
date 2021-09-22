@@ -41,7 +41,7 @@ const (
 	DeregisterRequestType                       = 1
 	KVSRequestType                              = 2
 	SessionRequestType                          = 3
-	ACLRequestType                              = 4 // DEPRECATED (ACL-Legacy-Compat)
+	DeprecatedACLRequestType                    = 4 // Removed with the legacy ACL system
 	TombstoneRequestType                        = 5
 	CoordinateBatchUpdateType                   = 6
 	PreparedQueryRequestType                    = 7
@@ -81,7 +81,7 @@ var requestTypeStrings = map[MessageType]string{
 	DeregisterRequestType:           "Deregister",
 	KVSRequestType:                  "KVS",
 	SessionRequestType:              "Session",
-	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	DeprecatedACLRequestType:        "ACL", // DEPRECATED (ACL-Legacy-Compat)
 	TombstoneRequestType:            "Tombstone",
 	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
 	PreparedQueryRequestType:        "PreparedQuery",

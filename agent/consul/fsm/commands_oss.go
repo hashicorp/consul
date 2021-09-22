@@ -108,7 +108,7 @@ func init() {
 	registerCommand(structs.KVSRequestType, (*FSM).applyKVSOperation)
 	registerCommand(structs.SessionRequestType, (*FSM).applySessionOperation)
 	// DEPRECATED (ACL-Legacy-Compat) - Only needed for v1 ACL compat
-	registerCommand(structs.ACLRequestType, (*FSM).applyACLOperation)
+	registerCommand(structs.DeprecatedACLRequestType, (*FSM).deprecatedApplyACLOperation)
 	registerCommand(structs.TombstoneRequestType, (*FSM).applyTombstoneOperation)
 	registerCommand(structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate)
 	registerCommand(structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation)
@@ -243,29 +243,8 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
-// DEPRECATED (ACL-Legacy-Compat) - Only needed for legacy compat
-func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
-	// TODO (ACL-Legacy-Compat) - Should we warn here somehow about using deprecated features
-	//                            maybe emit a second metric?
-	var req structs.ACLRequest
-	if err := structs.Decode(buf, &req); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
-	}
-	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl"}, time.Now(),
-		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
-	switch req.Op {
-	case structs.ACLSet:
-		if err := c.state.ACLTokenSet(index, req.ACL.Convert(), true); err != nil {
-			return err
-		}
-		return req.ACL.ID
-	// Legacy commands that have been removed
-	case "bootstrap-now", "bootstrap-init", "force-set", "delete":
-		return fmt.Errorf("command %v has been removed with the legacy ACL system", req.Op)
-	default:
-		c.logger.Warn("Invalid ACL operation", "operation", req.Op)
-		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
-	}
+func (c *FSM) deprecatedApplyACLOperation(_ []byte, _ uint64) interface{} {
+	return fmt.Errorf("legacy ACL command has been removed with the legacy ACL system")
 }
 
 func (c *FSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {

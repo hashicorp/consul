@@ -87,21 +87,6 @@ func (tok *ACLToken) Convert() (*ACL, error) {
 	return compat, nil
 }
 
-// ACLRequest is used to create, update or delete an ACL
-type ACLRequest struct {
-	Datacenter string
-	Op         ACLOp
-	ACL        ACL
-	WriteRequest
-}
-
-func (r *ACLRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-// ACLRequests is a list of ACL change requests.
-type ACLRequests []*ACLRequest
-
 // ACLSpecificRequest is used to request an ACL by ID
 type ACLSpecificRequest struct {
 	Datacenter string
