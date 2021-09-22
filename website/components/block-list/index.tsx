@@ -1,6 +1,21 @@
 import s from './style.module.css'
 
-export default function BlockList({ blocks }) {
+interface Image {
+  source: string
+  alt: string
+}
+
+interface Block {
+  title: string
+  description: string
+  image: Image
+}
+
+interface BlockListProps {
+  blocks: Block[]
+}
+
+export default function BlockList({ blocks }: BlockListProps) {
   return (
     <div className={s.blocksContainer}>
       {blocks.map(({ image, title, description }) => (
