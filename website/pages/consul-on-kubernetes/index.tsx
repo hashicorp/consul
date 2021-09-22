@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
 import BlockList from 'components/block-list'
 import SideBySide from 'components/side-by-side'
@@ -12,13 +13,25 @@ export default function ConsulOnKubernetesPage() {
         <title key="title">Consul on Kubernetes</title>
       </Head>
 
-      {/* hero */}
+      <ConsulOnKubernetesHero
+        title="Consul on Kubernetes"
+        description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
+        ctas={[
+          { text: 'Get Started', url: '#TODO' },
+          { text: 'Try HCP Consul', url: '#TODO' },
+        ]}
+        media={{
+          type: 'image',
+          source: require('./images/sample-video.png'),
+          alt: 'sample image',
+        }}
+      />
 
       <section>
         <SideBySide
           left={
             <div>
-              <h4 className={s.sideBySideTitle}>Overview</h4>
+              <h2 className={s.sideBySideTitle}>Overview</h2>
               <p className={s.leftSideText}>
                 Kubernetes and service mesh tend to go hand and hand.
                 Organizations that adopt Kubernetes are looking for a way to
@@ -43,7 +56,7 @@ export default function ConsulOnKubernetesPage() {
           }
           right={
             <div>
-              <h4 className={s.sideBySideTitle}>Challenges</h4>
+              <h2 className={s.sideBySideTitle}>Challenges</h2>
               <BlockList
                 blocks={[
                   {
@@ -113,7 +126,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/multi-platform.svg'),
+              image: require('./images/features/multi-platform.svg'),
             },
             {
               title: 'Kube-native Workflow',
@@ -145,7 +158,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/workflow.svg'),
+              image: require('./images/features/workflow.svg'),
             },
             {
               title: 'Observable',
@@ -176,7 +189,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/observable.svg'),
+              image: require('./images/features/observable.svg'),
             },
             {
               title: 'Secure',
@@ -211,7 +224,7 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Try It Now',
                 url: '#TODO',
               },
-              image: require('./images/secure.svg'),
+              image: require('./images/features/secure.svg'),
             },
           ]}
         />
