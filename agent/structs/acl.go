@@ -811,15 +811,6 @@ func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.Config) (acl.
 	return authorizer, nil
 }
 
-func (policies ACLPolicies) Merge(cache *ACLCaches, entConf *acl.Config) (*acl.Policy, error) {
-	parsed, err := policies.resolveWithCache(cache, entConf)
-	if err != nil {
-		return nil, err
-	}
-
-	return acl.MergePolicies(parsed), nil
-}
-
 type ACLRoles []*ACLRole
 
 // HashKey returns a consistent hash for a set of roles.

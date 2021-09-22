@@ -74,30 +74,6 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 }
 
-func TestACLEndpoint_GetPolicy_Management(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	_, srv, codec := testACLServerWithConfig(t, nil, false)
-
-	// wait for leader election and leader establishment to finish.
-	// after this the global management policy, master token and
-	// anonymous token will have been injected into the state store
-	// and we will be ready to resolve the master token
-	waitForLeaderEstablishment(t, srv)
-
-	req := structs.ACLPolicyResolveLegacyRequest{
-		Datacenter: srv.config.Datacenter,
-		ACL:        TestDefaultMasterToken,
-	}
-
-	var resp structs.ACLPolicyResolveLegacyResponse
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.GetPolicy", &req, &resp))
-	require.Equal(t, "manage", resp.Parent)
-}
-
 func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

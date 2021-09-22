@@ -453,54 +453,6 @@ func NewPolicyFromSource(id string, revision uint64, rules string, syntax Syntax
 	return policy, err
 }
 
-// TODO(ACL-Legacy): remove this
-func (policy *Policy) ConvertToLegacy() *Policy {
-	converted := &Policy{
-		ID:       policy.ID,
-		Revision: policy.Revision,
-		PolicyRules: PolicyRules{
-			ACL:      policy.ACL,
-			Keyring:  policy.Keyring,
-			Operator: policy.Operator,
-		},
-	}
-
-	converted.Agents = append(converted.Agents, policy.Agents...)
-	converted.Agents = append(converted.Agents, policy.AgentPrefixes...)
-	converted.Keys = append(converted.Keys, policy.Keys...)
-	converted.Keys = append(converted.Keys, policy.KeyPrefixes...)
-	converted.Nodes = append(converted.Nodes, policy.Nodes...)
-	converted.Nodes = append(converted.Nodes, policy.NodePrefixes...)
-	converted.Services = append(converted.Services, policy.Services...)
-	converted.Services = append(converted.Services, policy.ServicePrefixes...)
-	converted.Sessions = append(converted.Sessions, policy.Sessions...)
-	converted.Sessions = append(converted.Sessions, policy.SessionPrefixes...)
-	converted.Events = append(converted.Events, policy.Events...)
-	converted.Events = append(converted.Events, policy.EventPrefixes...)
-	converted.PreparedQueries = append(converted.PreparedQueries, policy.PreparedQueries...)
-	converted.PreparedQueries = append(converted.PreparedQueries, policy.PreparedQueryPrefixes...)
-	return converted
-}
-
-// TODO(ACL-Legacy): remove this
-func (policy *Policy) ConvertFromLegacy() *Policy {
-	return &Policy{
-		ID:       policy.ID,
-		Revision: policy.Revision,
-		PolicyRules: PolicyRules{
-			AgentPrefixes:         policy.Agents,
-			KeyPrefixes:           policy.Keys,
-			NodePrefixes:          policy.Nodes,
-			ServicePrefixes:       policy.Services,
-			SessionPrefixes:       policy.Sessions,
-			EventPrefixes:         policy.Events,
-			PreparedQueryPrefixes: policy.PreparedQueries,
-			Keyring:               policy.Keyring,
-			Operator:              policy.Operator,
-		},
-	}
-}
-
 // takesPrecedenceOver returns true when permission a
 // should take precedence over permission b
 func takesPrecedenceOver(a, b string) bool {
