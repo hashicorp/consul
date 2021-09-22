@@ -9,6 +9,8 @@ type DeprecatedConfig struct {
 	ACLAgentToken *string `mapstructure:"acl_agent_token"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl.tokens" stanza
 	ACLToken *string `mapstructure:"acl_token"`
+	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.enable_key_list_policy"
+	ACLEnableKeyListPolicy *bool `mapstructure:"acl_enable_key_list_policy"`
 
 	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
 	ACLMasterToken *string `mapstructure:"acl_master_token"`
@@ -104,6 +106,13 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 			d.Config.ACL.TokenTTL = dep.ACLTTL
 		}
 		warns = append(warns, deprecationWarning("acl_ttl", "acl.token_ttl"))
+	}
+
+	if dep.ACLEnableKeyListPolicy != nil {
+		if d.Config.ACL.EnableKeyListPolicy == nil {
+			d.Config.ACL.EnableKeyListPolicy = dep.ACLEnableKeyListPolicy
+		}
+		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
 	}
 
 	return d.Config, warns

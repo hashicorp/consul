@@ -130,8 +130,6 @@ type Cache struct {
 // configuration it should be treated as an external API which cannot be
 // changed and refactored at will since this will break existing setups.
 type Config struct {
-	// DEPRECATED (ACL-Legacy-Compat) - moved into the "acl" stanza
-	ACLEnableKeyListPolicy           *bool               `mapstructure:"acl_enable_key_list_policy"`
 	ACL                              ACL                 `mapstructure:"acl"`
 	Addresses                        Addresses           `mapstructure:"addresses"`
 	AdvertiseAddrLAN                 *string             `mapstructure:"advertise_addr"`

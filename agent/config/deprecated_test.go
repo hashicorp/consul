@@ -26,6 +26,7 @@ acl_default_policy = "deny"
 acl_down_policy = "async-cache"
 
 acl_ttl = "3h"
+acl_enable_key_list_policy = true
 
 `},
 	}
@@ -39,6 +40,7 @@ acl_ttl = "3h"
 		deprecationWarning("acl_datacenter", "primary_datacenter"),
 		deprecationWarning("acl_default_policy", "acl.default_policy"),
 		deprecationWarning("acl_down_policy", "acl.down_policy"),
+		deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"),
 		deprecationWarning("acl_master_token", "acl.tokens.master"),
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
@@ -61,6 +63,7 @@ acl_ttl = "3h"
 	require.Equal(t, "deny", rt.ACLResolverSettings.ACLDefaultPolicy)
 	require.Equal(t, "async-cache", rt.ACLResolverSettings.ACLDownPolicy)
 	require.Equal(t, 3*time.Hour, rt.ACLResolverSettings.ACLTokenTTL)
+	require.Equal(t, true, rt.ACLEnableKeyListPolicy)
 }
 
 func TestLoad_DeprecatedConfig_ACLReplication(t *testing.T) {
