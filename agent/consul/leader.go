@@ -398,102 +398,6 @@ func (s *Server) revokeLeadership() {
 	<-s.autopilot.Stop()
 }
 
-// DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed
-func (s *Server) initializeLegacyACL() error {
-	if !s.config.ACLsEnabled {
-		return nil
-	}
-
-	authDC := s.config.PrimaryDatacenter
-
-	// Create anonymous token if missing.
-	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get anonymous token: %v", err)
-	}
-	// Ignoring expiration times to avoid an insertion collision.
-	if token == nil {
-		req := structs.ACLRequest{
-			Datacenter: authDC,
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				ID:   anonymousToken,
-				Name: "Anonymous Token",
-				Type: structs.ACLTokenTypeClient,
-			},
-		}
-		_, err := s.raftApply(structs.ACLRequestType, &req)
-		if err != nil {
-			return fmt.Errorf("failed to create anonymous token: %v", err)
-		}
-		s.logger.Info("Created the anonymous token")
-	}
-
-	// Check for configured master token.
-	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get master token: %v", err)
-		}
-		// Ignoring expiration times to avoid an insertion collision.
-		if token == nil {
-			req := structs.ACLRequest{
-				Datacenter: authDC,
-				Op:         structs.ACLSet,
-				ACL: structs.ACL{
-					ID:   master,
-					Name: "Master Token",
-					Type: structs.ACLTokenTypeManagement,
-				},
-			}
-			_, err := s.raftApply(structs.ACLRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create master token: %v", err)
-			}
-			s.logger.Info("Created ACL master token from configuration")
-		}
-	}
-
-	// Check to see if we need to initialize the ACL bootstrap info. This
-	// needs a Consul version check since it introduces a new Raft operation
-	// that'll produce an error on older servers, and it also makes a piece
-	// of state in the state store that will cause problems with older
-	// servers consuming snapshots, so we have to wait to create it.
-	var minVersion = version.Must(version.NewVersion("0.9.1"))
-	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVersion); ok {
-		canBootstrap, _, err := state.CanBootstrapACLToken()
-		if err != nil {
-			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
-		}
-		if canBootstrap {
-			req := structs.ACLRequest{
-				Datacenter: authDC,
-				Op:         structs.ACLBootstrapInit,
-			}
-			resp, err := s.raftApply(structs.ACLRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to initialize ACL bootstrap: %v", err)
-			}
-			switch v := resp.(type) {
-			case bool:
-				if v {
-					s.logger.Info("ACL bootstrap enabled")
-				} else {
-					s.logger.Info("ACL bootstrap disabled, existing management tokens found")
-				}
-
-			default:
-				return fmt.Errorf("unexpected response trying to initialize ACL bootstrap: %T", v)
-			}
-		}
-	} else {
-		s.logger.Warn("Can't initialize ACL bootstrap until all servers are >= " + minVersion.String())
-	}
-
-	return nil
-}
-
 // initializeACLs is used to setup the ACLs if we are the leader
 // and need to do this.
 func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
@@ -525,11 +429,6 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 	}
 
 	if s.InACLDatacenter() {
-		if s.UseLegacyACLs() && !upgrade {
-			s.logger.Info("initializing legacy acls")
-			return s.initializeLegacyACL()
-		}
-
 		s.logger.Info("initializing acls")
 
 		// TODO(partitions): initialize acls in all of the partitions?
