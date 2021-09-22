@@ -14,7 +14,7 @@
     "metadata": {
       "namespace": "default",
       "partition": "default",
-      "envoy_version": "1.18.4"
+      "envoy_version": "1.19.1"
     }
   },
   "static_resources": {
