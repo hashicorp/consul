@@ -994,10 +994,13 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	rules := `
-service_prefix "foo" {
+service "foo" {
 	policy = "write"
 }
-node_prefix "foo" {
+service "foo-proxy" {
+	policy = "write"
+}
+node "foo" {
 	policy = "write"
 }
 `

@@ -878,7 +878,7 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 
 	rules := `
-service_prefix "foo" {
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
@@ -1268,7 +1268,7 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 
 	rules := `
-service_prefix "foo" {
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
@@ -1334,7 +1334,7 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 
 	rules := `
-service_prefix "foo" {
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
@@ -1433,7 +1433,7 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 
 	rules := `
-service_prefix "foo" {
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
@@ -1959,7 +1959,7 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 
 	rules := `
-service_prefix "bar" {
+service "bar" {
 	policy = "read"
 }`
 	token := createToken(t, codec, rules)

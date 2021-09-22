@@ -2413,10 +2413,15 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	rules := `
-service_prefix "foo" {
+service "foo-proxy" {
 	policy = "write"
 }
-node_prefix "" { policy = "read" }
+service "foo" {
+	policy = "write"
+}
+node "foo" {
+	policy = "read"
+}
 `
 	token := createToken(t, codec, rules)
 
@@ -2694,7 +2699,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken("root"))
 
 	rules := `
-service_prefix "foo" {
+service "foo" {
 	policy = "write"
 }
 node_prefix "" {
@@ -2861,7 +2866,7 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 	}
 
 	rules := fmt.Sprintf(`
-node_prefix "%s" {
+node "%s" {
 	policy = "read"
 }
 `, s1.config.NodeName)
