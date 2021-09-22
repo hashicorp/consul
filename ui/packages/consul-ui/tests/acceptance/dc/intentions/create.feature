@@ -15,6 +15,10 @@ Feature: dc / intentions / create: Intention Create
     - Name: cache
       Kind: ~
     ---
+    And 1 nspace model from yaml
+    ---
+    - Name: nspace-0
+    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
@@ -31,17 +35,26 @@ Feature: dc / intentions / create: Intention Create
     And I type "db" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
     Then I see the text "db" in "[data-test-destination-element] .ember-power-select-selected-item"
+    # Set source nspace
+    And I click "[data-test-source-nspace] .ember-power-select-trigger"
+    And I click ".ember-power-select-option:nth-child(2)"
+    Then I see the text "nspace-0" in "[data-test-source-nspace] .ember-power-select-selected-item"
+    # Set destination nspace
+    And I click "[data-test-destination-nspace] .ember-power-select-trigger"
+    And I click ".ember-power-select-option:nth-child(2)"
+    Then I see the text "nspace-0" in "[data-test-destination-nspace] .ember-power-select-selected-item"
     # Specifically set deny
     And I click ".value-deny"
     And I submit
-    # TODO: When namespace is empty we expect *
-    # Then a PUT request was made to "/v1/connect/intentions/exact?source=@namespace%2Fweb&destination=@namespace%2Fdb&dc=datacenter" from yaml
-    # ---
-    #   body:
-    #     SourceName: web
-    #     DestinationName: db
-    #     Action: deny
-    # ---
+    Then a PUT request was made to "/v1/connect/intentions/exact?source=nspace-0%2Fweb&destination=nspace-0%2Fdb&dc=datacenter" from yaml
+    ---
+      body:
+        SourceName: web
+        DestinationName: db
+        SourceNS: nspace-0
+        DestinationNS: nspace-0
+        Action: deny
+    ---
     Then the url should be /datacenter/intentions
     And the title should be "Intentions - Consul"
     And "[data-notification]" has the "notification-update" class
