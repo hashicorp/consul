@@ -1,5 +1,11 @@
+import { ReactNode } from 'react'
 import classNames from 'classNames'
 import s from './style.module.css'
+
+interface SideBySideProps {
+  left: ReactNode
+  right: ReactNode
+}
 
 export default function SideBySide({ left, right }) {
   return (

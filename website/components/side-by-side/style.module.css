@@ -1,65 +1,64 @@
 .sideBySide {
   display: flex;
+  flex-wrap: wrap;
 
-  @media (--small) {
-    flex-wrap: wrap;
+  @media (--large) {
+    flex-wrap: nowrap;
   }
 }
 
 .sideContainer {
   padding-top: 105px;
-  padding-bottom: 176px;
-  width: 50%;
+  padding-bottom: 105px;
+  width: 100%;
 
-  @media (--small) {
-    width: 100%;
-    padding-left: 24px;
-    padding-right: 24px;
+  @media (--large) {
+    width: 50%;
+    padding-bottom: 176px;
   }
 }
 
 .leftSide {
   background: var(--consul-secondary);
 
-  @media (--medium) {
-    padding-left: 40px;
-  }
-
   @media (--large) {
     padding-left: 48px;
-  }
-
-  @media (--medium-up) {
     padding-right: 104px;
   }
 }
 
 .rightSide {
-  @media (--medium) {
-    padding-right: 40px;
-  }
-
   @media (--large) {
     padding-right: 48px;
   }
 
-  @media (--medium-up) {
+  @media (--large) {
     padding-left: 75px;
   }
 }
 
 .side {
   @media (--small) {
+    margin: 0 auto;
     max-width: 616px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
-  @media (--medium-up) {
+  @media (--medium) {
+    margin: 0 auto;
+    max-width: 944px;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+
+  @media (--large) {
     max-width: 490px;
   }
 }
 
 .left {
-  @media (--medium-up) {
+  @media (--large) {
     float: right;
   }
 }
