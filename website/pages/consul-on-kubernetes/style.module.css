@@ -6,5 +6,5 @@
 
 .leftSideText {
   composes: g-type-body from global;
-  margin-bottom: 54px;
+  margin-bottom: 46px;
 }
