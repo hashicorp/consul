@@ -491,9 +491,9 @@ func authMethodsTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexNameFromACLAuthMethod,
 				},
 			},
 		},
