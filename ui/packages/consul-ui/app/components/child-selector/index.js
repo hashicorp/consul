@@ -65,7 +65,7 @@ export default Component.extend(Slotted, {
   }),
   actions: {
     reset: function() {
-      this.form.clear({ Datacenter: this.dc, Namespace: this.nspace, Partition: this.partition });
+      this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
     },
 
     remove: function(item, items) {
