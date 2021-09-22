@@ -12,14 +12,16 @@ export default Component.extend(Slotted, {
   actions: {
     connect: function($el) {
       next(() => {
-        // if theres only a single choice in the menu and it doesn't have an
-        // immediate button/link/label to click then it will be a
-        // confirmation/informed action
-        const isConfirmationMenu = this.dom.element(
-          'li:only-child > [role="menu"]:first-child',
-          $el
-        );
-        set(this, 'isConfirmation', typeof isConfirmationMenu !== 'undefined');
+        if(!this.isDestroyed) {
+          // if theres only a single choice in the menu and it doesn't have an
+          // immediate button/link/label to click then it will be a
+          // confirmation/informed action
+          const isConfirmationMenu = this.dom.element(
+            'li:only-child > [role="menu"]:first-child',
+            $el
+          );
+          set(this, 'isConfirmation', typeof isConfirmationMenu !== 'undefined');
+        }
       });
     },
     change: function(e) {
