@@ -10,6 +10,7 @@ import (
 
 const (
 	serviceNamesUsageTable = "service-names"
+	kvUsageTable           = "kv-entries"
 
 	tableUsage = "usage"
 )
@@ -54,6 +55,11 @@ type NodeUsage struct {
 	EnterpriseNodeUsage
 }
 
+type KVUsage struct {
+	KVCount int
+	EnterpriseKVUsage
+}
+
 type uniqueServiceState int
 
 const (
@@ -95,6 +101,9 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			} else {
 				serviceNameChanges[svc.CompoundServiceName()] += delta
 			}
+		case "kvs":
+			usageDeltas[change.Table] += delta
+			addEnterpriseKVUsage(usageDeltas, change)
 		}
 	}
 
@@ -267,6 +276,26 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 	}
 
 	return serviceInstances.Index, results, nil
+}
+
+func (s *Store) KVUsage() (uint64, KVUsage, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	kvs, err := firstUsageEntry(tx, "kvs")
+	if err != nil {
+		return 0, KVUsage{}, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	usage := KVUsage{
+		KVCount: kvs.Count,
+	}
+	results, err := compileEnterpriseKVUsage(tx, usage)
+	if err != nil {
+		return 0, KVUsage{}, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	return kvs.Index, results, nil
 }
 
 func firstUsageEntry(tx ReadTxn, id string) (*UsageEntry, error) {

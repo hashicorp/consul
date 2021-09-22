@@ -45,6 +45,44 @@ func TestStateStore_Usage_NodeUsage_Delete(t *testing.T) {
 	require.Equal(t, usage.Nodes, 1)
 }
 
+func TestStateStore_Usage_KVUsage(t *testing.T) {
+	s := testStateStore(t)
+
+	// No keys have been registered, and thus no usage entry exists
+	idx, usage, err := s.KVUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(0))
+	require.Equal(t, usage.KVCount, 0)
+
+	testSetKey(t, s, 0, "key-1", "0", nil)
+	testSetKey(t, s, 1, "key-2", "0", nil)
+	testSetKey(t, s, 2, "key-2", "1", nil)
+
+	idx, usage, err = s.KVUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(2))
+	require.Equal(t, usage.KVCount, 2)
+}
+
+func TestStateStore_Usage_KVUsage_Delete(t *testing.T) {
+	s := testStateStore(t)
+
+	testSetKey(t, s, 0, "key-1", "0", nil)
+	testSetKey(t, s, 1, "key-2", "0", nil)
+	testSetKey(t, s, 2, "key-2", "1", nil)
+
+	idx, usage, err := s.KVUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(2))
+	require.Equal(t, usage.KVCount, 2)
+
+	require.NoError(t, s.KVSDelete(3, "key-2", nil))
+	idx, usage, err = s.KVUsage()
+	require.NoError(t, err)
+	require.Equal(t, idx, uint64(3))
+	require.Equal(t, usage.KVCount, 1)
+}
+
 func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
 	s := testStateStore(t)
 
