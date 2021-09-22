@@ -16,21 +16,51 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     - Name: service-3
       Kind: connect-proxy
     ---
-    And 1 intention model from yaml
-    ---
-    SourceName: 'service-0'
-    DestinationName: 'service-1'
-    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
-      intention: intention
     ---
-    Then the url should be /datacenter/intentions/intention
+    Then the url should be /datacenter/intentions/create
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(3)"
     Then I see the text "service-0" in ".ember-power-select-option:nth-last-child(2)"
     Then I see the text "service-1" in ".ember-power-select-option:last-child"
+    Where:
+      ---------------
+      | Name        |
+      | source      |
+      | destination |
+    ---------------
+  @onlyNamespaceable
+  Scenario: Opening and closing the nspace [Name] dropdown doesn't double up items
+    Given 1 datacenter model with the value "datacenter"
+    And 2 nspace models from yaml
+    ---
+    - Name: nspace-0
+    - Name: nspace-1
+    ---
+    When I visit the intention page for yaml
+    ---
+      dc: datacenter
+    ---
+    Then the url should be /datacenter/intentions/create
+    Given a network latency of 60000
+    And I click "[data-test-[Name]-nspace] .ember-power-select-trigger"
+    Then I see the text "* (All Namespaces)" in ".ember-power-select-option:nth-last-child(3)"
+    Then I see the text "nspace-0" in ".ember-power-select-option:nth-last-child(2)"
+    Then I see the text "nspace-1" in ".ember-power-select-option:last-child"
+    And I click ".ember-power-select-option:last-child"
+    And I click "[data-test-[Name]-nspace] .ember-power-select-trigger"
+    And I click ".ember-power-select-option:last-child"
+    And I click "[data-test-[Name]-nspace] .ember-power-select-trigger"
+    And I click ".ember-power-select-option:last-child"
+    And I click "[data-test-[Name]-nspace] .ember-power-select-trigger"
+    Then I don't see the text "nspace-1" in ".ember-power-select-option:nth-last-child(6)"
+    Then I don't see the text "nspace-1" in ".ember-power-select-option:nth-last-child(5)"
+    Then I don't see the text "nspace-1" in ".ember-power-select-option:nth-last-child(4)"
+    Then I see the text "* (All Namespaces)" in ".ember-power-select-option:nth-last-child(3)"
+    Then I see the text "nspace-0" in ".ember-power-select-option:nth-last-child(2)"
+    Then I see the text "nspace-1" in ".ember-power-select-option:last-child"
     Where:
       ---------------
       | Name        |
@@ -47,17 +77,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       Namespace: nspace
       Kind: ~
     ---
-    And 1 intention model from yaml
-    ---
-    SourceName: 'service-0'
-    DestinationName: 'service-0'
-    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
-      intention: intention
     ---
-    Then the url should be /datacenter/intentions/intention
+    Then the url should be /datacenter/intentions/create
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(2)"
     Then I see the text "service-0" in ".ember-power-select-option:last-child"
