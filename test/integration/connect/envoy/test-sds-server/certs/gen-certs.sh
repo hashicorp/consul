@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 set -eEuo pipefail
+unset CDPATH
 
+# force the script to first switch to the directory containing the script before
+# messing with the filesystem
+cd "$(dirname "$0")"
 rm -rf *.crt *.key
 
 openssl genrsa -out ca-root.key 4096
@@ -32,7 +36,7 @@ DOMAINS="www.example.com foo.example.com *.ingress.consul"
 
 for domain in $DOMAINS
 do
-  # * in file names is interpreted as a globa and all sorts of things go
+  # * in file names is interpreted as a global and all sorts of things go
   #   strange!
   FILE_NAME="$domain"
   if [ ${domain:0:2} == "*." ]; then

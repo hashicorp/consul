@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -29,6 +29,14 @@ const (
 func main() {
 	log := hclog.Default()
 	log.SetLevel(hclog.Trace)
+
+	if err := run(log); err != nil {
+		log.Error("failed to run SDS server", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run(log hclog.Logger) error {
 	cache := cache.NewLinearCache(sdsTypeURI)
 
 	addr := "0.0.0.0:1234"
@@ -41,18 +49,19 @@ func main() {
 	}
 
 	if err := loadCertsFromPath(cache, log, certPath); err != nil {
-		panic(err)
+		return err
 	}
 
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer l.Close()
 	log.Info("==> SDS listening", "addr", addr)
 
 	callbacks := makeLoggerCallbacks(log)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	xdsServer := xds.NewServer(ctx, cache, callbacks)
 	grpcServer := grpc.NewServer()
@@ -70,8 +79,10 @@ func main() {
 	}()
 
 	if err := grpcServer.Serve(l); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func loadCertsFromPath(cache *cache.LinearCache, log hclog.Logger, dir string) error {
@@ -84,39 +95,41 @@ func loadCertsFromPath(cache *cache.LinearCache, log hclog.Logger, dir string) e
 		if entry.IsDir() {
 			continue
 		}
-		if strings.HasSuffix(entry.Name(), ".crt") {
-			certName := strings.TrimSuffix(entry.Name(), ".crt")
-			cert, err := ioutil.ReadFile(path.Join(dir, entry.Name()))
-			if err != nil {
-				return err
-			}
-			keyFile := certName + ".key"
-			key, err := ioutil.ReadFile(path.Join(dir, keyFile))
-			if err != nil {
-				return err
-			}
-			var res tls.Secret
-			res.Name = certName
-			res.Type = &tls.Secret_TlsCertificate{
-				TlsCertificate: &tls.TlsCertificate{
-					CertificateChain: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{
-							InlineBytes: cert,
-						},
-					},
-					PrivateKey: &core.DataSource{
-						Specifier: &core.DataSource_InlineBytes{
-							InlineBytes: key,
-						},
+		if !strings.HasSuffix(entry.Name(), ".crt") {
+			continue
+		}
+
+		certName := strings.TrimSuffix(entry.Name(), ".crt")
+		cert, err := ioutil.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			return err
+		}
+		keyFile := certName + ".key"
+		key, err := ioutil.ReadFile(filepath.Join(dir, keyFile))
+		if err != nil {
+			return err
+		}
+		var res tls.Secret
+		res.Name = certName
+		res.Type = &tls.Secret_TlsCertificate{
+			TlsCertificate: &tls.TlsCertificate{
+				CertificateChain: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: cert,
 					},
 				},
-			}
-
-			if err := cache.UpdateResource(certName, types.Resource(&res)); err != nil {
-				return err
-			}
-			log.Info("Loaded cert from file", "name", certName)
+				PrivateKey: &core.DataSource{
+					Specifier: &core.DataSource_InlineBytes{
+						InlineBytes: key,
+					},
+				},
+			},
 		}
+
+		if err := cache.UpdateResource(certName, types.Resource(&res)); err != nil {
+			return err
+		}
+		log.Info("Loaded cert from file", "name", certName)
 	}
 	return nil
 }
