@@ -115,13 +115,6 @@
                 <BlockSlot @name="trigger">
                   {{@nspace}}
                 </BlockSlot>
-              {{#if (is-href 'dc.nspaces')}}
-                <BlockSlot @name="header">
-                  <p>
-					          Namespaces themselves are not namespaced, so switching will not change the current view.
-                  </p>
-                </BlockSlot>
-              {{/if}}
                 <BlockSlot @name="menu">
                   {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
                     <DataSource
