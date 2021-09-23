@@ -175,7 +175,7 @@ func (s *Store) ACLBindingRuleUpsertValidateEnterprise(rule *structs.ACLBindingR
 ///////////////////////////////////////////////////////////////////////////////
 
 func aclAuthMethodGetByName(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch("acl-auth-methods", "id", method)
+	return tx.FirstWatch(tableACLAuthMethods, indexID, Query{Value: method})
 }
 
 func aclAuthMethodList(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
