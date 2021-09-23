@@ -596,8 +596,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     token cannot be read from the [`primary_datacenter`](#primary_datacenter) or
     leader node, the down policy is applied. In "allow" mode, all actions are permitted,
     "deny" restricts all operations, and "extend-cache" allows any cached objects
-    to be used, ignoring their TTL values. If a non-cached ACL is used, "extend-cache"
-    acts like "deny". The value "async-cache" acts the same way as "extend-cache"
+    to be used, ignoring the expiry time of the cached entry. If the request uses an
+    ACL that is not in the cache, "extend-cache" falls back to the behaviour of
+    `default_policy`.
+    The value "async-cache" acts the same way as "extend-cache"
     but performs updates asynchronously when ACL is present but its TTL is expired,
     thus, if latency is bad between the primary and secondary datacenters, latency
     of operations is not impacted.
