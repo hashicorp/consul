@@ -1,3 +1,4 @@
+const dont = `( don't| shouldn't| can't)?`;
 export default function(scenario, assert, pauseUntil, find, currentURL, clipboard) {
   scenario
     .then('pause until I see the text "$text" in "$selector"', function(text, selector) {
