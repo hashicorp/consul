@@ -8,9 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     
-<meta name="consul-ui/config/environment" content="%7B%22modulePrefix%22%3A%22consul-ui%22%2C%22environment%22%3A%22production%22%2C%22rootURL%22%3A%22%2Fui%2F%22%2C%22locationType%22%3A%22fsm-with-optional%22%2C%22historySupportMiddleware%22%3Atrue%2C%22torii%22%3A%7B%7D%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%2C%22EXTEND_PROTOTYPES%22%3A%7B%22Date%22%3Afalse%7D%2C%22_APPLICATION_TEMPLATE_WRAPPER%22%3Afalse%2C%22_DEFAULT_ASYNC_OBSERVERS%22%3Atrue%2C%22_JQUERY_INTEGRATION%22%3Afalse%2C%22_TEMPLATE_ONLY_GLIMMER_COMPONENTS%22%3Atrue%7D%2C%22APP%22%3A%7B%22name%22%3A%22consul-ui%22%2C%22version%22%3A%222.2.0%22%7D%2C%22resizeServiceDefaults%22%3A%7B%22injectionFactories%22%3A%5B%22view%22%2C%22controller%22%2C%22component%22%5D%7D%2C%22CONSUL_COPYRIGHT_YEAR%22%3A%222021%22%2C%22CONSUL_GIT_SHA%22%3A%224891b228e%22%2C%22CONSUL_VERSION%22%3A%221.10.0-dev%20(4891b228e)%22%2C%22CONSUL_BINARY_TYPE%22%3A%22oss%22%2C%22CONSUL_UI_DISABLE_REALTIME%22%3Afalse%2C%22CONSUL_UI_DISABLE_ANCHOR_SELECTION%22%3Afalse%2C%22operatorConfig%22%3A%7B%7D%2C%22CONSUL_HOME_URL%22%3A%22https%3A%2F%2Fwww.consul.io%22%2C%22CONSUL_REPO_ISSUES_URL%22%3A%22https%3A%2F%2Fgithub.com%2Fhashicorp%2Fconsul%2Fissues%2Fnew%2Fchoose%22%2C%22CONSUL_DOCS_URL%22%3A%22https%3A%2F%2Fwww.consul.io%2Fdocs%22%2C%22CONSUL_DOCS_LEARN_URL%22%3A%22https%3A%2F%2Flearn.hashicorp.com%22%2C%22CONSUL_DOCS_API_URL%22%3A%22https%3A%2F%2Fwww.consul.io%2Fapi%22%2C%22CONSUL_COPYRIGHT_URL%22%3A%22https%3A%2F%2Fwww.hashicorp.com%22%2C%22browserify%22%3A%7B%22tests%22%3Atrue%7D%2C%22exportApplicationGlobal%22%3Afalse%7D" />
+<meta name="consul-ui/config/environment" content="%7B%22modulePrefix%22%3A%22consul-ui%22%2C%22environment%22%3A%22production%22%2C%22rootURL%22%3A%22%2Fui%2F%22%2C%22locationType%22%3A%22fsm-with-optional%22%2C%22historySupportMiddleware%22%3Atrue%2C%22torii%22%3A%7B%7D%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%2C%22EXTEND_PROTOTYPES%22%3A%7B%22Date%22%3Afalse%7D%2C%22_APPLICATION_TEMPLATE_WRAPPER%22%3Afalse%2C%22_DEFAULT_ASYNC_OBSERVERS%22%3Atrue%2C%22_JQUERY_INTEGRATION%22%3Afalse%2C%22_TEMPLATE_ONLY_GLIMMER_COMPONENTS%22%3Atrue%7D%2C%22APP%22%3A%7B%22name%22%3A%22consul-ui%22%2C%22version%22%3A%222.2.0%22%7D%2C%22resizeServiceDefaults%22%3A%7B%22injectionFactories%22%3A%5B%22view%22%2C%22controller%22%2C%22component%22%5D%7D%2C%22CONSUL_COPYRIGHT_YEAR%22%3A%222021%22%2C%22CONSUL_GIT_SHA%22%3A%22684ba5588%22%2C%22CONSUL_VERSION%22%3A%221.11.0-dev%20(684ba5588)%22%2C%22CONSUL_BINARY_TYPE%22%3A%22oss%22%2C%22CONSUL_UI_DISABLE_REALTIME%22%3Afalse%2C%22CONSUL_UI_DISABLE_ANCHOR_SELECTION%22%3Afalse%2C%22operatorConfig%22%3A%7B%7D%2C%22CONSUL_HOME_URL%22%3A%22https%3A%2F%2Fwww.consul.io%22%2C%22CONSUL_REPO_ISSUES_URL%22%3A%22https%3A%2F%2Fgithub.com%2Fhashicorp%2Fconsul%2Fissues%2Fnew%2Fchoose%22%2C%22CONSUL_DOCS_URL%22%3A%22https%3A%2F%2Fwww.consul.io%2Fdocs%22%2C%22CONSUL_DOCS_LEARN_URL%22%3A%22https%3A%2F%2Flearn.hashicorp.com%22%2C%22CONSUL_DOCS_API_URL%22%3A%22https%3A%2F%2Fwww.consul.io%2Fapi%22%2C%22CONSUL_COPYRIGHT_URL%22%3A%22https%3A%2F%2Fwww.hashicorp.com%22%2C%22browserify%22%3A%7B%22tests%22%3Atrue%7D%2C%22exportApplicationGlobal%22%3Afalse%7D" />
 
-  <!-- CONSUL_VERSION: 1.10.0-dev (4891b228e) -->
+  <!-- CONSUL_VERSION: 1.11.0-dev (684ba5588) -->
   <link rel="icon" href="{{.ContentPath}}assets/favicon.ico">
   <link rel="icon" href="{{.ContentPath}}assets/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{.ContentPath}}assets/apple-touch-icon-01cd4680782fbb5bc02301347df9903d.png">
@@ -54,13 +54,18 @@
     "codemirror/mode/yaml/yaml.js": "{{.ContentPath}}assets/codemirror/mode/yaml/yaml-3f129a000349e3075be0f65719884b61.js"
   }
   </script>
+
+{{if .ACLsEnabled}}
+  <script data-consul-ui-routing src="{{.ContentPath}}assets/acls/routes-97da514a54c911486aa37b5c8b450530.js"></script>
+{{end}}
+
   <script src="{{.ContentPath}}assets/init-21ea65714d133467454b601efc15e2dd.js"></script>
-  <script src="{{.ContentPath}}assets/vendor-11065761200f308590a78bf8e141bc49.js"></script>
+  <script src="{{.ContentPath}}assets/vendor-723c7181cfa15d47a0550d020b8c728f.js"></script>
   
   <script src="{{.ContentPath}}assets/metrics-providers/consul-31d7e3b0ef7c58d62338c7d7aeaaf545.js"></script>
   <script src="{{.ContentPath}}assets/metrics-providers/prometheus-5f31ba3b7ffd850fa916a0a76933e968.js"></script>
   {{ range .ExtraScripts }} <script src="{{.}}"></script> {{ end }}
-  <script src="{{.ContentPath}}assets/consul-ui-7ecdf1f19816c15aba1cd29f677d003b.js"></script>
+  <script src="{{.ContentPath}}assets/consul-ui-13a1ee3875e46631ffd7845e7e4f8fab.js"></script>
   
 
     <div id="ember-basic-dropdown-wormhole"></div>
