@@ -13,7 +13,7 @@ services {
       #           http2_protocol_options:
       #
       # But that breaks 1.15 and 1.16. For now use this which is supported by
-      # all our supported versions# to avoid needing to setup different
+      # all our supported versions to avoid needing to setup different
       # bootstrap based on the envoy version.
       envoy_extra_static_clusters_json = <<EOF
 {

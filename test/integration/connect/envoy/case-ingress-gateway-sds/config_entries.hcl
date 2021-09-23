@@ -40,6 +40,17 @@ config_entries {
                   cert_resource = "foo.example.com"
                 }
               }
+            },
+            {
+              # Route to s2 on a differet domain with different cert
+              name  = "s2"
+              hosts = ["www.example.com"]
+                tls {
+                sds {
+                  cluster_name = "sds-cluster"
+                  cert_resource = "www.example.com"
+                }
+              }
             }
           ]
         }

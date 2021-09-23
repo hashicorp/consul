@@ -46,7 +46,7 @@ load helpers
   # Make sure the Cert was the one SDS served and didn't just happen to have the
   # right domain from Connect.
   assert_cert_signed_by_ca /workdir/test-sds-server/certs/ca-root.crt \
-    localhost:9999 *.ingress.consul
+    localhost:9999 '*.ingress.consul'
 }
 
 @test "ingress should serve SDS-supplied cert for specific service" {
@@ -54,4 +54,13 @@ load helpers
   # right domain from Connect.
   assert_cert_signed_by_ca /workdir/test-sds-server/certs/ca-root.crt \
     localhost:9998 foo.example.com
+}
+
+@test "ingress should serve SDS-supplied cert for second specific service on same http listener" {
+  # Make sure the Cert was the one SDS served and didn't just happen to have the
+  # right domain from Connect. This also ensures that listeners work when we've
+  # had to split their routing tables due to different certs for different
+  # hostnames.
+  assert_cert_signed_by_ca /workdir/test-sds-server/certs/ca-root.crt \
+    localhost:9998 www.example.com
 }
