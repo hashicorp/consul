@@ -6,10 +6,12 @@ return `
     "ID": "${legacy ? ID : ''}"
 ${ http.method !== "PUT" ? `
     ,"Description": "${fake.lorem.sentence()}",
-    "SourceNS": "default",
     "SourceName": "${fake.hacker.noun()}",
-    "DestinationNS": "default",
     "DestinationName": "${fake.hacker.noun()}",
+    "SourceNS": "default",
+    "DestinationNS": "default",
+    "SourcePartition": "default",
+    "DestinationPartition": "default",
     "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
 ${legacy ? `
     "Action": "${fake.helpers.randomize(['allow', 'deny'])}",

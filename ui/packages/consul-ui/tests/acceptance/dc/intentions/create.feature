@@ -46,13 +46,15 @@ Feature: dc / intentions / create: Intention Create
     # Specifically set deny
     And I click ".value-deny"
     And I submit
-    Then a PUT request was made to "/v1/connect/intentions/exact?source=nspace-0%2Fweb&destination=nspace-0%2Fdb&dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fnspace-0%2Fweb&destination=default%2Fnspace-0%2Fdb&dc=datacenter" from yaml
     ---
       body:
         SourceName: web
         DestinationName: db
         SourceNS: nspace-0
         DestinationNS: nspace-0
+        SourcePartition: default
+        DestinationPartition: default
         Action: deny
     ---
     Then the url should be /datacenter/intentions
@@ -90,7 +92,7 @@ Feature: dc / intentions / create: Intention Create
     # Specifically set deny
     And I click ".value-deny"
     And I submit
-    Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fdefault%2Fweb&destination=default%2Fdefault%2Fdb&dc=datacenter" from yaml
     ---
       body:
         SourceName: web

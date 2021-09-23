@@ -25,7 +25,13 @@ as |item index|>
               {{item.SourceName}}
             {{/if}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
+            <em>
+              <span
+                class={{concat 'partition-' (or item.SourcePartition 'default')}}
+              >{{or item.SourcePartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.SourceNS 'default')}}
+              >{{or item.SourceNS 'default'}}</span>
+            </em>
           </a>
         </td>
         <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
@@ -39,7 +45,13 @@ as |item index|>
               {{item.DestinationName}}
             {{/if}}
             {{! TODO: slugify }}
-            <em class={{concat 'nspace-' (or item.DestinationNS 'default')}}>{{or item.DestinationNS 'default'}}</em>
+            <em>
+              <span
+                class={{concat 'partition-' (or item.DestinationPartition 'default')}}
+              >{{or item.DestinationPartition 'default'}}</span> / <span
+                class={{concat 'nspace-' (or item.DestinationNS 'default')}}
+              >{{or item.DestinationNS 'default'}}</span>
+            </em>
           </span>
         </td>
         <td class="permissions">
