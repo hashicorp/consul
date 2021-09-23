@@ -37,13 +37,13 @@ var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
 
 type Backend interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
-	Forward(dc string, f func(*grpc.ClientConn) error) (handled bool, err error)
+	Forward(info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error)
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsubscribe.StateChangeSubscription_SubscribeServer) error {
 	logger := newLoggerForRequest(h.Logger, req)
-	handled, err := h.Backend.Forward(req.Datacenter, forwardToDC(req, serverStream, logger))
+	handled, err := h.Backend.Forward(req, forwardToDC(req, serverStream, logger))
 	if handled || err != nil {
 		return err
 	}

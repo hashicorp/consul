@@ -1,0 +1,3 @@
+```release-note:bug
+grpc: strip local ACL tokens from RPCs during forwarding if crossing datacenters
+```
