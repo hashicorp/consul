@@ -359,7 +359,7 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Install with Helm Chart",
+            "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
           },
           {
@@ -552,6 +552,10 @@
       {
         "title": "Helm Chart Configuration",
         "path": "k8s/helm"
+      },
+      {
+        "title": "Consul K8s CLI Reference",
+        "path": "k8s/k8s-cli"
       }
     ]
   },
