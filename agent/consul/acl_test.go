@@ -780,8 +780,6 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 }
 
 func TestACLResolver_DownPolicy(t *testing.T) {
-	t.Parallel()
-
 	requireIdentityCached := func(t *testing.T, r *ACLResolver, id string, present bool, msg string) {
 		t.Helper()
 
@@ -806,7 +804,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	}
 
 	t.Run("Deny", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -831,7 +828,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Allow", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -856,7 +852,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -893,7 +888,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -925,7 +919,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -956,7 +949,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -988,7 +980,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1025,7 +1016,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1058,7 +1048,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1106,7 +1095,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1149,7 +1137,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1185,7 +1172,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1222,7 +1208,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1264,8 +1249,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
-		t.Parallel()
-
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
 		secretID := foundToken.SecretID
@@ -1331,8 +1314,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-PermissionDenied", func(t *testing.T) {
-		t.Parallel()
-
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
 		secretID := foundToken.SecretID
