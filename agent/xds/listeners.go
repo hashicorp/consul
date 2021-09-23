@@ -511,75 +511,47 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 	return resources, err
 }
 
-func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var resources []proto.Message
+func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
+	var mergedCfg structs.GatewayTLSSDSConfig
 
-	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
-		var tlsContext *envoy_tls_v3.DownstreamTlsContext
-		if cfgSnap.IngressGateway.TLSEnabled {
-			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
-				RequireClientCertificate: &wrappers.BoolValue{Value: false},
-			}
+	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
+	if gwSDS != nil {
+		mergedCfg.ClusterName = gwSDS.ClusterName
+		mergedCfg.CertResource = gwSDS.CertResource
+	}
+
+	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+	if !ok {
+		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+	}
+
+	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
+		if listenerCfg.TLS.SDS.ClusterName != "" {
+			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
 		}
-
-		if listenerKey.Protocol == "tcp" {
-			// We rely on the invariant of upstreams slice always having at least 1
-			// member, because this key/value pair is created only when a
-			// GatewayService is returned in the RPC
-			u := upstreams[0]
-			id := u.Identifier()
-
-			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
-
-			var upstreamListener proto.Message
-			upstreamListener, err := s.makeUpstreamListenerForDiscoveryChain(
-				&u,
-				address,
-				chain,
-				cfgSnap,
-				tlsContext,
-			)
-			if err != nil {
-				return nil, err
-			}
-			resources = append(resources, upstreamListener)
-		} else {
-			// If multiple upstreams share this port, make a special listener for the protocol.
-			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
-			opts := listenerFilterOpts{
-				useRDS:          true,
-				protocol:        listenerKey.Protocol,
-				filterName:      listenerKey.RouteName(),
-				routeName:       listenerKey.RouteName(),
-				cluster:         "",
-				statPrefix:      "ingress_upstream_",
-				routePath:       "",
-				httpAuthzFilter: nil,
-			}
-			filter, err := makeListenerFilter(opts)
-			if err != nil {
-				return nil, err
-			}
-
-			transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
-			if err != nil {
-				return nil, err
-			}
-
-			listener.FilterChains = []*envoy_listener_v3.FilterChain{
-				{
-					Filters: []*envoy_listener_v3.Filter{
-						filter,
-					},
-					TransportSocket: transportSocket,
-				},
-			}
-			resources = append(resources, listener)
+		if listenerCfg.TLS.SDS.CertResource != "" {
+			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
 		}
 	}
 
-	return resources, nil
+	// Validate. Either merged should have both fields empty or both set. Other
+	// cases shouldn't be possible as we validate them at input but be robust to
+	// bugs later.
+	switch {
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
+		return nil, nil
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
+		return &mergedCfg, nil
+
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
+	}
+
+	return &mergedCfg, nil
 }
 
 // makeListener returns a listener with name and bind details set. Filters must
@@ -1584,9 +1556,9 @@ func makeTLSInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error)
 	return &envoy_listener_v3.ListenerFilter{Name: "envoy.filters.listener.tls_inspector"}, nil
 }
 
-func makeSNIFilterChainMatch(sniMatch string) *envoy_listener_v3.FilterChainMatch {
+func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChainMatch {
 	return &envoy_listener_v3.FilterChainMatch{
-		ServerNames: []string{sniMatch},
+		ServerNames: sniMatches,
 	}
 }
 
@@ -1763,7 +1735,6 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		return nil
 	}
 
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)

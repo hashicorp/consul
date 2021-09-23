@@ -155,6 +155,30 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "foo",
+							},
+							{
+								Name: "bar",
+							},
+						},
+					},
+					{Protocol: "http", Port: 443}: {
+						Port: 443,
+						Services: []structs.IngressService{
+							{
+								Name: "baz",
+							},
+							{
+								Name: "qux",
+							},
+						},
+					},
+				}
 
 				// We do not add baz/qux here so that we test the chain.IsDefault() case
 				entries := []structs.ConfigEntry{
@@ -215,6 +239,45 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				}
 				snap.IngressGateway.Listeners[k] = l
 			},
+		},
+		{
+			name:   "ingress-with-sds-listener-level",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				// Listener-level SDS means all services share the default route.
+				listenerSDS: true,
+			}),
+		},
+		{
+			name:   "ingress-with-sds-listener-level-wildcard",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				// Listener-level SDS means all services share the default route.
+				listenerSDS: true,
+				wildcard:    true,
+			}),
+		},
+		{
+			name:   "ingress-with-sds-service-level",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				listenerSDS: false,
+				// Services should get separate routes and no default since they all
+				// have custom certs.
+				webSDS: true,
+				fooSDS: true,
+			}),
+		},
+		{
+			name:   "ingress-with-sds-service-level-mixed-tls",
+			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			setup: setupIngressWithTwoHTTPServices(t, ingressSDSOpts{
+				listenerSDS: false,
+				// Web needs a separate route as it has custom filter chain but foo
+				// should use default route for listener.
+				webSDS: true,
+				fooSDS: false,
+			}),
 		},
 		{
 			name:   "terminating-gateway-lb-config",
@@ -323,6 +386,17 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						}
 
 						gName += ".v2compat"
+
+						// It's easy to miss a new type that encodes a version from just
+						// looking at the golden files so lets make it an error here. If
+						// there are ever false positives we can maybe include an allow list
+						// here as it seems safer to assume something was missed than to
+						// assume we'll notice the golden file being wrong. Note the first
+						// one matches both resourceApiVersion and transportApiVersion. I
+						// left it as a suffix in case there are other field names that
+						// follow that convention now or in the future.
+						require.NotContains(t, gotJSON, `ApiVersion": "V3"`)
+						require.NotContains(t, gotJSON, `type.googleapis.com/envoy.api.v3`)
 
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
@@ -583,5 +657,157 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 
 			require.Equal(t, tc.expected, &ra)
 		})
+	}
+}
+
+type ingressSDSOpts struct {
+	listenerSDS, webSDS, fooSDS, wildcard bool
+	entMetas                              map[string]*structs.EnterpriseMeta
+}
+
+// setupIngressWithTwoHTTPServices can be used with
+// proxycfg.TestConfigSnapshotIngressWithRouter to generate a setup func for an
+// ingress listener with multiple HTTP services and varying SDS configurations
+// since those affect how we generate routes.
+func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *proxycfg.ConfigSnapshot) {
+	return func(snap *proxycfg.ConfigSnapshot) {
+
+		snap.IngressGateway.TLSConfig.SDS = nil
+
+		webUpstream := structs.Upstream{
+			DestinationName: "web",
+			// We use empty not default here because of the way upstream identifiers
+			// vary between OSS and Enterprise currently causing test conflicts. In
+			// real life `proxycfg` always sets ingress upstream namespaces to
+			// `NamespaceOrDefault` which shouldn't matter because we should be
+			// consistent within a single binary it's just inconvenient if OSS and
+			// enterprise tests generate different output.
+			DestinationNamespace: o.entMetas["web"].NamespaceOrEmpty(),
+			DestinationPartition: o.entMetas["web"].PartitionOrEmpty(),
+			LocalBindPort:        9191,
+			IngressHosts: []string{
+				"www.example.com",
+			},
+		}
+		fooUpstream := structs.Upstream{
+			DestinationName:      "foo",
+			DestinationNamespace: o.entMetas["foo"].NamespaceOrEmpty(),
+			DestinationPartition: o.entMetas["foo"].PartitionOrEmpty(),
+			LocalBindPort:        9191,
+			IngressHosts: []string{
+				"foo.example.com",
+			},
+		}
+
+		// Setup additional HTTP service on same listener with default router
+		snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+			{Protocol: "http", Port: 9191}: {webUpstream, fooUpstream},
+		}
+		il := structs.IngressListener{
+			Port: 9191,
+			Services: []structs.IngressService{
+				{
+					Name:  "web",
+					Hosts: []string{"www.example.com"},
+				},
+				{
+					Name:  "foo",
+					Hosts: []string{"foo.example.com"},
+				},
+			},
+		}
+		for i, svc := range il.Services {
+			if em, ok := o.entMetas[svc.Name]; ok && em != nil {
+				il.Services[i].EnterpriseMeta = *em
+			}
+		}
+
+		// Now set the appropriate SDS configs
+		if o.listenerSDS {
+			il.TLS = &structs.GatewayTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "listener-cluster",
+					CertResource: "listener-cert",
+				},
+			}
+		}
+		if o.webSDS {
+			il.Services[0].TLS = &structs.GatewayServiceTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "web-cluster",
+					CertResource: "www-cert",
+				},
+			}
+		}
+		if o.fooSDS {
+			il.Services[1].TLS = &structs.GatewayServiceTLSConfig{
+				SDS: &structs.GatewayTLSSDSConfig{
+					ClusterName:  "foo-cluster",
+					CertResource: "foo-cert",
+				},
+			}
+		}
+
+		if o.wildcard {
+			// undo all that and set just a single wildcard config with no TLS to test
+			// the lookup path where we have to compare an actual resolved upstream to
+			// a wildcard config.
+			il.Services = []structs.IngressService{
+				{
+					Name: "*",
+				},
+			}
+			// We also don't support user-specified hosts with wildcard so remove
+			// those from the upstreams.
+			ups := snap.IngressGateway.Upstreams[proxycfg.IngressListenerKey{Protocol: "http", Port: 9191}]
+			for i := range ups {
+				ups[i].IngressHosts = nil
+			}
+			snap.IngressGateway.Upstreams[proxycfg.IngressListenerKey{Protocol: "http", Port: 9191}] = ups
+		}
+
+		snap.IngressGateway.Listeners[proxycfg.IngressListenerKey{Protocol: "http", Port: 9191}] = il
+
+		entries := []structs.ConfigEntry{
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "web",
+				ConnectTimeout: 22 * time.Second,
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind:           structs.ServiceResolver,
+				Name:           "foo",
+				ConnectTimeout: 22 * time.Second,
+			},
+		}
+		for i, e := range entries {
+			switch v := e.(type) {
+			// Add other Service types here if we ever need them above
+			case *structs.ServiceResolverConfigEntry:
+				if em, ok := o.entMetas[v.Name]; ok && em != nil {
+					v.EnterpriseMeta = *em
+					entries[i] = v
+				}
+			}
+		}
+
+		webChain := discoverychain.TestCompileConfigEntries(t, "web",
+			o.entMetas["web"].NamespaceOrDefault(),
+			o.entMetas["web"].PartitionOrDefault(), "dc1",
+			connect.TestClusterID+".consul", "dc1", nil, entries...)
+		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
+			o.entMetas["foo"].NamespaceOrDefault(),
+			o.entMetas["web"].PartitionOrDefault(), "dc1",
+			connect.TestClusterID+".consul", "dc1", nil, entries...)
+
+		snap.IngressGateway.DiscoveryChain[webUpstream.Identifier()] = webChain
+		snap.IngressGateway.DiscoveryChain[fooUpstream.Identifier()] = fooChain
 	}
 }
