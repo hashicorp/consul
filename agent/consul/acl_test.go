@@ -948,6 +948,27 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
+	t.Run("Extend-Cache with no cache entry defaults to default_policy", func(t *testing.T) {
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			localPolicies: true,
+			localRoles:    true,
+		}
+		delegate.tokenReadFn = func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
+			return ACLRemoteError{Err: fmt.Errorf("connection problem")}
+		}
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+		})
+
+		_, authz, err := r.ResolveTokenToIdentityAndAuthorizer("not-found")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+	})
+
 	t.Run("Extend-Cache-Role", func(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
