@@ -212,19 +212,19 @@ func (e *IngressGatewayConfigEntry) validateServiceSDS(lis IngressListener, svc 
 	}
 
 	// Validate service-level SDS config
-	sid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
-
 	svcSDSSet := (svc.TLS != nil && svc.TLS.SDS != nil && svc.TLS.SDS.CertResource != "")
 
 	// Service SDS is only supported with Host names because we need to bind
 	// specific service certs to one or more SNI hostnames.
 	if svcSDSSet && len(svc.Hosts) < 1 {
+		sid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
 		return fmt.Errorf("A service specifying TLS.SDS.CertResource must have at least one item in Hosts (service %q on listener on port %d)",
 			sid.String(), lis.Port)
 	}
 	// If this service specified a certificate, there must be an SDS cluster set
 	// at one of the three levels.
 	if svcSDSSet && svc.TLS.SDS.ClusterName == "" && !lisSDSClusterSet && !gwSDSClusterSet {
+		sid := NewServiceID(svc.Name, &svc.EnterpriseMeta)
 		return fmt.Errorf("TLS.SDS.ClusterName is required if CertResource is set (service %q on listener on port %d)",
 			sid.String(), lis.Port)
 	}

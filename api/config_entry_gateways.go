@@ -74,7 +74,7 @@ type IngressListener struct {
 	Services []IngressService
 
 	// TLS allows specifying some TLS configuration per listener.
-	TLS *GatewayTLSConfig
+	TLS *GatewayTLSConfig `json:",omitempty"`
 }
 
 // IngressService manages configuration for services that are exposed to
@@ -110,7 +110,7 @@ type IngressService struct {
 	Namespace string `json:",omitempty"`
 
 	// TLS allows specifying some TLS configuration per listener.
-	TLS *GatewayServiceTLSConfig
+	TLS *GatewayServiceTLSConfig `json:",omitempty"`
 
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`

@@ -164,45 +164,47 @@ func makeSDSOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	var chains []*envoy_listener_v3.FilterChain
 
 	for _, svc := range listenerCfg.Services {
-		if ingressServiceHasSDSOverrides(svc) {
-			if len(svc.Hosts) < 1 {
-				// Shouldn't be possible with validation but be careful
-				return nil, fmt.Errorf("no hosts specified with SDS certificate (service %q on listener on port %d)",
-					svc.ToServiceName().ToServiceID().String(), listenerKey.Port)
-			}
-
-			// Service has a certificate resource override. Return a new filter chain
-			// with the right TLS cert and a filter that will load only the routes for
-			// this service.
-			routeName := routeNameForUpstream(listenerCfg, svc)
-			filterOpts.filterName = routeName
-			filterOpts.routeName = routeName
-			filter, err := makeListenerFilter(filterOpts)
-			if err != nil {
-				return nil, err
-			}
-
-			tlsContext := &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromSDS(*svc.TLS.SDS),
-				RequireClientCertificate: &wrappers.BoolValue{Value: false},
-			}
-
-			transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
-			if err != nil {
-				return nil, err
-			}
-
-			chain := &envoy_listener_v3.FilterChain{
-				// Only match traffic for this service's hosts.
-				FilterChainMatch: makeSNIFilterChainMatch(svc.Hosts...),
-				Filters: []*envoy_listener_v3.Filter{
-					filter,
-				},
-				TransportSocket: transportSocket,
-			}
-
-			chains = append(chains, chain)
+		if !ingressServiceHasSDSOverrides(svc) {
+			continue
 		}
+
+		if len(svc.Hosts) < 1 {
+			// Shouldn't be possible with validation but be careful
+			return nil, fmt.Errorf("no hosts specified with SDS certificate (service %q on listener on port %d)",
+				svc.ToServiceName().ToServiceID().String(), listenerKey.Port)
+		}
+
+		// Service has a certificate resource override. Return a new filter chain
+		// with the right TLS cert and a filter that will load only the routes for
+		// this service.
+		routeName := routeNameForUpstream(listenerCfg, svc)
+		filterOpts.filterName = routeName
+		filterOpts.routeName = routeName
+		filter, err := makeListenerFilter(filterOpts)
+		if err != nil {
+			return nil, err
+		}
+
+		tlsContext := &envoy_tls_v3.DownstreamTlsContext{
+			CommonTlsContext:         makeCommonTLSContextFromSDS(*svc.TLS.SDS),
+			RequireClientCertificate: &wrappers.BoolValue{Value: false},
+		}
+
+		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
+		if err != nil {
+			return nil, err
+		}
+
+		chain := &envoy_listener_v3.FilterChain{
+			// Only match traffic for this service's hosts.
+			FilterChainMatch: makeSNIFilterChainMatch(svc.Hosts...),
+			Filters: []*envoy_listener_v3.Filter{
+				filter,
+			},
+			TransportSocket: transportSocket,
+		}
+
+		chains = append(chains, chain)
 	}
 
 	return chains, nil
