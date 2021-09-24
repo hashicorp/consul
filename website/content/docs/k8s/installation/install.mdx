@@ -197,7 +197,7 @@ to see all resources and make modifications.
 To retrieve the bootstrap token that has full permissions, run:
 
 ```shell-session
-$ kubectl get secrets/consul-bootstrap-acl-token --template={{.data.token}} | base64 --decode
+$ kubectl get secrets/consul-bootstrap-acl-token --template='{{.data.token | base64decode }}'
 e7924dd1-dc3f-f644-da54-81a73ba0a178%
 ```
 
