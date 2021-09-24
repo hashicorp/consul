@@ -2033,6 +2033,8 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			Node:           a.config.NodeName,
 			CheckID:        types.CheckID(checkID),
 			Name:           name,
+			Interval:       chkType.Interval.String(),
+			Timeout:        chkType.Interval.String(),
 			Status:         api.HealthCritical,
 			Notes:          chkType.Notes,
 			ServiceID:      service.ID,
