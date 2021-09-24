@@ -2034,7 +2034,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 			CheckID:        types.CheckID(checkID),
 			Name:           name,
 			Interval:       chkType.Interval.String(),
-			Timeout:        chkType.Interval.String(),
+			Timeout:        chkType.Timeout.String(),
 			Status:         api.HealthCritical,
 			Notes:          chkType.Notes,
 			ServiceID:      service.ID,
