@@ -37,11 +37,11 @@ Feature: dc / intentions / create: Intention Create
     Then I see the text "db" in "[data-test-destination-element] .ember-power-select-selected-item"
     # Set source nspace
     And I click "[data-test-source-nspace] .ember-power-select-trigger"
-    And I click ".ember-power-select-option:nth-child(2)"
+    And I click ".ember-power-select-option:last-child"
     Then I see the text "nspace-0" in "[data-test-source-nspace] .ember-power-select-selected-item"
     # Set destination nspace
     And I click "[data-test-destination-nspace] .ember-power-select-trigger"
-    And I click ".ember-power-select-option:nth-child(2)"
+    And I click ".ember-power-select-option:last-child"
     Then I see the text "nspace-0" in "[data-test-destination-nspace] .ember-power-select-selected-item"
     # Specifically set deny
     And I click ".value-deny"
