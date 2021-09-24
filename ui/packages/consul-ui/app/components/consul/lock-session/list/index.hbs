@@ -74,7 +74,7 @@
           <button data-test-delete
             type="button"
             class="type-delete"
-            onclick={{queue (action confirm onInvalidate item) (refresh-route)}}
+            onclick={{action confirm onInvalidate item}}
           >
             Invalidate
           </button>
@@ -83,8 +83,8 @@
           <p>
               {{message}}
           </p>
-          <button type="button" class="type-delete" {{action execute}}>Confirm Invalidate</button>
-          <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
+          <button type="button" class="type-delete" onclick={{action execute}}>Confirm Invalidate</button>
+          <button type="button" class="type-cancel" onclick={{action cancel}}>Cancel</button>
       </BlockSlot>
     </ConfirmationDialog>
   </BlockSlot>
