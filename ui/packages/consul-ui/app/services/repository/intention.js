@@ -69,9 +69,12 @@ export default class IntentionRepository extends RepositoryService {
     let item;
     if (params.id === '') {
       const defaultNspace = this.env.var('CONSUL_NSPACES_ENABLED') ? '*' : 'default';
+      const defaultPartition = this.env.var('CONSUL_PARTITIONS_ENABLED') ? '*' : 'default';
       item = await this.create({
         SourceNS: params.nspace || defaultNspace,
         DestinationNS: params.nspace || defaultNspace,
+        SourcePartition: params.partition || defaultPartition,
+        DestinationPartition: params.partition || defaultPartition,
         Datacenter: params.dc,
         Partition: params.partition,
       });

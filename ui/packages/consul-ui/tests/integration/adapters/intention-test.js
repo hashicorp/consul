@@ -7,7 +7,8 @@ const nspaceRunner = getNspaceRunner('intention');
 module('Integration | Adapter | intention', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
-  const id = 'SourceNS:SourceName:DestinationNS:DestinationName';
+  const id =
+    'SourcePartition:SourceNS:SourceName:DestinationPartition:DestinationNS:DestinationName';
   test('requestForQuery returns the correct url', function(assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
@@ -15,6 +16,7 @@ module('Integration | Adapter | intention', function(hooks) {
         return adapter.requestForQuery(request, {
           dc: dc,
           ns: 'team-1',
+          partition: 'partition-1',
           filter: '*',
           index: 1,
         });
@@ -23,6 +25,7 @@ module('Integration | Adapter | intention', function(hooks) {
         filter: '*',
         index: 1,
         ns: '*',
+        partition: '*',
       },
       {
         filter: '*',
@@ -36,7 +39,7 @@ module('Integration | Adapter | intention', function(hooks) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    const expected = `GET /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
+    const expected = `GET /v1/connect/intentions/exact?source=SourcePartition%2FSourceNS%2FSourceName&destination=DestinationPartition%2FDestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForQueryRecord(request, {
         dc: dc,
@@ -59,17 +62,19 @@ module('Integration | Adapter | intention', function(hooks) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    const expected = `PUT /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
+    const expected = `PUT /v1/connect/intentions/exact?source=SourcePartition%2FSourceNS%2FSourceName&destination=DestinationPartition%2FDestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForCreateRecord(
         request,
         {},
         {
           Datacenter: dc,
-          SourceNS: 'SourceNS',
           SourceName: 'SourceName',
-          DestinationNS: 'DestinationNS',
           DestinationName: 'DestinationName',
+          SourceNS: 'SourceNS',
+          DestinationNS: 'DestinationNS',
+          SourcePartition: 'SourcePartition',
+          DestinationPartition: 'DestinationPartition',
         }
       )
       .split('\n')[0];
@@ -79,17 +84,19 @@ module('Integration | Adapter | intention', function(hooks) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    const expected = `PUT /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
+    const expected = `PUT /v1/connect/intentions/exact?source=SourcePartition%2FSourceNS%2FSourceName&destination=DestinationPartition%2FDestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForUpdateRecord(
         request,
         {},
         {
           Datacenter: dc,
-          SourceNS: 'SourceNS',
           SourceName: 'SourceName',
-          DestinationNS: 'DestinationNS',
           DestinationName: 'DestinationName',
+          SourceNS: 'SourceNS',
+          DestinationNS: 'DestinationNS',
+          SourcePartition: 'SourcePartition',
+          DestinationPartition: 'DestinationPartition',
         }
       )
       .split('\n')[0];
@@ -99,17 +106,19 @@ module('Integration | Adapter | intention', function(hooks) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
     const request = client.url.bind(client);
-    const expected = `DELETE /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
+    const expected = `DELETE /v1/connect/intentions/exact?source=SourcePartition%2FSourceNS%2FSourceName&destination=DestinationPartition%2FDestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForDeleteRecord(
         request,
         {},
         {
           Datacenter: dc,
-          SourceNS: 'SourceNS',
           SourceName: 'SourceName',
-          DestinationNS: 'DestinationNS',
           DestinationName: 'DestinationName',
+          SourceNS: 'SourceNS',
+          DestinationNS: 'DestinationNS',
+          SourcePartition: 'SourcePartition',
+          DestinationPartition: 'DestinationPartition',
         }
       )
       .split('\n')[0];

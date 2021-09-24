@@ -12,6 +12,10 @@ export default class ConsulIntentionForm extends Component {
   @tracked SourceNS;
   @tracked DestinationNS;
 
+  @tracked partitions;
+  @tracked SourcePartition;
+  @tracked DestinationPartition;
+
   @tracked isManagedByCRDs;
 
   modal = null; // reference to the warning modal
@@ -116,6 +120,28 @@ export default class ConsulIntentionForm extends Component {
   }
 
   @action
+  createPartitions(item, e) {
+    // Partitions in the menus should:
+    // 1. Include an 'All Partitions' option
+    // 2. Include the current SourcePartition and DestinationPartition incase they don't exist yet
+    let items = e.data.toArray().sort((a, b) => a.Name.localeCompare(b.Name));
+    items = [{ Name: '*' }].concat(items);
+    let source = items.findBy('Name', item.SourcePartition);
+    if (!source) {
+      source = { Name: item.SourcePartition };
+      items = [source].concat(items);
+    }
+    let destination = items.findBy('Name', item.DestinationPartition);
+    if (!destination) {
+      destination = { Name: item.DestinationPartition };
+      items = [destination].concat(items);
+    }
+    this.partitions = items;
+    this.SourcePartition = source;
+    this.DestinationPartition = destination;
+  }
+
+  @action
   change(e, form, item) {
     const target = e.target;
 
@@ -125,6 +151,8 @@ export default class ConsulIntentionForm extends Component {
       case 'DestinationName':
       case 'SourceNS':
       case 'DestinationNS':
+      case 'SourcePartition':
+      case 'DestinationPartition':
         name = selected = target.value;
         // Names can be selected Service EmberObjects or typed in strings
         // if its not a string, use the `Name` from the Service EmberObject
@@ -156,6 +184,13 @@ export default class ConsulIntentionForm extends Component {
             if (this.nspaces.filterBy('Name', name).length === 0) {
               selected = { Name: name };
               this.nspaces = [selected].concat(this.nspaces.toArray());
+            }
+            break;
+          case 'SourcePartition':
+          case 'DestinationPartition':
+            if (this.partitions.filterBy('Name', name).length === 0) {
+              selected = { Name: name };
+              this.partitions = [selected].concat(this.partitions.toArray());
             }
             break;
         }
