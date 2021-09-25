@@ -85,6 +85,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 		}
 	}
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+	out.Chain.Default = out.Chain.IsDefault()
 
 	return discoveryChainReadResponse{Chain: out.Chain}, nil
 }

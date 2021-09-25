@@ -42,6 +42,12 @@ type CompiledDiscoveryChain struct {
 
 	// Targets is a list of all targets used in this chain.
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
+
+	// Default indicates if the compiled chain represents no routing, no splitting,
+	// and only the default resolution. This is an extra piece of redundant information
+	// calculated through existing information of CompiledDiscoveryChain struct by IsDefault
+	// method.
+	Default bool `json:",omitempty"`
 }
 
 func (c *CompiledDiscoveryChain) WillFailoverThroughMeshGateway(node *DiscoveryGraphNode) bool {
