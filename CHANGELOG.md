@@ -47,6 +47,34 @@ manage licenses on older servers [[GH-10952](https://github.com/hashicorp/consul
 * use the MaxQueryTime instead of RPCHoldTimeout for blocking RPC queries 
  [[GH-8978](https://github.com/hashicorp/consul/pull/8978)]. [[GH-10299](https://github.com/hashicorp/consul/issues/10299)]
 
+## 1.10.3 (September 27, 2021)
+
+FEATURES:
+
+* sso/oidc: **(Enterprise only)** Add support for providing acr_values in OIDC auth flow [[GH-11026](https://github.com/hashicorp/consul/issues/11026)]
+
+IMPROVEMENTS:
+
+* audit-logging: **(Enterprise Only)** Audit logs will now include select HTTP headers in each logs payload. Those headers are: `Forwarded`, `Via`, `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto`. [[GH-11107](https://github.com/hashicorp/consul/issues/11107)]
+* connect: update supported envoy versions to 1.18.4, 1.17.4, 1.16.5 [[GH-10961](https://github.com/hashicorp/consul/issues/10961)]
+* telemetry: Add new metrics for the count of KV entries in the Consul store. [[GH-11090](https://github.com/hashicorp/consul/issues/11090)]
+
+BUG FIXES:
+
+* api: Revert early out errors from license APIs to allow v1.10+ clients to
+manage licenses on older servers [[GH-10952](https://github.com/hashicorp/consul/issues/10952)]
+* connect: Fix upstream listener escape hatch for prepared queries [[GH-11109](https://github.com/hashicorp/consul/issues/11109)]
+* grpc: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-11099](https://github.com/hashicorp/consul/issues/11099)]
+* tls: consider presented intermediates during server connection tls handshake. [[GH-10964](https://github.com/hashicorp/consul/issues/10964)]
+* ui: **(Enterprise Only)** Fix saving intentions with namespaced source/destination [[GH-11095](https://github.com/hashicorp/consul/issues/11095)]
+* ui: Don't show a CRD warning for read-only intentions [[GH-11149](https://github.com/hashicorp/consul/issues/11149)]
+* ui: Ensure routing-config page blocking queries are cleaned up correctly [[GH-10915](https://github.com/hashicorp/consul/issues/10915)]
+* ui: Ignore reported permissions for KV area meaning the KV is always enabled
+for both read/write access if the HTTP API allows. [[GH-10916](https://github.com/hashicorp/consul/issues/10916)]
+* ui: hide create button for policies/roles/namespace if users token has no write permissions to those areas [[GH-10914](https://github.com/hashicorp/consul/issues/10914)]
+* xds: ensure the active streams counters are 64 bit aligned on 32 bit systems [[GH-11085](https://github.com/hashicorp/consul/issues/11085)]
+* xds: fixed a bug where Envoy sidecars could enter a state where they failed to receive xds updates from Consul [[GH-10987](https://github.com/hashicorp/consul/issues/10987)]
+
 ## 1.10.2 (August 27, 2021)
 
 KNOWN ISSUES:
@@ -248,6 +276,23 @@ being expired. [[GH-10161](https://github.com/hashicorp/consul/issues/10161)]
 NOTES:
 
 * legal: **(Enterprise only)** Enterprise binary downloads will now include a copy of the EULA and Terms of Evaluation in the zip archive
+
+## 1.9.10 (September 27, 2021)
+
+FEATURES:
+
+* sso/oidc: **(Enterprise only)** Add support for providing acr_values in OIDC auth flow [[GH-11026](https://github.com/hashicorp/consul/issues/11026)]
+
+IMPROVEMENTS:
+
+* audit-logging: **(Enterprise Only)** Audit logs will now include select HTTP headers in each logs payload. Those headers are: `Forwarded`, `Via`, `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto`. [[GH-11107](https://github.com/hashicorp/consul/issues/11107)]
+* connect: update supported envoy versions to 1.16.5 [[GH-10961](https://github.com/hashicorp/consul/issues/10961)]
+* telemetry: Add new metrics for the count of KV entries in the Consul store. [[GH-11090](https://github.com/hashicorp/consul/issues/11090)]
+
+BUG FIXES:
+
+* tls: consider presented intermediates during server connection tls handshake. [[GH-10964](https://github.com/hashicorp/consul/issues/10964)]
+* ui: **(Enterprise Only)** Fix saving intentions with namespaced source/destination [[GH-11095](https://github.com/hashicorp/consul/issues/11095)]
 
 ## 1.9.9 (August 27, 2021)
 
@@ -589,6 +634,21 @@ BUG FIXES:
 * server: skip deleted and deleting namespaces when migrating intentions to config entries [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
 * telemetry: fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
+
+## 1.8.16 (September 27, 2021)
+
+FEATURES:
+
+* sso/oidc: **(Enterprise only)** Add support for providing acr_values in OIDC auth flow [[GH-11026](https://github.com/hashicorp/consul/issues/11026)]
+
+IMPROVEMENTS:
+
+* audit-logging: **(Enterprise Only)** Audit logs will now include select HTTP headers in each logs payload. Those headers are: `Forwarded`, `Via`, `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto`. [[GH-11107](https://github.com/hashicorp/consul/issues/11107)]
+
+BUG FIXES:
+
+* tls: consider presented intermediates during server connection tls handshake. [[GH-10964](https://github.com/hashicorp/consul/issues/10964)]
+* ui: **(Enterprise Only)** Fixes a visual issue where namespaces would "double up" in the Source/Destination select menu when creating/editing intentions [[GH-11102](https://github.com/hashicorp/consul/issues/11102)]
 
 ## 1.8.15 (August 27, 2021)
 
