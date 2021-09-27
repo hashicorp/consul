@@ -1591,6 +1591,10 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		// Allow to set configuration from the k8s config
 		// https://www.envoyproxy.io/docs/envoy/v1.18.4/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto.html?highlight=mtls%20forward%20cert#envoy-v3-api-enum-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-forwardclientcertdetails
 		ForwardClientCertDetails: envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
+		SetCurrentClientCertDetails: &envoy_http_v3.HttpConnectionManager_SetCurrentClientCertDetails {
+			Subject: &wrappers.BoolValue{Value:true},
+			Uri: true,
+		},
 		HttpFilters: []*envoy_http_v3.HttpFilter{
 			{
 				Name: "envoy.filters.http.router",
