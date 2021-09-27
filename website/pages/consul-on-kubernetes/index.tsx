@@ -261,6 +261,39 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Terraform Provider',
                 url: '#TODO',
               },
+              description:
+                'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+              type: 'type 1',
+              cta: {
+                url: '#TODO',
+                text: 'Call To Action',
+              },
+            },
+            {
+              image: {
+                src: require('./images/features/secure.svg'),
+                alt: 'card',
+              },
+              description:
+                'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+              type: 'type 2',
+              cta: {
+                url: '#TODO',
+                text: 'Call To Action',
+              },
+            },
+            {
+              image: {
+                src: require('./images/features/secure.svg'),
+                alt: 'card',
+              },
+              description:
+                'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+              type: 'type 3',
+              cta: {
+                url: '#TODO',
+                text: 'Call To Action',
+              },
             },
           ]}
         />

@@ -1,3 +1,21 @@
-.root {
-  display: flex;
+.cardsWrapper {
+  display: grid;
+  column-gap: 40px;
+  row-gap: 40px;
+  grid-template-columns: 1fr 1fr;
+
+  & .card {
+    display: flex;
+    flex-direction: column;
+
+    & img {
+      max-width: 100%;
+    }
+  }
+}
+
+.title {
+  composes: g-type-display-3 from global;
+  margin-top: 0;
+  margin-bottom: 46px;
 }
