@@ -142,10 +142,8 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 	if resp.StatusCode == 404 {
 		closeResponseBody(resp)
 		return nil, qm, nil
-	} else if resp.StatusCode != 200 {
-		closeResponseBody(resp)
-		return nil, nil, fmt.Errorf("Unexpected response code: %d", resp.StatusCode)
 	}
+
 	return resp, qm, nil
 }
 
