@@ -231,7 +231,39 @@ export default function ConsulOnKubernetesPage() {
         />
       </section>
 
-      <section></section>
+      {/* get started section */}
+      <section>
+        {/* card list */}
+        <DocsList
+          title="Documentation"
+          docs={[
+            {
+              icon: {
+                src: require('./images/docs/helm-icon.png'),
+                alt: 'helm',
+              },
+              description:
+                'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
+              cta: {
+                text: 'Heml Docs',
+                url: '#TODO',
+              },
+            },
+            {
+              icon: {
+                src: require('./images/docs/terraform-icon.svg'),
+                alt: 'terraform',
+              },
+              description:
+                'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
+              cta: {
+                text: 'Terraform Provider',
+                url: '#TODO',
+              },
+            },
+          ]}
+        />
+      </section>
     </div>
   )
 }
