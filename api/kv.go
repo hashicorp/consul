@@ -129,6 +129,8 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 		r.params.Set(param, val)
 	}
 	rtt, resp, err := k.c.doRequest(r)
+	rtt, resp, err = requireHttpCodes(rtt, resp, err, 200, 404)
+
 	if err != nil {
 		return nil, nil, err
 	}
