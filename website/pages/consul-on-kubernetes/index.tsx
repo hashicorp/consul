@@ -1,9 +1,10 @@
 import Head from 'next/head'
+import Button from '@hashicorp/react-button'
 import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
 import BlockList from 'components/block-list'
 import SideBySide from 'components/side-by-side'
-import Button from '@hashicorp/react-button'
+import DocsList from 'components/docs-list'
 import s from './style.module.css'
 
 export default function ConsulOnKubernetesPage() {
@@ -231,6 +232,38 @@ export default function ConsulOnKubernetesPage() {
       </section>
 
       {/* get started section */}
+      <section>
+        {/* card list */}
+        <DocsList
+          title="Documentation"
+          docs={[
+            {
+              icon: {
+                src: require('./images/docs/helm-icon.svg'),
+                alt: 'helm',
+              },
+              description:
+                'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
+              cta: {
+                text: 'Heml Docs',
+                url: '#TODO',
+              },
+            },
+            {
+              icon: {
+                src: require('@hashicorp/mktg-logos/product/terraform/logomark/color.svg'),
+                alt: 'terraform',
+              },
+              description:
+                'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
+              cta: {
+                text: 'Terraform Provider',
+                url: '#TODO',
+              },
+            },
+          ]}
+        />
+      </section>
     </div>
   )
 }
