@@ -6,6 +6,7 @@ import BlockList from 'components/block-list'
 import SideBySide from 'components/side-by-side'
 import DocsList from 'components/docs-list'
 import s from './style.module.css'
+import CardList from 'components/card-list'
 
 export default function ConsulOnKubernetesPage() {
   return (
