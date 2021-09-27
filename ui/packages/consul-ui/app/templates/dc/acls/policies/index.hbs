@@ -50,7 +50,9 @@ as |route|>
         </h1>
       </BlockSlot>
       <BlockSlot @name="actions">
+  {{#if (can "create policies")}}
           <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
+  {{/if}}
       </BlockSlot>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0) }}
