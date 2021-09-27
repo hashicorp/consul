@@ -1,20 +1,15 @@
 import Button from '@hashicorp/react-button'
 import s from './style.module.css'
-
-interface Icon {
-  src: string
-  alt: string
-}
-
-interface Cta {
-  text: string
-  url: string
-}
-
 interface Doc {
-  icon: Icon
+  icon: {
+    src: string
+    alt: string
+  }
   description: string
-  cta: Cta
+  cta: {
+    text: string
+    url: string
+  }
 }
 
 interface DocsListProps {
