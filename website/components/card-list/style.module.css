@@ -9,9 +9,21 @@
     box-shadow: 0 2px 3px rgba(37, 41, 55, 0.08);
     border-radius: 1px;
 
-    & img {
-      height: 117px;
+    /* padding-top: 42.86%;
+    position: relative; */
+
+    & .imageContainer {
+      aspect-ratio: 21 / 9;
       width: 100%;
+
+      & img {
+        /* height: 117px; */
+
+        /* position: absolute; */
+
+        /* top: 0; */
+        width: 100%;
+      }
     }
 
     & .cardContent {

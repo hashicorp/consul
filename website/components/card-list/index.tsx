@@ -25,7 +25,9 @@ export default function CardList({ title, cards }: CardListProps) {
       <div className={s.cardsWrapper}>
         {cards.map(({ image, description, cta, type }) => (
           <div key={type} className={s.card}>
-            <img src={image.src} alt={image.alt} />
+            <div className={s.imageContainer}>
+              <img src={image.src} alt={image.alt} />
+            </div>
             <div className={s.cardContent}>
               <div className={s.eyebrow}>
                 <span>{type}</span>
