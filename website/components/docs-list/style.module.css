@@ -1,0 +1,26 @@
+.docsList {
+  display: grid;
+  row-gap: 48px;
+}
+
+.title {
+  composes: g-type-display-3 from global;
+  margin-top: 0;
+  margin-bottom: 46px;
+}
+
+.image {
+  width: 40px;
+  height: 40px;
+
+  & img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}
+
+.description {
+  composes: g-body from global;
+  margin-top: 12px;
+  margin-bottom: 24px;
+}

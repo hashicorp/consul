@@ -1,9 +1,10 @@
 import Head from 'next/head'
+import Button from '@hashicorp/react-button'
 import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
 import BlockList from 'components/block-list'
 import SideBySide from 'components/side-by-side'
-import Button from '@hashicorp/react-button'
+import DocsList from 'components/docs-list'
 import s from './style.module.css'
 
 export default function ConsulOnKubernetesPage() {
@@ -230,7 +231,7 @@ export default function ConsulOnKubernetesPage() {
         />
       </section>
 
-      {/* get started section */}
+      <section></section>
     </div>
   )
 }
