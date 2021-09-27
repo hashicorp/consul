@@ -1,4 +1,5 @@
 import s from './style.module.css'
+import Button from '@hashicorp/react-button'
 
 interface Card {
   image: {
@@ -25,8 +26,22 @@ export default function CardList({ title, cards }: CardListProps) {
         {cards.map(({ image, description, cta, type }) => (
           <div key={type} className={s.card}>
             <img src={image.src} alt={image.alt} />
-            <span className={s.description}>{description}</span>
-            <a href={cta.url}>{cta.text}</a>
+            <div className={s.cardContent}>
+              <div className={s.eyebrow}>
+                <span>{type}</span>
+                <Button
+                  title=""
+                  url="#TODO"
+                  linkType="outbound"
+                  theme={{
+                    variant: 'tertiary-neutral',
+                  }}
+                  className={s.ctaButton}
+                />
+              </div>
+              <span className={s.description}>{description}</span>
+              <a href={cta.url}>{cta.text}</a>
+            </div>
           </div>
         ))}
       </div>

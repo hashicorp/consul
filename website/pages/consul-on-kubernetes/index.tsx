@@ -261,6 +261,18 @@ export default function ConsulOnKubernetesPage() {
                 text: 'Terraform Provider',
                 url: '#TODO',
               },
+            },
+          ]}
+        />
+        <CardList
+          title="Learn Tutorials"
+          cards={[
+            {
+              image: {
+                src:
+                  'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                alt: 'card',
+              },
               description:
                 'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
               type: 'type 1',
@@ -271,7 +283,8 @@ export default function ConsulOnKubernetesPage() {
             },
             {
               image: {
-                src: require('./images/features/secure.svg'),
+                src:
+                  'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                 alt: 'card',
               },
               description:
@@ -284,7 +297,8 @@ export default function ConsulOnKubernetesPage() {
             },
             {
               image: {
-                src: require('./images/features/secure.svg'),
+                src:
+                  'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                 alt: 'card',
               },
               description:
