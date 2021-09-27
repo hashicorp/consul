@@ -1,5 +1,20 @@
 ## UNRELEASED
 
+FEATURES:
+
+* sso/oidc: **(Enterprise only)** Add support for providing acr_values in OIDC auth flow [[GH-11026](https://github.com/hashicorp/consul/issues/11026)]
+
+IMPROVEMENTS:
+
+* audit-logging: **(Enterprise Only)** Audit logs will now include select HTTP headers in each logs payload. Those headers are: `Forwarded`, `Via`, `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto`. [[GH-11107](https://github.com/hashicorp/consul/issues/11107)]
+* connect: update supported envoy versions to 1.16.5 [[GH-10961](https://github.com/hashicorp/consul/issues/10961)]
+* telemetry: Add new metrics for the count of KV entries in the Consul store. [[GH-11090](https://github.com/hashicorp/consul/issues/11090)]
+
+BUG FIXES:
+
+* tls: consider presented intermediates during server connection tls handshake. [[GH-10964](https://github.com/hashicorp/consul/issues/10964)]
+* ui: **(Enterprise Only)** Fix saving intentions with namespaced source/destination [[GH-11095](https://github.com/hashicorp/consul/issues/11095)]
+
 ## 1.9.9 (August 27, 2021)
 
 SECURITY:
