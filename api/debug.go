@@ -25,15 +25,11 @@ func (c *Client) Debug() *Debug {
 // Heap returns a pprof heap dump
 func (d *Debug) Heap() ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/heap")
-	_, resp, err := d.c.doRequest(r)
+	_, resp, err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
-	}
 
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
@@ -52,15 +48,11 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 	// Capture a profile for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	_, resp, err := d.c.doRequest(r)
+	_, resp, err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
-	}
 
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
@@ -81,14 +73,11 @@ func (d *Debug) PProf(ctx context.Context, name string, seconds int) (io.ReadClo
 	// Capture a profile for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	_, resp, err := d.c.doRequest(r)
+	_, resp, err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
-	}
 	return resp.Body, nil
 }
 
@@ -99,15 +88,11 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 	// Capture a trace for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	_, resp, err := d.c.doRequest(r)
+	_, resp, err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
-	}
 
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
@@ -123,15 +108,11 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 func (d *Debug) Goroutine() ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/goroutine")
 
-	_, resp, err := d.c.doRequest(r)
+	_, resp, err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
 	defer closeResponseBody(resp)
-
-	if resp.StatusCode != 200 {
-		return nil, generateUnexpectedResponseCodeError(resp)
-	}
 
 	// We return a raw response because we're just passing through a response
 	// from the pprof handlers
