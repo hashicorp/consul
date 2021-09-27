@@ -37,9 +37,4 @@ export default class Intention extends Model {
     );
     return typeof meta !== 'undefined';
   }
-
-  @computed('IsManagedByCRD')
-  get IsEditable() {
-    return !this.IsManagedByCRD;
-  }
 }

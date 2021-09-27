@@ -53,6 +53,7 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
+{{#if (or (can "write intention" item=item) (can "view CRD intention" item=item))}}
     <BlockSlot @name="actions" as |index change checked|>
       <PopoverMenu
         @expanded={{if (eq checked index) true false}}
@@ -101,7 +102,7 @@ as |item index|>
                 </InformedAction>
               </div>
             </li>
-          {{else}}
+          {{else if (can "view CRD intention" item=item)}}
             <li role="none">
               <div role="menu">
                 <InformedAction
@@ -140,4 +141,5 @@ as |item index|>
         </BlockSlot>
       </PopoverMenu>
     </BlockSlot>
+{{/if}}
 </TabularCollection>
