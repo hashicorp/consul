@@ -239,7 +239,7 @@ export default function ConsulOnKubernetesPage() {
           docs={[
             {
               icon: {
-                src: require('./images/docs/helm-icon.png'),
+                src: require('./images/docs/helm-icon.svg'),
                 alt: 'helm',
               },
               description:
@@ -251,7 +251,7 @@ export default function ConsulOnKubernetesPage() {
             },
             {
               icon: {
-                src: require('./images/docs/terraform-icon.svg'),
+                src: require('@hashicorp/mktg-logos/product/terraform/logomark/color.svg'),
                 alt: 'terraform',
               },
               description:
