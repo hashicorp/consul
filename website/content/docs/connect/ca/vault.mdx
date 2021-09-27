@@ -98,8 +98,8 @@ The configuration options are listed below.
   exist, Consul will mount a new PKI secrets engine at the specified path with
   a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
   of 8760 hours, or 1 year. This TTL value specifies the expiry period of the
-  root certificate and is currently not configurable. When enabling WAN Federation
-  over Mesh Gateways, each secondary datacenter must share the same `root_pki_path`
+  root certificate and is currently not configurable. When WAN Federation
+  is enabled, each secondary datacenter must use the same Vault cluster and share the same `root_pki_path`
   with the primary datacenter. 
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
