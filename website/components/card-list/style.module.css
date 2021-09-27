@@ -2,7 +2,9 @@
   display: grid;
   column-gap: 40px;
   row-gap: 40px;
-  grid-template-columns: 272px 272px;
+
+  /* grid-template-columns: 272px 272px 272px; */
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
 
   & .card {
     border: 1px solid #dcdde0;
