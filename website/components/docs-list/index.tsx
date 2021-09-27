@@ -19,7 +19,7 @@ interface DocsListProps {
 
 export default function DocsList({ title, docs }: DocsListProps) {
   return (
-    <div>
+    <>
       <h3 className={s.title}>{title}</h3>
       <div className={s.docsList}>
         {docs.map(({ icon, description, cta }) => (
@@ -41,6 +41,6 @@ export default function DocsList({ title, docs }: DocsListProps) {
           </div>
         ))}
       </div>
-    </div>
+    </>
   )
 }
