@@ -1,22 +1,27 @@
-{{page-title @model.slug}}
+<Route
+  @name={{routeName}}
+  @title={{slug}}
+as |route|>
 
-<AppView>
-  <BlockSlot @name="breadcrumbs">
-    <ol>
-        <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-    </ol>
-  </BlockSlot>
-  <BlockSlot @name="header">
-    <h1>
-      {{@model.slug}}
-    </h1>
-    <Consul::Source @source={{t "routes.dc.routing-config.source"}} @withInfo={{true}} />
-  </BlockSlot>
-  <BlockSlot @name="content">
-    <div class="container">
+  <EventSource @src={{chain}} />
+
+  <AppView>
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+          <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+      </ol>
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+        {{slug}}
+      </h1>
+      <Consul::Source @source={{t "routes.dc.routing-config.source"}} @withInfo={{true}} />
+    </BlockSlot>
+    <BlockSlot @name="content">
       <Consul::DiscoveryChain
-        @chain={{@model.chain.Chain}}
+        @chain={{chain.Chain}}
       />
-    </div>
-  </BlockSlot>
-</AppView>
+    </BlockSlot>
+  </AppView>
+
+</Route>
