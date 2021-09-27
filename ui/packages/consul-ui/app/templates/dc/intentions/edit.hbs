@@ -31,7 +31,7 @@ as |item|}}
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-  {{#if item.IsEditable}}
+  {{#if (can "write intention" item=item)}}
     {{#if item.ID}}
             <route.Title @title="Edit Intention" />
     {{else}}
