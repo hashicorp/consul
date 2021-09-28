@@ -67,14 +67,15 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	var policyID string
 	var pol *api.ACLPolicy
 	if c.policyID != "" {
-		c.policyID, err = acl.GetPolicyIDFromPartial(client, c.policyID)
+		policyID, err = acl.GetPolicyIDFromPartial(client, c.policyID)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error determining policy ID: %v", err))
 			return 1
 		}
-		pol, _, err = client.ACL().PolicyRead(c.policyID, nil)
+		pol, _, err = client.ACL().PolicyRead(policyID, nil)
 	} else {
 		pol, err = acl.GetPolicyByName(client, c.policyName)
 	}
@@ -82,7 +83,7 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		var errArg string
 		if c.policyID != "" {
-			errArg = fmt.Sprintf("id:%s", c.policyID)
+			errArg = fmt.Sprintf("id:%s", policyID)
 		} else {
 			errArg = fmt.Sprintf("name:%s", c.policyName)
 		}

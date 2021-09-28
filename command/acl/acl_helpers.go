@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/pkg/errors"
 )
 
 func GetTokenIDFromPartial(client *api.Client, partialID string) (string, error) {
@@ -79,7 +78,7 @@ func GetPolicyByName(client *api.Client, name string) (*api.ACLPolicy, error) {
 
 	policy, _, err := client.ACL().PolicyReadByName(name, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to find policy with name %s", name)
+		return nil, fmt.Errorf("Failed to find policy with name %s: %w", name, err)
 	}
 
 	return policy, nil
