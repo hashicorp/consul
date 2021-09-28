@@ -6,17 +6,36 @@ description: Configuration for the Consul Helm chart.
 
 # Helm Chart Configuration
 
-## Configuration (Values)
-
 The chart is highly customizable using
 [Helm configuration values](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing).
 Each value has a reasonable default tuned for an optimal getting started experience
-with Consul. Before going into production, please review the parameters below
-and consider if they're appropriate for your deployment.
+with Consul.
 
 <!-- DO NOT EDIT. The docs below are generated automatically. To change, edit
                   the consul-helm repo's values.yaml file -->
 <!-- codegen: start -->
+
+## Top-Level Stanzas
+
+Use these links to navigate to a particular top-level stanza.
+
+- [`global`](#global)
+- [`server`](#server)
+- [`externalServers`](#externalservers)
+- [`client`](#client)
+- [`dns`](#dns)
+- [`ui`](#ui)
+- [`syncCatalog`](#synccatalog)
+- [`connectInject`](#connectinject)
+- [`controller`](#controller)
+- [`meshGateway`](#meshgateway)
+- [`ingressGateways`](#ingressgateways)
+- [`terminatingGateways`](#terminatinggateways)
+- [`webhookCertManager`](#webhookcertmanager)
+- [`prometheus`](#prometheus)
+- [`tests`](#tests)
+
+## All Values
 
 ### global
 
@@ -431,7 +450,7 @@ and consider if they're appropriate for your deployment.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
-  - `containerSecurityContext` ((#v-server-containersecuritycontext)) (`map`) - The container securityContext for each container in the server pods.  In
+  - `containerSecurityContext` ((#v-server-containersecuritycontext)) (`map`) - The container securityContext for each container in the server pods. In
     addition to the Pod's SecurityContext this can
     set the capabilities of processes running in the container and ensure the
     root file systems in the container is read-only.
@@ -701,7 +720,7 @@ and consider if they're appropriate for your deployment.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
-  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods.  In
+  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods. In
     addition to the Pod's SecurityContext this can
     set the capabilities of processes running in the container and ensure the
     root file systems in the container is read-only.
@@ -985,7 +1004,7 @@ and consider if they're appropriate for your deployment.
       ```yaml
       tls:
         - hosts:
-          - chart-example.local
+            - chart-example.local
           secretName: testsecret-tls
       ```
 
@@ -1221,13 +1240,14 @@ and consider if they're appropriate for your deployment.
       add prometheus annotations to connect-injected pods. It will also
       add a listener on the Envoy sidecar to expose metrics. The exposed
       metrics will depend on whether metrics merging is enabled:
-        - If metrics merging is enabled:
-          the Consul sidecar will run a merged metrics server
-          combining Envoy sidecar and Connect service metrics,
-          i.e. if your service exposes its own Prometheus metrics.
-        - If metrics merging is disabled:
-          the listener will just expose Envoy sidecar metrics.
-      This will inherit from `global.metrics.enabled`.
+
+      - If metrics merging is enabled:
+        the Consul sidecar will run a merged metrics server
+        combining Envoy sidecar and Connect service metrics,
+        i.e. if your service exposes its own Prometheus metrics.
+      - If metrics merging is disabled:
+        the listener will just expose Envoy sidecar metrics.
+        This will inherit from `global.metrics.enabled`.
 
     - `defaultEnableMerging` ((#v-connectinject-metrics-defaultenablemerging)) (`boolean: false`) - Configures the Consul sidecar to run a merged metrics server
       to combine and serve both Envoy and Connect service metrics.
@@ -1240,14 +1260,14 @@ and consider if they're appropriate for your deployment.
     - `defaultPrometheusScrapePort` ((#v-connectinject-metrics-defaultprometheusscrapeport)) (`integer: 20200`) - Configures the port Prometheus will scrape metrics from, by configuring
       the Pod annotation `prometheus.io/port` and the corresponding listener in
       the Envoy sidecar.
-      NOTE: This is *not* the port that your application exposes metrics on.
+      NOTE: This is _not_ the port that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-port` annotation.
 
     - `defaultPrometheusScrapePath` ((#v-connectinject-metrics-defaultprometheusscrapepath)) (`string: /metrics`) - Configures the path Prometheus will scrape metrics from, by configuring the pod
       annotation `prometheus.io/path` and the corresponding handler in the Envoy
       sidecar.
-      NOTE: This is *not* the path that your application exposes metrics on.
+      NOTE: This is _not_ the path that your application exposes metrics on.
       That can be configured with the
       `consul.hashicorp.com/service-metrics-path` annotation.
 
@@ -1282,7 +1302,7 @@ and consider if they're appropriate for your deployment.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only specific namespaces. 
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only specific namespaces.
     Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
@@ -1449,6 +1469,7 @@ and consider if they're appropriate for your deployment.
     `global.acls.manageSystemACLs`).
 
     If running Consul OSS, requires permissions:
+
     ```hcl
     operator = "write"
     service_prefix "" {
@@ -1456,6 +1477,7 @@ and consider if they're appropriate for your deployment.
       intentions = "write"
     }
     ```
+
     If running Consul Enterprise, talk to your account manager for assistance.
 
     - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
@@ -1788,6 +1810,7 @@ and consider if they're appropriate for your deployment.
   is only useful when running helm template.
 
   - `enabled` ((#v-tests-enabled)) (`boolean: true`)
+
   <!-- codegen: end -->
 
 ## Helm Chart Examples
