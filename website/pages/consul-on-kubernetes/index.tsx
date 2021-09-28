@@ -4,9 +4,9 @@ import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
 import BlockList from 'components/block-list'
 import SideBySide from 'components/side-by-side'
+import CardList from 'components/card-list'
 import DocsList from 'components/docs-list'
 import s from './style.module.css'
-import CardList from 'components/card-list'
 
 export default function ConsulOnKubernetesPage() {
   return (
