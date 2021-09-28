@@ -26,12 +26,12 @@ export default function CardList({ title, cards }: CardListProps) {
       <h3 className={s.title}>{title}</h3>
       <div className={s.cardsWrapper}>
         {cards.map(({ image, description, cta, type }) => (
-          <div key={type} className={s.card}>
+          <a href={cta.url} key={type} className={s.card}>
             <div className={s.imageContainer}>
               <img src={image.src} alt={image.alt} />
             </div>
             <div className={s.cardContent}>
-              <div className={s.eyebrow}>
+              <div className={s.preHeader}>
                 <span>{type}</span>
                 <Button
                   title=""
@@ -44,11 +44,9 @@ export default function CardList({ title, cards }: CardListProps) {
                 />
               </div>
               <span className={s.description}>{description}</span>
-              <Link href={cta.url}>
-                <a>{cta.text}</a>
-              </Link>
+              <span className={s.fauxLink}>{cta.text}</span>
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </>

@@ -9,6 +9,11 @@
     box-shadow: 0 2px 3px rgba(37, 41, 55, 0.08);
     border-radius: 1px;
 
+    &:hover {
+      box-shadow: 0 16px 28px rgba(37, 38, 45, 0.12);
+      transform: translateY(-4px);
+    }
+
     & .imageContainer {
       aspect-ratio: 21 / 9;
       width: 100%;
@@ -22,16 +27,21 @@
       display: grid;
       row-gap: 24px;
       padding: 24px 24px 28px;
+
+      & .fauxLink {
+        color: var(--brand-link);
+      }
     }
   }
 }
 
-.eyebrow {
+.preHeader {
   display: flex;
   width: 100%;
   justify-content: space-between;
   align-items: center;
   composes: g-type-label from global;
+  color: var(--gray-2);
 }
 
 .title {
