@@ -15,11 +15,16 @@ interface Doc {
 interface DocsListProps {
   title: string
   docs: Doc[]
+  className?: string
 }
 
-export default function DocsList({ title, docs }: DocsListProps) {
+export default function DocsList({
+  title,
+  docs,
+  className = null,
+}: DocsListProps) {
   return (
-    <>
+    <div className={className}>
       <h3 className={s.title}>{title}</h3>
       <div className={s.docsList}>
         {docs.map(({ icon, description, cta }) => (
@@ -41,6 +46,6 @@ export default function DocsList({ title, docs }: DocsListProps) {
           </div>
         ))}
       </div>
-    </>
+    </div>
   )
 }
