@@ -2864,44 +2864,6 @@ func (a *Agent) AdvertiseAddrLAN() string {
 	return a.config.AdvertiseAddrLAN.String()
 }
 
-// resolveProxyCheckAddress returns the best address to use for a TCP check of
-// the proxy's public listener. It expects the input to already have default
-// values populated by applyProxyConfigDefaults. It may return an empty string
-// indicating that the TCP check should not be created at all.
-//
-// By default this uses the proxy's bind address which in turn defaults to the
-// agent's bind address. If the proxy bind address ends up being 0.0.0.0 we have
-// to assume the agent can dial it over loopback which is usually true.
-//
-// In some topologies such as proxy being in a different container, the IP the
-// agent used to dial proxy over a local bridge might not be the same as the
-// container's public routable IP address so we allow a manual override of the
-// check address in config "tcp_check_address" too.
-//
-// Finally the TCP check can be disabled by another manual override
-// "disable_tcp_check" in cases where the agent will never be able to dial the
-// proxy directly for some reason.
-func (a *Agent) resolveProxyCheckAddress(proxyCfg map[string]interface{}) string {
-	// If user disabled the check return empty string
-	if disable, ok := proxyCfg["disable_tcp_check"].(bool); ok && disable {
-		return ""
-	}
-
-	// If user specified a custom one, use that
-	if chkAddr, ok := proxyCfg["tcp_check_address"].(string); ok && chkAddr != "" {
-		return chkAddr
-	}
-
-	// If we have a bind address and its diallable, use that
-	if bindAddr, ok := proxyCfg["bind_address"].(string); ok &&
-		bindAddr != "" && bindAddr != "0.0.0.0" && bindAddr != "[::]" {
-		return bindAddr
-	}
-
-	// Default to localhost
-	return "127.0.0.1"
-}
-
 func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
