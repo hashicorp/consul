@@ -7,11 +7,17 @@ export default function(scenario, create, set, win = window, doc = document) {
       return create(number, model);
     })
     .given(['$number $model model[s]? with the value "$value"'], function(number, model, value) {
+      if (model === 'dc') {
+        doc.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
+      }
       return create(number, model, value);
     })
     .given(
       ['$number $model model[s]? from yaml\n$yaml', '$number $model model[s]? from json\n$json'],
       function(number, model, data) {
+        if (model === 'dc') {
+          doc.cookie = `CONSUL_DATACENTER_LOCAL=${data[0]}`;
+        }
         return create(number, model, data);
       }
     )

@@ -942,8 +942,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without hosts set is not valid")
-						require.True(t, snap.IngressGateway.TLSSet)
-						require.False(t, snap.IngressGateway.TLSEnabled)
+						require.True(t, snap.IngressGateway.GatewayConfigLoaded)
+						require.False(t, snap.IngressGateway.TLSConfig.Enabled)
 					},
 				},
 				{
@@ -1111,8 +1111,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.True(t, snap.Valid())
-						require.True(t, snap.IngressGateway.TLSSet)
-						require.True(t, snap.IngressGateway.TLSEnabled)
+						require.True(t, snap.IngressGateway.GatewayConfigLoaded)
+						require.True(t, snap.IngressGateway.TLSConfig.Enabled)
 						require.True(t, snap.IngressGateway.HostsSet)
 						require.Len(t, snap.IngressGateway.Hosts, 1)
 						require.Len(t, snap.IngressGateway.Upstreams, 1)

@@ -295,17 +295,20 @@ func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)
 	}
 
-	// Always take the first update, otherwise do the > check.
-	if ti == nil {
-		if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
-			return fmt.Errorf("failed updating index %s", err)
+	// if this is an update check the idx
+	if ti != nil {
+		cur, ok := ti.(*IndexEntry)
+		if !ok {
+			return fmt.Errorf("failed updating index %T need to be `*IndexEntry`", ti)
 		}
-		return nil
+		// Stored index is newer, don't insert the index
+		if idx <= cur.Value {
+			return nil
+		}
 	}
-	if cur, ok := ti.(*IndexEntry); ok && idx > cur.Value {
-		if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
-			return fmt.Errorf("failed updating index %s", err)
-		}
+
+	if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
+		return fmt.Errorf("failed updating index %s", err)
 	}
 	return nil
 }

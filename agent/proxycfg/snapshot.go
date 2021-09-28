@@ -3,11 +3,11 @@ package proxycfg
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -305,9 +305,13 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
-	// TLSEnabled is whether this gateway's listeners should have TLS configured.
-	TLSEnabled bool
-	TLSSet     bool
+	// TLSConfig is the gateway-level TLS configuration. Listener/service level
+	// config is preserved in the Listeners map below.
+	TLSConfig structs.GatewayTLSConfig
+
+	// GatewayConfigLoaded is used to determine if we have received the initial
+	// ingress-gateway config entry yet.
+	GatewayConfigLoaded bool
 
 	// Hosts is the list of extra host entries to add to our leaf cert's DNS SANs.
 	Hosts    []string
@@ -344,6 +348,14 @@ type IngressListenerKey struct {
 
 func (k *IngressListenerKey) RouteName() string {
 	return fmt.Sprintf("%d", k.Port)
+}
+
+func IngressListenerKeyFromGWService(s structs.GatewayService) IngressListenerKey {
+	return IngressListenerKey{Protocol: s.Protocol, Port: s.Port}
+}
+
+func IngressListenerKeyFromListener(l structs.IngressListener) IngressListenerKey {
+	return IngressListenerKey{Protocol: l.Protocol, Port: l.Port}
 }
 
 // ConfigSnapshot captures all the resulting config needed for a proxy instance.
@@ -403,7 +415,7 @@ func (s *ConfigSnapshot) Valid() bool {
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
 			s.IngressGateway.Leaf != nil &&
-			s.IngressGateway.TLSSet &&
+			s.IngressGateway.GatewayConfigLoaded &&
 			s.IngressGateway.HostsSet
 	default:
 		return false

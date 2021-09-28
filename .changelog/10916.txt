@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Ignore reported permissions for KV area meaning the KV is always enabled
+for both read/write access if the HTTP API allows.
+```

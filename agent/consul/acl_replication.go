@@ -477,14 +477,6 @@ func (s *Server) replicateACLType(ctx context.Context, logger hclog.Logger, tr a
 	return remoteIndex, false, nil
 }
 
-// IsACLReplicationEnabled returns true if ACL replication is enabled.
-// DEPRECATED (ACL-Legacy-Compat) - with new ACLs at least policy replication is required
-func (s *Server) IsACLReplicationEnabled() bool {
-	authDC := s.config.PrimaryDatacenter
-	return len(authDC) > 0 && (authDC != s.config.Datacenter) &&
-		s.config.ACLTokenReplication
-}
-
 func (s *Server) updateACLReplicationStatusError(errorMsg string) {
 	s.aclReplicationStatusLock.Lock()
 	defer s.aclReplicationStatusLock.Unlock()
@@ -499,8 +491,6 @@ func (s *Server) updateACLReplicationStatusIndex(replicationType structs.ACLRepl
 
 	s.aclReplicationStatus.LastSuccess = time.Now().Round(time.Second).UTC()
 	switch replicationType {
-	case structs.ACLReplicateLegacy:
-		s.aclReplicationStatus.ReplicatedIndex = index
 	case structs.ACLReplicateTokens:
 		s.aclReplicationStatus.ReplicatedTokenIndex = index
 	case structs.ACLReplicatePolicies:

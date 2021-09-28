@@ -61,7 +61,7 @@ func (s *Restore) ACLBindingRule(rule *structs.ACLBindingRule) error {
 
 // ACLAuthMethods is used when saving a snapshot
 func (s *Snapshot) ACLAuthMethods() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-auth-methods", "id")
+	iter, err := s.tx.Get(tableACLAuthMethods, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -649,7 +649,7 @@ func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta 
 	return nil, nil
 }
 
-// ACLTokenList is used to list out all of the ACLs in the state store.
+// ACLTokenList return a list of ACL Tokens that match the policy, role, and method.
 func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role, methodName string, methodMeta, entMeta *structs.EnterpriseMeta) (uint64, structs.ACLTokens, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -1740,4 +1740,52 @@ func intFromBool(cond bool) byte {
 		return 1
 	}
 	return 0
+}
+
+func aclPolicyInsert(tx WriteTxn, policy *structs.ACLPolicy) error {
+	if err := tx.Insert(tableACLPolicies, policy); err != nil {
+		return fmt.Errorf("failed inserting acl policy: %v", err)
+	}
+	return updateTableIndexEntries(tx, tableACLPolicies, policy.ModifyIndex, &policy.EnterpriseMeta)
+}
+
+func aclRoleInsert(tx WriteTxn, role *structs.ACLRole) error {
+	// insert the role into memdb
+	if err := tx.Insert(tableACLRoles, role); err != nil {
+		return fmt.Errorf("failed inserting acl role: %v", err)
+	}
+
+	// update acl-roles index
+	return updateTableIndexEntries(tx, tableACLRoles, role.ModifyIndex, &role.EnterpriseMeta)
+}
+
+func aclTokenInsert(tx WriteTxn, token *structs.ACLToken) error {
+	// insert the token into memdb
+	if err := tx.Insert(tableACLTokens, token); err != nil {
+		return fmt.Errorf("failed inserting acl token: %v", err)
+	}
+	// update the overall acl-tokens index
+	return updateTableIndexEntries(tx, tableACLTokens, token.ModifyIndex, token.EnterpriseMetadata())
+}
+
+func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
+	// insert the auth method into memdb
+	if err := tx.Insert(tableACLAuthMethods, method); err != nil {
+		return fmt.Errorf("failed inserting acl role: %v", err)
+	}
+
+	// update acl-auth-methods index
+	return updateTableIndexEntries(tx, tableACLAuthMethods, method.ModifyIndex, &method.EnterpriseMeta)
+}
+
+func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
+	rule.EnterpriseMeta.Normalize()
+
+	// insert the role into memdb
+	if err := tx.Insert(tableACLBindingRules, rule); err != nil {
+		return fmt.Errorf("failed inserting acl role: %v", err)
+	}
+
+	// update acl-binding-rules index
+	return updateTableIndexEntries(tx, tableACLBindingRules, rule.ModifyIndex, &rule.EnterpriseMeta)
 }

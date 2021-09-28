@@ -3,6 +3,7 @@ package consul
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/binary"
 	"errors"
@@ -25,15 +26,17 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/agent/connect"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
+	agent_grpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -964,6 +967,201 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
 }
 
+func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.ACLMasterToken = "root"
+		c.RPCConfig.EnableStreaming = true
+	})
+	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+		c.RPCConfig.EnableStreaming = true
+	})
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+	s2.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	// Try to join.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
+	// create simple service policy
+	policy, err := upsertTestPolicyWithRules(codec, "root", "dc1", `
+	node_prefix "" { policy = "read" }
+	service_prefix "" { policy = "read" }
+	`)
+	require.NoError(t, err)
+
+	// Wait for it to replicate
+	retry.Run(t, func(r *retry.R) {
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &structs.EnterpriseMeta{})
+		require.Nil(r, err)
+		require.NotNil(r, p)
+	})
+
+	// create local token that only works in DC2
+	localToken2, err := upsertTestToken(codec, "root", "dc2", func(token *structs.ACLToken) {
+		token.Local = true
+		token.Policies = []structs.ACLTokenPolicyLink{
+			{ID: policy.ID},
+		}
+	})
+	require.NoError(t, err)
+
+	runStep(t, "Register a dummy node with a service", func(t *testing.T) {
+		req := &structs.RegisterRequest{
+			Node:       "node1",
+			Address:    "3.4.5.6",
+			Datacenter: "dc1",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "3.4.5.6",
+				Port:    8080,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out struct{}
+		require.NoError(t, s1.RPC("Catalog.Register", &req, &out))
+	})
+
+	var conn *grpc.ClientConn
+	{
+		client, builder := newClientWithGRPCResolver(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.RPCConfig.EnableStreaming = true
+		})
+		joinLAN(t, client, s2)
+		testrpc.WaitForTestAgent(t, client.RPC, "dc2", testrpc.WithToken("root"))
+
+		pool := agent_grpc.NewClientConnPool(agent_grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			DialingFromServer:     false,
+			DialingFromDatacenter: "dc2",
+		})
+
+		conn, err = pool.ClientConn("dc2")
+		require.NoError(t, err)
+	}
+
+	// Try to use it locally (it should work)
+	runStep(t, "token used locally should work", func(t *testing.T) {
+		arg := &pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        "redis",
+			Token:      localToken2.SecretID,
+			Datacenter: "dc2",
+		}
+		event, err := getFirstSubscribeEventOrError(conn, arg)
+		require.NoError(t, err)
+		require.NotNil(t, event)
+
+		// make sure that token restore defer works
+		require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
+	})
+
+	runStep(t, "token used remotely should not work", func(t *testing.T) {
+		arg := &pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        "redis",
+			Token:      localToken2.SecretID,
+			Datacenter: "dc1",
+		}
+
+		event, err := getFirstSubscribeEventOrError(conn, arg)
+
+		// NOTE: the subscription endpoint is a filtering style instead of a
+		// hard-fail style so when the token isn't present 100% of the data is
+		// filtered out leading to a stream with an empty snapshot.
+		require.NoError(t, err)
+		require.IsType(t, &pbsubscribe.Event_EndOfSnapshot{}, event.Payload)
+		require.True(t, event.Payload.(*pbsubscribe.Event_EndOfSnapshot).EndOfSnapshot)
+	})
+
+	runStep(t, "update anonymous token to read services", func(t *testing.T) {
+		tokenUpsertReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID: structs.ACLTokenAnonymousID,
+				Policies: []structs.ACLTokenPolicyLink{
+					{ID: policy.ID},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		token := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &tokenUpsertReq, &token)
+		require.NoError(t, err)
+		require.NotEmpty(t, token.SecretID)
+	})
+
+	runStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
+		arg := &pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        "redis",
+			Token:      localToken2.SecretID,
+			Datacenter: "dc1",
+		}
+
+		event, err := getFirstSubscribeEventOrError(conn, arg)
+		require.NoError(t, err)
+		require.NotNil(t, event)
+
+		// So now that we can read data, we should get a snapshot with just instances of the "consul" service.
+		require.NoError(t, err)
+
+		require.IsType(t, &pbsubscribe.Event_ServiceHealth{}, event.Payload)
+		esh := event.Payload.(*pbsubscribe.Event_ServiceHealth)
+
+		require.Equal(t, pbsubscribe.CatalogOp_Register, esh.ServiceHealth.Op)
+		csn := esh.ServiceHealth.CheckServiceNode
+
+		require.NotNil(t, csn)
+		require.NotNil(t, csn.Node)
+		require.Equal(t, "node1", csn.Node.Node)
+		require.Equal(t, "3.4.5.6", csn.Node.Address)
+		require.NotNil(t, csn.Service)
+		require.Equal(t, "redis1", csn.Service.ID)
+		require.Equal(t, "redis", csn.Service.Service)
+
+		// make sure that token restore defer works
+		require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
+	})
+}
+
 func TestCanRetry(t *testing.T) {
 	type testCase struct {
 		name     string
@@ -1361,4 +1559,24 @@ func isConnectionClosedError(err error) bool {
 	default:
 		return false
 	}
+}
+
+func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.SubscribeRequest) (*pbsubscribe.Event, error) {
+	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	handle, err := streamClient.Subscribe(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	event, err := handle.Recv()
+	if err == io.EOF {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return event, nil
 }

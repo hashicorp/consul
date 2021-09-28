@@ -6,9 +6,6 @@
 %main-nav-horizontal {
   @extend %theme-dark;
 }
-%main-nav-vertical .nspaces .menu-panel > div {
-  @extend %theme-light;
-}
 %main-nav-vertical .menu-panel a:hover,
 %main-nav-vertical .menu-panel a:focus {
   background-color: var(--blue-500);

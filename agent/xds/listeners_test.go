@@ -159,20 +159,30 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "custom-upstream",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-upstream",
-					})
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+						})
+				}
 			},
 		},
 		{
 			name:   "custom-upstream-ignored-with-disco-chain",
 			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-upstream",
-					})
+				for i := range snap.Proxy.Upstreams {
+					if snap.Proxy.Upstreams[i].Config == nil {
+						snap.Proxy.Upstreams[i].Config = map[string]interface{}{}
+					}
+					snap.Proxy.Upstreams[i].Config["envoy_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: snap.Proxy.Upstreams[i].Identifier() + ":custom-upstream",
+						})
+				}
 			},
 		},
 		{
@@ -475,6 +485,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {},
+					{Protocol: "http", Port: 443}:  {},
+				}
 			},
 		},
 		{
@@ -488,6 +502,251 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "ingress-with-tls-listener",
 			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
 			setup:  nil,
+		},
+		{
+			name:   "ingress-with-sds-listener-gw-level",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup:  nil,
+		},
+		{
+			name:   "ingress-with-sds-listener-listener-level",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "tcp", Port: 8080}: {
+						{
+							DestinationName: "foo",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "tcp", Port: 8080}: {
+						Port: 8080,
+						TLS: &structs.GatewayTLSConfig{
+							SDS: &structs.GatewayTLSSDSConfig{
+								// Override the cert, fall back to the cluster at gw level. We
+								// don't test every possible valid combination here since we
+								// already did that in TestResolveListenerSDSConfig. This is
+								// just an extra check to make sure that data is plumbed through
+								// correctly.
+								CertResource: "listener-cert",
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-sds-listener-gw-level-http",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "foo",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						TLS: &structs.GatewayTLSConfig{
+							SDS: &structs.GatewayTLSSDSConfig{
+								// Override the cert, fall back to the cluster at gw level. We
+								// don't test every possible valid combination here since we
+								// already did that in TestResolveListenerSDSConfig. This is
+								// just an extra check to make sure that data is plumbed through
+								// correctly.
+								CertResource: "listener-cert",
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-sds-listener-gw-level-mixed-tls",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// Disable GW-level defaults so we can mix TLS and non-TLS listeners
+				snap.IngressGateway.TLSConfig.SDS = nil
+
+				// Setup two TCP listeners, one with and one without SDS config
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "tcp", Port: 8080}: {
+						{
+							DestinationName: "secure",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "tcp", Port: 9090}: {
+						{
+							DestinationName: "insecure",
+							LocalBindPort:   9090,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "tcp", Port: 8080}: {
+						Port: 8080,
+						TLS: &structs.GatewayTLSConfig{
+							SDS: &structs.GatewayTLSSDSConfig{
+								ClusterName:  "listener-sds-cluster",
+								CertResource: "listener-cert",
+							},
+						},
+					},
+					{Protocol: "tcp", Port: 9090}: {
+						Port: 9090,
+						TLS:  nil,
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-sds-service-level",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// Disable GW-level defaults so we can test only service-level
+				snap.IngressGateway.TLSConfig.SDS = nil
+
+				// Setup http listeners, one multiple services with SDS
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+						{
+							DestinationName: "s2",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name:  "s1",
+								Hosts: []string{"s1.example.com"},
+								TLS: &structs.GatewayServiceTLSConfig{
+									SDS: &structs.GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster-1",
+										CertResource: "s1.example.com-cert",
+									},
+								},
+							},
+							{
+								Name:  "s2",
+								Hosts: []string{"s2.example.com"},
+								TLS: &structs.GatewayServiceTLSConfig{
+									SDS: &structs.GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster-2",
+										CertResource: "s2.example.com-cert",
+									},
+								},
+							},
+						},
+						TLS: nil, // no listener-level SDS config
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-sds-listener+service-level",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// Disable GW-level defaults so we can test only service-level
+				snap.IngressGateway.TLSConfig.SDS = nil
+
+				// Setup http listeners, one multiple services with SDS
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+						{
+							DestinationName: "s2",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name:  "s1",
+								Hosts: []string{"s1.example.com"},
+								TLS: &structs.GatewayServiceTLSConfig{
+									SDS: &structs.GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster-1",
+										CertResource: "s1.example.com-cert",
+									},
+								},
+							},
+							{
+								Name: "s2",
+								// s2 uses the default listener cert
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							SDS: &structs.GatewayTLSSDSConfig{
+								ClusterName:  "sds-cluster-2",
+								CertResource: "*.example.com-cert",
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-with-sds-service-level-mixed-no-tls",
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// Disable GW-level defaults so we can test only service-level
+				snap.IngressGateway.TLSConfig.SDS = nil
+
+				// Setup http listeners, one multiple services with SDS
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+						{
+							DestinationName: "s2",
+							LocalBindPort:   8080,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name:  "s1",
+								Hosts: []string{"s1.example.com"},
+								TLS: &structs.GatewayServiceTLSConfig{
+									SDS: &structs.GatewayTLSSDSConfig{
+										ClusterName:  "sds-cluster-1",
+										CertResource: "s1.example.com-cert",
+									},
+								},
+							},
+							{
+								Name: "s2",
+								// s2 has no SDS config so should be non-TLS
+							},
+						},
+						TLS: nil, // No listener level TLS setup either
+					},
+				}
+			},
 		},
 		{
 			name:   "transparent-proxy",
@@ -696,6 +955,17 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 						gName += ".v2compat"
 
+						// It's easy to miss a new type that encodes a version from just
+						// looking at the golden files so lets make it an error here. If
+						// there are ever false positives we can maybe include an allow list
+						// here as it seems safer to assume something was missed than to
+						// assume we'll notice the golden file being wrong. Note the first
+						// one matches both resourceApiVersion and transportApiVersion. I
+						// left it as a suffix in case there are other field names that
+						// follow that convention now or in the future.
+						require.NotContains(t, gotJSON, `ApiVersion": "V3"`)
+						require.NotContains(t, gotJSON, `type.googleapis.com/envoy.api.v3`)
+
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
@@ -833,4 +1103,159 @@ var _ ConfigFetcher = (configFetcherFunc)(nil)
 
 func (f configFetcherFunc) AdvertiseAddrLAN() string {
 	return f()
+}
+
+func TestResolveListenerSDSConfig(t *testing.T) {
+	type testCase struct {
+		name    string
+		gwSDS   *structs.GatewayTLSSDSConfig
+		lisSDS  *structs.GatewayTLSSDSConfig
+		want    *structs.GatewayTLSSDSConfig
+		wantErr string
+	}
+
+	run := func(tc testCase) {
+		// fake a snapshot with just the data we care about
+		snap := proxycfg.TestConfigSnapshotIngressWithGatewaySDS(t)
+		// Override TLS configs
+		snap.IngressGateway.TLSConfig.SDS = tc.gwSDS
+		var key proxycfg.IngressListenerKey
+		for k, lisCfg := range snap.IngressGateway.Listeners {
+			if tc.lisSDS == nil {
+				lisCfg.TLS = nil
+			} else {
+				lisCfg.TLS = &structs.GatewayTLSConfig{
+					SDS: tc.lisSDS,
+				}
+			}
+			// Override listener cfg in map
+			snap.IngressGateway.Listeners[k] = lisCfg
+			// Save the last key doesn't matter which as we set same listener config
+			// for all.
+			key = k
+		}
+
+		got, err := resolveListenerSDSConfig(snap, key)
+		if tc.wantErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.wantErr)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		}
+	}
+
+	cases := []testCase{
+		{
+			name:   "no SDS config",
+			gwSDS:  nil,
+			lisSDS: nil,
+			want:   nil,
+		},
+		{
+			name: "all cluster-level SDS config",
+			gwSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "cert",
+			},
+			lisSDS: nil,
+			want: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "cert",
+			},
+		},
+		{
+			name:  "all listener-level SDS config",
+			gwSDS: nil,
+			lisSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "cert",
+			},
+			want: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "cert",
+			},
+		},
+		{
+			name: "mixed level SDS config",
+			gwSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName: "cluster",
+			},
+			lisSDS: &structs.GatewayTLSSDSConfig{
+				CertResource: "cert",
+			},
+			want: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "cert",
+			},
+		},
+		{
+			name: "override cert",
+			gwSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "gw-cert",
+			},
+			lisSDS: &structs.GatewayTLSSDSConfig{
+				CertResource: "lis-cert",
+			},
+			want: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "cluster",
+				CertResource: "lis-cert",
+			},
+		},
+		{
+			name: "override both",
+			gwSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "gw-cluster",
+				CertResource: "gw-cert",
+			},
+			lisSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "lis-cluster",
+				CertResource: "lis-cert",
+			},
+			want: &structs.GatewayTLSSDSConfig{
+				ClusterName:  "lis-cluster",
+				CertResource: "lis-cert",
+			},
+		},
+		{
+			name:  "missing cluster listener",
+			gwSDS: nil,
+			lisSDS: &structs.GatewayTLSSDSConfig{
+				CertResource: "lis-cert",
+			},
+			wantErr: "missing SDS cluster name",
+		},
+		{
+			name:  "missing cert listener",
+			gwSDS: nil,
+			lisSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName: "cluster",
+			},
+			wantErr: "missing SDS cert resource",
+		},
+		{
+			name: "missing cluster gw",
+			gwSDS: &structs.GatewayTLSSDSConfig{
+				CertResource: "lis-cert",
+			},
+			lisSDS:  nil,
+			wantErr: "missing SDS cluster name",
+		},
+		{
+			name: "missing cert gw",
+			gwSDS: &structs.GatewayTLSSDSConfig{
+				ClusterName: "cluster",
+			},
+			lisSDS:  nil,
+			wantErr: "missing SDS cert resource",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(tc)
+		})
+	}
+
 }

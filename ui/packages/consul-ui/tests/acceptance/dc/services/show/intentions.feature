@@ -15,10 +15,12 @@ Feature: dc / services / show / intentions: Intentions per service
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f0
       Action: allow
       Meta: ~
-      SourceNS: default
       SourceName: name
-      DestinationNS: default
       DestinationName: destination
+      SourceNS: default
+      DestinationNS: default
+      SourcePartition: default
+      DestinationPartition: default
 
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f1
       Action: deny
@@ -39,11 +41,11 @@ Feature: dc / services / show / intentions: Intentions per service
   Scenario: I can see intentions
     And I see 3 intention models on the intentionList component
     And I click intention on the intentionList.intentions component
-    Then the url should be /dc1/services/service-0/intentions/default:name:default:destination
+    Then the url should be /dc1/services/service-0/intentions/default:default:name:default:default:destination
   Scenario: I can delete intentions
     And I click actions on the intentionList.intentions component
     And I click delete on the intentionList.intentions component
     And I click confirmDelete on the intentionList.intentions
-    Then a DELETE request was made to "/v1/connect/intentions/exact?source=default%2Fname&destination=default%2Fdestination&dc=dc1"
+    Then a DELETE request was made to "/v1/connect/intentions/exact?source=default%2Fdefault%2Fname&destination=default%2Fdefault%2Fdestination&dc=dc1"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class

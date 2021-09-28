@@ -28,7 +28,7 @@
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
         </label>
-  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+  {{#if (can 'choose nspaces')}}
         <label data-test-source-nspace class="type-select{{if item.error.SourceNS ' has-error'}}">
           <span>Source Namespace</span>
           <PowerSelectWithCreate
@@ -39,7 +39,7 @@
               @buildSuggestion={{action "createNewLabel" "Use a Consul Namespace called '{{term}}'"}}
               @showCreateWhen={{action "isUnique" nspaces}}
               @onCreate={{action onchange "SourceNS"}}
-              @onChange={{fn (mut this.SourceNS)}} as |nspace|>
+              @onChange={{action onchange "SourceNS"}} as |nspace|>
                 {{#if (eq nspace.Name '*') }}
                   * (All Namespaces)
                 {{else}}
@@ -50,7 +50,30 @@
           <em>Search for an existing namespace, or enter any Namespace name.</em>
         {{/if}}
         </label>
-{{/if}}
+  {{/if}}
+  {{#if (can 'choose partitions')}}
+        <label data-test-source-partition class="type-select{{if item.error.SourcePartition ' has-error'}}">
+          <span>Source Partition</span>
+          <PowerSelectWithCreate
+              @disabled={{not create}}
+              @options={{partitions}}
+              @selected={{SourcePartition}}
+              @searchPlaceholder="Type partition name"
+              @buildSuggestion={{action "createNewLabel" "Use a Consul Partition called '{{term}}'"}}
+              @showCreateWhen={{action "isUnique" partitions}}
+              @onCreate={{action onchange "SourcePartition"}}
+              @onChange={{action onchange "SourcePartition"}} as |partition|>
+                {{#if (eq partition.Name '*') }}
+                  * (All Partitions)
+                {{else}}
+                  {{partition.Name}}
+                {{/if}}
+          </PowerSelectWithCreate>
+        {{#if create}}
+          <em>Search for an existing partition, or enter any Partition name.</em>
+        {{/if}}
+        </label>
+  {{/if}}
       </fieldset>
       <fieldset>
         <h2>Destination</h2>
@@ -76,7 +99,7 @@
           <em>Search for an existing service, or enter any Service name.</em>
         {{/if}}
         </label>
-  {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+  {{#if (can 'choose nspaces')}}
         <label data-test-destination-nspace class="type-select{{if item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
           <PowerSelectWithCreate
@@ -88,7 +111,7 @@
               @buildSuggestion={{action "createNewLabel" "Use a future Consul Namespace called '{{term}}'"}}
               @showCreateWhen={{action "isUnique" nspaces}}
               @onCreate={{action onchange "DestinationNS"}}
-              @onChange={{fn (mut this.DestinationNS)}} as |nspace|>
+              @onChange={{action onchange "DestinationNS"}} as |nspace|>
                   {{#if (eq nspace.Name '*') }}
                     * (All Namespaces)
                   {{else}}
@@ -99,7 +122,31 @@
           <em>For the destination, you may choose any namespace for which you have access.</em>
         {{/if}}
         </label>
-{{/if}}
+  {{/if}}
+  {{#if (can 'choose partitions')}}
+        <label data-test-destination-partition class="type-select{{if item.error.DestinationPartition ' has-error'}}">
+          <span>Destination Partition</span>
+          <PowerSelectWithCreate
+              @disabled={{not create}}
+              @options={{partitions}}
+              @searchField="Name"
+              @selected={{DestinationPartition}}
+              @searchPlaceholder="Type partition name"
+              @buildSuggestion={{action "createNewLabel" "Use a future Consul Partition called '{{term}}'"}}
+              @showCreateWhen={{action "isUnique" partitions}}
+              @onCreate={{action onchange "DestinationPartition"}}
+              @onChange={{action onchange "DestinationPartition"}} as |partition|>
+                  {{#if (eq partition.Name '*') }}
+                    * (All Partitions)
+                  {{else}}
+                    {{partition.Name}}
+                  {{/if}}
+          </PowerSelectWithCreate>
+        {{#if create}}
+          <em>For the destination, you may choose any partition for which you have access.</em>
+        {{/if}}
+        </label>
+  {{/if}}
       </fieldset>
     </div>
   <fieldset>

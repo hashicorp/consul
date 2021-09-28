@@ -1,13 +1,9 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
 import { inject as service } from '@ember/service';
-import statusFactory from 'consul-ui/utils/acls-status';
-import isValidServerErrorFactory from 'consul-ui/utils/http/acl/is-valid-server-error';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/policy';
 import dataSource from 'consul-ui/decorators/data-source';
 
-const isValidServerError = isValidServerErrorFactory();
-const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'policy';
 
 export default class PolicyService extends RepositoryService {
@@ -45,10 +41,6 @@ export default class PolicyService extends RepositoryService {
       .form(this.getModelName())
       .setData(item)
       .getData();
-  }
-
-  status(obj) {
-    return status(obj);
   }
 
   persist(item) {

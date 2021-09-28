@@ -362,16 +362,18 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 }
 
 func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
-	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t, "client"))
-	resolver.Register(builder)
-	t.Cleanup(func() {
-		resolver.Deregister(builder.Authority())
-	})
-
 	_, config := testClientConfig(t)
 	for _, op := range ops {
 		op(config)
 	}
+
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
+		"client."+config.Datacenter+"."+string(config.NodeID)))
+
+	resolver.Register(builder)
+	t.Cleanup(func() {
+		resolver.Deregister(builder.Authority())
+	})
 
 	deps := newDefaultDeps(t, config)
 	deps.Router = router.NewRouter(

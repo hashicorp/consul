@@ -75,7 +75,7 @@ func TestIntentionApply_new(t *testing.T) {
 		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
 		// Partition fields will be normalized on Intention.Get
-		ixn.Intention.NormalizePartitionFields()
+		ixn.Intention.FillPartitionAndNamespace(nil, true)
 		require.Equal(t, ixn.Intention, actual)
 	}
 
@@ -269,7 +269,7 @@ func TestIntentionApply_updateGood(t *testing.T) {
 		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
 		// Partition fields will be normalized on Intention.Get
-		ixn.Intention.NormalizePartitionFields()
+		ixn.Intention.FillPartitionAndNamespace(nil, true)
 		require.Equal(t, ixn.Intention, actual)
 	}
 }

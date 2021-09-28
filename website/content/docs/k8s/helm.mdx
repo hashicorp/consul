@@ -41,6 +41,40 @@ and consider if they're appropriate for your deployment.
     (see `-domain` (https://consul.io/docs/agent/options#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
+  - `adminPartitions` ((#v-global-adminpartitions)) - <EnterpriseAlert inline /> Enabling `adminPartitions` allows creation of Admin Partitions in Kubernetes clusters.
+    It additionally indicates that you are running Consul Enterprise v1.11+ with a valid Consul Enterprise
+    license. Admin partitions enables deploying services across partitions, while sharing
+    a set of Consul servers.
+
+    - `enabled` ((#v-global-adminpartitions-enabled)) (`boolean: false`) - If true, the Helm chart will enable Admin Partitions for the cluster. The clients in the server cluster
+      must be installed in the default partition. Creation of Admin Partitions is only supported during installation.
+      Admin Partitions cannot be installed via a Helm upgrade operation. Only Helm installs are supported.
+
+    - `name` ((#v-global-adminpartitions-name)) (`string: default`) - The name of the Admin Partition. The partition name cannot be modified once the partition has been installed.
+      Changing the partition name would require an un-install and a re-install with the updated name.
+      Must be "default" in the server cluster ie the Kubernetes cluster that the Consul server pods are deployed onto.
+
+    - `service` ((#v-global-adminpartitions-service)) - Partition service properties.
+
+      - `type` ((#v-global-adminpartitions-service-type)) (`string: LoadBalancer`)
+
+      - `nodePort` ((#v-global-adminpartitions-service-nodeport)) - Optionally set the nodePort value of the partition service if using a NodePort service.
+        If not set and using a NodePort service, Kubernetes will automatically assign
+        a port.
+
+        - `rpc` ((#v-global-adminpartitions-service-nodeport-rpc)) (`integer: null`) - RPC node port
+
+        - `serf` ((#v-global-adminpartitions-service-nodeport-serf)) (`integer: null`) - Serf node port
+
+        - `https` ((#v-global-adminpartitions-service-nodeport-https)) (`integer: null`) - HTTPS node port
+
+      - `annotations` ((#v-global-adminpartitions-service-annotations)) (`string: null`) - Annotations to apply to the partition service.
+
+        ```yaml
+        annotations: |
+          "annotation-key": "annotation-value"
+        ```
+
   - `image` ((#v-global-image)) (`string: hashicorp/consul:<latest version>`) - The name (and tag) of the Consul Docker image for clients and servers.
     This can be overridden per component. This should be pinned to a specific
     version tag, otherwise you may inadvertently upgrade your Consul version.
@@ -397,6 +431,13 @@ and consider if they're appropriate for your deployment.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
+  - `containerSecurityContext` ((#v-server-containersecuritycontext)) (`map`) - The container securityContext for each container in the server pods.  In
+    addition to the Pod's SecurityContext this can
+    set the capabilities of processes running in the container and ensure the
+    root file systems in the container is read-only.
+
+    - `server` ((#v-server-containersecuritycontext-server)) (`map`) - The consul server agent container
+
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
     control a rolling update of Consul server agents. This value specifies the
     partition (https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#partitions)
@@ -660,6 +701,17 @@ and consider if they're appropriate for your deployment.
     Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
     by the OpenShift platform.
 
+  - `containerSecurityContext` ((#v-client-containersecuritycontext)) (`map`) - The container securityContext for each container in the client pods.  In
+    addition to the Pod's SecurityContext this can
+    set the capabilities of processes running in the container and ensure the
+    root file systems in the container is read-only.
+
+    - `client` ((#v-client-containersecuritycontext-client)) (`map`) - The consul client agent container
+
+    - `aclInit` ((#v-client-containersecuritycontext-aclinit)) (`map`) - The acl-init initContainer
+
+    - `tlsInit` ((#v-client-containersecuritycontext-tlsinit)) (`map`) - The tls-init initContainer
+
   - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
     client agents. This can be used to add additional configuration that
@@ -879,6 +931,12 @@ and consider if they're appropriate for your deployment.
       true and taking effect.
 
     - `type` ((#v-ui-service-type)) (`string: null`) - The service type to register.
+
+    - `port` ((#v-ui-service-port)) - Set the port value of the UI service.
+
+      - `http` ((#v-ui-service-port-http)) (`integer: 80`) - HTTP port.
+
+      - `https` ((#v-ui-service-port-https)) (`integer: 443`) - HTTPS port.
 
     - `nodePort` ((#v-ui-service-nodeport)) - Optionally set the nodePort value of the ui service if using a NodePort service.
       If not set and using a NodePort service, Kubernetes will automatically assign
@@ -1224,8 +1282,8 @@ and consider if they're appropriate for your deployment.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only
-    specific namespaces. This should be set to a multiline string.
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only specific namespaces. 
+    Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
 
@@ -1706,6 +1764,15 @@ and consider if they're appropriate for your deployment.
     case of annotations where both will be applied.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
+
+### webhookCertManager
+
+- `webhookCertManager` ((#v-webhookcertmanager)) - Configuration settings for the webhook-cert-manager
+  `webhook-cert-manager` ensures that cert bundles are up to date for the mutating webhook.
+
+  - `tolerations` ((#v-webhookcertmanager-tolerations)) (`string: null`) - Toleration Settings
+    This should be a multi-line string matching the Toleration array
+    in a PodSpec.
 
 ### prometheus
 

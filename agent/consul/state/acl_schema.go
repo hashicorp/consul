@@ -314,23 +314,6 @@ func indexAuthMethodFromACLBindingRule(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func authMethodsTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: tableACLAuthMethods,
-		Indexes: map[string]*memdb.IndexSchema{
-			indexID: {
-				Name:         indexID,
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
-				},
-			},
-		},
-	}
-}
-
 func indexFromUUIDString(raw interface{}) ([]byte, error) {
 	index, ok := raw.(string)
 	if !ok {
@@ -497,5 +480,37 @@ func indexExpiresFromACLToken(raw interface{}, local bool) ([]byte, error) {
 
 	var b indexBuilder
 	b.Time(*p.ExpirationTime)
+	return b.Bytes(), nil
+}
+
+func authMethodsTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: tableACLAuthMethods,
+		Indexes: map[string]*memdb.IndexSchema{
+			indexID: {
+				Name:         indexID,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromQuery,
+					writeIndex: indexNameFromACLAuthMethod,
+				},
+			},
+		},
+	}
+}
+
+func indexNameFromACLAuthMethod(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLAuthMethod)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLAuthMethod index", raw)
+	}
+
+	if p.Name == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.Name))
 	return b.Bytes(), nil
 }
