@@ -74,8 +74,3 @@ func (ixn *Intention) FillPartitionAndNamespace(entMeta *EnterpriseMeta, fillDef
 	ixn.SourcePartition = ""
 	ixn.DestinationPartition = ""
 }
-
-func (ixn *Intention) NormalizePartitionFields() {
-	ixn.SourcePartition = ""
-	ixn.DestinationPartition = ""
-}
