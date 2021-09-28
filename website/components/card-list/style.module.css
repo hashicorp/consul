@@ -8,6 +8,7 @@
     border: 1px solid #dcdde0;
     box-shadow: 0 2px 3px rgba(37, 41, 55, 0.08);
     border-radius: 1px;
+    transition: box-shadow 0.25s, transform 0.25s;
 
     &:hover {
       box-shadow: 0 16px 28px rgba(37, 38, 45, 0.12);
