@@ -610,8 +610,8 @@ spec:
       yaml: false,
       name: 'Add',
       type: 'map<string|string>: optional',
-      description: `The set of header value keyed by header name to
-      add. If a header with the same (case-insensitive) name already
+      description: `The set of header values to add, keyed by header name.
+      If a header with the same (case-insensitive) name already
       exists, the value set here will be appended and both will be present.
       If Envoy is used as the proxy, the value may contain
       [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
@@ -635,7 +635,7 @@ spec:
       name: 'Remove',
       type: 'array<string>: optional',
       description: `The set of header names to remove. Only headers
-      whose names are an <i>case-insensitive</i> exact match will be removed`,
+      whose names are a <i>case-insensitive</i> exact match will be removed`,
     },
   ]}
 />
