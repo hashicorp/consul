@@ -234,86 +234,84 @@ export default function ConsulOnKubernetesPage() {
       <section className={s.getStartedWrapper}>
         <h1 className={s.getStartedTitle}>Ways to get started</h1>
         <div className={s.getStartedContent}>
-          <div className={s.getStartedCards}>
-            <CardList
-              title="Learn Tutorials"
-              cards={[
-                {
-                  image: {
-                    src:
-                      'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
-                    alt: 'card',
-                  },
-                  description:
-                    'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
-                  type: 'type 1',
-                  cta: {
-                    url: '#TODO',
-                    text: 'Call To Action',
-                  },
+          <CardList
+            title="Learn Tutorials"
+            className={s.getStartedCards}
+            cards={[
+              {
+                image: {
+                  src:
+                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  alt: 'card',
                 },
-                {
-                  image: {
-                    src:
-                      'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
-                    alt: 'card',
-                  },
-                  description:
-                    'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
-                  type: 'type 2',
-                  cta: {
-                    url: '#TODO',
-                    text: 'Call To Action',
-                  },
+                description:
+                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+                eyebrow: 'type 1',
+                cta: {
+                  url: '#TODO',
+                  text: 'Call To Action',
                 },
-                {
-                  image: {
-                    src:
-                      'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
-                    alt: 'card',
-                  },
-                  description:
-                    'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
-                  type: 'type 3',
-                  cta: {
-                    url: '#TODO',
-                    text: 'Call To Action',
-                  },
+              },
+              {
+                image: {
+                  src:
+                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  alt: 'card',
                 },
-              ]}
-            />
-          </div>
-          <div className={s.getStartedDocs}>
-            <DocsList
-              title="Documentation"
-              docs={[
-                {
-                  icon: {
-                    src: require('./images/docs/helm-icon.svg'),
-                    alt: 'helm',
-                  },
-                  description:
-                    'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
-                  cta: {
-                    text: 'Heml Docs',
-                    url: '#TODO',
-                  },
+                description:
+                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+                eyebrow: 'type 2',
+                cta: {
+                  url: '#TODO',
+                  text: 'Call To Action',
                 },
-                {
-                  icon: {
-                    src: require('@hashicorp/mktg-logos/product/terraform/logomark/color.svg'),
-                    alt: 'terraform',
-                  },
-                  description:
-                    'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
-                  cta: {
-                    text: 'Terraform Provider',
-                    url: '#TODO',
-                  },
+              },
+              {
+                image: {
+                  src:
+                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  alt: 'card',
                 },
-              ]}
-            />
-          </div>
+                description:
+                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+                eyebrow: 'type 3',
+                cta: {
+                  url: '#TODO',
+                  text: 'Call To Action',
+                },
+              },
+            ]}
+          />
+          <DocsList
+            title="Documentation"
+            className={s.getStartedDocs}
+            docs={[
+              {
+                icon: {
+                  src: require('./images/docs/helm-icon.svg'),
+                  alt: 'helm',
+                },
+                description:
+                  'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
+                cta: {
+                  text: 'Heml Docs',
+                  url: '#TODO',
+                },
+              },
+              {
+                icon: {
+                  src: require('@hashicorp/mktg-logos/product/terraform/logomark/color.svg'),
+                  alt: 'terraform',
+                },
+                description:
+                  'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
+                cta: {
+                  text: 'Terraform Provider',
+                  url: '#TODO',
+                },
+              },
+            ]}
+          />
         </div>
       </section>
     </div>

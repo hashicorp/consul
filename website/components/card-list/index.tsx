@@ -10,23 +10,24 @@ interface Card {
     url: string
     text: string
   }
-  type: string
+  eyebrow: string
 }
 
 interface CardListProps {
   title: string
   cards: Card[]
+  className?: string
 }
 
-export default function CardList({ title, cards }: CardListProps) {
+export default function CardList({ title, cards, className }: CardListProps) {
   return (
-    <>
+    <div className={className}>
       <h3 className={s.title}>{title}</h3>
       <div className={s.cardsWrapper}>
-        {cards.map(({ image, description, cta, type }) => (
+        {cards.map(({ image, description, cta, eyebrow }) => (
           <a
             href={cta.url}
-            key={type}
+            key={eyebrow}
             className={s.card}
             target="_blank"
             rel="noreferrer"
@@ -36,7 +37,7 @@ export default function CardList({ title, cards }: CardListProps) {
             </div>
             <div className={s.cardContent}>
               <div className={s.preHeader}>
-                <span>{type}</span>
+                <span>{eyebrow}</span>
                 <img
                   alt="external-link"
                   src={require('./images/external-link-icon.svg')}
@@ -48,6 +49,6 @@ export default function CardList({ title, cards }: CardListProps) {
           </a>
         ))}
       </div>
-    </>
+    </div>
   )
 }
