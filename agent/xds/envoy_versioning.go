@@ -73,7 +73,7 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	sf := supportedProxyFeatures{}
 
-	// add version contraints to poipulate feature flags here when necessary, for example:
+	// add version constraints to populate feature flags here when necessary, for example:
 	/*
 		if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
 			sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
