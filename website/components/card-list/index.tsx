@@ -19,6 +19,7 @@ interface CardListProps {
   title: string
   cards: Card[]
 }
+
 export default function CardList({ title, cards }: CardListProps) {
   return (
     <>
