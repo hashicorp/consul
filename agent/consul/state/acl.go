@@ -1741,3 +1741,51 @@ func intFromBool(cond bool) byte {
 	}
 	return 0
 }
+
+func aclPolicyInsert(tx WriteTxn, policy *structs.ACLPolicy) error {
+	if err := tx.Insert(tableACLPolicies, policy); err != nil {
+		return fmt.Errorf("failed inserting acl policy: %v", err)
+	}
+	return updateTableIndexEntries(tx, tableACLPolicies, policy.ModifyIndex, &policy.EnterpriseMeta)
+}
+
+func aclRoleInsert(tx WriteTxn, role *structs.ACLRole) error {
+	// insert the role into memdb
+	if err := tx.Insert(tableACLRoles, role); err != nil {
+		return fmt.Errorf("failed inserting acl role: %v", err)
+	}
+
+	// update acl-roles index
+	return updateTableIndexEntries(tx, tableACLRoles, role.ModifyIndex, &role.EnterpriseMeta)
+}
+
+func aclTokenInsert(tx WriteTxn, token *structs.ACLToken) error {
+	// insert the token into memdb
+	if err := tx.Insert(tableACLTokens, token); err != nil {
+		return fmt.Errorf("failed inserting acl token: %v", err)
+	}
+	// update the overall acl-tokens index
+	return updateTableIndexEntries(tx, tableACLTokens, token.ModifyIndex, token.EnterpriseMetadata())
+}
+
+func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
+	// insert the auth method into memdb
+	if err := tx.Insert(tableACLAuthMethods, method); err != nil {
+		return fmt.Errorf("failed inserting acl role: %v", err)
+	}
+
+	// update acl-auth-methods index
+	return updateTableIndexEntries(tx, tableACLAuthMethods, method.ModifyIndex, &method.EnterpriseMeta)
+}
+
+func aclBindingRuleInsert(tx WriteTxn, rule *structs.ACLBindingRule) error {
+	rule.EnterpriseMeta.Normalize()
+
+	// insert the role into memdb
+	if err := tx.Insert(tableACLBindingRules, rule); err != nil {
+		return fmt.Errorf("failed inserting acl role: %v", err)
+	}
+
+	// update acl-binding-rules index
+	return updateTableIndexEntries(tx, tableACLBindingRules, rule.ModifyIndex, &rule.EnterpriseMeta)
+}

@@ -156,7 +156,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			//nolint:staticcheck
 			expected.SetHash()
 
-			expected.NormalizePartitionFields()
+			expected.FillPartitionAndNamespace(nil, true)
 		}
 		require.True(t, watchFired(ws), "watch fired")
 
@@ -1098,7 +1098,7 @@ func TestStore_IntentionsList(t *testing.T) {
 				UpdatedAt:       testTimeA,
 			}
 			if !legacy {
-				ret.NormalizePartitionFields()
+				ret.FillPartitionAndNamespace(nil, true)
 			}
 			return ret
 		}

@@ -53,6 +53,7 @@ func TestPolicyReadCommand(t *testing.T) {
 	)
 	assert.NoError(err)
 
+	// Test querying by id field
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
 		"-token=root",
@@ -64,6 +65,22 @@ func TestPolicyReadCommand(t *testing.T) {
 	assert.Empty(ui.ErrorWriter.String())
 
 	output := ui.OutputWriter.String()
+	assert.Contains(output, fmt.Sprintf("test-policy"))
+	assert.Contains(output, policy.ID)
+
+	// Test querying by name field
+	argsName := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+		"-name=test-policy",
+	}
+
+	cmd = New(ui)
+	code = cmd.Run(argsName)
+	assert.Equal(code, 0)
+	assert.Empty(ui.ErrorWriter.String())
+
+	output = ui.OutputWriter.String()
 	assert.Contains(output, fmt.Sprintf("test-policy"))
 	assert.Contains(output, policy.ID)
 }

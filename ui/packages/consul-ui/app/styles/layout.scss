@@ -84,6 +84,9 @@ main,
 html:not(.has-nspaces) [class*='nspace-'] {
   display: none;
 }
+html:not(.has-partitions) [class*='partition-'] {
+  display: none;
+}
 #wrapper {
   @extend %viewport-container;
   display: flex;

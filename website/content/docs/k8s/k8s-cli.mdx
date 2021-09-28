@@ -1,0 +1,110 @@
+---
+layout: docs
+page_title: Consul K8s CLI Reference
+description: >-
+  Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
+---
+
+# Consul K8s CLI Reference
+
+Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
+This topic describes the commands, subcommands, and available options for using Consul K8s CLI.
+
+~> Consul K8s CLI is is currently availabe as an alpha release and is not recommended for production environments.
+
+## Download and Build the Binary
+
+1. Clone the [consul-k8s](https://github.com/hashicorp/consul-k8s/tree/cli-install/cli) project.
+1. Navigate to the `consul-k8s/cli` directory and issue the following command to build the tool:
+
+   ```shell-session
+   go build -o bin/consul-k8s
+   ```
+
+1. (Optional) Move the binary to you `$PATH` for ease of use, e.g.:
+
+   ```shell-session
+   mv bin/consul-k8s /usr/local/bin/consul-k8s
+   ```
+
+## Usage
+
+Consul K8s CLI uses the following syntax:
+
+```shell-session
+consul-k8s <SUBCOMMAND> <OPTIONS>
+```
+
+## Subcommands
+
+You can use the following subcommands with `consul-k8s`.
+
+### `install`
+
+The `install` command installs Consul on Kubernetes.
+
+```shell-session
+consul-k8s install <OPTIONS>
+```
+
+The following options are available.
+
+| Flag                                                                                                                                          | Description                                                                                                                                                                                                                                                                                                                                                                                       | Default                                 | Required |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | -------- |
+| `-auto-approve` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Boolean value that enables you to skip the installation confirmation prompt.                                                                                                                                                                                                                                                                                                                      | `false`                                 | Optional |
+| `-dry-run`                                                                                                                                    | Boolean value that validates the installation and returns a summary.                                                                                                                                                                                                                                                                                                                              | `false`                                 | Optional |
+| `-config-file`                                                                                                                                | String value that specifies the path to a file containing custom installation configurations, e.g., Consul Helm chart values file. <br/> You can use the `-config-file` flag multiple times to specify multiple files.                                                                                                                                                                            | none                                    | Optional |
+| `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation.                                                                                                                                                                                                                                                                                                                             | `consul`                                | Optional |
+| `-preset`                                                                                                                                     | String value that installs Consul based on a preset configuration. You can specify the following values: <br/> `demo`: Installs a single replica server with sidecar injection enabled; useful for testing service mesh functionality. <br/> `secure`: Installs a single replica server with sidecar injection, ACLs, and TLS enabled; useful for testing service mesh functionality.             | Configuration of the Consul Helm chart. | Optional |
+| `-set`                                                                                                                                        | String value that enables you to set a customizeable value. <br/> You can use the `-set` flag multiple times to set multiple values. <br/> Consul Helm chart values are supported.                                                                                                                                                                                                                | none                                    | Optional |
+| `-set-file`                                                                                                                                   | String value that specifies the name of a file. The contents of the file will be used to set a customizeable value. <br/> You can use the `-set-file` flag multiple times to specify multiple files. <br/> Consul Helm chart values are supported.                                                                                                                                                | none                                    | Optional |
+| `-set-string`                                                                                                                                 | String value that enables you to set a customizeable string value. <br/> You can use the `-set-string` flag multiple times to specify multiple strings. <br/> Consul Helm chart values are supported.                                                                                                                                                                                             | none                                    | Optional |
+| `-timeout`                                                                                                                                    | Specifies how long to wait for the installation process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>In the following example, installation will timeout after one minute:<br/> `consul-k8s install -timeout 1m` | Optional                                | `10m`    |
+| `-wait`                                                                                                                                       | Boolean value that determines if Consul should wait for resources in the installation to be ready before exiting the command.                                                                                                                                                                                                                                                                     | Optional                                | `true`   |
+
+See [Global Options](#global-options) for additional commands that you can use when installing Consul on Kubernetes.
+
+#### Example Command
+
+The following example command installs Consul according in the `myNS` namespace according to the `secure` preset.
+
+```shell-session
+consul-k8s install -preset=secure -namespace=myNS
+```
+
+### `uninstall`
+
+The `uninstall` command removes Consul from Kubernetes.
+
+```shell-session
+consul-k8s uninstall <OPTIONS>
+```
+
+The following options are available.
+
+| Flag                                                                                                                                          | Description                                                                                                                                                                                                                                                                                                                                                                                                | Default                                                                      | Required |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
+| `-auto-approve` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Boolean value that enables you to skip the removal confirmation prompt.                                                                                                                                                                                                                                                                                                                                    | `false`                                                                      | Optional |
+| `-name`                                                                                                                                       | String value for the name of the installation to remove.                                                                                                                                                                                                                                                                                                                                                   | none                                                                         | Optional |
+| `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation to remove.                                                                                                                                                                                                                                                                                                                            | `consul`                                                                     | Optional |
+| `-timeout`                                                                                                                                    | Specifies how long to wait for the removal process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>`h` (hours) <br/>In the following example, removal will timeout after one minute:<br/> `consul-k8s uninstall -timeout 1m` | Optional                                                                     | `10m`    |
+| `-wipe-data`                                                                                                                                  | Boolan value that deletes PVCs and secrets associated with the Consul installation during installation. <br/> Data will be removed without a verification prompt if the `-auto-approve` flag is set to `true`.                                                                                                                                                                                             | `false` <br/> Instructions for removing data will be printed to the console. | Optional |
+
+See [Global Options](#global-options) for additional commands that you can use when uninstalling Consul from Kubernetes.
+
+#### Example Command
+
+The following example command immediately uninstalls Consul from the `my-ns` namespace with the name `my-consul` and removes PVCs and secrets associated with the installation without asking for verification:
+
+```shell-session
+consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-approve=true
+```
+
+## Global Options
+
+The following global options are available.
+
+| Flag                                                                      | Description                                                                         | Default | Required |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- | -------- |
+| `-context` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | String value that sets the Kubernetes context to use for Consul K8s CLI operations. | none    | Optional |
+| `-kubeconfig` <br/> Alias: `-c`                                           | String value that specifies the path to the `kubeconfig` file. <br/>                | none    | Optional |

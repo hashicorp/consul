@@ -95,6 +95,17 @@ as |api|>
         />
     {{/if}}
 
+    {{#if (can 'use partitions')}}
+        <DataSource
+          @src={{uri '/*/*/${dc}/partitions'
+            (hash
+              dc=@dc
+            )
+          }}
+          @onchange={{action this.createPartitions item}}
+        />
+    {{/if}}
+
     {{#if (and api.isCreate this.isManagedByCRDs)}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
     {{/if}}
@@ -103,11 +114,14 @@ as |api|>
       >
         <Consul::Intention::Form::Fieldsets
           @nspaces={{this.nspaces}}
+          @partitions={{this.partitions}}
           @services={{this.services}}
           @SourceName={{this.SourceName}}
           @SourceNS={{this.SourceNS}}
+          @SourcePartition={{this.SourcePartition}}
           @DestinationName={{this.DestinationName}}
           @DestinationNS={{this.DestinationNS}}
+          @DestinationPartition={{this.DestinationPartition}}
           @item={{item}}
           @disabled={{api.disabled}}
           @create={{api.isCreate}}

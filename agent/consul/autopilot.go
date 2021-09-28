@@ -58,7 +58,7 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
 	go func() {
 		if err := d.server.RemoveFailedNode(srv.Name, false); err != nil {
-			d.server.logger.Error("failedto remove server", "name", srv.Name, "id", srv.ID, "error", err)
+			d.server.logger.Error("failed to remove server", "name", srv.Name, "id", srv.ID, "error", err)
 		}
 	}()
 }
