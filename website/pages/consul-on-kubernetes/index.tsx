@@ -29,11 +29,7 @@ export default function ConsulOnKubernetesPage() {
               'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
           },
         ]}
-        media={{
-          type: 'image',
-          source: require('./images/sample-video.png'),
-          alt: 'sample image',
-        }}
+        videoSource="https://www.youtube.com/watch?v=Eyszp_apaEU"
       />
 
       <section>
