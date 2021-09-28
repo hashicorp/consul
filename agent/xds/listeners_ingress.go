@@ -19,6 +19,15 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
 		var tlsContext *envoy_tls_v3.DownstreamTlsContext
 
+		listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+		if !ok {
+			return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+		}
+		// Enable connect TLS if it is enabled at the Gateway or specific listener
+		// level.
+		connectTLSEnabled := cfgSnap.IngressGateway.TLSConfig.Enabled ||
+			(listenerCfg.TLS != nil && listenerCfg.TLS.Enabled)
+
 		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerKey)
 		if err != nil {
 			return nil, err
@@ -30,7 +39,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 				CommonTlsContext:         makeCommonTLSContextFromSDS(*sdsCfg),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
 			}
-		} else if cfgSnap.IngressGateway.TLSConfig.Enabled {
+		} else if connectTLSEnabled {
 			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
 				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 				RequireClientCertificate: &wrappers.BoolValue{Value: false},
@@ -116,6 +125,49 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	}
 
 	return resources, nil
+}
+
+func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
+	var mergedCfg structs.GatewayTLSSDSConfig
+
+	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
+	if gwSDS != nil {
+		mergedCfg.ClusterName = gwSDS.ClusterName
+		mergedCfg.CertResource = gwSDS.CertResource
+	}
+
+	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+	if !ok {
+		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+	}
+
+	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
+		if listenerCfg.TLS.SDS.ClusterName != "" {
+			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
+		}
+		if listenerCfg.TLS.SDS.CertResource != "" {
+			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
+		}
+	}
+
+	// Validate. Either merged should have both fields empty or both set. Other
+	// cases shouldn't be possible as we validate them at input but be robust to
+	// bugs later.
+	switch {
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
+		return nil, nil
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
+		return &mergedCfg, nil
+
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
+	}
+
+	return &mergedCfg, nil
 }
 
 func routeNameForUpstream(l structs.IngressListener, s structs.IngressService) string {

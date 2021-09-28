@@ -504,6 +504,59 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name: "ingress-with-tls-mixed-listeners",
+			// Use SDS helper even though we aren't testing SDS since it already sets
+			// up most things we need.
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// Undo gateway-level SDS
+				snap.IngressGateway.TLSConfig.SDS = nil
+
+				// No Gateway-level built-in TLS
+				snap.IngressGateway.TLSConfig.Enabled = false
+
+				// One listener has built-in TLS, one doesn't
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "http", Port: 9090}: {
+						{
+							DestinationName: "s2",
+							LocalBindPort:   9090,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "s1",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							// built-in TLS enabled
+							Enabled: true,
+						},
+					},
+					{Protocol: "http", Port: 9090}: {
+						Port: 9090,
+						Services: []structs.IngressService{
+							{
+								Name: "s2",
+							},
+						},
+						// No TLS enabled
+						TLS: nil,
+					},
+				}
+			},
+		},
+		{
 			name:   "ingress-with-sds-listener-gw-level",
 			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
 			setup:  nil,
