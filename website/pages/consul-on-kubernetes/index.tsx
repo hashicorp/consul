@@ -19,8 +19,15 @@ export default function ConsulOnKubernetesPage() {
         title="Consul on Kubernetes"
         description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
         ctas={[
-          { text: 'Get Started', url: '#TODO' },
-          { text: 'Try HCP Consul', url: '#TODO' },
+          {
+            text: 'Get Started',
+            url: 'https://www.consul.io/docs/k8s/installation/install',
+          },
+          {
+            text: 'Try HCP Consul',
+            url:
+              'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
+          },
         ]}
         media={{
           type: 'image',
@@ -126,7 +133,8 @@ export default function ConsulOnKubernetesPage() {
               ],
               cta: {
                 text: 'Try It Now',
-                url: '#TODO',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide?in=consul/kubernetes',
               },
               image: require('./images/features/multi-platform.svg'),
             },
@@ -158,7 +166,8 @@ export default function ConsulOnKubernetesPage() {
               ],
               cta: {
                 text: 'Try It Now',
-                url: '#TODO',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-custom-resource-definitions?in=consul/kubernetes',
               },
               image: require('./images/features/workflow.svg'),
             },
@@ -189,7 +198,8 @@ export default function ConsulOnKubernetesPage() {
               ],
               cta: {
                 text: 'Try It Now',
-                url: '#TODO',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },
               image: require('./images/features/observable.svg'),
             },
@@ -224,7 +234,8 @@ export default function ConsulOnKubernetesPage() {
               ],
               cta: {
                 text: 'Try It Now',
-                url: '#TODO',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
               image: require('./images/features/secure.svg'),
             },
