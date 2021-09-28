@@ -1,5 +1,6 @@
-import s from './style.module.css'
+import Link from 'next/link'
 import Button from '@hashicorp/react-button'
+import s from './style.module.css'
 
 interface Card {
   image: {
@@ -42,7 +43,9 @@ export default function CardList({ title, cards }: CardListProps) {
                 />
               </div>
               <span className={s.description}>{description}</span>
-              <a href={cta.url}>{cta.text}</a>
+              <Link href={cta.url}>
+                <a>{cta.text}</a>
+              </Link>
             </div>
           </div>
         ))}
