@@ -52,7 +52,7 @@ export default function ConsulOnKubernetesPage() {
               </p>
               <Button
                 title="Learn More"
-                url="#TODO"
+                url="https://www.consul.io/docs/k8s"
                 theme={{
                   brand: 'consul',
                 }}
@@ -266,11 +266,11 @@ export default function ConsulOnKubernetesPage() {
                   alt: 'card',
                 },
                 description:
-                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+                  'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
                 eyebrow: 'type 2',
                 cta: {
-                  url: '#TODO',
-                  text: 'Call To Action',
+                  text: 'Heml Docs',
+                  url: 'https://www.consul.io/docs/k8s/installation/install',
                 },
               },
               {

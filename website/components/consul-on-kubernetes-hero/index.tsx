@@ -49,6 +49,8 @@ export default function ConsulOnKubernetesHero({
         </div>
         <div className={s.media}>
           <iframe
+            width="720"
+            height="315"
             src="https://www.youtube.com/embed/Eyszp_apaEU"
             title="YouTube video player"
             frameBorder="0"
