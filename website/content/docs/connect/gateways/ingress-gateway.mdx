@@ -68,7 +68,7 @@ must also provide `agent:read` for its node's name in order to discover the agen
 
 ~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
 across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
-sets of services within their datacenter then the ingress gateways **must** be registered with different names.
+sets of services within their datacenter, then the ingress gateways **must** be registered with different names.
 
 <!-- Add a "permalink" anchor here since this title is long and may be edited
      but we need to deep-link to it elsewhere -->
@@ -76,7 +76,7 @@ sets of services within their datacenter then the ingress gateways **must** be r
 
 ## Custom TLS Certificates via Secret Discovery Service (SDS)
 
-~> **Advanced Topic!** This is a low-level feature designed for developers
+~> **Advanced Topic** This is a low-level feature designed for developers
 building integrations with custom TLS management solutions.
 
 Consul 1.11 added support for Ingress Gateways to serve TLS certificates to
@@ -176,8 +176,7 @@ EOF
 ```
 
 **Run `consul services register public-ingress.hcl`** to create the
-registration. This must be run on the node where the Envoy proxy is going to run
-to register the proxy with the local Consul agent.
+registration. The command must be executed on the node where the Envoy proxy will register the proxy with the local Consul agent.
 
 #### 1.2 Setup TLS Client Authentication for SDS
 
