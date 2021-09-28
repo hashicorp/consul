@@ -40,6 +40,19 @@ type IngressGatewayConfigEntry struct {
 type GatewayTLSConfig struct {
 	// Indicates that TLS should be enabled for this gateway service.
 	Enabled bool
+
+	// SDS allows configuring TLS certificate from an SDS service.
+	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+}
+
+type GatewayServiceTLSConfig struct {
+	// SDS allows configuring TLS certificate from an SDS service.
+	SDS *GatewayTLSSDSConfig `json:",omitempty"`
+}
+
+type GatewayTLSSDSConfig struct {
+	ClusterName  string `json:",omitempty" alias:"cluster_name"`
+	CertResource string `json:",omitempty" alias:"cert_resource"`
 }
 
 // IngressListener manages the configuration for a listener on a specific port.
@@ -59,6 +72,9 @@ type IngressListener struct {
 	// For "tcp" protocol listeners, only a single service is allowed.
 	// For "http" listeners, multiple services can be declared.
 	Services []IngressService
+
+	// TLS allows specifying some TLS configuration per listener.
+	TLS *GatewayTLSConfig `json:",omitempty"`
 }
 
 // IngressService manages configuration for services that are exposed to
@@ -92,6 +108,9 @@ type IngressService struct {
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+
+	// TLS allows specifying some TLS configuration per listener.
+	TLS *GatewayServiceTLSConfig `json:",omitempty"`
 
 	// Allow HTTP header manipulation to be configured.
 	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`

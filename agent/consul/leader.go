@@ -674,15 +674,6 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
 	} else {
-		if s.UseLegacyACLs() && !upgrade {
-			if s.IsACLReplicationEnabled() {
-				s.startLegacyACLReplication(ctx)
-			}
-			// return early as we don't want to start new ACL replication
-			// or ACL token reaping as these are new ACL features.
-			return nil
-		}
-
 		if upgrade {
 			s.stopACLReplication()
 		}
@@ -781,67 +772,6 @@ func (s *Server) startACLUpgrade(ctx context.Context) {
 
 func (s *Server) stopACLUpgrade() {
 	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
-}
-
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runLegacyACLReplication(ctx context.Context) error {
-	var lastRemoteIndex uint64
-	legacyACLLogger := s.aclReplicationLogger(logging.Legacy)
-	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-
-	for {
-		if err := limiter.Wait(ctx); err != nil {
-			return err
-		}
-
-		if s.tokens.ReplicationToken() == "" {
-			continue
-		}
-
-		index, exit, err := s.replicateLegacyACLs(ctx, legacyACLLogger, lastRemoteIndex)
-		if exit {
-			return nil
-		}
-
-		if err != nil {
-			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
-				0,
-			)
-			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError(err.Error())
-			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
-		} else {
-			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
-				1,
-			)
-			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "index"},
-				float32(index),
-			)
-			lastRemoteIndex = index
-			s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
-			legacyACLLogger.Debug("Legacy ACL replication completed through remote index", "index", index)
-		}
-	}
-}
-
-func (s *Server) startLegacyACLReplication(ctx context.Context) {
-	if s.InACLDatacenter() {
-		return
-	}
-
-	// unlike some other leader routines this initializes some extra state
-	// and therefore we want to prevent re-initialization if things are already
-	// running
-	if s.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName) {
-		return
-	}
-
-	s.initReplicationStatus()
-
-	s.leaderRoutineManager.Start(ctx, legacyACLReplicationRoutineName, s.runLegacyACLReplication)
-	s.logger.Info("started legacy ACL replication")
-	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
@@ -966,7 +896,6 @@ func (s *Server) aclReplicationLogger(singularNoun string) hclog.Logger {
 
 func (s *Server) stopACLReplication() {
 	// these will be no-ops when not started
-	s.leaderRoutineManager.Stop(legacyACLReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclPolicyReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclRoleReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)

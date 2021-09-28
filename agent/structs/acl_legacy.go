@@ -90,6 +90,7 @@ func (a *ACL) Convert() *ACLToken {
 }
 
 // Convert attempts to convert an ACLToken into an ACLCompat.
+// TODO(ACL-Legacy-Compat): remove
 func (tok *ACLToken) Convert() (*ACL, error) {
 	if tok.Type == "" {
 		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
@@ -103,21 +104,6 @@ func (tok *ACLToken) Convert() (*ACL, error) {
 		RaftIndex: tok.RaftIndex,
 	}
 	return compat, nil
-}
-
-// IsSame checks if one ACL is the same as another, without looking
-// at the Raft information (that's why we didn't call it IsEqual). This is
-// useful for seeing if an update would be idempotent for all the functional
-// parts of the structure.
-func (a *ACL) IsSame(other *ACL) bool {
-	if a.ID != other.ID ||
-		a.Name != other.Name ||
-		a.Type != other.Type ||
-		a.Rules != other.Rules {
-		return false
-	}
-
-	return true
 }
 
 // ACLRequest is used to create, update or delete an ACL

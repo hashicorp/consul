@@ -95,7 +95,6 @@ const (
 )
 
 const (
-	legacyACLReplicationRoutineName       = "legacy ACL replication"
 	aclPolicyReplicationRoutineName       = "ACL policy replication"
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"

@@ -4149,7 +4149,7 @@ func TestStateStore_ACLAuthMethods_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, methods, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-auth-methods"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLAuthMethods))
 	}()
 }
 

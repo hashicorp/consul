@@ -146,7 +146,7 @@ func (b backend) ResolveTokenAndDefaultMeta(string, *structs.EnterpriseMeta, *ac
 	return acl.AllowAll(), nil
 }
 
-func (b backend) Forward(string, func(*grpc.ClientConn) error) (handled bool, err error) {
+func (b backend) Forward(structs.RPCInfo, func(*grpc.ClientConn) error) (handled bool, err error) {
 	return false, nil
 }
 

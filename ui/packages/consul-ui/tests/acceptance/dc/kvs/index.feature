@@ -10,6 +10,7 @@ Feature: dc / kvs / index
     Then the url should be /dc-1/kv
     And the title should be "Key / Value - Consul"
     Then I see 3 kv models
+  @ignore
   Scenario: Viewing kvs with no write access
     Given 1 datacenter model with the value "dc-1"
     And 3 kv models

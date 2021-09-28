@@ -58,3 +58,11 @@ func (u *UsageMetricsReporter) emitServiceUsage(serviceUsage state.ServiceUsage)
 		u.metricLabels,
 	)
 }
+
+func (u *UsageMetricsReporter) emitKVUsage(kvUsage state.KVUsage) {
+	metrics.SetGaugeWithLabels(
+		[]string{"consul", "state", "kv_entries"},
+		float32(kvUsage.KVCount),
+		u.metricLabels,
+	)
+}

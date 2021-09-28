@@ -1,6 +1,4 @@
 @setupApplicationTest
-# FIXME
-@ignore
 Feature: dc / services / error
   Scenario: Arriving at the service page that doesn't exist
     Given 2 datacenter models from yaml
@@ -8,11 +6,12 @@ Feature: dc / services / error
     - dc-1
     - dc-2
     ---
+    Given the url "/v1/internal/ui/services" responds with a 500 status
     When I visit the services page for yaml
     ---
-      dc: 404-datacenter
+      dc: non-existent-datacenter
     ---
-    Then I see status on the error like "404"
+    Then I see status on the error like "500"
   @notNamespaceable
   Scenario: Arriving at the service page
     Given 2 datacenter models from yaml

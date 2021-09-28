@@ -222,12 +222,12 @@ func (s *Store) ACLBindingRuleUpsertValidateEnterprise(rule *structs.ACLBindingR
 
 func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
 	// insert the role into memdb
-	if err := tx.Insert("acl-auth-methods", method); err != nil {
+	if err := tx.Insert(tableACLAuthMethods, method); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
 	}
 
 	// update the overall acl-auth-methods index
-	if err := indexUpdateMaxTxn(tx, method.ModifyIndex, "acl-auth-methods"); err != nil {
+	if err := indexUpdateMaxTxn(tx, method.ModifyIndex, tableACLAuthMethods); err != nil {
 		return fmt.Errorf("failed updating acl auth methods index: %v", err)
 	}
 
@@ -235,28 +235,28 @@ func aclAuthMethodInsert(tx WriteTxn, method *structs.ACLAuthMethod) error {
 }
 
 func aclAuthMethodGetByName(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch("acl-auth-methods", "id", method)
+	return tx.FirstWatch(tableACLAuthMethods, indexID, Query{Value: method})
 }
 
 func aclAuthMethodList(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-auth-methods", "id")
+	return tx.Get(tableACLAuthMethods, indexID)
 }
 
 func aclAuthMethodDeleteWithMethod(tx WriteTxn, method *structs.ACLAuthMethod, idx uint64) error {
 	// remove the method
-	if err := tx.Delete("acl-auth-methods", method); err != nil {
+	if err := tx.Delete(tableACLAuthMethods, method); err != nil {
 		return fmt.Errorf("failed deleting acl auth method: %v", err)
 	}
 
 	// update the overall acl-auth-methods index
-	if err := indexUpdateMaxTxn(tx, idx, "acl-auth-methods"); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableACLAuthMethods); err != nil {
 		return fmt.Errorf("failed updating acl auth methods index: %v", err)
 	}
 	return nil
 }
 
 func aclAuthMethodMaxIndex(tx ReadTxn, _ *structs.ACLAuthMethod, entMeta *structs.EnterpriseMeta) uint64 {
-	return maxIndexTxn(tx, "acl-auth-methods")
+	return maxIndexTxn(tx, tableACLAuthMethods)
 }
 
 func aclAuthMethodUpsertValidateEnterprise(_ ReadTxn, method *structs.ACLAuthMethod, existing *structs.ACLAuthMethod) error {
