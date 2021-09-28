@@ -1,5 +1,3 @@
-import Link from 'next/link'
-import Button from '@hashicorp/react-button'
 import s from './style.module.css'
 
 interface Card {
@@ -26,21 +24,22 @@ export default function CardList({ title, cards }: CardListProps) {
       <h3 className={s.title}>{title}</h3>
       <div className={s.cardsWrapper}>
         {cards.map(({ image, description, cta, type }) => (
-          <a href={cta.url} key={type} className={s.card}>
+          <a
+            href={cta.url}
+            key={type}
+            className={s.card}
+            target="_blank"
+            rel="noreferrer"
+          >
             <div className={s.imageContainer}>
               <img src={image.src} alt={image.alt} />
             </div>
             <div className={s.cardContent}>
               <div className={s.preHeader}>
                 <span>{type}</span>
-                <Button
-                  title=""
-                  url="#TODO"
-                  linkType="outbound"
-                  theme={{
-                    variant: 'tertiary-neutral',
-                  }}
-                  className={s.ctaButton}
+                <img
+                  alt="external-link"
+                  src={require('./images/external-link-icon.svg')}
                 />
               </div>
               <span className={s.description}>{description}</span>
