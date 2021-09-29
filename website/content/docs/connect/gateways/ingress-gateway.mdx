@@ -85,17 +85,13 @@ must implement Envoy's [gRPC Secret Discovery
 Service](https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret)
 (or SDS) API.
 
-The steps below are necessary to fully configure an Ingress Gateway with TLS
-certificates from an SDS source. They assume the operator is familiar with Envoy
- configuration and the SDS protocol.
+The following procedure describes how to configure an ingress gateway with TLS certificates from an SDS source. The instructions assume that you are familiar with Envoy configuration and the SDS protocol.
 
-### 1. Configure Static SDS Cluster(s).
+### 1. Configure Static SDS Cluster(s)
 
-Each Ingress Gateway Envoy instance must have one or more additional [static
-clusters](/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) defined
-when registering the ingress gateway to specify how to connect to the external
-service. This requires a manual registration of the Ingress Gateway proxy rather
-than relying on `-register` flag to `consul connect envoy -gateway=ingress`.
+Each Envoy proxy that makes up this Ingress Gateway must define one or more additional [static
+clusters](/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) when registering. These additional clusters define how Envoy should connect to the required SDS service(s). Defining extra clusters in Envoy's bootstrap configuration requires a manual registration of the Ingress Gateway with Consul proxy.
+It's not possible to use the `-register` flag with `consul connect envoy -gateway=ingress` to automatically register the proxy in this case.
 
 The cluster(s) must provide connection information and any necessary
 authentication information such as mTLS credentials.
@@ -238,7 +234,7 @@ options.
 $ consul connect envoy -gateway=ingress -service public-ingress
 ```
 
-### 2. Configure the Ingress Gateway to use certificates from SDS
+### 2. Configure the Ingress Gateway to Use Certificates from SDS
 
 SDS certificates may now be configured in the `ingress-gateway` Config Entry.
 

@@ -810,26 +810,26 @@ spec:
           type: 'bool: false',
           description: {
             hcl:
-              "Set this configuration to enable built-in TLS for every listener on the gateway.<br><br>If TLS is enabled, then each host defined in each service's `Hosts` fields will be added as a DNSSAN to the gateway's x509 certificate.",
+              "Set this configuration to `true` to enable built-in TLS for every listener on the gateway.<br><br>If TLS is enabled, then each host defined in each service's `Hosts` fields will be added as a DNSSAN to the gateway's x509 certificate.",
             yaml:
-              "Set this configuration to enable built-in TLS for every listener on the gateway.<br><br>If TLS is enabled, then each host defined in each service's `hosts` fields will be added as a DNSSAN to the gateway's x509 certificate.",
+              "Set this configuration to `true` to enable built-in TLS for every listener on the gateway.<br><br>If TLS is enabled, then each host defined in each service's `hosts` fields will be added as a DNSSAN to the gateway's x509 certificate.",
           },
         },
         {
           name: 'SDS',
           yaml: false,
           type: 'SDSConfig: <optional>',
-          description: "Configures the gateway to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all listeners on the gateway.",
+          description: "Defines a set of parameters that configures the gateway to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties defined in this field are used as defaults for all listeners on the gateway.",
           children: [
             {
               name: 'ClusterName',
               type: 'string',
-              description: "The SDS cluster name to connect to to retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
+              description: "Specifies the name of the SDS cluster from which Consul should retrieve certificates. This cluster must be [specified in the Gateway's bootstrap configuration](/docs/connect/gateways/ingress-gateway#sds).",
             },
             {
               name: 'CertResource',
               type: 'string',
-              description: "The SDS resource name to request when fetching the certificate from the SDS service. Setting this causes all listeners to be served exclusively over TLS with this certificate unless overridden by listener-specific TLS configuration.",
+              description: "Specifies an SDS resource name. Consul will request the SDS resource name when fetching the certificate from the SDS service. Setting this causes all listeners to be served exclusively over TLS with this certificate unless overridden by listener-specific TLS configuration.",
             },
           ],
         },
@@ -924,9 +924,9 @@ spec:
             {
               name: 'SDS',
               type: 'SDSConfig: <optional>',
-              description: `Configures the SDS source for the certificate for this specific service.
+              description: `Defines a set of parameters that configures the SDS source for the certificate for this specific service.
                   At least one custom host must be specified in \`Hosts\`.
-                  This certificate will be served to all requests identifying one of the
+                  The certificate retrieved from SDS will be served for all requests identifying one of the
                   \`Hosts\` values in the TLS Server Name Indication (SNI) header.`,
               children: [
                 {
@@ -956,15 +956,15 @@ spec:
               type: 'bool: false',
               description: {
                 hcl:
-                  "Set this configuration to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in each service's `Hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added.",
+                  "Set this configuration to `true` to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in each service's `Hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added.",
                 yaml:
-                  "Set this configuration to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in the `hosta` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added.",
+                  "Set this configuration to `true` to enable built-in TLS for this listener.<br><br>If TLS is enabled, then each host defined in the `hosts` field will be added as a DNSSAN to the gateway's x509 certificate. Note that even hosts from other listeners with TLS disabled will be added.",
               },
             },
             {
               name: 'SDS',
               type: 'SDSConfig: <optional>',
-              description: "Configures the listener to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all services on this listener.",
+              description: "Defines a set of parameters that configures the listener to load TLS certificates from an external SDS service. See [SDS](/docs/connect/gateways/ingress-gateway#sds) for more details on usage.<br><br>SDS properties set here will be used as defaults for all services on this listener.",
               children: [
                 {
                   name: 'ClusterName',
