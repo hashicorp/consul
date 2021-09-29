@@ -767,8 +767,6 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 }
 
 func TestACLResolver_DownPolicy(t *testing.T) {
-	t.Parallel()
-
 	requireIdentityCached := func(t *testing.T, r *ACLResolver, id string, present bool, msg string) {
 		t.Helper()
 
@@ -793,7 +791,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	}
 
 	t.Run("Deny", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -818,7 +815,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Allow", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -843,7 +839,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -880,7 +875,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -912,7 +906,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -942,8 +935,28 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		require.Equal(t, acl.Allow, authz2.NodeWrite("foo", nil))
 	})
 
+	t.Run("Extend-Cache with no cache entry defaults to default_policy", func(t *testing.T) {
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			localPolicies: true,
+			localRoles:    true,
+		}
+		delegate.tokenReadFn = func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error {
+			return ACLRemoteError{Err: fmt.Errorf("connection problem")}
+		}
+
+		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
+			config.Config.ACLDownPolicy = "extend-cache"
+		})
+
+		_, authz, err := r.ResolveTokenToIdentityAndAuthorizer("not-found")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+	})
+
 	t.Run("Extend-Cache-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -975,7 +988,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1012,7 +1024,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1045,7 +1056,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1093,7 +1103,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache-Expired-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1136,7 +1145,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Policy", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1172,7 +1180,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Extend-Cache-Client-Role", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1209,7 +1216,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("Async-Cache", func(t *testing.T) {
-		t.Parallel()
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
@@ -1251,8 +1257,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-TokenNotFound", func(t *testing.T) {
-		t.Parallel()
-
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
 		secretID := foundToken.SecretID
@@ -1318,8 +1322,6 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 	})
 
 	t.Run("PolicyResolve-PermissionDenied", func(t *testing.T) {
-		t.Parallel()
-
 		_, rawToken, _ := testIdentityForToken("found")
 		foundToken := rawToken.(*structs.ACLToken)
 		secretID := foundToken.SecretID
