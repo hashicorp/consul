@@ -251,12 +251,12 @@ export default function ConsulOnKubernetesPage() {
                     'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                   alt: 'card',
                 },
-                description:
-                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+                description: 'Get Started on Kubernetes',
                 eyebrow: 'type 1',
                 cta: {
-                  url: '#TODO',
                   text: 'Call To Action',
+                  url:
+                    'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
                 },
               },
               {
@@ -265,12 +265,12 @@ export default function ConsulOnKubernetesPage() {
                     'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                   alt: 'card',
                 },
-                description:
-                  'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
+                description: 'Secure Services on Kubernetes',
                 eyebrow: 'type 2',
                 cta: {
-                  text: 'Heml Docs',
-                  url: '/docs/k8s/installation/install',
+                  text: 'Call to Action',
+                  url:
+                    'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
                 },
               },
               {
@@ -279,12 +279,12 @@ export default function ConsulOnKubernetesPage() {
                     'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                   alt: 'card',
                 },
-                description:
-                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
+                description: 'Observe Services on Kubernetes',
                 eyebrow: 'type 3',
                 cta: {
-                  url: '#TODO',
                   text: 'Call To Action',
+                  url:
+                    'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
                 },
               },
             ]}
