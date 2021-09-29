@@ -569,6 +569,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 
 		if len(tokens) == 0 {
 			// No new legacy tokens can be created, so we can exit
+			s.stopACLUpgrade() // required to prevent goroutine leak, according to TestAgentLeaks_Server
 			return nil
 		}
 
