@@ -251,10 +251,10 @@ export default function ConsulOnKubernetesPage() {
                     'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                   alt: 'card',
                 },
-                description: 'Get Started on Kubernetes',
-                eyebrow: 'type 1',
+                description: '[[description]]',
+                eyebrow: '[[eyebrow]]',
                 cta: {
-                  text: 'Call To Action',
+                  text: 'Get Started on Kubernetes',
                   url:
                     'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
                 },
@@ -265,10 +265,10 @@ export default function ConsulOnKubernetesPage() {
                     'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                   alt: 'card',
                 },
-                description: 'Secure Services on Kubernetes',
-                eyebrow: 'type 2',
+                description: '[[description]]',
+                eyebrow: '[[eyebrow]]',
                 cta: {
-                  text: 'Call to Action',
+                  text: 'Secure Services on Kubernetes',
                   url:
                     'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
                 },
@@ -279,10 +279,10 @@ export default function ConsulOnKubernetesPage() {
                     'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
                   alt: 'card',
                 },
-                description: 'Observe Services on Kubernetes',
-                eyebrow: 'type 3',
+                description: '[[description]]',
+                eyebrow: '[[eyebrow]]',
                 cta: {
-                  text: 'Call To Action',
+                  text: 'Observe Services on Kubernetes',
                   url:
                     'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
                 },
