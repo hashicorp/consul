@@ -296,7 +296,6 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		HTTPSummaries,
 		consul.ACLSummaries,
 		consul.ACLEndpointSummaries,
-		consul.ACLEndpointLegacySummaries,
 		consul.CatalogSummaries,
 		consul.FederationStateSummaries,
 		consul.IntentionSummaries,
