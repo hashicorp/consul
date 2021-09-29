@@ -538,7 +538,7 @@ func TestACLReplication_Policies(t *testing.T) {
 	// Try to join.
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Create a bunch of new policies
