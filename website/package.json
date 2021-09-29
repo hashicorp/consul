@@ -38,13 +38,13 @@
     "@hashicorp/react-text-split-with-image": "^4.2.2",
     "@hashicorp/react-use-cases": "^4.0.1",
     "@hashicorp/react-vertical-text-block-list": "^6.0.3",
-    "next": "10.2.2",
+    "next": "^11.1.2",
     "next-mdx-remote": "3.0.1",
     "next-remote-watch": "1.0.0",
     "nuka-carousel": "4.7.7",
-    "react": "16.13.1",
+    "react": "^17.0.2",
     "react-device-detect": "1.17.0",
-    "react-dom": "16.13.1"
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
     "@hashicorp/platform-cli": "^0.2.0",
@@ -73,5 +73,8 @@
     "start": "next-remote-watch './content/**/*.mdx'",
     "static": "npm run build && npm run export && cp _redirects out/.",
     "linkcheck": "linkcheck https://consul.io"
+  },
+  "engines": {
+    "npm": ">=7.0.0"
   }
 }
