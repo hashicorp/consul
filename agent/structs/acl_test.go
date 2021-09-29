@@ -155,7 +155,6 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 }
 
 func TestStructs_ACLToken_Stub(t *testing.T) {
-
 	t.Run("Basic", func(t *testing.T) {
 
 		token := ACLToken{
@@ -187,28 +186,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 		require.Equal(t, token.CreateIndex, stub.CreateIndex)
 		require.Equal(t, token.ModifyIndex, stub.ModifyIndex)
 		require.False(t, stub.Legacy)
-	})
-
-	t.Run("Legacy", func(t *testing.T) {
-		token := ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Type:        ACLTokenTypeClient,
-			Rules:       `key "" { policy = "read" }`,
-		}
-
-		stub := token.Stub()
-		require.Equal(t, token.AccessorID, stub.AccessorID)
-		require.Equal(t, token.SecretID, stub.SecretID)
-		require.Equal(t, token.Description, stub.Description)
-		require.Equal(t, token.Policies, stub.Policies)
-		require.Equal(t, token.Local, stub.Local)
-		require.Equal(t, token.CreateTime, stub.CreateTime)
-		require.Equal(t, token.Hash, stub.Hash)
-		require.Equal(t, token.CreateIndex, stub.CreateIndex)
-		require.Equal(t, token.ModifyIndex, stub.ModifyIndex)
-		require.True(t, stub.Legacy)
 	})
 }
 

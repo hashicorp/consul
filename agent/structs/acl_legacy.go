@@ -7,9 +7,6 @@
 package structs
 
 const (
-	// ACLTokenTypeClient tokens have rules applied
-	ACLTokenTypeClient = "client"
-
 	// ACLTokenTypeManagement tokens have an always allow policy, so they can
 	// make other tokens and can access all resources.
 	ACLTokenTypeManagement = "management"
