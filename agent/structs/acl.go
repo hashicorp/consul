@@ -20,16 +20,10 @@ import (
 type ACLMode string
 
 const (
-	// ACLs are disabled by configuration
+	// ACLModeDisabled indicates the ACL system is disabled
 	ACLModeDisabled ACLMode = "0"
-	// ACLs are enabled
+	// ACLModeEnabled indicates the ACL system is enabled
 	ACLModeEnabled ACLMode = "1"
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
-	// ACLs are enabled and using legacy ACLs
-	ACLModeLegacy ACLMode = "2"
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
-	// ACLs are assumed enabled but not being advertised
-	ACLModeUnknown ACLMode = "3"
 )
 
 type ACLTokenIDType string

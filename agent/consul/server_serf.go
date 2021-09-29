@@ -72,6 +72,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["use_tls"] = "1"
 	}
 
+	// TODO(ACL-Legacy-Compat): remove in phase 2. These are kept for now to
+	// allow for upgrades.
 	if s.acls.ACLsEnabled() {
 		conf.Tags[metadata.TagACLs] = string(structs.ACLModeEnabled)
 	} else {
