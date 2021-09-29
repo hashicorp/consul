@@ -54,14 +54,6 @@ const (
 	// are not allowed to be displayed.
 	redactedToken = "<hidden>"
 
-	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
-	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
-	// with all tokens in it.
-	aclUpgradeBatchSize = 128
-
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
-	aclUpgradeRateLimit rate.Limit = 1.0
-
 	// aclTokenReapingRateLimit is the number of batch token reaping requests per second allowed.
 	aclTokenReapingRateLimit rate.Limit = 1.0
 

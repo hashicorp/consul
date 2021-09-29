@@ -13,7 +13,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
@@ -541,9 +540,19 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	return nil
 }
 
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
+// legacyACLTokenUpgrade runs a single time to upgrade any tokens that may
+// have been created immediately before the Consul upgrade, or any legacy tokens
+// from a restored snapshot.
+// TODO(ACL-Legacy-Compat): remove in phase 2
 func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
+	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
+	const aclUpgradeRateLimit rate.Limit = 1.0
+
+	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
+	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
+	// with all tokens in it.
+	const aclUpgradeBatchSize = 128
+
 	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
 	for {
 		if err := limiter.Wait(ctx); err != nil {
@@ -552,21 +561,15 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 
 		// actually run the upgrade here
 		state := s.fsm.State()
-		tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
+		tokens, _, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
 		if err != nil {
 			s.logger.Warn("encountered an error while searching for tokens without accessor ids", "error", err)
 		}
 		// No need to check expiration time here, as that only exists for v2 tokens.
 
 		if len(tokens) == 0 {
-			ws := memdb.NewWatchSet()
-			ws.Add(state.AbandonCh())
-			ws.Add(waitCh)
-			ws.Add(ctx.Done())
-
-			// wait for more tokens to need upgrading or the aclUpgradeCh to be closed
-			ws.Watch(nil)
-			continue
+			// No new legacy tokens can be created, so we can exit
+			return nil
 		}
 
 		var newTokens structs.ACLTokens
@@ -615,6 +618,8 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 	}
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2. Keeping it for now so that we
+// can upgrade any tokens created immediately before the upgrade happens.
 func (s *Server) startACLUpgrade(ctx context.Context) {
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		// token upgrades should only run in the primary
