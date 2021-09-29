@@ -42,13 +42,6 @@ const (
 	ACLTokenAccessor ACLTokenIDType = "accessor"
 )
 
-type ACLPolicyIDType string
-
-const (
-	ACLPolicyName ACLPolicyIDType = "name"
-	ACLPolicyID   ACLPolicyIDType = "id"
-)
-
 const (
 	// All policy ids with the first 120 bits set to all zeroes are
 	// reserved for builtin policies. Policy creation will ensure we
@@ -98,9 +91,11 @@ func ACLIDReserved(id string) bool {
 
 const (
 	// ACLSet creates or updates a token.
+	// TODO(ACL-Legacy-Compat): remove
 	ACLSet ACLOp = "set"
 
 	// ACLDelete deletes a token.
+	// TODO(ACL-Legacy-Compat): remove
 	ACLDelete ACLOp = "delete"
 )
 

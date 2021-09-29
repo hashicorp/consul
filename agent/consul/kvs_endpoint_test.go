@@ -94,22 +94,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules)
 
 	// Try a write
 	argR := structs.KVSRequest{
@@ -459,21 +444,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 		}
 	}
 
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules)
 
 	getR := structs.KeyRequest{
 		Datacenter:   "dc1",
@@ -551,32 +522,18 @@ func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
 
 	//write acl policy that denies recursive reads on ""
 	var testListRules1 = `
-key "" {
+key_prefix "" {
 	policy = "deny"
 }
-key "bar" {
+key_prefix "bar" {
 	policy = "list"
 }
-key "zip" {
+key_prefix "zip" {
 	policy = "read"
 }
 `
 
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules1,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules1)
 
 	//recursive read on empty prefix should fail
 	getReq := structs.KeyRequest{
@@ -752,21 +709,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 		}
 	}
 
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testListRules,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var out string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	id := out
+	id := createToken(t, codec, testListRules)
 
 	getR := structs.KeyListRequest{
 		Datacenter:   "dc1",

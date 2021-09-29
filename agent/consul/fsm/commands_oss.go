@@ -260,30 +260,16 @@ func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
 			return err
 		}
 		return enabled
-	case structs.ACLBootstrapNow:
-		// This is a bootstrap request from a non-upgraded node
-		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert(), true); err != nil {
-			return err
-		}
-
-		// No need to check expiration times as those did not exist in legacy tokens.
-		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID, nil); err != nil {
-			return err
-		} else {
-			acl, err := token.Convert()
-			if err != nil {
-				return err
-			}
-			return acl
-		}
-
-	case structs.ACLForceSet, structs.ACLSet:
+	case structs.ACLSet:
 		if err := c.state.ACLTokenSet(index, req.ACL.Convert(), true); err != nil {
 			return err
 		}
 		return req.ACL.ID
 	case structs.ACLDelete:
 		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID, nil)
+	// Legacy commands that have been removed
+	case "bootstrap-now", "force-set":
+		return fmt.Errorf("command %v has been removed with the legacy ACL system", req.Op)
 	default:
 		c.logger.Warn("Invalid ACL operation", "operation", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)

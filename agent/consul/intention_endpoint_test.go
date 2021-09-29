@@ -877,27 +877,12 @@ func TestIntentionApply_aclDeny(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1282,27 +1267,12 @@ func TestIntentionApply_aclDelete(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1363,27 +1333,12 @@ func TestIntentionApply_aclUpdate(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -1477,27 +1432,12 @@ func TestIntentionApply_aclUpdateChange(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with write permissions
-	var token string
-	{
-		var rules = `
-service "foo" {
+	rules := `
+service "foobar" {
 	policy = "deny"
 	intentions = "write"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Setup a basic record to create
 	ixn := structs.IntentionRequest{
@@ -2018,26 +1958,11 @@ func TestIntentionCheck_aclDeny(t *testing.T) {
 
 	waitForLeaderEstablishment(t, s1)
 
-	// Create an ACL with service read permissions. This will grant permission.
-	var token string
-	{
-		var rules = `
+	rules := `
 service "bar" {
 	policy = "read"
 }`
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTokenTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token))
-	}
+	token := createToken(t, codec, rules)
 
 	// Check
 	req := &structs.IntentionQueryRequest{
