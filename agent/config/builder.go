@@ -745,13 +745,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		primaryDatacenter = datacenter
 	}
 
-	enableTokenReplication := false
-	if c.ACLReplicationToken != nil {
-		enableTokenReplication = true
-	}
-
-	boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
-
 	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
 	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
@@ -863,24 +856,24 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			Datacenter:       datacenter,
 			NodeName:         b.nodeName(c.NodeName),
 			ACLPolicyTTL:     b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
-			ACLTokenTTL:      b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
+			ACLTokenTTL:      b.durationVal("acl.token_ttl", c.ACL.TokenTTL),
 			ACLRoleTTL:       b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-			ACLDownPolicy:    stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
-			ACLDefaultPolicy: stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
+			ACLDownPolicy:    stringVal(c.ACL.DownPolicy),
+			ACLDefaultPolicy: stringVal(c.ACL.DefaultPolicy),
 		},
 
-		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
+		ACLEnableKeyListPolicy: boolVal(c.ACL.EnableKeyListPolicy),
+		ACLMasterToken:         stringVal(c.ACL.Tokens.Master),
 
-		ACLTokenReplication: boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLTokenReplication: boolVal(c.ACL.TokenReplication),
 
 		ACLTokens: token.Config{
 			DataDir:             dataDir,
 			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
-			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
+			ACLDefaultToken:     stringVal(c.ACL.Tokens.Default),
+			ACLAgentToken:       stringVal(c.ACL.Tokens.Agent),
 			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
-			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
+			ACLReplicationToken: stringVal(c.ACL.Tokens.Replication),
 		},
 
 		// Autopilot

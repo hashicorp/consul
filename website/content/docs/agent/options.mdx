@@ -759,10 +759,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   running Consul 0.7 or later. When provided, this will enable [ACL replication](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
-  ACL replication using [`enable_acl_replication`](#enable_acl_replication) and then
+  ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then
   set the token later using the [agent token API](/api/agent#update-acl-tokens)
   on each server. If the `acl_replication_token` is set in the config, it will automatically
-  set [`enable_acl_replication`](#enable_acl_replication) to true for backward compatibility.
+  set [`acl.enable_token_replication`](#acl_enable_token_replication) to true for backward compatibility.
 
   If there's a partition or other outage affecting the authoritative datacenter, and the
   [`acl_down_policy`](/docs/agent/options#acl_down_policy) is set to "extend-cache", tokens not
@@ -1447,7 +1447,8 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `domain` Equivalent to the [`-domain` command-line flag](#_domain).
 
-- `enable_acl_replication` When set on a Consul server, enables ACL replication without having to set
+- `enable_acl_replication` **Deprecated in Consul 1.11. Use the [`acl.enable_token_replication`](#acl_enable_token_replication) field instead.**
+  When set on a Consul server, enables ACL replication without having to set
   the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
   and then introduce the token using the [agent token API](/api/agent#update-acl-tokens) on each server.
   See [`acl_replication_token`](#acl_replication_token) for more details.

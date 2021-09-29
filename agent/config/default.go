@@ -27,11 +27,11 @@ func DefaultSource() Source {
 		Name:   "default",
 		Format: "hcl",
 		Data: `
-		acl_default_policy = "allow"
-		acl_down_policy = "extend-cache"
-		acl_ttl = "30s"
 		acl = {
+			token_ttl = "30s"
 			policy_ttl = "30s"
+			default_policy = "allow"
+			down_policy = "extend-cache"
 		}
 		bind_addr = "0.0.0.0"
 		bootstrap = false

@@ -1633,13 +1633,25 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedWarnings: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 	})
 	run(t, testCase{
-		desc: "acl_replication_token enables acl replication",
-		args: []string{`-data-dir=` + dataDir},
-		json: []string{`{ "acl_replication_token": "a" }`},
-		hcl:  []string{`acl_replication_token = "a"`},
+		desc:             "acl_replication_token enables acl replication",
+		args:             []string{`-data-dir=` + dataDir},
+		json:             []string{`{ "acl_replication_token": "a" }`},
+		hcl:              []string{`acl_replication_token = "a"`},
+		expectedWarnings: []string{deprecationWarning("acl_replication_token", "acl.tokens.replication")},
 		expected: func(rt *RuntimeConfig) {
 			rt.ACLTokens.ACLReplicationToken = "a"
 			rt.ACLTokenReplication = true
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "acl.tokens.replace does not enable acl replication",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{ "acl": { "tokens": { "replication": "a" }}}`},
+		hcl:  []string{`acl { tokens { replication = "a"}}`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLTokens.ACLReplicationToken = "a"
+			rt.ACLTokenReplication = false
 			rt.DataDir = dataDir
 		},
 	})
@@ -5902,8 +5914,17 @@ func TestLoad_FullConfig(t *testing.T) {
 	entFullRuntimeConfig(expected)
 
 	expectedWarns := []string{
-		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
-		`The 'acl_agent_master_token' field is deprecated. Use the 'acl.tokens.agent_master' field instead.`,
+		deprecationWarning("acl_datacenter", "primary_datacenter"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
+		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
+		deprecationWarning("acl_token", "acl.tokens.default"),
+		deprecationWarning("acl_master_token", "acl.tokens.master"),
+		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
+		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
+		deprecationWarning("acl_default_policy", "acl.default_policy"),
+		deprecationWarning("acl_down_policy", "acl.down_policy"),
+		deprecationWarning("acl_ttl", "acl.token_ttl"),
+		deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"),
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)
