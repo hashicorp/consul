@@ -170,11 +170,6 @@ func (a *ACL) aclPreCheck() error {
 	if !a.srv.config.ACLsEnabled {
 		return acl.ErrDisabled
 	}
-
-	if a.srv.UseLegacyACLs() {
-		return fmt.Errorf("The ACL system is currently in legacy mode.")
-	}
-
 	return nil
 }
 
