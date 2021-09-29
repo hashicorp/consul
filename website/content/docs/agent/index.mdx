@@ -9,33 +9,66 @@ description: >-
 
 # Consul Agent
 
-The Consul agent is the core process of Consul. The agent maintains membership
-information, registers services, runs checks, responds to queries,
-and more. The agent must run on every node that is part of a Consul cluster.
+This topic provides an overview of the Consul agent, which is the core process of Consul.
+The agent maintains membership information, registers services, runs checks, responds to queries, and more.
+The agent must run on every node that is part of a Consul cluster.
 
-Any agent may run in one of two modes: client or server. A server
-node takes on the additional responsibility of being part of the
-[consensus quorum](/docs/internals/consensus).
-These nodes take part in Raft and provide strong consistency and availability in
-the case of failure. The higher burden on the server nodes means that usually
-they should be run on dedicated instances -- they are more resource intensive
-than a client node. Client nodes make up the majority of the cluster, and they
-are very lightweight as they interface with the server nodes for most
-operations and maintain very little state of their own.
+Agents run in either client or server mode. Client nodes are lightweight processes that make up the majority of the cluster.
+They interface with the server nodes for most operations and maintain very little state of their own.
+Clients run on every node where services are running.
 
-## Running an Agent
+In addition to the core agent operations, server nodes participate in the [consensus quorum](/docs/internals/consensus).
+The quorum is based on the Raft protocol, which provides strong consistency and availability in the case of failure.
+Server nodes should run on dedicated instances because they are more resource intensive than client nodes.
 
-The agent is started with the [`consul agent`](/commands/agent) command.
-This command blocks, running forever or until told to quit. You can test a
-local agent by following the
+## Requirements
+
+You should run one Consul agent per server or host.
+Instances of Consul can run in separate VMs or as separate containers.
+At least one server agent per Consul deployment is required, but three to five server agents are recommended.
+Refer to the following sections for information about host, port, memory, and other requirements:
+
+- [Server Performance](/docs/install/performance)
+- [Required Ports](/docs/install/ports)
+
+The [Datacenter Deploy tutorial](https://learn.hashicorp.com/tutorials/consul/reference-architecture?in=consul/production-deploy#deployment-system-requirements) contains additional information, including licensing configuration, environment variables, and other details.
+
+## Starting the Consul Agent
+
+Start a Consul agent with the `consul` command and `agent` subcommand using the following syntax:
+
+```shell-session
+consul agent <options>
+```
+
+Consul ships with a `-dev` flag that configures the agent to run with several additional settings.
+The `-dev` flag is provided for learning purposes only.
+We strongly advise against using it for production environments.
+
+-> **Getting Started Tutorials**: You can test a local agent by following the
 [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-install?utm_source=consul.io&utm_medium=docs).
 
-The agent command takes a variety of
-[`configuration options`](/docs/agent/options#command-line-options), but most
-have reasonable defaults.
+The only information Consul needs to run is the location of a directory for storing agent state data, specified with the `-data-dir` flag.
+Specifying the data directory and no other options will start a client agent, but the agent will be unable to perform any operations or connect to any other nodes.
 
-When running [`consul agent`](/commands/agent), you should see output
-similar to this:
+The following example starts a Consul agent in dev mode that will store agent state data in the `tmp/consul` directory relative to the current directory:
+
+```shell-session
+consul agent -config-file=client.hcl -dev
+```
+
+In the following example, the agent configuration file would contain the following setting:
+
+```shell-session
+data_dir = "temp/client-data"
+```
+
+Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/docs/agent/options) topic for a complete list of configuration options.
+
+### Understanding the Agent Startup Output
+
+Consul prints several important messages on startup.
+The following example shows output from the [`consul agent`](/commands/agent) command:
 
 ```shell-session
 $ consul agent -data-dir=/tmp/consul
@@ -53,27 +86,18 @@ $ consul agent -data-dir=/tmp/consul
 ...
 ```
 
-There are several important messages that
-[`consul agent`](/commands/agent) outputs:
-
 - **Node name**: This is a unique name for the agent. By default, this
   is the hostname of the machine, but you may customize it using the
   [`-node`](/docs/agent/options#_node) flag.
 
 - **Datacenter**: This is the datacenter in which the agent is configured to
-  run.
-  Consul has first-class support for multiple datacenters; however, to work
-  efficiently, each node must be configured to report its datacenter. The
-  [`-datacenter`](/docs/agent/options#_datacenter) flag can be used to set the
-  datacenter. For single-DC configurations, the agent will default to "dc1".
+  run. For single-DC configurations, the agent will default to `dc1`, but you can configure which datacenter the agent reports to with the [`-datacenter`](/docs/agent/options#_datacenter) flag.
+  Consul has first-class support for multiple datacenters, but configuring each node to report its datacenter improves agent efficiency.
 
 - **Server**: This indicates whether the agent is running in server or client
   mode.
-  Server nodes have the extra burden of participating in the consensus quorum,
-  storing cluster state, and handling queries. Additionally, a server may be
-  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode. Multiple servers
-  cannot be in bootstrap mode as that would put the cluster in an inconsistent
-  state.
+  Running an agent in server mode requires additional overhead. This is because they participate in the consensus quorum, store cluster state, and handle queries. A server may also be
+  in ["bootstrap"](/docs/agent/options#_bootstrap_expect) mode, which enables the server to elect itselft as the Raft leader. Multiple servers cannot be in bootstrap mode because it would put the cluster in an inconsistent state.
 
 - **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP and DNS interfaces. By default, this
@@ -91,6 +115,218 @@ When running under `systemd` on Linux, Consul notifies systemd by sending
 `READY=1` to the `$NOTIFY_SOCKET` when a LAN join has completed. For
 this either the `join` or `retry_join` option has to be set and the
 service definition file has to have `Type=notify` set.
+
+## Configuring Consul Agents
+
+You can specify many options to configure how Consul operates when issuing the `consul agent` command.
+You can also create one or more configuration files and provide them to Consul at startup using either the `-config-file` or `-config-dir` option.
+Configuration files must be written in either JSON or HCL format.
+
+-> **Consul Terminology**: Configuration files are sometimes called "service definition" files when they are used to configure client agents.
+This is because clients are most commonly used to register services in the Consul catalog.
+
+The following example starts a Consul agent that takes configuration settings from a file called `server.json` located in the current working directory:
+
+```shell-session
+consul agent -config-file=server.json
+```
+
+The configuration options necessary to successfully use Consul depend on several factors, including the type of agent you are configuring (client or server), the type of environment you are deploying to (e.g., on-premise, multi-cloud, etc.), and the security options you want to implement (ACLs, gRPC encryption).
+The following examples are intended to help you understand some of the combinations you can implement to configure Consul.
+
+### Common Configuration Settings
+
+The following settings are commonly used in the configuration file (also called a service definition file when registering services with Consul) to configure Consul agents:
+
+| Parameter    | Description                                                                                                                                                                                                                                                                | Default                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `node_name`  | String value that specifies a name for the agent node. <br/>See [`-node-id`](/docs/agent/options#_node_id) for details.                                                                                                                                                    | Hostname of the machine                                                                                          |
+| `server`     | Boolean value that determines if the agent runs in server mode. <br/>See [`-server`](/docs/agent/options#_server) for details.                                                                                                                                             | `false`                                                                                                          |
+| `datacenter` | String value that specifies which datacenter the agent runs in. <br/>See [-datacenter](/docs/agent/options#_datacenter) for details.                                                                                                                                       | `dc1`                                                                                                            |
+| `data_dir`   | String value that specifies a directory for storing agent state data. <br/>See [`-data-dir`](/docs/agent/options#_data_dir) for details.                                                                                                                                   | none                                                                                                             |
+| `log_level`  | String value that specifies the level of logging the agent reports. <br/>See [`-log-level`](docs/agent/options#_log_level) for details.                                                                                                                                    | `info`                                                                                                           |
+| `retry_join` | Array of string values that specify one or more agent addresses to join after startup. The agent will continue trying to join the specified agents until it has successfully joined another member. <br/>See [`-retry-join`](/docs/agent/options#_retry_join) for details. | none                                                                                                             |
+| `addresses`  | Block of nested objects that define addresses bound to the agent for internal cluster communication.                                                                                                                                                                       | `"http": "0.0.0.0"` See the Agent Configuration page for [default address values](/docs/agent/options#addresses) |
+| `ports`      | Block of nested objects that define ports bound to agent addresses. <br/>See (link to addresses option) for details.                                                                                                                                                       | See the Agent Configuration page for [default port values](/docs/agent/options#ports)                            |
+
+### Server Node in a Service Mesh
+
+The following example configuration is for a server agent named "`consul-server`". The server is [bootstrapped](/docs/agent/options#_bootstrap) and the Consul GUI is enabled.
+The reason this server agent is configured for a service mesh is that the `connect` configuration is enabled. Connect is Consul's service mesh component that provides service-to-service connection authorization and encryption using mutual Transport Layer Security (TLS). Applications can use sidecar proxies in a service mesh configuration to establish TLS connections for inbound and outbound connections without being aware of Connect at all. See [Connect](/docs/connect) for details.
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+
+node_name = "consul-server"
+server = true
+bootstrap = true
+ui_config {
+        enabled = true
+    }
+datacenter = "dc1"
+data_dir = "/consul/data"
+log_level = "INFO"
+addresses {
+        http = "0.0.0.0"
+    }
+connect  {
+        enabled = true
+    }
+
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "node_name": "consul-server",
+  "server": true,
+  "bootstrap": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "addresses": {
+    "http": "0.0.0.0"
+  },
+  "connect": {
+    "enabled": true
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### Client Node Registering a Service
+
+Using Consul as a central service registry is a common use case.
+The following example configuration includes common settings to register a service with a Consul agent and enable health checks (see [Checks](/docs/discovery/checks) to learn more about health checks):
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+
+node_name = "consul-client"
+server = false
+datacenter = "dc1"
+data_dir = "consul/data"
+log_level = "INFO"
+retry_join = [ "consul-server" ]
+service {
+  id = "dns"
+  name = "dns"
+  tags = [ "primary" ]
+  address = "localhost"
+  port = 8600
+  check {
+      id = "dns"
+      name = "Consul DNS TCP on port 8600"
+      tcp = "localhost:8600"
+      interval = "10s"
+      timeout = "1s"
+  }
+}
+
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "node_name": "consul-client",
+  "server": false,
+  "datacenter": "dc1",
+  "data_dir": "consul/data",
+  "log_level": "INFO",
+  "retry_join": ["consul-server"],
+  "service": {
+    "id": "dns",
+    "name": "dns",
+    "tags": ["primary"],
+    "address": "localhost",
+    "port": 8600,
+    "check": {
+      "id": "dns",
+      "name": "Consul DNS TCP on port 8600",
+      "tcp": "localhost:8600",
+      "interval": "10s",
+      "timeout": "1s"
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### Server Node with Encryption Enabled
+
+The following example shows a server node configured with encryption enabled.
+Refer to the [Security](/docs/security) chapter for additional information about how to configure security options for Consul.
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+
+node_name = "consul-server"
+server = true
+ui_config {
+  enabled = true
+  }
+data_dir = "consul/data"
+addresses {
+  http = "0.0.0.0"
+  }
+retry_join = [
+  "consul-server2",
+  "consul-server3"
+  ]
+encrypt = "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w="
+verify_incoming = true
+verify_outgoing = true
+verify_server_hostname = true
+ca_file = "/consul/config/certs/consul-agent-ca.pem"
+cert_file = "/consul/config/certs/dc1-server-consul-0.pem"
+key_file = "/consul/config/certs/dc1-server-consul-0-key.pem"
+
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "node_name": "consul-server",
+  "server": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "data_dir": "consul/data",
+  "addresses": {
+    "http": "0.0.0.0"
+  },
+  "retry_join": ["consul-server1", "consul-server2"],
+  "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+  "verify_incoming": true,
+  "verify_outgoing": true,
+  "verify_server_hostname": true,
+  "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+  "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+  "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</Tab>
+</Tabs>
 
 ## Stopping an Agent
 
