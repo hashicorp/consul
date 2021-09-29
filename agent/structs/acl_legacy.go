@@ -14,14 +14,6 @@ import (
 )
 
 const (
-	// ACLBootstrapInit is used to perform a scan for existing tokens which
-	// will decide whether bootstrapping is allowed for a cluster. This is
-	// initiated by the leader when it steps up, if necessary.
-	// TODO(ACL-Legacy-Compat): remove
-	ACLBootstrapInit ACLOp = "bootstrap-init"
-)
-
-const (
 	// ACLTokenTypeClient tokens have rules applied
 	ACLTokenTypeClient = "client"
 
@@ -94,21 +86,6 @@ func (tok *ACLToken) Convert() (*ACL, error) {
 	}
 	return compat, nil
 }
-
-// ACLRequest is used to create, update or delete an ACL
-type ACLRequest struct {
-	Datacenter string
-	Op         ACLOp
-	ACL        ACL
-	WriteRequest
-}
-
-func (r *ACLRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-// ACLRequests is a list of ACL change requests.
-type ACLRequests []*ACLRequest
 
 // ACLSpecificRequest is used to request an ACL by ID
 type ACLSpecificRequest struct {

@@ -113,7 +113,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
 		Type: structs.ACLTokenTypeManagement,
 	}
-	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token, false))
+	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token))
 
 	method := &structs.ACLAuthMethod{
 		Name:        "some-method",
@@ -452,7 +452,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	// Persist a legacy ACL token - this is not done in newer code
 	// but we want to ensure that restoring legacy tokens works as
 	// expected so we must inject one here manually
-	_, err = sink.Write([]byte{byte(structs.ACLRequestType)})
+	_, err = sink.Write([]byte{byte(structs.DeprecatedACLRequestType)})
 	require.NoError(t, err)
 
 	acl := structs.ACL{
