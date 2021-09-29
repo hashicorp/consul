@@ -18,11 +18,7 @@ interface DocsListProps {
   className?: string
 }
 
-export default function DocsList({
-  title,
-  docs,
-  className = null,
-}: DocsListProps) {
+export default function DocsList({ title, docs, className }: DocsListProps) {
   return (
     <div className={className}>
       <h3 className={s.title}>{title}</h3>
