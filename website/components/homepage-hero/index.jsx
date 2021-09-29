@@ -28,6 +28,7 @@ export default function HomepageHero({
                   {
                     name: uiVideo.name ?? 'UI',
                     playbackRate: uiVideo.playbackRate,
+                    aspectRatio: uiVideo.aspectRatio,
                     src: [
                       {
                         srcType: uiVideo.srcType,
@@ -42,6 +43,7 @@ export default function HomepageHero({
                   {
                     name: cliVideo.name ?? 'CLI',
                     playbackRate: cliVideo.playbackRate,
+                    aspectRatio: cliVideo.aspectRatio,
                     src: [
                       {
                         srcType: cliVideo.srcType,
