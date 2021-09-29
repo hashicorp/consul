@@ -46,10 +46,9 @@
   }
 
   & .media {
-    max-width: 720px;
-    flex-basis: calc(50% - 16px);
     margin: 40px auto 0;
     display: flex;
+    justify-content: center;
 
     @media (--medium) {
       padding-left: 48px;
@@ -63,6 +62,7 @@
 
     @media (--large) {
       margin: 0;
+      justify-content: flex-start;
     }
   }
 }

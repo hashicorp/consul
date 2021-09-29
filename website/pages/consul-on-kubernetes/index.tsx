@@ -21,7 +21,7 @@ export default function ConsulOnKubernetesPage() {
         ctas={[
           {
             text: 'Get Started',
-            url: 'https://www.consul.io/docs/k8s/installation/install',
+            url: '/docs/k8s/installation/install',
           },
           {
             text: 'Try HCP Consul',
@@ -52,7 +52,7 @@ export default function ConsulOnKubernetesPage() {
               </p>
               <Button
                 title="Learn More"
-                url="https://www.consul.io/docs/k8s"
+                url="/docs/k8s"
                 theme={{
                   brand: 'consul',
                 }}
@@ -270,7 +270,7 @@ export default function ConsulOnKubernetesPage() {
                 eyebrow: 'type 2',
                 cta: {
                   text: 'Heml Docs',
-                  url: 'https://www.consul.io/docs/k8s/installation/install',
+                  url: '/docs/k8s/installation/install',
                 },
               },
               {
@@ -302,7 +302,7 @@ export default function ConsulOnKubernetesPage() {
                   'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
                 cta: {
                   text: 'Heml Docs',
-                  url: '#TODO',
+                  url: '/docs/k8s/installation/install',
                 },
               },
               {
@@ -314,7 +314,8 @@ export default function ConsulOnKubernetesPage() {
                   'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
                 cta: {
                   text: 'Terraform Provider',
-                  url: '#TODO',
+                  url:
+                    'https://registry.terraform.io/providers/hashicorp/consul/latest/docs',
                 },
               },
             ]}

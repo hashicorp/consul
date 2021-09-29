@@ -49,10 +49,10 @@ export default function ConsulOnKubernetesHero({
         </div>
         <div className={s.media}>
           <iframe
-            width="720"
-            height="315"
+            width="573"
+            height="324"
             src="https://www.youtube.com/embed/Eyszp_apaEU"
-            title="YouTube video player"
+            title="Why Microservices? Doing it for the Right Reasons"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
