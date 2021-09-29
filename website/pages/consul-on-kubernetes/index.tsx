@@ -247,42 +247,39 @@ export default function ConsulOnKubernetesPage() {
             cards={[
               {
                 image: {
-                  src:
-                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description: '[[description]]',
+                description: 'Get Started on Kubernetes',
                 eyebrow: '[[eyebrow]]',
                 cta: {
-                  text: 'Get Started on Kubernetes',
+                  text: 'Learn more',
                   url:
                     'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
                 },
               },
               {
                 image: {
-                  src:
-                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description: '[[description]]',
+                description: 'Secure Services on Kubernetes',
                 eyebrow: '[[eyebrow]]',
                 cta: {
-                  text: 'Secure Services on Kubernetes',
+                  text: 'Learn more',
                   url:
                     'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
                 },
               },
               {
                 image: {
-                  src:
-                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description: '[[description]]',
+                description: 'Observe Services on Kubernetes',
                 eyebrow: '[[eyebrow]]',
                 cta: {
-                  text: 'Observe Services on Kubernetes',
+                  text: 'Learn more',
                   url:
                     'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
                 },
