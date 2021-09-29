@@ -113,7 +113,7 @@ If you are creating a module for a [catalog-services condition](/docs/nia/tasks#
 
 ```hcl
 variable "catalog_services" {
-  description = "Consul catalog service names and tags monitored by Consul Terraform Sync"
+  description = "Consul catalog service names and tags monitored by Consul-Terraform-Sync"
   type = map(list(string))
 }
 ```
@@ -123,6 +123,21 @@ The keys of the `catalog_services` map are the names of the services that are re
 We recommend that if you make a module with with a catalog-services condition, that you document this in the README. This way, users that want to configure a task with your module will know to configure a catalog-services [condition](/docs/nia/configuration#condition) block.
 
 Similarly, if you include the `catalog_services` variable in your module, we recommend that you also document this usage in the README. Users of your module will then know to set the catalog-services condition [`source_includes_var`](/docs/nia/configuration#source_includes_var) configuration to be true. When this field is set to true, Consul-Terraform-Sync will declare the `catalog_services` variable in the generated root module, and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
+
+### Consul KV Variable
+
+-> **Beta:** This feature is currently only available in Consul-Terraform-Sync v0.4.0-beta.
+
+If you are creating a module for a [consul-kv condition](/docs/nia/tasks#consul-kv-condition), then you have the option to add the `consul_kv` variable, which contains a map of the keys and values for the Consul KV pairs. If your module would benefit from consuming this information, you can copy the `consul_kv` variable declaration to your `variables.tf` file in addition to the other variables.
+
+```hcl
+variable "consul_kv" {
+	description = "Keys and values of the Consul KV pairs monitored by Consul-Terraform-Sync"
+	type = map(string)
+}
+```
+
+If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs Consul-Terraform-Sync to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
 
 ### Module Input Variables
 
