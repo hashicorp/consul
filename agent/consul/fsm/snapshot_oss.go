@@ -15,7 +15,7 @@ func init() {
 	registerRestorer(structs.KVSRequestType, restoreKV)
 	registerRestorer(structs.TombstoneRequestType, restoreTombstone)
 	registerRestorer(structs.SessionRequestType, restoreSession)
-	registerRestorer(structs.DeprecatedACLRequestType, restoreACL)
+	registerRestorer(structs.DeprecatedACLRequestType, restoreACL)         // TODO(ACL-Legacy-Compat) - remove in phase 2
 	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap) // TODO(ACL-Legacy-Compat) - remove in phase 2
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
@@ -562,8 +562,9 @@ func restoreSession(header *SnapshotHeader, restore *state.Restore, decoder *cod
 	return nil
 }
 
-func restoreACL(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req structs.ACL
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+func restoreACL(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req LegacyACL
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
@@ -572,6 +573,40 @@ func restoreACL(header *SnapshotHeader, restore *state.Restore, decoder *codec.D
 		return err
 	}
 	return nil
+}
+
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+type LegacyACL struct {
+	ID    string
+	Name  string
+	Type  string
+	Rules string
+
+	structs.RaftIndex
+}
+
+// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
+func (a LegacyACL) Convert() *structs.ACLToken {
+	correctedRules := structs.SanitizeLegacyACLTokenRules(a.Rules)
+	if correctedRules != "" {
+		a.Rules = correctedRules
+	}
+
+	token := &structs.ACLToken{
+		AccessorID:        "",
+		SecretID:          a.ID,
+		Description:       a.Name,
+		Policies:          nil,
+		ServiceIdentities: nil,
+		NodeIdentities:    nil,
+		Type:              a.Type,
+		Rules:             a.Rules,
+		Local:             false,
+		RaftIndex:         a.RaftIndex,
+	}
+
+	token.SetHash(true)
+	return token
 }
 
 // TODO(ACL-Legacy-Compat) - remove in phase 2

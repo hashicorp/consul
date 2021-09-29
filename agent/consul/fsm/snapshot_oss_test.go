@@ -456,7 +456,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, err = sink.Write([]byte{byte(structs.DeprecatedACLRequestType)})
 	require.NoError(t, err)
 
-	acl := structs.ACL{
+	acl := LegacyACL{
 		ID:        "1057354f-69ef-4487-94ab-aead3c755445",
 		Name:      "test-legacy",
 		Type:      "client",
@@ -737,12 +737,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 
 // convertACLTokenToLegacy attempts to convert an ACLToken into an legacy ACL.
 // TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
-func convertACLTokenToLegacy(tok *structs.ACLToken) (*structs.ACL, error) {
+func convertACLTokenToLegacy(tok *structs.ACLToken) (*LegacyACL, error) {
 	if tok.Type == "" {
 		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
 	}
 
-	compat := &structs.ACL{
+	compat := &LegacyACL{
 		ID:        tok.SecretID,
 		Name:      tok.Description,
 		Type:      tok.Type,

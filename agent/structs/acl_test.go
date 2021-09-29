@@ -35,43 +35,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 		require.Equal(t, "three", policyIDs[2])
 	})
 
-	t.Run("Legacy Management", func(t *testing.T) {
-
-		a := &ACL{
-			ID:   "root",
-			Type: ACLTokenTypeManagement,
-			Name: "management",
-		}
-
-		token := a.Convert()
-
-		policyIDs := token.PolicyIDs()
-		require.Len(t, policyIDs, 0)
-
-		embedded := token.EmbeddedPolicy()
-		require.NotNil(t, embedded)
-		require.Equal(t, ACLPolicyGlobalManagement, embedded.Rules)
-	})
-
-	t.Run("Legacy Management With Rules", func(t *testing.T) {
-
-		a := &ACL{
-			ID:    "root",
-			Type:  ACLTokenTypeManagement,
-			Name:  "management",
-			Rules: "operator = \"write\"",
-		}
-
-		token := a.Convert()
-
-		policyIDs := token.PolicyIDs()
-		require.Len(t, policyIDs, 0)
-
-		embedded := token.EmbeddedPolicy()
-		require.NotNil(t, embedded)
-		require.Equal(t, ACLPolicyGlobalManagement, embedded.Rules)
-	})
-
 	t.Run("No Policies", func(t *testing.T) {
 
 		token := &ACLToken{}
