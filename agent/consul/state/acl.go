@@ -411,18 +411,10 @@ func fixupRolePolicyLinks(tx ReadTxn, original *structs.ACLRole) (*structs.ACLRo
 	return role, nil
 }
 
-// ACLTokenSet is used to insert an ACL rule into the state store.
-// Deprecated (ACL-Legacy-Compat)
-func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) error {
-	tx := s.db.WriteTxn(idx)
-	defer tx.Abort()
-
-	// Call set on the ACL
-	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
-		return err
-	}
-
-	return tx.Commit()
+// ACLTokenSet is used in many tests to set a single ACL token. It is now a shim
+// for calling ACLTokenBatchSet with default options.
+func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken) error {
+	return s.ACLTokenBatchSet(idx, structs.ACLTokens{token}, ACLTokenSetOptions{})
 }
 
 type ACLTokenSetOptions struct {
