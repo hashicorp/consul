@@ -1506,7 +1506,7 @@ type HealthCheck struct {
 func (hc *HealthCheck) NodeIdentity() Identity {
 	return Identity{
 		ID:             hc.Node,
-		EnterpriseMeta: *hc.NodeEnterpriseMetaForPartition(),
+		EnterpriseMeta: *NodeEnterpriseMetaInPartition(hc.PartitionOrDefault()),
 	}
 }
 

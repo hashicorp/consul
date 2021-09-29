@@ -402,8 +402,8 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 
 	var resp []structs.ServiceName
 	for _, t := range chain.Targets {
-		em := entMeta.NewEnterpriseMetaInPartition(t.Namespace)
-		target := structs.NewServiceName(t.Service, em)
+		em := structs.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), t.Namespace)
+		target := structs.NewServiceName(t.Service, &em)
 
 		// TODO (freddy): Allow upstream DC and encode in response
 		if t.Datacenter == dc {
@@ -459,8 +459,8 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 		}
 
 		for _, t := range chain.Targets {
-			em := sn.NewEnterpriseMetaInPartition(t.Namespace)
-			candidate := structs.NewServiceName(t.Service, em)
+			em := structs.NewEnterpriseMetaWithPartition(sn.PartitionOrDefault(), t.Namespace)
+			candidate := structs.NewServiceName(t.Service, &em)
 
 			if !candidate.Matches(destination) {
 				continue
@@ -491,7 +491,7 @@ func validateProposedConfigEntryInServiceGraph(
 		enforceIngressProtocolsMatch bool
 	)
 
-	wildcardEntMeta := kindName.WildcardEnterpriseMetaForPartition()
+	wildcardEntMeta := kindName.WithWildcardNamespace()
 
 	switch kindName.Kind {
 	case structs.ProxyDefaults:

@@ -42,19 +42,7 @@ func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 	return false
 }
 
-func (m *EnterpriseMeta) WildcardEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) DefaultEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) NodeEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) NewEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
