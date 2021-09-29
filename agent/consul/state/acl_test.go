@@ -171,8 +171,6 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 		},
 		CreateTime: time.Now(),
 		Local:      false,
-		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-		Type: structs.ACLTokenTypeManagement,
 	}
 
 	token2 := &structs.ACLToken{
@@ -186,8 +184,6 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 		},
 		CreateTime: time.Now(),
 		Local:      false,
-		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-		Type: structs.ACLTokenTypeManagement,
 	}
 
 	s := testStateStore(t)
@@ -788,29 +784,31 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 		return tx.Commit()
 	}
 
+	const ACLTokenTypeManagement = "management"
+
 	require.NoError(t, aclTokenSetLegacy(2, &structs.ACLToken{
 		SecretID: "34ec8eb3-095d-417a-a937-b439af7a8e8b",
-		Type:     structs.ACLTokenTypeManagement,
+		Type:     ACLTokenTypeManagement,
 	}))
 
 	require.NoError(t, aclTokenSetLegacy(3, &structs.ACLToken{
 		SecretID: "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
-		Type:     structs.ACLTokenTypeManagement,
+		Type:     ACLTokenTypeManagement,
 	}))
 
 	require.NoError(t, aclTokenSetLegacy(4, &structs.ACLToken{
 		SecretID: "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
-		Type:     structs.ACLTokenTypeManagement,
+		Type:     ACLTokenTypeManagement,
 	}))
 
 	require.NoError(t, aclTokenSetLegacy(5, &structs.ACLToken{
 		SecretID: "3ee33676-d9b8-4144-bf0b-92618cff438b",
-		Type:     structs.ACLTokenTypeManagement,
+		Type:     ACLTokenTypeManagement,
 	}))
 
 	require.NoError(t, aclTokenSetLegacy(6, &structs.ACLToken{
 		SecretID: "fa9d658a-6e26-42ab-a5f0-1ea05c893dee",
-		Type:     structs.ACLTokenTypeManagement,
+		Type:     ACLTokenTypeManagement,
 	}))
 
 	tokens, _, err := s.ACLTokenListUpgradeable(3)
