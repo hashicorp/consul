@@ -355,7 +355,7 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	case "deny":
 		down = acl.DenyAll()
 	case "async-cache", "extend-cache":
-		// Leave the down policy as nil to signal this.
+		down = acl.RootAuthorizer(config.Config.ACLDefaultPolicy)
 	default:
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
