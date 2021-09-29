@@ -132,6 +132,34 @@ In addition to `source_includes_var`, a task's catalog-services condition has ot
 
 One particular condition configuration, [`regexp`](/docs/nia/configuration#regexp), filters service registration changes by services that have a name which matches the configured regular expression. When unconfigured, the `regexp` value will default to match on any service that has a name which matches the services listed in [`task.services`](/docs/nia/configuration#services). As such, either `regexp` or `task.services` must be configured. When both are configured, see example above, the task will monitor and execute on registration changes to services matching the `regexp`, and the task will additionally monitor but not execute on service instances listed in `task.services` to optionally provide additional service information to the module.
 
+### Consul KV Condition
+
+-> **Beta:** This feature is currently only available in Consul-Terraform-Sync v0.4.0-beta.
+
+Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and executing the task when a configured KV entry is created, deleted, or updated.
+
+Based on the `recurse` option, the condition either monitors a single Consul KV pair for a given path or monitors all pairs that are prefixed by that path. In the example below, because `recurse` is set to true, the `path` option is treated as a prefix. Changes to an entry with the key `my-key` and an entry with the key `my-key/another-key` would both trigger the task. If `recurse` were set to false, then only changes to `my-key` would trigger the task.
+
+```hcl
+task {
+  name = "consul_kv_condition_task"
+  description = "execute on changes to Consul KV entry"
+  source = "path/to/consul-kv-module"
+  providers = ["my-provider"]
+  services = ["web-api"]
+
+  condition "consul-kv" {
+    path                = "my-key"
+    recurse             = true
+    datacenter          = "dc1"
+    namespace           = "default"
+    source_includes_var = true
+  }
+}
+```
+
+If the task condition's [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) field is set to `true`, then the value of the Consul KV pair(s) will be available in the [`consul_kv` input variable](/docs/nia/terraform-modules#consul-kv-variable). To use the variable, add `consul_kv` as an input variable to the module, in addition to the required `services` variable. The condition type and `source_includes_var` configuration value should be documented in the module so that users can reference them when configuring a task.
+
 ## Task Automation
 
 Consul-Terraform-Sync will attempt to execute each enabled task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. As a result, it is not recommended to configure a task as disabled from the start. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.

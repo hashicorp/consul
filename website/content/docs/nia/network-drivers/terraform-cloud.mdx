@@ -2,7 +2,7 @@
 layout: docs
 page_title: Terraform Cloud Driver
 description: >-
-  Consul-Terraform-Sync Network Drivers with Terraform Enterprise
+  Consul-Terraform-Sync Network Drivers with Terraform Cloud
 ---
 
 # Terraform Cloud Driver
@@ -12,20 +12,21 @@ description: >-
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
 
-Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise)<sup>1</sup>. Integrating with Terraform Enterprise provides features, such as enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. 
+-> **Beta:** The integration with the HashiCorp managed service version of Terraform Cloud is currently only available in Consul-Terraform-Sync v0.4.0-beta. Integration with the self-hosted version of Terraform Cloud is available as of v0.3.0.
+
+Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Cloud](https://www.terraform.io/cloud). Integrating with Terraform Cloud provides features, such as enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. Consul-Terraform-Sync is compatible with both the [self-hosted](https://www.hashicorp.com/products/terraform/editions/enterprise) and [managed service](https://www.hashicorp.com/products/terraform/editions/cloud) versions of Terraform Cloud.
+
 
 This page describes how the Terraform Cloud driver operates within Consul-Terraform-Sync.
 
--> <sup>1</sup> **Upcoming**: The Terraform Cloud driver is introduced in Consul-Terraform-Sync v0.3.0 and only supports [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise), the self-hosted distribution. The upcoming v0.4.0 release will support integration with [Terraform Cloud](https://www.terraform.io/cloud), the HashiCorp managed service.
-
 ## Terraform Workspace Automation
 
-Consul-Terraform-Sync manages Terraform runs following the [API-driven run workflow](https://www.terraform.io/docs/cloud/run/api.html) for workspaces in Terraform Enterprise.
+Consul-Terraform-Sync manages Terraform runs following the [API-driven run workflow](https://www.terraform.io/docs/cloud/run/api.html) for workspaces in Terraform Cloud.
 
 On startup, Consul-Terraform-Sync:
-1. Creates or discovers Terraform Enterprise workspaces corresponding to the configured tasks.
+1. Creates or discovers Terraform Cloud workspaces corresponding to the configured tasks.
 2. Prepares the local environment and generates Terraform configuration files that make up the root module for each task.
-3. Packages the generated files and uploads them as a configuration version for the task's workspace on Terraform Enterprise.
+3. Packages the generated files and uploads them as a configuration version for the task's workspace on Terraform Cloud.
 
 Once all workspaces are set up, Consul-Terraform-Sync monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform Cloud driver dynamically updates input variables for that task directly as [workspace variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) using the Terraform Cloud API. The driver then queues a run on the workspace, with auto-apply enabled, to update your network infrastructure.
 
@@ -81,15 +82,15 @@ You can view the latest service information in the Terraform UI by navigating to
 
 ### Deployment
 
-Because a Consul-Terraform-Sync instance can only be configured with one driver, an instance can only be associated with either a Terraform driver or a Terraform Cloud driver. If there is a need to run both types of drivers, users will need to deploy a separate Consul-Terraform-Sync instance for each type of driver. Relatedly, if there is a need to run Consul-Terraform-Sync across multiple Terraform Enterprise organizations, users will need to deploy a separate instance for each organization.
+Because a Consul-Terraform-Sync instance can only be configured with one driver, an instance can only be associated with either a Terraform driver or a Terraform Cloud driver. If there is a need to run both types of drivers, users will need to deploy a separate Consul-Terraform-Sync instance for each type of driver. Relatedly, if there is a need to run Consul-Terraform-Sync across multiple Terraform Cloud organizations, users will need to deploy a separate instance for each organization.
 
 ### Required Setup
 
-This section captures requirements for setting up Consul-Terraform-Sync to integrate with your [Terraform Enterprise](https://www.hashicorp.com/products/terraform/editions/enterprise) solution.
+This section captures requirements for setting up Consul-Terraform-Sync to integrate with your [Terraform Cloud](https://www.hashicorp.com/cloud) solution.
 
-1. Hostname of your Terraform Enterprise, self-hosted distribution
+1. Hostname of your Terraform Cloud, self-hosted distribution
 1. Name of your organization
-1. [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Enterprise
+1. [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Cloud
 
 Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
 
