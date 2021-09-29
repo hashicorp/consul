@@ -16,7 +16,7 @@ func init() {
 	registerRestorer(structs.TombstoneRequestType, restoreTombstone)
 	registerRestorer(structs.SessionRequestType, restoreSession)
 	registerRestorer(structs.DeprecatedACLRequestType, restoreACL)
-	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap)
+	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap) // TODO(ACL-Legacy-Compat) - remove in phase 2
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
 	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
@@ -574,9 +574,17 @@ func restoreACL(header *SnapshotHeader, restore *state.Restore, decoder *codec.D
 	return nil
 }
 
-// DEPRECATED (ACL-Legacy-Compat) - remove once v1 acl compat is removed
-func restoreACLBootstrap(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req structs.ACLBootstrap
+// TODO(ACL-Legacy-Compat) - remove in phase 2
+func restoreACLBootstrap(_ *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	type ACLBootstrap struct {
+		// AllowBootstrap will only be true if no existing management tokens
+		// have been found.
+		AllowBootstrap bool
+
+		structs.RaftIndex
+	}
+
+	var req ACLBootstrap
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}

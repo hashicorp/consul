@@ -6,10 +6,6 @@
 
 package structs
 
-import (
-	"fmt"
-)
-
 const (
 	// ACLTokenTypeClient tokens have rules applied
 	ACLTokenTypeClient = "client"
@@ -17,9 +13,6 @@ const (
 	// ACLTokenTypeManagement tokens have an always allow policy, so they can
 	// make other tokens and can access all resources.
 	ACLTokenTypeManagement = "management"
-
-	// ACLTokenTypeNone
-	ACLTokenTypeNone = ""
 )
 
 // ACL is used to represent a token and its rules
@@ -32,14 +25,11 @@ type ACL struct {
 	RaftIndex
 }
 
-// ACLs is a slice of ACLs.
-type ACLs []*ACL
-
 // Convert does a 1-1 mapping of the ACLCompat structure to its ACLToken
 // equivalent. This will NOT fill in the other ACLToken fields or perform any other
 // upgrade (other than correcting an older HCL syntax that is no longer
 // supported).
-// TODO(ACL-Legacy-Compat): remove
+// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
 func (a *ACL) Convert() *ACLToken {
 	// Ensure that we correct any old HCL in legacy tokens to prevent old
 	// syntax from leaking elsewhere into the system.
@@ -65,49 +55,4 @@ func (a *ACL) Convert() *ACLToken {
 
 	token.SetHash(true)
 	return token
-}
-
-// Convert attempts to convert an ACLToken into an ACLCompat.
-// TODO(ACL-Legacy-Compat): remove
-func (tok *ACLToken) Convert() (*ACL, error) {
-	if tok.Type == "" {
-		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
-	}
-
-	compat := &ACL{
-		ID:        tok.SecretID,
-		Name:      tok.Description,
-		Type:      tok.Type,
-		Rules:     tok.Rules,
-		RaftIndex: tok.RaftIndex,
-	}
-	return compat, nil
-}
-
-// ACLSpecificRequest is used to request an ACL by ID
-type ACLSpecificRequest struct {
-	Datacenter string
-	ACL        string
-	QueryOptions
-}
-
-// RequestDatacenter returns the DC this request is targeted to.
-func (r *ACLSpecificRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-// IndexedACLs has tokens along with the Raft metadata about them.
-type IndexedACLs struct {
-	ACLs ACLs
-	QueryMeta
-}
-
-// ACLBootstrap keeps track of whether bootstrapping ACLs is allowed for a
-// cluster.
-type ACLBootstrap struct {
-	// AllowBootstrap will only be true if no existing management tokens
-	// have been found.
-	AllowBootstrap bool
-
-	RaftIndex
 }

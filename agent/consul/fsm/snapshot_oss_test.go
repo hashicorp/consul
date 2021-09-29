@@ -2,6 +2,7 @@ package fsm
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -581,7 +582,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NotNil(t, rtoken)
 	require.NotEmpty(t, rtoken.Hash)
 
-	restoredACL, err := rtoken.Convert()
+	restoredACL, err := convertACLTokenToLegacy(rtoken)
 	require.NoError(t, err)
 	require.Equal(t, &acl, restoredACL)
 
@@ -732,6 +733,23 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	default:
 		require.Fail(t, "Old state not abandoned")
 	}
+}
+
+// convertACLTokenToLegacy attempts to convert an ACLToken into an legacy ACL.
+// TODO(ACL-Legacy-Compat): remove in phase 2, used by snapshot restore
+func convertACLTokenToLegacy(tok *structs.ACLToken) (*structs.ACL, error) {
+	if tok.Type == "" {
+		return nil, fmt.Errorf("Cannot convert ACLToken into compat token")
+	}
+
+	compat := &structs.ACL{
+		ID:        tok.SecretID,
+		Name:      tok.Description,
+		Type:      tok.Type,
+		Rules:     tok.Rules,
+		RaftIndex: tok.RaftIndex,
+	}
+	return compat, nil
 }
 
 func TestFSM_BadRestore_OSS(t *testing.T) {
