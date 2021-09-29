@@ -1,6 +1,7 @@
 package decode
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -210,16 +211,29 @@ type translateExample struct {
 	FieldWithMapstructureTag     string `alias:"second" mapstructure:"field_with_mapstruct_tag"`
 	FieldWithMapstructureTagOmit string `mapstructure:"field_with_mapstruct_omit,omitempty" alias:"third"`
 	FieldWithEmptyTag            string `mapstructure:"" alias:"forth"`
+	EmbeddedStruct               `mapstructure:",squash"`
+	*PtrEmbeddedStruct           `mapstructure:",squash"`
+	BadField                     string `mapstructure:",squash"`
+}
+
+type EmbeddedStruct struct {
+	NextField string `alias:"next"`
+}
+
+type PtrEmbeddedStruct struct {
+	OtherNextField string `alias:"othernext"`
 }
 
 func TestTranslationsForType(t *testing.T) {
 	to := reflect.TypeOf(translateExample{})
 	actual := translationsForType(to)
 	expected := map[string]string{
-		"first":  "fielddefaultcanonical",
-		"second": "field_with_mapstruct_tag",
-		"third":  "field_with_mapstruct_omit",
-		"forth":  "fieldwithemptytag",
+		"first":     "fielddefaultcanonical",
+		"second":    "field_with_mapstruct_tag",
+		"third":     "field_with_mapstruct_omit",
+		"forth":     "fieldwithemptytag",
+		"next":      "nextfield",
+		"othernext": "othernextfield",
 	}
 	require.Equal(t, expected, actual)
 }
@@ -388,4 +402,36 @@ service {
 		},
 	}
 	require.Equal(t, target, expected)
+}
+
+func TestFieldTags(t *testing.T) {
+	type testCase struct {
+		tags     string
+		expected mapstructureFieldTags
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		tag := fmt.Sprintf(`mapstructure:"%v"`, tc.tags)
+		field := reflect.StructField{
+			Tag:  reflect.StructTag(tag),
+			Name: "Original",
+		}
+		actual := fieldTags(field)
+		require.Equal(t, tc.expected, actual)
+	}
+
+	var testCases = []testCase{
+		{tags: "", expected: mapstructureFieldTags{name: "Original"}},
+		{tags: "just-a-name", expected: mapstructureFieldTags{name: "just-a-name"}},
+		{tags: "name,squash", expected: mapstructureFieldTags{name: "name", squash: true}},
+		{tags: ",squash", expected: mapstructureFieldTags{name: "Original", squash: true}},
+		{tags: ",omitempty,squash", expected: mapstructureFieldTags{name: "Original", squash: true}},
+		{tags: "named,omitempty,squash", expected: mapstructureFieldTags{name: "named", squash: true}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.tags, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
 }
