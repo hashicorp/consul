@@ -100,10 +100,6 @@ func (id *missingIdentity) RoleIDs() []string {
 	return nil
 }
 
-func (id *missingIdentity) EmbeddedPolicy() *structs.ACLPolicy {
-	return nil
-}
-
 func (id *missingIdentity) ServiceIdentityList() []*structs.ACLServiceIdentity {
 	return nil
 }
@@ -616,11 +612,6 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	)
 
 	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
-		policy := identity.EmbeddedPolicy()
-		if policy != nil {
-			return []*structs.ACLPolicy{policy}, nil
-		}
-
 		// In this case the default policy will be all that is in effect.
 		return nil, nil
 	}
