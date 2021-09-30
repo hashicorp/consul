@@ -26,7 +26,7 @@
             <BlockSlot @name="menu">
 {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
               <DataSource
-                @src="/*/*/*/datacenters"
+                @src={{uri '/*/*/*/datacenters'}}
                 @onchange={{action (mut @dcs) value="data"}}
                 @loading="lazy"
               />

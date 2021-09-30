@@ -5,6 +5,8 @@ const templateRe = /\${([A-Za-z.0-9_-]+)}/g;
 let render;
 export default class UriHelper extends Helper {
   @service('encoder') encoder;
+  @service('data-source/service') data;
+
   constructor() {
     super(...arguments);
     if (typeof render !== 'function') {
@@ -13,6 +15,6 @@ export default class UriHelper extends Helper {
   }
 
   compute([template, vars]) {
-    return render(template, vars);
+    return this.data.uri(render(template, vars));
   }
 }

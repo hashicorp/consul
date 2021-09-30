@@ -19,7 +19,7 @@ as |route|>
 
 {{! Tell CSS about our theme }}
 <DataSource
-  @src="settings://consul:theme"
+  @src={{uri 'settings://consul:theme'}}
 as |source|>
 {{#each-in source.data as |key value|}}
   {{#if (and value (contains key (array "color-scheme" "contrast")))}}
@@ -31,7 +31,7 @@ as |source|>
 {{! If ACLs are enabled try get a token }}
 {{#if (can "use acls")}}
 <DataSource
-  @src="settings://consul:token"
+  @src={{uri 'settings://consul:token'}}
   @onchange={{action (mut token) value="data"}}
 />
 {{/if}}
