@@ -15,6 +15,13 @@ const (
 	tableUsage = "usage"
 )
 
+var allConnectKind = []string{
+	string(structs.ServiceKindConnectProxy),
+	string(structs.ServiceKindIngressGateway),
+	string(structs.ServiceKindMeshGateway),
+	string(structs.ServiceKindTerminatingGateway),
+}
+
 // usageTableSchema returns a new table schema used for tracking various indexes
 // for the Raft log.
 func usageTableSchema() *memdb.TableSchema {
@@ -44,8 +51,9 @@ type UsageEntry struct {
 
 // ServiceUsage contains all of the usage data related to services
 type ServiceUsage struct {
-	Services         int
-	ServiceInstances int
+	Services                int
+	ServiceInstances        int
+	ConnectServiceInstances map[string]int
 	EnterpriseServiceUsage
 }
 
@@ -89,8 +97,10 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
 			usageDeltas[change.Table] += delta
+			// ServiceKind is empty string for non connect services
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
 
+			connectDeltas(change, usageDeltas, delta)
 			// Construct a mapping of all of the various service names that were
 			// changed, in order to compare it with the finished memdb state.
 			// Make sure to account for the fact that services can change their names.
@@ -101,6 +111,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			} else {
 				serviceNameChanges[svc.CompoundServiceName()] += delta
 			}
+
 		case "kvs":
 			usageDeltas[change.Table] += delta
 			addEnterpriseKVUsage(usageDeltas, change)
@@ -118,7 +129,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 	// of the tables we are tracking.
 	if idx == 0 {
 		// TODO(partitions? namespaces?)
-		idx = maxIndexTxn(tx, tableNodes, tableServices)
+		idx = maxIndexTxn(tx, tableNodes, tableServices, "kvs")
 	}
 
 	return writeUsageDeltas(tx, idx, usageDeltas)
@@ -141,19 +152,19 @@ func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceName
 		// added/removed during the transaction. This allows us to handle a single
 		// transaction committing multiple changes related to a single service
 		// name.
-		var svcCount int
+		var count int
 		for service := serviceIter.Next(); service != nil; service = serviceIter.Next() {
-			svcCount += 1
+			count += 1
 		}
 
 		var serviceState uniqueServiceState
 		switch {
-		case svcCount == 0:
+		case count == 0:
 			// If no services exist, we know we deleted the last service
 			// instance.
 			serviceState = Deleted
 			usageDeltas[serviceNamesUsageTable] -= 1
-		case svcCount == delta:
+		case count == delta:
 			// If the current number of service instances equals the number added,
 			// than we know we created a new service name.
 			serviceState = Created
@@ -178,6 +189,32 @@ func serviceNameChanged(change memdb.Change) bool {
 	}
 
 	return false
+}
+
+func connectDeltas(change memdb.Change, usageDeltas map[string]int, delta int) {
+	// Connect metrics for updated services are more complicated. Check for:
+	// 1. Did ServiceKind change?
+	// 2. Is before ServiceKind typical? don't remove from old service kind
+	// 3. Is After ServiceKind typical? don't add to new service kind
+	// 4. Add and remove to both ServiceKind's
+	if change.Updated() {
+		before := change.Before.(*structs.ServiceNode)
+		after := change.After.(*structs.ServiceNode)
+		if before.ServiceKind != structs.ServiceKindTypical {
+			usageDeltas[string(before.ServiceKind)] -= 1
+			addEnterpriseConnectServiceInstanceUsage(usageDeltas, before, -1)
+		}
+		if after.ServiceKind != structs.ServiceKindTypical {
+			usageDeltas[string(after.ServiceKind)] += 1
+			addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
+		}
+	} else {
+		svc := changeObject(change).(*structs.ServiceNode)
+		if svc.ServiceKind != structs.ServiceKindTypical {
+			usageDeltas[string(svc.ServiceKind)] += delta
+		}
+		addEnterpriseConnectServiceInstanceUsage(usageDeltas, svc, delta)
+	}
 }
 
 // writeUsageDeltas will take in a map of IDs to deltas and update each
@@ -266,9 +303,19 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
 
+	serviceKindInstances := make(map[string]int)
+	for _, kind := range allConnectKind {
+		usage, err := firstUsageEntry(tx, kind)
+		if err != nil {
+			return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
+		}
+		serviceKindInstances[kind] = usage.Count
+	}
+
 	usage := ServiceUsage{
-		ServiceInstances: serviceInstances.Count,
-		Services:         services.Count,
+		ServiceInstances:        serviceInstances.Count,
+		Services:                services.Count,
+		ConnectServiceInstances: serviceKindInstances,
 	}
 	results, err := compileEnterpriseServiceUsage(tx, usage)
 	if err != nil {

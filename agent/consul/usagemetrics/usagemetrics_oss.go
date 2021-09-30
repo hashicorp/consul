@@ -57,6 +57,14 @@ func (u *UsageMetricsReporter) emitServiceUsage(serviceUsage state.ServiceUsage)
 		float32(serviceUsage.ServiceInstances),
 		u.metricLabels,
 	)
+
+	for k, i := range serviceUsage.ConnectServiceInstances {
+		metrics.SetGaugeWithLabels(
+			[]string{"consul", "state", "connect_instances"},
+			float32(i),
+			append(u.metricLabels, metrics.Label{Name: "kind", Value: k}),
+		)
+	}
 }
 
 func (u *UsageMetricsReporter) emitKVUsage(kvUsage state.KVUsage) {

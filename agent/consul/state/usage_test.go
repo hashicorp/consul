@@ -92,6 +92,9 @@ func TestStateStore_Usage_ServiceUsageEmpty(t *testing.T) {
 	require.Equal(t, idx, uint64(0))
 	require.Equal(t, usage.Services, 0)
 	require.Equal(t, usage.ServiceInstances, 0)
+	for k := range usage.ConnectServiceInstances {
+		require.Equal(t, 0, usage.ConnectServiceInstances[k])
+	}
 }
 
 func TestStateStore_Usage_ServiceUsage(t *testing.T) {
@@ -102,12 +105,15 @@ func TestStateStore_Usage_ServiceUsage(t *testing.T) {
 	testRegisterService(t, s, 8, "node1", "service1")
 	testRegisterService(t, s, 9, "node2", "service1")
 	testRegisterService(t, s, 10, "node2", "service2")
+	testRegisterSidecarProxy(t, s, 11, "node1", "service1")
+	testRegisterSidecarProxy(t, s, 12, "node2", "service1")
 
 	idx, usage, err := s.ServiceUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(10))
-	require.Equal(t, 2, usage.Services)
-	require.Equal(t, 3, usage.ServiceInstances)
+	require.Equal(t, idx, uint64(12))
+	require.Equal(t, 3, usage.Services)
+	require.Equal(t, 5, usage.ServiceInstances)
+	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 }
 
 func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
@@ -123,20 +129,22 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	svc2 := &structs.NodeService{
 		ID:      "service2",
 		Service: "test",
+		Tags:    []string{},
 		Address: "1.1.1.1",
-		Port:    1111,
 	}
 
 	// Register multiple instances on a single node to test that we do not
 	// double count deletions within the same transaction.
 	require.NoError(t, s.EnsureService(1, "node1", svc1))
 	require.NoError(t, s.EnsureService(2, "node1", svc2))
+	testRegisterSidecarProxy(t, s, 3, "node1", "service2")
 
 	idx, usage, err := s.ServiceUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(2))
-	require.Equal(t, usage.Services, 1)
-	require.Equal(t, usage.ServiceInstances, 2)
+	require.Equal(t, idx, uint64(3))
+	require.Equal(t, 2, usage.Services)
+	require.Equal(t, 3, usage.ServiceInstances)
+	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 
 	require.NoError(t, s.DeleteNode(3, "node1", nil))
 
@@ -145,6 +153,9 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	require.Equal(t, idx, uint64(3))
 	require.Equal(t, usage.Services, 0)
 	require.Equal(t, usage.ServiceInstances, 0)
+	for k := range usage.ConnectServiceInstances {
+		require.Equal(t, 0, usage.ConnectServiceInstances[k])
+	}
 }
 
 func TestStateStore_Usage_Restore(t *testing.T) {
@@ -195,6 +206,15 @@ func TestStateStore_Usage_updateUsage_Underflow(t *testing.T) {
 				Before: &structs.Node{},
 				After:  nil,
 			},
+			{
+				Table: tableServices,
+				Before: &structs.ServiceNode{
+					ID:          "service-1-connect-proxy",
+					ServiceKind: structs.ServiceKindConnectProxy,
+					ServiceID:   "service-1",
+					ServiceName: "service",
+				},
+			},
 		},
 	}
 
@@ -203,6 +223,10 @@ func TestStateStore_Usage_updateUsage_Underflow(t *testing.T) {
 
 	// Check that we do not underflow
 	u, err := txn.First("usage", "id", "nodes")
+	require.NoError(t, err)
+	require.Equal(t, 0, u.(*UsageEntry).Count)
+
+	u, err = txn.First("usage", "id", string(structs.ServiceKindConnectProxy))
 	require.NoError(t, err)
 	require.Equal(t, 0, u.(*UsageEntry).Count)
 
@@ -305,5 +329,71 @@ func TestStateStore_Usage_ServiceUsage_updatingServiceName(t *testing.T) {
 		require.Equal(t, idx, uint64(5))
 		require.Equal(t, usage.Services, 3)
 		require.Equal(t, usage.ServiceInstances, 3)
+	})
+}
+
+func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
+	s := testStateStore(t)
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterService(t, s, 1, "node1", "service1")
+
+	t.Run("change service to ConnectProxy", func(t *testing.T) {
+		svc := &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "service1",
+			Service: "after",
+			Address: "1.1.1.1",
+			Port:    1111,
+		}
+		require.NoError(t, s.EnsureService(2, "node1", svc))
+
+		// We renamed a service with a single instance, so we maintain 1 service.
+		idx, usage, err := s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, idx, uint64(2))
+		require.Equal(t, usage.Services, 1)
+		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+	})
+
+	t.Run("rename service with a multiple instances", func(t *testing.T) {
+		svc2 := &structs.NodeService{
+			ID:      "service2",
+			Service: "before",
+			Address: "1.1.1.2",
+			Port:    1111,
+		}
+		require.NoError(t, s.EnsureService(3, "node1", svc2))
+
+		svc3 := &structs.NodeService{
+			Kind:    structs.ServiceKindConnectProxy,
+			ID:      "service3",
+			Service: "before",
+			Address: "1.1.1.3",
+			Port:    1111,
+		}
+		require.NoError(t, s.EnsureService(4, "node1", svc3))
+
+		idx, usage, err := s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, idx, uint64(4))
+		require.Equal(t, usage.Services, 2)
+		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+
+		update := &structs.NodeService{
+			ID:      "service3",
+			Service: "another-name",
+			Address: "1.1.1.2",
+			Port:    1111,
+		}
+		require.NoError(t, s.EnsureService(5, "node1", update))
+
+		idx, usage, err = s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, idx, uint64(5))
+		require.Equal(t, usage.Services, 3)
+		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 	})
 }

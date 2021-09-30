@@ -18,6 +18,8 @@ func addEnterpriseServiceInstanceUsage(map[string]int, memdb.Change) {}
 
 func addEnterpriseServiceUsage(map[string]int, map[structs.ServiceName]uniqueServiceState) {}
 
+func addEnterpriseConnectServiceInstanceUsage(map[string]int, *structs.ServiceNode, int) {}
+
 func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
 
 func compileEnterpriseServiceUsage(tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
