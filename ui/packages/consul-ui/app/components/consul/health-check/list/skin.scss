@@ -19,7 +19,7 @@
 }
 %healthcheck-output dd em {
   @extend %pill;
-  background-color: $gray-100;
+  background-color: rgb(var(--tone-gray-100));
   /*TODO: Should this be merged into %pill? */
   cursor: default;
   font-style: normal;
@@ -28,41 +28,41 @@
 }
 %healthcheck-output.passing::before {
   @extend %with-check-circle-fill-mask;
-  color: $green-500;
+  color: rgb(var(--tone-green-500));
 }
 %healthcheck-output.warning::before {
   @extend %with-alert-triangle-mask;
-  color: $orange-500;
+  color: rgb(var(--tone-orange-500));
 }
 %healthcheck-output.critical::before {
   @extend %with-cancel-square-fill-mask;
-  color: $red-500;
+  color: rgb(var(--tone-red-500));
 }
 %healthcheck-output,
 %healthcheck-output pre {
-  border-radius: $decor-radius-100;
+  border-radius: var(--decor-radius-100);
 }
 %healthcheck-output dd:first-of-type {
-  color: $gray-400;
+  color: rgb(var(--tone-gray-400));
 }
 %healthcheck-output pre {
-  background-color: $gray-050;
-  color: $gray-600;
+  background-color: rgb(var(--tone-gray-050));
+  color: rgb(var(--tone-gray-600));
 }
 %healthcheck-output {
   /* TODO: this should be a frame-gray */
-  color: $gray-900;
-  border-color: $gray-200;
+  color: rgb(var(--tone-gray-900));
+  border-color: rgb(var(--tone-gray-200));
   border-style: solid;
 
   border-left-width: 4px;
 }
 %healthcheck-output.passing {
-  border-left-color: $green-500;
+  border-left-color: rgb(var(--tone-green-500));
 }
 %healthcheck-output.warning {
-  border-left-color: $yellow-500;
+  border-left-color: rgb(var(--tone-yellow-500));
 }
 %healthcheck-output.critical {
-  border-left-color: $red-500;
+  border-left-color: rgb(var(--tone-red-500));
 }

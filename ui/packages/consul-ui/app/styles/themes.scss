@@ -1,3 +1,6 @@
+@import './base/color/ui/index';
+@import './base/color/magenta/index';
+@import './base/color/strawberry/index';
 :root {
   @extend %theme-light;
 }
@@ -8,5 +11,5 @@
 }
 %main-nav-vertical .menu-panel a:hover,
 %main-nav-vertical .menu-panel a:focus {
-  background-color: var(--blue-500);
+  background-color: rgb(var(--tone-blue-500));
 }

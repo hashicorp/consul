@@ -1,24 +1,28 @@
-$syntax-light-grey: #dde3e7;
-$syntax-light-gray: #a4a4a4;
-$syntax-light-grey-blue: #6c7b81;
-$syntax-dark-grey: #788290;
-$syntax-faded-gray: #eaeaea;
-// Product colors
-$syntax-atlas: #127eff;
-$syntax-vagrant: #2f88f7;
 $syntax-consul: #69499a;
-$syntax-terraform: #822ff7;
-$syntax-serf: #dd4e58;
-$syntax-packer: #1ddba3;
-
-// Our colors
-$syntax-gray: lighten($black, 89%);
-$syntax-red: #ff3d3d;
-$syntax-green: #39b54a;
 $syntax-dark-gray: #535f73;
+:root {
+  --syntax-light-grey: #dde3e7;
+  --syntax-light-gray: #a4a4a4;
+  --syntax-light-grey-blue: #6c7b81;
+  --syntax-dark-grey: #788290;
+  --syntax-faded-gray: #eaeaea;
+  // Product colors
+  --syntax-atlas: #127eff;
+  --syntax-vagrant: #2f88f7;
+  --syntax-consul: #{$syntax-consul};
+  --syntax-terraform: #822ff7;
+  --syntax-serf: #dd4e58;
+  --syntax-packer: #1ddba3;
 
-$syntax-gutter-grey: #2a2f36;
-$syntax-yellow: $yellow-500;
+  // Our colors
+  --syntax-gray: lighten(#000, 89%);
+  --syntax-red: #ff3d3d;
+  --syntax-green: #39b54a;
+  --syntax-dark-gray: #{$syntax-dark-gray};
+
+  --syntax-gutter-grey: #2a2f36;
+  --syntax-yellow: rgb(var(--tone-yellow-500));
+}
 .CodeMirror {
   max-width: 1150px;
   min-height: 300px;
@@ -31,10 +35,10 @@ $syntax-yellow: $yellow-500;
 }
 .CodeMirror-lint-tooltip {
   background-color: #f9f9fa;
-  border: 1px solid $syntax-light-gray;
+  border: 1px solid var(--syntax-light-gray);
   border-radius: 0;
-  color: lighten($black, 13%);
-  font-family: $typo-family-mono;
+  color: lighten(#000, 13%);
+  font-family: var(--typo-family-mono);
   font-size: 13px;
   padding: 7px 8px 9px;
 }
@@ -42,17 +46,17 @@ $syntax-yellow: $yellow-500;
 .cm-s-hashi {
   &.CodeMirror {
     width: 100%;
-    background-color: $black !important;
+    background-color: rgb(var(--black)) !important;
     color: #cfd2d1 !important;
     border: none;
-    font-family: $typo-family-mono;
+    font-family: var(--typo-family-mono);
     -webkit-font-smoothing: auto;
     line-height: 1.4;
   }
 
   .CodeMirror-gutters {
-    color: $syntax-dark-grey;
-    background-color: $syntax-gutter-grey;
+    color: var(--syntax-dark-grey);
+    background-color: var(--syntax-gutter-grey);
     border: none;
   }
 
@@ -77,20 +81,20 @@ $syntax-yellow: $yellow-500;
   .CodeMirror-line::-moz-selection,
   .CodeMirror-line > span::-moz-selection,
   .CodeMirror-line > span > span::-moz-selection {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(var(--white) / 10%);
   }
 
   span.cm-comment {
-    color: $syntax-light-grey;
+    color: var(--syntax-light-grey);
   }
 
   span.cm-string,
   span.cm-string-2 {
-    color: $syntax-packer;
+    color: var(--syntax-packer);
   }
 
   span.cm-number {
-    color: $syntax-serf;
+    color: var(--syntax-serf);
   }
 
   span.cm-variable {
@@ -102,26 +106,26 @@ $syntax-yellow: $yellow-500;
   }
 
   span.cm-def {
-    color: $syntax-packer;
+    color: var(--syntax-packer);
   }
 
   span.cm-operator {
-    color: $syntax-gray;
+    color: var(--syntax-gray);
   }
   span.cm-keyword {
-    color: $syntax-yellow;
+    color: var(--syntax-yellow);
   }
 
   span.cm-atom {
-    color: $syntax-serf;
+    color: var(--syntax-serf);
   }
 
   span.cm-meta {
-    color: $syntax-packer;
+    color: var(--syntax-packer);
   }
 
   span.cm-tag {
-    color: $syntax-packer;
+    color: var(--syntax-packer);
   }
 
   span.cm-attribute {
@@ -150,7 +154,7 @@ $syntax-yellow: $yellow-500;
 
   .CodeMirror-matchingbracket {
     text-decoration: underline;
-    color: $white !important;
+    color: rgb(var(--white)) !important;
   }
 }
 
@@ -161,12 +165,12 @@ $syntax-yellow: $yellow-500;
 
   .cm-s-hashi {
     span {
-      color: $syntax-light-grey;
+      color: var(--syntax-light-grey);
     }
 
     span.cm-string,
     span.cm-string-2 {
-      color: $syntax-faded-gray;
+      color: var(--syntax-faded-gray);
     }
 
     span.cm-number {
@@ -174,11 +178,11 @@ $syntax-yellow: $yellow-500;
     }
 
     span.cm-property {
-      color: $white;
+      color: rgb(var(--white));
     }
 
     span.cm-variable-2 {
-      color: $syntax-light-grey-blue;
+      color: var(--syntax-light-grey-blue);
     }
   }
 }

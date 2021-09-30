@@ -8,8 +8,8 @@
   background-color: currentColor;
 }
 %with-glyph-icon {
-  font-weight: $typo-weight-normal;
-  background-color: $gray-100;
+  font-weight: var(--typo-weight-normal);
+  background-color: rgb(var(--tone-gray-100));
   visibility: visible;
   padding: 0 4px;
 }

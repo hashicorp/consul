@@ -8,27 +8,27 @@
 %icon-definition.passing dt::before,
 %composite-row-header .passing dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: $green-500;
+  color: rgb(var(--tone-green-500));
 }
 %icon-definition.warning dt::before,
 %composite-row-header .warning dd::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: $orange-500;
+  color: rgb(var(--tone-orange-500));
 }
 %icon-definition.critical dt::before,
 %composite-row-header .critical dd::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
-  color: $red-500;
+  color: rgb(var(--tone-red-500));
 }
 %icon-definition.empty dt::before,
 %composite-row-header .empty dd::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
 }
 
 %composite-row-header [rel='me'] dd::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: $blue-500;
+  color: rgb(var(--tone-blue-500));
 }
 
 %icon-definition.node dt::before {

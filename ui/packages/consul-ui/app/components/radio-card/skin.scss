@@ -1,25 +1,25 @@
 %radio-card {
-  border: $decor-border-100;
-  border-radius: $decor-radius-100;
-  border-color: $gray-200;
-  box-shadow: $decor-elevation-400;
-  color: $gray-500;
+  border: var(--decor-border-100);
+  border-radius: var(--decor-radius-100);
+  border-color: rgb(var(--tone-gray-200));
+  box-shadow: var(--decor-elevation-400);
+  color: rgb(var(--tone-gray-500));
   cursor: pointer;
 }
 %radio-card.checked {
-  border-color: $blue-500;
+  border-color: rgb(var(--tone-blue-500));
 }
 %radio-card > :first-child {
-  background-color: $gray-050;
+  background-color: rgb(var(--tone-gray-050));
 }
 %radio-card.checked > :first-child {
-  background-color: $blue-050;
+  background-color: rgb(var(--tone-blue-050));
 }
 %radio-card header {
   margin-bottom: 0.5em;
 }
 %radio-card header {
-  color: $black;
+  color: var(--black);
 }
 %radio-card-with-icon > :last-child {
   padding-left: 47px;

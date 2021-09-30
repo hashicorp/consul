@@ -5,7 +5,7 @@
   justify-content: space-between;
   align-items: stretch;
   width: 100%;
-  border-top: 1px solid var(--gray-200);
+  border-top: 1px solid rgb(var(--tone-gray-200));
   dl {
     display: flex;
     padding-bottom: 12px;
@@ -15,7 +15,7 @@
     line-height: 1.5em !important;
   }
   dd {
-    color: $gray-400 !important;
+    color: rgb(var(--tone-gray-400)) !important;
   }
   span {
     padding-bottom: 12px;

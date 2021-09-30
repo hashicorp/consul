@@ -2,21 +2,21 @@
   @extend %h100;
 }
 %app-view-title {
-  border-bottom: $decor-border-100;
+  border-bottom: var(--decor-border-100);
 }
 %app-view-content form:not(.filter-bar) fieldset {
-  border-bottom: $decor-border-200;
+  border-bottom: var(--decor-border-200);
 }
 %app-view-header h1 > em {
-  color: var(--gray-600);
+  color: rgb(var(--tone-gray-600));
 }
 %app-view-header dd > a {
-  color: var(--gray-999);
+  color: rgb(var(--tone-gray-999));
 }
 %app-view-content div > dl > dd {
-  color: var(--gray-400);
+  color: rgb(var(--tone-gray-400));
 }
 %app-view-title,
 %app-view-content form:not(.filter-bar) fieldset {
-  border-color: var(--gray-200);
+  border-color: rgb(var(--tone-gray-200));
 }
