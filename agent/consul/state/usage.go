@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	serviceNamesUsageTable = "service-names"
-	kvUsageTable           = "kv-entries"
+	serviceNamesUsageTable      = "service-names"
+	kvUsageTable                = "kv-entries"
+	connectNativeInstancesTable = "connect-native"
 
 	tableUsage = "usage"
 )
@@ -20,6 +21,7 @@ var allConnectKind = []string{
 	string(structs.ServiceKindIngressGateway),
 	string(structs.ServiceKindMeshGateway),
 	string(structs.ServiceKindTerminatingGateway),
+	connectNativeInstancesTable,
 }
 
 // usageTableSchema returns a new table schema used for tracking various indexes
@@ -208,10 +210,23 @@ func connectDeltas(change memdb.Change, usageDeltas map[string]int, delta int) {
 			usageDeltas[string(after.ServiceKind)] += 1
 			addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
 		}
+
+		if before.ServiceConnect.Native != after.ServiceConnect.Native {
+			if before.ServiceConnect.Native {
+				usageDeltas[connectNativeInstancesTable] -= 1
+				addEnterpriseConnectServiceInstanceUsage(usageDeltas, before, -1)
+			} else {
+				usageDeltas[connectNativeInstancesTable] += 1
+				addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
+			}
+		}
 	} else {
 		svc := changeObject(change).(*structs.ServiceNode)
 		if svc.ServiceKind != structs.ServiceKindTypical {
 			usageDeltas[string(svc.ServiceKind)] += delta
+		}
+		if svc.ServiceConnect.Native {
+			usageDeltas[connectNativeInstancesTable] += delta
 		}
 		addEnterpriseConnectServiceInstanceUsage(usageDeltas, svc, delta)
 	}

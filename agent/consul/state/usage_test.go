@@ -107,13 +107,17 @@ func TestStateStore_Usage_ServiceUsage(t *testing.T) {
 	testRegisterService(t, s, 10, "node2", "service2")
 	testRegisterSidecarProxy(t, s, 11, "node1", "service1")
 	testRegisterSidecarProxy(t, s, 12, "node2", "service1")
+	testRegisterConnectNativeService(t, s, 13, "node1", "service-native")
+	testRegisterConnectNativeService(t, s, 14, "node2", "service-native")
+	testRegisterConnectNativeService(t, s, 15, "node2", "service-native-1")
 
 	idx, usage, err := s.ServiceUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(12))
-	require.Equal(t, 3, usage.Services)
-	require.Equal(t, 5, usage.ServiceInstances)
+	require.Equal(t, idx, uint64(15))
+	require.Equal(t, 5, usage.Services)
+	require.Equal(t, 8, usage.ServiceInstances)
 	require.Equal(t, 2, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+	require.Equal(t, 3, usage.ConnectServiceInstances[connectNativeInstancesTable])
 }
 
 func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
@@ -138,19 +142,21 @@ func TestStateStore_Usage_ServiceUsage_DeleteNode(t *testing.T) {
 	require.NoError(t, s.EnsureService(1, "node1", svc1))
 	require.NoError(t, s.EnsureService(2, "node1", svc2))
 	testRegisterSidecarProxy(t, s, 3, "node1", "service2")
+	testRegisterConnectNativeService(t, s, 4, "node1", "service-connect")
 
 	idx, usage, err := s.ServiceUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(3))
-	require.Equal(t, 2, usage.Services)
-	require.Equal(t, 3, usage.ServiceInstances)
+	require.Equal(t, idx, uint64(4))
+	require.Equal(t, 3, usage.Services)
+	require.Equal(t, 4, usage.ServiceInstances)
 	require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
+	require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
 
-	require.NoError(t, s.DeleteNode(3, "node1", nil))
+	require.NoError(t, s.DeleteNode(4, "node1", nil))
 
 	idx, usage, err = s.ServiceUsage()
 	require.NoError(t, err)
-	require.Equal(t, idx, uint64(3))
+	require.Equal(t, idx, uint64(4))
 	require.Equal(t, usage.Services, 0)
 	require.Equal(t, usage.ServiceInstances, 0)
 	for k := range usage.ConnectServiceInstances {
@@ -271,7 +277,7 @@ func TestStateStore_Usage_updateUsage_Underflow(t *testing.T) {
 	require.Equal(t, 0, u.(*UsageEntry).Count)
 }
 
-func TestStateStore_Usage_ServiceUsage_updatingServiceName(t *testing.T) {
+func TestStateStore_Usage_ServiceUsage_updatingService(t *testing.T) {
 	s := testStateStore(t)
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterService(t, s, 1, "node1", "service1")
@@ -293,42 +299,96 @@ func TestStateStore_Usage_ServiceUsage_updatingServiceName(t *testing.T) {
 		require.Equal(t, usage.ServiceInstances, 1)
 	})
 
+	t.Run("update service to be connect native", func(t *testing.T) {
+		svc := &structs.NodeService{
+			ID:      "service1",
+			Service: "after",
+			Address: "1.1.1.1",
+			Port:    1111,
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
+		}
+		require.NoError(t, s.EnsureService(3, "node1", svc))
+
+		// We renamed a service with a single instance, so we maintain 1 service.
+		idx, usage, err := s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, idx, uint64(3))
+		require.Equal(t, usage.Services, 1)
+		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, 1, usage.ConnectServiceInstances[connectNativeInstancesTable])
+	})
+
+	t.Run("update service to not be connect native", func(t *testing.T) {
+		svc := &structs.NodeService{
+			ID:      "service1",
+			Service: "after",
+			Address: "1.1.1.1",
+			Port:    1111,
+			Connect: structs.ServiceConnect{
+				Native: false,
+			},
+		}
+		require.NoError(t, s.EnsureService(4, "node1", svc))
+
+		// We renamed a service with a single instance, so we maintain 1 service.
+		idx, usage, err := s.ServiceUsage()
+		require.NoError(t, err)
+		require.Equal(t, idx, uint64(4))
+		require.Equal(t, usage.Services, 1)
+		require.Equal(t, usage.ServiceInstances, 1)
+		require.Equal(t, 0, usage.ConnectServiceInstances[connectNativeInstancesTable])
+	})
+
 	t.Run("rename service with a multiple instances", func(t *testing.T) {
 		svc2 := &structs.NodeService{
 			ID:      "service2",
 			Service: "before",
 			Address: "1.1.1.2",
 			Port:    1111,
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
 		}
-		require.NoError(t, s.EnsureService(3, "node1", svc2))
+		require.NoError(t, s.EnsureService(5, "node1", svc2))
 
 		svc3 := &structs.NodeService{
 			ID:      "service3",
 			Service: "before",
 			Address: "1.1.1.3",
 			Port:    1111,
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
 		}
-		require.NoError(t, s.EnsureService(4, "node1", svc3))
+		require.NoError(t, s.EnsureService(6, "node1", svc3))
 
 		idx, usage, err := s.ServiceUsage()
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(4))
+		require.Equal(t, idx, uint64(6))
 		require.Equal(t, usage.Services, 2)
 		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, 2, usage.ConnectServiceInstances[connectNativeInstancesTable])
 
 		update := &structs.NodeService{
 			ID:      "service2",
 			Service: "another-name",
 			Address: "1.1.1.2",
 			Port:    1111,
+			Connect: structs.ServiceConnect{
+				Native: true,
+			},
 		}
-		require.NoError(t, s.EnsureService(5, "node1", update))
+		require.NoError(t, s.EnsureService(7, "node1", update))
 
 		idx, usage, err = s.ServiceUsage()
 		require.NoError(t, err)
-		require.Equal(t, idx, uint64(5))
+		require.Equal(t, idx, uint64(7))
 		require.Equal(t, usage.Services, 3)
 		require.Equal(t, usage.ServiceInstances, 3)
+		require.Equal(t, 2, usage.ConnectServiceInstances[connectNativeInstancesTable])
+
 	})
 }
 

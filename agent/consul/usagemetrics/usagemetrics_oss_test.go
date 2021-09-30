@@ -90,6 +90,14 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "mesh-gateway"},
 					},
 				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
+					},
+				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -184,6 +192,14 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "mesh-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
 					},
 				},
 				// --- kv ---
@@ -310,6 +326,14 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "mesh-gateway"},
 					},
 				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
+					},
+				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -340,6 +364,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				require.NoError(t, s.EnsureRegistration(10, structs.TestRegisterIngressGateway(t)))
 				require.NoError(t, s.EnsureService(11, "foo", mgw))
 				require.NoError(t, s.EnsureService(12, "foo", tgw))
+				require.NoError(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "db-native", Service: "db", Tags: nil, Address: "", Port: 5000, Connect: structs.ServiceConnect{Native: true}}))
 			},
 			getMembersFunc: func() []serf.Member {
 				return []serf.Member{
@@ -397,7 +422,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				},
 				"consul.usage.test.consul.state.service_instances;datacenter=dc1": {
 					Name:  "consul.usage.test.consul.state.service_instances",
-					Value: 8,
+					Value: 9,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 					},
@@ -433,6 +458,14 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "mesh-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 1,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
 					},
 				},
 				// --- kv ---
@@ -550,6 +583,14 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "mesh-gateway"},
 					},
 				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
+					},
+				},
 				// --- kv ---
 				"consul.usage.test.consul.state.kv_entries;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.kv_entries",
@@ -653,6 +694,14 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "mesh-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.connect_instances;datacenter=dc1;kind=connect-native": {
+					Name:  "consul.usage.test.consul.state.connect_instances",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "connect-native"},
 					},
 				},
 				// --- kv ---
