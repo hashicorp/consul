@@ -21,6 +21,48 @@ In addition to the core agent operations, server nodes participate in the [conse
 The quorum is based on the Raft protocol, which provides strong consistency and availability in the case of failure.
 Server nodes should run on dedicated instances because they are more resource intensive than client nodes.
 
+## Lifecycle
+
+Every agent in the Consul cluster goes through a lifecycle.
+Understanding the lifecycle is useful for building a mental model of an agent's interactions with a cluster and how the cluster treats a node.
+The following process describes the agent lifecycle within the context of an existing cluster:
+
+1. **An agent is started** either manually or through an automated or programmatic process.
+   Newly-started agents are unaware of other nodes in the cluster.
+1. **An agent joins a cluster**, which enables the agent to discover agent peers.
+   Agents join clusters on startup when the [`join`](/commands/join) command is issued or according the [auto-join configuration](/docs/install/cloud-auto-join).
+1. **Information about the agent is gossiped to the entire cluster**.
+   As a result, all nodes will eventually become aware of each other.
+1. **Existing servers will begin replicating to the new node** if the agent is a server.
+
+### Failures and Crashes
+
+In the event of a network failure, some nodes may be unable to reach other nodes.
+Unreachable nodes will be marked as _failed_.
+
+Distinguishing between a network failure and an agent crash is impossible.
+As a result, agent crashes are handled in the same manner is network failures.
+
+Once a node is marked as failed, this information is updated in the service
+catalog.
+
+-> **Note:** Updating the catalog is only possible if the servers can still [form a quorum](/docs/internals/consensus).
+Once the network recovers or a crashed agent restarts, the cluster will repair itself and unmark a node as failed.
+The health check in the catalog will also be updated to reflect the current state.
+
+### Exiting Nodes
+
+When a node leaves a cluster, it communicates its intent and the cluster marks the node as having _left_.
+In contrast to changes related to failures, all of the services provided by a node are immediately deregistered.
+If a server agent leaves, replication to the exiting server will stop.
+
+To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_
+states), Consul will automatically remove dead nodes out of the catalog. This
+process is called _reaping_. This is currently done on a configurable
+interval of 72 hours (changing the reap interval is _not_ recommended due to
+its consequences during outage situations). Reaping is similar to leaving,
+causing all associated services to be deregistered.
+
 ## Requirements
 
 You should run one Consul agent per server or host.
@@ -41,26 +83,23 @@ Start a Consul agent with the `consul` command and `agent` subcommand using the 
 consul agent <options>
 ```
 
-Consul ships with a `-dev` flag that configures the agent to run with several additional settings.
+Consul ships with a `-dev` flag that configures the agent to run in server mode and several additional settings that enable you to quickly get started with Consul.
 The `-dev` flag is provided for learning purposes only.
 We strongly advise against using it for production environments.
 
 -> **Getting Started Tutorials**: You can test a local agent by following the
 [Getting Started tutorials](https://learn.hashicorp.com/tutorials/consul/get-started-install?utm_source=consul.io&utm_medium=docs).
 
-The only information Consul needs to run is the location of a directory for storing agent state data, specified with the `-data-dir` flag.
-Specifying the data directory and no other options will start a client agent, but the agent will be unable to perform any operations or connect to any other nodes.
+When starting Consul with the `-dev` flag, the only additional information Consul needs to run is the location of a directory for storing agent state data.
+You can specify the location with the `-data-dir` flag or define the location in an external file and point the file with the `-config-file` flag.
 
-The following example starts a Consul agent in dev mode that will store agent state data in the `tmp/consul` directory relative to the current directory:
+You can also point to a directory containing several configuration files with the `-config-dir` flag.
+This enables you to logically group configuration settings into separate files. See [Configuring Consul Agents](/docs/agent#configuring-consul-agents) for additional information.
 
-```shell-session
-consul agent -config-file=client.hcl -dev
-```
-
-In the following example, the agent configuration file would contain the following setting:
+The following example starts an agent in dev mode and stores agent state data in the `tmp/consul` directory:
 
 ```shell-session
-data_dir = "temp/client-data"
+consul agent -data-dir=tmp/consul -dev
 ```
 
 Agents are highly configurable, which enables you to deploy Consul to any infrastructure. Many of the default options for the `agent` command are suitable for becoming familiar with a local instance of Consul. In practice, however, several additional configuration options must be specified for Consul to function as expected. Refer to [Agent Configuration](/docs/agent/options) topic for a complete list of configuration options.
@@ -160,21 +199,20 @@ The reason this server agent is configured for a service mesh is that the `conne
 ```hcl
 
 node_name = "consul-server"
-server = true
+server    = true
 bootstrap = true
 ui_config {
-        enabled = true
-    }
+  enabled = true
+}
 datacenter = "dc1"
-data_dir = "/consul/data"
-log_level = "INFO"
+data_dir   = "consul/data"
+log_level  = "INFO"
 addresses {
-        http = "0.0.0.0"
-    }
-connect  {
-        enabled = true
-    }
-
+  http = "0.0.0.0"
+}
+connect {
+  enabled = true
+}
 ```
 
 </Tab>
@@ -203,6 +241,67 @@ connect  {
 </Tab>
 </Tabs>
 
+### Server Node with Encryption Enabled
+
+The following example shows a server node configured with encryption enabled.
+Refer to the [Security](/docs/security) chapter for additional information about how to configure security options for Consul.
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+
+node_name = "consul-server"
+server    = true
+ui_config {
+  enabled = true
+}
+data_dir = "consul/data"
+addresses {
+  http = "0.0.0.0"
+}
+retry_join = [
+  "consul-server2",
+  "consul-server3"
+]
+encrypt                = "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w="
+verify_incoming        = true
+verify_outgoing        = true
+verify_server_hostname = true
+ca_file                = "/consul/config/certs/consul-agent-ca.pem"
+cert_file              = "/consul/config/certs/dc1-server-consul-0.pem"
+key_file               = "/consul/config/certs/dc1-server-consul-0-key.pem"
+
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "node_name": "consul-server",
+  "server": true,
+  "ui_config": {
+    "enabled": true
+  },
+  "data_dir": "consul/data",
+  "addresses": {
+    "http": "0.0.0.0"
+  },
+  "retry_join": ["consul-server1", "consul-server2"],
+  "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
+  "verify_incoming": true,
+  "verify_outgoing": true,
+  "verify_server_hostname": true,
+  "ca_file": "/consul/config/certs/consul-agent-ca.pem",
+  "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
+  "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
+}
+```
+
+</Tab>
+</Tabs>
+
 ### Client Node Registering a Service
 
 Using Consul as a central service registry is a common use case.
@@ -213,24 +312,24 @@ The following example configuration includes common settings to register a servi
 
 ```hcl
 
-node_name = "consul-client"
-server = false
+node_name  = "consul-client"
+server     = false
 datacenter = "dc1"
-data_dir = "consul/data"
-log_level = "INFO"
-retry_join = [ "consul-server" ]
+data_dir   = "consul/data"
+log_level  = "INFO"
+retry_join = ["consul-server"]
 service {
-  id = "dns"
-  name = "dns"
-  tags = [ "primary" ]
+  id      = "dns"
+  name    = "dns"
+  tags    = ["primary"]
   address = "localhost"
-  port = 8600
+  port    = 8600
   check {
-      id = "dns"
-      name = "Consul DNS TCP on port 8600"
-      tcp = "localhost:8600"
-      interval = "10s"
-      timeout = "1s"
+    id       = "dns"
+    name     = "Consul DNS TCP on port 8600"
+    tcp      = "localhost:8600"
+    interval = "10s"
+    timeout  = "1s"
   }
 }
 
@@ -261,67 +360,6 @@ service {
       "timeout": "1s"
     }
   }
-}
-```
-
-</Tab>
-</Tabs>
-
-### Server Node with Encryption Enabled
-
-The following example shows a server node configured with encryption enabled.
-Refer to the [Security](/docs/security) chapter for additional information about how to configure security options for Consul.
-
-<Tabs>
-<Tab heading="HCL">
-
-```hcl
-
-node_name = "consul-server"
-server = true
-ui_config {
-  enabled = true
-  }
-data_dir = "consul/data"
-addresses {
-  http = "0.0.0.0"
-  }
-retry_join = [
-  "consul-server2",
-  "consul-server3"
-  ]
-encrypt = "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w="
-verify_incoming = true
-verify_outgoing = true
-verify_server_hostname = true
-ca_file = "/consul/config/certs/consul-agent-ca.pem"
-cert_file = "/consul/config/certs/dc1-server-consul-0.pem"
-key_file = "/consul/config/certs/dc1-server-consul-0-key.pem"
-
-```
-
-</Tab>
-<Tab heading="JSON">
-
-```json
-{
-  "node_name": "consul-server",
-  "server": true,
-  "ui_config": {
-    "enabled": true
-  },
-  "data_dir": "consul/data",
-  "addresses": {
-    "http": "0.0.0.0"
-  },
-  "retry_join": ["consul-server1", "consul-server2"],
-  "encrypt": "aPuGh+5UDskRAbkLaXRzFoSOcSM+5vAK+NEYOWHJH7w=",
-  "verify_incoming": true,
-  "verify_outgoing": true,
-  "verify_server_hostname": true,
-  "ca_file": "/consul/config/certs/consul-agent-ca.pem",
-  "cert_file": "/consul/config/certs/dc1-server-consul-0.pem",
-  "key_file": "/consul/config/certs/dc1-server-consul-0-key.pem"
 }
 ```
 
@@ -364,39 +402,3 @@ from the load balancer pool.
 The [`skip_leave_on_interrupt`](/docs/agent/options#skip_leave_on_interrupt) and
 [`leave_on_terminate`](/docs/agent/options#leave_on_terminate) configuration
 options allow you to adjust this behavior.
-
-## Lifecycle
-
-Every agent in the Consul cluster goes through a lifecycle. Understanding
-this lifecycle is useful for building a mental model of an agent's interactions
-with a cluster and how the cluster treats a node.
-
-When an agent is first started, it does not know about any other node in the
-cluster.
-To discover its peers, it must _join_ the cluster. This is done with the
-[`join`](/commands/join)
-command or by providing the proper configuration to auto-join on start. Once a
-node joins, this information is gossiped to the entire cluster, meaning all
-nodes will eventually be aware of each other. If the agent is a server,
-existing servers will begin replicating to the new node.
-
-In the case of a network failure, some nodes may be unreachable by other nodes.
-In this case, unreachable nodes are marked as _failed_. It is impossible to
-distinguish between a network failure and an agent crash, so both cases are
-handled the same.
-Once a node is marked as failed, this information is updated in the service
-catalog.
-
--> **Note:** There is some nuance here since this update is only possible if the servers can still [form a quorum](/docs/internals/consensus). Once the network recovers or a crashed agent restarts the cluster will repair itself and unmark a node as failed. The health check in the catalog will also be updated to reflect this.
-
-When a node _leaves_, it specifies its intent to do so, and the cluster
-marks that node as having _left_. Unlike the _failed_ case, all of the
-services provided by a node are immediately deregistered. If the agent was
-a server, replication to it will stop.
-
-To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_
-states), Consul will automatically remove dead nodes out of the catalog. This
-process is called _reaping_. This is currently done on a configurable
-interval of 72 hours (changing the reap interval is _not_ recommended due to
-its consequences during outage situations). Reaping is similar to leaving,
-causing all associated services to be deregistered.
