@@ -1,3 +1,9 @@
+# *
 User-agent: *
-Disallow: /404
-Disallow: /500
+Allow: /
+
+# Host
+Host: https://www.consul.io
+
+# Sitemaps
+Sitemap: https://www.consul.io/sitemap.xml
