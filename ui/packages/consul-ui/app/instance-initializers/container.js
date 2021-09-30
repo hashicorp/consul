@@ -1,8 +1,30 @@
 import { runInDebug } from '@ember/debug';
+import require from 'require';
 
+import services from 'consul-ui/services';
+import servicesDebug from 'consul-ui/services-debug';
+
+const inject = function(container, obj) {
+  // inject all the things
+  Object.entries(obj).forEach(([key, value]) => {
+    switch(true) {
+      case (typeof value.class === 'string'):
+        if(require.has(value.class)) {
+          container.register(key.replace('auth-provider:', 'torii-provider:'), require(value.class).default);
+        } else {
+          throw new Error(`Unable to locate '${value.class}'`);
+        }
+      break;
+    }
+  });
+}
 export default {
   name: 'container',
   initialize(application) {
+
+    inject(application, services);
+    runInDebug(_ => inject(application, servicesDebug));
+
     const container = application.lookup('service:container');
     // find all the services and add their classes to the container so we can
     // look instances up by class afterwards as we then resolve the

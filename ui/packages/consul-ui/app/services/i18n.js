@@ -2,7 +2,7 @@ import IntlService from 'ember-intl/services/intl';
 import { inject as service } from '@ember/service';
 
 export const formatOptionsSymbol = Symbol();
-export class I18nService extends IntlService {
+export default class I18nService extends IntlService {
   @service('env') env;
   /**
    * Additionally injects selected project level environment variables into the
@@ -30,9 +30,3 @@ export class I18nService extends IntlService {
     };
   }
 }
-export default {
-  name: 'i18n',
-  initialize: function(container) {
-    container.register('service:intl', I18nService);
-  },
-};
