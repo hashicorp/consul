@@ -48,11 +48,11 @@ export default function ConsulOnKubernetesPage() {
                 <br />
                 <br />
                 Need help managing Consul on AWS? HCP Consul support Amazon
-                Elastic Kubernetes Service (EKS). Get started today.
+                Elastic Kubernetes Service (EKS).
               </p>
               <Button
-                title="Learn More"
-                url="/docs/k8s"
+                title="Get Started"
+                url="/docs/k8s/installation/install"
                 theme={{
                   brand: 'consul',
                 }}
@@ -65,7 +65,7 @@ export default function ConsulOnKubernetesPage() {
               <BlockList
                 blocks={[
                   {
-                    title: 'Multi-Cluster environments',
+                    title: 'Multi-cluster',
                     description:
                       'Organizations typically prefer to utilize a more distributed model for Kubernetes deployments. Rather than maintain a single cluster, they connect multiple environments for testing, staging, and production purposes.',
                     image: require('./images/blocks/multi-cluster.svg'),
@@ -83,7 +83,7 @@ export default function ConsulOnKubernetesPage() {
                     image: require('./images/blocks/securing.svg'),
                   },
                   {
-                    title: 'Kubernetes Monitoring',
+                    title: 'Kubernetes monitoring',
                     description:
                       'Obtaining insights on what’s going on and the health of Kubernetes clusters can be complicated. In addition, security issues and vulnerabilities need to be properly tracked.  ',
                     image: require('./images/blocks/monitoring.svg'),
@@ -100,7 +100,7 @@ export default function ConsulOnKubernetesPage() {
           title="Why Consul on Kubernetes"
           features={[
             {
-              title: 'Multi-Platform',
+              title: 'Multi-platform',
               subtitle:
                 'Support both Kubernetes and non-Kubernetes workloads on any runtime',
               infoSections: [
@@ -128,14 +128,14 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
+                text: 'Start tutorial',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide?in=consul/kubernetes',
               },
               image: require('./images/features/multi-platform.svg'),
             },
             {
-              title: 'Kube-native Workflow',
+              title: 'Kube-native workflow',
               subtitle:
                 'Use Consul’s Custom Resource Definitions (CRDs) to interact with Kubernetes',
               infoSections: [
@@ -161,7 +161,7 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
+                text: 'Start tutorial',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-custom-resource-definitions?in=consul/kubernetes',
               },
@@ -193,7 +193,7 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
+                text: 'Start tutorial',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },
@@ -229,7 +229,7 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
+                text: 'Start tutorial',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
@@ -242,7 +242,7 @@ export default function ConsulOnKubernetesPage() {
         <h1 className={s.getStartedTitle}>Ways to get started</h1>
         <div className={s.getStartedContent}>
           <CardList
-            title="Learn Tutorials"
+            title="Tutorials"
             className={s.getStartedCards}
             cards={[
               {
@@ -250,39 +250,30 @@ export default function ConsulOnKubernetesPage() {
                   src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description: 'Get Started on Kubernetes',
-                eyebrow: '[[eyebrow]]',
-                cta: {
-                  text: 'Learn more',
-                  url:
-                    'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
-                },
+                description: 'Get Started',
+                eyebrow: 'Guide',
+                url:
+                  'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
               },
               {
                 image: {
                   src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description: 'Secure Services on Kubernetes',
-                eyebrow: '[[eyebrow]]',
-                cta: {
-                  text: 'Learn more',
-                  url:
-                    'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
-                },
+                description: 'Secure Services',
+                eyebrow: 'Guide',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
               {
                 image: {
                   src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description: 'Observe Services on Kubernetes',
-                eyebrow: '[[eyebrow]]',
-                cta: {
-                  text: 'Learn more',
-                  url:
-                    'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
-                },
+                description: 'Observe Services',
+                eyebrow: 'Guide',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },
             ]}
           />
@@ -298,7 +289,7 @@ export default function ConsulOnKubernetesPage() {
                 description:
                   'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
                 cta: {
-                  text: 'Heml Docs',
+                  text: 'Helm documentation',
                   url: '/docs/k8s/installation/install',
                 },
               },
@@ -310,7 +301,7 @@ export default function ConsulOnKubernetesPage() {
                 description:
                   'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
                 cta: {
-                  text: 'Terraform Provider',
+                  text: 'Terraform provider',
                   url:
                     'https://registry.terraform.io/providers/hashicorp/consul/latest/docs',
                 },
