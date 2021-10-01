@@ -44,7 +44,7 @@ export default function ConsulOnKubernetesPage() {
                 GKE, and OpenShift.
                 <br />
                 <br />
-                Need help managing Consul on AWS? HCP Consul support Amazon
+                Need help managing Consul on AWS? HCP Consul supports Amazon
                 Elastic Kubernetes Service (EKS). Get started today.
               </p>
               <Button
@@ -68,21 +68,21 @@ export default function ConsulOnKubernetesPage() {
                     image: require('./images/blocks/multi-cluster.svg'),
                   },
                   {
-                    title: 'Connecting K8s to non-K8s',
+                    title: 'Connecting Kubernetes to non-Kubernetes',
                     description:
                       'Creating consistency when connecting Kubernetes to non-Kubernetes environments can be challenging, workflows need additional automation to accommodate many virtual machines or containers.',
                     image: require('./images/blocks/connecting.svg'),
                   },
                   {
-                    title: 'Securing K8s networking',
+                    title: 'Securing Kubernetes networking',
                     description:
-                      'Securing Kubernetes networking with multiple layers of network policies can be challenging. Policies can be handled at the application layer, container/OS or at the networking level. ',
+                      'Securing Kubernetes networking with multiple layers of network policies can be challenging. Organizations need to apply policies at both the application layer and network layer to ensure consistent security.',
                     image: require('./images/blocks/securing.svg'),
                   },
                   {
                     title: 'Kubernetes Monitoring',
                     description:
-                      'Obtaining insights on what’s going on and the health of Kubernetes clusters can be complicated. In addition, security issues and vulnerabilities need to be properly tracked.  ',
+                      "Obtaining insights into what's happening inside the cluster and the overall health of the cluster. In addition, security issues and vulnerabilities need to be properly tracked.",
                     image: require('./images/blocks/monitoring.svg'),
                   },
                 ]}
