@@ -70,9 +70,11 @@
   justify-content: center;
   align-items: center;
   margin-right: 64px;
+  margin-top: 10px;
 
   @media (--small) {
     margin-right: 30px;
+    margin-top: 6px;
   }
 }
 

@@ -28,10 +28,6 @@
       display: grid;
       row-gap: 24px;
       padding: 24px 24px 28px;
-
-      & .fauxLink {
-        color: var(--brand-link);
-      }
     }
   }
 }

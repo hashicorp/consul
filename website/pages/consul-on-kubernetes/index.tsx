@@ -19,14 +19,17 @@ export default function ConsulOnKubernetesPage() {
         title="Consul on Kubernetes"
         description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
         ctas={[
-          { text: 'Get Started', url: '#TODO' },
-          { text: 'Try HCP Consul', url: '#TODO' },
+          {
+            text: 'Get started',
+            url: '/docs/k8s/installation/install',
+          },
+          {
+            text: 'Try HCP Consul',
+            url:
+              'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
+          },
         ]}
-        media={{
-          type: 'image',
-          source: require('./images/sample-video.png'),
-          alt: 'sample image',
-        }}
+        videoSource="https://www.youtube.com/watch?v=Eyszp_apaEU"
       />
 
       <section>
@@ -45,11 +48,11 @@ export default function ConsulOnKubernetesPage() {
                 <br />
                 <br />
                 Need help managing Consul on AWS? HCP Consul support Amazon
-                Elastic Kubernetes Service (EKS). Get started today.
+                Elastic Kubernetes Service (EKS).
               </p>
               <Button
-                title="Learn More"
-                url="#TODO"
+                title="Get Started"
+                url="/docs/k8s/installation/install"
                 theme={{
                   brand: 'consul',
                 }}
@@ -62,7 +65,7 @@ export default function ConsulOnKubernetesPage() {
               <BlockList
                 blocks={[
                   {
-                    title: 'Multi-Cluster environments',
+                    title: 'Multi-cluster',
                     description:
                       'Organizations typically prefer to utilize a more distributed model for Kubernetes deployments. Rather than maintain a single cluster, they connect multiple environments for testing, staging, and production purposes.',
                     image: require('./images/blocks/multi-cluster.svg'),
@@ -80,7 +83,7 @@ export default function ConsulOnKubernetesPage() {
                     image: require('./images/blocks/securing.svg'),
                   },
                   {
-                    title: 'Kubernetes Monitoring',
+                    title: 'Kubernetes monitoring',
                     description:
                       'Obtaining insights on what’s going on and the health of Kubernetes clusters can be complicated. In addition, security issues and vulnerabilities need to be properly tracked.  ',
                     image: require('./images/blocks/monitoring.svg'),
@@ -97,7 +100,7 @@ export default function ConsulOnKubernetesPage() {
           title="Why Consul on Kubernetes"
           features={[
             {
-              title: 'Multi-Platform',
+              title: 'Multi-platform',
               subtitle:
                 'Support both Kubernetes and non-Kubernetes workloads on any runtime',
               infoSections: [
@@ -125,13 +128,14 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
-                url: '#TODO',
+                text: 'Start tutorial',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-deployment-guide?in=consul/kubernetes',
               },
               image: require('./images/features/multi-platform.svg'),
             },
             {
-              title: 'Kube-native Workflow',
+              title: 'Kube-native workflow',
               subtitle:
                 'Use Consul’s Custom Resource Definitions (CRDs) to interact with Kubernetes',
               infoSections: [
@@ -157,8 +161,9 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
-                url: '#TODO',
+                text: 'Start tutorial',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-custom-resource-definitions?in=consul/kubernetes',
               },
               image: require('./images/features/workflow.svg'),
             },
@@ -188,8 +193,9 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
-                url: '#TODO',
+                text: 'Start tutorial',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },
               image: require('./images/features/observable.svg'),
             },
@@ -223,8 +229,9 @@ export default function ConsulOnKubernetesPage() {
                 },
               ],
               cta: {
-                text: 'Try It Now',
-                url: '#TODO',
+                text: 'Start tutorial',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
               image: require('./images/features/secure.svg'),
             },
@@ -235,50 +242,38 @@ export default function ConsulOnKubernetesPage() {
         <h1 className={s.getStartedTitle}>Ways to get started</h1>
         <div className={s.getStartedContent}>
           <CardList
-            title="Learn Tutorials"
+            title="Tutorials"
             className={s.getStartedCards}
             cards={[
               {
                 image: {
-                  src:
-                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description:
-                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
-                eyebrow: 'type 1',
-                cta: {
-                  url: '#TODO',
-                  text: 'Call To Action',
-                },
+                description: 'Get Started',
+                eyebrow: 'Guide',
+                url:
+                  'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
               },
               {
                 image: {
-                  src:
-                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description:
-                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
-                eyebrow: 'type 2',
-                cta: {
-                  url: '#TODO',
-                  text: 'Call To Action',
-                },
+                description: 'Secure Services',
+                eyebrow: 'Guide',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
               {
                 image: {
-                  src:
-                    'https://www.datocms-assets.com/2885/1620073844-blog-library-product-terraform-cloud-tfc-black-gradient.jpg',
+                  src: 'https://via.placeholder.com/400x200.png',
                   alt: 'card',
                 },
-                description:
-                  'Tellus tempor a diam quis quis felis nec facilisi et tincidunt…',
-                eyebrow: 'type 3',
-                cta: {
-                  url: '#TODO',
-                  text: 'Call To Action',
-                },
+                description: 'Observe Services',
+                eyebrow: 'Guide',
+                url:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },
             ]}
           />
@@ -294,8 +289,8 @@ export default function ConsulOnKubernetesPage() {
                 description:
                   'Consul offers an official Helm chart for quickly deploying and upgrading Consul on Kubernetes.',
                 cta: {
-                  text: 'Heml Docs',
-                  url: '#TODO',
+                  text: 'Helm documentation',
+                  url: '/docs/k8s/installation/install',
                 },
               },
               {
@@ -306,8 +301,9 @@ export default function ConsulOnKubernetesPage() {
                 description:
                   'Use Consul’s Terraform provider for deploying and maintaining Consul agents across both Kubernetes and non-Kubernetes environments.',
                 cta: {
-                  text: 'Terraform Provider',
-                  url: '#TODO',
+                  text: 'Terraform provider',
+                  url:
+                    'https://registry.terraform.io/providers/hashicorp/consul/latest/docs',
                 },
               },
             ]}
