@@ -6,24 +6,18 @@ interface Cta {
   text: string
 }
 
-interface Media {
-  type: 'image' | 'video'
-  source: string
-  alt?: string
-}
-
 interface ConsulOnKubernetesHeroProps {
   title: string
   description: string
   ctas: Cta[]
-  media: Media
+  videoSource: string
 }
 
 export default function ConsulOnKubernetesHero({
   title,
   description,
   ctas,
-  media,
+  videoSource,
 }: ConsulOnKubernetesHeroProps) {
   return (
     <div
@@ -54,13 +48,15 @@ export default function ConsulOnKubernetesHero({
           </div>
         </div>
         <div className={s.media}>
-          {media.type === 'image' ? (
-            <img alt={media.alt} src={media.source} />
-          ) : (
-            <video>
-              <source src={media.source} type="video/mp4" />
-            </video>
-          )}
+          <iframe
+            width="573"
+            height="324"
+            src="https://www.youtube.com/embed/Eyszp_apaEU"
+            title="Why Microservices? Doing it for the Right Reasons"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
         </div>
       </div>
     </div>

@@ -6,10 +6,7 @@ interface Card {
     alt: string
   }
   description: string
-  cta: {
-    url: string
-    text: string
-  }
+  url: string
   eyebrow: string
 }
 
@@ -24,9 +21,9 @@ export default function CardList({ title, cards, className }: CardListProps) {
     <div className={className}>
       <h3 className={s.title}>{title}</h3>
       <div className={s.cardsWrapper}>
-        {cards.map(({ image, description, cta, eyebrow }) => (
+        {cards.map(({ image, description, url, eyebrow }) => (
           <a
-            href={cta.url}
+            href={url}
             key={eyebrow}
             className={s.card}
             target="_blank"
@@ -44,7 +41,6 @@ export default function CardList({ title, cards, className }: CardListProps) {
                 />
               </div>
               <span className={s.description}>{description}</span>
-              <span className={s.fauxLink}>{cta.text}</span>
             </div>
           </a>
         ))}
