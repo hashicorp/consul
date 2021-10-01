@@ -437,6 +437,7 @@ func TestIntentionCreate(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.IntentionCreate(resp, req)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a source partition")
 		}
 		{
 			args := structs.TestIntention(t)
@@ -445,6 +446,7 @@ func TestIntentionCreate(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.IntentionCreate(resp, req)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a destination partition")
 		}
 	})
 }
@@ -559,6 +561,7 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.IntentionSpecific(resp, req)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a destination partition")
 		}
 		{
 			ixn.DestinationPartition = "default"
@@ -567,6 +570,7 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.IntentionSpecific(resp, req)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a source partition")
 		}
 	})
 }
