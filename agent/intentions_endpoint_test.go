@@ -701,41 +701,58 @@ func TestIntentionSpecificDelete(t *testing.T) {
 
 func TestParseIntentionStringComponent(t *testing.T) {
 	cases := []struct {
-		Input                    string
-		ExpectedNS, ExpectedName string
-		Err                      bool
+		TestName     string
+		Input        string
+		ExpectedAP   string
+		ExpectedNS   string
+		ExpectedName string
+		Err          bool
 	}{
 		{
-			"foo",
-			"", "foo",
-			false,
+			TestName:     "single name",
+			Input:        "foo",
+			ExpectedAP:   "",
+			ExpectedNS:   "",
+			ExpectedName: "foo",
 		},
 		{
-			"foo/bar",
-			"foo", "bar",
-			false,
+			TestName:     "namespace and name",
+			Input:        "foo/bar",
+			ExpectedAP:   "",
+			ExpectedNS:   "foo",
+			ExpectedName: "bar",
 		},
 		{
-			"/bar",
-			"", "bar",
-			false,
+			TestName:     "partition, namespace, and name",
+			Input:        "foo/bar/baz",
+			ExpectedAP:   "foo",
+			ExpectedNS:   "bar",
+			ExpectedName: "baz",
 		},
 		{
-			"foo/bar/baz",
-			"", "",
-			true,
+			TestName:     "empty ns",
+			Input:        "/bar",
+			ExpectedAP:   "",
+			ExpectedNS:   "",
+			ExpectedName: "bar",
+		},
+		{
+			TestName: "invalid input",
+			Input:    "uhoh/blah/foo/bar",
+			Err:      true,
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.Input, func(t *testing.T) {
+		t.Run(tc.TestName, func(t *testing.T) {
 			var entMeta structs.EnterpriseMeta
-			ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
+			ap, ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
 			if tc.Err {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 
+				assert.Equal(t, tc.ExpectedAP, ap)
 				assert.Equal(t, tc.ExpectedNS, ns)
 				assert.Equal(t, tc.ExpectedName, name)
 			}

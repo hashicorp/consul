@@ -136,7 +136,7 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 	// order of the returned responses.
 	args.Match.Entries = make([]structs.IntentionMatchEntry, len(names))
 	for i, n := range names {
-		ns, name, err := parseIntentionStringComponent(n, &entMeta)
+		_, ns, name, err := parseIntentionStringComponent(n, &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("name %q is invalid: %s", n, err)
 		}
@@ -227,7 +227,7 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	args.Check.SourceName = source[0]
 	if args.Check.SourceType == structs.IntentionSourceConsul {
 		// TODO(partitions): this func should return partition
-		ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
+		_, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
@@ -237,7 +237,7 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	}
 
 	// The destination is always in the Consul format
-	ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
+	_, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
@@ -280,7 +280,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	{
-		ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
+		_, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
@@ -290,7 +290,7 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	{
-		ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
+		_, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
@@ -553,7 +553,7 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 
 	var exact structs.IntentionQueryExact
 	{
-		ns, name, err := parseIntentionStringComponent(source[0], entMeta)
+		_, ns, name, err := parseIntentionStringComponent(source[0], entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
@@ -563,7 +563,7 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 	}
 
 	{
-		ns, name, err := parseIntentionStringComponent(destination[0], entMeta)
+		_, ns, name, err := parseIntentionStringComponent(destination[0], entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
@@ -575,21 +575,19 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 	return &exact, nil
 }
 
-// TODO(partitions): update to handle partitions
-func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta) (string, string, error) {
-	// Get the index to the '/'. If it doesn't exist, we have just a name
-	// so just set that and return.
-	idx := strings.IndexByte(input, '/')
-	if idx == -1 {
+func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta) (string, string, string, error) {
+	ss := strings.Split(input, "/")
+	switch len(ss) {
+	case 1: // Name only
 		ns := entMeta.NamespaceOrEmpty()
-		return ns, input, nil
+		ap := entMeta.PartitionOrEmpty()
+		return ap, ns, ss[0], nil
+	case 2: // namespace/name
+		ap := entMeta.PartitionOrEmpty()
+		return ap, ss[0], ss[1], nil
+	case 3: // partition/namespace/name
+		return ss[0], ss[1], ss[2], nil
+	default:
+		return "", "", "", fmt.Errorf("input can contain at most two '/'")
 	}
-
-	ns, name := input[:idx], input[idx+1:]
-
-	if strings.IndexByte(name, '/') != -1 {
-		return "", "", fmt.Errorf("input can contain at most one '/'")
-	}
-
-	return ns, name, nil
 }
