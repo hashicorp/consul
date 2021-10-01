@@ -428,6 +428,27 @@ func TestIntentionCreate(t *testing.T) {
 			require.Equal(t, "foo", actual.SourceName)
 		}
 	})
+
+	t.Run("partition rejected", func(t *testing.T) {
+		{
+			args := structs.TestIntention(t)
+			args.SourcePartition = "part1"
+			req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionCreate(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a source partition")
+		}
+		{
+			args := structs.TestIntention(t)
+			args.DestinationPartition = "part2"
+			req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionCreate(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a destination partition")
+		}
+	})
 }
 
 func TestIntentionSpecificGet(t *testing.T) {
@@ -532,6 +553,26 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 		actual := resp.Intentions[0]
 		require.Equal(t, "bar", actual.SourceName)
 	}
+
+	t.Run("partitions rejected", func(t *testing.T) {
+		{
+			ixn.DestinationPartition = "part1"
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionSpecific(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a destination partition")
+		}
+		{
+			ixn.DestinationPartition = "default"
+			ixn.SourcePartition = "part2"
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionSpecific(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a source partition")
+		}
+	})
 }
 
 func TestIntentionDeleteExact(t *testing.T) {

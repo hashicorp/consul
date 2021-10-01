@@ -67,7 +67,13 @@ func (s *HTTPHandlers) IntentionCreate(resp http.ResponseWriter, req *http.Reque
 		return nil, fmt.Errorf("Failed to decode request body: %s", err)
 	}
 
-	// TODO(partitions): reject non-empty/non-default partitions from the decoded body
+	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
+		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+	}
+	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
+		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
+	}
+
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)
 
 	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
@@ -422,6 +428,13 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 	s.parseToken(req, &args.Token)
 	if err := decodeBody(req.Body, &args.Intention); err != nil {
 		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+	}
+
+	if args.Intention.DestinationPartition != "" && args.Intention.DestinationPartition != "default" {
+		return nil, BadRequestError{Reason: "Cannot specify a destination partition with this endpoint"}
+	}
+	if args.Intention.SourcePartition != "" && args.Intention.SourcePartition != "default" {
+		return nil, BadRequestError{Reason: "Cannot specify a source partition with this endpoint"}
 	}
 
 	args.Intention.FillPartitionAndNamespace(&entMeta, false)
