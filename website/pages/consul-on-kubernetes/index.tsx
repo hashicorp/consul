@@ -20,7 +20,7 @@ export default function ConsulOnKubernetesPage() {
         description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
         ctas={[
           {
-            text: 'Get Started',
+            text: 'Get started',
             url: '/docs/k8s/installation/install',
           },
           {
