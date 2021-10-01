@@ -457,3 +457,47 @@ func TestStateStore_Usage_ServiceUsage_updatingConnectProxy(t *testing.T) {
 		require.Equal(t, 1, usage.ConnectServiceInstances[string(structs.ServiceKindConnectProxy)])
 	})
 }
+
+func TestStateStore_Usage_ConfigEntries(t *testing.T) {
+	s := testStateStore(t)
+
+	t.Run("empty store", func(t *testing.T) {
+		i, usage, err := s.ConfigUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(0), i)
+		for _, kind := range structs.AllConfigEntryKinds {
+			require.Equal(t, 0, usage.ConfigByKind[kind])
+		}
+	})
+	t.Run("with config entries", func(t *testing.T) {
+		require.NoError(t, s.EnsureConfigEntry(1, &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     "web",
+			Protocol: "http",
+		}))
+		require.NoError(t, s.EnsureConfigEntry(2, &structs.ServiceResolverConfigEntry{
+			Kind:          structs.ServiceResolver,
+			Name:          "web",
+			DefaultSubset: "v1",
+			Subsets: map[string]structs.ServiceResolverSubset{
+				"v1": {
+					Filter: "Service.Meta.version == v1",
+				},
+				"v2": {
+					Filter: "Service.Meta.version == v2",
+				},
+			},
+		}))
+		require.NoError(t, s.EnsureConfigEntry(3, &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "web",
+		}))
+
+		i, usage, err := s.ConfigUsage()
+		require.NoError(t, err)
+		require.Equal(t, uint64(3), i)
+		require.Equal(t, 1, usage.ConfigByKind[structs.ServiceDefaults])
+		require.Equal(t, 1, usage.ConfigByKind[structs.ServiceResolver])
+		require.Equal(t, 1, usage.ConfigByKind[structs.ServiceIntentions])
+	})
+}

@@ -104,6 +104,79 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
 			},
 			getMembersFunc: func() []serf.Member { return []serf.Member{} },
 		},
@@ -207,6 +280,79 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 					Name:   "consul.usage.test.consul.state.kv_entries",
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
 				},
 			},
 		},
@@ -339,6 +485,79 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					Name:   "consul.usage.test.consul.state.kv_entries",
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
 				},
 			},
 			getMembersFunc: func() []serf.Member { return []serf.Member{} },
@@ -474,6 +693,79 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 1,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 1,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
 			},
 		},
 	}
@@ -597,6 +889,79 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
 			},
 			getMembersFunc: func() []serf.Member { return []serf.Member{} },
 		},
@@ -709,6 +1074,79 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 					Name:   "consul.usage.test.consul.state.kv_entries",
 					Value:  4,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
+				},
+				// --- config entries ---
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-intentions": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-intentions"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-resolver": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-resolver"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-router": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-router"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "ingress-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=service-splitter": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "service-splitter"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=mesh": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "mesh"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=proxy-defaults": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "proxy-defaults"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "terminating-gateway"},
+					},
 				},
 			},
 		},

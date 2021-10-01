@@ -11,6 +11,7 @@ import (
 type EnterpriseServiceUsage struct{}
 type EnterpriseNodeUsage struct{}
 type EnterpriseKVUsage struct{}
+type EnterpriseConfigUsage struct{}
 
 func addEnterpriseNodeUsage(map[string]int, memdb.Change) {}
 
@@ -22,6 +23,8 @@ func addEnterpriseConnectServiceInstanceUsage(map[string]int, *structs.ServiceNo
 
 func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
 
+func addEnterpriseConfigUsage(map[string]int, memdb.Change) {}
+
 func compileEnterpriseServiceUsage(tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
 	return usage, nil
 }
@@ -31,5 +34,9 @@ func compileEnterpriseNodeUsage(tx ReadTxn, usage NodeUsage) (NodeUsage, error) 
 }
 
 func compileEnterpriseKVUsage(tx ReadTxn, usage KVUsage) (KVUsage, error) {
+	return usage, nil
+}
+
+func compileEnterpriseConfigUsage(tx ReadTxn, usage ConfigUsage) (ConfigUsage, error) {
 	return usage, nil
 }

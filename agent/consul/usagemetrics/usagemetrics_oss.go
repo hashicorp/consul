@@ -74,3 +74,13 @@ func (u *UsageMetricsReporter) emitKVUsage(kvUsage state.KVUsage) {
 		u.metricLabels,
 	)
 }
+
+func (u *UsageMetricsReporter) emitConfigUsage(configUsage state.ConfigUsage) {
+	for k, i := range configUsage.ConfigByKind {
+		metrics.SetGaugeWithLabels(
+			[]string{"consul", "state", "config_entries"},
+			float32(i),
+			append(u.metricLabels, metrics.Label{Name: "kind", Value: k}),
+		)
+	}
+}
