@@ -145,8 +145,7 @@ const bootstrapTemplate = `{
     "id": "{{ .ProxyID }}",
     "metadata": {
       "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
-      "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}",
-      "envoy_version": "{{ .EnvoyVersion }}"
+      "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}"
     }
   },
   "static_resources": {

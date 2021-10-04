@@ -13,8 +13,7 @@
     "id": "my-gateway",
     "metadata": {
       "namespace": "default",
-      "partition": "default",
-      "envoy_version": "1.19.1"
+      "partition": "default"
     }
   },
   "static_resources": {
