@@ -3,6 +3,7 @@ import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import { action, get } from '@ember/object';
 import { schedule } from '@ember/runloop';
+import { runInDebug } from '@ember/debug';
 
 /**
  * Utility function to set, but actually replace if we should replace
@@ -89,7 +90,8 @@ export default class DataSource extends Component {
 
   @action
   disconnect() {
-    // FIXME? Should we be doing this here
+    // TODO: Should we be doing this here? Fairly sure we should be so if this
+    // TODO gets old enough (6 months/ 1 year or so) feel free to remove
     if (
       typeof this.data !== 'undefined' &&
       typeof this.data.length === 'undefined' &&
@@ -182,7 +184,12 @@ export default class DataSource extends Component {
     this.source.readyState = 2;
     this.disconnect();
     schedule('afterRender', () => {
-      // FIXME: Lazy data-sources
+      // TODO: Support lazy data-sources by keeping a reference to $el
+      runInDebug(_ =>
+        console.error(
+          `Invalidation is only supported for non-lazy data sources. If you want to use this you should fixup support for lazy data sources`
+        )
+      );
       this.connect([]);
     });
   }

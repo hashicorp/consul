@@ -2,8 +2,7 @@
   @name={{routeName}}
 as |route|>
   <DataLoader
-    @src={{uri
-      '/${partition}/${nspace}/${dc}/intentions/for-service/${slug}'
+    @src={{uri '/${partition}/${nspace}/${dc}/intentions/for-service/${slug}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
@@ -57,7 +56,6 @@ as |route|>
           @filter={{filters}}
         />
   {{/if}}
-        {{!FIXME: Check param order }}
         <DataWriter
           @sink={{uri
             '/${partition}/${dc}/${nspace}/intention/'

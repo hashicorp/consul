@@ -1,4 +1,5 @@
 import Service, { inject as service } from '@ember/service';
+import { runInDebug } from '@ember/debug';
 import { proxy } from 'consul-ui/utils/dom/event-source';
 import { schedule } from '@ember/runloop';
 
@@ -12,18 +13,19 @@ let cache = null;
 let sources = null;
 // keeps a count of currently in use EventSources
 let usage = null;
+class URI {
+  constructor(uri) {
+    this.uri = uri;
+  }
+  toString() {
+    return this.uri;
+  }
+}
 export default class DataSourceService extends Service {
-  @service('dom')
-  dom;
-
-  @service('encoder')
-  encoder;
-
-  @service('data-source/protocols/http')
-  consul;
-
-  @service('data-source/protocols/local-storage')
-  settings;
+  @service('dom') dom;
+  @service('encoder') encoder;
+  @service('data-source/protocols/http') consul;
+  @service('data-source/protocols/local-storage') settings;
 
   init() {
     super.init(...arguments);
@@ -86,10 +88,22 @@ export default class DataSourceService extends Service {
     return source;
   }
 
+  uri(str) {
+    return new URI(str);
+  }
+
   open(uri, ref, open = false) {
-    if (typeof uri !== 'string') {
+    if (!(uri instanceof URI) && typeof uri !== 'string') {
       return this.unwrap(uri, ref);
     }
+    runInDebug(
+      _ => {
+        if(!(uri instanceof URI)) {
+          console.error(new Error(`DataSource '${uri}' does not use the uri helper. Please ensure you use the uri helper to ensure correct encoding`))
+        }
+      }
+    );
+    uri = uri.toString();
     let source;
     // Check the cache for an EventSource that is already being used
     // for this uri. If we don't have one, set one up.

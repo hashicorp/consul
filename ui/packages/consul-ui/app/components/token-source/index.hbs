@@ -4,7 +4,11 @@
   {{#let (concat '/' (or partition '') '/' (or nspace '') '/' dc) as |path|}}
     <State @matches="secret">
       <DataSource
-        @src={{concat path '/token/self/' value}}
+        @src={{uri (concat path '/token/self/${value}')
+          (hash
+            value=value
+          )
+        }}
         @onchange={{action 'change'}}
         @onerror={{action onerror}}
       />

@@ -4,7 +4,7 @@
     focus=(action 'focus')
   )}}
   <Guard @name="hasValue" @cond={{action 'hasValue'}} />
-  {{!FIXME: Call this reset or similar }}
+  {{!TODO: Call this reset or similar }}
   <Action @name="clearError" @exec={{queue (action (mut error) undefined) (action (mut secret) undefined)}} />
   <div class="auth-form" ...attributes>
     <State @matches="error">

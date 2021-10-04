@@ -528,7 +528,9 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if token.AuthMethod != "" && !opts.FromReplication {
-		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta())
+		methodMeta := token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta()
+		methodMeta.Merge(&token.EnterpriseMeta)
+		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, methodMeta)
 		if err != nil {
 			return err
 		} else if method == nil {
