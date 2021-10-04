@@ -1,6 +1,4 @@
 .ckHero {
-  /* background-position: top right;
-  background-repeat: no-repeat; */
   background-color: var(--black);
   color: var(--white);
   padding-top: 130px;
@@ -32,6 +30,9 @@
 
 .contentWrapper {
   composes: g-grid-container from global;
+  align-items: center;
+  justify-content: space-between;
+  display: block;
 
   /* display: block;
   position: relative;
@@ -39,26 +40,26 @@
   justify-content: space-between;
   text-align: center; */
 
-  --columns: 1;
+  /* --columns: 1;
 
   column-gap: 32px;
   display: grid;
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
-  row-gap: 48px;
+  row-gap: 48px; */
 
-  /* @media (--large) {
+  @media (--large) {
     display: flex;
     text-align: left;
-  } */
-
-  @media (--medium-up) {
-    --columns: 12;
   }
 
+  /* @media (--medium-up) {
+    --columns: 12;
+  } */
+
   & .headline {
-    /* flex-grow: 0;
+    /* /* flex-grow: 0;
     flex-shrink: 0;
-    flex-basis: calc(50% - 16px);
+    flex-basis: calc(50% - 16px); */
     max-width: 500px;
     margin-left: auto;
     margin-right: auto;
@@ -68,8 +69,9 @@
       text-align: left;
       max-width: 384px;
       margin: 0;
-    } */
-    grid-column: 1 / -1;
+    }
+
+    /* grid-column: 1 / -1;
 
     @media (--medium-up) {
       grid-column: 1 / 7;
@@ -77,7 +79,7 @@
 
     @media (--large) {
       grid-column: 1 / 6;
-    }
+    } */
 
     & .buttons {
       display: flex;
@@ -97,10 +99,11 @@
 
   & .media {
     border-radius: 4px;
-    width: 640px;
-    height: 360px;
 
-    /* margin: 40px auto 0;
+    /* width: 640px;
+    height: 360px; */
+
+    margin: 40px auto 0;
     display: flex;
     justify-content: center;
 
@@ -117,12 +120,6 @@
     @media (--large) {
       margin: 0;
       justify-content: flex-start;
-    } */
-    grid-column: 1 / -1;
-
-    @media (--medium-up) {
-      /* grid-column: 7 / -1; */
-      grid-column-start: 7;
     }
 
     & > div {
@@ -135,6 +132,8 @@
       background-color: var(--black);
       display: block;
       position: relative;
+      max-width: 100%;
+      aspect-ratio: 16 / 9;
 
       &::before {
         content: '';
@@ -142,8 +141,14 @@
         width: 640px;
         height: 360px;
 
-        /* padding-bottom: calc((9 / 16) * 100%);
-        width: 100%; */
+        @media (--small) {
+          width: 533px;
+          height: 300px;
+        }
+      }
+
+      & .playButton {
+        z-index: 2;
       }
 
       & > * {
@@ -166,6 +171,11 @@
         top: -130px;
         width: auto;
         height: auto;
+        display: none;
+
+        @media (--large) {
+          display: block;
+        }
       }
 
       & .bgMain {
@@ -175,6 +185,15 @@
         width: auto;
         height: auto;
         z-index: 1;
+
+        &.started {
+          z-index: 0;
+        }
+
+        @media (--small) {
+          right: -139px;
+          height: 320px;
+        }
       }
 
       & .bgBottom {

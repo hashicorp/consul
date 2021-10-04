@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import classnames from 'classNames'
 import Button from '@hashicorp/react-button'
 import ReactPlayer from 'react-player'
 import s from './style.module.css'
@@ -23,15 +25,9 @@ export default function ConsulOnKubernetesHero({
   ctas,
   video,
 }: ConsulOnKubernetesHeroProps) {
+  const [started, setStarted] = useState(false)
   return (
-    <div
-      className={s.ckHero}
-      style={
-        {
-          // backgroundImage: `url(${require('./images/background-design.svg')})`,
-        }
-      }
-    >
+    <div className={s.ckHero}>
       <div className={s.contentWrapper}>
         <div className={s.headline}>
           <h1 className={s.title}>{title}</h1>
@@ -61,11 +57,6 @@ export default function ConsulOnKubernetesHero({
               className={s.bgTop}
             />
             <img
-              src={require('./images/bg-main.svg')}
-              alt="background top"
-              className={s.bgMain}
-            />
-            <img
               src={require('./images/bg-dots.svg')}
               alt="background bottom"
               className={s.bgBottom}
@@ -75,13 +66,19 @@ export default function ConsulOnKubernetesHero({
               alt="background left"
               className={s.bgLeft}
             />
+            <img
+              src={require('./images/bg-main.svg')}
+              alt="background main"
+              className={classnames(s.bgMain, started ? s.started : null)}
+            />
             <ReactPlayer
-              playing={true}
+              playing
               light={video.poster}
               url={video.src}
               width="100%"
               height="100%"
               controls={true}
+              onStart={() => setStarted(true)}
               playIcon={
                 <svg
                   aria-label="Play video"
@@ -90,6 +87,7 @@ export default function ConsulOnKubernetesHero({
                   viewBox="0 0 72 72"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
+                  className={s.playButton}
                 >
                   <rect width="72" height="72" rx="36" fill="#F85C94" />
                   <path d="M56 36L26 53.3205L26 18.6795L56 36Z" fill="white" />
