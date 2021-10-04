@@ -68,6 +68,11 @@ export default function ConsulOnKubernetesHero({
               alt="background main"
               className={s.bgMain}
             />
+            {/* <img
+              src={require('./images/bottom-right-circle.svg')}
+              alt="background portion"
+              className={s.bgBottomRight}
+            /> */}
             <ReactPlayer
               playing
               light={video.poster}

@@ -13,6 +13,10 @@ export default function ConsulOnKubernetesPage() {
     <div>
       <Head>
         <title key="title">Consul on Kubernetes</title>
+        <meta
+          name="description"
+          content="Consul is a robust service mesh for discovering and securely connecting applications on Kubernetes."
+        />
       </Head>
 
       <ConsulOnKubernetesHero
