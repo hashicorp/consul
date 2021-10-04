@@ -246,32 +246,27 @@ export default function ConsulOnKubernetesPage() {
             className={s.getStartedCards}
             cards={[
               {
-                image: {
-                  src: 'https://via.placeholder.com/400x200.png',
-                  alt: 'card',
-                },
-                description: 'Get Started',
-                eyebrow: 'Guide',
+                eyebrow: '4 tutorials',
+                heading: 'Get started on Kubernetes',
+                description:
+                  'Setup Consul service mesh to get experience deploying service sidecar proxies and securing service with mTLS.',
                 url:
                   'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
               },
               {
-                image: {
-                  src: 'https://via.placeholder.com/400x200.png',
-                  alt: 'card',
-                },
-                description: 'Secure Services',
-                eyebrow: 'Guide',
+                eyebrow: '22 min',
+                heading: 'Secure Consul and registered services on Kubernetes',
+                description:
+                  'Secure Consul on Kubernetes using gossip encryption, TLS certificates, Access Control Lists, and Consul intentions.',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
               {
-                image: {
-                  src: 'https://via.placeholder.com/400x200.png',
-                  alt: 'card',
-                },
-                description: 'Observe Services',
-                eyebrow: 'Guide',
+                eyebrow: '21 min',
+                heading:
+                  'Layer 7 observability with Prometheus, Grafana, and Kubernetes',
+                description:
+                  'Collect and visualize layer 7 metrics from services in your Kubernetes cluster using Consul service mesh, Prometheus, and Grafana.',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },

@@ -1,10 +1,7 @@
 import s from './style.module.css'
 
 interface Card {
-  image: {
-    src: string
-    alt: string
-  }
+  heading: string
   description: string
   url: string
   eyebrow: string
@@ -21,7 +18,7 @@ export default function CardList({ title, cards, className }: CardListProps) {
     <div className={className}>
       <h3 className={s.title}>{title}</h3>
       <div className={s.cardsWrapper}>
-        {cards.map(({ image, description, url, eyebrow }) => (
+        {cards.map(({ heading, description, url, eyebrow }) => (
           <a
             href={url}
             key={eyebrow}
@@ -29,19 +26,16 @@ export default function CardList({ title, cards, className }: CardListProps) {
             target="_blank"
             rel="noreferrer"
           >
-            <div className={s.imageContainer}>
-              <img src={image.src} alt={image.alt} />
-            </div>
             <div className={s.cardContent}>
-              <div className={s.preHeader}>
-                <span>{eyebrow}</span>
-                <img
-                  alt="external-link"
-                  src={require('./images/external-link-icon.svg')}
-                />
-              </div>
-              <span className={s.description}>{description}</span>
+              <span className={s.eyebrow}>{eyebrow}</span>
+              <span className={s.heading}>{heading}</span>
+              <p className={s.description}>{description}</p>
             </div>
+            <img
+              src={require('@hashicorp/mktg-logos/product/consul/logomark/color.svg')}
+              alt="consul-icon"
+              className={s.icon}
+            />
           </a>
         ))}
       </div>
