@@ -74,7 +74,8 @@ export default function ConsulOnKubernetesHero({
               url={video.src}
               width="100%"
               height="100%"
-              controls={true}
+              controls
+              className={s.player}
               playIcon={
                 <svg
                   aria-label="Play video"

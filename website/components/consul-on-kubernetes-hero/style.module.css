@@ -34,32 +34,12 @@
   justify-content: space-between;
   display: block;
 
-  /* display: block;
-  position: relative;
-  align-items: center;
-  justify-content: space-between;
-  text-align: center; */
-
-  /* --columns: 1;
-
-  column-gap: 32px;
-  display: grid;
-  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
-  row-gap: 48px; */
-
   @media (--large) {
     display: flex;
     text-align: left;
   }
 
-  /* @media (--medium-up) {
-    --columns: 12;
-  } */
-
   & .headline {
-    /* /* flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: calc(50% - 16px); */
     max-width: 500px;
     margin-left: auto;
     margin-right: auto;
@@ -70,16 +50,6 @@
       max-width: 384px;
       margin: 0;
     }
-
-    /* grid-column: 1 / -1;
-
-    @media (--medium-up) {
-      grid-column: 1 / 7;
-    }
-
-    @media (--large) {
-      grid-column: 1 / 6;
-    } */
 
     & .buttons {
       display: flex;
@@ -99,10 +69,6 @@
 
   & .media {
     border-radius: 4px;
-
-    /* width: 640px;
-    height: 360px; */
-
     margin: 40px auto 0;
     display: flex;
     justify-content: center;
@@ -118,27 +84,25 @@
     }
 
     @media (--large) {
-      margin: 0;
+      margin: 0 0 0 40px;
       justify-content: flex-start;
     }
 
     & .video {
       background-color: var(--black);
-      display: block;
       position: relative;
       box-shadow: 0 8px 24px 0 var(--gray-2);
+      padding-top: 56.25%;
+      width: 640px;
 
-      &::before {
-        content: '';
-        display: block;
-        width: 640px;
-        height: 360px;
-        border-radius: 4px;
+      @media (--small) {
+        width: 100%;
+      }
 
-        @media (--small) {
-          width: 533px;
-          height: 300px;
-        }
+      & .player {
+        position: absolute;
+        top: 0;
+        left: 0;
       }
 
       & > div {
@@ -177,12 +141,11 @@
         left: auto;
         width: auto;
         height: auto;
-        top: 86px;
+        top: 23.8%;
         right: 0;
         right: -194px;
 
         @media (--small) {
-          top: 73px;
           right: -164px;
           height: 352px;
         }
