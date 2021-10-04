@@ -792,14 +792,14 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_5: &ENVOY_TESTS
+  envoy-integration-test-1_16_5: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.15.5"
+      ENVOY_VERSION: "1.16.5"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -831,17 +831,6 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
-
-  envoy-integration-test-1_15_5-v2compat:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.15.5"
-      TEST_V2_XDS: "1"
-
-  envoy-integration-test-1_16_5:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.16.5"
 
   envoy-integration-test-1_16_5-v2compat:
     <<: *ENVOY_TESTS
@@ -1102,12 +1091,6 @@ workflows:
           requires:
             - dev-build
       - nomad-integration-0_8:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_15_5:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_15_5-v2compat:
           requires:
             - dev-build
       - envoy-integration-test-1_16_5:

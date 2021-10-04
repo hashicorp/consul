@@ -106,17 +106,16 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.14.5": {expectErr: "Envoy 1.14.5 " + errTooOld},
 		"1.14.6": {expectErr: "Envoy 1.14.6 " + errTooOld},
 		"1.14.7": {expectErr: "Envoy 1.14.7 " + errTooOld},
+		"1.15.0": {expectErr: "Envoy 1.15.0 " + errTooOld},
+		"1.15.1": {expectErr: "Envoy 1.15.1 " + errTooOld},
+		"1.15.2": {expectErr: "Envoy 1.15.2 " + errTooOld},
+		"1.15.3": {expectErr: "Envoy 1.15.3 " + errTooOld},
+		"1.15.4": {expectErr: "Envoy 1.15.4 " + errTooOld},
+		"1.15.5": {expectErr: "Envoy 1.15.5 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
-	for _, v := range []string{
-		"1.15.0", "1.15.1", "1.15.2", "1.15.3", "1.15.4", "1.15.5",
-	} {
-		cases[v] = testcase{expect: supportedProxyFeatures{
-			GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS: true,
-			IncrementalXDSUpdatesMustBeSerial:                  true,
-		}}
-	}
+	// Populate feature flags here when appropriate. See consul 1.10.x for reference.
 	for _, v := range []string{
 		"1.16.0", "1.16.1", "1.16.2", "1.16.3", "1.16.4", "1.16.5",
 		"1.17.0", "1.17.1", "1.17.2", "1.17.3", "1.17.4",

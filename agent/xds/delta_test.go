@@ -1228,7 +1228,7 @@ func TestServer_DeltaAggregatedResources_v3_IngressEmptyResponse(t *testing.T) {
 	// REQ: clusters
 	envoy.SendDeltaReq(t, ClusterType, nil)
 
-	// RESP: clustesr
+	// RESP: cluster
 	assertDeltaResponseSent(t, envoy.deltaStream.sendCh, &envoy_discovery_v3.DeltaDiscoveryResponse{
 		TypeUrl: ClusterType,
 		Nonce:   hexString(1),
