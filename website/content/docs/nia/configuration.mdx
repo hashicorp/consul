@@ -335,6 +335,20 @@ driver "terraform-cloud" {
   - We recommend creating a dedicated team and team API token to isolate automation by Consul-Terraform-Sync from other Terraform Cloud operations.
 - `workspace_prefix` - (string) Specifies a prefix to prepend to the automatically-generated workspace names used for automation. This prefix will be used by all tasks that use this driver. By default, when no prefix is configured, the workspace name will be the task name. When a prefix is configured, the workspace name will be `<workspace_prefix value><task name>`. For example, if you configure the prefix as "cts_", then a task with the name "task_firewall" will have the workspace name "cts_task_firewall".
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This can be configured the same as how you would configure [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
+- `tls` - Configure TLS to allow HTTPS connections to [Terraform Enterprise](https://www.terraform.io/docs/enterprise/install/installer.html#tls-key-amp-cert).
+  - `enabled` - (bool) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
+  - `ca_cert` - (string) The CA file to use for communicating with Terraform Enterprise over TLS.
+  - `ca_path` - (string) The path to a directory of CA certificates to use for communicating with Terraform Enterprise over TLS.
+  - `cert` - (string) The client certificate file to use for communicating with Terraform Enterprise over TLS.
+  - `key` - (string) The client key file to use for communicating with Terraform Enterprise over TLS.
+  - `server_name` - (string) The server name to use as the SNI host when connecting via TLS.
+  - `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global CA chain to make sure the given certificates are valid.
+    - If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification to ignore any certificate warnings. However, please understand this is a potential security vulnerability.
+      ```hcl
+      tls {
+        verify = false
+      }
+      ```
 
 Consul-Terraform-Sync generates local artifacts to prepare configuration versions used for workspace runs. The location of the files created can be set with the [`working_dir`](/docs/nia/configuration#working_dir) option or configured per task. When a task is configured with a local module and is run with the Terraform Cloud driver, the local module is copied and uploaded as a part of the configuration version.
 
