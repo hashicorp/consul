@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import classnames from 'classNames'
 import Button from '@hashicorp/react-button'
 import ReactPlayer from 'react-player'
 import s from './style.module.css'
@@ -25,7 +23,6 @@ export default function ConsulOnKubernetesHero({
   ctas,
   video,
 }: ConsulOnKubernetesHeroProps) {
-  const [started, setStarted] = useState(false)
   return (
     <div className={s.ckHero}>
       <div className={s.contentWrapper}>
@@ -53,7 +50,7 @@ export default function ConsulOnKubernetesHero({
           <div className={s.video}>
             <img
               src={require('./images/bg-top.svg')}
-              alt="background right"
+              alt="background top"
               className={s.bgTop}
             />
             <img
@@ -69,7 +66,7 @@ export default function ConsulOnKubernetesHero({
             <img
               src={require('./images/bg-main.svg')}
               alt="background main"
-              className={classnames(s.bgMain, started ? s.started : null)}
+              className={s.bgMain}
             />
             <ReactPlayer
               playing
@@ -78,7 +75,6 @@ export default function ConsulOnKubernetesHero({
               width="100%"
               height="100%"
               controls={true}
-              onStart={() => setStarted(true)}
               playIcon={
                 <svg
                   aria-label="Play video"
@@ -87,7 +83,6 @@ export default function ConsulOnKubernetesHero({
                   viewBox="0 0 72 72"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className={s.playButton}
                 >
                   <rect width="72" height="72" rx="36" fill="#F85C94" />
                   <path d="M56 36L26 53.3205L26 18.6795L56 36Z" fill="white" />
