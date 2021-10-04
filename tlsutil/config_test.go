@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/yamux"
 	"github.com/stretchr/testify/require"
 
