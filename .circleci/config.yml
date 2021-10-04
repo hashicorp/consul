@@ -859,6 +859,11 @@ jobs:
     environment:
       ENVOY_VERSION: "1.18.4"
 
+  envoy-integration-test-1_19_1:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.19.1"
+
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
     docker:
@@ -1115,6 +1120,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1_18_4:
+          requires:
+            - dev-build
+      - envoy-integration-test-1_19_1:
           requires:
             - dev-build
 

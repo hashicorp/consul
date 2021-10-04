@@ -18,7 +18,7 @@ TEST_V2_XDS=${TEST_V2_XDS:-}
 export TEST_V2_XDS
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.18.4"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.19.1"}
 export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
