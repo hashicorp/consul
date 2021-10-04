@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package consul
@@ -84,11 +85,5 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 }
 
 func addEnterpriseSerfTags(_ map[string]string, _ *structs.EnterpriseMeta) {
-	// do nothing
-}
-
-// updateEnterpriseSerfTags in enterprise will update any instances of Serf with the tag that
-// are not the normal LAN or WAN serf instances (network segments and network areas)
-func (_ *Server) updateEnterpriseSerfTags(_, _ string) {
 	// do nothing
 }
