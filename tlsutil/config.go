@@ -893,6 +893,10 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 	return tlsConn, nil
 }
 
+type TLSConn interface {
+	ConnectionState() tls.ConnectionState
+}
+
 // AuthorizeServerConn is used to validate that the connection is being established
 // by a Consul server in the same datacenter.
 //
@@ -902,7 +906,7 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 //
 // Note this check is only performed if VerifyServerHostname is enabled, otherwise
 // it does no authorization.
-func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
+func (c *Configurator) AuthorizeServerConn(dc string, conn TLSConn) error {
 	if !c.VerifyServerHostname() {
 		return nil
 	}
@@ -931,7 +935,7 @@ func (c *Configurator) AuthorizeServerConn(dc string, conn *tls.Conn) error {
 		if err == nil {
 			return nil
 		}
-		multierror.Append(errs, err)
+		errs = multierror.Append(errs, err)
 	}
 	return fmt.Errorf("AuthorizeServerConn failed certificate validation for certificate with a SAN.DNSName of %v: %w", expected, errs)
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -1268,6 +1269,125 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
 	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
+}
+
+func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
+	caPEM, caPK, err := GenerateCA(CAOpts{Days: 5, Domain: "consul"})
+	require.NoError(t, err)
+
+	dir := testutil.TempDir(t, "ca")
+	caPath := filepath.Join(dir, "ca.pem")
+	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
+	require.NoError(t, err)
+
+	cfg := Config{
+		VerifyServerHostname: true,
+		Domain:               "consul",
+		CAFile:               caPath,
+	}
+	c, err := NewConfigurator(cfg, hclog.New(nil))
+	require.NoError(t, err)
+
+	t.Run("wrong DNSName", func(t *testing.T) {
+		signer, err := ParseSigner(caPK)
+		require.NoError(t, err)
+
+		pem, _, err := GenerateCert(CertOpts{
+			Signer:      signer,
+			CA:          caPEM,
+			Name:        "server.dc1.consul",
+			Days:        5,
+			DNSNames:    []string{"this-name-is-wrong", "localhost"},
+			ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		})
+		require.NoError(t, err)
+
+		s := fakeTLSConn{
+			state: tls.ConnectionState{
+				VerifiedChains:   [][]*x509.Certificate{certChain(t, pem, caPEM)},
+				PeerCertificates: certChain(t, pem, caPEM),
+			},
+		}
+		err = c.AuthorizeServerConn("dc1", s)
+		testutil.RequireErrorContains(t, err, "is valid for this-name-is-wrong, localhost, not server.dc1.consul")
+	})
+
+	t.Run("wrong CA", func(t *testing.T) {
+		caPEM, caPK, err := GenerateCA(CAOpts{Days: 5, Domain: "consul"})
+		require.NoError(t, err)
+
+		dir := testutil.TempDir(t, "other")
+		caPath := filepath.Join(dir, "ca.pem")
+		err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
+		require.NoError(t, err)
+
+		signer, err := ParseSigner(caPK)
+		require.NoError(t, err)
+
+		pem, _, err := GenerateCert(CertOpts{
+			Signer:      signer,
+			CA:          caPEM,
+			Name:        "server.dc1.consul",
+			Days:        5,
+			DNSNames:    []string{"server.dc1.consul", "localhost"},
+			ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		})
+		require.NoError(t, err)
+
+		s := fakeTLSConn{
+			state: tls.ConnectionState{
+				VerifiedChains:   [][]*x509.Certificate{certChain(t, pem, caPEM)},
+				PeerCertificates: certChain(t, pem, caPEM),
+			},
+		}
+		err = c.AuthorizeServerConn("dc1", s)
+		testutil.RequireErrorContains(t, err, "signed by unknown authority")
+	})
+
+	t.Run("missing ext key usage", func(t *testing.T) {
+		signer, err := ParseSigner(caPK)
+		require.NoError(t, err)
+
+		pem, _, err := GenerateCert(CertOpts{
+			Signer:      signer,
+			CA:          caPEM,
+			Name:        "server.dc1.consul",
+			Days:        5,
+			DNSNames:    []string{"server.dc1.consul", "localhost"},
+			ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageEmailProtection},
+		})
+		require.NoError(t, err)
+
+		s := fakeTLSConn{
+			state: tls.ConnectionState{
+				VerifiedChains:   [][]*x509.Certificate{certChain(t, pem, caPEM)},
+				PeerCertificates: certChain(t, pem, caPEM),
+			},
+		}
+		err = c.AuthorizeServerConn("dc1", s)
+		testutil.RequireErrorContains(t, err, "certificate specifies an incompatible key usage")
+	})
+}
+
+type fakeTLSConn struct {
+	state tls.ConnectionState
+}
+
+func (f fakeTLSConn) ConnectionState() tls.ConnectionState {
+	return f.state
+}
+
+func certChain(t *testing.T, certs ...string) []*x509.Certificate {
+	t.Helper()
+
+	result := make([]*x509.Certificate, 0, len(certs))
+
+	for i, c := range certs {
+		cert, err := parseCert(c)
+		require.NoError(t, err, "cert %d", i)
+		result = append(result, cert)
+	}
+	return result
 }
 
 func TestConfig_tlsVersions(t *testing.T) {
