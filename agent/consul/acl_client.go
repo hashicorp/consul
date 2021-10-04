@@ -23,17 +23,9 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	Roles: 128,
 }
 
-func (c *Client) ACLDatacenter(legacy bool) string {
-	// For resolution running on clients, when not in
-	// legacy mode the servers within the current datacenter
-	// must be queried first to pick up local tokens. When
-	// in legacy mode the clients should directly query the
-	// ACL Datacenter. When no ACL datacenter has been set
-	// then we assume that the local DC is the ACL DC
-	if legacy && c.config.PrimaryDatacenter != "" {
-		return c.config.PrimaryDatacenter
-	}
-
+func (c *Client) ACLDatacenter() string {
+	// For resolution running on clients servers within the current datacenter
+	// must be queried first to pick up local tokens.
 	return c.config.Datacenter
 }
 

@@ -100,7 +100,7 @@ func (s *Server) LocalTokensEnabled() bool {
 	return true
 }
 
-func (s *Server) ACLDatacenter(legacy bool) string {
+func (s *Server) ACLDatacenter() string {
 	// For resolution running on servers the only option
 	// is to contact the configured ACL Datacenter
 	if s.config.PrimaryDatacenter != "" {

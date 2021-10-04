@@ -613,7 +613,7 @@ func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchG
 	return nil
 }
 
-func (d *ACLResolverTestDelegate) ACLDatacenter(legacy bool) string {
+func (d *ACLResolverTestDelegate) ACLDatacenter() string {
 	return d.datacenter
 }
 

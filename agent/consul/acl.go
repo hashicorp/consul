@@ -120,13 +120,6 @@ func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func minTTL(a time.Duration, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 type ACLRemoteError struct {
 	Err error
 }
@@ -145,7 +138,7 @@ func tokenSecretCacheID(token string) string {
 }
 
 type ACLResolverDelegate interface {
-	ACLDatacenter(legacy bool) string
+	ACLDatacenter() string
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
@@ -361,7 +354,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	cacheID := tokenSecretCacheID(token)
 
 	req := structs.ACLTokenGetRequest{
-		Datacenter:  r.delegate.ACLDatacenter(false),
+		Datacenter:  r.delegate.ACLDatacenter(),
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
@@ -449,7 +442,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 
 func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) (map[string]*structs.ACLPolicy, error) {
 	req := structs.ACLPolicyBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
+		Datacenter: r.delegate.ACLDatacenter(),
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -504,7 +497,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 
 func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity, roleIDs []string, cached map[string]*structs.RoleCacheEntry) (map[string]*structs.ACLRole, error) {
 	req := structs.ACLRoleBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
+		Datacenter: r.delegate.ACLDatacenter(),
 		RoleIDs:    roleIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
