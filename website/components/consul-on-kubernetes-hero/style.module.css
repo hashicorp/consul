@@ -1,10 +1,10 @@
 .ckHero {
-  background-position: top right;
-  background-repeat: no-repeat;
+  /* background-position: top right;
+  background-repeat: no-repeat; */
   background-color: var(--black);
   color: var(--white);
-  padding-top: 145px;
-  padding-bottom: 163px;
+  padding-top: 130px;
+  padding-bottom: 142px;
   overflow: hidden;
 
   @media (--medium) {
@@ -97,6 +97,8 @@
 
   & .media {
     border-radius: 4px;
+    width: 640px;
+    height: 360px;
 
     /* margin: 40px auto 0;
     display: flex;
@@ -119,7 +121,8 @@
     grid-column: 1 / -1;
 
     @media (--medium-up) {
-      grid-column: 7 / -1;
+      /* grid-column: 7 / -1; */
+      grid-column-start: 7;
     }
 
     & > div {
@@ -136,8 +139,11 @@
       &::before {
         content: '';
         display: block;
-        padding-bottom: calc((9 / 16) * 100%); /* [1] */
-        width: 100%;
+        width: 640px;
+        height: 360px;
+
+        /* padding-bottom: calc((9 / 16) * 100%);
+        width: 100%; */
       }
 
       & > * {
@@ -152,6 +158,38 @@
         & div {
           border-radius: 4px;
         }
+      }
+
+      & .bgTop {
+        left: auto;
+        right: 0;
+        top: -130px;
+        width: auto;
+        height: auto;
+      }
+
+      & .bgMain {
+        left: auto;
+        right: -195px;
+        top: 0;
+        width: auto;
+        height: auto;
+        z-index: 1;
+      }
+
+      & .bgBottom {
+        width: 240px;
+        height: 208px;
+        top: 295px;
+        right: 0;
+        left: auto;
+      }
+
+      & .bgLeft {
+        width: 240px;
+        height: 208px;
+        top: 86px;
+        left: -77px;
       }
     }
   }

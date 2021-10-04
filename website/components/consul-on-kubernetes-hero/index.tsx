@@ -56,8 +56,24 @@ export default function ConsulOnKubernetesHero({
         <div className={s.media}>
           <div className={s.video}>
             <img
-              src={require('./images/background-design.svg')}
-              alt="background"
+              src={require('./images/bg-top.svg')}
+              alt="background right"
+              className={s.bgTop}
+            />
+            <img
+              src={require('./images/bg-main.svg')}
+              alt="background top"
+              className={s.bgMain}
+            />
+            <img
+              src={require('./images/bg-dots.svg')}
+              alt="background bottom"
+              className={s.bgBottom}
+            />
+            <img
+              src={require('./images/bg-dots.svg')}
+              alt="background left"
+              className={s.bgLeft}
             />
             <ReactPlayer
               playing={true}
