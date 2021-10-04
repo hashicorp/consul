@@ -3,12 +3,12 @@ package consul
 import (
 	"context"
 	"fmt"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
+	"math"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
@@ -74,6 +74,8 @@ func (s *Server) initAutopilot(config *Config) {
 		autopilot.WithUpdateInterval(config.ServerHealthInterval),
 		autopilot.WithPromoter(s.autopilotPromoter()),
 	)
+
+	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
