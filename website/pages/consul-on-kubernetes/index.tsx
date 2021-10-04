@@ -29,7 +29,11 @@ export default function ConsulOnKubernetesPage() {
               'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
           },
         ]}
-        videoSource="https://www.youtube.com/watch?v=Eyszp_apaEU"
+        video={{
+          src: 'https://www.youtube.com/watch?v=Eyszp_apaEU',
+          poster:
+            'https://www.datocms-assets.com/2885/1633008282-hashicorp-zero-trust-thumbnail.jpg',
+        }}
       />
 
       <section>

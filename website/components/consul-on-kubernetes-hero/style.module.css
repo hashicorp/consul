@@ -3,19 +3,60 @@
   background-repeat: no-repeat;
   background-color: var(--black);
   color: var(--white);
-  padding: 145px 0 163px;
+  padding-top: 145px;
+  padding-bottom: 163px;
   overflow: hidden;
 
   @media (--medium) {
-    padding: 78px 0 104px;
+    padding-top: 78px;
+    padding-bottom: 104px;
   }
 
   @media (--small) {
-    padding: 56px 0 80px;
+    padding-top: 56px;
+    padding-bottom: 80px;
+  }
+}
+
+.title {
+  composes: g-type-display-1 from global;
+  margin: 0;
+}
+
+.description {
+  composes: g-type-body-large from global;
+  margin-top: 16px;
+  margin-bottom: 40px;
+  color: var(--gray-5);
+}
+
+.contentWrapper {
+  composes: g-grid-container from global;
+
+  /* display: block;
+  position: relative;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center; */
+
+  --columns: 1;
+
+  column-gap: 32px;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  row-gap: 48px;
+
+  /* @media (--large) {
+    display: flex;
+    text-align: left;
+  } */
+
+  @media (--medium-up) {
+    --columns: 12;
   }
 
   & .headline {
-    flex-grow: 0;
+    /* flex-grow: 0;
     flex-shrink: 0;
     flex-basis: calc(50% - 16px);
     max-width: 500px;
@@ -27,6 +68,15 @@
       text-align: left;
       max-width: 384px;
       margin: 0;
+    } */
+    grid-column: 1 / -1;
+
+    @media (--medium-up) {
+      grid-column: 1 / 7;
+    }
+
+    @media (--large) {
+      grid-column: 1 / 6;
     }
 
     & .buttons {
@@ -46,7 +96,7 @@
   }
 
   & .media {
-    margin: 40px auto 0;
+    /* margin: 40px auto 0;
     display: flex;
     justify-content: center;
 
@@ -63,32 +113,38 @@
     @media (--large) {
       margin: 0;
       justify-content: flex-start;
+    } */
+    grid-column: 1 / -1;
+
+    @media (--medium-up) {
+      grid-column: 7 / -1;
     }
-  }
-}
 
-.title {
-  composes: g-type-display-1 from global;
-  margin: 0;
-}
+    & > div {
+      border: 1px var(--gray-3) solid;
+    }
 
-.description {
-  composes: g-type-body-large from global;
-  margin-top: 16px;
-  margin-bottom: 40px;
-  color: var(--gray-5);
-}
+    & .video {
+      background-color: var(--black);
+      display: block;
+      position: relative;
 
-.contentWrapper {
-  composes: g-grid-container from global;
-  display: block;
-  position: relative;
-  align-items: center;
-  justify-content: space-between;
-  text-align: center;
+      &::before {
+        content: '';
+        display: block;
+        padding-bottom: calc((9 / 16) * 100%); /* [1] */
+        width: 100%;
+      }
 
-  @media (--large) {
-    display: flex;
-    text-align: left;
+      & > * {
+        bottom: 0;
+        height: 100%;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
   }
 }

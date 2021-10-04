@@ -1,4 +1,5 @@
 import Button from '@hashicorp/react-button'
+import ReactPlayer from 'react-player'
 import s from './style.module.css'
 
 interface Cta {
@@ -10,14 +11,17 @@ interface ConsulOnKubernetesHeroProps {
   title: string
   description: string
   ctas: Cta[]
-  videoSource: string
+  video: {
+    src: string
+    poster: string
+  }
 }
 
 export default function ConsulOnKubernetesHero({
   title,
   description,
   ctas,
-  videoSource,
+  video,
 }: ConsulOnKubernetesHeroProps) {
   return (
     <div
@@ -48,7 +52,7 @@ export default function ConsulOnKubernetesHero({
           </div>
         </div>
         <div className={s.media}>
-          <iframe
+          {/* <iframe
             width="573"
             height="324"
             src="https://www.youtube.com/embed/Eyszp_apaEU"
@@ -56,7 +60,30 @@ export default function ConsulOnKubernetesHero({
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-          />
+          /> */}
+          <div className={s.video}>
+            <ReactPlayer
+              playing={true}
+              light={video.poster}
+              url={video.src}
+              width="100%"
+              height="100%"
+              controls={true}
+              playIcon={
+                <svg
+                  aria-label="Play video"
+                  width="72"
+                  height="72"
+                  viewBox="0 0 72 72"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="72" height="72" rx="36" fill="#F85C94" />
+                  <path d="M56 36L26 53.3205L26 18.6795L56 36Z" fill="white" />
+                </svg>
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
