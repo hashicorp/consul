@@ -31,8 +31,7 @@ export default function ConsulOnKubernetesPage() {
         ]}
         video={{
           src: 'https://www.youtube.com/watch?v=Eyszp_apaEU',
-          poster:
-            'https://www.datocms-assets.com/2885/1633008282-hashicorp-zero-trust-thumbnail.jpg',
+          poster: require('./images/hero/poster.png'),
         }}
       />
 

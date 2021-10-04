@@ -26,9 +26,11 @@ export default function ConsulOnKubernetesHero({
   return (
     <div
       className={s.ckHero}
-      style={{
-        backgroundImage: `url(${require('./images/background-design.svg')})`,
-      }}
+      style={
+        {
+          // backgroundImage: `url(${require('./images/background-design.svg')})`,
+        }
+      }
     >
       <div className={s.contentWrapper}>
         <div className={s.headline}>
@@ -52,16 +54,11 @@ export default function ConsulOnKubernetesHero({
           </div>
         </div>
         <div className={s.media}>
-          {/* <iframe
-            width="573"
-            height="324"
-            src="https://www.youtube.com/embed/Eyszp_apaEU"
-            title="Why Microservices? Doing it for the Right Reasons"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          /> */}
           <div className={s.video}>
+            <img
+              src={require('./images/background-design.svg')}
+              alt="background"
+            />
             <ReactPlayer
               playing={true}
               light={video.poster}

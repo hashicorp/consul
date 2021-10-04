@@ -96,6 +96,8 @@
   }
 
   & .media {
+    border-radius: 4px;
+
     /* margin: 40px auto 0;
     display: flex;
     justify-content: center;
@@ -122,6 +124,8 @@
 
     & > div {
       border: 1px var(--gray-3) solid;
+      box-shadow: 0 8px 24px 0 var(--gray-2);
+      border-radius: 4px;
     }
 
     & .video {
@@ -144,6 +148,10 @@
         right: 0;
         top: 0;
         width: 100%;
+
+        & div {
+          border-radius: 4px;
+        }
       }
     }
   }
