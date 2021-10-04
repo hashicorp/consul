@@ -8,9 +8,6 @@ package structs
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/hashicorp/consul/acl"
 )
 
 const (
@@ -113,26 +110,4 @@ type ACLBootstrap struct {
 	AllowBootstrap bool
 
 	RaftIndex
-}
-
-// ACLPolicyResolveLegacyRequest is used to request an ACL by Token SecretID, conditionally
-// filtering on an ID
-type ACLPolicyResolveLegacyRequest struct {
-	Datacenter string // The Datacenter the RPC may be sent to
-	ACL        string // The Tokens Secret ID
-	ETag       string // Caching ETag to prevent resending the policy when not needed
-	QueryOptions
-}
-
-// RequestDatacenter returns the DC this request is targeted to.
-func (r *ACLPolicyResolveLegacyRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-type ACLPolicyResolveLegacyResponse struct {
-	ETag   string
-	Parent string
-	Policy *acl.Policy
-	TTL    time.Duration
-	QueryMeta
 }

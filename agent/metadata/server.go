@@ -98,7 +98,7 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	}
 
 	var acls structs.ACLMode
-	if aclMode, ok := m.Tags["acls"]; ok {
+	if aclMode, ok := m.Tags[TagACLs]; ok {
 		acls = structs.ACLMode(aclMode)
 	} else {
 		acls = structs.ACLModeUnknown
@@ -193,6 +193,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	}
 	return true, parts
 }
+
+const TagACLs = "acls"
 
 const featureFlagPrefix = "ft_"
 

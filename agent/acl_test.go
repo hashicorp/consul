@@ -76,10 +76,6 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	return a
 }
 
-func (a *TestACLAgent) UseLegacyACLs() bool {
-	return false
-}
-
 func (a *TestACLAgent) ResolveToken(secretID string) (acl.Authorizer, error) {
 	if a.resolveAuthzFn == nil {
 		return nil, fmt.Errorf("ResolveToken call is unexpected - no authz resolver callback set")

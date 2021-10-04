@@ -376,7 +376,6 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 		c.ACLMasterToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 

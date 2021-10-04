@@ -3,12 +3,13 @@ package agent
 import (
 	"io"
 
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/mock"
 )
 
 type delegateMock struct {
@@ -63,10 +64,6 @@ func (m *delegateMock) ResolveTokenAndDefaultMeta(token string, entMeta *structs
 
 func (m *delegateMock) RPC(method string, args interface{}, reply interface{}) error {
 	return m.Called(method, args, reply).Error(0)
-}
-
-func (m *delegateMock) UseLegacyACLs() bool {
-	return m.Called().Bool(0)
 }
 
 func (m *delegateMock) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error {

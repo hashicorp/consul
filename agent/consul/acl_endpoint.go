@@ -170,11 +170,6 @@ func (a *ACL) aclPreCheck() error {
 	if !a.srv.config.ACLsEnabled {
 		return acl.ErrDisabled
 	}
-
-	if a.srv.UseLegacyACLs() {
-		return fmt.Errorf("The ACL system is currently in legacy mode.")
-	}
-
 	return nil
 }
 
@@ -1369,56 +1364,6 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 
 	a.srv.setQueryMeta(&reply.QueryMeta)
 
-	return nil
-}
-
-// makeACLETag returns an ETag for the given parent and policy.
-func makeACLETag(parent string, policy *acl.Policy) string {
-	return fmt.Sprintf("%s:%s", parent, policy.ID)
-}
-
-// GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
-// support a blocking query.
-//
-// TODO(ACL-Legacy): remove this
-func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-	if done, err := a.srv.ForwardRPC("ACL.GetPolicy", args, reply); done {
-		return err
-	}
-
-	// Verify we are allowed to serve this request
-	if a.srv.config.PrimaryDatacenter != a.srv.config.Datacenter {
-		return acl.ErrDisabled
-	}
-
-	// Get the policy via the cache
-	parent := a.srv.config.ACLResolverSettings.ACLDefaultPolicy
-
-	ident, policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
-	if err != nil {
-		return err
-	}
-
-	if token, ok := ident.(*structs.ACLToken); ok && token.Type == structs.ACLTokenTypeManagement {
-		parent = "manage"
-	}
-
-	// translates the structures internals to most closely match what could be expressed in the original rule language
-	policy = policy.ConvertToLegacy()
-
-	// Generate an ETag
-	etag := makeACLETag(parent, policy)
-
-	// Setup the response
-	reply.ETag = etag
-	reply.TTL = a.srv.config.ACLResolverSettings.ACLTokenTTL
-	a.srv.setQueryMeta(&reply.QueryMeta)
-
-	// Only send the policy on an Etag mis-match
-	if args.ETag != etag {
-		reply.Parent = parent
-		reply.Policy = policy
-	}
 	return nil
 }
 

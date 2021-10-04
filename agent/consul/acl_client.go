@@ -1,9 +1,6 @@
 package consul
 
 import (
-	"sync/atomic"
-	"time"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/serf"
@@ -25,36 +22,6 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	Authorizers: 256,
 	// Roles - number of ACL roles that can be cached
 	Roles: 128,
-}
-
-func (c *Client) UseLegacyACLs() bool {
-	return atomic.LoadInt32(&c.useNewACLs) == 0
-}
-
-func (c *Client) monitorACLMode() {
-	waitTime := aclModeCheckMinInterval
-	for {
-		foundServers, mode, _ := ServersGetACLMode(c, "", c.config.Datacenter)
-		if foundServers && mode == structs.ACLModeEnabled {
-			c.logger.Debug("transitioned out of legacy ACL mode")
-			c.updateSerfTags("acls", string(structs.ACLModeEnabled))
-			atomic.StoreInt32(&c.useNewACLs, 1)
-			return
-		}
-
-		select {
-		case <-c.shutdownCh:
-			return
-		case <-time.After(waitTime):
-			// do nothing
-		}
-
-		// calculate the amount of time to wait for the next round
-		waitTime = waitTime * 2
-		if waitTime > aclModeCheckMaxInterval {
-			waitTime = aclModeCheckMaxInterval
-		}
-	}
 }
 
 func (c *Client) ACLDatacenter(legacy bool) string {

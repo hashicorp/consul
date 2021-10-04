@@ -6,6 +6,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+type LegacyACLGetPolicy struct{}
+
+func (a *ACL) GetPolicy(*LegacyACLGetPolicy, *LegacyACLGetPolicy) error {
+	return fmt.Errorf("ACL.GetPolicy: the legacy ACL system has been removed")
+}
+
 func (a *ACL) Bootstrap(*structs.DCSpecificRequest, *structs.ACL) error {
 	return fmt.Errorf("ACL.Bootstrap: the legacy ACL system has been removed")
 }
