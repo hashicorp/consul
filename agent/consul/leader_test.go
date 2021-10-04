@@ -1771,14 +1771,11 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 }
 
 func updateSerfTags(s *Server, key, value string) {
-	// Update the LAN serf
 	libserf.UpdateTag(s.serfLAN, key, value)
 
 	if s.serfWAN != nil {
 		libserf.UpdateTag(s.serfWAN, key, value)
 	}
-
-	s.updateEnterpriseSerfTags(key, value)
 }
 
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
