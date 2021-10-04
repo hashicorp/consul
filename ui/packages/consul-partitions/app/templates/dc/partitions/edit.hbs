@@ -1,0 +1,68 @@
+<Route
+  @name={{routeName}}
+as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/partition/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.name '')
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+
+  loader.data
+  loader.data.isNew
+as |dc partition nspace item create|}}
+  <AppView>
+    <BlockSlot @name="notification" as |status type item error|>
+      <Consul::Partition::Notifications
+        @type={{type}}
+        @status={{status}}
+        @error={{error}}
+      />
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+          <li><a data-test-back href={{href-to 'dc.partitions'}}>All Partitions</a></li>
+      </ol>
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+        <route.Title @title={{if create "New Partition" (concat "Edit " item.Name)}} />
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="actions">
+    </BlockSlot>
+    <BlockSlot @name="content">
+
+      <Consul::Partition::Form
+        @item={{item}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{transition-to 'dc.partitions.index'}}
+      />
+
+
+    </BlockSlot>
+  </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

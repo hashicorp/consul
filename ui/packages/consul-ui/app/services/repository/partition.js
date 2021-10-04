@@ -1,6 +1,6 @@
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
-import RepositoryService from 'consul-ui/services/repository';
+import RepositoryService, { softDelete } from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/partition';
 import dataSource from 'consul-ui/decorators/data-source';
 
@@ -27,6 +27,7 @@ const findActive = function(items, item) {
 const MODEL_NAME = 'partition';
 export default class PartitionRepository extends RepositoryService {
   @service('settings') settings;
+  @service('form') form;
   @service('repository/permission') permissions;
 
   getModelName() {
@@ -49,9 +50,25 @@ export default class PartitionRepository extends RepositoryService {
     return super.findAll(...arguments).catch(() => []);
   }
 
-  @dataSource('/:ns/:dc/partition/:id')
-  async findBySlug() {
-    return super.findBySlug(...arguments);
+  @dataSource('/:partition/:ns/:dc/partition/:id')
+  async findBySlug(params) {
+    let item;
+    if (params.id === '') {
+      item = await this.create({
+        Datacenter: params.dc,
+        Partition: '',
+      });
+    } else {
+      item = await super.findBySlug(...arguments);
+    }
+    return this.form
+      .form(this.getModelName())
+      .setData(item)
+      .getData();
+  }
+
+  remove(item) {
+    return softDelete(this, item);
   }
 
   async getActive(currentName = '') {

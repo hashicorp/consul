@@ -79,6 +79,12 @@ module.exports = {
       pattern: '**/README.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs/consul',
+    },
+    {
+      root: `${path.dirname(require.resolve('consul-partitions/package.json'))}/app/components`,
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul-partitions',
     }
   ].concat(user.sources),
   labels: {

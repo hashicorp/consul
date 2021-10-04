@@ -38,6 +38,19 @@ export default class BaseAbility extends Ability {
       this.permissions.generate(this.resource, ACCESS_WRITE, segment),
     ];
   }
+  // characteristics
+  // TODO: Remove once we have managed to do the scroll pane refactor
+  get isLinkable() {
+    return true;
+  }
+  get isNew() {
+    return this.item.isNew;
+  }
+
+  get isPristine() {
+    return this.item.isPristine;
+  }
+  //
 
   get canRead() {
     if (typeof this.item !== 'undefined') {
