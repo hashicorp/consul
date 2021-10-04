@@ -2,6 +2,7 @@ import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get } from '@ember/object';
 import Slotted from 'block-slots';
+import { isChangeset } from 'validated-changeset';
 
 export default Component.extend(Slotted, {
   tagName: '',
@@ -41,7 +42,7 @@ export default Component.extend(Slotted, {
     setData: function(data) {
       let changeset = data;
       // convert to a real changeset
-      if (typeof this.form !== 'undefined') {
+      if (!isChangeset(data) && typeof this.form !== 'undefined') {
         changeset = this.form.setData(data).getData();
       }
       // mark as creating

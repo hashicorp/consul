@@ -13,14 +13,33 @@
 html.is-debug body > .brand-loader {
   display: none !important;
 }
+html.is-debug [class*='partition-'] {
+  display: block !important;
+}
 html:not(.with-data-source) .data-source-debug {
   display: none;
+}
+html:not(.with-data-source) .data-source-debug {
+  display: none;
+}
+%debug-box {
+  color: red;
+  background-color: rgb(255 255 255 / 70%);
+  position: absolute;
+  /* hi */
+  z-index: 100000;
+}
+html.with-href-to [href^='console://']::before {
+  @extend %p3;
+  @extend %debug-box;
+  content: attr(href);
+  display: inline;
 }
 html.with-route-announcer .route-title {
   @extend %unvisually-hidden;
 }
 .data-source-debug {
-  color: red;
+  @extend %debug-box;
 }
 .data-source-debug input:checked + pre code::after {
   content: attr(data-json);

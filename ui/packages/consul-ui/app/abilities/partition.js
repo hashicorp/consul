@@ -1,4 +1,4 @@
-import BaseAbility from './base';
+import BaseAbility from 'consul-ui/abilities/base';
 import { inject as service } from '@ember/service';
 
 export default class PartitionAbility extends BaseAbility {
@@ -6,6 +6,10 @@ export default class PartitionAbility extends BaseAbility {
 
   resource = 'operator';
   segmented = false;
+
+  get isLinkable() {
+    return !this.item.DeletedAt;
+  }
 
   get canManage() {
     return this.canCreate;

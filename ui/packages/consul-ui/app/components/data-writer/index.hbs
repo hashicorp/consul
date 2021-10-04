@@ -8,6 +8,7 @@
   persist=(action "persist")
   delete=(queue (action (mut data)) (action dispatch "REMOVE"))
   inflight=(state-matches state (array "persisting" "removing"))
+  disabled=(state-matches state (array "persisting" "removing"))
 ) as |api|}}
 
   {{yield api}}

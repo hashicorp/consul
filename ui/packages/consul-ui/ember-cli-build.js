@@ -1,7 +1,14 @@
 'use strict';
+const path = require('path');
+const exists = require('fs').existsSync;
+
 const Funnel = require('broccoli-funnel');
+const mergeTrees = require('broccoli-merge-trees');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 const utils = require('./config/utils');
+
+// const BroccoliDebug = require('broccoli-debug');
+// const debug = BroccoliDebug.buildDebugCallback(`app:consul-ui`)
 
 module.exports = function(defaults, $ = process.env) {
   // available environments
@@ -16,6 +23,16 @@ module.exports = function(defaults, $ = process.env) {
   const addons = {};
   const outputPaths = {};
   let excludeFiles = [];
+
+  const apps = [
+    'consul-acls',
+    'consul-partitions'
+  ].map(item => {
+    return {
+      name: item,
+      path: path.dirname(require.resolve(`${item}/package.json`))
+    };
+  });
 
   const babel = {
     plugins: [
@@ -61,11 +78,21 @@ module.exports = function(defaults, $ = process.env) {
       ['strip-function-call', {'strip': ['Ember.runInDebug']}]
     )
   }
-  //
 
-  trees.app = new Funnel('app', {
-    exclude: excludeFiles
+  //
+  trees.app = mergeTrees([
+    new Funnel('app', { exclude: excludeFiles })
+  ].concat(
+    apps.filter(item => exists(`${item.path}/app`)).map(item => new Funnel(`${item.path}/app`))
+  ), {
+    overwrite: true
   });
+  trees.vendor = mergeTrees([
+    new Funnel('vendor'),
+  ].concat(
+    apps.map(item => new Funnel(`${item.path}/vendor`))
+  ));
+  //
 
   const app = new EmberApp(
     Object.assign({}, defaults, {
@@ -112,6 +139,11 @@ module.exports = function(defaults, $ = process.env) {
       },
     }
   );
+  apps.forEach(item => {
+    app.import(`vendor/${item.name}/routes.js`, {
+      outputFile: `assets/${item.name}/routes.js`,
+    });
+  });
   // Use `app.import` to add additional libraries to the generated
   // output files.
   //
@@ -162,9 +194,6 @@ module.exports = function(defaults, $ = process.env) {
   });
   app.import('vendor/metrics-providers/prometheus.js', {
     outputFile: 'assets/metrics-providers/prometheus.js',
-  });
-  app.import('vendor/acls/routes.js', {
-    outputFile: 'assets/acls/routes.js',
   });
   app.import('vendor/init.js', {
     outputFile: 'assets/init.js',
