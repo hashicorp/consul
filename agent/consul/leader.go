@@ -344,6 +344,8 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConfigReplication()
 
+	s.stopACLReplication()
+
 	s.stopConnectLeader()
 
 	s.stopACLTokenReaping()
