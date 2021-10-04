@@ -17,6 +17,7 @@ module.exports = function(defaults, $ = process.env) {
   $ = utils.env($);
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
+  const devlike = ['development', 'staging'];
   const sourcemaps = !['production'].includes(env) && !$('BABEL_DISABLE_SOURCEMAPS', false);
 
   const trees = {};
@@ -46,6 +47,7 @@ module.exports = function(defaults, $ = process.env) {
     // exclude any component/pageobject.js files from anything but test
     excludeFiles = excludeFiles.concat([
       'components/**/pageobject.js',
+      'components/**/test-support.js',
       'components/**/*.test-support.js',
       'components/**/*.test.js',
     ])
@@ -55,6 +57,8 @@ module.exports = function(defaults, $ = process.env) {
     // exclude our debug initializer, route and template
     excludeFiles = excludeFiles.concat([
       'instance-initializers/debug.js',
+      'routing/**/*-debug.js',
+      'services/**/*-debug.js',
       'templates/debug.hbs',
       'components/debug/**/*.*'
     ])
@@ -83,7 +87,7 @@ module.exports = function(defaults, $ = process.env) {
   trees.app = mergeTrees([
     new Funnel('app', { exclude: excludeFiles })
   ].concat(
-    apps.filter(item => exists(`${item.path}/app`)).map(item => new Funnel(`${item.path}/app`))
+    apps.filter(item => exists(`${item.path}/app`)).map(item => new Funnel(`${item.path}/app`, {exclude: excludeFiles}))
   ), {
     overwrite: true
   });
@@ -142,6 +146,11 @@ module.exports = function(defaults, $ = process.env) {
   apps.forEach(item => {
     app.import(`vendor/${item.name}/routes.js`, {
       outputFile: `assets/${item.name}/routes.js`,
+    });
+  });
+  ['consul-ui/services'].concat(devlike ? ['consul-ui/services-debug'] : []).forEach(item => {
+    app.import(`vendor/${item}.js`, {
+      outputFile: `assets/${item}.js`,
     });
   });
   // Use `app.import` to add additional libraries to the generated

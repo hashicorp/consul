@@ -41,6 +41,12 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
   }
   </script>
+  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services.js"></script>
+${
+  environment === 'development' || environment === 'staging'
+    ? `
+  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
+` : ``}
 ${
   environment === 'production'
     ? `
