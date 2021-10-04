@@ -134,8 +134,6 @@ One particular condition configuration, [`regexp`](/docs/nia/configuration#regex
 
 ### Consul KV Condition
 
--> **Beta:** This feature is currently only available in Consul-Terraform-Sync v0.4.0-beta.
-
 Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and executing the task when a configured KV entry is created, deleted, or updated.
 
 Based on the `recurse` option, the condition either monitors a single Consul KV pair for a given path or monitors all pairs that are prefixed by that path. In the example below, because `recurse` is set to true, the `path` option is treated as a prefix. Changes to an entry with the key `my-key` and an entry with the key `my-key/another-key` would both trigger the task. If `recurse` were set to false, then only changes to `my-key` would trigger the task.

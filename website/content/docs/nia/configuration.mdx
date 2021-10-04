@@ -223,8 +223,6 @@ task {
 
 #### Consul KV Condition
 
--> **Beta:** This feature is currently only available in Consul-Terraform-Sync v0.4.0-beta.
-
 A consul-kv condition block configures a task to only execute on changes to a Consul KV entry. The condition can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path.
 
 See [Task Execution: Consul KV Condition](/docs/nia/tasks#consul-kv-condition) for more information on how tasks are triggered with a consul-kv condition.
@@ -301,8 +299,6 @@ driver "terraform" {
   </a>{' '}
   which is available with <strong>Consul Enterprise</strong>.
 </EnterpriseAlert>
-
--> **Beta:** The integration with the HashiCorp managed service version of Terraform Cloud is currently only available in Consul-Terraform-Sync v0.4.0-beta. Integration with the self-hosted version of Terraform Cloud is available as of v0.3.0.
 
 The Terraform Cloud driver enables Consul-Terraform-Sync Enterprise to integrate with **Terraform Cloud**, including both the [self-hosted distribution](https://www.hashicorp.com/products/terraform/editions/enterprise) and the [managed service](https://www.hashicorp.com/products/terraform/editions/cloud). With this driver, Consul-Terraform-Sync automates Terraform runs and remote operations for workspaces.
 
