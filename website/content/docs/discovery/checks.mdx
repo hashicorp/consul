@@ -122,7 +122,7 @@ There are several different kinds of checks:
 
 - `H2ping + Interval` - These checks test an endpoint that uses http2
   by connecting to the endpoint and sending a ping frame. TLS is assumed to be configured by default.
-  To disable TLS and use h2c, set `h2ping_disable_tls` to `true`. If the ping is successful
+  To disable TLS and use h2c, set `h2ping_enable_tls` to `false`. If the ping is successful
   within a specified timeout, then the check is updated as passing.
   The timeout defaults to 10 seconds, but is configurable using the `timeout` field. If TLS is enabled a valid
   certificate is required, unless `tls_skip_verify` is set to `true`.
@@ -252,7 +252,7 @@ A h2ping check:
     "name": "h2ping",
     "h2ping": "localhost:22222",
     "interval": "10s",
-    "h2ping_disable_tls": false
+    "h2ping_use_tls": false
   }
 }
 ```

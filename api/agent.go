@@ -328,7 +328,7 @@ type AgentServiceCheck struct {
 	GRPC                   string              `json:",omitempty"`
 	GRPCUseTLS             bool                `json:",omitempty"`
 	H2PING                 string              `json:",omitempty"`
-	H2PINGDisableTLS       bool                `json:",omitempty"`
+	H2PingUseTLS           bool                `json:",omitempty"`
 	AliasNode              string              `json:",omitempty"`
 	AliasService           string              `json:",omitempty"`
 	SuccessBeforePassing   int                 `json:",omitempty"`

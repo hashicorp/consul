@@ -2707,7 +2707,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 			var tlsClientConfig *tls.Config
-			if !chkType.H2PINGDisableTLS {
+			if chkType.H2PingUseTLS {
 				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
 				tlsClientConfig.NextProtos = []string{http2.NextProtoTLS}
 			}

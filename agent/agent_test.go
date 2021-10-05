@@ -866,7 +866,7 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 			H2PING:           "localhost:12345",
 			TLSSkipVerify:    true,
 			Interval:         10 * time.Second,
-			H2PINGDisableTLS: true,
+			H2PingUseTLS:     false,
 		},
 	}
 

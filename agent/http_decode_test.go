@@ -285,7 +285,7 @@ var translateCheckTypeTCs = [][]translateKeyTestCase{
 	translateDockerTCs,
 	translateGRPCUseTLSTCs,
 	translateTLSServerNameTCs,
-	translateH2PINGDisableTLS,
+	translateH2PingUseTLS,
 	translateTLSSkipVerifyTCs,
 	translateServiceIDTCs,
 }
@@ -678,59 +678,59 @@ var translateGRPCUseTLSTCs = []translateKeyTestCase{
 	},
 }
 
-func h2pingDisableTLSEqFn(out interface{}, want interface{}) error {
+func h2pingUseTLSEqFn(out interface{}, want interface{}) error {
 	var got interface{}
 	switch v := out.(type) {
 	case structs.CheckDefinition:
-		got = v.H2PINGDisableTLS
+		got = v.H2PingUseTLS
 	case *structs.CheckDefinition:
-		got = v.H2PINGDisableTLS
+		got = v.H2PingUseTLS
 	case structs.CheckType:
-		got = v.H2PINGDisableTLS
+		got = v.H2PingUseTLS
 	case *structs.CheckType:
-		got = v.H2PINGDisableTLS
+		got = v.H2PingUseTLS
 	case structs.HealthCheckDefinition:
-		got = v.H2PINGDisableTLS
+		got = v.H2PingUseTLS
 	case *structs.HealthCheckDefinition:
-		got = v.H2PINGDisableTLS
+		got = v.H2PingUseTLS
 	default:
 		panic(fmt.Sprintf("unexpected type %T", out))
 	}
 	if got != want {
-		return fmt.Errorf("expected H2PINGDisableTLS to be %v, got %v", want, got)
+		return fmt.Errorf("expected H2PingUseTLS to be %v, got %v", want, got)
 	}
 	return nil
 }
 
-var h2pingDisableTLSFields = []string{`"H2PINGDisableTLS": %s`, `"h2ping_disable_tls": %s`}
-var translateH2PINGDisableTLS = []translateKeyTestCase{
+var h2pingUseTLSFields = []string{`"H2PingUseTLS": %s`, `"h2ping_use_tls": %s`}
+var translateH2PingUseTLS = []translateKeyTestCase{
 	{
-		desc:       "H2PINGDisableTLS: both set",
-		in:         []interface{}{"true", "false"},
-		want:       true,
-		jsonFmtStr: "{" + strings.Join(h2pingDisableTLSFields, ",") + "}",
-		equalityFn: h2pingDisableTLSEqFn,
+		desc:       "H2PingUseTLS: both set",
+		in:         []interface{}{"false", "true"},
+		want:       false,
+		jsonFmtStr: "{" + strings.Join(h2pingUseTLSFields, ",") + "}",
+		equalityFn: h2pingUseTLSEqFn,
 	},
 	{
-		desc:       "H2PINGDisableTLS:: first set",
-		in:         []interface{}{`true`},
-		want:       true,
-		jsonFmtStr: "{" + h2pingDisableTLSFields[0] + "}",
-		equalityFn: h2pingDisableTLSEqFn,
+		desc:       "H2PingUseTLS:: first set",
+		in:         []interface{}{`false`},
+		want:       false,
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "}",
+		equalityFn: h2pingUseTLSEqFn,
 	},
 	{
-		desc:       "H2PINGDisableTLS: second set",
-		in:         []interface{}{`true`},
-		want:       true,
-		jsonFmtStr: "{" + h2pingDisableTLSFields[1] + "}",
-		equalityFn: h2pingDisableTLSEqFn,
+		desc:       "H2PingUseTLS: second set",
+		in:         []interface{}{`false`},
+		want:       false,
+		jsonFmtStr: "{" + h2pingUseTLSFields[1] + "}",
+		equalityFn: h2pingUseTLSEqFn,
 	},
 	{
-		desc:       "H2PINGDisableTLS: neither set",
+		desc:       "H2PingUseTLS: neither set",
 		in:         []interface{}{},
-		want:       false, // zero value
+		want:       true, // zero value
 		jsonFmtStr: "{}",
-		equalityFn: h2pingDisableTLSEqFn,
+		equalityFn: h2pingUseTLSEqFn,
 	},
 }
 
@@ -993,7 +993,7 @@ func TestDecodeACLRoleWrite(t *testing.T) {
 // GRPC	string
 // GRPCUseTLS	bool
 // H2PING	string
-// H2PINGDisableTLS	bool
+// H2PingUseTLS	bool
 // TLSServerName	string
 // TLSSkipVerify	bool
 // AliasNode	string
