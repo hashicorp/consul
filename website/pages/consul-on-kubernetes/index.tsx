@@ -34,7 +34,7 @@ export default function ConsulOnKubernetesPage() {
           },
         ]}
         video={{
-          src: 'https://www.youtube.com/watch?v=Eyszp_apaEU?rel=0',
+          src: 'https://www.youtube.com/watch?v=Eyszp_apaEU',
           poster: require('./images/hero/poster.png'),
         }}
       />
