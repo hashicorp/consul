@@ -98,12 +98,6 @@
       padding-top: 56.25%;
       width: 100%;
 
-      /* width: 640px; */
-
-      @media (--small) {
-        width: 100%;
-      }
-
       & .player {
         position: absolute;
         top: 0;
@@ -133,8 +127,6 @@
         left: auto;
         right: 0;
         top: -130px;
-
-        /* width: auto; */
         height: auto;
         display: none;
         width: 74%;
@@ -144,43 +136,23 @@
         }
       }
 
-      & .bgMain {
-        /* left: auto; */
-        width: auto;
+      & .bgRight {
         height: auto;
         top: 23.8%;
-
-        /* right: -33.5%; */
         left: 100%;
-
-        /* height: 115%;
-        width: 37.5%; */
-
-        @media (--small) {
-          right: -164px;
-          height: 352px;
-        }
-      }
-
-      & .bgBottomRight {
-        top: 74%;
-        right: -46px;
-        z-index: 1;
-        height: 25%;
-        left: auto;
+        width: 28%;
       }
 
       & .bgBottom {
-        width: 240px;
-        height: 208px;
-        top: 295px;
-        right: 0;
-        left: auto;
+        width: auto;
+        height: auto;
+        top: 80%;
+        left: 8%;
       }
 
       & .bgLeft {
-        width: 240px;
-        height: 208px;
+        width: auto;
+        height: auto;
         top: 86px;
         left: -77px;
       }

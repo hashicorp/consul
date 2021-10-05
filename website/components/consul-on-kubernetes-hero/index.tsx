@@ -54,6 +54,11 @@ export default function ConsulOnKubernetesHero({
               className={s.bgTop}
             />
             <img
+              src={require('./images/bg-right.svg')}
+              alt="background right"
+              className={s.bgRight}
+            />
+            <img
               src={require('./images/bg-dots.svg')}
               alt="background bottom"
               className={s.bgBottom}
@@ -63,16 +68,6 @@ export default function ConsulOnKubernetesHero({
               alt="background left"
               className={s.bgLeft}
             />
-            <img
-              src={require('./images/bg-main.svg')}
-              alt="background main"
-              className={s.bgMain}
-            />
-            {/* <img
-              src={require('./images/bottom-right-circle.svg')}
-              alt="background portion"
-              className={s.bgBottomRight}
-            /> */}
             <ReactPlayer
               playing
               light={video.poster}
