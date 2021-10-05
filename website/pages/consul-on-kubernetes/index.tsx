@@ -1,4 +1,4 @@
-import Head from 'next/head'
+import ReactHead from '@hashicorp/react-head'
 import Button from '@hashicorp/react-button'
 import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
 import FeaturesList from 'components/features-list'
@@ -9,15 +9,24 @@ import DocsList from 'components/docs-list'
 import s from './style.module.css'
 
 export default function ConsulOnKubernetesPage() {
+  const pageDescription =
+    'Consul is a robust service mesh for discovering and securely connecting applications on Kubernetes.'
+  const pageTitle = 'Consul on Kubernetes'
+
   return (
     <div>
-      <Head>
-        <title key="title">Consul on Kubernetes</title>
-        <meta
-          name="description"
-          content="Consul is a robust service mesh for discovering and securely connecting applications on Kubernetes."
-        />
-      </Head>
+      <ReactHead
+        title={pageTitle}
+        pageName={pageTitle}
+        description={pageDescription}
+        image="/img/consul-on-kubernetes-share-image.png"
+        twitterCard="summary_large_image"
+      >
+        <meta name="og:title" property="og:title" content={pageTitle} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="author" content="@HashiCorp" />
+      </ReactHead>
 
       <ConsulOnKubernetesHero
         title="Consul on Kubernetes"
