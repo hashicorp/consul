@@ -159,9 +159,9 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 			t.DeregisterCriticalServiceAfter = time.Duration(v)
 		}
 	}
-        if !aux.H2PingUseTLSSnake {
-                t.H2PingUseTLS = aux.H2PingUseTLSSnake
-        }
+	if !aux.H2PingUseTLSSnake {
+		t.H2PingUseTLS = aux.H2PingUseTLSSnake
+	}
 
 	return nil
 

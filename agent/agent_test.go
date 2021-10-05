@@ -861,12 +861,12 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 	defer a.Shutdown()
 	check := []*structs.CheckType{
 		{
-			CheckID:          "test-h2cping-check",
-			Name:             "test-h2cping-check",
-			H2PING:           "localhost:12345",
-			TLSSkipVerify:    true,
-			Interval:         10 * time.Second,
-			H2PingUseTLS:     false,
+			CheckID:       "test-h2cping-check",
+			Name:          "test-h2cping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+			H2PingUseTLS:  false,
 		},
 	}
 

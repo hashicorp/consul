@@ -77,8 +77,8 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		Alias: (*Alias)(t),
 	}
 
-        aux.H2PingUseTLS = true
-        aux.H2PingUseTLSSnake = true
+	aux.H2PingUseTLS = true
+	aux.H2PingUseTLSSnake = true
 	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
@@ -108,9 +108,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
 	}
-        if !aux.H2PingUseTLSSnake {
-                t.H2PingUseTLS = aux.H2PingUseTLSSnake
-        }
+	if !aux.H2PingUseTLSSnake {
+		t.H2PingUseTLS = aux.H2PingUseTLSSnake
+	}
 
 	// Parse special values
 	if aux.Interval != nil {
