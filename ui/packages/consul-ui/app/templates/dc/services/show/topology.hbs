@@ -27,7 +27,7 @@ as |route|>
   loader.data
 as |nspace dc items topology|}}
   <div class="tab-section">
-    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not topology.DefaultAllow) (not topology.WildcardIntention))}}
+    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not-eq dc.DefaultACLPolicy 'allow') (not topology.wildcardIntention))}}
       <EmptyState>
         <BlockSlot @name="header">
           <h2>
@@ -94,7 +94,7 @@ as |nspace dc items topology|}}
             @action={{false}}
           />
         {{/if}}
-        {{#if topology.DefaultAllow}}
+        {{#if (eq dc.DefaultACLPolicy 'allow')}}
           <TopologyMetrics::Notice
             data-test-notice='default-allow'
             @type="warning"
@@ -103,7 +103,7 @@ as |nspace dc items topology|}}
             @action={{true}}
           />
         {{/if}}
-        {{#if topology.WildcardIntention}}
+        {{#if topology.wildcardIntention}}
           <TopologyMetrics::Notice
             data-test-notice='wildcard-intention'
             @type="warning"
@@ -136,7 +136,7 @@ as |nspace dc items topology|}}
     {{#if config.data}}
       <TopologyMetrics
         @nspace={{nspace}}
-        @dc={{dc.Name}}
+        @dc={{dc}}
         @service={{items.firstObject}}
         @topology={{topology}}
 
