@@ -1096,7 +1096,7 @@ func (r *ACLResolver) ResolveToken(token string) (ACLResolveResult, error) {
 	}
 	setEnterpriseConf(identity.EnterpriseMetadata(), &conf)
 
-	authz, err := policies.Compile(r.cache, &conf)
+	authz, err := structs.NewPolicyAuthorizerWithCache(policies, r.cache, r.aclConf)
 	if err != nil {
 		return ACLResolveResult{}, err
 	}

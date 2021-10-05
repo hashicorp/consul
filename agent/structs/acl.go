@@ -712,56 +712,6 @@ func (policies ACLPolicyListStubs) Sort() {
 	})
 }
 
-func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Config) ([]*acl.Policy, error) {
-	// Parse the policies
-	parsed := make([]*acl.Policy, 0, len(policies))
-	for _, policy := range policies {
-		policy.SetHash(false)
-		cacheKey := fmt.Sprintf("%x", policy.Hash)
-		cachedPolicy := cache.GetParsedPolicy(cacheKey)
-		if cachedPolicy != nil {
-			// policies are content hashed so no need to check the age
-			parsed = append(parsed, cachedPolicy.Policy)
-			continue
-		}
-
-		p, err := acl.NewPolicyFromSource(policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
-		}
-
-		cache.PutParsedPolicy(cacheKey, p)
-		parsed = append(parsed, p)
-	}
-
-	return parsed, nil
-}
-
-func (policies ACLPolicies) Compile(cache *ACLCaches, entConf *acl.Config) (acl.Authorizer, error) {
-	// Determine the cache key
-	cacheKey := policies.HashKey()
-	entry := cache.GetAuthorizer(cacheKey)
-	if entry != nil {
-		// the hash key takes into account the policy contents. There is no reason to expire this cache or check its age.
-		return entry.Authorizer, nil
-	}
-
-	parsed, err := policies.resolveWithCache(cache, entConf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the ACL policies: %v", err)
-	}
-
-	// Create the ACL object
-	authorizer, err := acl.NewPolicyAuthorizer(parsed, entConf)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct ACL Authorizer: %v", err)
-	}
-
-	// Update the cache
-	cache.PutAuthorizer(cacheKey, authorizer)
-	return authorizer, nil
-}
-
 type ACLRoles []*ACLRole
 
 // HashKey returns a consistent hash for a set of roles.
