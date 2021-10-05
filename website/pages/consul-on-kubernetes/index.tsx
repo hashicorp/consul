@@ -19,7 +19,7 @@ export default function ConsulOnKubernetesPage() {
         title={pageTitle}
         pageName={pageTitle}
         description={pageDescription}
-        image="https://www.consul.io/img/consul-on-kubernetes-share.png"
+        image="https://www.consul.io/img/consul-on-kubernetes-share-image.png"
         twitterCard="summary_large_image"
       >
         <meta name="og:title" property="og:title" content={pageTitle} />
