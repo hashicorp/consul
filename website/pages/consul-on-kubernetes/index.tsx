@@ -34,12 +34,12 @@ export default function ConsulOnKubernetesPage() {
         ctas={[
           {
             text: 'Try HCP Consul',
-            url: '/docs/k8s/installation/install',
+            url:
+              'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
           },
           {
             text: 'Install Consul on Kubernetes',
-            url:
-              'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
+            url: '/docs/k8s/installation/install',
           },
         ]}
         video={{
