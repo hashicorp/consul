@@ -46,15 +46,4 @@ export default class Topology extends Model {
 
     return downstreamWildcard || upstreamWildcard;
   }
-
-  @computed('FilteredByACL', 'DefaultAllow', 'WildcardIntention', 'notDefinedIntention')
-  get collapsible() {
-    if (this.DefaultAllow && this.FilteredByACLs && this.notDefinedIntention) {
-      return true;
-    } else if (this.WildcardIntention && this.FilteredByACLs && this.notDefinedIntention) {
-      return true;
-    }
-
-    return false;
-  }
 }
