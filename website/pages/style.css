@@ -6,25 +6,6 @@
   --highlight-color-text: var(--consul-link);
 }
 
-@import '~@hashicorp/react-alert-banner/style.css';
-@import '~@hashicorp/react-alert/style.css';
-@import '~@hashicorp/react-hero/style.css';
-@import '~@hashicorp/react-button/styles/index.css';
-@import '~@hashicorp/react-callouts/style.css';
-@import '~@hashicorp/react-call-to-action/style.css';
-@import '~@hashicorp/react-consent-manager/style.css';
-@import '~@hashicorp/react-enterprise-alert/style.css';
-@import '~@hashicorp/react-featured-slider/style.css';
-@import '~@hashicorp/react-learn-callout/style.css';
-@import '~@hashicorp/react-product-features-list/style.css';
-@import '~@hashicorp/react-search/style.css';
-@import '~@hashicorp/react-subnav/style.css';
-@import '~@hashicorp/react-tabs/style.css';
-@import '~@hashicorp/react-text-split/style.css';
-@import '~@hashicorp/react-toggle/style.css';
-@import '~@hashicorp/react-use-cases/style.css';
-@import '~@hashicorp/react-vertical-text-block-list/style.css';
-
 /* Local Components */
 @import '../components/basic-hero/style.css';
 @import '../components/case-study-carousel/style.css';
