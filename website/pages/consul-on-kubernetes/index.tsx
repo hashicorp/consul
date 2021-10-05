@@ -1,4 +1,3 @@
-import NextHead from 'next/head'
 import ReactHead from '@hashicorp/react-head'
 import Button from '@hashicorp/react-button'
 import ConsulOnKubernetesHero from 'components/consul-on-kubernetes-hero'
@@ -17,13 +16,13 @@ export default function ConsulOnKubernetesPage() {
   return (
     <div>
       <ReactHead
-        is={NextHead}
         title={pageTitle}
         pageName={pageTitle}
         description={pageDescription}
         image="https://www.consul.io/img/og-image.png"
         twitterCard="summary_large_image"
       >
+        <meta name="og:title" property="og:title" content={pageTitle} />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         <meta name="author" content="@HashiCorp" />
