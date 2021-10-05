@@ -5,18 +5,17 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/armon/go-metrics"
 	"io"
 	"math/rand"
 	"net"
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"text/template"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 
@@ -82,10 +81,6 @@ type TestAgent struct {
 	// Agent is the embedded consul agent.
 	// It is valid after Start().
 	*Agent
-
-	// NoWaitForStartup, if false, will wait for the agent to be up or for leader
-	// election to have happened before finishing the start process for an Agent
-	NoWaitForStartup bool
 }
 
 // NewTestAgent returns a started agent with the given configuration. It fails
@@ -190,10 +185,10 @@ func (a *TestAgent) Start(t *testing.T) error {
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
-			// If "telemetry" settings are present, then we probably want
-			// to actually emit consul specific metrics
-			// otherwise, disable telemetry
-			if !strings.Contains(a.HCL, "telemetry") {
+			// If prom metrics need to be enabled, do not disable telemetry
+			if result.RuntimeConfig.Telemetry.PrometheusOpts.Expiration > 0 {
+				result.RuntimeConfig.Telemetry.Disable = false
+			} else {
 				result.RuntimeConfig.Telemetry.Disable = true
 			}
 		}
@@ -206,7 +201,7 @@ func (a *TestAgent) Start(t *testing.T) error {
 
 	bd.Logger = logger
 	// if we are not testing telemetry things, let's use a "mock" sink for metrics
-	if !strings.Contains(a.HCL, "telemetry") {
+	if bd.RuntimeConfig.Telemetry.Disable {
 		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
 	}
 
@@ -226,22 +221,19 @@ func (a *TestAgent) Start(t *testing.T) error {
 	}
 
 	a.Agent = agent
+
+	// Start the anti-entropy syncer
+	a.Agent.StartSync()
+
 	a.srv = a.Agent.httpHandlers
 
-	if !a.NoWaitForStartup {
-		// Start the anti-entropy syncer
-		a.Agent.StartSync()
-
-
-		if err := a.waitForUp(); err != nil {
-			a.Shutdown()
-			a.Agent = nil
-			return fmt.Errorf("error waiting for test agent to start: %w", err)
-		}
-
-		a.dns = a.dnsServers[0]
+	if err := a.waitForUp(); err != nil {
+		a.Shutdown()
+		a.Agent = nil
+		return fmt.Errorf("error waiting for test agent to start: %w", err)
 	}
 
+	a.dns = a.dnsServers[0]
 	return nil
 }
 
