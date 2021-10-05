@@ -24,11 +24,11 @@ export default function ConsulOnKubernetesPage() {
         description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
         ctas={[
           {
-            text: 'Get started',
+            text: 'Try HCP Consul',
             url: '/docs/k8s/installation/install',
           },
           {
-            text: 'Try HCP Consul',
+            text: 'Install Consul on Kubernetes',
             url:
               'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
           },
