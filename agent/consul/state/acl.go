@@ -498,11 +498,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if opts.Legacy && original != nil {
-		if original.UsesNonLegacyFields() {
-			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
-		}
-
-		token.AccessorID = original.AccessorID
+		return fmt.Errorf("legacy tokens can not be modified")
 	}
 
 	if err := aclTokenUpsertValidateEnterprise(tx, token, original); err != nil {
