@@ -1284,7 +1284,7 @@ func TestCheckH2CPING(t *testing.T) {
 
 			notif := mock.NewNotify()
 			logger := testutil.Logger(t)
-			statusHandler := NewStatusHandler(notif, logger, 0, 0)
+			statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 			cid := structs.NewCheckID("foo", nil)
 			check := &CheckH2PING{
 				CheckID:         cid,
