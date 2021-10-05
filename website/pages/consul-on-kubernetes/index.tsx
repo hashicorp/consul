@@ -13,6 +13,10 @@ export default function ConsulOnKubernetesPage() {
     <div>
       <Head>
         <title key="title">Consul on Kubernetes</title>
+        <meta
+          name="description"
+          content="Consul is a robust service mesh for discovering and securely connecting applications on Kubernetes."
+        />
       </Head>
 
       <ConsulOnKubernetesHero
@@ -20,16 +24,19 @@ export default function ConsulOnKubernetesPage() {
         description="A robust service mesh for discovering and securely connecting applications on Kubernetes."
         ctas={[
           {
-            text: 'Get started',
+            text: 'Try HCP Consul',
             url: '/docs/k8s/installation/install',
           },
           {
-            text: 'Try HCP Consul',
+            text: 'Install Consul on Kubernetes',
             url:
               'https://portal.cloud.hashicorp.com/?utm_source=docs&utm_content=consul_on_kubernetes_landing',
           },
         ]}
-        videoSource="https://www.youtube.com/watch?v=Eyszp_apaEU"
+        video={{
+          src: 'https://www.youtube.com/watch?v=Eyszp_apaEU',
+          poster: require('./images/hero/poster.png'),
+        }}
       />
 
       <section>
@@ -246,32 +253,27 @@ export default function ConsulOnKubernetesPage() {
             className={s.getStartedCards}
             cards={[
               {
-                image: {
-                  src: 'https://via.placeholder.com/400x200.png',
-                  alt: 'card',
-                },
-                description: 'Get Started',
-                eyebrow: 'Guide',
+                eyebrow: '4 tutorials',
+                heading: 'Get started on Kubernetes',
+                description:
+                  'Setup Consul service mesh to get experience deploying service sidecar proxies and securing service with mTLS.',
                 url:
                   'https://learn.hashicorp.com/collections/consul/gs-consul-service-mesh',
               },
               {
-                image: {
-                  src: 'https://via.placeholder.com/400x200.png',
-                  alt: 'card',
-                },
-                description: 'Secure Services',
-                eyebrow: 'Guide',
+                eyebrow: '22 min',
+                heading: 'Secure Consul and registered services on Kubernetes',
+                description:
+                  'Secure Consul on Kubernetes using gossip encryption, TLS certificates, Access Control Lists, and Consul intentions.',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-secure-agents?in=consul/kubernetes',
               },
               {
-                image: {
-                  src: 'https://via.placeholder.com/400x200.png',
-                  alt: 'card',
-                },
-                description: 'Observe Services',
-                eyebrow: 'Guide',
+                eyebrow: '21 min',
+                heading:
+                  'Layer 7 observability with Prometheus, Grafana, and Kubernetes',
+                description:
+                  'Collect and visualize layer 7 metrics from services in your Kubernetes cluster using Consul service mesh, Prometheus, and Grafana.',
                 url:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-layer7-observability?in=consul/kubernetes',
               },

@@ -44,7 +44,8 @@
     "nuka-carousel": "4.7.7",
     "react": "16.13.1",
     "react-device-detect": "1.17.0",
-    "react-dom": "16.13.1"
+    "react-dom": "16.13.1",
+    "react-player": "^2.9.0"
   },
   "devDependencies": {
     "@hashicorp/platform-cli": "^0.2.0",
