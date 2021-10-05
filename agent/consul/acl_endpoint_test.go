@@ -1393,9 +1393,6 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 	// Try to join
 	joinWAN(t, s2, s1)
 
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
-
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
@@ -3632,9 +3629,6 @@ func TestACLEndpoint_SecureIntroEndpoints_LocalTokensDisabled(t *testing.T) {
 	// Try to join
 	joinWAN(t, s2, s1)
 
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
-
 	acl2 := ACL{srv: s2}
 	var ignored bool
 
@@ -3735,9 +3729,6 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 
 	// Try to join
 	joinWAN(t, s2, s1)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
@@ -4622,9 +4613,6 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 	waitForLeaderEstablishment(t, s2)
 
 	joinWAN(t, s2, s1)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 
 	// Ensure s2 is authoritative.
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)

@@ -58,9 +58,6 @@ func (s *Server) reapExpiredACLTokens(local, global bool) (int, error) {
 	if !s.config.ACLsEnabled {
 		return 0, nil
 	}
-	if s.UseLegacyACLs() {
-		return 0, nil
-	}
 	if local == global {
 		return 0, fmt.Errorf("cannot reap both local and global tokens in the same request")
 	}

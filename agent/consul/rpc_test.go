@@ -873,11 +873,6 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// create simple kv policy
@@ -1010,11 +1005,6 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// create simple service policy

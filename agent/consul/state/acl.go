@@ -730,6 +730,7 @@ func (s *Store) ACLTokenList(ws memdb.WatchSet, local, global bool, policy, role
 	return idx, result, nil
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2
 func (s *Store) ACLTokenListUpgradeable(max int) (structs.ACLTokens, <-chan struct{}, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()

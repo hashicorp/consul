@@ -4,10 +4,10 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
 )
 
 // CanServersUnderstandProtocol checks to see if all the servers in the given
@@ -157,73 +157,4 @@ func (c *Client) CheckServers(datacenter string, fn func(*metadata.Server) bool)
 	}
 
 	c.router.CheckServers(datacenter, fn)
-}
-
-type serversACLMode struct {
-	// leader is the address of the leader
-	leader string
-
-	// mode indicates the overall ACL mode of the servers
-	mode structs.ACLMode
-
-	// leaderMode is the ACL mode of the leader server
-	leaderMode structs.ACLMode
-
-	// indicates that at least one server was processed
-	found bool
-}
-
-func (s *serversACLMode) init(leader string) {
-	s.leader = leader
-	s.mode = structs.ACLModeEnabled
-	s.leaderMode = structs.ACLModeUnknown
-	s.found = false
-}
-
-func (s *serversACLMode) update(srv *metadata.Server) bool {
-	if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
-		// they are left or something so regardless we treat these servers as meeting
-		// the version requirement
-		return true
-	}
-
-	// mark that we processed at least one server
-	s.found = true
-
-	if srvAddr := srv.Addr.String(); srvAddr == s.leader {
-		s.leaderMode = srv.ACLs
-	}
-
-	switch srv.ACLs {
-	case structs.ACLModeDisabled:
-		// anything disabled means we cant enable ACLs
-		s.mode = structs.ACLModeDisabled
-	case structs.ACLModeEnabled:
-		// do nothing
-	case structs.ACLModeLegacy:
-		// This covers legacy mode and older server versions that don't advertise ACL support
-		if s.mode != structs.ACLModeDisabled && s.mode != structs.ACLModeUnknown {
-			s.mode = structs.ACLModeLegacy
-		}
-	default:
-		if s.mode != structs.ACLModeDisabled {
-			s.mode = structs.ACLModeUnknown
-		}
-	}
-
-	return true
-}
-
-// ServersGetACLMode checks all the servers in a particular datacenter and determines
-// what the minimum ACL mode amongst them is and what the leaders ACL mode is.
-// The "found" return value indicates whether there were any servers considered in
-// this datacenter. If that is false then the other mode return values are meaningless
-// as they will be ACLModeEnabled and ACLModeUnkown respectively.
-func ServersGetACLMode(provider checkServersProvider, leaderAddr string, datacenter string) (found bool, mode structs.ACLMode, leaderMode structs.ACLMode) {
-	var state serversACLMode
-	state.init(leaderAddr)
-
-	provider.CheckServers(datacenter, state.update)
-
-	return state.found, state.mode, state.leaderMode
 }
