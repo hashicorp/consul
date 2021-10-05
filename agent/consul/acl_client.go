@@ -1,10 +1,11 @@
 package consul
 
 import (
+	"github.com/hashicorp/consul/acl/aclauthz"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var clientACLCacheConfig = &structs.ACLCachesConfig{
+var clientACLCacheConfig = &aclauthz.ACLCachesConfig{
 	// The ACL cache configuration on client agents is more conservative than
 	// on the servers. It is assumed that individual client agents will have
 	// fewer distinct identities accessing the client than a server would

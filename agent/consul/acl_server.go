@@ -3,11 +3,13 @@ package consul
 import (
 	"time"
 
+	"github.com/hashicorp/consul/acl/aclauthz"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
+var serverACLCacheConfig *aclauthz.ACLCachesConfig = &aclauthz.ACLCachesConfig{
 	// The server's ACL caching has a few underlying assumptions:
 	//
 	// 1 - All policies can be resolved locally. Hence we do not cache any

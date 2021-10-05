@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/aclauthz"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -702,7 +703,7 @@ func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func
 	rconf := &ACLResolverConfig{
 		Config: config.ACLResolverSettings,
 		Logger: testutil.Logger(t),
-		CacheConfig: &structs.ACLCachesConfig{
+		CacheConfig: &aclauthz.ACLCachesConfig{
 			Identities:     4,
 			Policies:       4,
 			ParsedPolicies: 4,

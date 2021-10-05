@@ -1,4 +1,4 @@
-package structs
+package aclauthz
 
 import (
 	"fmt"
@@ -7,12 +7,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-func TestStructs_ACLCaches(t *testing.T) {
-
+func TestNewACLCaches(t *testing.T) {
 	t.Run("New", func(t *testing.T) {
-
 		t.Run("Valid Sizes", func(t *testing.T) {
 			// 1 isn't valid due to a bug in golang-lru library
 			config := ACLCachesConfig{2, 2, 2, 2, 2}
@@ -48,7 +47,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cache)
 
-		cache.PutIdentity("foo", &ACLToken{})
+		cache.PutIdentity("foo", &structs.ACLToken{})
 		entry := cache.GetIdentity("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Identity)
@@ -62,7 +61,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cache)
 
-		cache.PutPolicy("foo", &ACLPolicy{})
+		cache.PutPolicy("foo", &structs.ACLPolicy{})
 		entry := cache.GetPolicy("foo")
 		require.NotNil(t, entry)
 		require.NotNil(t, entry.Policy)
@@ -105,7 +104,7 @@ func TestStructs_ACLCaches(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cache)
 
-		cache.PutRole("foo", &ACLRole{})
+		cache.PutRole("foo", &structs.ACLRole{})
 
 		entry := cache.GetRole("foo")
 		require.NotNil(t, entry)
@@ -124,47 +123,47 @@ func TestNewPolicyAuthorizerWithCache(t *testing.T) {
 	cache, err := NewACLCaches(&config)
 	require.NoError(t, err)
 
-	testPolicies := ACLPolicies{
-		&ACLPolicy{
+	testPolicies := structs.ACLPolicies{
+		&structs.ACLPolicy{
 			ID:          "5d5653a1-2c2b-4b36-b083-fc9f1398eb7b",
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 2,
 			},
 		},
-		&ACLPolicy{
+		&structs.ACLPolicy{
 			ID:          "b35541f0-a88a-48da-bc66-43553c60b628",
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `agent_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 3,
 				ModifyIndex: 4,
 			},
 		},
-		&ACLPolicy{
+		&structs.ACLPolicy{
 			ID:          "383abb79-94ca-46c6-89b7-8ecb69046de9",
 			Name:        "policy3",
 			Description: "policy3",
 			Rules:       `key_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 5,
 				ModifyIndex: 6,
 			},
 		},
-		&ACLPolicy{
+		&structs.ACLPolicy{
 			ID:          "8bf38965-95e5-4e86-9be7-f6070cc0708b",
 			Name:        "policy4",
 			Description: "policy4",
 			Rules:       `service_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 7,
 				ModifyIndex: 8,
 			},
@@ -224,47 +223,47 @@ func TestResolveWithCache(t *testing.T) {
 	cache, err := NewACLCaches(&config)
 	require.NoError(t, err)
 
-	testPolicies := ACLPolicies{
-		&ACLPolicy{
+	testPolicies := structs.ACLPolicies{
+		&structs.ACLPolicy{
 			ID:          "5d5653a1-2c2b-4b36-b083-fc9f1398eb7b",
 			Name:        "policy1",
 			Description: "policy1",
 			Rules:       `node_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 1,
 				ModifyIndex: 2,
 			},
 		},
-		&ACLPolicy{
+		&structs.ACLPolicy{
 			ID:          "b35541f0-a88a-48da-bc66-43553c60b628",
 			Name:        "policy2",
 			Description: "policy2",
 			Rules:       `agent_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 3,
 				ModifyIndex: 4,
 			},
 		},
-		&ACLPolicy{
+		&structs.ACLPolicy{
 			ID:          "383abb79-94ca-46c6-89b7-8ecb69046de9",
 			Name:        "policy3",
 			Description: "policy3",
 			Rules:       `key_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 5,
 				ModifyIndex: 6,
 			},
 		},
-		&ACLPolicy{
+		&structs.ACLPolicy{
 			ID:          "8bf38965-95e5-4e86-9be7-f6070cc0708b",
 			Name:        "policy4",
 			Description: "policy4",
 			Rules:       `service_prefix "" { policy = "read" }`,
 			Syntax:      acl.SyntaxCurrent,
-			RaftIndex: RaftIndex{
+			RaftIndex: structs.RaftIndex{
 				CreateIndex: 7,
 				ModifyIndex: 8,
 			},

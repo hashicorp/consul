@@ -1,4 +1,4 @@
-package structs
+package aclauthz
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type ACLCachesConfig struct {
@@ -26,7 +27,7 @@ type ACLCaches struct {
 }
 
 type IdentityCacheEntry struct {
-	Identity  ACLIdentity
+	Identity  structs.ACLIdentity
 	CacheTime time.Time
 }
 
@@ -44,7 +45,7 @@ func (e *ParsedPolicyCacheEntry) Age() time.Duration {
 }
 
 type PolicyCacheEntry struct {
-	Policy    *ACLPolicy
+	Policy    *structs.ACLPolicy
 	CacheTime time.Time
 }
 
@@ -63,7 +64,7 @@ func (e *AuthorizerCacheEntry) Age() time.Duration {
 }
 
 type RoleCacheEntry struct {
-	Role      *ACLRole
+	Role      *structs.ACLRole
 	CacheTime time.Time
 }
 
@@ -188,7 +189,7 @@ func (c *ACLCaches) GetRole(roleID string) *RoleCacheEntry {
 }
 
 // PutIdentity adds a new identity to the cache
-func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
+func (c *ACLCaches) PutIdentity(id string, ident structs.ACLIdentity) {
 	if c == nil || c.identities == nil {
 		return
 	}
@@ -196,7 +197,7 @@ func (c *ACLCaches) PutIdentity(id string, ident ACLIdentity) {
 	c.identities.Add(id, &IdentityCacheEntry{Identity: ident, CacheTime: time.Now()})
 }
 
-func (c *ACLCaches) PutPolicy(policyId string, policy *ACLPolicy) {
+func (c *ACLCaches) PutPolicy(policyId string, policy *structs.ACLPolicy) {
 	if c == nil || c.policies == nil {
 		return
 	}
@@ -220,7 +221,7 @@ func (c *ACLCaches) PutAuthorizer(id string, authorizer acl.Authorizer) {
 	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now()})
 }
 
-func (c *ACLCaches) PutRole(roleID string, role *ACLRole) {
+func (c *ACLCaches) PutRole(roleID string, role *structs.ACLRole) {
 	if c == nil || c.roles == nil {
 		return
 	}
@@ -267,7 +268,7 @@ func (c *ACLCaches) Purge() {
 }
 
 // TODO: unexport once this is moved into the same package as ACLResolver
-func NewPolicyAuthorizerWithCache(policies ACLPolicies, cache *ACLCaches, entConf *acl.Config) (acl.Authorizer, error) {
+func NewPolicyAuthorizerWithCache(policies structs.ACLPolicies, cache *ACLCaches, entConf *acl.Config) (acl.Authorizer, error) {
 	// Determine the cache key
 	cacheKey := policies.HashKey()
 	entry := cache.GetAuthorizer(cacheKey)
@@ -291,7 +292,8 @@ func NewPolicyAuthorizerWithCache(policies ACLPolicies, cache *ACLCaches, entCon
 	cache.PutAuthorizer(cacheKey, authorizer)
 	return authorizer, nil
 }
-func resolveWithCache(policies ACLPolicies, cache *ACLCaches, entConf *acl.Config) ([]*acl.Policy, error) {
+
+func resolveWithCache(policies structs.ACLPolicies, cache *ACLCaches, entConf *acl.Config) ([]*acl.Policy, error) {
 	// Parse the policies
 	parsed := make([]*acl.Policy, 0, len(policies))
 	for _, policy := range policies {
