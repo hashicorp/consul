@@ -498,35 +498,24 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
-			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
-			// check for legacy token that needs an upgrade
-			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
+			token = &structs.ACLToken{
+				AccessorID:     structs.ACLTokenAnonymousID,
+				SecretID:       anonymousToken,
+				Description:    "Anonymous Token",
+				CreateTime:     time.Now(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			token.SetHash(true)
+
+			req := structs.ACLTokenBatchSetRequest{
+				Tokens: structs.ACLTokens{token},
+				CAS:    false,
+			}
+			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
 			if err != nil {
-				return fmt.Errorf("failed to get anonymous token: %v", err)
+				return fmt.Errorf("failed to create anonymous token: %v", err)
 			}
-			// Ignoring expiration times to avoid an insertion collision.
-
-			// the token upgrade routine will take care of upgrading the token if a legacy version exists
-			if legacyToken == nil {
-				token = &structs.ACLToken{
-					AccessorID:     structs.ACLTokenAnonymousID,
-					SecretID:       anonymousToken,
-					Description:    "Anonymous Token",
-					CreateTime:     time.Now(),
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				}
-				token.SetHash(true)
-
-				req := structs.ACLTokenBatchSetRequest{
-					Tokens: structs.ACLTokens{token},
-					CAS:    false,
-				}
-				_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
-				if err != nil {
-					return fmt.Errorf("failed to create anonymous token: %v", err)
-				}
-				s.logger.Info("Created ACL anonymous token from configuration")
-			}
+			s.logger.Info("Created ACL anonymous token from configuration")
 		}
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
