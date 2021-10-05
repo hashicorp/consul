@@ -19,14 +19,10 @@ export default function ConsulOnKubernetesPage() {
         title={pageTitle}
         pageName={pageTitle}
         description={pageDescription}
-        image="https://consul-git-pbmetadata-hashicorp.vercel.app/img/consul-on-kubernetes-share-image.png"
+        image="/img/consul-on-kubernetes-share-image.png"
         twitterCard="summary_large_image"
       >
         <meta name="og:title" property="og:title" content={pageTitle} />
-        {/* <meta
-          property="og:image"
-          content="https://www.consul.io/img/consul-on-kubernetes-share-image.png"
-        /> */}
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         <meta name="author" content="@HashiCorp" />
