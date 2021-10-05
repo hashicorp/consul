@@ -126,8 +126,6 @@ Similarly, if you include the `catalog_services` variable in your module, we rec
 
 ### Consul KV Variable
 
--> **Beta:** This feature is currently only available in Consul-Terraform-Sync v0.4.0-beta.
-
 If you are creating a module for a [consul-kv condition](/docs/nia/tasks#consul-kv-condition), then you have the option to add the `consul_kv` variable, which contains a map of the keys and values for the Consul KV pairs. If your module would benefit from consuming this information, you can copy the `consul_kv` variable declaration to your `variables.tf` file in addition to the other variables.
 
 ```hcl
