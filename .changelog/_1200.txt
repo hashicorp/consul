@@ -1,0 +1,3 @@
+```release-note:bug
+server: **(Enterprise only)** Ensure that servers leave network segments when leaving other gossip pools
+```
