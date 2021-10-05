@@ -71,7 +71,6 @@
     & > div {
       border: 1px var(--gray-3) solid;
       border-radius: 4px;
-      box-shadow: 0 8px 24px 0 var(--gray-2);
     }
 
     & .video {
@@ -84,6 +83,10 @@
         position: absolute;
         top: 0;
         left: 0;
+
+        & div {
+          border-radius: 4px;
+        }
       }
 
       & iframe {
@@ -141,7 +144,7 @@
 .bgRight {
   composes: backgroundImage;
   top: 20%;
-  left: 100%;
+  left: 99.5%;
 }
 
 .bgBottom {
