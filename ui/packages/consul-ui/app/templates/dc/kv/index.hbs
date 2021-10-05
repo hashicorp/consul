@@ -2,7 +2,7 @@
   @name={{routeName}}
 as |route|>
   <DataSource
-    @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
+    @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
@@ -10,11 +10,10 @@ as |route|>
         key=(or route.params.key '/')
       )
     }}
-    @onchange={{action (mut items) value="data"}}
+    @onchange={{action (mut parent) value="data"}}
   />
   <DataLoader
-    @src={{
-      uri '/${partition}/${nspace}/${dc}/kv/${key}'
+    @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
@@ -29,6 +28,30 @@ as |route|>
         @login={{route.model.app.login.open}}
       />
     </BlockSlot>
+      <BlockSlot @name="disconnected" as |Notification|>
+        {{#if (eq loader.error.status "404")}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="warning notification-update">
+              <strong>Warning!</strong>
+              This KV or parent of this KV was deleted.
+            </p>
+          </Notification>
+        {{else if (eq loader.error.status "403")}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="error notification-update">
+              <strong>Error!</strong>
+              You no longer have access to this KV.
+            </p>
+          </Notification>
+        {{else}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="warning notification-update">
+              <strong>Warning!</strong>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </Notification>
+        {{/if}}
+      </BlockSlot>
 
     <BlockSlot @name="loaded">
 {{#let
@@ -45,8 +68,8 @@ as |route|>
     )
   )
 
+  parent
   loader.data
-  items
 
 as |sort filters parent items|}}
     <AppView>

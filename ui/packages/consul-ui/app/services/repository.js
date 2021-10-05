@@ -8,6 +8,7 @@ import { ACCESS_READ } from 'consul-ui/abilities/base';
 
 export default class RepositoryService extends Service {
   @service('store') store;
+  @service('env') env;
   @service('repository/permission') permissions;
 
   getModelName() {
@@ -66,30 +67,33 @@ export default class RepositoryService extends Service {
     return item;
   }
 
-  reconcile(meta = {}) {
+  shouldReconcile(item, params) {
+    const dc = get(item, 'Datacenter');
+    if (dc !== params.dc) {
+      return false;
+    }
+    if (this.env.var('CONSUL_NSPACES_ENABLED')) {
+      const nspace = get(item, 'Namespace');
+      if (typeof nspace !== 'undefined' && nspace !== params.ns) {
+        return false;
+      }
+    }
+    if (this.env.var('CONSUL_PARTITIONS_ENABLED')) {
+      const partition = get(item, 'Partition');
+      if (typeof partiton !== 'undefined' && partition !== params.partition) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  reconcile(meta = {}, params = {}, configuration = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
-      const checkNspace = meta.nspace !== '';
-      const checkPartition = meta.partition !== '';
       this.store.peekAll(this.getModelName()).forEach(item => {
-        const dc = get(item, 'Datacenter');
-        if (dc === meta.dc) {
-          if (checkNspace) {
-            const nspace = get(item, 'Namespace');
-            if (typeof nspace !== 'undefined' && nspace !== meta.nspace) {
-              return;
-            }
-          }
-          if (checkPartition) {
-            const partition = get(item, 'Partition');
-            if (typeof partiton !== 'undefined' && partition !== meta.partition) {
-              return;
-            }
-          }
-          const date = get(item, 'SyncTime');
-          if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date) {
-            this.store.unloadRecord(item);
-          }
+        const date = get(item, 'SyncTime');
+        if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date && this.shouldReconcile(item, params)) {
+          this.store.unloadRecord(item);
         }
       });
     }
@@ -107,16 +111,43 @@ export default class RepositoryService extends Service {
   }
 
   // @deprecated
-  findAllByDatacenter(params, configuration = {}) {
+  async findAllByDatacenter(params, configuration = {}) {
     return this.findAll(...arguments);
   }
 
-  findAll(params = {}, configuration = {}) {
+  async findAll(params = {}, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), params);
+    return this.query(params);
+  }
+
+  async query(params = {}, configuration = {}) {
+    let error, meta, res;
+    try {
+      res = await this.store.query(this.getModelName(), params);
+      meta = res.meta;
+    } catch(e) {
+      switch(get(e, 'errors.firstObject.status')) {
+        case '404':
+        case '403':
+          meta = {
+            date: Number.POSITIVE_INFINITY
+          };
+          error = e;
+          break;
+        default:
+          throw e;
+      }
+    }
+    if(typeof meta !== 'undefined') {
+      this.reconcile(meta, params, configuration);
+    }
+    if(typeof error !== 'undefined') {
+      throw error;
+    }
+    return res;
   }
 
   async findBySlug(params, configuration = {}) {
