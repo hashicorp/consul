@@ -10,7 +10,7 @@
 }
 
 .image {
-  border: 1px solid #dbdbdc;
+  border: 1px solid var(--gray-5);
   box-sizing: border-box;
   border-radius: 3px;
   width: 64px;
