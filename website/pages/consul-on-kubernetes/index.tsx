@@ -23,6 +23,10 @@ export default function ConsulOnKubernetesPage() {
         twitterCard="summary_large_image"
       >
         <meta name="og:title" property="og:title" content={pageTitle} />
+        <meta
+          property="og:image"
+          content="https://www.consul.io/img/consul-on-kubernetes-share-image.png"
+        />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
         <meta name="author" content="@HashiCorp" />
