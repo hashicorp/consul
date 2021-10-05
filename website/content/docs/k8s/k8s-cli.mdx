@@ -27,6 +27,13 @@ This topic describes the commands, subcommands, and available options for using 
    mv bin/consul-k8s /usr/local/bin/consul-k8s
    ```
 
+1. (Optional) Issue the `consul-k8s version` command to verify the installation:
+
+   ```shell-session
+   consul-k8s version
+   consul-k8s 0.34.1-dev
+   ```
+
 ## Usage
 
 Consul K8s CLI uses the following syntax:
@@ -61,6 +68,7 @@ The following options are available.
 | `-set-string`                                                                                                                                 | String value that enables you to set a customizeable string value. <br/> You can use the `-set-string` flag multiple times to specify multiple strings. <br/> Consul Helm chart values are supported.                                                                                                                                                                                             | none                                    | Optional |
 | `-timeout`                                                                                                                                    | Specifies how long to wait for the installation process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>In the following example, installation will timeout after one minute:<br/> `consul-k8s install -timeout 1m` | Optional                                | `10m`    |
 | `-wait`                                                                                                                                       | Boolean value that determines if Consul should wait for resources in the installation to be ready before exiting the command.                                                                                                                                                                                                                                                                     | Optional                                | `true`   |
+| `--help`                                                                                                                                      | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                         | none                                    | Optional |
 
 See [Global Options](#global-options) for additional commands that you can use when installing Consul on Kubernetes.
 
@@ -89,6 +97,7 @@ The following options are available.
 | `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation to remove.                                                                                                                                                                                                                                                                                                                            | `consul`                                                                     | Optional |
 | `-timeout`                                                                                                                                    | Specifies how long to wait for the removal process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>`h` (hours) <br/>In the following example, removal will timeout after one minute:<br/> `consul-k8s uninstall -timeout 1m` | Optional                                                                     | `10m`    |
 | `-wipe-data`                                                                                                                                  | Boolan value that deletes PVCs and secrets associated with the Consul installation during installation. <br/> Data will be removed without a verification prompt if the `-auto-approve` flag is set to `true`.                                                                                                                                                                                             | `false` <br/> Instructions for removing data will be printed to the console. | Optional |
+| `--help`                                                                                                                                      | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                                  | none                                                                         | Optional |
 
 See [Global Options](#global-options) for additional commands that you can use when uninstalling Consul from Kubernetes.
 
@@ -98,6 +107,22 @@ The following example command immediately uninstalls Consul from the `my-ns` nam
 
 ```shell-session
 consul-k8s uninstall -namespace=my-ns -name=my-consul -wipe-data=true -auto-approve=true
+```
+
+## `version`
+
+The `version` command prints the Consul version.
+
+```shell-session
+consul-k8s version
+```
+
+This command does not take any options.
+
+You can also print the version with the `--version` flag.
+
+```shell-session
+consul-k8s --version
 ```
 
 ## Global Options
