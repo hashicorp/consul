@@ -16,39 +16,44 @@
   }
 }
 
-.title {
-  composes: g-type-display-1 from global;
-  margin: 0;
-}
-
-.description {
-  composes: g-type-body-large from global;
-  margin-top: 16px;
-  margin-bottom: 40px;
-  color: var(--gray-5);
-}
-
 .contentWrapper {
-  composes: g-grid-container from global;
+  /* composes: g-grid-container from global;
   align-items: center;
   justify-content: space-between;
-  display: block;
+  display: block; */
 
-  @media (--large) {
+  /* @media (--large) {
     display: flex;
     text-align: left;
+  } */
+  --columns: 1;
+
+  column-gap: 32px;
+  composes: g-grid-container from global;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  row-gap: 48px;
+
+  @media (--medium-up) {
+    --columns: 12;
   }
 
   & .headline {
-    max-width: 500px;
+    /* max-width: 500px;
     margin-left: auto;
-    margin-right: auto;
+    margin-right: auto; */
     text-align: center;
 
-    @media (--large) {
+    /* @media (--large) {
       text-align: left;
       max-width: 384px;
       margin: 0;
+    } */
+    grid-column: 1 / -1;
+
+    @media (--large) {
+      text-align: left;
+      grid-column: 1 / 6;
     }
 
     & .buttons {
@@ -68,33 +73,25 @@
   }
 
   & .media {
-    border-radius: 4px;
-    margin: 40px auto 0;
-    display: flex;
-    justify-content: center;
-    flex-basis: calc(50% - 16px);
-    flex-grow: 0;
-    flex-shrink: 0;
+    grid-column: 1 / -1;
 
     @media (--medium) {
-      padding-left: 48px;
-      padding-right: 48px;
-    }
-
-    @media (--small) {
-      padding-left: 16px;
-      padding-right: 16px;
+      grid-column: 3 / 11;
     }
 
     @media (--large) {
-      margin: 0 0 0 40px;
-      justify-content: flex-start;
+      grid-column: 7 / -1;
+    }
+
+    & > div {
+      border: 1px var(--gray-3) solid;
+      border-radius: 4px;
+      box-shadow: 0 8px 24px 0 var(--gray-2);
     }
 
     & .video {
       background-color: var(--black);
       position: relative;
-      box-shadow: 0 8px 24px 0 var(--gray-2);
       padding-top: 56.25%;
       width: 100%;
 
@@ -102,11 +99,6 @@
         position: absolute;
         top: 0;
         left: 0;
-      }
-
-      & > div {
-        border: 1px var(--gray-3) solid;
-        border-radius: 4px;
       }
 
       & iframe {
@@ -158,4 +150,16 @@
       }
     }
   }
+}
+
+.title {
+  composes: g-type-display-1 from global;
+  margin: 0;
+}
+
+.description {
+  composes: g-type-body-large from global;
+  margin-top: 16px;
+  margin-bottom: 40px;
+  color: var(--gray-5);
 }
