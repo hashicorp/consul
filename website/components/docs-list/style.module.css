@@ -10,11 +10,18 @@
 }
 
 .image {
-  width: 40px;
-  height: 40px;
+  border: 1px solid var(--gray-5);
+  box-sizing: border-box;
+  border-radius: 3px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   & img {
-    max-width: 100%;
+    width: 40px;
+    height: 40px;
   }
 }
 

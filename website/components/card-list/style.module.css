@@ -9,36 +9,25 @@
     box-shadow: 0 2px 3px rgba(37, 41, 55, 0.08);
     border-radius: 1px;
     transition: box-shadow 0.25s, transform 0.25s;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 24px 28px;
+    justify-content: space-between;
 
     &:hover {
       box-shadow: 0 16px 28px rgba(37, 38, 45, 0.12);
       transform: translateY(-4px);
     }
 
-    & .imageContainer {
-      aspect-ratio: 21 / 9;
-      width: 100%;
-
-      & img {
-        width: 100%;
-      }
+    & .cardContent {
+      display: flex;
+      flex-direction: column;
     }
 
-    & .cardContent {
-      display: grid;
-      row-gap: 24px;
-      padding: 24px 24px 28px;
+    & .icon {
+      width: 12px;
     }
   }
-}
-
-.preHeader {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-  composes: g-type-label from global;
-  color: var(--gray-2);
 }
 
 .title {
@@ -47,7 +36,26 @@
   margin-bottom: 46px;
 }
 
+.eyebrow {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  composes: g-type-label from global;
+  color: var(--gray-2);
+  margin-bottom: 14px;
+}
+
+.heading {
+  composes: g-type-display-6 from global;
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: var(--black);
+}
+
 .description {
-  composes: g-type-display-5 from global;
+  composes: g-type-body from global;
   color: var(--gray-1);
+  margin-top: 0;
+  margin-bottom: 17px;
 }

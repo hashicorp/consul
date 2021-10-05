@@ -1,4 +1,5 @@
 import Button from '@hashicorp/react-button'
+import ReactPlayer from 'react-player'
 import s from './style.module.css'
 
 interface Cta {
@@ -10,22 +11,20 @@ interface ConsulOnKubernetesHeroProps {
   title: string
   description: string
   ctas: Cta[]
-  videoSource: string
+  video: {
+    src: string
+    poster: string
+  }
 }
 
 export default function ConsulOnKubernetesHero({
   title,
   description,
   ctas,
-  videoSource,
+  video,
 }: ConsulOnKubernetesHeroProps) {
   return (
-    <div
-      className={s.ckHero}
-      style={{
-        backgroundImage: `url(${require('./images/background-design.svg')})`,
-      }}
-    >
+    <div className={s.ckHero}>
       <div className={s.contentWrapper}>
         <div className={s.headline}>
           <h1 className={s.title}>{title}</h1>
@@ -48,15 +47,50 @@ export default function ConsulOnKubernetesHero({
           </div>
         </div>
         <div className={s.media}>
-          <iframe
-            width="573"
-            height="324"
-            src="https://www.youtube.com/embed/Eyszp_apaEU"
-            title="Why Microservices? Doing it for the Right Reasons"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+          <img
+            src={require('./images/bg-top.svg')}
+            alt="background top"
+            className={s.bgTop}
           />
+          <img
+            src={require('./images/bg-right.svg')}
+            alt="background right"
+            className={s.bgRight}
+          />
+          <img
+            src={require('./images/bg-dots.svg')}
+            alt="background bottom"
+            className={s.bgBottom}
+          />
+          <img
+            src={require('./images/bg-dots.svg')}
+            alt="background left"
+            className={s.bgLeft}
+          />
+          <div className={s.video}>
+            <ReactPlayer
+              playing
+              light={video.poster}
+              url={video.src}
+              width="100%"
+              height="100%"
+              controls
+              className={s.player}
+              playIcon={
+                <svg
+                  aria-label="Play video"
+                  width="72"
+                  height="72"
+                  viewBox="0 0 72 72"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="72" height="72" rx="36" fill="#F85C94" />
+                  <path d="M56 36L26 53.3205L26 18.6795L56 36Z" fill="white" />
+                </svg>
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
