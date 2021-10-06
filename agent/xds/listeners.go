@@ -107,17 +107,24 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			continue
 		}
 
+		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
+		// Default HTTP chains have no routes, and TCP services can have customized chains when they redirect
+		// or fail-over to other services.
+		var useRDS bool
+		if !chain.IsDefault() && chain.Protocol != "tcp" {
+			useRDS = true
+		}
+
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
-		if outboundListener == nil || (upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket()) {
-			filterChain, err := s.makeUpstreamFilterChain(
-				id,
-				"",
-				"",
-				cfg.Protocol,
-				upstreamCfg,
-				chain,
-				cfgSnap,
-			)
+		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				id:       id,
+				protocol: cfg.Protocol,
+				useRDS:   useRDS,
+				upstream: upstreamCfg,
+				chain:    chain,
+				cfgSnap:  cfgSnap,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -135,15 +142,15 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// The rest of this loop is used exclusively for transparent proxies.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
-		filterChain, err := s.makeUpstreamFilterChain(
-			id,
-			"",
-			"",
-			cfg.Protocol,
-			upstreamCfg,
-			chain,
-			cfgSnap,
-		)
+
+		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+			id:       id,
+			protocol: cfg.Protocol,
+			useRDS:   useRDS,
+			upstream: upstreamCfg,
+			chain:    chain,
+			cfgSnap:  cfgSnap,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -188,17 +195,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				DestinationPartition: sn.PartitionOrDefault(),
 			}
 
-			filterChain, err := s.makeUpstreamFilterChain(
-				"",
-				"passthrough~"+passthrough.SNI,
-				"",
-
-				// TODO(tproxy) This should use the protocol configured on the upstream's config entry
-				"tcp",
-				&u,
-				nil,
-				cfgSnap,
-			)
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				overrideCluster: "passthrough~" + passthrough.SNI,
+				protocol:        "tcp",
+				upstream:        &u,
+				cfgSnap:         cfgSnap,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -219,15 +221,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if cfgSnap.ConnectProxy.MeshConfig == nil ||
 			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
 
-			filterChain, err := s.makeUpstreamFilterChain(
-				"",
-				OriginalDestinationClusterName,
-				OriginalDestinationClusterName,
-				"tcp",
-				nil,
-				nil,
-				cfgSnap,
-			)
+			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+				overrideCluster:    OriginalDestinationClusterName,
+				overrideFilterName: OriginalDestinationClusterName,
+				protocol:           "tcp",
+				cfgSnap:            cfgSnap,
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -268,15 +267,13 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
-		filterChain, err := s.makeUpstreamFilterChain(
-			id,
-			"",
-			id,
-			cfg.Protocol,
-			u,
-			nil,
-			cfgSnap,
-		)
+		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
+			id:                 id,
+			overrideFilterName: id,
+			protocol:           cfg.Protocol,
+			upstream:           u,
+			cfgSnap:            cfgSnap,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -1212,82 +1209,75 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeUpstreamFilterChain(
-	id string,
-	overrideCluster string,
-	overrideFilterName string,
-	protocol string,
-	u *structs.Upstream,
-	chain *structs.CompiledDiscoveryChain,
-	cfgSnap *proxycfg.ConfigSnapshot,
-) (*envoy_listener_v3.FilterChain, error) {
+type filterChainOpts struct {
+	id                 string
+	overrideCluster    string
+	overrideFilterName string
+	protocol           string
+	useRDS             bool
+	upstream           *structs.Upstream
+	chain              *structs.CompiledDiscoveryChain
+	cfgSnap            *proxycfg.ConfigSnapshot
+}
+
+func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
 	// TODO (freddy) Make this actually legible
-	var useRDS bool
-
-	// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
-	// Default HTTP chains have no routes, and TCP services can have customized chains when they redirect
-	// or fail-over to other services.
-	if chain != nil && !chain.IsDefault() && chain.Protocol != "tcp" {
-		useRDS = true
-	}
-
 	var (
-		sni, clusterName                              string
-		destination, datacenter, partition, namespace string
+		sni, clusterName        string
+		name, dc, partition, ns string
 	)
 
-	// Coalesce service details from the given discovery chain or upstream configuration
-	if chain != nil {
-		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
+	// Coalesce upstream's identifying details from the given discovery chain or upstream configuration
+	if opts.chain != nil {
+		name, dc, partition, ns = opts.chain.ServiceName, opts.chain.Datacenter, opts.chain.Partition, opts.chain.Namespace
 
 		// When not using RDS we must generate a cluster name to attach to the filter chain
-		if !useRDS {
-			target, err := simpleChainTarget(chain)
+		if !opts.useRDS {
+			target, err := simpleChainTarget(opts.chain)
 			if err != nil {
 				return nil, err
 			}
 			sni = target.Name
 		}
-	} else if u != nil && !u.CentrallyConfigured {
-		destination, datacenter, partition, namespace = u.DestinationName, u.Datacenter, u.DestinationPartition, u.DestinationNamespace
+	} else if opts.upstream != nil && !opts.upstream.CentrallyConfigured {
+		name, dc, partition, ns = opts.upstream.DestinationName, opts.upstream.Datacenter, opts.upstream.DestinationPartition, opts.upstream.DestinationNamespace
 
-		if datacenter == "" {
-			datacenter = cfgSnap.Datacenter
+		if dc == "" {
+			dc = opts.cfgSnap.Datacenter
 		}
-		if namespace == "" {
-			namespace = structs.IntentionDefaultNamespace
+		if ns == "" {
+			ns = structs.IntentionDefaultNamespace
 		}
 		if partition == "" {
 			partition = structs.IntentionDefaultNamespace
 		}
 
 		// TODO (SNI partition) add partition for upstream SNI
-		sni = connect.UpstreamSNI(u, "", datacenter, cfgSnap.Roots.TrustDomain)
+		sni = connect.UpstreamSNI(opts.upstream, "", dc, opts.cfgSnap.Roots.TrustDomain)
 	}
 
-	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
-	if overrideFilterName != "" {
-		filterName = overrideFilterName
+	filterName := fmt.Sprintf("%s.%s.%s.%s", name, ns, partition, dc)
+	if opts.overrideFilterName != "" {
+		filterName = opts.overrideFilterName
 	}
 
-	clusterName = CustomizeClusterName(sni, chain)
-	if overrideCluster != "" {
-		clusterName = overrideCluster
+	clusterName = CustomizeClusterName(sni, opts.chain)
+	if opts.overrideCluster != "" {
+		clusterName = opts.overrideCluster
 	}
-
-	// When using RDS the cluster name needs to be attached to the routes, not the listener.
-	if useRDS {
+	if opts.useRDS {
+		// When using RDS the cluster name is attached to routes, not the filter chain.
 		clusterName = ""
 	}
-	opts := listenerFilterOpts{
-		useRDS:     useRDS,
-		protocol:   protocol,
+
+	filter, err := makeListenerFilter(listenerFilterOpts{
+		useRDS:     opts.useRDS,
+		protocol:   opts.protocol,
 		filterName: filterName,
-		routeName:  id,
+		routeName:  opts.id,
 		cluster:    clusterName,
 		statPrefix: "upstream.",
-	}
-	filter, err := makeListenerFilter(opts)
+	})
 	if err != nil {
 		return nil, err
 	}
