@@ -67,7 +67,7 @@ export default function ConsulOnKubernetesPage() {
                 Elastic Kubernetes Service (EKS). Get started today.
               </p>
               <Button
-                title="Get Started"
+                title="Install Consul on Kubernetes"
                 url="/docs/k8s/installation/install"
                 theme={{
                   brand: 'consul',
