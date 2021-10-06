@@ -115,15 +115,30 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			useRDS = true
 		}
 
+		var clusterName string
+
+		// When not using RDS we must generate a cluster name to attach to the filter chain
+		if !useRDS {
+			target, err := simpleChainTarget(chain)
+			if err != nil {
+				return nil, err
+			}
+			clusterName = CustomizeClusterName(target.Name, chain)
+		}
+
+		filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
+
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket() {
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				id:       id,
-				protocol: cfg.Protocol,
-				useRDS:   useRDS,
-				upstream: upstreamCfg,
-				chain:    chain,
-				cfgSnap:  cfgSnap,
+				routeName:   id,
+				clusterName: clusterName,
+				filterName:  filterName,
+				protocol:    cfg.Protocol,
+				useRDS:      useRDS,
+				upstream:    upstreamCfg,
+				chain:       chain,
+				cfgSnap:     cfgSnap,
 			})
 			if err != nil {
 				return nil, err
@@ -144,12 +159,14 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// as we do for explicit upstreams above.
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			id:       id,
-			protocol: cfg.Protocol,
-			useRDS:   useRDS,
-			upstream: upstreamCfg,
-			chain:    chain,
-			cfgSnap:  cfgSnap,
+			routeName:   id,
+			clusterName: clusterName,
+			filterName:  filterName,
+			protocol:    cfg.Protocol,
+			useRDS:      useRDS,
+			upstream:    upstreamCfg,
+			chain:       chain,
+			cfgSnap:     cfgSnap,
 		})
 		if err != nil {
 			return nil, err
@@ -195,11 +212,18 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				DestinationPartition: sn.PartitionOrDefault(),
 			}
 
+			dc := u.Datacenter
+			if dc == "" {
+				dc = cfgSnap.Datacenter
+			}
+			filterName := fmt.Sprintf("%s.%s.%s.%s", u.DestinationName, u.DestinationNamespace, u.DestinationPartition, dc)
+
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				overrideCluster: "passthrough~" + passthrough.SNI,
-				protocol:        "tcp",
-				upstream:        &u,
-				cfgSnap:         cfgSnap,
+				clusterName: "passthrough~" + passthrough.SNI,
+				filterName:  filterName,
+				protocol:    "tcp",
+				upstream:    &u,
+				cfgSnap:     cfgSnap,
 			})
 			if err != nil {
 				return nil, err
@@ -222,10 +246,10 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				overrideCluster:    OriginalDestinationClusterName,
-				overrideFilterName: OriginalDestinationClusterName,
-				protocol:           "tcp",
-				cfgSnap:            cfgSnap,
+				clusterName: OriginalDestinationClusterName,
+				filterName:  OriginalDestinationClusterName,
+				protocol:    "tcp",
+				cfgSnap:     cfgSnap,
 			})
 			if err != nil {
 				return nil, err
@@ -268,11 +292,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-			id:                 id,
-			overrideFilterName: id,
-			protocol:           cfg.Protocol,
-			upstream:           u,
-			cfgSnap:            cfgSnap,
+			// TODO (SNI partition) add partition for upstream SNI
+			clusterName: connect.UpstreamSNI(u, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+			filterName:  id,
+			protocol:    cfg.Protocol,
+			upstream:    u,
+			cfgSnap:     cfgSnap,
 		})
 		if err != nil {
 			return nil, err
@@ -1210,66 +1235,23 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 }
 
 type filterChainOpts struct {
-	id                 string
-	overrideCluster    string
-	overrideFilterName string
-	protocol           string
-	useRDS             bool
-	upstream           *structs.Upstream
-	chain              *structs.CompiledDiscoveryChain
-	cfgSnap            *proxycfg.ConfigSnapshot
+	routeName   string
+	clusterName string
+	filterName  string
+	protocol    string
+	useRDS      bool
+	upstream    *structs.Upstream
+	chain       *structs.CompiledDiscoveryChain
+	cfgSnap     *proxycfg.ConfigSnapshot
 }
 
 func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envoy_listener_v3.FilterChain, error) {
-	// TODO (freddy) Make this actually legible
-	var (
-		sni, clusterName        string
-		name, dc, partition, ns string
-	)
-
-	// Coalesce upstream's identifying details from the given discovery chain or upstream configuration
-	if opts.chain != nil {
-		name, dc, partition, ns = opts.chain.ServiceName, opts.chain.Datacenter, opts.chain.Partition, opts.chain.Namespace
-
-		// When not using RDS we must generate a cluster name to attach to the filter chain
-		if !opts.useRDS {
-			target, err := simpleChainTarget(opts.chain)
-			if err != nil {
-				return nil, err
-			}
-			sni = target.Name
-		}
-	} else if opts.upstream != nil && !opts.upstream.CentrallyConfigured {
-		name, dc, partition, ns = opts.upstream.DestinationName, opts.upstream.Datacenter, opts.upstream.DestinationPartition, opts.upstream.DestinationNamespace
-
-		if dc == "" {
-			dc = opts.cfgSnap.Datacenter
-		}
-
-		// TODO (SNI partition) add partition for upstream SNI
-		sni = connect.UpstreamSNI(opts.upstream, "", dc, opts.cfgSnap.Roots.TrustDomain)
-	}
-
-	filterName := fmt.Sprintf("%s.%s.%s.%s", name, ns, partition, dc)
-	if opts.overrideFilterName != "" {
-		filterName = opts.overrideFilterName
-	}
-
-	clusterName = CustomizeClusterName(sni, opts.chain)
-	if opts.overrideCluster != "" {
-		clusterName = opts.overrideCluster
-	}
-	if opts.useRDS {
-		// When using RDS the cluster name is attached to routes, not the filter chain.
-		clusterName = ""
-	}
-
 	filter, err := makeListenerFilter(listenerFilterOpts{
 		useRDS:     opts.useRDS,
 		protocol:   opts.protocol,
-		filterName: filterName,
-		routeName:  opts.id,
-		cluster:    clusterName,
+		filterName: opts.filterName,
+		routeName:  opts.routeName,
+		cluster:    opts.clusterName,
 		statPrefix: "upstream.",
 	})
 	if err != nil {
