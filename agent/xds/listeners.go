@@ -1218,63 +1218,50 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	// TODO (freddy) Make this actually legible
 	var useRDS bool
 
-	// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized
-	// discovery chain. Default HTTP chains have no routes, and TCP services can have customized chains
-	// when they redirect or fail-over to other services.
+	// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
+	// Default HTTP chains have no routes, and TCP services can have customized chains when they redirect
+	// or fail-over to other services.
 	if chain != nil && !chain.IsDefault() && chain.Protocol != "tcp" {
 		useRDS = true
 	}
 
 	var (
-		clusterName                                   string
+		sni, clusterName                              string
 		destination, datacenter, partition, namespace string
 	)
 
-	// TODO (SNI partition) add partition for SNI
+	// Coalesce service details from the given discovery chain or upstream configuration
 	if chain != nil {
 		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
-	}
-	if (chain == nil || chain.IsDefault()) && u != nil && !u.CentrallyConfigured {
-		if datacenter == "" {
-			datacenter = u.Datacenter
-		}
-		if datacenter == "" {
-			datacenter = cfgSnap.Datacenter
-		}
-		if destination == "" {
-			destination = u.DestinationName
-		}
-		if partition == "" {
-			partition = u.DestinationPartition
-		}
-		if namespace == "" {
-			namespace = u.DestinationNamespace
-		}
 
-		sni := connect.UpstreamSNI(u, "", datacenter, cfgSnap.Roots.TrustDomain)
-		clusterName = CustomizeClusterName(sni, chain)
-
-	} else {
-		if protocol == "tcp" && chain != nil {
-			target, err := tcpChainTarget(chain)
+		// When not using RDS we must generate a cluster name to attach to the filter chain
+		if !useRDS {
+			target, err := simpleChainTarget(chain)
 			if err != nil {
 				return nil, err
 			}
-			clusterName = CustomizeClusterName(target.Name, chain)
+			sni = target.Name
 		}
+	} else if u != nil && !u.CentrallyConfigured {
+		destination, datacenter, partition, namespace = u.DestinationName, u.Datacenter, u.DestinationPartition, u.DestinationNamespace
+
+		if datacenter == "" {
+			datacenter = cfgSnap.Datacenter
+		}
+		if namespace == "" {
+			namespace = structs.IntentionDefaultNamespace
+		}
+		if partition == "" {
+			partition = structs.IntentionDefaultNamespace
+		}
+
+		// TODO (SNI partition) add partition for upstream SNI
+		sni = connect.UpstreamSNI(u, "", datacenter, cfgSnap.Roots.TrustDomain)
 	}
 
-	// Default the namespace to match how SNIs are generated
-	if namespace == "" {
-		namespace = structs.IntentionDefaultNamespace
-	}
-
-	// Default the partition to match how SNIs are generated
-	if partition == "" {
-		partition = structs.IntentionDefaultNamespace
-	}
-
+	clusterName = CustomizeClusterName(sni, chain)
 	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
+
 	if u != nil && u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 		// Avoid encoding dc and namespace for prepared queries.
 		// Those are defined in the query itself and are not available here.
@@ -1288,6 +1275,10 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		}
 	}
 
+	// When using RDS the cluster name needs to be attached to the routes, not the listener.
+	if useRDS {
+		clusterName = ""
+	}
 	opts := listenerFilterOpts{
 		useRDS:     useRDS,
 		protocol:   protocol,
@@ -1308,18 +1299,16 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	}, nil
 }
 
-// tcpChainTarget returns the discovery target for a TCP chain. Since TCP services
-// cannot have splits or routes, there will be a single target.
-func tcpChainTarget(chain *structs.CompiledDiscoveryChain) (*structs.DiscoveryTarget, error) {
-	if chain.Protocol != "tcp" {
-		return nil, fmt.Errorf(`expected chain with tcp protocol, got %q`, chain.Protocol)
-	}
+// simpleChainTarget returns the discovery target for a chain with a single node.
+// A chain can have a single target if it is for a TCP service or an HTTP service without
+// multiple splits/routes/failovers.
+func simpleChainTarget(chain *structs.CompiledDiscoveryChain) (*structs.DiscoveryTarget, error) {
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
 		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
 	}
 	if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
-		return nil, fmt.Errorf("unexpected first node in discovery chain for tcp service: %s", startNode.Type)
+		return nil, fmt.Errorf("expected discovery chain with single node, found unexpected start node: %s", startNode.Type)
 	}
 	targetID := startNode.Resolver.Target
 	return chain.Targets[targetID], nil
