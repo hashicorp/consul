@@ -1227,7 +1227,7 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	if chain != nil {
 		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
 	}
-	if (chain == nil || chain.IsDefault()) && u != nil {
+	if (chain == nil || chain.IsDefault()) && u != nil && !u.CentrallyConfigured {
 		useRDS = false
 
 		if datacenter == "" {
@@ -1253,16 +1253,10 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		if protocol == "tcp" && chain != nil {
 			useRDS = false
 
-			startNode := chain.Nodes[chain.StartNode]
-			if startNode == nil {
-				return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+			target, err := tcpChainTarget(chain)
+			if err != nil {
+				return nil, err
 			}
-			if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
-				return nil, fmt.Errorf("unexpected first node in discovery chain using protocol=%q: %s", protocol, startNode.Type)
-			}
-			targetID := startNode.Resolver.Target
-			target := chain.Targets[targetID]
-
 			clusterName = CustomizeClusterName(target.Name, chain)
 		}
 	}
@@ -1293,15 +1287,12 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	}
 
 	opts := listenerFilterOpts{
-		useRDS:          useRDS,
-		protocol:        protocol,
-		filterName:      filterName,
-		routeName:       id,
-		cluster:         clusterName,
-		statPrefix:      "upstream.",
-		routePath:       "",
-		ingressGateway:  false,
-		httpAuthzFilter: nil,
+		useRDS:     useRDS,
+		protocol:   protocol,
+		filterName: filterName,
+		routeName:  id,
+		cluster:    clusterName,
+		statPrefix: "upstream.",
 	}
 	filter, err := makeListenerFilter(opts)
 	if err != nil {
@@ -1313,6 +1304,23 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 			filter,
 		},
 	}, nil
+}
+
+// tcpChainTarget returns the discovery target for a TCP chain. Since TCP services
+// cannot have splits or routes, there will be a single target.
+func tcpChainTarget(chain *structs.CompiledDiscoveryChain) (*structs.DiscoveryTarget, error) {
+	if chain.Protocol != "tcp" {
+		return nil, fmt.Errorf(`expected chain with tcp protocol, got %q`, chain.Protocol)
+	}
+	startNode := chain.Nodes[chain.StartNode]
+	if startNode == nil {
+		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+	}
+	if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
+		return nil, fmt.Errorf("unexpected first node in discovery chain for tcp service: %s", startNode.Type)
+	}
+	targetID := startNode.Resolver.Target
+	return chain.Targets[targetID], nil
 }
 
 // TODO(freddy) Replace in favor of new function above. Currently in use for ingress gateways.
