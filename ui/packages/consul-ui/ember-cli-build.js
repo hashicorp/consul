@@ -1,3 +1,4 @@
+/*eslint ember/no-jquery: "off", ember/no-global-jquery: "off"*/
 'use strict';
 const Funnel = require('broccoli-funnel');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
