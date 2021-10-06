@@ -1245,12 +1245,6 @@ func (s *ResourceGenerator) makeUpstreamFilterChain(opts filterChainOpts) (*envo
 		if dc == "" {
 			dc = opts.cfgSnap.Datacenter
 		}
-		if ns == "" {
-			ns = structs.IntentionDefaultNamespace
-		}
-		if partition == "" {
-			partition = structs.IntentionDefaultNamespace
-		}
 
 		// TODO (SNI partition) add partition for upstream SNI
 		sni = connect.UpstreamSNI(opts.upstream, "", dc, opts.cfgSnap.Roots.TrustDomain)
