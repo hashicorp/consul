@@ -109,7 +109,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		// Generate the upstream listeners for when they are explicitly set with a local bind port or socket path
 		if outboundListener == nil || (upstreamCfg != nil && upstreamCfg.HasLocalPortOrSocket()) {
-			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			filterChain, err := s.makeUpstreamFilterChain(
 				id,
 				"",
 				"",
@@ -135,7 +135,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// The rest of this loop is used exclusively for transparent proxies.
 		// Below we create a filter chain per upstream, rather than a listener per upstream
 		// as we do for explicit upstreams above.
-		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+		filterChain, err := s.makeUpstreamFilterChain(
 			id,
 			"",
 			"",
@@ -188,7 +188,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				DestinationPartition: sn.PartitionOrDefault(),
 			}
 
-			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			filterChain, err := s.makeUpstreamFilterChain(
 				"",
 				"passthrough~"+passthrough.SNI,
 				"",
@@ -219,7 +219,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		if cfgSnap.ConnectProxy.MeshConfig == nil ||
 			!cfgSnap.ConnectProxy.MeshConfig.TransparentProxy.MeshDestinationsOnly {
 
-			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+			filterChain, err := s.makeUpstreamFilterChain(
 				"",
 				OriginalDestinationClusterName,
 				OriginalDestinationClusterName,
@@ -268,7 +268,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
-		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
+		filterChain, err := s.makeUpstreamFilterChain(
 			id,
 			"",
 			id,
@@ -1212,7 +1212,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	return l, nil
 }
 
-func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
+func (s *ResourceGenerator) makeUpstreamFilterChain(
 	id string,
 	overrideCluster string,
 	overrideFilterName string,
