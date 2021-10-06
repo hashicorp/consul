@@ -43,7 +43,6 @@ Feature: dc / services / show / topology / tproxy
       service: web
     ---
     Then the url should be /datacenter/services/web/topology
-    And pause for 5000
     And I see the tabs.topologyTab.defaultAllowNotice object
   Scenario: A Downstream service has a wildcard intention
     Given 1 topology model from yaml
