@@ -47,7 +47,8 @@ as |nspace dc items topology|}}
       </EmptyState>
     {{else}}
 
-    <CollapsibleNotices>
+  {{#let (collapsible-notices topology.FilteredByACLs (eq dc.DefaultACLPolicy 'allow') topology.wildcardIntention topology.notDefinedIntention) as |collapsible| }}
+    <CollapsibleNotices @collapsible={{collapsible}}>
       {{#if topology.FilteredByACLs}}
         <TopologyMetrics::Notice
           data-test-notice='filtered-by-acls'
@@ -85,7 +86,7 @@ as |nspace dc items topology|}}
         />
       {{/if}}
     </CollapsibleNotices>
-
+  {{/let}}
     <DataSource
       @src={{uri '/${partition}/${nspace}/${dc}/ui-config'
         (hash
