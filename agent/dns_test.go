@@ -6528,14 +6528,17 @@ func TestDNS_AltDomains_SOA(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	questions := []string{
-		"test-node.node.consul.",
-		"test-node.node.test-domain.",
+	questions := []struct {
+		ask         string
+		want_domain string
+	}{
+		{"test-node.node.consul.", "consul."},
+		{"test-node.node.test-domain.", "test-domain."},
 	}
 
 	for _, question := range questions {
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSOA)
+		m.SetQuestion(question.ask, dns.TypeSOA)
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
@@ -6552,10 +6555,10 @@ func TestDNS_AltDomains_SOA(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 
-		if got, want := soaRec.Hdr.Name, "consul."; got != want {
+		if got, want := soaRec.Hdr.Name, question.want_domain; got != want {
 			t.Fatalf("SOA name invalid, got %q want %q", got, want)
 		}
-		if got, want := soaRec.Ns, "ns.consul."; got != want {
+		if got, want := soaRec.Ns, ("ns." + question.want_domain); got != want {
 			t.Fatalf("SOA ns invalid, got %q want %q", got, want)
 		}
 	}
