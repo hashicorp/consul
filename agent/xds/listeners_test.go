@@ -567,7 +567,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
 					{Protocol: "tcp", Port: 8080}: {
 						{
-							DestinationName: "foo",
+							DestinationName: "db",
 							LocalBindPort:   8080,
 						},
 					},
@@ -640,6 +640,32 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+
+				// Every ingress upstream has an associated discovery chain in the snapshot
+				secureChain := discoverychain.TestCompileConfigEntries(
+					t,
+					"secure",
+					"default",
+					"default",
+					"dc1",
+					connect.TestClusterID+".consul",
+					"dc1",
+					nil,
+				)
+				snap.IngressGateway.DiscoveryChain["secure"] = secureChain
+
+				insecureChain := discoverychain.TestCompileConfigEntries(
+					t,
+					"insecure",
+					"default",
+					"default",
+					"dc1",
+					connect.TestClusterID+".consul",
+					"dc1",
+					nil,
+				)
+				snap.IngressGateway.DiscoveryChain["insecure"] = insecureChain
+
 				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
 					{Protocol: "tcp", Port: 8080}: {
 						Port: 8080,
