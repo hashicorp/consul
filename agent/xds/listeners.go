@@ -112,6 +112,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 				id,
 				"",
+				"",
 				cfg.Protocol,
 				upstreamCfg,
 				chain,
@@ -136,6 +137,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		// as we do for explicit upstreams above.
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 			id,
+			"",
 			"",
 			cfg.Protocol,
 			upstreamCfg,
@@ -189,6 +191,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 				"",
 				"passthrough~"+passthrough.SNI,
+				"",
 
 				// TODO(tproxy) This should use the protocol configured on the upstream's config entry
 				"tcp",
@@ -218,6 +221,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 
 			filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 				"",
+				OriginalDestinationClusterName,
 				OriginalDestinationClusterName,
 				"tcp",
 				nil,
@@ -267,6 +271,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
 			id,
 			"",
+			id,
 			cfg.Protocol,
 			u,
 			nil,
@@ -1210,6 +1215,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	id string,
 	overrideCluster string,
+	overrideFilterName string,
 	protocol string,
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
@@ -1259,20 +1265,14 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		sni = connect.UpstreamSNI(u, "", datacenter, cfgSnap.Roots.TrustDomain)
 	}
 
-	clusterName = CustomizeClusterName(sni, chain)
 	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
-
-	if u != nil && u.DestinationType == structs.UpstreamDestTypePreparedQuery {
-		// Avoid encoding dc and namespace for prepared queries.
-		// Those are defined in the query itself and are not available here.
-		filterName = id
+	if overrideFilterName != "" {
+		filterName = overrideFilterName
 	}
+
+	clusterName = CustomizeClusterName(sni, chain)
 	if overrideCluster != "" {
 		clusterName = overrideCluster
-
-		if destination == "" {
-			filterName = overrideCluster
-		}
 	}
 
 	// When using RDS the cluster name needs to be attached to the routes, not the listener.
