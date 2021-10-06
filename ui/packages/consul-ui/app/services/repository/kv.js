@@ -62,23 +62,7 @@ export default class KvService extends RepositoryService {
     }
     return this.authorizeBySlug(
       async () => {
-        let items;
-        // try {
-          items = await this.findAll(...arguments);
-        // } catch (e) {
-        //   if (get(e, 'errors.firstObject.status') === '404') {
-        //     // TODO: This very much shouldn't be here,
-        //     // needs to eventually use ember-datas generateId thing
-        //     // in the meantime at least our fingerprinter
-        //     // FIXME: Default/token partition
-        //     const uid = JSON.stringify([params.partition, params.ns, params.dc, params.id]);
-        //     const record = this.store.peekRecord(this.getModelName(), uid);
-        //     if (record) {
-        //       record.unloadRecord();
-        //     }
-        //   }
-        //   throw e;
-        // }
+        let items = await this.findAll(...arguments);
         const meta = items.meta;
         items = items.filter(item => params.id !== get(item, 'Key'));
         items.meta = meta;
