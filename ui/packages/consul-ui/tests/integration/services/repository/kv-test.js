@@ -1,6 +1,7 @@
 import { moduleFor, test } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { env } from '../../../../env';
+import { get } from '@ember/object';
 
 const NAME = 'kv';
 moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
@@ -9,11 +10,15 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
 });
 const dc = 'dc-1';
 const id = 'key-name';
+const now = new Date().getTime();
 const undefinedNspace = 'default';
 const undefinedPartition = 'default';
 const partition = 'default';
 [undefinedNspace, 'team-1', undefined].forEach(nspace => {
   test(`findAllBySlug returns the correct data for list endpoint when nspace is ${nspace}`, function(assert) {
+    get(this.subject(), 'store').serializerFor(NAME).timestamp = function() {
+      return now;
+    };
     return repo(
       'Kv',
       'findAllBySlug',
@@ -43,20 +48,10 @@ const partition = 'default';
         const expectedPartition = env('CONSUL_PARTITIONS_ENABLED')
           ? partition || undefinedPartition
           : 'default';
-        assert.deepEqual(
-          actual,
-          expected(function(payload) {
-            return payload.map(item => {
-              return {
-                Datacenter: dc,
-                Namespace: expectedNspace,
-                Partition: expectedPartition,
-                uid: `["${expectedPartition}","${expectedNspace}","${dc}","${item}"]`,
-                Key: item,
-              };
-            });
-          })
-        );
+        actual.forEach(item => {
+          assert.equal(item.uid, `["${expectedPartition}","${expectedNspace}","${dc}","${item.Key}"]`);
+          assert.equal(item.Datacenter, dc);
+        });
       }
     );
   });
@@ -81,18 +76,13 @@ const partition = 'default';
         });
       },
       function(actual, expected) {
-        assert.deepEqual(
-          actual,
-          expected(function(payload) {
+        expected(
+          function(payload) {
             const item = payload[0];
-            return Object.assign({}, item, {
-              Datacenter: dc,
-              Namespace: item.Namespace || undefinedNspace,
-              Partition: item.Partition || undefinedPartition,
-              uid: `["${item.Partition || undefinedPartition}","${item.Namespace ||
-                undefinedNspace}","${dc}","${item.Key}"]`,
-            });
-          })
+            assert.equal(actual.uid, `["${item.Partition || undefinedPartition}","${item.Namespace ||
+                      undefinedNspace}","${dc}","${item.Key}"]`);
+            assert.equal(actual.Datacenter, dc);
+          }
         );
       }
     );
