@@ -116,7 +116,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				upstreamCfg,
 				chain,
 				cfgSnap,
-				nil,
 			)
 			if err != nil {
 				return nil, err
@@ -142,7 +141,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			upstreamCfg,
 			chain,
 			cfgSnap,
-			nil,
 		)
 		if err != nil {
 			return nil, err
@@ -197,7 +195,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				&u,
 				nil,
 				cfgSnap,
-				nil,
 			)
 			if err != nil {
 				return nil, err
@@ -226,7 +223,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				nil,
 				nil,
 				cfgSnap,
-				nil,
 			)
 			if err != nil {
 				return nil, err
@@ -275,7 +271,6 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			u,
 			nil,
 			cfgSnap,
-			nil,
 		)
 		if err != nil {
 			return nil, err
@@ -1219,7 +1214,6 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	u *structs.Upstream,
 	chain *structs.CompiledDiscoveryChain,
 	cfgSnap *proxycfg.ConfigSnapshot,
-	tlsContext *envoy_tls_v3.DownstreamTlsContext,
 ) (*envoy_listener_v3.FilterChain, error) {
 	// TODO (freddy) Make this actually legible
 	useRDS := true
@@ -1313,16 +1307,11 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	if err != nil {
 		return nil, err
 	}
-	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
-	if err != nil {
-		return nil, err
-	}
 
 	return &envoy_listener_v3.FilterChain{
 		Filters: []*envoy_listener_v3.Filter{
 			filter,
 		},
-		TransportSocket: transportSocket,
 	}, nil
 }
 
