@@ -16,6 +16,7 @@ export default class DcSerializer extends Serializer {
   }
 
   normalizePayload(payload, id, requestType) {
+    console.log(payload.headers);
     switch (requestType) {
       case 'query':
         return payload.body.map(item => {
