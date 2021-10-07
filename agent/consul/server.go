@@ -962,9 +962,18 @@ func (s *Server) Leave() error {
 		}
 
 		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
-			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
+			// Transfer leadership to another node then leave the cluster
+			future := s.raft.LeadershipTransfer()
 			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
+				s.logger.Error("failed to transfer leadership, removing the server", "error", err)
+				// leadership transfer failed, fallback to removing the server from raft
+				future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
+				if err := future.Error(); err != nil {
+					s.logger.Error("failed to remove ourself as raft peer", "error", err)
+				}
+			} else {
+				// we are not leader anymore, continue the flow to leave as follower
+				isLeader = false
 			}
 		} else {
 			future := s.raft.RemovePeer(addr)
