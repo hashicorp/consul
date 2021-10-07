@@ -122,7 +122,7 @@ There are several different kinds of checks:
 
 - `H2ping + Interval` - These checks test an endpoint that uses http2
   by connecting to the endpoint and sending a ping frame. TLS is assumed to be configured by default.
-  To disable TLS and use h2c, set `h2ping_enable_tls` to `false`. If the ping is successful
+  To disable TLS and use h2c, set `h2ping_use_tls` to `false`. If the ping is successful
   within a specified timeout, then the check is updated as passing.
   The timeout defaults to 10 seconds, but is configurable using the `timeout` field. If TLS is enabled a valid
   certificate is required, unless `tls_skip_verify` is set to `true`.
@@ -165,7 +165,7 @@ A HTTP check:
     "tls_server_name": "",
     "tls_skip_verify": false,
     "method": "POST",
-    "header": {"Content-Type": ["application/json"]},
+    "header": { "Content-Type": ["application/json"] },
     "body": "{\"method\":\"health\"}",
     "interval": "10s",
     "timeout": "1s"
@@ -422,14 +422,14 @@ a health check may be configured to become passing/warning/critical only after a
 specified number of consecutive checks return passing/critical.
 The status will not transition states until the configured threshold is reached.
 
-* `success_before_passing` - Number of consecutive successful results required
-  before check status transitions to passing. Defaults to `0`.  Added in Consul 1.7.0.
-* `failures_before_warning` - Number of consecutive unsuccessful results required
+- `success_before_passing` - Number of consecutive successful results required
+  before check status transitions to passing. Defaults to `0`. Added in Consul 1.7.0.
+- `failures_before_warning` - Number of consecutive unsuccessful results required
   before check status transitions to warning. Defaults to the same value as that of
   `failures_before_critical` to maintain the expected behavior of not changing the
   status of serivce checks to `warning` before `critical` unless configured to do so.
   Values higher than `failures_before_critical` are invalid. Added in Consul 1.11.0.
-* `failures_before_critical` - Number of consecutive unsuccessful results required
+- `failures_before_critical` - Number of consecutive unsuccessful results required
   before check status transitions to critical. Defaults to `0`. Added in Consul 1.7.0.
 
 This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.

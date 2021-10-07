@@ -186,7 +186,10 @@ The table below shows this endpoint's support for
 - `H2PING` `(string "")` - Specifies an address that uses http2 to run a ping check on.
   At the specified `Interval`, a connection is made to the address, and a ping is sent.
   If the ping is successful, the check will be classified as `passing`, otherwise it will be marked as `critical`.
-  TLS is used by default. To disable TLS and use h2c, set `H2PINGUseTLS` to `false`.
+  TLS is used by default. To disable TLS and use h2c, set `H2PingUseTLS` to `false`.
+  If TLS is enabled, a valid SSL certificate is required by default, but verification can be removed with `TLSSkipVerify`.
+
+- `H2PingUseTLS` `(bool: true)` - Specifies if TLS should be used for H2PING check.
   If TLS is enabled, a valid SSL certificate is required by default, but verification can be removed with `TLSSkipVerify`.
 
 - `HTTP` `(string: "")` - Specifies an `HTTP` check to perform a `GET` request
