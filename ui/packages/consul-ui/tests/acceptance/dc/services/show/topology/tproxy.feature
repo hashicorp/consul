@@ -18,7 +18,7 @@ Feature: dc / services / show / topology / tproxy
         Name: web
         Kind: ~
     ---
-  Scenario: WildcardIntetions and FilteredByACLs are set to true
+  Scenario: A Downstream service has a wildcard intention
     Given 1 topology model from yaml
     ---
       FilteredByACLs: true
