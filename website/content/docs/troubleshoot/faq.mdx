@@ -38,13 +38,13 @@ Run a `helm upgrade` (see [Upgrade Consul on Kubernetes](/docs/k8s/upgrade) for 
 
 Now, `kubectl exec` into a server pod:
 
-```console
+```shell-session
 $ kubectl exec -it consul-server-0 -- sh
 ```
 
 Install `tcpdump`:
 
-```console
+```shell-session
 $ apk add --no-cache tcpdump
 $ which tcpdump
 /usr/bin/tcpdump
