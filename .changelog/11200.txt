@@ -1,0 +1,5 @@
+```release-note:improvement
+ui: Move the majority of our SASS variables to use native CSS custom
+properties
+```
+

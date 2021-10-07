@@ -1,41 +1,41 @@
 .topology-container {
-  color: $gray-700;
+  color: rgb(var(--tone-gray-700));
 }
 
 // Columns/Containers & Lines
 #downstream-container,
 #metrics-container,
 #upstream-container {
-  border: 1px solid $gray-200;
-  border-radius: $decor-radius-100;
+  border: 1px solid rgb(var(--tone-gray-200));
+  border-radius: var(--decor-radius-100);
 }
 #downstream-container,
 #upstream-container {
-  background-color: $gray-100;
+  background-color: rgb(var(--tone-gray-100));
 }
 #downstream-container div:first-child {
   display: inline-flex;
   span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;
-    background-color: $gray-500;
+    background-color: rgb(var(--tone-gray-500));
   }
 }
 
 // Metrics Container
 #metrics-container {
   div:first-child {
-    background-color: $white;
+    background-color: rgb(var(--white));
   }
   .link {
-    background-color: $gray-100;
+    background-color: rgb(var(--tone-gray-100));
     a {
-      color: $gray-700;
+      color: rgb(var(--tone-gray-700));
     }
     a::before {
-      background-color: $gray-500;
+      background-color: rgb(var(--tone-gray-500));
     }
     a:hover {
-      color: $color-action;
+      color: rgb(var(--color-action));
     }
     .metrics-link::before {
       @extend %with-exit-mask, %as-pseudo;
@@ -50,34 +50,34 @@
 #downstream-lines svg,
 #upstream-lines svg {
   path {
-    fill: $transparent;
+    fill: var(--transparent);
   }
   circle {
-    fill: $white;
+    fill: rgb(var(--white));
   }
   .allow-arrow {
-    fill: $gray-300;
+    fill: rgb(var(--tone-gray-300));
     stroke-linejoin: round;
   }
   path,
   .allow-dot,
   .allow-arrow {
-    stroke: $gray-300;
+    stroke: rgb(var(--tone-gray-300));
     stroke-width: 2;
   }
   path[data-permission='not-defined'] {
     stroke-dasharray: 4;
   }
   path[data-permission='deny'] {
-    stroke: $red-500;
+    stroke: rgb(var(--tone-red-500));
   }
   .deny-dot {
-    stroke: $red-500;
+    stroke: rgb(var(--tone-red-500));
     stroke-width: 2;
   }
   .deny-arrow {
-    fill: $red-500;
-    stroke: $red-500;
+    fill: rgb(var(--tone-red-500));
+    stroke: rgb(var(--tone-red-500));
     stroke-linejoin: round;
   }
 }

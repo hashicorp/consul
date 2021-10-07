@@ -6,7 +6,7 @@
   padding-right: 42px;
 }
 %auth-modal footer {
-  background-color: $transparent;
+  background-color: var(--transparent);
 }
 %auth-modal > div > div > div {
   padding-bottom: 0;

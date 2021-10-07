@@ -3,7 +3,7 @@
     max-width: 450px;
   }
   .modal-dialog-body p {
-    font-size: $typo-size-600;
+    font-size: var(--typo-size-600);
   }
   button.dangerous {
     @extend %dangerous-button;

@@ -4,29 +4,23 @@
 // potentially see if our compiler can automatically remove
 // unused CSS props
 :root {
-  --white: #{$white};
-  --decor-border-100: #{$decor-border-100};
-  --decor-radius-200: #{$decor-radius-200};
-  --gray-500: #{$gray-500};
-  --decor-elevation-600: #{$decor-elevation-600};
-
   /* base brand colors */
-  --brand-050: #{$magenta-050};
-  --brand-100: #{$rose-100};
-  // --brand-200: #{$magenta-200};
-  // --brand-300: #{$magenta-300};
-  // --brand-400: #{$magenta-400};
-  // --brand-500: #{$magenta-500};
+  --brand-050: var(--tone-magenta-050);
+  --brand-100: var(--tone-strawberry-100);
+  // rgb(var(--brand-200)): #{rgb(var(--tone-magenta-200))};
+  // rgb(var(--brand-300)): #{rgb(var(--tone-magenta-300))};
+  // rgb(var(--brand-400)): #{rgb(var(--tone-magenta-400))};
+  // rgb(var(--brand-500)): #{rgb(var(--tone-magenta-500))};
   /* temporary rose-like color until its replaced by a numbered one */
-  --brand-600: #e03875;
-  // --brand-700: #{$magenta-700};
-  --brand-800: #{$magenta-800};
-  // --brand-900: #{$magenta-900};
+  --brand-600: 224 56 117;
+  // rgb(var(--brand-700)): #{rgb(var(--tone-magenta-700))};
+  --brand-800: var(--tone-magenta-800);
+  // rgb(var(--brand-900)): #{rgb(var(--tone-magenta-900))};
 
   /* themeable ui colors */
-  --typo-action-500: #{$blue-500};
-  --decor-error-500: #{$red-500};
-  --typo-contrast-999: #{$black};
+  --typo-action-500: var(--tone-blue-500);
+  --decor-error-500: var(--tone-red-500);
+  --typo-contrast-999: var(--black);
 
   /* themeable brand colors */
   --typo-brand-050: var(--brand-050);
