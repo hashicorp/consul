@@ -45,7 +45,7 @@ $ kubectl exec -it consul-server-0 -- sh
 Install `tcpdump`:
 
 ```console
-$ apk update && apk add tcpdump
+$ apk add --no-cache tcpdump
 $ which tcpdump
 /usr/bin/tcpdump
 ```
