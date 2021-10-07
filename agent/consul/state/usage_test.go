@@ -462,7 +462,7 @@ func TestStateStore_Usage_ConfigEntries(t *testing.T) {
 	s := testStateStore(t)
 
 	t.Run("empty store", func(t *testing.T) {
-		i, usage, err := s.ConfigUsage()
+		i, usage, err := s.ConfigEntryUsage()
 		require.NoError(t, err)
 		require.Equal(t, uint64(0), i)
 		for _, kind := range structs.AllConfigEntryKinds {
@@ -493,7 +493,7 @@ func TestStateStore_Usage_ConfigEntries(t *testing.T) {
 			Name: "web",
 		}))
 
-		i, usage, err := s.ConfigUsage()
+		i, usage, err := s.ConfigEntryUsage()
 		require.NoError(t, err)
 		require.Equal(t, uint64(3), i)
 		require.Equal(t, 1, usage.ConfigByKind[structs.ServiceDefaults])

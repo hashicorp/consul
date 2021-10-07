@@ -23,7 +23,7 @@ func addEnterpriseConnectServiceInstanceUsage(map[string]int, *structs.ServiceNo
 
 func addEnterpriseKVUsage(map[string]int, memdb.Change) {}
 
-func addEnterpriseConfigUsage(map[string]int, memdb.Change) {}
+func addEnterpriseConfigEntryUsage(map[string]int, memdb.Change) {}
 
 func compileEnterpriseServiceUsage(tx ReadTxn, usage ServiceUsage) (ServiceUsage, error) {
 	return usage, nil
@@ -37,6 +37,6 @@ func compileEnterpriseKVUsage(tx ReadTxn, usage KVUsage) (KVUsage, error) {
 	return usage, nil
 }
 
-func compileEnterpriseConfigUsage(tx ReadTxn, usage ConfigUsage) (ConfigUsage, error) {
+func compileEnterpriseConfigEntryUsage(tx ReadTxn, usage ConfigEntryUsage) (ConfigEntryUsage, error) {
 	return usage, nil
 }

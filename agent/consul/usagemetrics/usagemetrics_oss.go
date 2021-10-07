@@ -75,7 +75,7 @@ func (u *UsageMetricsReporter) emitKVUsage(kvUsage state.KVUsage) {
 	)
 }
 
-func (u *UsageMetricsReporter) emitConfigUsage(configUsage state.ConfigUsage) {
+func (u *UsageMetricsReporter) emitConfigEntryUsage(configUsage state.ConfigEntryUsage) {
 	for k, i := range configUsage.ConfigByKind {
 		metrics.SetGaugeWithLabels(
 			[]string{"consul", "state", "config_entries"},

@@ -71,7 +71,7 @@ type KVUsage struct {
 	EnterpriseKVUsage
 }
 
-type ConfigUsage struct {
+type ConfigEntryUsage struct {
 	ConfigByKind map[string]int
 	EnterpriseConfigUsage
 }
@@ -125,8 +125,8 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			addEnterpriseKVUsage(usageDeltas, change)
 		case tableConfigEntries:
 			entry := changeObject(change).(structs.ConfigEntry)
-			usageDeltas[entry.GetKind()] += delta
-			addEnterpriseConfigUsage(usageDeltas, change)
+			usageDeltas[fmt.Sprintf("%s-%s", tableConfigEntries, entry.GetKind())] += delta
+			addEnterpriseConfigEntryUsage(usageDeltas, change)
 		}
 	}
 
@@ -375,28 +375,28 @@ func (s *Store) KVUsage() (uint64, KVUsage, error) {
 	return kvs.Index, results, nil
 }
 
-func (s *Store) ConfigUsage() (uint64, ConfigUsage, error) {
+func (s *Store) ConfigEntryUsage() (uint64, ConfigEntryUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	configEntries := make(map[string]int)
 	var maxIdx uint64
 	for _, kind := range structs.AllConfigEntryKinds {
-		configEntry, err := firstUsageEntry(tx, kind)
+		configEntry, err := firstUsageEntry(tx, fmt.Sprintf("%s-%s", tableConfigEntries, kind))
 		if configEntry.Index > maxIdx {
 			maxIdx = configEntry.Index
 		}
 		if err != nil {
-			return 0, ConfigUsage{}, fmt.Errorf("failed config entry usage lookup: %s", err)
+			return 0, ConfigEntryUsage{}, fmt.Errorf("failed config entry usage lookup: %s", err)
 		}
 		configEntries[kind] = configEntry.Count
 	}
-	usage := ConfigUsage{
+	usage := ConfigEntryUsage{
 		ConfigByKind: configEntries,
 	}
-	results, err := compileEnterpriseConfigUsage(tx, usage)
+	results, err := compileEnterpriseConfigEntryUsage(tx, usage)
 	if err != nil {
-		return 0, ConfigUsage{}, fmt.Errorf("failed config entry usage lookup: %s", err)
+		return 0, ConfigEntryUsage{}, fmt.Errorf("failed config entry usage lookup: %s", err)
 	}
 
 	return maxIdx, results, nil

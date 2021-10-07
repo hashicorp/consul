@@ -184,12 +184,12 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	u.emitKVUsage(kvUsage)
 
-	_, configUsage, err := state.ConfigUsage()
+	_, configUsage, err := state.ConfigEntryUsage()
 	if err != nil {
 		u.logger.Warn("failed to retrieve config usage from state store", "error", err)
 	}
 
-	u.emitConfigUsage(configUsage)
+	u.emitConfigEntryUsage(configUsage)
 }
 
 func (u *UsageMetricsReporter) memberUsage() []serf.Member {
