@@ -47,7 +47,14 @@ This section is a work in progress, it will eventually cover topics like:
 
 This section is a work in progress, it will eventually cover topics like:
 
+
 Routing RPC request to Consul servers and for connection pooling.
+
+![Conn Pool](./conn-pool.svg)
+<sup>[source](./conn-pool.mmd)</sup>
+
+
+Packages:
 
 - [agent/router](https://github.com/hashicorp/consul/tree/main/agent/router)
 - [agent/pool](https://github.com/hashicorp/consul/tree/main/agent/pool)

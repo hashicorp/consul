@@ -1,0 +1,22 @@
+flowchart TD
+   
+    Client.RPC
+    Server.ForwardDC
+    Server.ForwardLeader
+    Router
+
+    Router --> Manager
+    Manager --> ConnPool
+
+    Client.RPC ----> ConnPool
+    Client.RPC --> Manager
+    
+    Server.ForwardDC ---> ConnPool
+    Server.ForwardDC --> Router
+
+    Server.ForwardLeader ---> ConnPool
+    Server.ForwardLeader --> ServerLookup
+
+    Serf --> Router
+    Serf --> ServerLookup
+
