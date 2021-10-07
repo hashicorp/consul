@@ -27,7 +27,7 @@ export default class Outlet extends Component {
   }
 
   setAppRoute(name) {
-    if (name !== 'loading') {
+    if (name !== 'loading' || name === 'oidc-provider-debug') {
       const doc = this.element.ownerDocument.documentElement;
       if (doc.classList.contains('ember-loading')) {
         doc.classList.remove('ember-loading');
