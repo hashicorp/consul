@@ -173,6 +173,17 @@ func hasVote(configuration Configuration, id ServerID) bool {
 	return false
 }
 
+// hasVote returns true if the server identified by 'id' is a Voter in the
+// provided Configuration.
+func inConfig(configuration Configuration, id ServerID) bool {
+	for _, server := range configuration.Servers {
+		if server.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
 // checkConfiguration tests a cluster membership configuration for common
 // errors.
 func checkConfiguration(configuration Configuration) error {
