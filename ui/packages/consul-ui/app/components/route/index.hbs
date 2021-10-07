@@ -1,7 +1,7 @@
 {{did-insert this.connect}}
 {{will-destroy this.disconnect}}
 {{yield (hash
-  model=this.model
+  model=(or this.model this._model)
   params=this.params
   currentName=this.router.currentRoute.name
 

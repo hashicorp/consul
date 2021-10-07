@@ -27,10 +27,6 @@ export default class Outlet extends Component {
   }
 
   setAppRoute(name) {
-    const nspace = 'nspace.';
-    if (name.startsWith(nspace)) {
-      name = name.substr(nspace.length);
-    }
     if (name !== 'loading') {
       const doc = this.element.ownerDocument.documentElement;
       if (doc.classList.contains('ember-loading')) {
