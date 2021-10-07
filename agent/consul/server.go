@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-version"
+
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -962,18 +964,29 @@ func (s *Server) Leave() error {
 		}
 
 		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
-			// Transfer leadership to another node then leave the cluster
-			future := s.raft.LeadershipTransfer()
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to transfer leadership, removing the server", "error", err)
-				// leadership transfer failed, fallback to removing the server from raft
+			// Check if we can do a leadership transfer instead of removing our selves
+			leadershipTransferVersion := version.Must(version.NewVersion("1.6.0"))
+			removeServer := false
+			if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion); !ok {
+				// Transfer leadership to another node then leave the cluster
+				future := s.raft.LeadershipTransfer()
+				if err := future.Error(); err != nil {
+					s.logger.Error("failed to transfer leadership, removing the server", "error", err)
+					// leadership transfer failed, fallback to removing the server from raft
+					removeServer = true
+				} else {
+					// we are not leader anymore, continue the flow to leave as follower
+					isLeader = false
+				}
+			} else {
+				// Leadership transfer is not available in the current version, fallback to removing the server from raft
+				removeServer = true
+			}
+			if removeServer {
 				future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
 				if err := future.Error(); err != nil {
 					s.logger.Error("failed to remove ourself as raft peer", "error", err)
 				}
-			} else {
-				// we are not leader anymore, continue the flow to leave as follower
-				isLeader = false
 			}
 		} else {
 			future := s.raft.RemovePeer(addr)
