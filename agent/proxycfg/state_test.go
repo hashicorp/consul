@@ -1686,6 +1686,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 							db.String(): {
 								DestinationName:      "db",
 								DestinationNamespace: structs.IntentionDefaultNamespace,
+								DestinationPartition: structs.IntentionDefaultNamespace,
 							},
 						}
 						require.Equal(t, expectUpstreams, snap.ConnectProxy.UpstreamConfig)
