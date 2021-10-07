@@ -232,7 +232,7 @@ func TestStateStore_Usage_updateUsage_Underflow(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, u.(*UsageEntry).Count)
 
-	u, err = txn.First("usage", "id", string(structs.ServiceKindConnectProxy))
+	u, err = txn.First("usage", "id", connectUsageTableName(string(structs.ServiceKindConnectProxy)))
 	require.NoError(t, err)
 	require.Equal(t, 0, u.(*UsageEntry).Count)
 

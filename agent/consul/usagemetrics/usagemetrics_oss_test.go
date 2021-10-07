@@ -584,6 +584,18 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				require.NoError(t, s.EnsureService(11, "foo", mgw))
 				require.NoError(t, s.EnsureService(12, "foo", tgw))
 				require.NoError(t, s.EnsureService(13, "bar", &structs.NodeService{ID: "db-native", Service: "db", Tags: nil, Address: "", Port: 5000, Connect: structs.ServiceConnect{Native: true}}))
+				require.NoError(t, s.EnsureConfigEntry(14, &structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "foo",
+				}))
+				require.NoError(t, s.EnsureConfigEntry(15, &structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "bar",
+				}))
+				require.NoError(t, s.EnsureConfigEntry(16, &structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "baz",
+				}))
 			},
 			getMembersFunc: func() []serf.Member {
 				return []serf.Member{
@@ -728,7 +740,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				},
 				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=ingress-gateway": {
 					Name:  "consul.usage.test.consul.state.config_entries",
-					Value: 1,
+					Value: 3,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "ingress-gateway"},
@@ -760,7 +772,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 				},
 				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=terminating-gateway": {
 					Name:  "consul.usage.test.consul.state.config_entries",
-					Value: 1,
+					Value: 0,
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "terminating-gateway"},

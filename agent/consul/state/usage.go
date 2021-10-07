@@ -12,6 +12,7 @@ const (
 	serviceNamesUsageTable      = "service-names"
 	kvUsageTable                = "kv-entries"
 	connectNativeInstancesTable = "connect-native"
+	connectPrefix               = "connect-mesh"
 
 	tableUsage = "usage"
 )
@@ -202,6 +203,11 @@ func serviceNameChanged(change memdb.Change) bool {
 	return false
 }
 
+// connectTableEntry is a convenience function to make prefix addition in 1 place
+func connectUsageTableName(kind string) string {
+	return fmt.Sprintf("%s-%s", connectPrefix, kind)
+}
+
 func connectDeltas(change memdb.Change, usageDeltas map[string]int, delta int) {
 	// Connect metrics for updated services are more complicated. Check for:
 	// 1. Did ServiceKind change?
@@ -212,30 +218,30 @@ func connectDeltas(change memdb.Change, usageDeltas map[string]int, delta int) {
 		before := change.Before.(*structs.ServiceNode)
 		after := change.After.(*structs.ServiceNode)
 		if before.ServiceKind != structs.ServiceKindTypical {
-			usageDeltas[string(before.ServiceKind)] -= 1
+			usageDeltas[connectUsageTableName(string(before.ServiceKind))] -= 1
 			addEnterpriseConnectServiceInstanceUsage(usageDeltas, before, -1)
 		}
 		if after.ServiceKind != structs.ServiceKindTypical {
-			usageDeltas[string(after.ServiceKind)] += 1
+			usageDeltas[connectUsageTableName(string(after.ServiceKind))] += 1
 			addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
 		}
 
 		if before.ServiceConnect.Native != after.ServiceConnect.Native {
 			if before.ServiceConnect.Native {
-				usageDeltas[connectNativeInstancesTable] -= 1
+				usageDeltas[connectUsageTableName(string(connectNativeInstancesTable))] -= 1
 				addEnterpriseConnectServiceInstanceUsage(usageDeltas, before, -1)
 			} else {
-				usageDeltas[connectNativeInstancesTable] += 1
+				usageDeltas[connectUsageTableName(connectNativeInstancesTable)] += 1
 				addEnterpriseConnectServiceInstanceUsage(usageDeltas, after, 1)
 			}
 		}
 	} else {
 		svc := changeObject(change).(*structs.ServiceNode)
 		if svc.ServiceKind != structs.ServiceKindTypical {
-			usageDeltas[string(svc.ServiceKind)] += delta
+			usageDeltas[connectUsageTableName(string(svc.ServiceKind))] += delta
 		}
 		if svc.ServiceConnect.Native {
-			usageDeltas[connectNativeInstancesTable] += delta
+			usageDeltas[connectUsageTableName(connectNativeInstancesTable)] += delta
 		}
 		addEnterpriseConnectServiceInstanceUsage(usageDeltas, svc, delta)
 	}
@@ -329,7 +335,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 
 	serviceKindInstances := make(map[string]int)
 	for _, kind := range allConnectKind {
-		usage, err := firstUsageEntry(tx, kind)
+		usage, err := firstUsageEntry(tx, connectUsageTableName(kind))
 		if err != nil {
 			return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 		}
