@@ -108,15 +108,12 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
-		var useRDS bool
-		if !chain.IsDefault() && chain.Protocol != "tcp" {
-			useRDS = true
-		}
+		useRDS := chain.Protocol != "tcp" && !chain.IsDefault()
 
 		var clusterName string
-
-		// When not using RDS we must generate a cluster name to attach to the filter chain.
 		if !useRDS {
+			// When not using RDS we must generate a cluster name to attach to the filter chain.
+			// With RDS, cluster names get attached to the dynamic routes instead.
 			target, err := simpleChainTarget(chain)
 			if err != nil {
 				return nil, err

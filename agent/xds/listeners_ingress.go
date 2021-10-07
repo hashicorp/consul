@@ -57,17 +57,19 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.
 			// TODO(freddy): Why can the protocol of the listener be overridden here?
-			useRDS := !chain.IsDefault() && cfg.Protocol != "tcp"
-			var clusterName string
+			useRDS := cfg.Protocol != "tcp" && !chain.IsDefault()
 
-			// When not using RDS we must generate a cluster name to attach to the filter chain.
+			var clusterName string
 			if !useRDS {
+				// When not using RDS we must generate a cluster name to attach to the filter chain.
+				// With RDS, cluster names get attached to the dynamic routes instead.
 				target, err := simpleChainTarget(chain)
 				if err != nil {
 					return nil, err
 				}
 				clusterName = CustomizeClusterName(target.Name, chain)
 			}
+
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
 
 			l := makePortListenerWithDefault(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
