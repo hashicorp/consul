@@ -5638,7 +5638,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						Timeout:                        4868 * time.Second,
 						TTL:                            11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
-						H2PingUseTLS:                   true,
 					},
 				},
 				Connect: &structs.ServiceConnect{},

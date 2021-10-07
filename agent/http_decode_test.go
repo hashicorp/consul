@@ -729,7 +729,7 @@ var translateH2PingUseTLS = []translateKeyTestCase{
 		desc:       "H2PingUseTLS: neither set",
 		in:         []interface{}{},
 		want:       true, // zero value
-		jsonFmtStr: "{}",
+		jsonFmtStr: "{" + `"h2ping":"testing"` + "}",
 		equalityFn: h2pingUseTLSEqFn,
 	},
 }

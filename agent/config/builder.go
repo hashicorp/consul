@@ -1541,6 +1541,13 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		return nil
 	}
 
+	var H2PingUseTLSVal bool
+	if stringVal(v.H2PING) != "" {
+		H2PingUseTLSVal = boolValWithDefault(v.H2PingUseTLS, true)
+	} else {
+		H2PingUseTLSVal = boolVal(v.H2PingUseTLS)
+	}
+
 	id := types.CheckID(stringVal(v.ID))
 
 	return &structs.CheckDefinition{
@@ -1571,7 +1578,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
-		H2PingUseTLS:                   boolValWithDefault(v.H2PingUseTLS, true),
+		H2PingUseTLS:                   H2PingUseTLSVal,
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
