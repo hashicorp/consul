@@ -1,0 +1,48 @@
+<label
+  class={{concat 'text-input' ' type-text' (if (get @chart.state.context.errors @name) ' has-error')}}
+  ...attributes
+>
+  <span>
+    {{!- add an optional slot here called <:label>-}}
+    {{or @label @name}}
+  </span>
+    {{!- add an optional slot here called <:input>?-}}
+  {{#if @expanded}}
+    <textarea
+      {{validate @item
+        validations=@validations
+        chart=@chart
+      }}
+      {{on 'input' (optional @oninput)}}
+      name={{@name}}
+    >{{or @value (get @item @name)}}</textarea>
+  {{else}}
+    <input
+      {{validate @item
+        validations=@validations
+        chart=@chart
+      }}
+      {{on 'input' (optional @oninput)}}
+      type="text"
+      value={{or @value (get @item @name)}}
+      name={{@name}}
+      placeholder={{or @placeholder}}
+    />
+  {{/if}}
+{{#let
+  (or @validations.help @help)
+as |help|}}
+  {{#if help}}
+    {{!- add an optional slot here called <:help>?-}}
+    <em>
+      {{help}}
+    </em>
+  {{/if}}
+{{/let}}
+  <State @state={{@chart.state}} @matches="error">
+    {{!- add an optional slot here called <:alert/error/success>?-}}
+    <strong
+      role="alert"
+    >{{get (get @chart.state.context.errors @name) 'message'}}</strong>
+  </State>
+</label>

@@ -41,23 +41,45 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
     "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
   }
   </script>
+  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services.js"></script>
+${
+  environment === 'development' || environment === 'staging'
+    ? `
+  <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
+` : ``}
 ${
   environment === 'production'
     ? `
 {{if .ACLsEnabled}}
-  <script data-${appName}-routing src="${rootURL}assets/acls/routes.js"></script>
+  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-acls/routes.js"></script>
+{{end}}
+{{if .PartitionsEnabled}}
+  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-partitions/routes.js"></script>
 {{end}}
 `
     : `
 <script>
-  if(document.cookie['CONSUL_ACLS_ENABLED']) {
-    const appName = '${appName}';
-    const appNameJS = appName.split('-').map((item, i) => i ? \`\${item.substr(0, 1).toUpperCase()}\${item.substr(1)}\` : item).join('');
-    const $script = document.createElement('script');
-    $script.setAttribute('src', '${rootURL}assets/acls/routes.js');
-    $script.dataset[\`\${appNameJS}Routes\`] = null;
-    document.body.appendChild($script);
+(
+  function(get, obj) {
+    Object.entries(obj).forEach(([key, value]) => {
+      if(get(key)) {
+        const appName = '${appName}';
+        const appNameJS = appName.split('-').map((item, i) => i ? \`\${item.substr(0, 1).toUpperCase()}\${item.substr(1)}\` : item).join('');
+        const $script = document.createElement('script');
+        $script.setAttribute('data-app-name', '${appName}');
+        $script.setAttribute('data-${appName}-routing', '');
+        $script.setAttribute('src', \`${rootURL}assets/\${value}/routes.js\`);
+        document.body.appendChild($script);
+      }
+    });
   }
+)(
+  key => document.cookie.split('; ').find(item => item.startsWith(\`\${key}=\`)),
+  {
+    'CONSUL_ACLS_ENABLE': 'consul-acls',
+    'CONSUL_PARTITIONS_ENABLE': 'consul-partitions'
+  }
+);
 </script>
 `
 }

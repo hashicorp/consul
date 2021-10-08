@@ -1,39 +1,13 @@
-import ApplicationRoute from '../routes/application';
-import { I18nService, formatOptionsSymbol } from './i18n';
+import I18nService, { formatOptionsSymbol } from 'consul-ui/services/i18n';
 import ucfirst from 'consul-ui/utils/ucfirst';
 
 import faker from 'faker';
-
-let isDebugRoute = false;
-const routeChange = function(transition) {
-  isDebugRoute = transition.to.name.startsWith('docs');
-};
-const DebugRoute = class extends ApplicationRoute {
-  constructor(owner) {
-    super(...arguments);
-    this.router = owner.lookup('service:router');
-    this.router.on('routeWillChange', routeChange);
-  }
-
-  renderTemplate() {
-    if (isDebugRoute) {
-      this.render('debug');
-    } else {
-      super.renderTemplate(...arguments);
-    }
-  }
-
-  willDestroy() {
-    this.router.off('routeWillChange', routeChange);
-    super.willDestroy(...arguments);
-  }
-};
 
 // we currently use HTML in translations, so anything 'word-like' with these
 // chars won't get translated
 const translator = cb => item => (!['<', '>', '='].includes(item) ? cb(item) : item);
 
-class DebugI18nService extends I18nService {
+export default class DebugI18nService extends I18nService {
   formatMessage(value, formatOptions) {
     const text = super.formatMessage(...arguments);
     let locale = this.env.var('CONSUL_INTL_LOCALE');
@@ -82,11 +56,4 @@ class DebugI18nService extends I18nService {
     return formatOptions;
   }
 }
-export default {
-  name: 'debug',
-  after: 'i18n',
-  initialize(application) {
-    application.register('route:application', DebugRoute);
-    application.register('service:intl', DebugI18nService);
-  },
-};
+

@@ -1,0 +1,16 @@
+# test
+
+`{{and (test "is something model" item=item) (test "can read model")}}` is used
+to perform a test on based on a type of model, almost the same as `ember-can`
+and the `is` helper, but is more generic and extensible whilst reading nicely:
+
+```hbs
+
+{{#if (and (test "is crd intention" item=item) (test "can read intentions"))}}
+I'm a CRD intention
+{{/if}}
+
+```
+
+Consider using this instead of the `can` and `is` helpers, as its more generic.
+

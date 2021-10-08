@@ -1,11 +1,13 @@
-import Oauth2CodeProvider from 'torii/providers/oauth2-code';
-const NAME = 'oidc-with-url';
-const Provider = Oauth2CodeProvider.extend({
-  name: NAME,
-  buildUrl: function() {
+import OAuth2CodeProvider from 'torii/providers/oauth2-code';
+export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
+
+  name = 'oidc-with-url';
+
+  buildUrl() {
     return this.baseUrl;
-  },
-  open: function(options) {
+  }
+
+  open(options) {
     const name = this.get('name'),
       url = this.buildUrl(),
       responseParams = ['state', 'code'],
@@ -20,18 +22,14 @@ const Provider = Oauth2CodeProvider.extend({
           provider: name,
         };
       });
-  },
-  close: function() {
+  }
+
+  close() {
     const popup = this.get('popup.remote') || {};
     if (typeof popup.close === 'function') {
       return popup.close();
     }
-  },
-});
-export function initialize(application) {
-  application.register(`torii-provider:${NAME}`, Provider);
+  }
+
 }
 
-export default {
-  initialize,
-};

@@ -1,7 +1,14 @@
 'use strict';
+const path = require('path');
+const exists = require('fs').existsSync;
+
 const Funnel = require('broccoli-funnel');
+const mergeTrees = require('broccoli-merge-trees');
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 const utils = require('./config/utils');
+
+// const BroccoliDebug = require('broccoli-debug');
+// const debug = BroccoliDebug.buildDebugCallback(`app:consul-ui`)
 
 module.exports = function(defaults, $ = process.env) {
   // available environments
@@ -10,12 +17,23 @@ module.exports = function(defaults, $ = process.env) {
   $ = utils.env($);
   const env = EmberApp.env();
   const prodlike = ['production', 'staging'];
+  const devlike = ['development', 'staging'];
   const sourcemaps = !['production'].includes(env) && !$('BABEL_DISABLE_SOURCEMAPS', false);
 
   const trees = {};
   const addons = {};
   const outputPaths = {};
   let excludeFiles = [];
+
+  const apps = [
+    'consul-acls',
+    'consul-partitions'
+  ].map(item => {
+    return {
+      name: item,
+      path: path.dirname(require.resolve(`${item}/package.json`))
+    };
+  });
 
   const babel = {
     plugins: [
@@ -29,6 +47,7 @@ module.exports = function(defaults, $ = process.env) {
     // exclude any component/pageobject.js files from anything but test
     excludeFiles = excludeFiles.concat([
       'components/**/pageobject.js',
+      'components/**/test-support.js',
       'components/**/*.test-support.js',
       'components/**/*.test.js',
     ])
@@ -38,6 +57,8 @@ module.exports = function(defaults, $ = process.env) {
     // exclude our debug initializer, route and template
     excludeFiles = excludeFiles.concat([
       'instance-initializers/debug.js',
+      'routing/**/*-debug.js',
+      'services/**/*-debug.js',
       'templates/debug.hbs',
       'components/debug/**/*.*'
     ])
@@ -61,11 +82,21 @@ module.exports = function(defaults, $ = process.env) {
       ['strip-function-call', {'strip': ['Ember.runInDebug']}]
     )
   }
-  //
 
-  trees.app = new Funnel('app', {
-    exclude: excludeFiles
+  //
+  trees.app = mergeTrees([
+    new Funnel('app', { exclude: excludeFiles })
+  ].concat(
+    apps.filter(item => exists(`${item.path}/app`)).map(item => new Funnel(`${item.path}/app`, {exclude: excludeFiles}))
+  ), {
+    overwrite: true
   });
+  trees.vendor = mergeTrees([
+    new Funnel('vendor'),
+  ].concat(
+    apps.map(item => new Funnel(`${item.path}/vendor`))
+  ));
+  //
 
   const app = new EmberApp(
     Object.assign({}, defaults, {
@@ -112,6 +143,16 @@ module.exports = function(defaults, $ = process.env) {
       },
     }
   );
+  apps.forEach(item => {
+    app.import(`vendor/${item.name}/routes.js`, {
+      outputFile: `assets/${item.name}/routes.js`,
+    });
+  });
+  ['consul-ui/services'].concat(devlike ? ['consul-ui/services-debug'] : []).forEach(item => {
+    app.import(`vendor/${item}.js`, {
+      outputFile: `assets/${item}.js`,
+    });
+  });
   // Use `app.import` to add additional libraries to the generated
   // output files.
   //
@@ -162,9 +203,6 @@ module.exports = function(defaults, $ = process.env) {
   });
   app.import('vendor/metrics-providers/prometheus.js', {
     outputFile: 'assets/metrics-providers/prometheus.js',
-  });
-  app.import('vendor/acls/routes.js', {
-    outputFile: 'assets/acls/routes.js',
   });
   app.import('vendor/init.js', {
     outputFile: 'assets/init.js',

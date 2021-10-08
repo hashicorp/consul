@@ -2,7 +2,7 @@
   class="consul-nspace-list"
   ...attributes
   @items={{@items}}
-  @linkable={{action this.isLinkable}}
+  @linkable="linkable nspace"
 as |item|>
     <BlockSlot @name="header">
 {{#if item.DeletedAt}}

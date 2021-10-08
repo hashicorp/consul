@@ -22,7 +22,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v4-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v5-{{ checksum "ui/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -602,7 +602,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui && yarn install
+          command: cd ui && yarn install && cd packages/consul-ui && yarn install
 
       - save_cache:
           key: *YARN_CACHE_KEY

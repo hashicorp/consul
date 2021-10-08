@@ -2,7 +2,7 @@
   class="consul-upstream-list"
   ...attributes
   @items={{@items}}
-  @linkable={{action this.isLinkable}}
+  @linkable="linkable upstream"
 as |item index|>
   <BlockSlot @name="header">
   {{#if (gt item.InstanceCount 0)}}

@@ -15,6 +15,22 @@ export default class BaseRoute extends Route {
   @service('repository/permission') permissions;
   @service('router') router;
 
+  _setRouteName() {
+    super._setRouteName(...arguments);
+    const routeName = this.routeName
+      .split('.')
+      .filter(item => item !== 'index')
+      .join('.');
+    const template = get(routes, `${routeName}._options.template`);
+    if(template) {
+      this.templateName = template;
+    }
+    const queryParams = get(routes, `${routeName}._options.queryParams`);
+    if(queryParams && this.routeName === 'dc.partitions.index') {
+      this.queryParams = queryParams;
+    }
+  }
+
   redirect(model, transition) {
     // remove any references to index as it is the same as the root routeName
     const routeName = this.routeName

@@ -6,6 +6,27 @@ import { isChangeset } from 'validated-changeset';
 import HTTPError from 'consul-ui/utils/http/error';
 import { ACCESS_READ } from 'consul-ui/abilities/base';
 
+export const softDelete = (repo, item) => {
+  // Some deletes need to be more of a soft delete.
+  // Therefore the partition still exists once we've requested a delete/removal.
+  // This makes 'removing' more of a custom action rather than a standard
+  // ember-data delete.
+  // Here we use the same request for a delete but we bypass ember-data's
+  // destroyRecord/unloadRecord and serialization so we don't get
+  // ember data error messages when the UI tries to update a 'DeletedAt' property
+  // on an object that ember-data is trying to delete
+  const res = repo.store.adapterFor(repo.getModelName()).rpc(
+    (adapter, request, serialized, unserialized) => {
+      return adapter.requestForDeleteRecord(request, serialized, unserialized);
+    },
+    (serializer, respond, serialized, unserialized) => {
+      return item;
+    },
+    item,
+    repo.getModelName()
+  );
+  return res;
+}
 export default class RepositoryService extends Service {
   @service('store') store;
   @service('env') env;
