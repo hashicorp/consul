@@ -28,7 +28,7 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 		connectTLSEnabled := cfgSnap.IngressGateway.TLSConfig.Enabled ||
 			(listenerCfg.TLS != nil && listenerCfg.TLS.Enabled)
 
-		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerKey)
+		sdsCfg, err := resolveListenerSDSConfig(cfgSnap, listenerCfg)
 		if err != nil {
 			return nil, err
 		}
@@ -127,18 +127,13 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 	return resources, nil
 }
 
-func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
+func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.IngressListener) (*structs.GatewayTLSSDSConfig, error) {
 	var mergedCfg structs.GatewayTLSSDSConfig
 
 	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
 	if gwSDS != nil {
 		mergedCfg.ClusterName = gwSDS.ClusterName
 		mergedCfg.CertResource = gwSDS.CertResource
-	}
-
-	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
-	if !ok {
-		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
 	}
 
 	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
@@ -161,10 +156,10 @@ func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey prox
 		return &mergedCfg, nil
 
 	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
-		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerCfg.Port)
 
 	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
-		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerCfg.Port)
 	}
 
 	return &mergedCfg, nil

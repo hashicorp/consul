@@ -1172,7 +1172,7 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 		snap := proxycfg.TestConfigSnapshotIngressWithGatewaySDS(t)
 		// Override TLS configs
 		snap.IngressGateway.TLSConfig.SDS = tc.gwSDS
-		var key proxycfg.IngressListenerKey
+		var listenerCfg structs.IngressListener
 		for k, lisCfg := range snap.IngressGateway.Listeners {
 			if tc.lisSDS == nil {
 				lisCfg.TLS = nil
@@ -1183,12 +1183,11 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 			}
 			// Override listener cfg in map
 			snap.IngressGateway.Listeners[k] = lisCfg
-			// Save the last key doesn't matter which as we set same listener config
-			// for all.
-			key = k
+			// Save the last cfg doesn't matter which as we set same for all.
+			listenerCfg = lisCfg
 		}
 
-		got, err := resolveListenerSDSConfig(snap, key)
+		got, err := resolveListenerSDSConfig(snap, listenerCfg)
 		if tc.wantErr != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tc.wantErr)
