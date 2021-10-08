@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
+	"math"
 )
 
 var AutopilotGauges = []prometheus.GaugeDefinition{
@@ -50,6 +51,12 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 		} else {
 			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
 		}
+	} else {
+
+		// if we are not a leader, emit NaN per
+		// https://www.consul.io/docs/agent/telemetry#autopilot
+		metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
+
 	}
 }
 
@@ -72,6 +79,8 @@ func (s *Server) initAutopilot(config *Config) {
 		autopilot.WithUpdateInterval(config.ServerHealthInterval),
 		autopilot.WithPromoter(s.autopilotPromoter()),
 	)
+
+	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
