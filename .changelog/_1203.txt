@@ -1,0 +1,3 @@
+```release-note:improvement
+state: reads of partitions now accept an optional memdb.WatchSet
+```
