@@ -17,7 +17,7 @@
 
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and (not create) (can "delete token" item=item token=token) ) }}
-        <ConfirmationDialog @message="Are you sure you want to delete this Token?">
+        <ConfirmationDialog @message="Are you sure you want to delete this token?">
             <BlockSlot @name="action" as |confirm|>
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
             </BlockSlot>
