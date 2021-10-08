@@ -2265,7 +2265,8 @@ signed by the CA can be used to gain full access to Consul.
   ~> **Note:** This config will be deprecated in Consul 1.11. See this
   [post](https://go.dev/blog/tls-cipher-suites) for details.
 
-- `verify_incoming` - If set to true, Consul
+- `verify_incoming` - **Deprecated in Consul v1.11.0. Use `verify_incoming_https` and
+  `verify_incomfing_rpc` instead.** If set to true, Consul
   requires that all incoming connections make use of TLS and that the client
   provides a certificate signed by a Certificate Authority from the
   [`ca_file`](#ca_file) or [`ca_path`](#ca_path). This applies to both server
@@ -2279,7 +2280,8 @@ signed by the CA can be used to gain full access to Consul.
 - `verify_incoming_rpc` - When set to true, Consul
   requires that all incoming RPC connections use TLS and that the client
   provides a certificate signed by a Certificate Authority from the [`ca_file`](#ca_file)
-  or [`ca_path`](#ca_path). By default, this is false, and Consul will not enforce
+  or [`ca_path`](#ca_path). Defaults to true if either `ca_file` or `ca_path` are set,
+  otherwise defaults to false. When set to false Consul will not enforce
   the use of TLS or verify a client's authenticity.
 
   ~> **Security Note:** `verify_incoming_rpc` _must_ be set to true to prevent anyone

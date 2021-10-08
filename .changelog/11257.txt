@@ -1,0 +1,7 @@
+```release-note:breaking-change
+config: `verify_incoming_rpc` now defaults to true if either `ca_file` or `ca_path` are set. Previously it defaulted to false in all cases.
+```
+
+```release-note:deprecation
+config: `verify_incoming` is deprecated and may be removed in a future version. Use `verify_incoming_https` and `verify_incoming_rpc` instead.
+```
