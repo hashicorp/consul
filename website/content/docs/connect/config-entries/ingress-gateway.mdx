@@ -863,7 +863,8 @@ spec:
           type: 'array<IngressService>: <optional>',
           description: `A list of services to be exposed via this listener.
             For \`tcp\` listeners, only a single service is allowed.
-            Each service must have a unique name (and namespace in Enterprise).`,
+            Each service must have a unique name. A namespace is also required for
+            Consul Enterprise.`,
           children: [
             {
               name: 'Name',
