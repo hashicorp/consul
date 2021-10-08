@@ -139,7 +139,6 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
             title: 'Consul on Kubernetes',
             description:
               'Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.',
-            eyebrow: 'Tutorial',
             link: {
               text: 'Learn more',
               url: '/consul-on-kubernetes',
