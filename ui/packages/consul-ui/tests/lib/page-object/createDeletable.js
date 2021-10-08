@@ -7,7 +7,7 @@ export default function(clickable) {
       ...obj,
       ...{
         delete: clickable(scope + '[data-test-delete]'),
-        confirmDelete: clickable(scope + 'button.type-delete'),
+        confirmDelete: clickable(scope + '[data-test-confirm-delete]'),
       },
     };
   };

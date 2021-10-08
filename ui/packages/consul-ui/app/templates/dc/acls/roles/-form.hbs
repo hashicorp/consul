@@ -62,8 +62,8 @@
                     </p>
                   </BlockSlot>
                   <BlockSlot @name="actions" as |close|>
-                    <button type="button" class="type-delete" {{action execute}}>Yes, Delete</button>
-                    <button type="button" class="type-cancel" {{action close}}>Cancel</button>
+                    <button data-test-confirm-delete type="button" class="type-delete" {{action execute}}>Yes, Delete</button>
+                    <button type="button" class="type-cancel data-test-confirm-delete" {{action close}}>Cancel</button>
                   </BlockSlot>
                 </ModalDialog>
     {{else}}

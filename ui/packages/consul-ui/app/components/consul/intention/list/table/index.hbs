@@ -96,7 +96,7 @@ as |item index|>
                   <:actions as |Actions|>
                     <Actions.Action class="dangerous">
                       <Action
-                        class="type-delete"
+                        data-test-confirm-delete
                         tabindex="-1"
                         {{on 'click' (queue (action change) (action @delete item))}}
                       >
