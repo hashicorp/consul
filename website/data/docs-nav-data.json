@@ -460,7 +460,7 @@
           },
           {
             "title": "Ambassador Edge Stack Integration",
-            "path": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
+            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
             "title": "Configuring a Connect CA Provider",
