@@ -73,7 +73,7 @@ type KVUsage struct {
 
 type ConfigEntryUsage struct {
 	ConfigByKind map[string]int
-	EnterpriseConfigUsage
+	EnterpriseConfigEntryUsage
 }
 
 type uniqueServiceState int

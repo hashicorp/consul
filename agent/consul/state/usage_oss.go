@@ -11,7 +11,7 @@ import (
 type EnterpriseServiceUsage struct{}
 type EnterpriseNodeUsage struct{}
 type EnterpriseKVUsage struct{}
-type EnterpriseConfigUsage struct{}
+type EnterpriseConfigEntryUsage struct{}
 
 func addEnterpriseNodeUsage(map[string]int, memdb.Change) {}
 
