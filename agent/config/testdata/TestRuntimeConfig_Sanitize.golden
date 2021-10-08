@@ -411,7 +411,6 @@
     "UnixSocketMode": "",
     "UnixSocketUser": "",
     "UseStreamingBackend": false,
-    "VerifyIncoming": false,
     "VerifyIncomingHTTPS": false,
     "VerifyIncomingRPC": false,
     "VerifyOutgoing": false,

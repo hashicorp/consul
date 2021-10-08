@@ -451,7 +451,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 func TestClient_RPC_TLS(t *testing.T) {
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyIncomingRPC = true
 	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
@@ -664,7 +664,7 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyIncomingRPC = true
 	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)

@@ -661,7 +661,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.CertFile = "../../test/hostname/Bob.crt"
 		c.TLSConfig.KeyFile = "../../test/hostname/Bob.key"
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyIncomingRPC = true
 		c.TLSConfig.VerifyOutgoing = true
 		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
@@ -680,7 +680,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.CertFile = "../../test/hostname/Betty.crt"
 		c.TLSConfig.KeyFile = "../../test/hostname/Betty.key"
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyIncomingRPC = true
 		c.TLSConfig.VerifyOutgoing = true
 		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
@@ -699,7 +699,7 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 		c.TLSConfig.CAFile = "../../test/hostname/CertAuth.crt"
 		c.TLSConfig.CertFile = "../../test/hostname/Bonnie.crt"
 		c.TLSConfig.KeyFile = "../../test/hostname/Bonnie.key"
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyIncomingRPC = true
 		c.TLSConfig.VerifyOutgoing = true
 		c.TLSConfig.VerifyServerHostname = true
 		// wanfed
@@ -1085,7 +1085,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyIncomingRPC = true
 	conf1.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf1)
 	s1, err := newServer(t, conf1)
@@ -1097,7 +1097,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
-	conf2.TLSConfig.VerifyIncoming = true
+	conf2.TLSConfig.VerifyIncomingRPC = true
 	conf2.TLSConfig.VerifyOutgoing = true
 	configureTLS(conf2)
 	s2, err := newServer(t, conf2)

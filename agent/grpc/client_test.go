@@ -152,11 +152,11 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		VerifyIncoming: true,
-		VerifyOutgoing: true,
-		CAFile:         "../../test/hostname/CertAuth.crt",
-		CertFile:       "../../test/hostname/Alice.crt",
-		KeyFile:        "../../test/hostname/Alice.key",
+		VerifyIncomingRPC: true,
+		VerifyOutgoing:    true,
+		CAFile:            "../../test/hostname/CertAuth.crt",
+		CertFile:          "../../test/hostname/Alice.crt",
+		KeyFile:           "../../test/hostname/Alice.key",
 	}, hclog.New(nil))
 	require.NoError(t, err)
 
@@ -198,7 +198,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	registerWithGRPC(t, res)
 
 	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		VerifyIncoming:       true,
+		VerifyIncomingRPC:    true,
 		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		CAFile:               "../../test/hostname/CertAuth.crt",
@@ -226,7 +226,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T)
 	t.Cleanup(srv.shutdown)
 
 	clientTLSConf, err := tlsutil.NewConfigurator(tlsutil.Config{
-		VerifyIncoming:       true,
+		VerifyIncomingRPC:    true,
 		VerifyOutgoing:       true,
 		VerifyServerHostname: true,
 		CAFile:               "../../test/hostname/CertAuth.crt",

@@ -2893,18 +2893,18 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{`{
-			  "verify_incoming": true,
+			  "verify_incoming_rpc": true,
 			  "auto_encrypt": { "allow_tls": true },
 			  "server": true
 			}`},
 		hcl: []string{`
-			  verify_incoming = true
+			  verify_incoming_rpc = true
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncoming = true
+			rt.VerifyIncomingRPC = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2916,23 +2916,23 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
-		desc: "auto_encrypt.allow_tls works with verify_incoming",
+		desc: "auto_encrypt.allow_tls works with verify_incoming_rpc",
 		args: []string{
 			`-data-dir=` + dataDir,
 		},
 		json: []string{`{
-			  "verify_incoming": true,
+			  "verify_incoming_rpc": true,
 			  "auto_encrypt": { "allow_tls": true },
 			  "server": true
 			}`},
 		hcl: []string{`
-			  verify_incoming = true
+			  verify_incoming_rpc = true
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.VerifyIncoming = true
+			rt.VerifyIncomingRPC = true
 			rt.AutoEncryptAllowTLS = true
 			rt.ConnectEnabled = true
 
@@ -2984,7 +2984,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			  auto_encrypt { allow_tls = true }
 			  server = true
 			`},
-		expectedWarnings: []string{"if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards."},
+		expectedWarnings: []string{"if auto_encrypt.allow_tls is turned on, verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but we strongly recommend setting the value to true once the migration is complete."},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
 			rt.AutoEncryptAllowTLS = true
@@ -5099,6 +5099,48 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			}`},
 		expectedErr: "advertise_reconnect_timeout can only be used on a client",
 	})
+
+	run(t, testCase{
+		desc: "setting ca_path enables verify_incoming_rpc",
+		args: []string{`-data-dir`, dataDir, `-server`},
+		hcl:  []string{` ca_path = "some/path/to/ca"`},
+		json: []string{`{ "ca_path": "some/path/to/ca" }`},
+		expected: func(rt *RuntimeConfig) {
+			serverDefaults(rt, dataDir)
+			rt.CAPath = "some/path/to/ca"
+			rt.VerifyIncomingRPC = true
+		},
+	})
+
+	run(t, testCase{
+		desc: "setting ca_file enables verify_incoming_rpc",
+		args: []string{`-data-dir`, dataDir, `-server`},
+		hcl:  []string{` ca_file = "some/path/to/ca.pem"`},
+		json: []string{`{ "ca_file": "some/path/to/ca.pem" }`},
+		expected: func(rt *RuntimeConfig) {
+			serverDefaults(rt, dataDir)
+			rt.CAFile = "some/path/to/ca.pem"
+			rt.VerifyIncomingRPC = true
+		},
+	})
+
+	run(t, testCase{
+		desc: "verify_incoming_rpc can still be disabled explicitly",
+		args: []string{`-data-dir`, dataDir, `-server`},
+		hcl: []string{`
+			ca_file = "some/path/to/ca.pem"
+			verify_incoming_rpc = false
+		`},
+		json: []string{`{
+			"ca_file": "some/path/to/ca.pem",
+			"verify_incoming_rpc":  false
+		}`},
+		expected: func(rt *RuntimeConfig) {
+			serverDefaults(rt, dataDir)
+			rt.CAFile = "some/path/to/ca.pem"
+			rt.VerifyIncomingRPC = false
+		},
+	})
 }
 
 func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
@@ -5185,6 +5227,14 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	if diff := cmp.Diff(x, y, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
+}
+
+func serverDefaults(rt *RuntimeConfig, dataDir string) {
+	rt.DataDir = dataDir
+	rt.ServerMode = true
+	rt.LeaveOnTerm = false
+	rt.SkipLeaveOnInt = true
+	rt.RPCConfig.EnableStreaming = true
 }
 
 func TestLoad_InvalidConfigFormat(t *testing.T) {
@@ -5892,7 +5942,6 @@ func TestLoad_FullConfig(t *testing.T) {
 		UnixSocketUser:       "E0nB1DwA",
 		UnixSocketGroup:      "8pFodrV8",
 		UnixSocketMode:       "E8sAwOv4",
-		VerifyIncoming:       true,
 		VerifyIncomingHTTPS:  true,
 		VerifyIncomingRPC:    true,
 		VerifyOutgoing:       true,
@@ -6406,7 +6455,6 @@ func TestRuntime_ClientAddressAnyV6(t *testing.T) {
 
 func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 	c := &RuntimeConfig{
-		VerifyIncoming:              true,
 		VerifyIncomingRPC:           true,
 		VerifyIncomingHTTPS:         true,
 		VerifyOutgoing:              true,
@@ -6425,7 +6473,6 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 		AutoEncryptTLS:              true,
 	}
 	r := c.ToTLSUtilConfig()
-	require.True(t, r.VerifyIncoming)
 	require.True(t, r.VerifyIncomingRPC)
 	require.True(t, r.VerifyIncomingHTTPS)
 	require.True(t, r.VerifyOutgoing)
@@ -6446,7 +6493,6 @@ func TestRuntime_ToTLSUtilConfig(t *testing.T) {
 
 func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 	c := &RuntimeConfig{
-		VerifyIncoming:              true,
 		VerifyIncomingRPC:           true,
 		VerifyIncomingHTTPS:         true,
 		VerifyOutgoing:              true,
@@ -6465,7 +6511,6 @@ func TestRuntime_ToTLSUtilConfig_AutoConfig(t *testing.T) {
 		AutoConfig:                  AutoConfig{Enabled: true},
 	}
 	r := c.ToTLSUtilConfig()
-	require.True(t, r.VerifyIncoming)
 	require.True(t, r.VerifyIncomingRPC)
 	require.True(t, r.VerifyIncomingHTTPS)
 	require.True(t, r.VerifyOutgoing)

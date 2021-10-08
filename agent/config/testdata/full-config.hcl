@@ -660,7 +660,6 @@ unix_sockets = {
     mode = "E8sAwOv4"
     user = "E0nB1DwA"
 }
-verify_incoming = true
 verify_incoming_https = true
 verify_incoming_rpc = true
 verify_outgoing = true

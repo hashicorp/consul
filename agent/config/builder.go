@@ -1080,13 +1080,14 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		UnixSocketGroup:             stringVal(c.UnixSocket.Group),
 		UnixSocketMode:              stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:              stringVal(c.UnixSocket.User),
-		VerifyIncoming:              boolVal(c.VerifyIncoming),
 		VerifyIncomingHTTPS:         boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:           boolVal(c.VerifyIncomingRPC),
 		VerifyOutgoing:              verifyOutgoing,
 		VerifyServerHostname:        verifyServerName,
 		Watches:                     c.Watches,
 	}
+
+	tlsCA := c.CAFile != nil || c.CAPath != nil
+	rt.VerifyIncomingRPC = boolValWithDefault(c.VerifyIncomingRPC, tlsCA)
 
 	rt.UseStreamingBackend = boolValWithDefault(c.UseStreamingBackend, true)
 
@@ -1468,8 +1469,8 @@ func (b *builder) validate(rt RuntimeConfig) error {
 	}
 
 	if rt.AutoEncryptAllowTLS {
-		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
-			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
+		if !rt.VerifyIncomingRPC {
+			b.warn("if auto_encrypt.allow_tls is turned on, verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but we strongly recommend setting the value to true once the migration is complete.")
 		}
 	}
 

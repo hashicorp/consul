@@ -28,6 +28,10 @@ type DeprecatedConfig struct {
 	ACLDownPolicy *string `mapstructure:"acl_down_policy"`
 	// DEPRECATED (ACL-Legacy-Compat) - moved to "acl.token_ttl"
 	ACLTTL *string `mapstructure:"acl_ttl"`
+
+	// Deprecated because it impacted two very different systems (http and rpc)
+	// which would lead to insecure setups. Use verify_incoming_https instead.
+	VerifyIncoming *bool `mapstructure:"verify_incoming"`
 }
 
 func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
@@ -113,6 +117,13 @@ func applyDeprecatedConfig(d *decodeTarget) (Config, []string) {
 			d.Config.ACL.EnableKeyListPolicy = dep.ACLEnableKeyListPolicy
 		}
 		warns = append(warns, deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"))
+	}
+
+	if dep.VerifyIncoming != nil {
+		if d.Config.VerifyIncomingHTTPS == nil {
+			d.Config.VerifyIncomingHTTPS = dep.VerifyIncoming
+		}
+		warns = append(warns, deprecationWarning("verify_incoming", "verify_incoming_https"))
 	}
 
 	return d.Config, warns

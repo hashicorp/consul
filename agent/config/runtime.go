@@ -378,13 +378,13 @@ type RuntimeConfig struct {
 	Cache cache.Options
 
 	// CAFile is a path to a certificate authority file. This is used with
-	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	// VerifyIncoming{RPC,HTTPS} or VerifyOutgoing to verify the TLS connection.
 	//
 	// hcl: ca_file = string
 	CAFile string
 
 	// CAPath is a path to a directory of certificate authority files. This is
-	// used with VerifyIncoming or VerifyOutgoing to verify the TLS connection.
+	// used with VerifyIncoming{RPC,HTTPS} or VerifyOutgoing to verify the TLS connection.
 	//
 	// hcl: ca_path = string
 	CAPath string
@@ -1419,14 +1419,6 @@ type RuntimeConfig struct {
 	// hcl: unix_sockets { user = string }
 	UnixSocketUser string
 
-	// VerifyIncoming is used to verify the authenticity of incoming
-	// connections. This means that TCP requests are forbidden, only allowing
-	// for TLS. TLS connections must match a provided certificate authority.
-	// This can be used to force client auth.
-	//
-	// hcl: verify_incoming = (true|false)
-	VerifyIncoming bool
-
 	// VerifyIncomingHTTPS is used to verify the authenticity of incoming HTTPS
 	// connections. This means that TCP requests are forbidden, only allowing
 	// for TLS. TLS connections must match a provided certificate authority.
@@ -1708,7 +1700,6 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 	return tlsutil.Config{
-		VerifyIncoming:           c.VerifyIncoming,
 		VerifyIncomingRPC:        c.VerifyIncomingRPC,
 		VerifyIncomingHTTPS:      c.VerifyIncomingHTTPS,
 		VerifyOutgoing:           c.VerifyOutgoing,

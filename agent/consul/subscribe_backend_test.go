@@ -28,7 +28,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	// TODO(rb): add tests for the wanfed/alpn variations
 
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyIncomingRPC = true
 	conf1.TLSConfig.VerifyOutgoing = true
 	conf1.RPCConfig.EnableStreaming = true
 	configureTLS(conf1)
@@ -160,7 +160,7 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 
 	// Set up a server with initially bad certificates.
 	_, conf1 := testServerConfig(t)
-	conf1.TLSConfig.VerifyIncoming = true
+	conf1.TLSConfig.VerifyIncomingRPC = true
 	conf1.TLSConfig.VerifyOutgoing = true
 	conf1.TLSConfig.CAFile = "../../test/ca/root.cer"
 	conf1.TLSConfig.CertFile = "../../test/key/ssl-cert-snakeoil.pem"

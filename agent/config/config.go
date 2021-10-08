@@ -247,7 +247,6 @@ type Config struct {
 	UIConfig RawUIConfig `mapstructure:"ui_config"`
 
 	UnixSocket           UnixSocket               `mapstructure:"unix_sockets"`
-	VerifyIncoming       *bool                    `mapstructure:"verify_incoming"`
 	VerifyIncomingHTTPS  *bool                    `mapstructure:"verify_incoming_https"`
 	VerifyIncomingRPC    *bool                    `mapstructure:"verify_incoming_rpc"`
 	VerifyOutgoing       *bool                    `mapstructure:"verify_outgoing"`

@@ -3915,7 +3915,7 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	require.Error(t, a.reloadConfigInternal(c))
 	tlsConf, err := tlsConf.GetConfigForClient(nil)
 	require.NoError(t, err)
-	require.Equal(t, tls.NoClientCert, tlsConf.ClientAuth)
+	require.Equal(t, tls.RequireAndVerifyClientCert, tlsConf.ClientAuth)
 	require.Len(t, tlsConf.ClientCAs.Subjects(), 1)
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }

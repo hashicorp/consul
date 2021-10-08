@@ -169,7 +169,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 		c.TLSConfig.CertFile = certfile
 		c.TLSConfig.KeyFile = keyfile
 		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyIncomingRPC = true
 		c.TLSConfig.VerifyServerHostname = true
 		c.TLSConfig.TLSMinVersion = "tls12"
 		c.TLSConfig.PreferServerCipherSuites = true

@@ -461,7 +461,7 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 		c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
 		c.TLSConfig.VerifyServerHostname = true
 		c.TLSConfig.VerifyOutgoing = true
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyIncomingRPC = true
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -557,7 +557,7 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 				c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
 				c.TLSConfig.VerifyServerHostname = true
 				c.TLSConfig.VerifyOutgoing = true
-				c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+				c.TLSConfig.VerifyIncomingRPC = false // saves us getting client cert setup
 				c.TLSConfig.Domain = "consul"
 			})
 			defer os.RemoveAll(dir1)
@@ -712,7 +712,7 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 					c.TLSConfig.KeyFile = "../../test/hostname/Alice.key"
 					c.TLSConfig.VerifyServerHostname = true
 					c.TLSConfig.VerifyOutgoing = true
-					c.TLSConfig.VerifyIncoming = false // saves us getting client cert setup
+					c.TLSConfig.VerifyIncomingRPC = false // saves us getting client cert setup
 					c.TLSConfig.Domain = "consul"
 				}
 			})
@@ -1308,7 +1308,7 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 		c.TLSConfig.CAFile = filepath.Join(dir, "ca.pem")
 		c.TLSConfig.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
 		c.TLSConfig.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
-		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyIncomingRPC = true
 		c.TLSConfig.VerifyServerHostname = true
 		// Enable Auto-Encrypt so that Connect CA roots are added to the
 		// tlsutil.Configurator.

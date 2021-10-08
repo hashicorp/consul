@@ -28,6 +28,7 @@ acl_down_policy = "async-cache"
 acl_ttl = "3h"
 acl_enable_key_list_policy = true
 
+verify_incoming = false
 `},
 	}
 	patchLoadOptsShims(&opts)
@@ -45,6 +46,7 @@ acl_enable_key_list_policy = true
 		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
 		deprecationWarning("acl_token", "acl.tokens.default"),
 		deprecationWarning("acl_ttl", "acl.token_ttl"),
+		deprecationWarning("verify_incoming", "verify_incoming_https"),
 	}
 	sort.Strings(result.Warnings)
 	require.Equal(t, expectWarns, result.Warnings)
