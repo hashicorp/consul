@@ -1,7 +1,28 @@
-<p>
-  {{message}}
-</p>
-<button type="button" class="type-delete" onclick={{action execute}}>
-  Confirm Delete
-</button>
-<button type="button" class="type-cancel" onclick={{action cancel}}>Cancel</button>
+<div role="menu">
+    <InformedAction class="warning">
+            <:header>
+                Confirm Delete
+            </:header>
+            <:body>
+                <p>
+                {{message}}
+                </p>
+            </:body>
+            <:actions as |Actions|>
+                <Actions.Action class="dangerous">
+                <Action
+                    tabindex="-1"
+                    class="type-delete"
+                    {{on 'click' (action execute)}}
+                >
+                    Delete
+                </Action>
+                </Actions.Action>
+                <Actions.Action>
+                <Action {{on 'click' (action cancel)}}>
+                    Cancel
+                </Action>
+                </Actions.Action>
+            </:actions>
+    </InformedAction>
+</div>
