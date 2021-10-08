@@ -1,0 +1,3 @@
+```release-note: improvement
+ui: Confirmation dropdown for delete actions in draft mode for kv, intention, token, role, policies
+```
