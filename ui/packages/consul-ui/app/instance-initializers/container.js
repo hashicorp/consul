@@ -1,8 +1,21 @@
 import { runInDebug } from '@ember/debug';
 import require from 'require';
+import merge from 'deepmerge';
 
-import services from 'consul-ui/services';
-import servicesDebug from 'consul-ui/services-debug';
+const doc = document;
+const appName = 'consul-ui';
+const appNameJS = appName
+  .split('-')
+  .map((item, i) => (i ? `${item.substr(0, 1).toUpperCase()}${item.substr(1)}` : item))
+  .join('');
+
+export const services = merge.all(
+  [].concat(
+    ...[...doc.querySelectorAll(`script[data-${appName}-services]`)].map($item =>
+      JSON.parse($item.dataset[`${appNameJS}Services`])
+    )
+  )
+);
 
 const inject = function(container, obj) {
   // inject all the things
@@ -23,7 +36,6 @@ export default {
   initialize(application) {
 
     inject(application, services);
-    runInDebug(_ => inject(application, servicesDebug));
 
     const container = application.lookup('service:container');
     // find all the services and add their classes to the container so we can
