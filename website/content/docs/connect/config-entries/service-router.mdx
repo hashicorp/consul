@@ -610,9 +610,10 @@ spec:
       yaml: false,
       name: 'Add',
       type: 'map<string|string>: optional',
-      description: `The set of header values to add, keyed by header name.
-      If a header with the same (case-insensitive) name already
-      exists, the value set here will be appended and both will be present.
+      description: `The set of key/value pairs that specify header values to add.
+      Use header names as keys. Header names are _not_ case-sensitive.
+      If header values with the same name already exist, the value set here will
+      be appended and both will be present.
       If Envoy is used as the proxy, the value may contain
       [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
       \`%DOWNSTREAM_REMOTE_ADDRESS%\` to interpolate dynamic request
@@ -622,9 +623,10 @@ spec:
       yaml: false,
       name: 'Set',
       type: 'map<string|string>: optional',
-      description: `The set of header value keyed by header name to
-      add. If one or more header values with the same (case-insensitive) name already exist,
-      the value set here will replace them all.
+      description: `The set of key/value pairs that specify header values to add.
+      Use header names as keys. Header names are _not_ case-sensitive.
+      If header values with the same name already exist, the value set here will
+      _replace_ them.
       If Envoy is used as the proxy, the value may contain
       [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
       \`%DOWNSTREAM_REMOTE_ADDRESS%\` to interpolate dynamic request
