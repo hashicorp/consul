@@ -6457,6 +6457,9 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 			Datacenter: "dc1",
 			Node:       "test-node",
 			Address:    "127.0.0.1",
+			NodeMeta: map[string]string{
+				"key": "value",
+			},
 			Service: &structs.NodeService{
 				Service: "db",
 				Tags:    []string{"primary"},
@@ -6517,6 +6520,19 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 
 		if aRec.A.String() != "127.0.0.1" {
 			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+
+		txtRec, ok := in.Extra[1].(*dns.TXT)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+
+		if got, want := txtRec.Hdr.Name, question.wantDomain; got != want {
+			t.Fatalf("TXT record header invalid, got %v want %v", got, want)
+		}
+
+		if txtRec.Txt[0] != "key=value" {
+			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 	}
 }

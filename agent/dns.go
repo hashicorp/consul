@@ -1841,8 +1841,13 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 		resp.Answer = append(resp.Answer, answers...)
 		resp.Extra = append(resp.Extra, extra...)
 
+		nodeFqdn := fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain)
+		if d.altDomain != "." && strings.HasSuffix(req.Question[0].Name, d.altDomain) {
+			nodeFqdn = fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.altDomain)
+		}
+
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.generateMeta(nodeFqdn, node.Node, ttl)...)
 		}
 	}
 }
