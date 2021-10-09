@@ -2376,6 +2376,42 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "h2ping check without h2ping_use_tls set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "h2ping": "localhost:55555", "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" h2ping = "localhost:55555" interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", H2PING: "localhost:55555", H2PingUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "h2ping check with h2ping_use_tls set to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "h2ping": "localhost:55555", "h2ping_use_tls": false, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" h2ping = "localhost:55555" h2ping_use_tls = false interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", H2PING: "localhost:55555", H2PingUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
 		desc: "alias check with no node",
 		args: []string{
 			`-data-dir=` + dataDir,

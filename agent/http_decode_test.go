@@ -702,7 +702,7 @@ func h2pingUseTLSEqFn(out interface{}, want interface{}) error {
 	return nil
 }
 
-var h2pingUseTLSFields = []string{`"H2PingUseTLS": %s`, `"h2ping_use_tls": %s`}
+var h2pingUseTLSFields = []string{`"H2PING": "testing"`, `"H2PingUseTLS": %s`, `"h2ping_use_tls": %s`}
 var translateH2PingUseTLS = []translateKeyTestCase{
 	{
 		desc:       "H2PingUseTLS: both set",
@@ -715,21 +715,21 @@ var translateH2PingUseTLS = []translateKeyTestCase{
 		desc:       "H2PingUseTLS:: first set",
 		in:         []interface{}{`false`},
 		want:       false,
-		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "}",
+		jsonFmtStr: "{" + strings.Join(h2pingUseTLSFields[0:2], ",") + "}",
 		equalityFn: h2pingUseTLSEqFn,
 	},
 	{
 		desc:       "H2PingUseTLS: second set",
 		in:         []interface{}{`false`},
 		want:       false,
-		jsonFmtStr: "{" + h2pingUseTLSFields[1] + "}",
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "," + h2pingUseTLSFields[2] + "}",
 		equalityFn: h2pingUseTLSEqFn,
 	},
 	{
 		desc:       "H2PingUseTLS: neither set",
 		in:         []interface{}{},
 		want:       true, // zero value
-		jsonFmtStr: "{" + `"h2ping":"testing"` + "}",
+		jsonFmtStr: "{" + h2pingUseTLSFields[0] + "}",
 		equalityFn: h2pingUseTLSEqFn,
 	},
 }
