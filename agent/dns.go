@@ -1630,6 +1630,11 @@ func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.Che
 
 	if q.Qtype == dns.TypeSRV {
 		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.domain)
+
+		if d.altDomain != "." && strings.HasSuffix(q.Name, d.altDomain) {
+			nodeFQDN = fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.altDomain)
+		}
+
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
