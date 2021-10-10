@@ -812,7 +812,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// Exit early if it's a no-op change
 	state := c.delegate.State()
-	confIdx, config, err := state.CAConfig(nil)
+	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
@@ -860,26 +860,29 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
 
-	// Set up a defer to clean up the new provider if we exit early due to an error.
-	cleanupNewProvider := true
-	defer func() {
-		if cleanupNewProvider {
-			if err := newProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
-				c.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
-			}
+	cleanupNewProvider := func() {
+		if err := newProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
+			c.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
 		}
-	}()
+	}
 
 	// If this is a secondary, just check if the intermediate needs to be regenerated.
 	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
 		if err := c.secondaryInitializeIntermediateCA(newProvider, args.Config); err != nil {
+			cleanupNewProvider()
 			return fmt.Errorf("Error updating secondary datacenter CA config: %v", err)
 		}
-		cleanupNewProvider = false
 		c.logger.Info("Secondary CA provider config updated")
 		return nil
 	}
+	if err := c.primaryUpdateRootCA(newProvider, args, config); err != nil {
+		cleanupNewProvider()
+		return err
+	}
+	return nil
+}
 
+func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
 	if err := newProvider.GenerateRoot(); err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
@@ -901,6 +904,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}
 	args.Config.State = pState
 
+	state := c.delegate.State()
 	// Compare the new provider's root CA ID to the current one. If they
 	// match, just update the existing provider with the new config.
 	// If they don't match, begin the root rotation process.
@@ -921,11 +925,8 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		}
 
 		// If the config has been committed, update the local provider instance
-		cleanupNewProvider = false
 		c.setCAProvider(newProvider, newActiveRoot)
-
 		c.logger.Info("CA provider config updated")
-
 		return nil
 	}
 
@@ -1013,7 +1014,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	args.Op = structs.CAOpSetRootsAndConfig
 	args.Index = idx
-	args.Config.ModifyIndex = confIdx
+	args.Config.ModifyIndex = config.ModifyIndex
 	args.Roots = newRoots
 	resp, err := c.delegate.ApplyCARequest(args)
 	if err != nil {
@@ -1028,7 +1029,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// If the config has been committed, update the local provider instance
 	// and call teardown on the old provider
-	cleanupNewProvider = false
 	c.setCAProvider(newProvider, newActiveRoot)
 
 	if err := oldProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
