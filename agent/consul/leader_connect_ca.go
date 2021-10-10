@@ -1539,12 +1539,12 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	return &reply, nil
 }
 
-func (ca *CAManager) checkExpired(pem string) error {
+func (c *CAManager) checkExpired(pem string) error {
 	cert, err := connect.ParseCert(pem)
 	if err != nil {
 		return err
 	}
-	if cert.NotAfter.Before(ca.timeNow()) {
+	if cert.NotAfter.Before(c.timeNow()) {
 		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
 	}
 	return nil
