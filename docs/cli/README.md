@@ -16,7 +16,7 @@ commands.
 
 The CLI entrypoint is [main.go] and the majority of the source for the CLI is under the
 [command] directory. Each subcommand is a separate package under [command]. The CLI uses
-[github.com/mitchellh/cli] as a framework, and uses the [flag] package from the stdlib for
+[github.com/mitchellh/cli] as a framework and uses the [flag] package from the `stdlib` for
 command line flags.
 
 

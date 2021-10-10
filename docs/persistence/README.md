@@ -76,7 +76,7 @@ If all Consul servers fail, a snapshot can be used to restore the cluster back
 to its previous state.
 
 Note that there are two different snapshot and restore concepts that exist at different
-layers. First there is the `Snapshot` and `Restore` methods on the raft [FSM] interface,
+layers. First, there is the `Snapshot` and `Restore` methods on the raft [FSM] interface,
 that Consul must implement. These methods are implemented as mostly passthrough to the
 state store. These methods may be called internally by raft to perform log compaction
 (snapshot) or to bootstrap a new follower (restore). Consul implements snapshot and
@@ -84,7 +84,7 @@ restore using the `Snapshot` and `Restore` types in [agent/consul/state].
 
 Snapshot and restore also exist as actions that a user may perform. There are [CLI]
 commands, [HTTP API] endpoints, and [RPC] endpoints that allow a user to capture an
-archive which contains a snapshot of the state, and restore that state to a running
+archive, which contains a snapshot of the state, and restore that state to a running
 cluster. The [consul/snapshot] package provides some of the logic for creating and reading
 the snapshot archives for users. See [commands/snapshot] for a reference to these user
 facing operations.

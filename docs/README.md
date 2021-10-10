@@ -3,7 +3,7 @@
 See [our contributing guide](../.github/CONTRIBUTING.md) to get started.
 
 This directory contains documentation intended for anyone interested in
-understanding, and contributing changes to, the Consul codebase.
+understanding, and contributing changes to the Consul codebase.
 
 ## Overview
 

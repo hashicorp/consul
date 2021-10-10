@@ -4,7 +4,7 @@ The [Agent Configuration] is the primary mechanism for configuring Consul. Agent
 Configuration also allows for specifying [Config Entries], [Services], and [Checks] that
 will be loaded when the agent starts.
 
-Most configuration comes from [hcl] or `json` files, but some configuration can also be
+Most configuration comes from [hcl] or `json` files, but some configurations can also be
 specified using command line flags, and some can be loaded with [Auto-Config].
 
 See also the [checklist for adding a new field] to the configuration.
@@ -39,7 +39,7 @@ entire process is repeated a second time with the addition config provided as an
 `config.Source`.
 
 Default values can be specified in one of the [default sources] or set when
-converting from `Config` to `RuntimeConfig` in [builder.build]. Hopefully in the future we
+converting from `Config` to `RuntimeConfig` in [builder.build]. Hopefully, in the future we
 should remove one of those ways of setting default values.
 
 [default sources]: https://github.com/hashicorp/consul/blob/main/agent/config/default.go

@@ -3,7 +3,7 @@
 ## Overview
 
 ### Description and Background
-Network areas define pairwise gossip pools over the WAN between Consul datacenters. Gossip traffic between Consul servers in an area is done over the server RPC port, and uses TCP connections. This is unlike Consul's primary WAN and LAN pools, which primarily rely on UDP-based probes. 
+Network areas define pairwise gossip pools over the WAN between Consul datacenters. Gossip traffic between Consul servers in an area is done over the server RPC port and uses TCP connections. This is unlike Consul's primary WAN and LAN pools, which primarily rely on UDP-based probes. 
 
 TCP was used because it allows configuration with TLS certificates. The TLS encryption will be used if [configured](https://www.consul.io/docs/security/encryption#rpc-encryption-with-tls) and [enabled](https://www.consul.io/api-docs/operator/area#usetls). Because gossip connects every node in that pool, there is also a connection between servers from the same datacenter. Connections between servers from the same datacenter default to using TLS if it is configured. The overhead of the TCP protocol is limited since there is a small number of servers in an area. Note that the symmetric keys used by Consul's WAN and LAN pools are not used to encrypt traffic from network areas.
 

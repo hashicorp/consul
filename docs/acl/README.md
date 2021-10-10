@@ -28,7 +28,7 @@ NodeIdentity are policy templates that are associated with a specific service or
 can be rendered into a full policy.
 
 Each Policy contains a set of rules. Each rule relates to a specific resource, and
-includes an AccessLevel (read, write, list or deny).
+includes an AccessLevel (read, write, list, or deny).
 
 An ACL Token can be resolved into an Authorizer. The Authorizer is what is used by the
 [HTTP API], and [RPC] endpoints to determine if an operation is allowed or forbidden (the

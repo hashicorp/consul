@@ -1,11 +1,11 @@
 # Adding a Consul Config Field
 
-This is a checklist of all the places you need to update when adding a new field
+That is a checklist of all the places you need to update when adding a new field
 to config. There may be a few other special cases not included but this covers
 the majority of configs.
 
 We suggest you copy the raw markdown into a gist or local file and check them
-off as you go (you can mark them as done by replace `[ ]` with `[x]` so github
+off as you go (you can mark them as done by replacing `[ ]` with `[x]` so github
 renders them as checked). Then **please include the completed lists you worked
 through in your PR description**.
 
@@ -13,13 +13,13 @@ Examples of special cases this doesn't cover are:
  - If the config needs special treatment like a different default in `-dev` mode
    or differences between OSS and Enterprise.
  - If custom logic is needed to support backwards compatibility when changing
-   syntax or semantics of anything
+   syntax or semantics of anything.
 
 There are four specific cases covered with increasing complexity:
- 1. adding a simple config field only used by client agents
- 1. adding a CLI flag to mirror that config field
- 1. adding a config field that needs to be used in Consul servers
- 1. adding a field to the Service Definition
+ 1. adding a simple config field only used by client agents;
+ 1. adding a CLI flag to mirror that config field;
+ 1. adding a config field that needs to be used in Consul servers;
+ 1. adding a field to the Service Definition.
 
 ## Adding a Simple Config Field for Client Agents
 
@@ -144,23 +144,23 @@ is largely the same pattern but may need different test methods etc. updating.
  - [ ] Do all of the steps in [Adding a Simple Config
    Field For Client Agents](#adding-a-simple-config-field-for-client-agents).
  - [ ] `agent/structs` package
-      - [ ] Add the field to `ServiceDefinition` (`service_definition.go`)
-      - [ ] Add the field to `NodeService` (`structs.go`)
-      - [ ] Add the field to `ServiceNode` (`structs.go`)
-      - [ ] Update `ServiceDefinition.ToNodeService` to translate the field
-      - [ ] Update `NodeService.ToServiceNode` to translate the field
-      - [ ] Update `ServiceNode.ToNodeService` to translate the field
-      - [ ] Update `TestStructs_ServiceNode_Conversions`
-      - [ ] Update `ServiceNode.PartialClone`
-      - [ ] Update `TestStructs_ServiceNode_PartialClone` (`structs_test.go`)
+      - [ ] Add the field to `ServiceDefinition` (`service_definition.go`).
+      - [ ] Add the field to `NodeService` (`structs.go`).
+      - [ ] Add the field to `ServiceNode` (`structs.go`).
+      - [ ] Update `ServiceDefinition.ToNodeService` to translate the field.
+      - [ ] Update `NodeService.ToServiceNode` to translate the field.
+      - [ ] Update `ServiceNode.ToNodeService` to translate the field.
+      - [ ] Update `TestStructs_ServiceNode_Conversions`.
+      - [ ] Update `ServiceNode.PartialClone`.
+      - [ ] Update `TestStructs_ServiceNode_PartialClone` (`structs_test.go`).
       - [ ] If needed, update `NodeService.Validate` to ensure the field value is
-        reasonable
+        reasonable.
       - [ ] Add test like `TestStructs_NodeService_Validate*` in
-        `structs_test.go`
-      - [ ] Add comparison in `NodeService.IsSame`
-      - [ ] Update `TestStructs_NodeService_IsSame`
-      - [ ] Add comparison in `ServiceNode.IsSameService`
-      - [ ] Update `TestStructs_ServiceNode_IsSameService`
+        `structs_test.go`.
+      - [ ] Add comparison in `NodeService.IsSame`.
+      - [ ] Update `TestStructs_NodeService_IsSame`.
+      - [ ] Add comparison in `ServiceNode.IsSameService`.
+      - [ ] Update `TestStructs_ServiceNode_IsSameService`.
       - [ ] **If** your field name has MultipleWords,
           - [ ] Add it to the `aux` inline struct in
             `ServiceDefinition.UnmarshalJSON` (`service_defintion.go`). 
@@ -172,29 +172,29 @@ is largely the same pattern but may need different test methods etc. updating.
               historical reasons (this is where the translation used to happen).
  - [ ] `agent` package
       - [ ] Update `testAgent_RegisterService` and/or add a new test to ensure
-        your fields register correctly via API (`agent_endpoint_test.go`)
+        your fields register correctly via API (`agent_endpoint_test.go`).
       - [ ] **If** your field name has MultipleWords,
           - [ ] Update `testAgent_RegisterService_TranslateKeys` to include
             examples with it set in `snake_case` and ensure it is parsed
             correctly. Run this via `TestAgent_RegisterService_TranslateKeys`
             (agent_endpoint_test.go).
  - [ ] `api` package
-      - [ ] Add the field to `AgentService` (`agent.go`)
-      - [ ] Add/update an appropriate test in `agent_test.go`
+      - [ ] Add the field to `AgentService` (`agent.go`).
+      - [ ] Add/update an appropriate test in `agent_test.go`.
         - (Note you need to use `make test` or ensure the `consul` binary on
           your `$PATH` is a build with your new field - usually `make dev`
           ensures this unless you're path is funky or you have a consul binary
           even further up the shell's `$PATH`).
  - [ ] Docs
-      - [ ] Update docs in `website/source/docs/agent/services.html.md`
+      - [ ] Update docs in `website/source/docs/agent/services.html.md`.
       - [ ] Consider if it's worth adding examples to feature docs or API docs
         that show the new field's usage.
 
 Note that although the new field will show up in the API output of
 `/agent/services` , `/catalog/services` and `/health/services`, those tests
-right now don't exercise anything that's super useful unless custom logic is
+right now, don't exercise anything that's super useful unless custom logic is
 required since they don't even encode the response object as JSON and just
 assert on the structs you already modified. If custom presentation logic is
 needed, tests for these endpoints might be warranted too. It's usual to use
 `omit-empty` for new fields that will typically not be used by existing
-registrations although we don't currently test for that systematically.
+registrations, although we don't currently test for that systematically.

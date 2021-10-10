@@ -10,9 +10,9 @@ The RPC subsystem is exclusicely in Server Agents. It is comprised of two main c
 
 The RPC subsystems handles requests from:
 
-1. Client Agents in the local DC
-2. (if the server is a leader) other Server Agents in the local DC
-3. Server Agents in other Datacenters
+1. Client Agents in the local DC.
+2. (if the server is a leader) other Server Agents in the local DC.
+3. Server Agents in other Datacenters.
 4. in-process requests from other components running in the same process (ex: the HTTP API
    or DNS interface).
 
