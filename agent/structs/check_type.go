@@ -93,9 +93,16 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
-	// set default values
-	aux.H2PingUseTLS = true
-	aux.H2PingUseTLSSnake = true
+
+	// Preevaluate struct values to determine where to set defaults
+	if err = lib.UnmarshalJSON(data, aux); err != nil {
+		return err
+	}
+	// Set defaults
+	if aux.H2PING != "" {
+		aux.H2PingUseTLS = true
+		aux.H2PingUseTLSSnake = true
+	}
 
 	if err = lib.UnmarshalJSON(data, aux); err != nil {
 		return err
@@ -161,13 +168,8 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 			t.DeregisterCriticalServiceAfter = time.Duration(v)
 		}
 	}
-	if !aux.H2PingUseTLSSnake {
+	if (aux.H2PING != "" && !aux.H2PingUseTLSSnake) || (aux.H2PING == "" && aux.H2PingUseTLSSnake) {
 		t.H2PingUseTLS = aux.H2PingUseTLSSnake
-	}
-	// unset default values if it is not an H2Ping check
-	if t.H2PING == "" {
-		aux.H2PingUseTLS = false
-		aux.H2PingUseTLSSnake = false
 	}
 
 	return nil
