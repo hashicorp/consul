@@ -1220,7 +1220,11 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 		if err := c.secondaryUpdateRoots(roots); err != nil {
 			return err
 		}
-		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
+		// Reset then index if the latest query index goes backwards.
+		// TODO: how would this happen?
+		if args.QueryOptions.MinQueryIndex > roots.QueryMeta.Index {
+			args.QueryOptions.MinQueryIndex = 0
+		}
 		return nil
 	}
 
