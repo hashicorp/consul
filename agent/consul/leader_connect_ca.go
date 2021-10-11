@@ -749,6 +749,8 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	return nil
 }
 
+var ErrStateReadOnly = errors.New("CA Provider State is read-only")
+
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
 	// Attempt to update the state first.
 	oldState, err := c.setState(caStateReconfig, true)
@@ -1385,6 +1387,8 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 // signing one cert takes much less than this) but failing requests fast when
 // a thundering herd comes along.
 const csrLimitWait = 500 * time.Millisecond
+
+var ErrRateLimited   = errors.New("Rate limit reached, try again later")
 
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()
