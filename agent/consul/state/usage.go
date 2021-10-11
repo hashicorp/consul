@@ -105,7 +105,6 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 		case tableServices:
 			svc := changeObject(change).(*structs.ServiceNode)
 			usageDeltas[change.Table] += delta
-			// ServiceKind is empty string for non connect services
 			addEnterpriseServiceInstanceUsage(usageDeltas, change)
 
 			connectDeltas(change, usageDeltas, delta)
@@ -125,7 +124,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			addEnterpriseKVUsage(usageDeltas, change)
 		case tableConfigEntries:
 			entry := changeObject(change).(structs.ConfigEntry)
-			usageDeltas[fmt.Sprintf("%s-%s", tableConfigEntries, entry.GetKind())] += delta
+			usageDeltas[configEntryUsageTableName(entry.GetKind())] += delta
 			addEnterpriseConfigEntryUsage(usageDeltas, change)
 		}
 	}
@@ -203,9 +202,14 @@ func serviceNameChanged(change memdb.Change) bool {
 	return false
 }
 
-// connectTableEntry is a convenience function to make prefix addition in 1 place
+// connectUsageTableEntry is a convenience function to make prefix addition in 1 place
 func connectUsageTableName(kind string) string {
 	return fmt.Sprintf("%s-%s", connectPrefix, kind)
+}
+
+// configEntryUsageTableName is a convenience function to easily get the prefix + config entry kind in 1 place
+func configEntryUsageTableName(kind string) string {
+	return fmt.Sprintf("%s-%s", tableConfigEntries, kind)
 }
 
 func connectDeltas(change memdb.Change, usageDeltas map[string]int, delta int) {
@@ -382,7 +386,7 @@ func (s *Store) ConfigEntryUsage() (uint64, ConfigEntryUsage, error) {
 	configEntries := make(map[string]int)
 	var maxIdx uint64
 	for _, kind := range structs.AllConfigEntryKinds {
-		configEntry, err := firstUsageEntry(tx, fmt.Sprintf("%s-%s", tableConfigEntries, kind))
+		configEntry, err := firstUsageEntry(tx, configEntryUsageTableName(kind))
 		if configEntry.Index > maxIdx {
 			maxIdx = configEntry.Index
 		}
