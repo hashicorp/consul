@@ -172,19 +172,15 @@ func (e *caStateError) Error() string {
 }
 
 // secondarySetPrimaryRoots updates the most recently seen roots from the primary.
-func (c *CAManager) secondarySetPrimaryRoots(newRoots structs.IndexedCARoots) error {
+func (c *CAManager) secondarySetPrimaryRoots(newRoots structs.IndexedCARoots) {
+	// TODO: this could be a different lock, as long as its the same lock in secondaryGetPrimaryRoots
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
-
-	if c.state == caStateInitializing || c.state == caStateReconfig {
-		c.primaryRoots = newRoots
-	} else {
-		return fmt.Errorf("Cannot update primary roots in state %q", c.state)
-	}
-	return nil
+	c.primaryRoots = newRoots
 }
 
 func (c *CAManager) secondaryGetPrimaryRoots() structs.IndexedCARoots {
+	// TODO: this could be a different lock, as long as its the same lock in secondarySetPrimaryRoots
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	return c.primaryRoots
@@ -428,9 +424,7 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
 		return err
 	}
-	if err := c.secondarySetPrimaryRoots(roots); err != nil {
-		return err
-	}
+	c.secondarySetPrimaryRoots(roots)
 
 	// Configure the CA provider and initialize the intermediate certificate if necessary.
 	if err := c.secondaryInitializeProvider(provider, roots); err != nil {
@@ -1252,9 +1246,7 @@ func (c *CAManager) secondaryUpdateRoots(roots structs.IndexedCARoots) error {
 	defer c.setState(caStateInitialized, false)
 
 	// Update the cached primary roots now that the lock is held.
-	if err := c.secondarySetPrimaryRoots(roots); err != nil {
-		return err
-	}
+	c.secondarySetPrimaryRoots(roots)
 
 	// Check to see if the primary has been upgraded in case we're waiting to switch to
 	// secondary mode.
@@ -1320,6 +1312,7 @@ func (c *CAManager) secondaryInitializeProvider(provider ca.Provider, roots stru
 // method is used to detect when the provider has been fully initialized a
 // ClusterID and roots from the primary.
 func (c *CAManager) secondaryHasProviderRoots() bool {
+	// TODO: this could potentially also use primaryRoots instead of providerRoot
 	c.providerLock.Lock()
 	defer c.providerLock.Unlock()
 	return c.providerRoot != nil
