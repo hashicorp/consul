@@ -1406,16 +1406,6 @@ func readTestData(t *testing.T, name string) string {
 	return string(bs)
 }
 
-func TestLeader_lessThanHalfTimePassed(t *testing.T) {
-	now := time.Now()
-	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(-5*time.Second)))
-	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now))
-	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(5*time.Second)))
-	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(10*time.Second)))
-
-	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
-}
-
 func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

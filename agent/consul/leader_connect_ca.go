@@ -1158,6 +1158,15 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	return nil
 }
 
+// lessThanHalfTimePassed decides if half the time between notBefore and
+// notAfter has passed relative to now.
+// lessThanHalfTimePassed is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
+func lessThanHalfTimePassed(now, notBefore, notAfter time.Time) bool {
+	t := notBefore.Add(notAfter.Sub(notBefore) / 2)
+	return t.Sub(now) > 0
+}
+
 // secondaryCARootWatch maintains a blocking query to the primary datacenter's
 // ConnectCA.Roots endpoint to monitor when it needs to request a new signed
 // intermediate certificate.

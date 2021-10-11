@@ -165,19 +165,3 @@ func nextIndexVal(prevIdx, idx uint64) uint64 {
 	}
 	return idx
 }
-
-// halfTime returns a duration that is half the time between notBefore and
-// notAfter.
-func halfTime(notBefore, notAfter time.Time) time.Duration {
-	interval := notAfter.Sub(notBefore)
-	return interval / 2
-}
-
-// lessThanHalfTimePassed decides if half the time between notBefore and
-// notAfter has passed relative to now.
-// lessThanHalfTimePassed is being called while holding caProviderReconfigurationLock
-// which means it must never take that lock itself or call anything that does.
-func lessThanHalfTimePassed(now, notBefore, notAfter time.Time) bool {
-	t := notBefore.Add(halfTime(notBefore, notAfter))
-	return t.Sub(now) > 0
-}

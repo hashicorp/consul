@@ -429,3 +429,13 @@ func generatePem(notBefore time.Time, notAfter time.Time) (error, string) {
 	})
 	return err, caPEM.String()
 }
+
+func TestLessThanHalfTimePassed(t *testing.T) {
+	now := time.Now()
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(-5*time.Second)))
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now))
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(5*time.Second)))
+	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(10*time.Second)))
+
+	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
+}
