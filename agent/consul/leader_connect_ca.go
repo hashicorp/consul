@@ -15,8 +15,6 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/agent/metadata"
-
 	"github.com/hashicorp/consul/lib/semaphore"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -47,9 +45,7 @@ type caServerDelegate interface {
 }
 
 type secondaryBackend interface {
-	// TODO:
-	CheckServers(datacenter string, fn func(*metadata.Server) bool)
-
+	ServersSupportMultiDCConnectCA() (versionOK bool, primaryFound bool)
 	PrimaryRoots(args structs.DCSpecificRequest, reply *structs.IndexedCARoots) error
 	SignIntermediate(csr string) (string, error)
 }
@@ -91,8 +87,12 @@ type caDelegateWithState struct {
 	*Server
 }
 
+func (c *caDelegateWithState) ServersSupportMultiDCConnectCA() (bool, bool) {
+	return ServersInDCMeetMinimumVersion(c.Server, c.Server.config.PrimaryDatacenter, minMultiDCConnectVersion)
+}
+
 func (c *caDelegateWithState) State() *state.Store {
-	return c.fsm.State()
+	return c.Server.fsm.State()
 }
 
 func (c *caDelegateWithState) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
@@ -126,7 +126,7 @@ func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
 }
 
 func (c *caDelegateWithState) PrimaryRoots(args structs.DCSpecificRequest, roots *structs.IndexedCARoots) error {
-	return c.Server.forwardDC("ConnectCA.Roots", c.config.PrimaryDatacenter, &args, roots)
+	return c.Server.forwardDC("ConnectCA.Roots", c.Server.config.PrimaryDatacenter, &args, roots)
 }
 
 func (c *caDelegateWithState) SignIntermediate(csr string) (string, error) {
@@ -136,7 +136,7 @@ func (c *caDelegateWithState) SignIntermediate(csr string) (string, error) {
 		WriteRequest: structs.WriteRequest{Token: c.Server.tokens.ReplicationToken()},
 	}
 	var pem string
-	err := c.Server.forwardDC("ConnectCA.SignIntermediate", c.config.PrimaryDatacenter, req, &pem)
+	err := c.Server.forwardDC("ConnectCA.SignIntermediate", c.Server.config.PrimaryDatacenter, req, &pem)
 	return pem, err
 }
 
@@ -416,17 +416,14 @@ func (c *CAManager) InitializeCA() (reterr error) {
 }
 
 func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CAConfiguration) error {
-	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
-	versionOk, foundPrimary := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
+	versionOk, foundPrimary := c.delegate.ServersSupportMultiDCConnectCA()
 	if !foundPrimary {
 		c.logger.Warn("primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
 		// return nil because we will initialize the secondary CA later
 		return nil
 	} else if !versionOk {
 		// return nil because we will initialize the secondary CA later
-		c.logger.Warn("servers in the primary datacenter are not at least at the minimum version - deferring initialization of the secondary datacenter CA",
-			"min_version", minMultiDCConnectVersion.String(),
-		)
+		c.logger.Warn("servers in the primary datacenter are not at least at the minimum version - deferring initialization of the secondary datacenter CA")
 		return nil
 	}
 
@@ -1270,7 +1267,7 @@ func (c *CAManager) secondaryUpdateRoots(roots structs.IndexedCARoots) error {
 		return nil
 	}
 	if !c.secondaryHasProviderRoots() {
-		versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
+		versionOk, primaryFound := c.delegate.ServersSupportMultiDCConnectCA()
 		if !primaryFound {
 			return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
 		}
