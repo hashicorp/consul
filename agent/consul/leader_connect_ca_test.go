@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -125,23 +124,17 @@ func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface
 	}
 }
 
-func (m *mockCAServerDelegate) forwardDC(method, dc string, args interface{}, reply interface{}) error {
-	switch method {
-	case "ConnectCA.Roots":
-		roots := reply.(*structs.IndexedCARoots)
-		roots.TrustDomain = connect.TestClusterID
-		roots.Roots = []*structs.CARoot{m.primaryRoot}
-		roots.ActiveRootID = m.primaryRoot.ID
-	case "ConnectCA.SignIntermediate":
-		r := reply.(*string)
-		*r = m.primaryRoot.RootCert
-	default:
-		return fmt.Errorf("received call to unsupported method %q", method)
-	}
-
-	m.callbackCh <- fmt.Sprintf("forwardDC/%s", method)
-
+func (m *mockCAServerDelegate) PrimaryRoots(args structs.DCSpecificRequest, roots *structs.IndexedCARoots) error {
+	roots.TrustDomain = connect.TestClusterID
+	roots.Roots = []*structs.CARoot{m.primaryRoot}
+	roots.ActiveRootID = m.primaryRoot.ID
+	m.callbackCh <- "forwardDC/ConnectCA.Roots"
 	return nil
+}
+
+func (m *mockCAServerDelegate) SignIntermediate(csr string) (string, error) {
+	m.callbackCh <- "forwardDC/ConnectCA.SignIntermediate"
+	return m.primaryRoot.RootCert, nil
 }
 
 func (m *mockCAServerDelegate) generateCASignRequest(csr string) *structs.CASignRequest {
@@ -456,11 +449,4 @@ func generatePem(notBefore time.Time, notAfter time.Time) (error, string) {
 		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
 	})
 	return err, caPEM.String()
-}
-
-func TestCADelegateWithState_GenerateCASignRequest(t *testing.T) {
-	s := Server{config: &Config{PrimaryDatacenter: "east"}, tokens: new(token.Store)}
-	d := &caDelegateWithState{Server: &s}
-	req := d.generateCASignRequest("A")
-	require.Equal(t, "east", req.RequestDatacenter())
 }

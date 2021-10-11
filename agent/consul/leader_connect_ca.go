@@ -15,6 +15,8 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/agent/metadata"
+
 	"github.com/hashicorp/consul/lib/semaphore"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -41,10 +43,15 @@ type caServerDelegate interface {
 	IsLeader() bool
 	ApplyCALeafRequest() (uint64, error)
 
-	forwardDC(method, dc string, args interface{}, reply interface{}) error
-	generateCASignRequest(csr string) *structs.CASignRequest
+	secondaryBackend
+}
 
-	checkServersProvider
+type secondaryBackend interface {
+	// TODO:
+	CheckServers(datacenter string, fn func(*metadata.Server) bool)
+
+	PrimaryRoots(args structs.DCSpecificRequest, reply *structs.IndexedCARoots) error
+	SignIntermediate(csr string) (string, error)
 }
 
 // CAManager is a wrapper around CA operations such as updating roots, an intermediate
@@ -118,12 +125,19 @@ func (c *caDelegateWithState) ApplyCALeafRequest() (uint64, error) {
 	return modIdx, err
 }
 
-func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignRequest {
-	return &structs.CASignRequest{
+func (c *caDelegateWithState) PrimaryRoots(args structs.DCSpecificRequest, roots *structs.IndexedCARoots) error {
+	return c.Server.forwardDC("ConnectCA.Roots", c.config.PrimaryDatacenter, &args, roots)
+}
+
+func (c *caDelegateWithState) SignIntermediate(csr string) (string, error) {
+	req := &structs.CASignRequest{
 		Datacenter:   c.Server.config.PrimaryDatacenter,
 		CSR:          csr,
 		WriteRequest: structs.WriteRequest{Token: c.Server.tokens.ReplicationToken()},
 	}
+	var pem string
+	err := c.Server.forwardDC("ConnectCA.SignIntermediate", c.config.PrimaryDatacenter, req, &pem)
+	return pem, err
 }
 
 func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
@@ -421,7 +435,7 @@ func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CACo
 		Datacenter: c.serverConf.PrimaryDatacenter,
 	}
 	var roots structs.IndexedCARoots
-	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
+	if err := c.delegate.PrimaryRoots(args, &roots); err != nil {
 		return err
 	}
 	c.secondarySetPrimaryRoots(roots)
@@ -1064,8 +1078,8 @@ func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRo
 		return err
 	}
 
-	var intermediatePEM string
-	if err := c.delegate.forwardDC("ConnectCA.SignIntermediate", c.serverConf.PrimaryDatacenter, c.delegate.generateCASignRequest(csr), &intermediatePEM); err != nil {
+	intermediatePEM, err := c.delegate.SignIntermediate(csr)
+	if err != nil {
 		// this is a failure in the primary and shouldn't be capable of erroring out our establishing leadership
 		c.logger.Warn("Primary datacenter refused to sign our intermediate CA certificate", "error", err)
 		return nil
@@ -1209,7 +1223,7 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 
 	retryLoopBackoff(ctx, func() error {
 		var roots structs.IndexedCARoots
-		if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
+		if err := c.delegate.PrimaryRoots(args, &roots); err != nil {
 			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
 		}
 
