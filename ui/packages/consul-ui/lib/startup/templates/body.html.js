@@ -46,6 +46,7 @@ ${
   environment === 'development' || environment === 'staging'
     ? `
   <script data-app-name="${appName}" data-${appName}-services src="${rootURL}assets/consul-ui/services-debug.js"></script>
+  <script data-app-name="${appName}" data-${appName}-routing src="${rootURL}assets/consul-ui/routes-debug.js"></script>
 ` : ``}
 ${
   environment === 'production'

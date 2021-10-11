@@ -149,10 +149,15 @@ module.exports = function(defaults, $ = process.env) {
       outputFile: `assets/${item.name}/routes.js`,
     });
   });
-  ['consul-ui/services'].concat(devlike ? ['consul-ui/services-debug'] : []).forEach(item => {
-    app.import(`vendor/${item}.js`, {
-      outputFile: `assets/${item}.js`,
-    });
+  [
+    'consul-ui/services'
+    ].concat(devlike ? [
+      'consul-ui/services-debug',
+      'consul-ui/routes-debug'
+    ] : []).forEach(item => {
+      app.import(`vendor/${item}.js`, {
+        outputFile: `assets/${item}.js`,
+      });
   });
   // Use `app.import` to add additional libraries to the generated
   // output files.

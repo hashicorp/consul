@@ -36,6 +36,8 @@ as |source|>
 />
 {{/if}}
 
+{{#if (not-eq route.currentName 'oauth-provider-debug')}}
+
 {{! redirect if we aren't on a URL with dc information }}
 {{#if (eq route.currentName 'index')}}
   {{did-insert (route-action 'replaceWith' 'dc.services.index'
@@ -155,5 +157,18 @@ as |dc dcs|}}
 {{/let}}
 </DataSource>
 {{/let}}
+{{/if}}
+{{else}}
+  {{! Routes with no main navigation }}
+  <Outlet
+    @name="application"
+    @model={{hash
+      user=(hash
+        token=token
+      )
+    }}
+  as |o|>
+    {{outlet}}
+  </Outlet>
 {{/if}}
 </Route>

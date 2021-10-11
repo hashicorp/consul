@@ -26,7 +26,7 @@ export default class BaseRoute extends Route {
       this.templateName = template;
     }
     const queryParams = get(routes, `${routeName}._options.queryParams`);
-    if(queryParams && this.routeName === 'dc.partitions.index') {
+    if(queryParams && (this.routeName === 'dc.partitions.index' || this.routeName === 'oauth-provider-debug')) {
       this.queryParams = queryParams;
     }
   }

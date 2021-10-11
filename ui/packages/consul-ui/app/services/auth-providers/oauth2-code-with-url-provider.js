@@ -1,4 +1,6 @@
 import OAuth2CodeProvider from 'torii/providers/oauth2-code';
+import { runInDebug } from '@ember/debug';
+
 export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
 
   name = 'oidc-with-url';
@@ -16,11 +18,13 @@ export default class OAuth2CodeWithURLProvider extends OAuth2CodeProvider {
       .open(url, responseParams, options)
       .then(function(authData) {
         // the same as the parent class but with an authorizationState added
-        return {
+        const creds = {
           authorizationState: authData.state,
           authorizationCode: decodeURIComponent(authData[responseType]),
           provider: name,
         };
+        runInDebug(_ => console.log('Retrieved the following creds from the OAuth Provider', creds))
+        return creds;
       });
   }
 
