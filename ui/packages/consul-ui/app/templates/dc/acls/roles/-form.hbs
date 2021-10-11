@@ -37,7 +37,7 @@
 {{/if}}
         <button type="reset" {{ action "cancel" item}}>Cancel</button>
 {{# if (and (not create) (can "delete role" item=item) ) }}
-        <ConfirmationDialog @message="Are you sure you want to delete this role?">
+        <ConfirmationDialog @message="Are you sure you want to delete this Role?">
             <BlockSlot @name="action" as |confirm|>
                 <button type="button" data-test-delete class="type-delete" {{action confirm 'delete' item}}>Delete</button>
             </BlockSlot>
