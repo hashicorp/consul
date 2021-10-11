@@ -1,4 +1,4 @@
-<div role="menu">
+<div role="menu" class="above">
     <InformedAction class="warning">
             <:header>
                 Confirm Delete
@@ -10,11 +10,7 @@
             </:body>
             <:actions as |Actions|>
                 <Actions.Action class="dangerous">
-                <Action
-                    tabindex="-1"
-                    data-test-confirm-delete
-                    {{on 'click' (action execute)}}
-                >
+                <Action data-test-confirm-delete {{on 'click' (action execute)}}>
                     Delete
                 </Action>
                 </Actions.Action>
