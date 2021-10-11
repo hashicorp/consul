@@ -602,7 +602,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui && yarn install && cd packages/consul-ui && yarn install
+          command: cd ui && make
 
       - save_cache:
           key: *YARN_CACHE_KEY
