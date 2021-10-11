@@ -312,11 +312,6 @@ func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
 // if this is a secondary DC.
 func (c *CAManager) InitializeCA() (reterr error) {
-	// Bail if connect isn't enabled.
-	if !c.serverConf.ConnectEnabled {
-		return nil
-	}
-
 	// Update the state before doing anything else.
 	_, err := c.setState(caStateInitializing, true)
 	var errCaState *caStateError
