@@ -457,7 +457,13 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	s.caManager = NewCAManager(&caBackend{Server: s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), s.config)
+	caManagerConfig := CAManagerConfig{
+		PrimaryDatacenter: s.config.PrimaryDatacenter,
+		Datacenter:        s.config.Datacenter,
+		MaxQueryTime:      s.config.MaxQueryTime,
+		CAConfig:          s.config.CAConfig,
+	}
+	s.caManager = NewCAManager(&caBackend{Server: s}, s.leaderRoutineManager, s.logger.ResetNamed("connect.ca"), caManagerConfig)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
 		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}

@@ -28,17 +28,13 @@ import (
 const CATestTimeout = 7 * time.Second
 
 type mockCAServerDelegate struct {
-	t           *testing.T
-	config      *Config
 	store       *state.Store
 	primaryRoot *structs.CARoot
 	callbackCh  chan string
 }
 
-func NewMockCAServerDelegate(t *testing.T, config *Config) *mockCAServerDelegate {
+func NewMockCAServerDelegate(t *testing.T) *mockCAServerDelegate {
 	delegate := &mockCAServerDelegate{
-		t:           t,
-		config:      config,
 		store:       state.NewStateStore(nil),
 		primaryRoot: connect.TestCAWithTTL(t, nil, 1*time.Second),
 		callbackCh:  make(chan string, 0),
@@ -128,13 +124,6 @@ func (m *mockCAServerDelegate) PrimaryRoots(args structs.DCSpecificRequest, root
 func (m *mockCAServerDelegate) SignIntermediate(csr string) (string, error) {
 	m.callbackCh <- "forwardDC/ConnectCA.SignIntermediate"
 	return m.primaryRoot.RootCert, nil
-}
-
-func (m *mockCAServerDelegate) generateCASignRequest(csr string) *structs.CASignRequest {
-	return &structs.CASignRequest{
-		Datacenter: m.config.PrimaryDatacenter,
-		CSR:        csr,
-	}
 }
 
 // mockCAProvider mocks an empty provider implementation with a channel in order to coordinate
@@ -228,11 +217,10 @@ func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDel
 
 func TestCAManager_Initialize(t *testing.T) {
 
-	conf := DefaultConfig()
-	conf.ConnectEnabled = true
+	conf := CAManagerConfig{}
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
-	delegate := NewMockCAServerDelegate(t, conf)
+	delegate := NewMockCAServerDelegate(t)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 	manager.providerShim = &mockCAProvider{
 		callbackCh: delegate.callbackCh,
@@ -281,11 +269,10 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	structs.IntermediateCertRenewInterval = time.Millisecond
 	ca.CertificateTimeDriftBuffer = 0
 
-	conf := DefaultConfig()
-	conf.ConnectEnabled = true
+	conf := CAManagerConfig{}
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
-	delegate := NewMockCAServerDelegate(t, conf)
+	delegate := NewMockCAServerDelegate(t)
 	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 	manager.providerShim = &mockCAProvider{
 		callbackCh: delegate.callbackCh,
@@ -366,11 +353,10 @@ func TestCAManager_SignLeafWithExpiredCert(t *testing.T) {
 			structs.IntermediateCertRenewInterval = time.Millisecond
 			ca.CertificateTimeDriftBuffer = 0
 
-			conf := DefaultConfig()
-			conf.ConnectEnabled = true
+			conf := CAManagerConfig{}
 			conf.PrimaryDatacenter = "dc1"
 			conf.Datacenter = "dc2"
-			delegate := NewMockCAServerDelegate(t, conf)
+			delegate := NewMockCAServerDelegate(t)
 			manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
 			err, rootPEM := generatePem(arg.notBeforeRoot, arg.notAfterRoot)

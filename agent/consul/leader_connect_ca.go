@@ -49,12 +49,23 @@ type secondaryBackend interface {
 	SignIntermediate(csr string) (string, error)
 }
 
+type CAManagerConfig struct {
+	Datacenter        string
+	PrimaryDatacenter string
+	MaxQueryTime      time.Duration
+	CAConfig          *structs.CAConfiguration
+}
+
+func (c CAManagerConfig) IsPrimaryDatacenter() bool {
+	return c.Datacenter == c.PrimaryDatacenter
+}
+
 // CAManager is a wrapper around CA operations such as updating roots, an intermediate
 // or the configuration. All operations should go through the CAManager in order to
 // avoid data races.
 type CAManager struct {
 	delegate   caServerDelegate
-	serverConf *Config
+	serverConf CAManagerConfig
 	logger     hclog.Logger
 	// rate limiter to use when signing leaf certificates
 	caLeafLimiter connectSignRateLimiter
@@ -82,7 +93,7 @@ type CAManager struct {
 	timeNow func() time.Time
 }
 
-func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
+func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config CAManagerConfig) *CAManager {
 	return &CAManager{
 		delegate:             delegate,
 		logger:               logger,
@@ -283,7 +294,7 @@ func (c *CAManager) Stop() {
 
 func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
 	// Start the Connect secondary DC actions if enabled.
-	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+	if !c.serverConf.IsPrimaryDatacenter() {
 		c.leaderRoutineManager.Start(ctx, secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
 	}
 
@@ -792,7 +803,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		ClusterID:  args.Config.ClusterID,
 		Datacenter: c.serverConf.Datacenter,
 		// This endpoint can be called in a secondary DC too so set this correctly.
-		IsPrimary: c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter,
+		IsPrimary: c.serverConf.IsPrimaryDatacenter(),
 		RawConfig: args.Config.Config,
 		State:     args.Config.State,
 	}
@@ -807,7 +818,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 	}
 
 	// If this is a secondary, just check if the intermediate needs to be regenerated.
-	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+	if !c.serverConf.IsPrimaryDatacenter() {
 		if err := c.secondaryInitializeIntermediateCA(newProvider, args.Config); err != nil {
 			cleanupNewProvider()
 			return fmt.Errorf("Error updating secondary datacenter CA config: %v", err)
@@ -1039,7 +1050,7 @@ func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRo
 
 // intermediateCertRenewalWatch periodically attempts to renew the intermediate cert.
 func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
-	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
+	isPrimary := c.serverConf.IsPrimaryDatacenter()
 
 	for {
 		select {
