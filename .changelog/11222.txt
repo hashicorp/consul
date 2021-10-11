@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: Add new metrics for the count of connect service instances and configuration entries.
+```
