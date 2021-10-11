@@ -117,10 +117,6 @@ func retryLoopBackoff(ctx context.Context, loopFn func() error, errFn func(error
 	retryLoopBackoffHandleSuccess(ctx, loopFn, errFn, false)
 }
 
-func retryLoopBackoffAbortOnSuccess(ctx context.Context, loopFn func() error, errFn func(error)) {
-	retryLoopBackoffHandleSuccess(ctx, loopFn, errFn, true)
-}
-
 func retryLoopBackoffHandleSuccess(ctx context.Context, loopFn func() error, errFn func(error), abortOnSuccess bool) {
 	var failedAttempts uint
 	limiter := rate.NewLimiter(loopRateLimit, retryBucketSize)

@@ -15,12 +15,12 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/lib/semaphore"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/semaphore"
 )
 
 type caState string
@@ -308,19 +308,25 @@ func (c *CAManager) startPostInitializeRoutines(ctx context.Context) {
 }
 
 func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
-	retryLoopBackoffAbortOnSuccess(ctx, c.InitializeCA, func(err error) {
+	retryer := retry.Waiter{
+		MinWait: 5 * time.Second,
+		Jitter:  retry.NewJitter(25),
+	}
+
+	for {
+		err := c.InitializeCA()
+		if err == nil {
+			break
+		}
 		c.logger.Error("Failed to initialize Connect CA",
 			"routine", backgroundCAInitializationRoutineName,
-			"error", err,
-		)
-	})
-
-	if err := ctx.Err(); err != nil {
-		return err
+			"error", err)
+		if err := retryer.Wait(ctx); err != nil {
+			return err
+		}
 	}
 
 	c.logger.Info("Successfully initialized the Connect CA")
-
 	c.startPostInitializeRoutines(ctx)
 	return nil
 }
@@ -1058,19 +1064,28 @@ func (c *CAManager) secondaryRenewIntermediate(provider ca.Provider, newActiveRo
 func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
 	isPrimary := c.serverConf.IsPrimaryDatacenter()
 
+	retryer := retry.Waiter{
+		MinWait: 5 * time.Second,
+		Jitter:  retry.NewJitter(25),
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(structs.IntermediateCertRenewInterval):
-			retryLoopBackoffAbortOnSuccess(ctx, func() error {
-				return c.RenewIntermediate(ctx, isPrimary)
-			}, func(err error) {
+			for {
+				err := c.RenewIntermediate(ctx, isPrimary)
+				if err == nil {
+					break
+				}
 				c.logger.Error("error renewing intermediate certs",
 					"routine", intermediateCertRenewWatchRoutineName,
-					"error", err,
-				)
-			})
+					"error", err)
+				if err := retryer.Wait(ctx); err != nil {
+					return err
+				}
+			}
 		}
 	}
 }
@@ -1181,7 +1196,14 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 
 	c.logger.Debug("starting Connect CA root replication from primary datacenter", "primary", c.serverConf.PrimaryDatacenter)
 
-	retryLoopBackoff(ctx, func() error {
+	retryer := retry.Waiter{
+		MinWait: 5 * time.Second,
+		Jitter:  retry.NewJitter(25),
+	}
+
+	tryRenew := func() error {
+		// TODO: is a rate limiter still needed here for non-errors, or is blocking sufficient?
+
 		var roots structs.IndexedCARoots
 		if err := c.delegate.PrimaryRoots(args, &roots); err != nil {
 			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
@@ -1200,14 +1222,22 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 		}
 		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, roots.QueryMeta.Index)
 		return nil
-	}, func(err error) {
+	}
+
+	for {
+		err := tryRenew()
+		if err == nil {
+			retryer.Reset()
+			continue
+		}
+
 		c.logger.Error("CA root replication failed, will retry",
 			"routine", secondaryCARootWatchRoutineName,
-			"error", err,
-		)
-	})
-
-	return nil
+			"error", err)
+		if err := retryer.Wait(ctx); err != nil {
+			return err
+		}
+	}
 }
 
 // secondaryUpdateRoots updates the cached roots from the primary and regenerates the intermediate
