@@ -3,7 +3,6 @@ package consul
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -28,15 +27,6 @@ var (
 	ErrRateLimited          = errors.New("Rate limit reached, try again later")
 	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
 	ErrStateReadOnly        = errors.New("CA Provider State is read-only")
-)
-
-const (
-	// csrLimitWait is the maximum time we'll wait for a slot when CSR concurrency
-	// limiting or rate limiting is occurring. It's intentionally short so small
-	// batches of requests can be accommodated when server has capacity (assuming
-	// signing one cert takes much less than this) but failing requests fast when
-	// a thundering herd comes along.
-	csrLimitWait = 500 * time.Millisecond
 )
 
 // ConnectCA manages the Connect CA.

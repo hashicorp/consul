@@ -258,6 +258,12 @@ func (c *CAManager) setCAProvider(newProvider ca.Provider, root *structs.CARoot)
 	c.providerLock.Unlock()
 }
 
+const (
+	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
+	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
+	backgroundCAInitializationRoutineName = "CA initialization"
+)
+
 func (c *CAManager) Start(ctx context.Context) {
 	// Attempt to initialize the Connect CA now. This will
 	// happen during leader establishment and it would be great
@@ -1329,6 +1335,13 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 	l.csrRateLimiter = rate.NewLimiter(limit, 1)
 	return l.csrRateLimiter
 }
+
+// csrLimitWait is the maximum time we'll wait for a slot when CSR concurrency
+// limiting or rate limiting is occurring. It's intentionally short so small
+// batches of requests can be accommodated when server has capacity (assuming
+// signing one cert takes much less than this) but failing requests fast when
+// a thundering herd comes along.
+const csrLimitWait = 500 * time.Millisecond
 
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()

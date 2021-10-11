@@ -108,9 +108,6 @@ const (
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
 	intentionMigrationRoutineName         = "intention config entry migration"
-	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
-	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
-	backgroundCAInitializationRoutineName = "CA initialization"
 )
 
 var (
