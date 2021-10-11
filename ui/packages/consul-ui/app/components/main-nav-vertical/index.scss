@@ -30,14 +30,14 @@
   border-top-right-radius: 0;
 }
 %main-nav-vertical .popover-menu > label > button {
-  border: $decor-border-100;
-  border-color: var(--gray-500);
-  color: var(--gray-999);
+  border: var(--decor-border-100);
+  border-color: rgb(var(--tone-gray-500));
+  color: rgb(var(--tone-gray-999));
   width: calc(100% - 20px);
   z-index: 100;
   text-align: left;
   padding: 10px;
-  border-radius: $decor-radius-100;
+  border-radius: var(--decor-radius-100);
 }
 %main-nav-vertical .popover-menu > label > button::after {
   float: right;

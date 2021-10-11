@@ -1,10 +1,8 @@
 {{yield}}
 <StateChart @src={{chart}} as |State Guard Action dispatch state|>
-
   <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
   <Guard @name="loaded" @cond={{action "isLoaded"}} />
 
-  {{did-update (fn dispatch "LOAD") src=src}}
 
 {{#let (hash
   data=data
@@ -79,4 +77,5 @@
   </State>
 
 {{/let}}
+  {{did-update (fn dispatch "LOAD") src=src}}
 </StateChart>

@@ -1,7 +1,7 @@
 %skip-links {
-  outline: 1px solid $white;
-  color: $white;
-  background-color: $blue-500;
+  outline: 1px solid rgb(var(--white));
+  color: rgb(var(--white));
+  background-color: rgb(var(--tone-blue-500));
 }
 %skip-links button,
 %skip-links a {

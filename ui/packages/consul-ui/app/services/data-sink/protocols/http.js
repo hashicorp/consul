@@ -5,6 +5,7 @@ export default class HttpService extends Service {
   @service('settings') settings;
   @service('repository/intention') intention;
   @service('repository/kv') kv;
+  @service('repository/partition') partition;
   @service('repository/session') session;
 
   prepare(sink, data, instance) {

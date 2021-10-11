@@ -574,6 +574,71 @@ spec:
       description:
         'A list of HTTP response status codes that are eligible for retry.',
     },
+    {
+      yaml: false,
+      name: 'RequestHeaders',
+      type: 'HTTPHeaderModifiers: <optional>',
+      description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+      that will be applied to requests routed to this service.
+      This cannot be used with a \`tcp\` listener.`,
+    },
+    {
+      yaml: false,
+      name: 'ResponseHeaders',
+      type: 'HTTPHeaderModifiers: <optional>',
+      description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+      that will be applied to responses from this service.
+      This cannot be used with a \`tcp\` listener.`,
+    },
+  ]}
+/>
+
+
+### `HTTPHeaderModifiers`
+
+<ConfigEntryReference
+  topLevel={false}
+  yaml={false}
+  keys={[
+    {
+      hcl: false,
+      name: 'Unsupported',
+      type: '',
+      description: `HTTP Header modification is not yet supported in our Kubernetes CRDs.`,
+    },
+    {
+      yaml: false,
+      name: 'Add',
+      type: 'map<string|string>: optional',
+      description: `The set of key/value pairs that specify header values to add.
+      Use header names as keys. Header names are _not_ case-sensitive.
+      If header values with the same name already exist, the value set here will
+      be appended and both will be present.
+      If Envoy is used as the proxy, the value may contain
+      [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
+      \`%DOWNSTREAM_REMOTE_ADDRESS%\` to interpolate dynamic request
+      metadata into the value added.`,
+    },
+    {
+      yaml: false,
+      name: 'Set',
+      type: 'map<string|string>: optional',
+      description: `The set of key/value pairs that specify header values to add.
+      Use header names as keys. Header names are _not_ case-sensitive.
+      If header values with the same name already exist, the value set here will
+      _replace_ them.
+      If Envoy is used as the proxy, the value may contain
+      [variable placeholders](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#custom-request-response-headers) for example
+      \`%DOWNSTREAM_REMOTE_ADDRESS%\` to interpolate dynamic request
+      metadata into the value added.`,
+    },
+    {
+      yaml: false,
+      name: 'Remove',
+      type: 'array<string>: optional',
+      description: `The set of header names to remove. Only headers
+      whose names are a <i>case-insensitive</i> exact match will be removed`,
+    },
   ]}
 />
 

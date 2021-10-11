@@ -48,60 +48,13 @@
             </BlockSlot>
           </PopoverMenu>
         </li>
-
-    {{#if (can "choose partitions")}}
-          <li
-            class="partitions"
-            data-test-partition-menu
-          >
-              <PopoverMenu
-                aria-label="Admin Partition"
-                @position="left"
-              as |components api|>
-                <BlockSlot @name="trigger">
-                  {{@partition}}
-                </BlockSlot>
-                <BlockSlot @name="menu">
-                  {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                    <DataSource
-                      @src={{uri
-                        '/*/*/${dc}/partitions'
-                        (hash
-                          dc=@dc.Name
-                        )
-                      }}
-                      @onchange={{action (mut this.partitions) value="data"}}
-                    />
-                  {{#each (reject-by 'DeletedAt' this.partitions) as |item|}}
-                    <MenuItem
-                      class={{if (eq @partition item.Name) 'is-active'}}
-                      @href={{href-to '.' params=(hash
-                        partition=item.Name
-                        nspace=(if (gt @nspace.length 0) @nspace undefined)
-                      )}}
-                    >
-                      <BlockSlot @name="label">
-                        {{item.Name}}
-                      </BlockSlot>
-                    </MenuItem>
-                  {{/each}}
-          {{#if (and false (can 'manage partitions'))}}
-                    <MenuSeparator />
-                    <MenuItem
-                      data-test-main-nav-partitions
-                      @href={{href-to 'dc.nspaces' @dc.Name}}
-                    >
-                      <BlockSlot @name="label">
-                        Manage Admin Partitions
-                      </BlockSlot>
-                    </MenuItem>
-          {{/if}}
-                  {{/let}}
-                </BlockSlot>
-              </PopoverMenu>
-          </li>
-    {{/if}}
-
+        <Consul::Partition::Selector
+          @dc={{@dc}}
+          @partition={{@partition}}
+          @nspace={{@nspace}}
+          @partitions={{this.partitions}}
+          @onchange={{action (mut this.partitions) value="data"}}
+        />
     {{#if (can "choose nspaces")}}
           <li
             class="nspaces"

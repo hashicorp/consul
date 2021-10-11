@@ -20,6 +20,36 @@ option for most teams. Consul supports [upgrading in place](/docs/k8s/upgrade).
 Non-production environments should be upgraded first. If upgrading
 a Consul version, Consul data should be [backed up](https://learn.hashicorp.com/tutorials/consul/kubernetes-disaster-recovery).
 
+### Q: How can I run tcpdump on Consul servers?
+
+First, add the following to your `values.yaml` file so you can `kubectl exec` into
+the Consul server containers as root:
+
+```yaml
+server:
+  securityContext:
+    runAsNonRoot: false
+    runAsGroup: 0
+    runAsUser: 0
+    fsGroup: 0
+```
+
+Run a `helm upgrade` (see [Upgrade Consul on Kubernetes](/docs/k8s/upgrade) for full upgrade instructions).
+
+Now, `kubectl exec` into a server pod:
+
+```shell-session
+$ kubectl exec -it consul-server-0 -- sh
+```
+
+Install `tcpdump`:
+
+```shell-session
+$ apk add --no-cache tcpdump
+$ which tcpdump
+/usr/bin/tcpdump
+```
+
 ## Generic Consul Questions
 
 ### Q: What is Checkpoint? / Does Consul call home?

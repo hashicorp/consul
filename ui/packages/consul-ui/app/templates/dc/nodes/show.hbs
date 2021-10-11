@@ -1,9 +1,7 @@
 <Route
   @name={{routeName}}
-  @title={{item.Node}}
 as |route|>
-  <DataSource @src={{
-    uri '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
+  <DataSource @src={{uri '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
     (hash
       partition=route.params.partition
       nspace=route.params.nspace
@@ -21,7 +19,6 @@ as |route|>
       )
     }}
   as |loader|>
-
     <BlockSlot @name="error">
       <AppError
         @error={{loader.error}}
@@ -53,7 +50,6 @@ as |route|>
         </Notification>
       {{/if}}
     </BlockSlot>
-
     <BlockSlot @name="loaded">
 {{#let
   loader.data

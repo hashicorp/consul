@@ -1,7 +1,7 @@
 %notice {
-  border-radius: $decor-radius-100;
-  border: $decor-border-100;
-  color: $black;
+  border-radius: var(--decor-radius-100);
+  border: var(--decor-border-100);
+  color: var(--black);
 }
 %notice::before {
   @extend %as-pseudo;
@@ -11,7 +11,7 @@
 }
 %notice footer * {
   @extend %p3;
-  font-weight: $typo-weight-bold;
+  font-weight: var(--typo-weight-bold);
 }
 %notice-success,
 %notice-info,
@@ -21,51 +21,51 @@
   @extend %notice;
 }
 %notice-success {
-  background-color: $green-050;
-  border-color: $green-500;
+  background-color: rgb(var(--tone-green-050));
+  border-color: rgb(var(--tone-green-500));
 }
 %notice-info {
-  border-color: $blue-100;
-  background-color: $gray-010;
+  border-color: rgb(var(--tone-blue-100));
+  background-color: rgb(var(--tone-gray-010));
 }
 %notice-info header * {
-  color: $blue-700;
+  color: rgb(var(--tone-blue-700));
 }
 %notice-highlight {
-  background-color: $gray-050;
-  border-color: $gray-300;
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-300));
 }
 %notice-info header * {
-  color: $gray-700;
+  color: rgb(var(--tone-gray-700));
 }
 %notice-warning {
-  border-color: $yellow-100;
-  background-color: $yellow-050;
+  border-color: rgb(var(--tone-yellow-100));
+  background-color: rgb(var(--tone-yellow-050));
 }
 %notice-warning header * {
-  color: $yellow-800;
+  color: rgb(var(--tone-yellow-800));
 }
 %notice-error {
-  background-color: $red-050;
-  border-color: $red-500;
+  background-color: rgb(var(--tone-red-050));
+  border-color: rgb(var(--tone-red-500));
 }
 %notice-success::before {
   @extend %with-check-circle-fill-mask;
-  color: $green-500;
+  color: rgb(var(--tone-green-500));
 }
 %notice-info::before {
   @extend %with-info-circle-fill-mask;
-  color: $blue-500;
+  color: rgb(var(--tone-blue-500));
 }
 %notice-highlight::before {
   @extend %with-star-fill-mask;
-  color: $yellow-500;
+  color: rgb(var(--tone-yellow-500));
 }
 %notice-warning::before {
   @extend %with-alert-triangle-mask;
-  color: $orange-500;
+  color: rgb(var(--tone-orange-500));
 }
 %notice-error::before {
   @extend %with-cancel-square-fill-mask;
-  color: $red-500;
+  color: rgb(var(--tone-red-500));
 }

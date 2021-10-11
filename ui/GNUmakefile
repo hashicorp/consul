@@ -18,7 +18,6 @@ clean:
 # Build a distribution of the UI using the minimal amount of dependencies
 dist: clean
 	cd packages/consul-ui && \
-		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE)
 
 # Build a distribution of the UI for Vercel previews.

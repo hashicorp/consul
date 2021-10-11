@@ -1,7 +1,7 @@
 .consul-intention-fieldsets {
   .value-allow > :last-child::before {
     @extend %with-arrow-right-mask, %as-pseudo;
-    color: $green-500;
+    color: rgb(var(--tone-green-500));
   }
   .value-deny > :last-child::before {
     @extend %with-deny-color-icon, %as-pseudo;

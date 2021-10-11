@@ -15,6 +15,10 @@ export default class KvService extends RepositoryService {
     return PRIMARY_KEY;
   }
 
+  shouldReconcile(item, params) {
+    return super.shouldReconcile(...arguments) && item.Key.startsWith(params.id);
+  }
+
   // this one gives you the full object so key,values and meta
   @dataSource('/:partition/:ns/:dc/kv/:id')
   async findBySlug(params, configuration = {}) {
@@ -52,33 +56,17 @@ export default class KvService extends RepositoryService {
   // https://www.consul.io/api/kv.html
   @dataSource('/:partition/:ns/:dc/kvs/:id')
   findAllBySlug(params, configuration = {}) {
+    params.separator = '/';
     if (params.id === '/') {
       params.id = '';
     }
     return this.authorizeBySlug(
       async () => {
-        params.separator = '/';
-        if (typeof configuration.cursor !== 'undefined') {
-          params.index = configuration.cursor;
-        }
-        let items;
-        try {
-          items = await this.store.query(this.getModelName(), params);
-        } catch (e) {
-          if (get(e, 'errors.firstObject.status') === '404') {
-            // TODO: This very much shouldn't be here,
-            // needs to eventually use ember-datas generateId thing
-            // in the meantime at least our fingerprinter
-            // FIXME: Default/token partition
-            const uid = JSON.stringify([params.partition, params.ns, params.dc, params.id]);
-            const record = this.store.peekRecord(this.getModelName(), uid);
-            if (record) {
-              record.unloadRecord();
-            }
-          }
-          throw e;
-        }
-        return items.filter(item => params.id !== get(item, 'Key'));
+        let items = await this.findAll(...arguments);
+        const meta = items.meta;
+        items = items.filter(item => params.id !== get(item, 'Key'));
+        items.meta = meta;
+        return items;
       },
       ACCESS_LIST,
       params

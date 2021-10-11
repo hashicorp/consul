@@ -12,6 +12,6 @@
     @extend %with-folder-outline-mask, %as-pseudo;
   }
   dl.local-bind-mode dt {
-    font-weight: $typo-weight-semibold;
+    font-weight: var(--typo-weight-semibold);
   }
 }

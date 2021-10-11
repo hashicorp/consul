@@ -397,8 +397,12 @@ spec:
 <Tabs>
 <Tab heading="Consul OSS">
 
-Set up a HTTP listener on an ingress gateway named "us-east-ingress" to proxy
+Set up an HTTP listener on an ingress gateway named "us-east-ingress" to proxy
 traffic to a virtual service named "api".
+
+Additionally, ensure internal-only debug headers are stripped before responding
+to external clients, and that requests to internal services are labelled to
+indicate which gateway they came through.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -413,6 +417,14 @@ Listeners = [
     Services = [
       {
         Name = "api"
+        RequestHeaders {
+          Add {
+            "x-gateway" = "us-east-ingress"
+          }
+        }
+        ResponseHeaders {
+          Remove = ["x-debug"]
+        }
       }
     ]
   }
@@ -430,6 +442,7 @@ spec:
       protocol: http
       services:
         - name: api
+          # HTTP Header manipulation is not yet supported in Kubernetes CRD
 ```
 
 ```json
@@ -442,7 +455,15 @@ spec:
       "Protocol": "http",
       "Services": [
         {
-          "Name": "api"
+          "Name": "api",
+          "RequestHeaders": {
+            "Add": {
+              "x-gateway": "us-east-ingress"
+            }
+          },
+          "ResponseHeaders": {
+            "Remove": ["x-debug"]
+          }
         }
       ]
     }
@@ -455,8 +476,12 @@ spec:
 </Tab>
 <Tab heading="Consul Enterprise">
 
-Set up a HTTP listener on an ingress gateway named "us-east-ingress" in the
+Set up an HTTP listener on an ingress gateway named "us-east-ingress" in the
 default namespace to proxy traffic to a virtual service named "api".
+
+Additionally, ensure internal-only debug headers are stripped before responding
+to external clients, and that requests to internal services are labelled to
+indicate which gateway they came through.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -473,6 +498,14 @@ Listeners = [
       {
         Name = "api"
         Namespace = "frontend"
+        RequestHeaders {
+          Add {
+            "x-gateway" = "us-east-ingress"
+          }
+        }
+        ResponseHeaders {
+          Remove = ["x-debug"]
+        }
       }
     ]
   }
@@ -492,6 +525,7 @@ spec:
       services:
         - name: api
           namespace: frontend
+          # HTTP Header manipulation is not yet supported in Kubernetes CRD
 ```
 
 ```json
@@ -506,7 +540,15 @@ spec:
       "Services": [
         {
           "Name": "api",
-          "Namespace": "frontend"
+          "Namespace": "frontend",
+           "RequestHeaders": {
+            "Add": {
+              "x-gateway": "us-east-ingress"
+            }
+          },
+          "ResponseHeaders": {
+            "Remove": ["x-debug"]
+          }
         }
       ]
     }
@@ -837,6 +879,22 @@ spec:
               leftmost DNS label. This ensures that all defined hosts are valid DNS
               records. For example, \`*.example.com\` is valid, while \`example.*\` and
               \`*-suffix.example.com\` are not.`,
+            },
+            {
+              yaml: false,
+              name: 'RequestHeaders',
+              type: 'HTTPHeaderModifiers: <optional>',
+              description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+              that will be applied to requests routed to this service.
+              This cannot be used with a \`tcp\` listener.`,
+            },
+            {
+              yaml: false,
+              name: 'ResponseHeaders',
+              type: 'HTTPHeaderModifiers: <optional>',
+              description: `A set of [HTTP-specific header modification rules](/docs/connect/config-entries/service-router#httpheadermodifiers)
+              that will be applied to responses from this service.
+              This cannot be used with a \`tcp\` listener.`,
             },
           ],
         },

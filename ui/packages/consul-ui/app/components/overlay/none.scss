@@ -26,9 +26,9 @@
     transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
   }
   & {
-    background-color: $white;
-    border-radius: $decor-radius-100;
-    box-shadow: $decor-elevation-400;
+    background-color: rgb(var(--white));
+    border-radius: var(--decor-radius-100);
+    box-shadow: var(--decor-elevation-400);
   }
   .tippy-arrow {
     @extend %overlay-tail;

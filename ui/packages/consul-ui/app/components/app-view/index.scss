@@ -30,7 +30,7 @@
   width: 26px;
   height: 26px;
   cursor: pointer;
-  color: $blue-500;
+  color: rgb(var(--tone-blue-500));
 }
 #toolbar-toggle {
   display: none;

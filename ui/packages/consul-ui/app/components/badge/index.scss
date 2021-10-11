@@ -8,8 +8,8 @@
 %badge,
 %badge + dd {
   @extend %pill;
-  background-color: var(--gray-100);
-  color: var(--gray-500);
+  background-color: rgb(var(--tone-gray-100));
+  color: rgb(var(--tone-gray-500));
 }
 %badge::after,
 %badge-reversed::after,
