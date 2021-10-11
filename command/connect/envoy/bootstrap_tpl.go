@@ -96,10 +96,6 @@ type BootstrapTplArgs struct {
 	// Datacenter is the datacenter where the proxy service instance is registered.
 	Datacenter string
 
-	// EnvoyVersion is the envoy version, which is necessary to generate the
-	// correct configuration.
-	EnvoyVersion string
-
 	// PrometheusBackendPort will configure a "prometheus_backend" cluster which
 	// envoy_prometheus_bind_addr will point to.
 	PrometheusBackendPort string

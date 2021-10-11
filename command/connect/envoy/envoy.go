@@ -122,8 +122,12 @@ func (c *cmd) init() {
 		"Set the agent's gRPC address and port (in http(s)://host:port format). "+
 			"Alternatively, you can specify CONSUL_GRPC_ADDR in ENV.")
 
+	// Deprecated, no longer needed, keeping it around to not break back compat
 	c.flags.StringVar(&c.envoyVersion, "envoy-version", defaultEnvoyVersion,
-		"Sets the envoy-version that the envoy binary has.")
+		"This is a legacy flag that is currently not used but was formerly used to set the "+
+			"version for the envoy binary that gets invoked by Consul. This is no longer "+
+			"necessary as Consul will invoke the binary at a path set by -envoy-binary "+
+			"or whichever envoy binary it finds in $PATH")
 
 	c.flags.BoolVar(&c.register, "register", false,
 		"Register a new gateway service before configuring and starting Envoy")
@@ -483,7 +487,6 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
 		Partition:             httpCfg.Partition,
-		EnvoyVersion:          c.envoyVersion,
 		Datacenter:            httpCfg.Datacenter,
 		PrometheusBackendPort: c.prometheusBackendPort,
 		PrometheusScrapePath:  c.prometheusScrapePath,
