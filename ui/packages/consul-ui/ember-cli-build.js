@@ -1,3 +1,4 @@
+/*eslint ember/no-jquery: "off", ember/no-global-jquery: "off"*/
 'use strict';
 const path = require('path');
 const exists = require('fs').existsSync;
