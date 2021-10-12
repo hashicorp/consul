@@ -553,6 +553,17 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			validateErr: "Subset defined with empty name",
 		},
 		{
+			name: "invalid boolean expression subset filter",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				Subsets: map[string]ServiceResolverSubset{
+					"v1": {Filter: "random string"},
+				},
+			},
+			validateErr: `Filter for subset "v1" is not a valid expression`,
+		},
+		{
 			name: "default subset does not exist",
 			entry: &ServiceResolverConfigEntry{
 				Kind:          ServiceResolver,
