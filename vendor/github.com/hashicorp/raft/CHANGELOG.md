@@ -1,3 +1,9 @@
+# 1.1.3 (October 12th, 2021)
+
+BUG FIXES
+
+* Forbid removed node from being a Candidate [[GH-476](https://github.com/hashicorp/raft/pull/476)]
+
 # 1.1.2 (January 17th, 2020)
 
 FEATURES
