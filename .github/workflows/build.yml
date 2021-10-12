@@ -216,13 +216,13 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}_armhf.deb
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}_armhf.deb
+          name: consul_1.11.0_armhf.deb
+          path: out/consul_1.11.0_armhf.deb
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
+          name: consul-1.11.0.arm.rpm
+          path: out/consul-1.11.0.arm.rpm
 
   build-arm64:
     needs: get-product-version
