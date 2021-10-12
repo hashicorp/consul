@@ -19,11 +19,19 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 ## Glossary
 
-**Condition** - A task-level defined environmental requirement that, when met, triggers the Consul-Terraform-Sync binary to execute the related task to update network infrastructure.
+**Condition** - A task-level defined environmental requirement. When a task’s condition is met, Consul-Terraform-Sync executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the source input that the task provides to the configured Terraform Module.
 
 **Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
+**Dynamic Tasks** - A dynamic task is a type of task that is dynamically triggered on a change to any relevant Consul catalog values e.g. service instances, Consul KV, catalog-services. See scheduled tasks for a type of non-dynamic task.
+
+-> **Note:**  the terminology “tasks” used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+
 **Network Drivers** - Consul-Terraform-Sync uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
+
+**Scheduled Tasks** - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/docs/nia/configuration#schedule-condition).
+
+-> **Note:**  the terminology “tasks” used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
 **Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
