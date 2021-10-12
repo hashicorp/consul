@@ -98,7 +98,8 @@ jobs:
         if: ${{ matrix.goos == 'linux' }}
         with:
           name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.i386.rpm
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.i386.rpm
+          path: out/${{ github.event.repository.name }}-${{ needs.get-product-version.outputs.product-version }}.i386.rpm
+
 
   build-amd64:
     needs: get-product-version
