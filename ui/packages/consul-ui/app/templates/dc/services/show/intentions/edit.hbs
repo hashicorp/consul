@@ -1,7 +1,9 @@
 <Route
   @name={{routeName}}
 as |route|>
+{{#let (not (can "write intention for service" item=item.Service)) as |readOnly|}}
   <Consul::Intention::Form
+    @readonly={{readOnly}}
     @nspace={{nspace}}
     @dc={{dc}}
     @src={{src}}
@@ -10,4 +12,5 @@ as |route|>
     }}
     @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
   />
+{{/let}}
 </Route>

@@ -1,4 +1,5 @@
 import Route from 'consul-ui/routing/route';
+import { get } from '@ember/object';
 
 export default class EditRoute extends Route {
   model(params, transition) {

@@ -1,4 +1,5 @@
 import Route from 'consul-ui/routing/route';
+import { get } from '@ember/object';
 
 export default class IndexRoute extends Route {
   queryParams = {
@@ -19,6 +20,7 @@ export default class IndexRoute extends Route {
       dc: this.modelFor('dc').dc.Name,
       nspace: this.optionalParams().nspace || 'default',
       slug: this.paramsFor('dc.services.show').name,
+      item: get(this.modelFor('dc.services.show').items, 'firstObject'),
       searchProperties: this.queryParams.searchproperty.empty[0],
     };
   }

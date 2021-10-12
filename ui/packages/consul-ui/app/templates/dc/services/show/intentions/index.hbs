@@ -41,7 +41,7 @@ as |route|>
 
   as |sort filters items|}}
     <div class="tab-section">
-  {{#if (can 'create intentions')}}
+  {{#if (can 'create intention for service' item=item.Service)}}
         <Portal @target="app-view-actions">
           <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
         </Portal>
