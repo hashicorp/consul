@@ -32,11 +32,11 @@ A task can be either enabled or disabled using the [task cli](/docs/nia/cli/task
 
 An enabled task can be configured to monitor and execute on different types of conditions, such as changes to services ([services condition](/docs/nia/tasks#services-condition)) or service registration and deregistration ([catalog-services condition](/docs/nia/tasks#catalog-services-condition)).
 
-A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes, as well as monitor service instances for IP information.
+A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes, and monitor service instances for IP information.
 
-A source input can be specified that implicitly includes variables to be provided to the task’s module. For example, a task can specify a Consul KV source input. The specified keys or key paths would be monitored for changes. Any changes detected would be included as input information for the modules. The details of what values are monitored and what values can execute the task are determined by the module.
+A source input can be specified that implicitly includes variables to be provided to the task’s module. For example, a task can specify a Consul KV source input. The specified KV keys or key paths would be monitored for changes. Any changes detected would be included as input information for the modules. The module determines the details of what values are monitored and what values can execute the task.
 
--> **The source input block is only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
+~> **The source input block is only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
 
 Below are details on the types of execution conditions that Consul-Terraform-Sync supports.
 
@@ -188,11 +188,11 @@ Below are the available options for source input types and how to configure them
 
 Scheduled tasks generally run on schedule, but they can be triggered on demand when running Consul-Terraform-Sync in the following ways:
 
-* [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of long-running mode, Consul-Terraform-Sync first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase even if not on schedule. After once-mode completes, scheduled tasks subsequently trigger on schedule.
+* [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, Consul-Terraform-Sync first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
 
 * [Inspect mode](/docs/nia/cli#inspect-mode): For inspect mode, the inspected task will display the proposed changes for the tasks in the terminal and exit. Scheduled tasks will display proposed changes that would be made if the task was to run at that time even if not on schedule.
 
-* [Once mode](/docs/nia/cli#once-mode): During once mode, all tasks are triggered once. Scheduled tasks will execute during once mode even if not on schedule.
+* [Once mode](/docs/nia/cli#once-mode): During the once mode, all tasks are only triggered one time. Scheduled tasks will execute during once mode even if not on the schedule.
 
 * [Enable CLI](/docs/nia/cli/task#task-enable): When a task is enabled through the CLI, any type of task, including scheduled tasks, will be triggered at that time.
 
@@ -221,7 +221,7 @@ These three levels form a hierarchy where each level of data informs the one hig
 
 ### Event
 
-When a task is triggered, Consul-Terraform-Sync takes a series of steps in order to update the network infrastructure. These steps consist of fetching latest data from Consul for the task's source inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
+When a task is triggered, Consul-Terraform-Sync takes a series of steps in order to update the network infrastructure. These steps consist of fetching the latest data from Consul for the task's source inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
 
 A dynamic task will store an event when it is triggered by a change in Consul. A scheduled task will store an event when it is triggered on schedule, regardless if there is a change in Consul. A disabled task does not update network infrastructures, so it will not store events until  until re-enabled.
 

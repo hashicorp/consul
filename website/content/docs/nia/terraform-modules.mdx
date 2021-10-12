@@ -50,17 +50,17 @@ These optional input variables include:
 
 Tasks with the services source input monitor for changes to a list of configured services or changes to any services that match a given regex.
 
-In order to configure a task with the services source input, the list of services which will be used for the input must be configured in one of the following ways:
+In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
 
 - the task's [`services`](/docs/nia/configuration#services)
 - a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `regexp` and `source_includes_var` set to true
 - a [`source_input "services"` block](/docs/nia/configuration#services-source-input) configured with `regexp`
 
-The services source input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
+The services source input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides the latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
 
 | Attribute               | Description                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `id`                    | A unique Consul ID for this service. This is unique per Consul agent.                             |
+| `id`                    | A unique Consul ID for this service. The service id is unique per Consul agent.                             |
 | `name`                  | The logical name of the service. Many service instances may share the same logical service name.  |
 | `address`               | IP address of the service host -- if empty, node address should be used.                          |
 | `port`                  | Port number of the service                                                                        |
@@ -94,14 +94,14 @@ task {
 
 #### Consul KV Source Input
 
-Tasks with a Consul KV source input monitor Consul KV for changes to KV pairs that satisfy the provided configuration. The Consul KV source input operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and provides these key values to the task’s module.
+Tasks configured with a Consul KV source input monitor Consul KV for changes to KV pairs that satisfy the provided configuration. The Consul KV source input operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and provides these key values to the task’s module.
 
-In order to configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
+To configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
 
 - a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
 - a [`source_input "consul-kv"` block](/docs/nia/configuration#consul-kv-source-input).
 
-Below is a similar example to that provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. The difference in this example however, is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
+Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
 
 ```hcl
 task {
@@ -124,7 +124,7 @@ task {
 
 #### Catalog Services Source Input
 
-Tasks with a Catalog Services source input monitors for service and tag information provided by the [Catalog List Services API](/api-docs/catalog#list-services). The source input is a map of service names to a list of tags.
+Tasks configured with a Catalog Services source input monitors for service and tag information provided by the [Catalog List Services API](/api-docs/catalog#list-services). The source input is a map of service names to a list of tags.
 
 Sample catalog-services input:
 
@@ -136,7 +136,7 @@ catalog_services = {
 }
 ```
 
-In order to configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
+To configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
 
 - a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
 

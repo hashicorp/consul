@@ -162,7 +162,7 @@ task {
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `condition` - (obj) The requirement that, when met, triggers Consul-Terraform-Sync to execute the task. When unconfigured, the default condition is to trigger the task on changes in the services configured in [`services`](#services). Only one `condition` may be configured per task. Consul-Terraform-Sync supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
-- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. When unconfigured, source input will be determined by the condition or services list. Only one `source_input` may be configured per task. Consul-Terraform-Sync supports different types of source input, which each have their own configuration options. See [Task Source Input](#task-source-input) configuration for full details on configuration options for each source input type.
+- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. When source input is empty, source input will be determined by the condition or services list. Only one `source_input` may be configured per task. Consul-Terraform-Sync supports different types of source input, each source input has their own configuration options. See [Task Source Input](#task-source-input) configuration for full details on configuration options for each source input type.
 - `terraform_version` - (string) <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
 
 ### Task Condition
@@ -259,7 +259,7 @@ task {
 
 A scheduled task has a schedule condition block, which defines the schedule for executing the task. Unlike a dynamic task, a scheduled task does not dynamically trigger on changes in Consul.
 
-Schedule tasks also rely on additional task configuration separate from the condition block to determine the source input information to provide to the task module. See [`task.services`](#services) or [`source_input`](#source_input) block configuration for details on how to configure source input.
+Schedule tasks also rely on additional task configuration, separate from the condition block to determine the source input information to provide to the task module. See [`task.services`](#services) or [`source_input`](#source_input) block configuration for details on how to configure source input.
 
 See [Task Execution: Schedule Condition](/docs/nia/tasks#schedule-condition) for more information on how tasks are triggered with schedule conditions.
 
@@ -283,7 +283,7 @@ task {
 
 You can add an optional `source_input` block to the `task` block. The `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Consul-Terraform-Sync supports the following source input types.
 
--> **The source input block is only supported when using a schedule condition.** Adding a `source_input` block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
+~> **The source input block is only supported when using a schedule condition.** Adding a `source_input` block alongside any other type of condition will result in an error. To accomplish a similar behavior with other condition blocks, use the `source_includes_var` field.
 
 #### Services Source Input
 
@@ -291,9 +291,9 @@ This `services` source input object defines services registered to Consul whose 
 
 | Parameter | Description                                                                                                                                                                                                                                                                                                                                                                | Default           | Required                                                      |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------- |
-| `regexp`  | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/> If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. <br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | empty string `””` | Optional unless the `task.services` option is not configured. |
+| `regexp`  | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/> If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. <br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | empty string `""` | Optional unless the `task.services` option is not configured. |
 
-In the following example, the scheduled task queries all Consul services that have `web` as the suffix. The metadata of matching services are provided to the Terraform module.
+In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
 ```hcl
 task {
