@@ -4,9 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -1321,89 +1319,6 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
 	})
-}
-
-func TestLeader_ParseCARoot(t *testing.T) {
-	type test struct {
-		name             string
-		pem              string
-		wantSerial       uint64
-		wantSigningKeyID string
-		wantKeyType      string
-		wantKeyBits      int
-		wantErr          bool
-	}
-	// Test certs generated with
-	//   go run connect/certgen/certgen.go -out-dir /tmp/connect-certs -key-type ec -key-bits 384
-	// for various key types. This does limit the exposure to formats that might
-	// exist in external certificates which can be used as Connect CAs.
-	// Specifically many other certs will have serial numbers that don't fit into
-	// 64 bits but for reasons we truncate down to 64 bits which means our
-	// `SerialNumber` will not match the one reported by openssl. We should
-	// probably fix that at some point as it seems like a big footgun but it would
-	// be a breaking API change to change the type to not be a JSON number and
-	// JSON numbers don't even support the full range of a uint64...
-	tests := []test{
-		{"no cert", "", 0, "", "", 0, true},
-		{
-			name: "default cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-ec-256-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       8341954965092507701,
-			wantSigningKeyID: "97:4D:17:81:64:F8:B4:AF:05:E8:6C:79:C5:40:3B:0E:3E:8B:C0:AE:38:51:54:8A:2F:05:DB:E3:E8:E4:24:EC",
-			wantKeyType:      "ec",
-			wantKeyBits:      256,
-			wantErr:          false,
-		},
-		{
-			name: "ec 384 cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-ec-384-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       2935109425518279965,
-			wantSigningKeyID: "0B:A0:88:9B:DC:95:31:51:2E:3D:D4:F9:42:D0:6A:A0:62:46:82:D2:7C:22:E7:29:A9:AA:E8:A5:8C:CF:C7:42",
-			wantKeyType:      "ec",
-			wantKeyBits:      384,
-			wantErr:          false,
-		},
-		{
-			name: "rsa 4096 cert",
-			// Watchout for indentations they will break PEM format
-			pem: readTestData(t, "cert-with-rsa-4096-key.pem"),
-			// Based on `openssl x509 -noout -text` report from the cert
-			wantSerial:       5186695743100577491,
-			wantSigningKeyID: "92:FA:CC:97:57:1E:31:84:A2:33:DD:9B:6A:A8:7C:FC:BE:E2:94:CA:AC:B3:33:17:39:3B:B8:67:9B:DC:C1:08",
-			wantKeyType:      "rsa",
-			wantKeyBits:      4096,
-			wantErr:          false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-			root, err := parseCARoot(tt.pem, "consul", "cluster")
-			if tt.wantErr {
-				require.Error(err)
-				return
-			}
-			require.NoError(err)
-			require.Equal(tt.wantSerial, root.SerialNumber)
-			require.Equal(strings.ToLower(tt.wantSigningKeyID), root.SigningKeyID)
-			require.Equal(tt.wantKeyType, root.PrivateKeyType)
-			require.Equal(tt.wantKeyBits, root.PrivateKeyBits)
-		})
-	}
-}
-
-func readTestData(t *testing.T, name string) string {
-	t.Helper()
-	path := filepath.Join("testdata", name)
-	bs, err := ioutil.ReadFile(path)
-	if err != nil {
-		t.Fatalf("failed reading fixture file %s: %s", name, err)
-	}
-	return string(bs)
 }
 
 func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
