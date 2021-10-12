@@ -75,7 +75,7 @@ jobs:
 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
-        uses: hashicorp/actions-packaging-linux@v1
+        uses: hashicorp/actions-packaging-linux@releng-984
         with:
           name: ${{ github.event.repository.name }}
           description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
