@@ -198,7 +198,7 @@ Scheduled tasks generally run on schedule, but they can be triggered on demand w
 
 #### Buffer Period
 
-Because scheduled tasks trigger on a configured cadence, buffer periods are disabled for scheduled tasks. Any configured `buffer_period` at the global-level or task-level will only apply to dynamic tasks and not to scheduled task.
+Because scheduled tasks trigger on a configured cadence, buffer periods are disabled for scheduled tasks. Any configured `buffer_period` at the global-level or task-level will only apply to dynamic tasks and not to scheduled tasks.
 
 #### Events
 
@@ -223,7 +223,7 @@ These three levels form a hierarchy where each level of data informs the one hig
 
 When a task is triggered, Consul-Terraform-Sync takes a series of steps in order to update the network infrastructure. These steps consist of fetching latest data from Consul for the task's source inputs and then updating the network infrastructure accordingly. An event captures information across this process. It stores information to help understand if the update to network infrastructure was successful or not and any errors that may have occurred.
 
-Because disabled tasks do not update network infrastructures, they therefore do not store events until re-enabled. A dynamic tasks will store an event when it is triggered by a change in Consul. A scheduled task will store an event when it is triggered on schedule, regardless if there is a change in Consul.
+A dynamic task will store an event when it is triggered by a change in Consul. A scheduled task will store an event when it is triggered on schedule, regardless if there is a change in Consul. A disabled task does not update network infrastructures, so it will not store events until  until re-enabled.
 
 Sample event:
 ```json

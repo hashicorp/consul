@@ -30,13 +30,13 @@ See below sections for more information on [defining source input](#source-input
 
 ### Source Input
 
-A source input provides a mechanism for satisfying the requirements defined by the Terraform Module’s [input variables](https://www.terraform.io/docs/language/values/variables.html) and is included alongside a condition in a task. Whereas the condition defines a resource or Consul-Terraform-Sync supported objects whose changes result in triggering a given task, the source input defines objects whose values or metadata are provided to the Terraform Module. These objects can be the same, such as when `task.services` is provided without a source input block and condition block, but they can also be defined using separate blocks. In this way the source input does not need to be tied to the provided condition in order to satisfy the Terraform Module.
+A source input provides a mechanism for satisfying the requirements defined by the Terraform Module’s [input variables](https://www.terraform.io/docs/language/values/variables.html) and is included alongside a condition in a task. Whereas the condition defines a resource or Consul-Terraform-Sync supported objects whose changes result in triggering a given task, the source input defines objects whose values or metadata are provided to the Terraform Module. These objects can be the same, such as when `task.services` is provided without a source input block and condition block, but they can also be defined using separate blocks. In this way, the source input does not need to be tied to the provided condition in order to satisfy the Terraform Module.
 
 There are a few ways that a source input can be defined:
 
 - [**`services` list**](/docs/nia/configuration#services) - The list of services to act as a source input.
 - **`source_includes_var` condition field** - If the condition supports this field, and it is set to true, then the condition’s objects will be used as a source input. For example, if a module is defined supporting [`catalog_services` input variable](#catalog-services-variable) then, this field can be set to true in the [catalog-services condition](/docs/nia/tasks#catalog-services-condition).
-- [**`source_input` block**](/docs/nia/configuration#source-input) - This block specifically defines a source input
+- [**`source_input` block**](/docs/nia/configuration#source-input) - This block specifically defines a source input.
 
 Multiple ways of defining a source input adds configuration flexibility, and allows for optional additional input variables to be supported by Consul-Terraform-Sync alongside the `services` input variable.
 

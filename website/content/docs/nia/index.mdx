@@ -25,13 +25,13 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 **Dynamic Tasks** - A dynamic task is a type of task that is dynamically triggered on a change to any relevant Consul catalog values e.g. service instances, Consul KV, catalog-services. See scheduled tasks for a type of non-dynamic task.
 
--> **Note:**  the terminology “tasks” used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+-> **Note:**  The terminology “tasks” used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
 **Network Drivers** - Consul-Terraform-Sync uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
 
 **Scheduled Tasks** - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/docs/nia/configuration#schedule-condition).
 
--> **Note:**  the terminology “tasks” used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+-> **Note:**  The terminology “tasks” used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
 
 **Source Input** - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module. The source input can be included in two ways. It can be specified as a parameter in a condition using `source_includes_var` and also by using the `source_input` block.
 
