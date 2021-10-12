@@ -5,7 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
       # Push events on crt-consul-migration branch
-      - crt-migration-1.11.0-betax
+      - crt-consul-migration
 env:
   PKG_NAME: consul
 

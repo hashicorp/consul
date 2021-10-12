@@ -1,3 +1,3 @@
 version:
-	@build-support/scripts/version.sh -r
+	@build-support/scripts/version.sh
 .PHONY: version
