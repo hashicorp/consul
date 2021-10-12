@@ -88,7 +88,6 @@ jobs:
           deb_depends: "openssl"
           rpm_depends: "openssl"
 
-
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
         with:
@@ -151,17 +150,11 @@ jobs:
           deb_depends: "openssl"
           rpm_depends: "openssl"
 
-      - name: Check
-        run: |
-            ls -lah out/
-            mv out/consul_1.11.0~dev_amd64.deb out/consul_1.11.0-dev_amd64.deb
-            mv out/consul-1.11.0~dev.x86_64.rpm out/consul_1.11.0-dev.x86_64.rpm
-
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
         with:
-          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goarch }}.deb
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goarch }}.deb
+          name: ${{ github.event.repository.name }}*${{ needs.get-product-version.outputs.* }}_${{ matrix.goarch }}.deb
+          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.* }}_${{ matrix.goarch }}.deb
 
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
@@ -219,12 +212,6 @@ jobs:
           binary: "dist/${{ env.PKG_NAME }}"
           deb_depends: "openssl"
           rpm_depends: "openssl"
-
-      - name: Check
-        run: |
-            ls -lah out/
-            mv out/consul-1.11.0~dev.arm.rpm out/consul_1.11.0-dev.arm.rpm
-            mv out/consul_1.11.0~dev_armhf.deb out/consul_1.11.0-dev_armhf.deb
 
       - uses: actions/upload-artifact@v2
         with:
@@ -284,13 +271,6 @@ jobs:
           binary: "dist/${{ env.PKG_NAME }}"
           deb_depends: "openssl"
           rpm_depends: "openssl"
-
-      - name: Check & temp test
-        run: |
-          ls -lah out/
-          mv out/consul-1.11.0~dev.aarch64.rpm out/consul_1.11.0-dev.arm.rpm
-          mv out/consul_1.11.0~dev_arm64.deb out/consul_1.11.0-dev_arm64.deb
-          ls -lah out/
 
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
