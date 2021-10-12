@@ -95,10 +95,10 @@ Tasks with a Consul KV source input monitor Consul KV for changes to KV pairs th
 
 In order to configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
 
-- a [`condition "consul-kv"` block](docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
-- a [`source_input "consul-kv"` block](docs/nia/configuration#consul-kv-source-input).
+- a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
+- a [`source_input "consul-kv"` block](/docs/nia/configuration#consul-kv-source-input).
 
-Below is a similar example to that provided in the [Consul KV Condition](docs/nia/tasks#consul-kv-condition) section. The difference in this example however, is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
+Below is a similar example to that provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. The difference in this example however, is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
 
 ```hcl
 task {
@@ -135,7 +135,7 @@ catalog_services = {
 
 In order to configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
 
-- a [`condition "catalog-services"` block](docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
+- a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
 
 -> **Note:** Currently there is no support for a `source_input “catalog-services”` block.
 
