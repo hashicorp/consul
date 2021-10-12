@@ -220,8 +220,11 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
+          name: ${{ github.event.repository.name }}_*.${{ matrix.goarch }}.rpm
+          path: out/${{ github.event.repository.name }}_*.${{ matrix.goarch }}.rpm
+
+          #name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
+          #path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
 
   build-arm64:
     needs: get-product-version
