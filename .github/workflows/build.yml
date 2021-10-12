@@ -153,8 +153,8 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
         with:
-          name: ${{ github.event.repository.name }}*${{ needs.get-product-version.outputs.* }}_${{ matrix.goarch }}.deb
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.* }}_${{ matrix.goarch }}.deb
+          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goarch }}.deb
+          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goarch }}.deb
 
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
@@ -220,11 +220,8 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.event.repository.name }}_*.${{ matrix.goarch }}.rpm
-          path: out/${{ github.event.repository.name }}_*.${{ matrix.goarch }}.rpm
-
-          #name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
-          #path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
+          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
+          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
 
   build-arm64:
     needs: get-product-version
