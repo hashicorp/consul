@@ -1,4 +1,4 @@
-# 1.1.3 (October 12th, 2021)
+# 1.1.4 (October 12th, 2021)
 
 BUG FIXES
 
