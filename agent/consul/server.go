@@ -61,6 +61,8 @@ const (
 	ProtocolVersion2Compatible = 2
 
 	ProtocolVersionMax = 3
+
+	LeaderTransferMinVersion = "1.6.0"
 )
 
 const (
@@ -965,7 +967,7 @@ func (s *Server) Leave() error {
 
 		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
 			// Check if we can do a leadership transfer instead of removing our selves
-			leadershipTransferVersion := version.Must(version.NewVersion("1.6.0"))
+			leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
 			removeServer := false
 			if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion); !ok {
 				// Transfer leadership to another node then leave the cluster
