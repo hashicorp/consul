@@ -27,26 +27,6 @@ as |route|>
   loader.data
 as |nspace dc items topology|}}
   <div class="tab-section">
-    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not-eq dc.DefaultACLPolicy 'allow') (not topology.wildcardIntention))}}
-      <EmptyState>
-        <BlockSlot @name="header">
-          <h2>
-            No dependencies
-          </h2>
-        </BlockSlot>
-        <BlockSlot @name="body">
-          <p>
-            This service has neither downstreams nor upstreams, which means that no services are configured to connect with it. Add upstreams and intentions to ensure this service is connected with the rest of your service mesh.
-          </p>
-        </BlockSlot>
-        <BlockSlot @name="actions">
-          <li class="docs-link">
-            <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#complete-configuration-example" rel="noopener noreferrer" target="_blank">Documentation on upstreams</a>
-          </li>
-        </BlockSlot>
-      </EmptyState>
-    {{else}}
-
   {{#let (collapsible-notices topology.FilteredByACLs (eq dc.DefaultACLPolicy 'allow') topology.wildcardIntention topology.notDefinedIntention) as |collapsible| }}
     <CollapsibleNotices @collapsible={{collapsible}}>
       {{#if topology.FilteredByACLs}}
@@ -113,8 +93,6 @@ as |nspace dc items topology|}}
       />
     {{/if}}
     </DataSource>
-
-    {{/if}}
   </div>
 {{/let}}
     </BlockSlot>

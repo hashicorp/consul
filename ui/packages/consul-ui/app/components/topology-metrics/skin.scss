@@ -65,7 +65,8 @@
     stroke: rgb(var(--tone-gray-300));
     stroke-width: 2;
   }
-  path[data-permission='not-defined'] {
+  path[data-permission='not-defined'],
+  path[data-permission='empty'] {
     stroke-dasharray: 4;
   }
   path[data-permission='deny'] {

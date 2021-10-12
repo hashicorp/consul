@@ -1,8 +1,11 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action, get } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
+  @service('env') env;
+
   // =attributes
   @tracked centerDimensions;
   @tracked downView;
@@ -66,21 +69,65 @@ export default class TopologyMetrics extends Component {
       });
   }
 
+  emptyColumn() {
+    const noDependencies = get(this.args.topology, 'noDependecies');
+    return !this.env.var('CONSUL_ACLS_ENABLED') || noDependencies;
+  }
+
+  get downstreams() {
+    const downstreams = get(this.args.topology, 'Downstreams') || [];
+    const items = [...downstreams];
+    const noDependencies = get(this.args.topology, 'noDependecies');
+
+    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
+      items.push({
+        Name: 'Downstreams unknown.',
+        Empty: true,
+        Datacenter: '',
+        Namespace: '',
+      });
+    } else if (noDependencies) {
+      items.push({
+        Name: 'No downstreams.',
+        Empty: true,
+        Datacenter: '',
+        Namespace: '',
+      });
+    }
+
+    return items;
+  }
+
   get upstreams() {
     const upstreams = get(this.args.topology, 'Upstreams') || [];
     const items = [...upstreams];
     const defaultACLPolicy = get(this.args.dc, 'DefaultACLPolicy');
     const wildcardIntention = get(this.args.topology, 'wildcardIntention');
-    if (defaultACLPolicy === 'allow' || wildcardIntention) {
+    const noDependencies = get(this.args.topology, 'noDependecies');
+
+    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
       items.push({
-        Name: '* (All Services)',
+        Name: 'Upstreams unknown.',
+        Empty: true,
         Datacenter: '',
         Namespace: '',
-        Intention: {
-          Allowed: true,
-        },
+      });
+    } else if (noDependencies) {
+      items.push({
+        Name: 'No upstreams.',
+        Empty: true,
+        Datacenter: '',
+        Namespace: '',
+      });
+    } else if (defaultACLPolicy === 'allow' || wildcardIntention) {
+      items.push({
+        Name: '* (All Services)',
+        Empty: true,
+        Datacenter: '',
+        Namespace: '',
       });
     }
+
     return items;
   }
 
@@ -112,9 +159,20 @@ export default class TopologyMetrics extends Component {
     }
 
     // Calculate viewBox dimensions
-    this.downView = document.getElementById('downstream-lines').getBoundingClientRect();
+    const downstreamLines = document.getElementById('downstream-lines').getBoundingClientRect();
     const upstreamLines = document.getElementById('upstream-lines').getBoundingClientRect();
     const upstreamColumn = document.getElementById('upstream-column');
+
+    if (this.emptyColumn) {
+      this.downView = {
+        x: downstreamLines.x,
+        y: downstreamLines.y,
+        width: downstreamLines.width,
+        height: downstreamLines.height + 10,
+      };
+    } else {
+      this.downView = downstreamLines;
+    }
 
     if (upstreamColumn) {
       this.upView = {
