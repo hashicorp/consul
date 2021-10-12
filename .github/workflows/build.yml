@@ -282,8 +282,8 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
         with:
-          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.${{ matrix.goarch }}.rpm
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.*.rpm
+          name: consul-1.11.0.aarch64.rpm
+          path: out/consul-1.11.0.aarch64.rpm
 
   build-darwin:
     needs: get-product-version
