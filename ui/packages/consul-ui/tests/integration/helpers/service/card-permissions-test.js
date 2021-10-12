@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import { hbs } from 'ember-cli-htmlbars';
 
-module('Integration | Helper | service/intention-permissions', function(hooks) {
+module('Integration | Helper | service/card-permissions', function(hooks) {
   setupRenderingTest(hooks);
 
   // TODO: Replace this with your real tests.
@@ -15,7 +15,7 @@ module('Integration | Helper | service/intention-permissions', function(hooks) {
       },
     });
 
-    await render(hbs`{{service/intention-permissions inputValue}}`);
+    await render(hbs`{{service/card-permissions inputValue}}`);
 
     assert.equal(this.element.textContent.trim(), 'allow');
   });
