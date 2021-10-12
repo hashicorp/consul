@@ -65,6 +65,26 @@ as |nspace dc items topology|}}
           @action={{true}}
         />
       {{/if}}
+      {{#if (and topology.noDependecies (env 'CONSUL_ACLS_ENABLED'))}}
+        <TopologyMetrics::Notice
+          data-test-notice='no-dependencies'
+          @type="info"
+          @for="no-dependencies"
+          @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstream-configuration-reference"
+          @internal={{false}}
+          @action={{true}}
+        />
+      {{/if}}
+      {{#if (not (env 'CONSUL_ACLS_ENABLED'))}}
+        <TopologyMetrics::Notice
+          data-test-notice='acls-disabled'
+          @type="warning"
+          @for="acls-disabled"
+          @link="{{env 'CONSUL_DOCS_URL'}}/security/acl/acl-system#configuring-acls"
+          @internal={{false}}
+          @action={{true}}
+        />
+      {{/if}}
     </CollapsibleNotices>
   {{/let}}
     <DataSource

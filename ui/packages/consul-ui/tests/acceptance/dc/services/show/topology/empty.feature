@@ -28,6 +28,7 @@ Feature: dc / services / show / topology / empty
     Then the url should be /datacenter/services/web/topology
     And I see the text "No downstreams." in "#downstream-container > a > p"
     And I see the text "No upstreams." in "#upstream-container > a > p"
+    And I see the tabs.topologyTab.noDependencies object
   # Scenario: ACLs disabled
   #   Given ACLs are disabled
   #   When I visit the service page for yaml
@@ -38,3 +39,4 @@ Feature: dc / services / show / topology / empty
   #   Then the url should be /datacenter/services/web/topology
   #   And I see the text "Downstreams unknown." in "#downstream-container > a > p"
   #   And I see the text "Upstreams unknown." in "#upstream-container > a > p"
+  #   And I see the tabs.topologyTab.aclsDisabled object
