@@ -13,8 +13,7 @@
     "id": "ingress-gateway-1",
     "metadata": {
       "namespace": "default",
-      "partition": "default",
-      "envoy_version": "1.20.0"
+      "partition": "default"
     }
   },
   "static_resources": {
