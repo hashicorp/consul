@@ -48,7 +48,38 @@ These optional input variables include:
 
 #### Services Source Input
 
-Tasks with the services source input monitor for changes to a list of configured services or changes to any services that match a given regex.
+Tasks configured with a services source input monitor for changes to services. Monitoring is either performed on a configured list of services or on any services matching a provided regex.
+
+Sample rendered services input:
+
+```hcl
+services = {
+  "web.test-server.dc1" = {
+    id              = "web"
+    name            = "web"
+    kind            = ""
+    address         = "127.0.0.1"
+    port            = 80
+    meta            = {}
+    tags            = ["example"]
+    namespace       = ""
+    status          = "passing"
+    node            = "pm8902"
+    node_id         = "307625d3-a1cf-9e85-ff81-12017ca4d848"
+    node_address    = "127.0.0.1"
+    node_datacenter = "dc1"
+    node_tagged_addresses = {
+      lan      = "127.0.0.1"
+      lan_ipv4 = "127.0.0.1"
+      wan      = "127.0.0.1"
+      wan_ipv4 = "127.0.0.1"
+    }
+    node_meta = {
+      consul-network-segment = ""
+    }
+  },
+}
+```
 
 In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
 
@@ -60,7 +91,7 @@ The services source input operates by monitoring the [Health List Nodes For Serv
 
 | Attribute               | Description                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `id`                    | A unique Consul ID for this service. The service id is unique per Consul agent.                             |
+| `id`                    | A unique Consul ID for this service. The service id is unique per Consul agent.                   |
 | `name`                  | The logical name of the service. Many service instances may share the same logical service name.  |
 | `address`               | IP address of the service host -- if empty, node address should be used.                          |
 | `port`                  | Port number of the service                                                                        |
@@ -96,6 +127,14 @@ task {
 
 Tasks configured with a Consul KV source input monitor Consul KV for changes to KV pairs that satisfy the provided configuration. The Consul KV source input operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and provides these key values to the task’s module.
 
+Sample rendered consul KV input:
+
+```hcl
+consul_kv = {
+  "my-key" = "some value"
+}
+```
+
 To configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
 
 - a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
@@ -126,7 +165,7 @@ task {
 
 Tasks configured with a Catalog Services source input monitors for service and tag information provided by the [Catalog List Services API](/api-docs/catalog#list-services). The source input is a map of service names to a list of tags.
 
-Sample catalog-services input:
+Sample rendered catalog-services input:
 
 ```hcl
 catalog_services = {

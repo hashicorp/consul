@@ -287,7 +287,7 @@ You can add an optional `source_input` block to the `task` block. The `source_in
 
 #### Services Source Input
 
-This `services` source input object defines services registered to Consul whose metadata will be used as input to the Terraform Module. The following parameters are supported:
+This `services` source input object defines services registered to Consul whose metadata will be used as [services source input to the Terraform Module](/docs/nia/terraform-modules/#services-source-input). The following parameters are supported:
 
 | Parameter | Description                                                                                                                                                                                                                                                                                                                                                                | Default           | Required                                                      |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------- |
@@ -311,7 +311,7 @@ task {
 
 #### Consul KV Source Input
 
-A Consul KV source input block defines changes to Consul KV that will be monitored. These changes will then be provided as input to the Terraform Module. The source input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
+A Consul KV source input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV source input to the Terraform Module](/docs/nia/terraform-modules/#consul-kv-source-input). The source input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
 
 | Parameter    | Description                                                                                                                                          | Default                                                                                                              | Required |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------- |
