@@ -1388,7 +1388,7 @@ func (l *connectSignRateLimiter) getCSRRateLimiterWithLimit(limit rate.Limit) *r
 // a thundering herd comes along.
 const csrLimitWait = 500 * time.Millisecond
 
-var ErrRateLimited   = errors.New("Rate limit reached, try again later")
+var ErrRateLimited = errors.New("Rate limit reached, try again later")
 
 func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := c.getCAProvider()
@@ -1551,4 +1551,12 @@ func (c *CAManager) checkExpired(pem string) error {
 		return fmt.Errorf("certificate expired, expiration date: %s ", cert.NotAfter.String())
 	}
 	return nil
+}
+
+func (c *CAManager) SignIntermediate(csr *x509.CertificateRequest) (string, error) {
+	provider, _ := c.getCAProvider()
+	if provider == nil {
+		return "", fmt.Errorf("internal error: CA provider is nil")
+	}
+	return provider.SignIntermediate(csr)
 }

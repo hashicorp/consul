@@ -137,9 +137,6 @@ type Server struct {
 	// caManager is used to synchronize CA operations across the leader and RPC functions.
 	caManager *CAManager
 
-	// rate limiter to use when signing leaf certificates
-	caLeafLimiter connectSignRateLimiter
-
 	// Consul configuration
 	config *Config
 

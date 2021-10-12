@@ -216,22 +216,16 @@ func (s *ConnectCA) SignIntermediate(
 		return acl.ErrPermissionDenied
 	}
 
-	provider, _ := s.srv.caManager.getCAProvider()
-	if provider == nil {
-		return fmt.Errorf("internal error: CA provider is nil")
-	}
-
 	csr, err := connect.ParseCSR(args.CSR)
 	if err != nil {
 		return err
 	}
 
-	cert, err := provider.SignIntermediate(csr)
+	cert, err := s.srv.caManager.SignIntermediate(csr)
 	if err != nil {
 		return err
 	}
 
 	*reply = cert
-
 	return nil
 }
