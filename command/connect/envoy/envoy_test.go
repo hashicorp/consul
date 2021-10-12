@@ -134,7 +134,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "defaults",
 			Flags: []string{"-proxy-id", "test-proxy"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -163,7 +162,6 @@ func TestGenerateConfig(t *testing.T) {
 				"envoy_prometheus_bind_addr": "0.0.0.0:9000",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -186,7 +184,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-token", "c9a52720-bf6c-4aa6-b8bc-66881a5ade95"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -211,7 +208,6 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_HTTP_TOKEN=c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -238,7 +234,6 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -266,7 +261,6 @@ func TestGenerateConfig(t *testing.T) {
 				"token.txt": "c9a52720-bf6c-4aa6-b8bc-66881a5ade95",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -289,7 +283,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "localhost:9999"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -316,7 +309,6 @@ func TestGenerateConfig(t *testing.T) {
 				"CONSUL_GRPC_ADDR=localhost:9999",
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -341,7 +333,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy",
 				"-grpc-addr", "unix:///var/run/consul.sock"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -362,7 +353,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags:   []string{"-proxy-id", "test-proxy"},
 			XDSPort: 9999,
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -388,7 +378,6 @@ func TestGenerateConfig(t *testing.T) {
 			XDSPort:      9999,
 			AgentSelf110: true,
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -412,7 +401,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "access-log-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-admin-access-log-path", "/some/path/access.log"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -436,7 +424,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "missing-ca-file",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-file", "some/path"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -458,7 +445,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags:     []string{"-proxy-id", "test-proxy", "-ca-file", "../../../test/ca/root.cer"},
 			Env:       []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -484,7 +470,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "missing-ca-path",
 			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -506,7 +491,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags:     []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
 			Env:       []string{"CONSUL_HTTP_SSL=1"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -554,7 +538,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -592,7 +575,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -635,7 +617,6 @@ func TestGenerateConfig(t *testing.T) {
 				} , { "name": "fake_sink_2" }`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -665,7 +646,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -725,7 +705,6 @@ func TestGenerateConfig(t *testing.T) {
 				}`,
 			},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -747,7 +726,6 @@ func TestGenerateConfig(t *testing.T) {
 			Flags: []string{"-proxy-id", "test-proxy"},
 			Env:   []string{"CONSUL_HTTP_ADDR=https://127.0.0.1:8888"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
 				// We don't know this til after the lookup so it will be empty in the
@@ -772,7 +750,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway",
 			Flags: []string{"-proxy-id", "ingress-gateway-1", "-gateway", "ingress"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "ingress-gateway",
 				ProxyID:            "ingress-gateway-1",
 				ProxySourceService: "ingress-gateway",
@@ -791,7 +768,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "ingress-gateway",
 				ProxyID:            "ingress-gateway",
 				ProxySourceService: "ingress-gateway",
@@ -810,7 +786,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-register-with-service-without-proxy-id",
 			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "my-gateway",
 				ProxyID:            "my-gateway",
 				ProxySourceService: "my-gateway",
@@ -829,7 +804,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-register-with-service-and-proxy-id",
 			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-proxy-id", "my-gateway-123", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "my-gateway",
 				ProxyID:            "my-gateway-123",
 				ProxySourceService: "my-gateway",
@@ -848,7 +822,6 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-no-auto-register",
 			Flags: []string{"-gateway", "ingress", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion:       defaultEnvoyVersion,
 				ProxyCluster:       "ingress-gateway",
 				ProxyID:            "ingress-gateway",
 				ProxySourceService: "ingress-gateway",
