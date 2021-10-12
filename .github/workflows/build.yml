@@ -159,8 +159,8 @@ jobs:
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.goos == 'linux' }}
         with:
-          name: ${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.x86_64.rpm
-          path: out/${{ github.event.repository.name }}_${{ needs.get-product-version.outputs.product-version }}.x86_64.rpm
+          name: ${{ github.event.repository.name }}*.x86_64.rpm
+          path: out/${{ github.event.repository.name }}*.x86_64.rpm
 
   build-arm:
     needs: get-product-version
