@@ -30,9 +30,13 @@ A task can be either enabled or disabled using the [task cli](/docs/nia/cli/task
 
 ## Task Execution
 
-An enabled task can be configured to monitor and execute on different types of conditions. For example, on changes to services ([services condition](/docs/nia/tasks#services-condition)) or on service registration and deregistration ([catalog-services condition](/docs/nia/tasks#catalog-services-condition)).
+An enabled task can be configured to monitor and execute on different types of conditions, such as changes to services ([services condition](/docs/nia/tasks#services-condition)) or service registration and deregistration ([catalog-services condition](/docs/nia/tasks#catalog-services-condition)).
 
-A task can also monitor but not execute on other variables that are simply included to provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes but additionally monitor service instances for IP information. The details of what values are monitored and what values can execute the task are determined by the module.
+A task can also monitor, but not execute on, other variables that provide additional information to the task's module. For example, a task with a catalog-services condition may execute on registration changes, as well as monitor service instances for IP information.
+
+A source input can be specified that implicitly includes variables to be provided to the task’s module. For example, a task can specify a Consul KV source input. The specified keys or key paths would be monitored for changes. Any changes detected would be included as input information for the modules. The details of what values are monitored and what values can execute the task are determined by the module.
+
+-> **The source input block is only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
 
 Below are details on the types of execution conditions that Consul-Terraform-Sync supports.
 

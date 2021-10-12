@@ -130,8 +130,10 @@ task {
 - `providers` - (list[string]) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
 - `services` - (list[string]) Required depending on [`condition`](#condition) configuration. Services is the list of logical service names or service IDs the task executes on. Consul-Terraform-Sync monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace. Alternative to configuring `services`, a `condition` can be configured so that the task does not trigger on changes to services (default behavior) but instead trigger on a different condition. See [Task Condition](#task-condition) configuration for more details.
 - `source` - (string: required) Source is the location the driver uses to discover the Terraform module used for automation. The source is the module path which can be local or remote on the [Terraform Registry](https://registry.terraform.io/) or private module registry. Read more on [Terraform module source and other supported types here](https://www.terraform.io/docs/modules/sources.html).
+
   - To use a private module with the [`terraform` driver](#terraform-driver), run the command [`terraform login [hostname]`](https://learn.hashicorp.com/tutorials/terraform/cloud-login) to authenticate the local Terraform CLI prior to starting Consul-Terraform-Sync.
   - To use a private module with the [`terraform_cloud` driver](#terraform-cloud-driver), no extra steps are needed.
+
     ```hcl
     // local module example: "./terraform-cts-hello"
     source = "<PATH>"
@@ -142,6 +144,7 @@ task {
     // private module example: "my.tfe.hostname.io/my-org/hello/cts"
     source = "<HOSTNAME>/<ORGANIZATION>/<MODULE NAME>/<PROVIDER>"
     ```
+
 - `variable_files` - (list[string]) Specifies list of paths to [Terraform variable definition files (`.tfvars`)](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files). The content of these files should consist of only variable name assignments. The variable assignments must match the corresponding variable declarations made available by the Terraform module for the task.
   - Variables are loaded in the order they appear in the files. Duplicate variables are overwritten with the later value. _Unless specified by the module, configure arguments for Terraform providers using [`terraform_provider` blocks](#terraform-provider)._
     ```hcl
@@ -183,6 +186,7 @@ task {
   }
 }
 ```
+
 - `regexp` - **(beta)** (string) Only services that have a name which matches the regular expression are used by the task. If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks.
 
 #### Catalog-Services Condition
@@ -219,7 +223,6 @@ task {
 - `node_meta` - (map[string]) The node metadata key/value pairs used to filter services. Only services registered at a node with the specified key/value pairs are used by the task.
 - `regexp` - (string) Optional if [`task.services`](/docs/nia/configuration#services) is configured. Either `regexp` or `task.services` or both must be configured. Only services that have a name which matches the regular expression are used by the task. If not provided, `regexp` will default to an exact match on `task.services` list. For example, if `task.services = ["api", "web"]`, then `regexp` will default to `^api$|^web$`. See [Task Execution: Catalog Services Condition](/docs/nia/tasks#catalog-services-condition) for more details on the relationship between `task.services` and `regexp`. Some resources for more information on regular expressions: [regular expression syntax](https://github.com/google/re2/wiki/Syntax), [try out regular expression string matching](https://golang.org/pkg/regexp/#Regexp.MatchString).
 - `source_includes_var` - (bool: false) Whether or not the module configured at [`task.source`](#source) includes the [`catalog_services` variable](/docs/nia/terraform-modules#catalog-services-variable). Please refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
-
 
 #### Consul KV Condition
 
@@ -273,7 +276,67 @@ task {
 }
 ```
 
-* `cron` - (string: required) The CRON expression that dictates the schedule to trigger the task. For more information on CRON expressions, see the [cronexpr parsing library](https://github.com/hashicorp/cronexpr).
+- `cron` - (string: required) The CRON expression that dictates the schedule to trigger the task. For more information on CRON expressions, see the [cronexpr parsing library](https://github.com/hashicorp/cronexpr).
+
+### Task Source Input
+
+You can add an optional `source_input` block to the `task` block. The `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Consul-Terraform-Sync supports the following source input types.
+
+-> **The source input block is only supported when using a schedule condition.** Adding a `source_input` block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
+
+#### Services Source Input
+
+This `services` source input object defines services registered to Consul whose metadata will be used as input to the Terraform Module. The following parameters are supported:
+
+| Parameter | Description                                                                                                                                                                                                                                                                                                                                                                | Default           | Required                                                      |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------- |
+| `regexp`  | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/> If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. <br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | empty string `””` | Optional unless the `task.services` option is not configured. |
+
+In the following example, the scheduled task queries all Consul services that have `web` as the suffix. The metadata of matching services are provided to the Terraform module.
+
+```hcl
+task {
+  name        = "schedule_condition_task"
+  description = "execute every Monday using information from service names starting with web"
+  source      = "path/to/module"
+  source_input “services” {
+    regexp = "^web.*"
+  }
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+}
+```
+
+#### Consul KV Source Input
+
+A Consul KV source input block defines changes to Consul KV that will be monitored. These changes will then be provided as input to the Terraform Module. The source input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
+
+| Parameter    | Description                                                                                                                                          | Default                                                                                                              | Required |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------- |
+| `path`       | String value that specifies the path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none                                                                                                                 | Required |
+| `recurse`    | Boolean value that enables Consul-Terraform-Sync to treat the path as a prefix. If set to `false`, the path will be treated as a literal match.      | `false`                                                                                                              | Optional |
+| `datacenter` | String value specifying the name of a datacenter to query for the task.                                                                              | Datacenter of the agent that Consul-Terraform-Sync queries.                                                          | Optional |
+| `namespace`  | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task.                                        | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. | Optional |
+
+In the following example, the scheduled task queries datacenter `dc1` in the `default` namespace for changes to the value held by the key `my-key`.
+
+```hcl
+task {
+  name        = "schedule_condition_task"
+  description = "execute every Monday using information from Consul KV entry my-key"
+  source      =  "path/to/module"
+  source_input "consul-kv" {
+    path       = "my-key"
+    recurse    = false
+    datacenter = "dc1"
+    namespace  = "default"
+  }
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+}
+```
 
 ## Network Drivers
 
@@ -352,7 +415,7 @@ driver "terraform-cloud" {
 - `organization` - (string) The Terraform Cloud organization that hosts the managed workspaces by Consul-Terraform-Sync. Can be overridden with the `TFC_ORGANIZATION` environment variable.
 - `token` - (string) Required [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Cloud and workspace management. Only workspace permissions are needed for Consul-Terraform-Sync. The token can also be provided using the `TFC_TOKEN` environment variable.
   - We recommend creating a dedicated team and team API token to isolate automation by Consul-Terraform-Sync from other Terraform Cloud operations.
-- `workspace_prefix` - (string) Specifies a prefix to prepend to the automatically-generated workspace names used for automation. This prefix will be used by all tasks that use this driver. By default, when no prefix is configured, the workspace name will be the task name. When a prefix is configured, the workspace name will be `<workspace_prefix value><task name>`. For example, if you configure the prefix as "cts_", then a task with the name "task_firewall" will have the workspace name "cts_task_firewall".
+- `workspace_prefix` - (string) Specifies a prefix to prepend to the automatically-generated workspace names used for automation. This prefix will be used by all tasks that use this driver. By default, when no prefix is configured, the workspace name will be the task name. When a prefix is configured, the workspace name will be `<workspace_prefix value><task name>`. For example, if you configure the prefix as "cts\_", then a task with the name "task_firewall" will have the workspace name "cts_task_firewall".
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This can be configured the same as how you would configure [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
 - `tls` - Configure TLS to allow HTTPS connections to [Terraform Enterprise](https://www.terraform.io/docs/enterprise/install/installer.html#tls-key-amp-cert).
   - `enabled` - (bool) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
