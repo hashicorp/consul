@@ -27,7 +27,7 @@ as |route|>
   loader.data
 as |nspace dc items topology|}}
   <div class="tab-section">
-    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not topology.DefaultAllow) (not topology.WildcardIntention))}}
+    {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0) (not-eq dc.DefaultACLPolicy 'allow') (not topology.wildcardIntention))}}
       <EmptyState>
         <BlockSlot @name="header">
           <h2>
@@ -46,84 +46,47 @@ as |nspace dc items topology|}}
         </BlockSlot>
       </EmptyState>
     {{else}}
-    {{#if topology.collapsible}}
-      <CollapsibleNotices>
-        {{#if topology.FilteredByACLs}}
-          <TopologyMetrics::Notice
-            data-test-notice='filtered-by-acls'
-            @type="info"
-            @for="limited-access"
-            @action={{false}}
-          />
-        {{/if}}
-        {{#if topology.DefaultAllow}}
-          <TopologyMetrics::Notice
-            data-test-notice='default-allow'
-            @type="warning"
-            @for="default-allow"
-            @internal={{true}}
-            @action={{true}}
-          />
-        {{/if}}
-        {{#if topology.WildcardIntention}}
-          <TopologyMetrics::Notice
-            data-test-notice='wildcard-intention'
-            @type="warning"
-            @for="wildcard-intention"
-            @internal={{true}}
-            @action={{true}}
-          />
-        {{/if}}
-        {{#if topology.notDefinedIntention}}
-          <TopologyMetrics::Notice
-            data-test-notice='not-defined-intention'
-            @type="warning"
-            @for="not-defined-intention"
-            @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
-            @internal={{false}}
-            @action={{true}}
-          />
-        {{/if}}
-      </CollapsibleNotices>
-    {{else}}
-      {{#if topology.FilteredByACLs}}
-          <TopologyMetrics::Notice
-            data-test-notice='filtered-by-acls'
-            @type="info"
-            @for="limited-access"
-            @action={{false}}
-          />
-        {{/if}}
-        {{#if topology.DefaultAllow}}
-          <TopologyMetrics::Notice
-            data-test-notice='default-allow'
-            @type="warning"
-            @for="default-allow"
-            @internal={{true}}
-            @action={{true}}
-          />
-        {{/if}}
-        {{#if topology.WildcardIntention}}
-          <TopologyMetrics::Notice
-            data-test-notice='wildcard-intention'
-            @type="warning"
-            @for="wildcard-intention"
-            @internal={{true}}
-            @action={{true}}
-          />
-        {{/if}}
-        {{#if topology.notDefinedIntention}}
-          <TopologyMetrics::Notice
-            data-test-notice='not-defined-intention'
-            @type="warning"
-            @for="not-defined-intention"
-            @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
-            @internal={{false}}
-            @action={{true}}
-          />
-        {{/if}}
-    {{/if}}
 
+  {{#let (collapsible-notices topology.FilteredByACLs (eq dc.DefaultACLPolicy 'allow') topology.wildcardIntention topology.notDefinedIntention) as |collapsible| }}
+    <CollapsibleNotices @collapsible={{collapsible}}>
+      {{#if topology.FilteredByACLs}}
+        <TopologyMetrics::Notice
+          data-test-notice='filtered-by-acls'
+          @type="info"
+          @for="limited-access"
+          @action={{false}}
+        />
+      {{/if}}
+      {{#if (eq dc.DefaultACLPolicy 'allow')}}
+        <TopologyMetrics::Notice
+          data-test-notice='default-allow'
+          @type="warning"
+          @for="default-allow"
+          @internal={{true}}
+          @action={{true}}
+        />
+      {{/if}}
+      {{#if topology.wildcardIntention}}
+        <TopologyMetrics::Notice
+          data-test-notice='wildcard-intention'
+          @type="warning"
+          @for="wildcard-intention"
+          @internal={{true}}
+          @action={{true}}
+        />
+      {{/if}}
+      {{#if topology.notDefinedIntention}}
+        <TopologyMetrics::Notice
+          data-test-notice='not-defined-intention'
+          @type="warning"
+          @for="not-defined-intention"
+          @link="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstreams"
+          @internal={{false}}
+          @action={{true}}
+        />
+      {{/if}}
+    </CollapsibleNotices>
+  {{/let}}
     <DataSource
       @src={{uri '/${partition}/${nspace}/${dc}/ui-config'
         (hash
@@ -136,7 +99,7 @@ as |nspace dc items topology|}}
     {{#if config.data}}
       <TopologyMetrics
         @nspace={{nspace}}
-        @dc={{dc.Name}}
+        @dc={{dc}}
         @service={{items.firstObject}}
         @topology={{topology}}
 
