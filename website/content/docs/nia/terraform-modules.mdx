@@ -22,9 +22,11 @@ Below are the two required elements for module compatibility with Consul-Terrafo
 
 ### Optional Input Variables
 
-Below are additional input variables provided by Consul-Terraform-Sync that may be included in a module alongside the `services` input variable. Details for each input variable contain guidance on when to include them in a module.
+In addition to the required `services` input variable, Consul-Terraform-Sync provides additional, optional input variables to be used within your module. Support for an optional input variable requires two changes:
+1. Updating the Terraform Module to declare the input variable in the suggested `variables.tf`
+1. Adding configuration to the Consul-Terraform-Sync task block to define the source input values that should be provided to the input variables
 
-- [**`catalog_services` input variable**](#catalog-services-variable) - This variable can optionally be included in modules for the [catalog-services condition](/docs/nia/tasks#catalog-services-condition). The declaration of the `catalog_services` input variable can be included at the top of the suggested `variables.tf` file alongside the required `services` input variable and other input variables. This variable functions as the response object from the [Consul catalog list services API](/api-docs/catalog#list-services) and surfaces registered services information. It is structured as a map of lists.
+See below sections for more information on [defining source input](#source-input) and [declaring optional input variables](#how-to-create-a-compatible-terraform-module) in your Terraform module.
 
 ### Source Input
 
