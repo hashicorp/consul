@@ -42,28 +42,9 @@ Below are details on the types of execution conditions that Consul-Terraform-Syn
 
 ### Services Condition
 
-The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
+The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on changes to a [services source input](/docs/nia/terraform-modules#services-source-input). These changes include changes to one or more services values, like IP address, adding or removing a service instance, or updating tags.
 
 In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services) or a regex must be configured in the task's `condition` block. Only one of these two options can be configured for a single task. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
-
-The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
-
-| Attribute               | Description                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `id`                    | A unique Consul ID for this service. This is unique per Consul agent.                             |
-| `name`                  | The logical name of the service. Many service instances may share the same logical service name.  |
-| `address`               | IP address of the service host -- if empty, node address should be used.                          |
-| `port`                  | Port number of the service                                                                        |
-| `meta`                  | List of user-defined metadata key/value pairs for the service                                     |
-| `tags`                  | List of tags for the service                                                                      |
-| `namespace`             | Consul Enterprise namespace of the service instance                                               |
-| `status`                | Representative status for the service instance based on an aggregate of the list of health checks |
-| `node`                  | Name of the Consul node on which the service is registered                                        |
-| `node_id`               | ID of the node on which the service is registered.                                                |
-| `node_address`          | The IP address of the Consul node on which the service is registered.                             |
-| `node_datacenter`       | Data center of the Consul node on which the service is registered.                                |
-| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
-| `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
 
 The services condition is the default behavior if no `condition` block is configured for a task. The two tasks below have equivalent behavior, which is to execute when any of the listed services have changes to the previously stated attributes.
 
@@ -105,9 +86,9 @@ task {
 
 ### Catalog-Services Condition
 
-Tasks with a catalog-services condition monitor and execute on service registration changes for services that satisfy the condition configuration. 'Service registration changes' specifically refers to service registration and deregistration where service registration occurs on the first service instance registration, and service deregistration occurs on the last service instance registration. Tasks with a catalog-services condition may, depending on the module, additionally monitor but not execute on service instance information.
+Tasks with a catalog-services condition execute on service registration changes for services that satisfy the condition configuration. 'Service registration changes' specifically refers to service registration and deregistration where service registration occurs on the first service instance registration, and service deregistration occurs on the last service instance registration.
 
-The catalog-services condition operates by monitoring the [Catalog List Services API](/api-docs/catalog#list-services) and executing the task when services are added or removed in the list of registered services. Note, the task does not execute on changes to the tags of the list of services. This is similar to how changes to service instance information, mentioned above, also does not execute a task.
+The catalog-services condition monitors [catalog-services source input](/docs/nia/terraform-modules#catalog-services-source-input) but does not execute on just any change to the source input. Even though the catalog-services source input object includes a list of tags, the task does not execute on changes to tags. It only executes when a service is added or removed from the object, which represents service registration changes.
 
 Below is an example configuration for a task that will execute when a service with a name that matches the "web.*" regular expression in datacenter "dc1" has a registration change. It additionally monitors but does not execute on service instance changes to "web-api" in datacenter "dc2".
 ```hcl
@@ -138,7 +119,7 @@ One particular condition configuration, [`regexp`](/docs/nia/configuration#regex
 
 ### Consul KV Condition
 
-Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and executing the task when a configured KV entry is created, deleted, or updated.
+Tasks with a consul-kv condition monitor and execute on Consul KV changes for KV pairs that satisfy the condition configuration. The consul-kv condition operates by monitoring the [Consul KV source input](/docs/nia/terraform-modules#consul-kv-source-input) and executing the task when a configured KV entry is created, deleted, or updated.
 
 Based on the `recurse` option, the condition either monitors a single Consul KV pair for a given path or monitors all pairs that are prefixed by that path. In the example below, because `recurse` is set to true, the `path` option is treated as a prefix. Changes to an entry with the key `my-key` and an entry with the key `my-key/another-key` would both trigger the task. If `recurse` were set to false, then only changes to `my-key` would trigger the task.
 
@@ -164,7 +145,7 @@ If the task condition's [`source_includes_var`](/docs/nia/configuration#source_i
 
 ### Schedule Condition
 
-All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure source input. As a result, inputs must be configured separately.  You can configure [`task.services`](/docs/nia/configuration#services) or a [`source_input` block](/docs/nia/configuration#source_input) to set the source input.
+All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure source input. As a result, inputs must be configured separately.  You can configure [`task.services`](/docs/nia/configuration#services) or a [`source_input` block](/docs/nia/configuration#source_input) to set the source input for the task.
 
 Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition’s [`cron`](/docs/nia/configuration#cron) configuration. The source input is defined by the `task.services` configuration. When the task is triggered on Monday, it will retrieve the latest information on 'web' and 'db' from Consul and provide this to the module’s input variables.
 
