@@ -54,7 +54,7 @@ require (
 	github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
 	github.com/hashicorp/memberlist v0.2.2
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.1.3
+	github.com/hashicorp/raft v1.1.4
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.9.4
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
