@@ -1,0 +1,5 @@
+@import './layout';
+
+.delete-confirmation {
+  @extend %delete-confirmation;
+}

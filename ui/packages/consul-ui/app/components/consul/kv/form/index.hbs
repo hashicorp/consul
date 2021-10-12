@@ -69,7 +69,7 @@
 {{/if}}
         <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
 {{#if (not disabld)}}
-        <ConfirmationDialog @message="Are you sure you want to delete this Key/Value entry?">
+        <ConfirmationDialog @message="Are you sure you want to delete this Key/Value entry?" @permanent="true">
           <BlockSlot @name="action" as |confirm|>
             <button data-test-delete type="button" class="type-delete" {{action confirm api.delete}} disabled={{api.disabled}}>Delete</button>
           </BlockSlot>

@@ -143,7 +143,7 @@ as |api|>
           </button>
 {{#if (not api.isCreate)}}
   {{#if (not-eq item.ID 'anonymous') }}
-          <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
+          <ConfirmationDialog @message="Are you sure you want to delete this Intention?" @permanent="true">
             <BlockSlot @name="action" as |confirm|>
               <button
                 data-test-delete

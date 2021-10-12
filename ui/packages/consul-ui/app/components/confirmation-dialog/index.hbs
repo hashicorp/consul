@@ -1,4 +1,4 @@
-<div class={{concat "with-confirmation" (if confirming " confirming" "")}} ...attributes>
+<div class={{concat "with-confirmation" (if confirming " confirming" "") (if permanent " permanent" "")}} ...attributes>
 {{yield}}
 <YieldSlot @name="action" @params={{block-params (action "confirm") (action "cancel")}}>
 {{#if (or permanent (not confirming))}}
