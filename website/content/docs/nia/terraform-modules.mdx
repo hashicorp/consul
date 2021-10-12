@@ -23,6 +23,7 @@ Below are the two required elements for module compatibility with Consul-Terrafo
 ### Optional Input Variables
 
 In addition to the required `services` input variable, Consul-Terraform-Sync provides additional, optional input variables to be used within your module. Support for an optional input variable requires two changes:
+
 1. Updating the Terraform Module to declare the input variable in the suggested `variables.tf`
 1. Adding configuration to the Consul-Terraform-Sync task block to define the source input values that should be provided to the input variables
 
@@ -283,7 +284,7 @@ Network infrastructure differs vastly across teams and organizations, and the au
 4. Set reasonable default values for variables that are optional, or omit default values for variables that are required module arguments.
 5. Set the [sensitive argument](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output) for variables that contain secret or sensitive values. When set, Terraform will redact the value from output when Terraform commands are run.
 
-Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
+Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from the source input. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
 
 ### Module Guidelines
 
