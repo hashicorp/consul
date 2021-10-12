@@ -249,6 +249,10 @@ func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 	}
 }
 
+func (c *CAManager) GetProvider() (ca.Provider, *structs.CARoot) {
+	return c.getCAProvider()
+}
+
 // setCAProvider is being called while holding the stateLock
 // which means it must never take that lock itself or call anything that does.
 func (c *CAManager) setCAProvider(newProvider ca.Provider, root *structs.CARoot) {

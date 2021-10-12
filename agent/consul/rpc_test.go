@@ -1324,7 +1324,7 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 	// Wait for ConnectCA initiation to complete.
 	retry.Run(t, func(r *retry.R) {
-		_, root := srv.caManager.getCAProvider()
+		_, root := srv.caManager.GetProvider()
 		if root == nil {
 			r.Fatal("ConnectCA root is still nil")
 		}
@@ -1381,7 +1381,7 @@ func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 
 	setupConnectCACert := func(name string) func(t *testing.T) string {
 		return func(t *testing.T) string {
-			_, caRoot := srv.caManager.getCAProvider()
+			_, caRoot := srv.caManager.GetProvider()
 			newCert(t, caRoot.RootCert, connectCApk, "node1", name)
 			return filepath.Join(dir, "node1-"+name)
 		}

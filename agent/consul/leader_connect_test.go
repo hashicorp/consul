@@ -325,7 +325,7 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 }
 
 func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
-	return s.caManager.getCAProvider()
+	return s.caManager.GetProvider()
 }
 
 func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
