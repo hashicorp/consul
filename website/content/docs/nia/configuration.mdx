@@ -162,7 +162,7 @@ task {
   - `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   - `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 - `condition` - (obj) The requirement that, when met, triggers Consul-Terraform-Sync to execute the task. When unconfigured, the default condition is to trigger the task on changes in the services configured in [`services`](#services). Only one `condition` may be configured per task. Consul-Terraform-Sync supports different types of conditions, which each have their own configuration options. See [Task Condition](#task-condition) configuration for full details on configuration options for each condition type.
-- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. When source input is empty, source input will be determined by the condition or services list. Only one `source_input` may be configured per task. Consul-Terraform-Sync supports different types of source input, each source input has their own configuration options. See [Task Source Input](#task-source-input) configuration for full details on configuration options for each source input type.
+- `source_input` - (obj) Specifies a Consul object containing values or metadata to be provided to the Terraform Module. When source input is empty, source input will be determined by the condition or services list. Only one `source_input` may be configured per task. Consul-Terraform-Sync supports different types of source input, each source input has their own configuration options. The source input block is currently only supported with [schedule condition](#schedule-condition). See [Task Source Input](#task-source-input) configuration for full details on configuration options for each source input type.
 - `terraform_version` - (string) <EnterpriseAlert inline /> The version of Terraform to use for the Terraform Cloud workspace associated with the task. Defaults to the latest compatible version supported by the organization. This option is only available when used with the [Terraform Cloud driver](#terraform-cloud-driver); otherwise, set the version within the [Terraform driver](#terraform-driver).
 
 ### Task Condition
@@ -283,7 +283,7 @@ task {
 
 You can add an optional `source_input` block to the `task` block. The `source_input` block specifies a Consul object containing values or metadata to be provided to the Terraform Module. Consul-Terraform-Sync supports the following source input types.
 
-~> **The source input block is only supported when using a schedule condition.** Adding a `source_input` block alongside any other type of condition will result in an error. To accomplish a similar behavior with other condition blocks, use the `source_includes_var` field.
+~> **The source input block is currently only supported when using a schedule condition.** Adding a `source_input` block alongside any other type of condition will result in an error. To accomplish a similar behavior with other condition blocks, use the `source_includes_var` field.
 
 #### Services Source Input
 

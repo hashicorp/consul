@@ -36,7 +36,7 @@ A task can also monitor, but not execute on, other variables that provide additi
 
 A source input can be specified that implicitly includes variables to be provided to the task’s module. For example, a task can specify a Consul KV source input. The specified KV keys or key paths would be monitored for changes. Any changes detected would be included as input information for the modules. The module determines the details of what values are monitored and what values can execute the task.
 
-~> **The source input block is only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
+~> **The source input block is currently only supported when using a schedule condition.** Adding a source input block alongside any other type of condition will result in an error. To accomplish a similar behaviour with other condition blocks, use the `source_includes_var` field.
 
 Below are details on the types of execution conditions that Consul-Terraform-Sync supports.
 
@@ -192,7 +192,7 @@ Scheduled tasks generally run on schedule, but they can be triggered on demand w
 
 - [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, Consul-Terraform-Sync first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
 
-- [Inspect mode](/docs/nia/cli#inspect-mode): For inspect mode, the inspected task will display the proposed changes for the tasks in the terminal and exit. Scheduled tasks will display proposed changes that would be made if the task was to run at that time even if not on schedule.
+- [Inspect mode](/docs/nia/cli#inspect-mode): When running in inspect mode, the terminal will output a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. The outputted plan for a scheduled task is also the proposed updates that would be made if the task was triggered at that moment, even if off-schedule.
 
 - [Once mode](/docs/nia/cli#once-mode): During the once mode, all tasks are only triggered one time. Scheduled tasks will execute during once mode even if not on the schedule.
 
