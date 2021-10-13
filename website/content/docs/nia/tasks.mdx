@@ -83,8 +83,7 @@ task {
   source = "path/to/services-condition-module"
   services = ["api", "db", "web"]
 
-  condition "services" {
-  }
+  condition "services" {}
 }
 ```
 
@@ -167,7 +166,7 @@ If the task condition's [`source_includes_var`](/docs/nia/configuration#source_i
 
 All scheduled tasks must be configured with a schedule condition. The schedule condition sets the cadence to trigger a task with a [`cron`](/docs/nia/configuration#cron) configuration. The schedule condition block does not support parameters to configure source input. As a result, inputs must be configured separately. You can configure [`task.services`](/docs/nia/configuration#services) or a [`source_input` block](/docs/nia/configuration#source_input) to set the source input.
 
-Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition’s [`cron`](/docs/nia/configuration#cron) configuration. The source input is defined by the `task.services` configuration. When the task is triggered on Monday, it will retrieve the latest information on 'web' and 'db' from Consul and provide this to the module’s input variables.
+Below is an example configuration for a task that will execute every Monday, which is set by the schedule condition’s [`cron`](/docs/nia/configuration#cron) configuration. The source input is defined by the `task.services` configuration. When the task is triggered on Monday, it will retrieve the latest information on "web" and "db" from Consul and provide this to the module’s input variables.
 
 ```hcl
 task {
@@ -175,6 +174,7 @@ task {
   description = "execute every Monday using service information from web and db"
   services = ["web", "db"]
   source = "path/to/module"
+
   condition "schedule" {
     cron = "* * * * Mon"
   }
@@ -192,7 +192,7 @@ Scheduled tasks generally run on schedule, but they can be triggered on demand w
 
 - [Long-running mode](/docs/nia/cli#long-running-mode): At the beginning of the long-running mode, Consul-Terraform-Sync first passes through a once-mode phase in which all tasks are executed once. Scheduled tasks will trigger once during this once-mode phase. This behavior also applies to tasks that are not scheduled. After once-mode has completed, scheduled tasks subsequently trigger on schedule.
 
-- [Inspect mode](/docs/nia/cli#inspect-mode): When running in inspect mode, the terminal will output a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. The outputted plan for a scheduled task is also the proposed updates that would be made if the task was triggered at that moment, even if off-schedule.
+- [Inspect mode](/docs/nia/cli#inspect-mode): When running in inspect mode, the terminal will output a plan of proposed updates that would be made if the tasks were to trigger at that moment and then exit. No changes are applied in this mode. The outputted plan for a scheduled task is also the proposed updates that would be made if the task was triggered at that moment, even if off-schedule.
 
 - [Once mode](/docs/nia/cli#once-mode): During the once mode, all tasks are only triggered one time. Scheduled tasks will execute during once mode even if not on the schedule.
 
