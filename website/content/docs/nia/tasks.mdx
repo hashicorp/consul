@@ -109,7 +109,7 @@ Tasks with a catalog-services condition monitor and execute on service registrat
 
 The catalog-services condition operates by monitoring the [Catalog List Services API](/api-docs/catalog#list-services) and executing the task when services are added or removed in the list of registered services. Note, the task does not execute on changes to the tags of the list of services. This is similar to how changes to service instance information, mentioned above, also does not execute a task.
 
-Below is an example configuration for a task that will execute when a service with a name that matches the "web.\*" regular expression in datacenter "dc1" has a registration change. It additionally monitors but does not execute on service instance changes to "web-api" in datacenter "dc2".
+Below is an example configuration for a task that will execute when a service with a name that matches the "web.*" regular expression in datacenter "dc1" has a registration change. It additionally monitors but does not execute on service instance changes to "web-api" in datacenter "dc2".
 
 ```hcl
 task {
