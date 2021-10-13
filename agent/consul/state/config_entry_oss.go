@@ -39,6 +39,10 @@ func getAllConfigEntriesWithTxn(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.Re
 	return tx.Get(tableConfigEntries, indexID)
 }
 
+func getAllConfigEntriesByKindWithTxn(tx ReadTxn, kind string) (memdb.ResultIterator, error) {
+	return getConfigEntryKindsWithTxn(tx, kind, nil)
+}
+
 func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(tableConfigEntries, indexID+"_prefix", ConfigEntryKindQuery{Kind: kind})
 }
