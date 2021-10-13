@@ -1,9 +1,8 @@
 import './style.css'
 import '@hashicorp/platform-util/nprogress/style.css'
 
-import * as Fathom from 'fathom-client'
-import { useEffect } from 'react'
-import Router, { useRouter } from 'next/router'
+import useFathomAnalytics from '@hashicorp/platform-analytics'
+import Router from 'next/router'
 import Head from 'next/head'
 import NProgress from '@hashicorp/platform-util/nprogress'
 import { ErrorBoundary } from '@hashicorp/platform-runtime-error-monitoring'
@@ -23,28 +22,9 @@ const { ConsentManager, openConsentManager } = createConsentManager({
 })
 
 export default function App({ Component, pageProps }) {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Load Fathom analytics
-    Fathom.load('WYQNPOVA', {
-      includedDomains: ['consul.io', 'www.consul.io'],
-    })
-
-    function onRouteChangeComplete() {
-      Fathom.trackPageview()
-    }
-
-    // Record a pageview when route changes
-    router.events.on('routeChangeComplete', onRouteChangeComplete)
-
-    // Unassign event listener
-    return () => {
-      router.events.off('routeChangeComplete', onRouteChangeComplete)
-    }
-  }, [])
-
+  useFathomAnalytics()
   useAnchorLinkAnalytics()
+
   return (
     <ErrorBoundary FallbackComponent={Error}>
       <HashiHead
