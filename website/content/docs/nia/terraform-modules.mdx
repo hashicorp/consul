@@ -22,9 +22,185 @@ Below are the two required elements for module compatibility with Consul-Terrafo
 
 ### Optional Input Variables
 
-Below are additional input variables provided by Consul-Terraform-Sync that may be included in a module alongside the `services` input variable. Details for each input variable contain guidance on when to include them in a module.
+In addition to the required `services` input variable, Consul-Terraform-Sync provides additional, optional input variables to be used within your module. Support for an optional input variable requires two changes:
 
- - [**`catalog_services` input variable**](#catalog-services-variable) - This variable can optionally be included in modules for the [catalog-services condition](/docs/nia/tasks#catalog-services-condition). The declaration of the `catalog_services` input variable can be included at the top of the suggested `variables.tf` file alongside the required `services` input variable and other input variables. This variable functions as the response object from the [Consul catalog list services API](/api-docs/catalog#list-services) and surfaces registered services information. It is structured as a map of lists.
+1. Updating the Terraform Module to declare the input variable in the suggested `variables.tf`
+1. Adding configuration to the Consul-Terraform-Sync task block to define the source input values that should be provided to the input variables
+
+See below sections for more information on [defining source input](#source-input) and [declaring optional input variables](#how-to-create-a-compatible-terraform-module) in your Terraform module.
+
+### Source Input
+
+A source input allows for a task to satisfy the input requirements defined by the Terraform Module’s [input variables](https://www.terraform.io/docs/language/values/variables.html), and is configured alongside a task’s condition. Both the source input and condition define objects to be monitored, but for differing reasons. The condition defines monitored objects with criteria. When this criteria is satisfied, Consul-Terraform-Sync will then trigger a task. The source input however, defines monitored objects with the intent of providing values or metadata about these objects to the Terraform Module. The source input and condition objects can be the same, such as when `task.services` is provided without a source input block and condition block, but they can also be defined using separate blocks. In this way the source input does not need to be tied to the provided condition in order to satisfy the Terraform Module.
+
+There are a few ways that a source input can be defined:
+
+- [**`services` list**](/docs/nia/configuration#services) - The list of services to act as a source input.
+- **`source_includes_var` condition field** - If the condition supports this field, and it is set to true, then the condition’s objects will be used as a source input. For example, if a module is defined supporting [`catalog_services` input variable](#catalog-services-variable) then, this field can be set to true in the [catalog-services condition](/docs/nia/tasks#catalog-services-condition).
+- [**`source_input` block**](/docs/nia/configuration#source-input) - This block specifically defines a source input.
+
+Multiple ways of defining a source input adds configuration flexibility, and allows for optional additional input variables to be supported by Consul-Terraform-Sync alongside the `services` input variable.
+
+These optional input variables include:
+
+- [**`catalog_services` variable**](#catalog-services-variable)
+- [**`consul_kv` variable**](#consul-kv-variable)
+
+#### Services Source Input
+
+Tasks configured with a services source input monitor for changes to services. Monitoring is either performed on a configured list of services or on any services matching a provided regex.
+
+Sample rendered services input:
+
+```hcl
+services = {
+  "web.test-server.dc1" = {
+    id              = "web"
+    name            = "web"
+    kind            = ""
+    address         = "127.0.0.1"
+    port            = 80
+    meta            = {}
+    tags            = ["example"]
+    namespace       = ""
+    status          = "passing"
+    node            = "pm8902"
+    node_id         = "307625d3-a1cf-9e85-ff81-12017ca4d848"
+    node_address    = "127.0.0.1"
+    node_datacenter = "dc1"
+    node_tagged_addresses = {
+      lan      = "127.0.0.1"
+      lan_ipv4 = "127.0.0.1"
+      wan      = "127.0.0.1"
+      wan_ipv4 = "127.0.0.1"
+    }
+    node_meta = {
+      consul-network-segment = ""
+    }
+  },
+}
+```
+
+In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
+
+- the task's [`services`](/docs/nia/configuration#services)
+- a [`condition "services"` block](/docs/nia/configuration#services-condition) configured with `regexp` and `source_includes_var` set to true
+- a [`source_input "services"` block](/docs/nia/configuration#services-source-input) configured with `regexp`
+
+The services source input operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and provides the latest service information to the input variables. A complete list of service information that would be provided to the module is expanded below:
+
+| Attribute               | Description                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `id`                    | A unique Consul ID for this service. The service id is unique per Consul agent.                   |
+| `name`                  | The logical name of the service. Many service instances may share the same logical service name.  |
+| `address`               | IP address of the service host -- if empty, node address should be used.                          |
+| `port`                  | Port number of the service                                                                        |
+| `meta`                  | List of user-defined metadata key/value pairs for the service                                     |
+| `tags`                  | List of tags for the service                                                                      |
+| `namespace`             | Consul Enterprise namespace of the service instance                                               |
+| `status`                | Representative status for the service instance based on an aggregate of the list of health checks |
+| `node`                  | Name of the Consul node on which the service is registered                                        |
+| `node_id`               | ID of the node on which the service is registered.                                                |
+| `node_address`          | The IP address of the Consul node on which the service is registered.                             |
+| `node_datacenter`       | Data center of the Consul node on which the service is registered.                                |
+| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
+| `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
+
+Below is an example configuration for a task that will execute on a schedule and provide information about the services matching the `regexp` parameter to the task’s module. Note that because `regexp` is set, `task.services` is omitted, and since a schedule is being used to trigger task execution, a `condition "services"` block cannot be used.
+
+```hcl
+task {
+  name = "services_condition_task"
+  description = "execute on changes to services whose name starts with web"
+  providers = ["my-provider"]
+  source = "path/to/services-condition-module"
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+  source_input "services" {
+    regexp = "^web.*"
+  }
+}
+```
+
+#### Consul KV Source Input
+
+Tasks configured with a Consul KV source input monitor Consul KV for changes to KV pairs that satisfy the provided configuration. The Consul KV source input operates by monitoring the [Consul KV API](/api-docs/kv#read-key) and provides these key values to the task’s module.
+
+Sample rendered consul KV input:
+
+```hcl
+consul_kv = {
+  "my-key" = "some value"
+}
+```
+
+To configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
+
+- a [`condition "consul-kv"` block](/docs/nia/configuration#consul-kv-condition) configured with the `source_includes_var` set to true.
+- a [`source_input "consul-kv"` block](/docs/nia/configuration#consul-kv-source-input).
+
+Below is a similar example to the one provided in the [Consul KV Condition](/docs/nia/tasks#consul-kv-condition) section. However, the difference in this example is that instead of triggering based on a change to Consul KV, this task will instead execute on a schedule. Once execution is triggered, Consul KV information is then provided to the task’s module.
+
+```hcl
+task {
+  name = "consul_kv_schedule_task"
+  description = "executes on Monday monitoring Consul KV"
+  providers = ["my-provider"]
+  services = ["web-api"]
+  source = "path/to/consul-kv-module"
+  source_input "consul-kv" {
+    path                = "my-key"
+    recurse             = true
+    datacenter          = "dc1"
+    namespace           = "default"
+  }
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+}
+```
+
+#### Catalog Services Source Input
+
+Tasks configured with a Catalog Services source input monitors for service and tag information provided by the [Catalog List Services API](/api-docs/catalog#list-services). The source input is a map of service names to a list of tags.
+
+Sample rendered catalog-services input:
+
+```hcl
+catalog_services = {
+  "api" = ["prod", "staging"]
+  "consul" = []
+  "web" = ["blue", "green"]
+}
+```
+
+To configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
+
+- a [`condition "catalog-services"` block](/docs/nia/configuration#consul-kv-condition) configured with `source_includes_var` set to true.
+
+-> **Note:** Currently there is no support for a `source_input “catalog-services”` block.
+
+Example of a catalog-services condition which supports source input through source_includes_var:
+
+```hcl
+task {
+  name = "catalog_services_condition_task"
+  description = "execute on registration/deregistration of services"
+  providers = ["my-provider"]
+  services = ["web-api"]
+  source = "path/to/catalog-services-module"
+  condition "catalog-services" {
+    datacenter          = "dc1"
+    namespace           = "default"
+    regexp              = "web.*"
+    source_includes_var = true
+    node_meta {
+      key = "value"
+    }
+  }
+}
+```
 
 ## How to Create a Compatible Terraform Module
 
@@ -147,7 +323,7 @@ Network infrastructure differs vastly across teams and organizations, and the au
 4. Set reasonable default values for variables that are optional, or omit default values for variables that are required module arguments.
 5. Set the [sensitive argument](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output) for variables that contain secret or sensitive values. When set, Terraform will redact the value from output when Terraform commands are run.
 
-Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
+Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from the source input. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
 
 ### Module Guidelines
 
