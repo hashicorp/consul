@@ -142,13 +142,13 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 	// order of the returned responses.
 	args.Match.Entries = make([]structs.IntentionMatchEntry, len(names))
 	for i, n := range names {
-		_, ns, name, err := parseIntentionStringComponent(n, &entMeta)
+		ap, ns, name, err := parseIntentionStringComponent(n, &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("name %q is invalid: %s", n, err)
 		}
 
 		args.Match.Entries[i] = structs.IntentionMatchEntry{
-			Partition: entMeta.PartitionOrEmpty(),
+			Partition: ap,
 			Namespace: ns,
 			Name:      name,
 		}
@@ -229,25 +229,24 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 		return nil, fmt.Errorf("required query parameter 'destination' not set")
 	}
 
-	// We parse them the same way as matches to extract namespace/name
+	// We parse them the same way as matches to extract partition/namespace/name
 	args.Check.SourceName = source[0]
 	if args.Check.SourceType == structs.IntentionSourceConsul {
-		// TODO(partitions): this func should return partition
-		_, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
+		ap, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Check.SourcePartition = entMeta.PartitionOrEmpty()
+		args.Check.SourcePartition = ap
 		args.Check.SourceNS = ns
 		args.Check.SourceName = name
 	}
 
 	// The destination is always in the Consul format
-	_, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
+	ap, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
-	args.Check.DestinationPartition = entMeta.PartitionOrEmpty()
+	args.Check.DestinationPartition = ap
 	args.Check.DestinationNS = ns
 	args.Check.DestinationName = name
 
@@ -286,21 +285,21 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	{
-		_, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
+		ap, ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Exact.SourcePartition = entMeta.PartitionOrEmpty()
+		args.Exact.SourcePartition = ap
 		args.Exact.SourceNS = ns
 		args.Exact.SourceName = name
 	}
 
 	{
-		_, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
+		ap, ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
-		args.Exact.DestinationPartition = entMeta.PartitionOrEmpty()
+		args.Exact.DestinationPartition = ap
 		args.Exact.DestinationNS = ns
 		args.Exact.DestinationName = name
 	}
@@ -566,21 +565,21 @@ func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta
 
 	var exact structs.IntentionQueryExact
 	{
-		_, ns, name, err := parseIntentionStringComponent(source[0], entMeta)
+		ap, ns, name, err := parseIntentionStringComponent(source[0], entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		exact.SourcePartition = entMeta.PartitionOrEmpty()
+		exact.SourcePartition = ap
 		exact.SourceNS = ns
 		exact.SourceName = name
 	}
 
 	{
-		_, ns, name, err := parseIntentionStringComponent(destination[0], entMeta)
+		ap, ns, name, err := parseIntentionStringComponent(destination[0], entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
-		exact.DestinationPartition = entMeta.PartitionOrEmpty()
+		exact.DestinationPartition = ap
 		exact.DestinationNS = ns
 		exact.DestinationName = name
 	}
