@@ -6,9 +6,11 @@ export default (clickable, deletable, collection, alias, roleForm) => (scope = '
     roles: alias('selectedOptions'),
     selectedOptions: collection(
       '[data-test-roles] [data-test-tabular-row]',
-      deletable({
-        actions: clickable('label'),
-      })
+      {
+        actions: clickable('label > button'),
+        delete: clickable('[data-test-delete]'),
+        confirmDelete: clickable('.informed-action button'),
+      }
     ),
   };
 };
