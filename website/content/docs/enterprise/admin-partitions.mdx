@@ -1,0 +1,91 @@
+---
+layout: docs
+page_title: Consul Enterprise Admin Partitions
+description: Consul Enterprise enables you to create paritions that can be administrated across namespaces.
+---
+
+# Consul Enterprise Admin Partitions
+
+<EnterpriseAlert>
+  This feature requires{' '}
+  <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a>{' '}
+  with the Governance and Policy module.
+</EnterpriseAlert>
+
+This topic provides and overview of admin partitions, which are entities that define one or more administrative boundaries for single Consul deployments. 
+
+## Introduction
+
+Admin partitions exist a level above namespaces in the identity hierarchy and contain one or more namespaces. Admin partitions support multiple independent namespaces with the same name. As a result, admin partitions enable you to define administrative and communcation boundaries between services managed by separate teams or belonging to separate stakeholders. They can also segment production and non-production services within the Consul deployment. 
+
+### Default Admin Partition
+
+Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will exist in the default partition.
+
+The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters.
+
+### Naming Admin Partitions
+
+Only characters that are valid in DNS names can be used to name admin partitions.
+Names must also start with a letter.
+
+### Namespaces
+
+When an admin partition is created, it will include a `default` namespace. You can create additional namespaces within the partition. 
+
+All namespaces must exist within an admin partition. By extension, the partition will also contain all namespaced resources. 
+
+Within a single datacenter, a namespace in one admin partition is logically separate from any other namespace with the same name in other admin partitions. 
+
+### Cross-datacenter Replication
+
+Only resources in the default admin partition will be replicated to secondary datacenters.
+
+
+### DNS Queries
+
+Client agents will be configured to operate within a specific admin partition. The DNS interface will only return results for a single admin partition.  
+
+### Service Mesh Configurations
+
+Values specified for [`proxy-defaults`](docs/connect/config-entries/proxy-defaults) configurations are scoped to a specific partition. Services registered in the partition will use the partition's `proxy-defaults` values.
+
+
+
+## Requirements
+
+In client agent configurations, the admin partition name should be specified in the agent configuration:
+
+```hcl
+partition = "<NAME>"
+```
+The anti-entropy sync will use the configured admin partition name when registering the node. 
+
+The agent token used by the client agent will need to allow `node:write` in the admin partition. 
+
+The `read` permission for `proxy-defaults` require `admin_partition:read` for the specific partition. The `write` permission for proxy-defaults require `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information
+
+Any queries for the proxy-defaults config entry must include the appropriate `EnterpriseMeta`, which specifies the admin partition.
+
+The write permissions for ingress and terminating gateways must be `operator:write`.
+
+Existing intentions must be set to `deny` all traffic from outside the admin partition.
+
+Any map keys used to compile the [discovery chain](/docs/connect/l7-traffic/discovery-chain) must include the admin partition name.
+
+Wildcards (`*`) are not supported when creating intentions for admin partitions. 
+
+
+## Usage
+
+You can use create and manage admin partitions through the CLI. Refer to the [admin partition CLI documentation](/commands/admin-partition) for details. 
+
+The expected use case to create admin partitions on Kubernetes clusters. Refer to the following documentation and tutorial for instructions:
+
+* [Service Mesh](/docs/k8s/connect)
+* LINK TO TUTORIAL
+
+## Known Limitations
+
+* Gossip between nodes in different admin partitions must be constrained. You can accomplish this with through the use of [network segments](network-segments).
+* Cross-partition communication is not currently supported. 

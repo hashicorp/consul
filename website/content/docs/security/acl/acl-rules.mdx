@@ -611,3 +611,26 @@ only be done within the default namespace.
 This means that rules and policies will be implicitly namespaced and do not need additional configuration.
 The restrictions outlined above will apply to these rules and policies. Additionally, rules and policies within a
 specific namespace are prevented from accessing resources in another namespace.
+
+#### Admin Partition Rules <EnterpriseAlert inline />
+
+The `admin_partition` and `admin_partition_prefix` rules define the scope to one or more admin partitions. The `mesh` resource controls access to the `partition` API. You can include any number of namespace rules. In the following example, the agent has write access to the `ex-namespace` namespace, as well as namespaces prefixed with `ex-` in the `example` partition:
+
+```hcl
+admin_partition "example" { 
+  mesh = "write"
+  node "my-node" { 
+    policy = "write"
+  }
+    ...
+  namespace "ex-namespace" {
+    ... 
+  }
+  namespace_prefix "exns-" { 
+    ...
+  } 
+}
+admin_partition_prefix "ex-" { 
+  ... (Same as above)
+}
+```
