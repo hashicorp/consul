@@ -348,6 +348,13 @@ func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.
 	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
+func makeNodeFQDN(questionName, node, dc, domain, altDomain string) string {
+	if altDomain != "." && strings.HasSuffix(questionName, altDomain) {
+		return fmt.Sprintf("%s.node.%s.%s", node, dc, altDomain)
+	}
+	return fmt.Sprintf("%s.node.%s.%s", node, dc, domain)
+}
+
 // handlePtr is used to handle "reverse" DNS queries
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
@@ -1629,11 +1636,7 @@ func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.Che
 	}
 
 	if q.Qtype == dns.TypeSRV {
-		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.domain)
-
-		if d.altDomain != "." && strings.HasSuffix(q.Name, d.altDomain) {
-			nodeFQDN = fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.altDomain)
-		}
+		nodeFQDN := makeNodeFQDN(q.Name, serviceNode.Node.Node, dc, d.domain, d.altDomain)
 
 		answers := []dns.RR{
 			&dns.SRV{
@@ -1841,13 +1844,9 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 		resp.Answer = append(resp.Answer, answers...)
 		resp.Extra = append(resp.Extra, extra...)
 
-		nodeFqdn := fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain)
-		if d.altDomain != "." && strings.HasSuffix(req.Question[0].Name, d.altDomain) {
-			nodeFqdn = fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.altDomain)
-		}
-
+		nodeFQDN := makeNodeFQDN(req.Question[0].Name, node.Node.Node, dc, d.domain, d.altDomain)
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.generateMeta(nodeFqdn, node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.generateMeta(nodeFQDN, node.Node, ttl)...)
 		}
 	}
 }
