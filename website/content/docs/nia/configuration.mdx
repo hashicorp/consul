@@ -147,14 +147,19 @@ task {
 
 - `variable_files` - (list[string]) Specifies list of paths to [Terraform variable definition files (`.tfvars`)](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files). The content of these files should consist of only variable name assignments. The variable assignments must match the corresponding variable declarations made available by the Terraform module for the task.
   - Variables are loaded in the order they appear in the files. Duplicate variables are overwritten with the later value. _Unless specified by the module, configure arguments for Terraform providers using [`terraform_provider` blocks](#terraform-provider)._
+
+    <CodeBlockConfig filename="example.tfvars">
+
     ```hcl
-    # example.tfvars
     address_group = "consul-services"
     tags = [
       "consul-terraform-sync",
       "terraform"
     ]
     ```
+
+    </CodeBlockConfig>
+
 - `version` - (string) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
 - `working_dir` - (string) The working directory to manage generated artifacts by Consul-Terraform-Sync for this task, including Terraform configuration files. By default, a working directory is created for each task as a subdirectory in the base [`working_dir`](#working_dir), e.g. `sync-tasks/task-name`.
 - `buffer_period` - Configures the buffer period for a dynamic task to dampen the effects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping. Buffer periods do not apply to scheduled tasks.
@@ -401,7 +406,7 @@ Only one network driver can be configured per deployment of Consul-Terraform-Syn
 
 ```hcl
 driver "terraform-cloud" {
-  hostname     = "my.tfe.hostname.io"
+  hostname     = "https://app.terraform.io"
   organization = "my-org"
   token        = "<TEAM_TOKEN>"
   // Optionally set the token to be securely queried from Vault instead of
@@ -459,7 +464,7 @@ driver "terraform" {
 }
 
 terraform_provider "aws" {
-  # Configuration options
+  // Configuration options
   region = "us-east-1"
 }
 
