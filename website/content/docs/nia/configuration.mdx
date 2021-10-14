@@ -253,7 +253,7 @@ task {
 - `recurse` - (bool: false) Setting to `true` instructs Consul-Terraform-Sync to treat the path as a prefix instead of a literal match.
 - `datacenter` - (string) The datacenter of the services to query for the task. If not provided, the datacenter will default to the datacenter of the agent that Consul-Terraform-Sync queries.
 - `namespace` <EnterpriseAlert inline /> - (string) The namespace of the services to query for the task. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token or default to the `default` namespace.
-- `source_includes_var` - (bool: false) If set to `true`, then Consul-Terraform-Sync will include the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) as a module input. Refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
+- `source_includes_var` - (bool: false) If set to `true`, then Consul-Terraform-Sync will include the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) as an input to the module specified in `task.source`. Refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
 
 #### Schedule Condition
 
