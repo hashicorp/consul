@@ -253,7 +253,7 @@ task {
 - `recurse` - (bool: false) Setting to `true` instructs Consul-Terraform-Sync to treat the path as a prefix instead of a literal match.
 - `datacenter` - (string) The datacenter of the services to query for the task. If not provided, the datacenter will default to the datacenter of the agent that Consul-Terraform-Sync queries.
 - `namespace` <EnterpriseAlert inline /> - (string) The namespace of the services to query for the task. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token or default to the `default` namespace.
-- `source_includes_var` - (bool: false) If set to `true`, then Consul-Terraform-Sync will include the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) as a source input. Refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
+- `source_includes_var` - (bool: false) If set to `true`, then Consul-Terraform-Sync will include the [`consul_kv` variable](/docs/nia/terraform-modules#consul-kv-variable) as an input to the module specified in `task.source`. Refer to the documentation of the selected module for guidance on how to configure this field. If configured inconsistently with the module, Consul-Terraform-Sync will error and exit.
 
 #### Schedule Condition
 
@@ -289,9 +289,9 @@ You can add an optional `source_input` block to the `task` block. The `source_in
 
 This `services` source input object defines services registered to Consul whose metadata will be used as [services source input to the Terraform Module](/docs/nia/terraform-modules/#services-source-input). The following parameters are supported:
 
-| Parameter | Description                                                                                                                                                                                                                                                                                                                                                                          | Default           | Required                                                      |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- | ------------------------------------------------------------- |
-| `regexp`  | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | empty string `""` | Optional unless the `task.services` option is not configured. |
+| Parameter |  Required |Description | Default |
+| --------- | --------- | ---------- | ------- |
+| `regexp` |  Optional | String value matching the names of Consul services to monitor. Only services that have a name matching the regular expression are used by the task. <br/><br/> If `regexp` is configured, then [`task.services`](#services) must be omitted or empty. <br/><br/> If both a list and a regex are needed, consider including the list as part of the regex or creating separate tasks. | none |
 
 In the following example, the scheduled task queries all Consul services with `web` as the suffix. The metadata of matching services are provided to the Terraform module.
 
@@ -300,11 +300,13 @@ task {
   name        = "schedule_condition_task"
   description = "execute every Monday using information from service names starting with web"
   source      = "path/to/module"
-  source_input “services” {
-    regexp = "^web.*"
-  }
+
   condition "schedule" {
     cron = "* * * * Mon"
+  }
+
+  source_input “services” {
+    regexp = "^web.*"
   }
 }
 ```
@@ -313,28 +315,30 @@ task {
 
 A Consul KV source input block defines changes to Consul KV that will be monitored. These changes will then be provided as [Consul KV source input to the Terraform Module](/docs/nia/terraform-modules/#consul-kv-source-input). The source input can be configured for a single Consul KV entry or for any Consul KV entries that are prefixed with a given path. The following parameters are supported:
 
-| Parameter    | Description                                                                                                                                          | Default                                                                                                              | Required |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------- |
-| `path`       | String value that specifies the path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none                                                                                                                 | Required |
-| `recurse`    | Boolean value that enables Consul-Terraform-Sync to treat the path as a prefix. If set to `false`, the path will be treated as a literal match.      | `false`                                                                                                              | Optional |
-| `datacenter` | String value specifying the name of a datacenter to query for the task.                                                                              | Datacenter of the agent that Consul-Terraform-Sync queries.                                                          | Optional |
-| `namespace`  | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task.                                        | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. | Optional |
+| Parameter | Required | Description | Default |
+| --------- | -------- | ----------- | ------- |
+| `path` | Required | String value that specifies the path of the key used by the task. The path can point to a single Consul KV entry or several entries within the path. | none |
+| `recurse` | Optional | Boolean value that enables Consul-Terraform-Sync to treat the path as a prefix. If set to `false`, the path will be treated as a literal match. | `false` |
+| `datacenter` | Optional | String value specifying the name of a datacenter to query for the task. | Datacenter of the agent that Consul-Terraform-Sync queries. |
+| `namespace`  | Optional | <EnterpriseAlert inline /> <br/> String value indicating the namespace of the services to query for the task. | In order of precedence: <br/> 1. Inferred from the Consul-Terraform-Sync ACL token <br/> 2. The `default` namespace. |
 
 In the following example, the scheduled task queries datacenter `dc1` in the `default` namespace for changes to the value held by the key `my-key`.
 
 ```hcl
 task {
-  name        = "schedule_condition_task"
+  name        = "schedule_condition_task_kv"
   description = "execute every Monday using information from Consul KV entry my-key"
   source      =  "path/to/module"
+
+  condition "schedule" {
+    cron = "* * * * Mon"
+  }
+
   source_input "consul-kv" {
     path       = "my-key"
     recurse    = false
     datacenter = "dc1"
     namespace  = "default"
-  }
-  condition "schedule" {
-    cron = "* * * * Mon"
   }
 }
 ```

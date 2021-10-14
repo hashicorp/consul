@@ -31,7 +31,11 @@ See below sections for more information on [defining source input](#source-input
 
 ### Source Input
 
-A source input allows for a task to satisfy the input requirements defined by the Terraform Module’s [input variables](https://www.terraform.io/docs/language/values/variables.html), and is configured alongside a task’s condition. Both the source input and condition define objects to be monitored, but for differing reasons. The condition defines monitored objects with criteria. When this criteria is satisfied, Consul-Terraform-Sync will then trigger a task. The source input however, defines monitored objects with the intent of providing values or metadata about these objects to the Terraform Module. The source input and condition objects can be the same, such as when `task.services` is provided without a source input block and condition block, but they can also be defined using separate blocks. In this way the source input does not need to be tied to the provided condition in order to satisfy the Terraform Module.
+A source input allows for a task to satisfy the input requirements defined by the Terraform Module’s [input variables](https://www.terraform.io/docs/language/values/variables.html), and is configured alongside a task’s condition. Both the source input and condition define objects to be monitored, but for differing reasons.
+
+The condition defines monitored objects with criteria. When this criteria is satisfied, Consul-Terraform-Sync will then trigger a task.
+
+The source input however, defines monitored objects with the intent of providing values or metadata about these objects to the Terraform Module. The source input and condition objects can be the same, such as when `task.services` is provided without a source input block and condition block, but they can also be defined using separate blocks. In this way the source input does not need to be tied to the provided condition in order to satisfy the Terraform Module.
 
 There are a few ways that a source input can be defined:
 
@@ -51,6 +55,8 @@ These optional input variables include:
 Tasks configured with a services source input monitor for changes to services. Monitoring is either performed on a configured list of services or on any services matching a provided regex.
 
 Sample rendered services input:
+
+<CodeBlockConfig filename="terraform.tfvars">
 
 ```hcl
 services = {
@@ -80,6 +86,8 @@ services = {
   },
 }
 ```
+
+</CodeBlockConfig>
 
 In order to configure a task with the services source input, the list of services that will be used for the input must be configured in one of the following ways:
 
@@ -129,11 +137,15 @@ Tasks configured with a Consul KV source input monitor Consul KV for changes to 
 
 Sample rendered consul KV input:
 
+<CodeBlockConfig filename="terraform.tfvars">
+
 ```hcl
 consul_kv = {
   "my-key" = "some value"
 }
 ```
+
+</CodeBlockConfig>
 
 To configure a task with the Consul KV source input, the KVs which will be used for the input must be configured in one of the following ways:
 
@@ -167,13 +179,17 @@ Tasks configured with a Catalog Services source input monitors for service and t
 
 Sample rendered catalog-services input:
 
+<CodeBlockConfig filename="terraform.tfvars">
+
 ```hcl
 catalog_services = {
-  "api" = ["prod", "staging"]
+  "api"    = ["prod", "staging"]
   "consul" = []
-  "web" = ["blue", "green"]
+  "web"    = ["blue", "green"]
 }
 ```
+
+</CodeBlockConfig>
 
 To configure a task with the Catalog Services source input, the catalog services which will be used for the input must be configured in one of the following ways:
 
@@ -181,7 +197,7 @@ To configure a task with the Catalog Services source input, the catalog services
 
 -> **Note:** Currently there is no support for a `source_input “catalog-services”` block.
 
-Example of a catalog-services condition which supports source input through source_includes_var:
+Example of a catalog-services condition which supports source input through `source_includes_var`:
 
 ```hcl
 task {
@@ -268,6 +284,8 @@ Keys of the `services` map are unique identifiers of the service across Consul a
 
 Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows Consul-Terraform-Sync to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with Consul-Terraform-Sync may simplify the `var.services` declaration within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
 
+<CodeBlockConfig filename="variables.tf">
+
 ```hcl
 variable "services" {
   description = "Consul services monitored by Consul-Terraform-Sync"
@@ -283,9 +301,13 @@ variable "services" {
 }
 ```
 
+</CodeBlockConfig>
+
 ### Catalog Services Variable
 
 If you are creating a module for a [catalog-services condition](/docs/nia/tasks#catalog-services-condition), then you have the option to add the `catalog_services` variable, which contains service registration and tag information. If your module would benefit from consuming this information, you can copy the `catalog_services` variable declaration to your `variables.tf` file in addition to the other variables.
+
+<CodeBlockConfig filename="variables.tf">
 
 ```hcl
 variable "catalog_services" {
@@ -293,6 +315,8 @@ variable "catalog_services" {
   type = map(list(string))
 }
 ```
+
+</CodeBlockConfig>
 
 The keys of the `catalog_services` map are the names of the services that are registered with Consul at the given datacenter. The value for each service name is a list of all known tags for that service.
 
@@ -304,12 +328,16 @@ Similarly, if you include the `catalog_services` variable in your module, we rec
 
 If you are creating a module for a [consul-kv condition](/docs/nia/tasks#consul-kv-condition), then you have the option to add the `consul_kv` variable, which contains a map of the keys and values for the Consul KV pairs. If your module would benefit from consuming this information, you can copy the `consul_kv` variable declaration to your `variables.tf` file in addition to the other variables.
 
+<CodeBlockConfig filename="variables.tf">
+
 ```hcl
 variable "consul_kv" {
 	description = "Keys and values of the Consul KV pairs monitored by Consul-Terraform-Sync"
 	type = map(string)
 }
 ```
+
+</CodeBlockConfig>
 
 If your module contains the `consul_kv` variable, we recommend documenting the usage in the README file so that users know to set the [`source_includes_var`](/docs/nia/configuration#source_includes_var-1) configuration to `true` in the `consul-kv` condition. Setting the field to `true` instructs Consul-Terraform-Sync to declare the `consul_kv` variable in the generated root module and pass the variable to a child module. Therefore, if this field is configured inconsistently, Consul-Terraform-Sync will error and exit.
 
