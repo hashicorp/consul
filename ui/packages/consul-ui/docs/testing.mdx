@@ -21,14 +21,14 @@ oriented targets as a human.
 ### Running a single test
 
 Please use the same `make test-oss-view` command to get the tests up and
-running. One you have opened your browser window to view the tests, click the
+running. Once you have opened your browser window to view the tests, click the
 [Abort] button to stop the test running. Then use the QUnit filter input text
 field to filter by the tests you want to run.
 
 Please note: Currently the QUnit runner we depend on has an unfortunate UX
 issue which means the filter input field is obscured by the frame used to run
 your tests in. Until this is fixed in a version of QUnit we use, you can use
-one of our bookmarklets to easily toggle the visibility of this window (you
+the Toggle QUnit Display bookmarklet to easily toggle the visibility of this window (you
 should drag the below link to your browser bookmark bar, then clicking it
 whilst on the test runner will hide the display):
 
@@ -78,7 +78,7 @@ In CI these tests are run by a machine by using:
 make test
 ```
 
-..but again as a human, please don't do that, it takes a long time. PRs are
+...but again as a human, please don't do that, it takes a long time. PRs are
 blocked for merge until these tests pass CI, i.e. the machine will run it for
 you.
 
@@ -179,7 +179,7 @@ complex selectors.
 ### Integration testing
 
 We use `sinon` for making mocks for testing that systems work well together,
-other than that please see Embers own documentation for writing tests.
+other than that please see Ember's own documentation for writing tests.
 
 __Remember__: Integration testing does not mean 'component tests' it means
 checking to make sure the units of a system work well together.
@@ -190,9 +190,9 @@ work on the component. If somebody needs to change the component in future
 this means they already have test scenarios enabled/arranged for them to use.
 Components should generally be small things, or made up of further small
 components that are individually testable in isolation. There shouldn't be
-much logic required in a new component and if there is and its important
-enough to need testing that you should consider splitting the logic off and
-testing it outside of the component, either via integration testing and/or
+much logic required in a new component. And if there is, and it's important
+enough to need testing, you should consider splitting the logic off and
+testing it outside of the component via integration testing and/or
 unit testing. One day we will have 'acceptance testing' for individual
 components so we can ensure the component works in a way that is acceptable.
 
@@ -207,7 +207,7 @@ tests (apart from Ember's test harness).
 We do have coverage enabled for most of our unit tests, but it's not something
 we generally use/keep an eye on. Coverage shouldn't necessarily be used as a
 yard stick. We have it enabled for folks that find it useful/beneficial and
-whilst good coverage is a positive its not always an essential.
+whilst good coverage is a positive it's not always an essential.
 
 Coverage is run in CI but you can also run it locally with:
 
