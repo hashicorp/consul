@@ -101,6 +101,8 @@ export default function(config = {}, win = window, doc = document) {
           : operatorConfig.PartitionsEnabled;
       case 'CONSUL_DATACENTER_LOCAL':
         return operatorConfig.LocalDatacenter;
+      case 'CONSUL_DATACENTER_PRIMARY':
+        return operatorConfig.PrimaryDatacenter;
       case 'CONSUL_UI_CONFIG':
         dashboards = {};
         provider = env('CONSUL_METRICS_PROVIDER');

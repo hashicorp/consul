@@ -83,6 +83,7 @@ module.exports = function(environment, $ = process.env) {
       SSOEnabled: false,
       PartitionsEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+      PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
     },
 
     // Static variables used in multiple places throughout the UI
@@ -105,6 +106,7 @@ module.exports = function(environment, $ = process.env) {
           SSOEnabled: env('CONSUL_SSO_ENABLED', false),
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', false),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+          PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
         },
 
         '@hashicorp/ember-cli-api-double': {
@@ -143,6 +145,7 @@ module.exports = function(environment, $ = process.env) {
           SSOEnabled: env('CONSUL_SSO_ENABLED', true),
           PartitionsEnabled: env('CONSUL_PARTITIONS_ENABLED', true),
           LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+          PrimaryDatacenter: env('CONSUL_DATACENTER_PRIMARY', 'dc1'),
         },
 
         '@hashicorp/ember-cli-api-double': {
