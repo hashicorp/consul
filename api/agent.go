@@ -84,7 +84,7 @@ type AgentService struct {
 	Meta              map[string]string
 	Port              int
 	Address           string
-	SocketPath        string
+	SocketPath        string                    `json:",omitempty"`
 	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
