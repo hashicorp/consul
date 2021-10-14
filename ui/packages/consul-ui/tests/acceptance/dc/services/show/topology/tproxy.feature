@@ -18,14 +18,25 @@ Feature: dc / services / show / topology / tproxy
         Name: web
         Kind: ~
     ---
-  Scenario: Deafult allow is set to true
+  Scenario: Default allow is set to true
     Given 1 topology model from yaml
     ---
       FilteredByACLs: false
       TransparentProxy: false
-      DefaultAllow: true
-      WildcardIntention: false
+      Downstreams:
+        - Name: db-1
+          Namespace: default
+          Datacenter: datacenter
+          Intention:
+            Allowed: false
+      Upstreams:
+        - Name: db-2
+          Namespace: default
+          Datacenter: datacenter
+          Intention:
+            Allowed: false
     ---
+    And the default ACL policy is "allow"
     When I visit the service page for yaml
     ---
       dc: datacenter
@@ -33,13 +44,24 @@ Feature: dc / services / show / topology / tproxy
     ---
     Then the url should be /datacenter/services/web/topology
     And I see the tabs.topologyTab.defaultAllowNotice object
-  Scenario: WildcardIntetions and FilteredByACLs are set to true
+  Scenario: A Downstream service has a wildcard intention
     Given 1 topology model from yaml
     ---
       FilteredByACLs: true
       TransparentProxy: false
-      DefaultAllow: false
-      WildcardIntention: true
+      Downstreams:
+        - Name: db-1
+          Namespace: default
+          Datacenter: datacenter
+          Intention:
+            Allowed: true
+            HasExact: false
+      Upstreams:
+        - Name: db-2
+          Namespace: default
+          Datacenter: datacenter
+          Intention:
+            Allowed: false
     ---
     When I visit the service page for yaml
     ---

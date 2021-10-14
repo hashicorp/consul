@@ -69,9 +69,9 @@ export default class TopologyMetrics extends Component {
   get upstreams() {
     const upstreams = get(this.args.topology, 'Upstreams') || [];
     const items = [...upstreams];
-    const defaultAllow = get(this.args.topology, 'DefaultAllow');
-    const wildcardIntention = get(this.args.topology, 'WildcardIntention');
-    if (defaultAllow || wildcardIntention) {
+    const defaultACLPolicy = get(this.args.dc, 'DefaultACLPolicy');
+    const wildcardIntention = get(this.args.topology, 'wildcardIntention');
+    if (defaultACLPolicy === 'allow' || wildcardIntention) {
       items.push({
         Name: '* (All Services)',
         Datacenter: '',

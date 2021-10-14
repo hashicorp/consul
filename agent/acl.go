@@ -150,11 +150,11 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	}
 
 	var authzContext acl.AuthorizerContext
-	a.agentEnterpriseMeta().FillAuthzContext(&authzContext)
 	// Filter out members based on the node policy.
 	m := *members
 	for i := 0; i < len(m); i++ {
 		node := m[i].Name
+		serfMemberFillAuthzContext(&m[i], &authzContext)
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}

@@ -83,7 +83,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
-	gauges, counters, summaries := getPrometheusDefs(cfg.Telemetry)
+	isServer := result.RuntimeConfig.ServerMode
+	gauges, counters, summaries := getPrometheusDefs(cfg.Telemetry, isServer)
 	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
 	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
 	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
@@ -187,7 +188,7 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 //  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
-func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
+func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
 	// TODO: "raft..." metrics come from the raft lib and we should migrate these to a telemetry
 	//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
 	raftGauges := []prometheus.GaugeDefinition{
@@ -204,7 +205,6 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 	// Build slice of slices for all gauge definitions
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
-		consul.AutopilotGauges,
 		consul.RPCGauges,
 		consul.SessionGauges,
 		grpc.StatsGauges,
@@ -214,6 +214,11 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		consul.CertExpirationGauges,
 		Gauges,
 		raftGauges,
+	}
+
+	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc
+	if isServer {
+		gauges = append(gauges, consul.AutopilotGauges)
 	}
 
 	// Flatten definitions
