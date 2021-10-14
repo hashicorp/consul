@@ -124,7 +124,7 @@ func (c *Catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMet
 	r := c.c.newRequest("PUT", "/v1/catalog/register")
 	r.setWriteOptions(q)
 	r.obj = reg
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 	r := c.c.newRequest("PUT", "/v1/catalog/deregister")
 	r.setWriteOptions(q)
 	r.obj = dereg
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 // Datacenters is used to query for all the known datacenters
 func (c *Catalog) Datacenters() ([]string, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/datacenters")
-	_, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (c *Catalog) Datacenters() ([]string, error) {
 func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/nodes")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -193,7 +193,7 @@ func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 func (c *Catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/services")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -250,7 +250,7 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 			r.params.Add("tag", tag)
 		}
 	}
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -271,7 +271,7 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/node/"+node)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	err := requireOK(c.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}

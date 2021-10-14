@@ -133,7 +133,7 @@ type LeafCert struct {
 func (h *Connect) CARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/ca/roots")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	err := requireOK(h.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}

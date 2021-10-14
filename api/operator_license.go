@@ -62,7 +62,7 @@ func (op *Operator) LicenseGetSigned(q *QueryOptions) (string, error) {
 	r := op.c.newRequest("GET", "/v1/operator/license")
 	r.params.Set("signed", "1")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +85,7 @@ func (op *Operator) LicenseReset(opts *WriteOptions) (*LicenseReply, error) {
 	var reply LicenseReply
 	r := op.c.newRequest("DELETE", "/v1/operator/license")
 	r.setWriteOptions(opts)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (op *Operator) LicensePut(license string, opts *WriteOptions) (*LicenseRepl
 	r := op.c.newRequest("PUT", "/v1/operator/license")
 	r.setWriteOptions(opts)
 	r.body = strings.NewReader(license)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}

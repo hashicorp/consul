@@ -36,7 +36,7 @@ func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
 func (op *Operator) KeyringList(q *QueryOptions) ([]*KeyringResponse, error) {
 	r := op.c.newRequest("GET", "/v1/operator/keyring")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (op *Operator) KeyringRemove(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	r.obj = keyringRequest{
 		Key: key,
 	}
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err
 	}

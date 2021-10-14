@@ -25,7 +25,7 @@ func (c *Client) Debug() *Debug {
 // Heap returns a pprof heap dump
 func (d *Debug) Heap() ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/heap")
-	_, resp, err := requireOK(d.c.doRequest(r))
+	err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
@@ -48,7 +48,7 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 	// Capture a profile for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	_, resp, err := requireOK(d.c.doRequest(r))
+	err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
@@ -73,7 +73,7 @@ func (d *Debug) PProf(ctx context.Context, name string, seconds int) (io.ReadClo
 	// Capture a profile for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	_, resp, err := requireOK(d.c.doRequest(r))
+	err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
@@ -88,7 +88,7 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 	// Capture a trace for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	_, resp, err := requireOK(d.c.doRequest(r))
+	err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
@@ -108,7 +108,7 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 func (d *Debug) Goroutine() ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/goroutine")
 
-	_, resp, err := requireOK(d.c.doRequest(r))
+	err := requireOK(d.c.doRequest(r))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}

@@ -18,7 +18,7 @@ func (s *Status) LeaderWithQueryOptions(q *QueryOptions) (string, error) {
 		r.setQueryOptions(q)
 	}
 
-	_, resp, err := requireOK(s.c.doRequest(r))
+	err := requireOK(s.c.doRequest(r))
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +43,7 @@ func (s *Status) PeersWithQueryOptions(q *QueryOptions) ([]string, error) {
 		r.setQueryOptions(q)
 	}
 
-	_, resp, err := requireOK(s.c.doRequest(r))
+	err := requireOK(s.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}

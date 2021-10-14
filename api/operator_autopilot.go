@@ -297,7 +297,7 @@ func (d *ReadableDuration) UnmarshalJSON(raw []byte) (err error) {
 func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfiguration, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/configuration")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *W
 	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
 	r.setWriteOptions(q)
 	r.obj = conf
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 	r.setWriteOptions(q)
 	r.params.Set("cas", strconv.FormatUint(conf.ModifyIndex, 10))
 	r.obj = conf
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return false, err
 	}
@@ -354,7 +354,7 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 
 	// we use 429 status to indicate unhealthiness
 	d, resp, err := op.c.doRequest(r)
-	_, resp, err = requireHttpCodes(d, resp, err, 200, 429)
+	err = requireHttpCodes(resp, 200, 429)
 
 	if err != nil {
 		if resp != nil {
@@ -375,7 +375,7 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 func (op *Operator) AutopilotState(q *QueryOptions) (*AutopilotState, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/state")
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(op.c.doRequest(r))
+	err := requireOK(op.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}

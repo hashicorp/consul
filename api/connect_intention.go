@@ -166,7 +166,7 @@ type IntentionCheck struct {
 func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/intentions")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	err := requireOK(h.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -255,7 +255,7 @@ func (h *Connect) IntentionDeleteExact(source, destination string, q *WriteOptio
 	r.params.Set("source", source)
 	r.params.Set("destination", destination)
 
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	err := requireOK(h.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}

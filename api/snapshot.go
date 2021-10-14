@@ -23,7 +23,7 @@ func (s *Snapshot) Save(q *QueryOptions) (io.ReadCloser, *QueryMeta, error) {
 	r := s.c.newRequest("GET", "/v1/snapshot")
 	r.setQueryOptions(q)
 
-	rtt, resp, err := requireOK(s.c.doRequest(r))
+	err := requireOK(s.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -40,7 +40,7 @@ func (s *Snapshot) Restore(q *WriteOptions, in io.Reader) error {
 	r.body = in
 	r.header.Set("Content-Type", "application/octet-stream")
 	r.setWriteOptions(q)
-	_, _, err := requireOK(s.c.doRequest(r))
+	err := requireOK(s.c.doRequest(r))
 	if err != nil {
 		return err
 	}

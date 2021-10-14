@@ -63,7 +63,7 @@ func (n *Namespaces) Create(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	r := n.c.newRequest("PUT", "/v1/namespace")
 	r.setWriteOptions(q)
 	r.obj = ns
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	err := requireOK(n.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,7 +86,7 @@ func (n *Namespaces) Update(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	r := n.c.newRequest("PUT", "/v1/namespace/"+ns.Name)
 	r.setWriteOptions(q)
 	r.obj = ns
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	err := requireOK(n.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +128,7 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 func (n *Namespaces) Delete(name string, q *WriteOptions) (*WriteMeta, error) {
 	r := n.c.newRequest("DELETE", "/v1/namespace/"+name)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	err := requireOK(n.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (n *Namespaces) List(q *QueryOptions) ([]*Namespace, *QueryMeta, error) {
 	var out []*Namespace
 	r := n.c.newRequest("GET", "/v1/namespaces")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(n.c.doRequest(r))
+	err := requireOK(n.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
 	}
