@@ -1106,8 +1106,8 @@ func requireOK(resp *http.Response) error {
 func requireHttpCodes(resp *http.Response, httpCodes ...int) error {
 	// if there is an http code that we require, return w no error
 	for _, httpCode := range httpCodes {
-		if resp.StatusCode != httpCode {
-			break
+		if resp.StatusCode == httpCode {
+			return nil
 		}
 	}
 
