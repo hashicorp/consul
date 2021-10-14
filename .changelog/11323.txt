@@ -1,0 +1,3 @@
+```release-note:bug
+acl: **(Enterprise only)** ensure that auth methods with namespace rules work with partitions
+```
