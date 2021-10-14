@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixed styling of Role delete confirmation button with the Token edit page 
+```
