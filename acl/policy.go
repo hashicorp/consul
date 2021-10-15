@@ -427,8 +427,7 @@ func parseLegacy(rules string, conf *Config) (*Policy, error) {
 // NewPolicyFromSource is used to parse the specified ACL rules into an
 // intermediary set of policies, before being compiled into
 // the ACL
-// TODO: remove id and revision args
-func NewPolicyFromSource(id string, revision uint64, rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
+func NewPolicyFromSource(rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
 	if rules == "" {
 		// Hot path for empty source
 		return &Policy{}, nil

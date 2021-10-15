@@ -2172,7 +2172,7 @@ func TestACL_filterHealthChecks(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2195,7 +2195,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2253,7 +2253,7 @@ func TestACL_filterIntentions(t *testing.T) {
 	}
 
 	// Policy to see one
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2328,7 +2328,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2352,7 +2352,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2424,7 +2424,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2448,7 +2448,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2520,7 +2520,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2543,7 +2543,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2646,7 +2646,7 @@ node "node1" {
 service "foo" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -2674,7 +2674,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -2708,7 +2708,7 @@ node "node2" {
 service "bar" {
   policy = "read"
 }`
-		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		policy, err := acl.NewPolicyFromSource(rules, acl.SyntaxLegacy, nil, nil)
 		if err != nil {
 			t.Fatalf("err %v", err)
 		}
@@ -2837,7 +2837,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 
 	// Allowed to see the service but not the node.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 service "foo" {
   policy = "read"
 }
@@ -2861,7 +2861,7 @@ service "foo" {
 	}
 
 	// Chain on access to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node1" {
   policy = "read"
 }
@@ -2970,7 +2970,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 		perms  acl.Authorizer
 	)
 	// Allowed to see the service but not the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	service_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
@@ -2985,7 +2985,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the node but not the service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	node_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
@@ -3000,7 +3000,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	}
 
 	// Allowed to see the service AND the node
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	service_prefix "" { policy = "read" }
 	node_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)

@@ -237,7 +237,7 @@ func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 		return nil, nil, acl.ErrNotFound
 	}
 
-	policy, err := acl.NewPolicyFromSource("", 0, tok.rules, acl.SyntaxCurrent, nil, nil)
+	policy, err := acl.NewPolicyFromSource(tok.rules, acl.SyntaxCurrent, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}

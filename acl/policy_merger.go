@@ -313,12 +313,6 @@ type PolicyMerger struct {
 	enterprisePolicyRulesMergeContext
 }
 
-func NewPolicyMerger() *PolicyMerger {
-	merger := &PolicyMerger{}
-	merger.init()
-	return merger
-}
-
 func (m *PolicyMerger) init() {
 	m.policyRulesMergeContext.init()
 	m.enterprisePolicyRulesMergeContext.init()

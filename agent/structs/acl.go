@@ -725,7 +725,7 @@ func (policies ACLPolicies) resolveWithCache(cache *ACLCaches, entConf *acl.Conf
 			continue
 		}
 
-		p, err := acl.NewPolicyFromSource(policy.ID, policy.ModifyIndex, policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
+		p, err := acl.NewPolicyFromSource(policy.Rules, policy.Syntax, entConf, policy.EnterprisePolicyMeta())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %q: %v", policy.Name, err)
 		}
