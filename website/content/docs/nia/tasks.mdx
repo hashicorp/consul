@@ -46,24 +46,28 @@ The services condition is the default condition to execute a task. Tasks with th
 
 In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services) or a regex must be configured in the task's `condition` block. Only one of these two options can be configured for a single task. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
 
-The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) and executing the task on any change of information for services configured. These changes include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
+The services condition operates by monitoring the [Health List Nodes For Service API](/api-docs/health#list-nodes-for-service) for healthy, passing service instances. Unhealthy service instances are excluded by default but can be included using the `services` block [`filter`](/docs/nia/configuration#filter) configuration. When there is any change of information for configured services, the task executes. These changes include one or more changes to service values, like IP address, added or removed service instance, tags, status. A complete list of values that would cause a task to run are expanded below:
 
-| Attribute               | Description                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `id`                    | A unique Consul ID for this service. This is unique per Consul agent.                             |
-| `name`                  | The logical name of the service. Many service instances may share the same logical service name.  |
-| `address`               | IP address of the service host -- if empty, node address should be used.                          |
-| `port`                  | Port number of the service                                                                        |
-| `meta`                  | List of user-defined metadata key/value pairs for the service                                     |
-| `tags`                  | List of tags for the service                                                                      |
-| `namespace`             | Consul Enterprise namespace of the service instance                                               |
-| `status`                | Representative status for the service instance based on an aggregate of the list of health checks |
-| `node`                  | Name of the Consul node on which the service is registered                                        |
-| `node_id`               | ID of the node on which the service is registered.                                                |
-| `node_address`          | The IP address of the Consul node on which the service is registered.                             |
-| `node_datacenter`       | Data center of the Consul node on which the service is registered.                                |
-| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                           |
-| `node_meta`             | List of user-defined metadata key/value pairs for the node                                        |
+| Attribute               | Description                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `id`                    | A unique Consul ID for this service. This is unique per Consul agent.                              |
+| `name`                  | The logical name of the service. Many service instances may share the same logical service name.   |
+| `address`               | IP address of the service host -- if empty, node address should be used.                           |
+| `port`                  | Port number of the service                                                                         |
+| `meta`                  | List of user-defined metadata key/value pairs for the service                                      |
+| `tags`                  | List of tags for the service                                                                       |
+| `namespace`             | Consul Enterprise namespace of the service instance                                                |
+| `status`                | Overall status for the service instance based on an aggregate of all its health checks <sup>1</sup>|
+| `node`                  | Name of the Consul node on which the service is registered                                         |
+| `node_id`               | ID of the node on which the service is registered.                                                 |
+| `node_address`          | The IP address of the Consul node on which the service is registered.                              |
+| `node_datacenter`       | Data center of the Consul node on which the service is registered.                                 |
+| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                            |
+| `node_meta`             | List of user-defined metadata key/value pairs for the node                                         |
+
+<p>
+  <sup>1</sup> Overall status is determined by aggregating all (node and service) health checks and returning the "worst" status from the following order: maintenance, critical, warning, passing - where maintenance is the worst.
+</p>
 
 The services condition is the default behavior if no `condition` block is configured for a task. The two tasks below have equivalent behavior, which is to execute when any of the listed services have changes to the previously stated attributes.
 
