@@ -1,7 +1,48 @@
 ## UNRELEASED
 
+FEATURES:
+
+* partitions: allow for partition queries to be forwarded [[GH-11099](https://github.com/hashicorp/consul/issues/11099)]
+* sso/oidc: **(Enterprise only)** Add support for providing acr_values in OIDC auth flow [[GH-11026](https://github.com/hashicorp/consul/issues/11026)]
+* ui: Added initial support for admin partition CRUD [[GH-11188](https://github.com/hashicorp/consul/issues/11188)]
+
+IMPROVEMENTS:
+
+* api: add partition field to acl structs [[GH-11080](https://github.com/hashicorp/consul/issues/11080)]
+* audit-logging: **(Enterprise Only)** Audit logs will now include select HTTP headers in each logs payload. Those headers are: `Forwarded`, `Via`, `X-Forwarded-For`, `X-Forwarded-Host` and `X-Forwarded-Proto`. [[GH-11107](https://github.com/hashicorp/consul/issues/11107)]
+* connect: Add low-level feature to allow an Ingress to retrieve TLS certificates from SDS. [[GH-10903](https://github.com/hashicorp/consul/issues/10903)]
+* connect: update supported envoy versions to 1.19.1, 1.18.4, 1.17.4, 1.16.5 [[GH-11115](https://github.com/hashicorp/consul/issues/11115)]
+* state: reads of partitions now accept an optional memdb.WatchSet
+* telemetry: Add new metrics for the count of KV entries in the Consul store. [[GH-11090](https://github.com/hashicorp/consul/issues/11090)]
+* telemetry: Add new metrics for the count of connect service instances and configuration entries. [[GH-11222](https://github.com/hashicorp/consul/issues/11222)]
+* ui: Add initial support for partitions to intentions [[GH-11129](https://github.com/hashicorp/consul/issues/11129)]
+* ui: Add uri guard to prevent future URL encoding issues [[GH-11117](https://github.com/hashicorp/consul/issues/11117)]
+* ui: Move the majority of our SASS variables to use native CSS custom
+properties [[GH-11200](https://github.com/hashicorp/consul/issues/11200)]
+* ui: Removed informational panel from the namespace selector menu when editing
+namespaces [[GH-11130](https://github.com/hashicorp/consul/issues/11130)]
+
 BUG FIXES:
 
+* acl: **(Enterprise only)** Fix bug in 'consul members' filtering with partitions. [[GH-11263](https://github.com/hashicorp/consul/issues/11263)]
+* acl: **(Enterprise only)** ensure that auth methods with namespace rules work with partitions [[GH-11323](https://github.com/hashicorp/consul/issues/11323)]
+* acl: fixes the fallback behaviour of down_policy with setting extend-cache/async-cache when the token is not cached. [[GH-11136](https://github.com/hashicorp/consul/issues/11136)]
+* connect: Fix upstream listener escape hatch for prepared queries [[GH-11109](https://github.com/hashicorp/consul/issues/11109)]
+* grpc: strip local ACL tokens from RPCs during forwarding if crossing datacenters [[GH-11099](https://github.com/hashicorp/consul/issues/11099)]
+* server: **(Enterprise only)** Ensure that servers leave network segments when leaving other gossip pools
+* telemetry: Consul Clients no longer emit Autopilot metrics. [[GH-11241](https://github.com/hashicorp/consul/issues/11241)]
+* telemetry: fixes a bug with Prometheus consul_autopilot_healthy metric where 0 is reported instead of NaN on servers. [[GH-11231](https://github.com/hashicorp/consul/issues/11231)]
+* ui: **(Enterprise Only)** Fix saving intentions with namespaced source/destination [[GH-11095](https://github.com/hashicorp/consul/issues/11095)]
+* ui: Don't show a CRD warning for read-only intentions [[GH-11149](https://github.com/hashicorp/consul/issues/11149)]
+* ui: Ensure all types of data get reconciled with the backend data [[GH-11237](https://github.com/hashicorp/consul/issues/11237)]
+* ui: Fixed styling of Role remove dialog on the Token edit page [[GH-11298](https://github.com/hashicorp/consul/issues/11298)]
+* ui: Gracefully recover from non-existant DC errors [[GH-11077](https://github.com/hashicorp/consul/issues/11077)]
+* ui: Ignore reported permissions for KV area meaning the KV is always enabled
+for both read/write access if the HTTP API allows. [[GH-10916](https://github.com/hashicorp/consul/issues/10916)]
+* ui: Topology - Fix up Default Allow and Permissive Intentions notices [[GH-11216](https://github.com/hashicorp/consul/issues/11216)]
+* ui: hide create button for policies/roles/namespace if users token has no write permissions to those areas [[GH-10914](https://github.com/hashicorp/consul/issues/10914)]
+* xds: ensure the active streams counters are 64 bit aligned on 32 bit systems [[GH-11085](https://github.com/hashicorp/consul/issues/11085)]
+* xds: fixed a bug where Envoy sidecars could enter a state where they failed to receive xds updates from Consul [[GH-10987](https://github.com/hashicorp/consul/issues/10987)]
 * Fixing SOA record to return proper domain when alt domain in use. [[GH-10431]](https://github.com/hashicorp/consul/pull/10431)
 
 ## 1.11.0-alpha (September 16, 2021)
