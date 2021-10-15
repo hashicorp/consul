@@ -953,6 +953,18 @@ func (r *ACLRole) SetHash(force bool) []byte {
 	return r.Hash
 }
 
+func (r *ACLRole) ServiceIdentityList() []*ACLServiceIdentity {
+	if len(r.ServiceIdentities) == 0 {
+		return nil
+	}
+
+	out := make([]*ACLServiceIdentity, 0, len(r.ServiceIdentities))
+	for _, s := range r.ServiceIdentities {
+		out = append(out, s.Clone())
+	}
+	return out
+}
+
 func (r *ACLRole) EstimateSize() int {
 	// This is just an estimate. There is other data structure overhead
 	// pointers etc that this does not account for.

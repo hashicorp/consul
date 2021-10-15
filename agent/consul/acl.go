@@ -636,7 +636,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		for _, link := range role.Policies {
 			policyIDs = append(policyIDs, link.ID)
 		}
-		serviceIdentities = append(serviceIdentities, role.ServiceIdentities...)
+		serviceIdentities = append(serviceIdentities, role.ServiceIdentityList()...)
 		nodeIdentities = append(nodeIdentities, role.NodeIdentityList()...)
 	}
 
