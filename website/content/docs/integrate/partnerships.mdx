@@ -10,18 +10,20 @@ The HashiCorp Consul Integration Program enables prospective partners to build i
 
 All integrations are available with Consul’s self-managed version. In some cases, these integrations can also be validated against HCP Consul. Upon completion of the validation with HCP Consul, a partner will receive a HCP Consul Verified badge which will be displayed on their partner page and utilized on the partner’s website as well.
 
+<img src="/img/hcp_consul_partner_badge.png" alt="HCP Consul Badge" style={{display:'block', margin:'auto', width:'192px'}}/>
+
 The program is intended to be largely self-service with links to resources, code samples, documentation, and clear integration steps.
 
 ## Categories of Consul Integrations
 
 By leveraging Consul’s RESTful HTTP API system, prospective partners are able to build extensible integrations at the data plane, platform, and the infrastructure layer to extend Consul’s functionalities. These integrations can be performed both with the OSS (open source) version of Consul, Consul Enterprise, and HCP Consul. For features in Consul Enterprise and HCP Consul, refer to the links below:
 
-[HCP Consul Features](https://cloud.hashicorp.com/docs/consul/features)
-[Consul Enterprise Features](/docs/enterprise)
+- [HCP Consul Features](https://cloud.hashicorp.com/docs/consul/features)
+- [Consul Enterprise Features](/docs/enterprise)
 
 **The Consul Ecosystem Architecture**
 
-[![Consul Architecture](/img/consul_ecosystem_diagram2.png)](/img/consul_ecosystem_diagram2.png)
+<img src="/img/consul_ecosystem_diagram2.png" alt="Consul Architecture" style={{display:'block', margin:'auto', width:'624px'}}/>
 
 **Data Plane**: These integrations extend Consul’s certificate management, secure ACL configuration, observability metrics and logging, and service discovery that allows for dynamic service mapping APM and logging tools, extend sidecar proxies to support Consul connect, and extend API gateways to allow Consul to route incoming traffic to the proxies for Connect-enabled services.
 
@@ -31,13 +33,13 @@ By leveraging Consul’s RESTful HTTP API system, prospective partners are able 
 
 **Infrastructure**: There are two integration options in this category: natively through a direct integration with Consul or via Consul-Terraform-Sync (CTS). By leveraging Consul’s powerful **Network Infrastructure Automation (NIA)*** capabilities through CTS, changes in an infrastructure are seamlessly automated when Consul detects a change in its service catalog. For example, these integrations could be used to automate IP updates of load balancers or firewall security policies by leveraging Consul service discovery.
 
-**Network Infrastructure Automation (NIA)***: These integrations leverage Consul’s service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. More details can be found [here](https://www.consul.io/docs/integrate/nia-integration).
+-> **Network Infrastructure Automation (NIA)***: These integrations leverage Consul’s service catalog to seamlessly integrate with Consul-Terraform-Sync (CTS) to automate changes in network infrastructure via a publisher-subscriber method. More details can be found [here](https://www.consul.io/docs/integrate/nia-integration).
 
 ## Development Process
 
 The Consul integration development process is described in the steps below. By following these steps, Consul integrations can be developed alongside HashiCorp to ensure new integrations are reviewed, approved and released as quickly as possible.
 
-[![Integration Program Steps](/img/consul_integration_program_steps.png)](/img/consul_integration_program_steps)
+<img src="/img/consul_integration_program_steps.png" alt="Integration Program Steps" style={{display:'block', margin:'auto', width:'624px'}}/>
 
 1.  Engage: Initial contact between vendor and HashiCorp
 2.  Enable: Documentation, code samples and best practices for developing the integration
