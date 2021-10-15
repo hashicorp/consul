@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.11.0-beta1 (October 15, 2021)
 
 FEATURES:
 
