@@ -89,8 +89,6 @@ type PolicyRules struct {
 
 // Policy is used to represent the policy specified by an ACL configuration.
 type Policy struct {
-	ID                    string `hcl:"id"`
-	Revision              uint64 `hcl:"revision"`
 	PolicyRules           `hcl:",squash"`
 	EnterprisePolicyRules `hcl:",squash"`
 }
@@ -429,10 +427,11 @@ func parseLegacy(rules string, conf *Config) (*Policy, error) {
 // NewPolicyFromSource is used to parse the specified ACL rules into an
 // intermediary set of policies, before being compiled into
 // the ACL
+// TODO: remove id and revision args
 func NewPolicyFromSource(id string, revision uint64, rules string, syntax SyntaxVersion, conf *Config, meta *EnterprisePolicyMeta) (*Policy, error) {
 	if rules == "" {
 		// Hot path for empty source
-		return &Policy{ID: id, Revision: revision}, nil
+		return &Policy{}, nil
 	}
 
 	var policy *Policy
@@ -444,11 +443,6 @@ func NewPolicyFromSource(id string, revision uint64, rules string, syntax Syntax
 		policy, err = parseCurrent(rules, conf, meta)
 	default:
 		return nil, fmt.Errorf("Invalid rules version: %d", syntax)
-	}
-
-	if err == nil {
-		policy.ID = id
-		policy.Revision = revision
 	}
 	return policy, err
 }
