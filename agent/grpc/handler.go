@@ -24,6 +24,8 @@ import (
 func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)) *Handler {
 	metrics := defaultMetrics()
 
+	// We don't need to pass tls.Config to the server since it's multiplexed
+	// behind the RPC listener, which already has TLS configured.
 	recoveryOpts := PanicHandlerMiddlewareOpts(logger)
 
 	opts := []grpc.ServerOption{
