@@ -6462,6 +6462,9 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 				Tags:    []string{"primary"},
 				Port:    12345,
 			},
+			NodeMeta: map[string]string{
+				"key": "value",
+			},
 		}
 
 		var out struct{}
@@ -6470,16 +6473,19 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 		}
 	}
 
-	questions := []string{
-		"db.service.consul.",
-		"db.service.test-domain.",
-		"db.service.dc1.consul.",
-		"db.service.dc1.test-domain.",
+	questions := []struct {
+		ask        string
+		wantDomain string
+	}{
+		{"db.service.consul.", "test-node.node.dc1.consul."},
+		{"db.service.test-domain.", "test-node.node.dc1.test-domain."},
+		{"db.service.dc1.consul.", "test-node.node.dc1.consul."},
+		{"db.service.dc1.test-domain.", "test-node.node.dc1.test-domain."},
 	}
 
 	for _, question := range questions {
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSRV)
+		m.SetQuestion(question.ask, dns.TypeSRV)
 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, a.DNSAddr())
@@ -6498,19 +6504,32 @@ func TestDNS_AltDomains_Service(t *testing.T) {
 		if srvRec.Port != 12345 {
 			t.Fatalf("Bad: %#v", srvRec)
 		}
-		if srvRec.Target != "test-node.node.dc1.consul." {
-			t.Fatalf("Bad: %#v", srvRec)
+		if got, want := srvRec.Target, question.wantDomain; got != want {
+			t.Fatalf("SRV target invalid, got %v want %v", got, want)
 		}
 
 		aRec, ok := in.Extra[0].(*dns.A)
 		if !ok {
 			t.Fatalf("Bad: %#v", in.Extra[0])
 		}
-		if aRec.Hdr.Name != "test-node.node.dc1.consul." {
-			t.Fatalf("Bad: %#v", in.Extra[0])
+
+		if got, want := aRec.Hdr.Name, question.wantDomain; got != want {
+			t.Fatalf("A record header invalid, got %v want %v", got, want)
 		}
+
 		if aRec.A.String() != "127.0.0.1" {
 			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+
+		txtRec, ok := in.Extra[1].(*dns.TXT)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[1])
+		}
+		if got, want := txtRec.Hdr.Name, question.wantDomain; got != want {
+			t.Fatalf("TXT record header invalid, got %v want %v", got, want)
+		}
+		if txtRec.Txt[0] != "key=value" {
+			t.Fatalf("Bad: %#v", in.Extra[1])
 		}
 	}
 }
