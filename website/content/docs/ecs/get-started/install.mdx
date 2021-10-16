@@ -26,7 +26,7 @@ you must use the [`mesh-task` module](https://registry.terraform.io/modules/hash
 
 ```hcl
 module "my_task" {
-  source  = "hashicorp/consul/aws-ecs//modules/mesh-task"
+  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
   version = "<latest version>"
 
   family                = "my_task"
