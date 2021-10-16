@@ -348,6 +348,22 @@ func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.
 	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
+// getResponseDomain returns alt-domain if it is configured and request is made with alt-domain,
+// respects DNS case insensitivity
+func (d *DNSServer) getResponseDomain(questionName string) string {
+	labels := dns.SplitDomainName(questionName)
+
+	domain := d.domain
+	for i := len(labels) - 1; i >= 0; i-- {
+		currentSuffix := strings.Join(labels[i:], ".") + "."
+		if strings.EqualFold(currentSuffix, d.domain) || strings.EqualFold(currentSuffix, d.altDomain) {
+			domain = currentSuffix
+		}
+	}
+
+	return domain
+}
+
 // handlePtr is used to handle "reverse" DNS queries
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
@@ -1623,13 +1639,14 @@ func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName s
 // Otherwise it will return a IN A record
 func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
 	q := req.Question[0]
+	respDomain := d.getResponseDomain(q.Name)
+
 	ipRecord := makeARecord(q.Qtype, addr, ttl)
 	if ipRecord == nil {
 		return nil, nil
 	}
-
 	if q.Qtype == dns.TypeSRV {
-		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.domain)
+		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, respDomain)
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
@@ -1833,11 +1850,12 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 
 		answers, extra := d.nodeServiceRecords(dc, node, req, ttl, cfg, maxRecursionLevel)
 
+		respDomain := d.getResponseDomain(req.Question[0].Name)
 		resp.Answer = append(resp.Answer, answers...)
 		resp.Extra = append(resp.Extra, extra...)
 
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, respDomain), node.Node, ttl)...)
 		}
 	}
 }
