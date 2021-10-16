@@ -297,8 +297,11 @@ func (d *ReadableDuration) UnmarshalJSON(raw []byte) (err error) {
 func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfiguration, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/configuration")
 	r.setQueryOptions(q)
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
@@ -316,8 +319,11 @@ func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *W
 	r := op.c.newRequest("PUT", "/v1/operator/autopilot/configuration")
 	r.setWriteOptions(q)
 	r.obj = conf
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return err
+	}
+	if err := requireOK(resp); err != nil {
 		return err
 	}
 	closeResponseBody(resp)
@@ -332,8 +338,11 @@ func (op *Operator) AutopilotCASConfiguration(conf *AutopilotConfiguration, q *W
 	r.setWriteOptions(q)
 	r.params.Set("cas", strconv.FormatUint(conf.ModifyIndex, 10))
 	r.obj = conf
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return false, err
+	}
+	if err := requireOK(resp); err != nil {
 		return false, err
 	}
 	defer closeResponseBody(resp)
@@ -353,7 +362,7 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 	r.setQueryOptions(q)
 
 	// we use 429 status to indicate unhealthiness
-	d, resp, err := op.c.doRequest(r)
+	_, resp, err := op.c.doRequest(r)
 	err = requireHttpCodes(resp, 200, 429)
 
 	if err != nil {
@@ -375,8 +384,11 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 func (op *Operator) AutopilotState(q *QueryOptions) (*AutopilotState, error) {
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/state")
 	r.setQueryOptions(q)
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)

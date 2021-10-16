@@ -166,8 +166,11 @@ type IntentionCheck struct {
 func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/intentions")
 	r.setQueryOptions(q)
-	err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
@@ -299,8 +302,11 @@ func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[str
 	for _, name := range args.Names {
 		r.params.Add("name", name)
 	}
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
@@ -351,8 +357,11 @@ func (c *Connect) IntentionUpsert(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	r.params.Set("source", maybePrefixNamespace(ixn.SourceNS, ixn.SourceName))
 	r.params.Set("destination", maybePrefixNamespace(ixn.DestinationNS, ixn.DestinationName))
 	r.obj = ixn
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
@@ -402,8 +411,11 @@ func (c *Connect) IntentionUpdate(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	r := c.c.newRequest("PUT", "/v1/connect/intentions/"+ixn.ID)
 	r.setWriteOptions(q)
 	r.obj = ixn
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)

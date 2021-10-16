@@ -63,8 +63,11 @@ func (n *Namespaces) Create(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	r := n.c.newRequest("PUT", "/v1/namespace")
 	r.setWriteOptions(q)
 	r.obj = ns
-	err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
@@ -86,8 +89,11 @@ func (n *Namespaces) Update(ns *Namespace, q *WriteOptions) (*Namespace, *WriteM
 	r := n.c.newRequest("PUT", "/v1/namespace/"+ns.Name)
 	r.setWriteOptions(q)
 	r.obj = ns
-	err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
@@ -128,8 +134,11 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 func (n *Namespaces) Delete(name string, q *WriteOptions) (*WriteMeta, error) {
 	r := n.c.newRequest("DELETE", "/v1/namespace/"+name)
 	r.setWriteOptions(q)
-	err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -142,8 +151,11 @@ func (n *Namespaces) List(q *QueryOptions) ([]*Namespace, *QueryMeta, error) {
 	var out []*Namespace
 	r := n.c.newRequest("GET", "/v1/namespaces")
 	r.setQueryOptions(q)
-	err := requireOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)

@@ -380,11 +380,13 @@ func (conf *ConfigEntries) Get(kind string, name string, q *QueryOptions) (Confi
 
 	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
@@ -405,11 +407,13 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 
 	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", kind))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
@@ -444,8 +448,11 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 		r.params.Set(param, value)
 	}
 	r.obj = entry
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
+		return false, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return false, nil, err
 	}
 	defer closeResponseBody(resp)
@@ -467,8 +474,11 @@ func (conf *ConfigEntries) Delete(kind string, name string, w *WriteOptions) (*W
 
 	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setWriteOptions(w)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
