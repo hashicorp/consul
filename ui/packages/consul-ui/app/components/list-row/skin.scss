@@ -1,30 +1,30 @@
 %list-row {
   list-style-type: none;
-  border: $decor-border-100;
-  border-top-color: $transparent;
-  border-bottom-color: $gray-200;
-  border-right-color: $transparent;
-  border-left-color: $transparent;
+  border: var(--decor-border-100);
+  border-top-color: var(--transparent);
+  border-bottom-color: rgb(var(--tone-gray-200));
+  border-right-color: var(--transparent);
+  border-left-color: var(--transparent);
 }
 %list-row-intent {
-  border-color: $gray-200;
+  border-color: rgb(var(--tone-gray-200));
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-top-color: $transparent;
+  border-top-color: var(--transparent);
   cursor: pointer;
 }
 %list-row-header {
-  color: $black;
+  color: var(--black);
 }
 %list-row-header * {
   color: inherit;
 }
 %list-row-detail {
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
 }
 %list-row-detail a {
   color: inherit;
 }
 %list-row-detail a:hover {
-  color: $color-action;
+  color: rgb(var(--color-action));
   text-decoration: underline;
 }

@@ -19,5 +19,5 @@ func computeTargetEnterpriseMeta(
 	method *structs.ACLAuthMethod,
 	verifiedIdentity *authmethod.Identity,
 ) (*structs.EnterpriseMeta, error) {
-	return method.TargetEnterpriseMeta(verifiedIdentity.EnterpriseMeta), nil
+	return &structs.EnterpriseMeta{}, nil
 }

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-memdb"
 )
@@ -75,11 +76,37 @@ func indexTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Key",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  indexFromString,
+					writeIndex: indexNameFromIndexEntry,
 				},
 			},
 		},
 	}
+}
+
+func indexNameFromIndexEntry(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*IndexEntry)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for IndexEntry index", raw)
+	}
+
+	if p.Key == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.Key))
+	return b.Bytes(), nil
+}
+
+func indexFromString(raw interface{}) ([]byte, error) {
+	q, ok := raw.(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for string prefix query", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q))
+	return b.Bytes(), nil
 }

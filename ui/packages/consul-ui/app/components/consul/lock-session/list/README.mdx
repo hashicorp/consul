@@ -4,7 +4,7 @@ class: ember
 # Consul::LockSession::List
 
 ```hbs preview-template
-<DataSource @src="/default/dc-1/sessions/for-node/my-node" as |source|>
+<DataSource @src="/partition/default/dc-1/sessions/for-node/my-node" as |source|>
   <Consul::LockSession::List
     @items={{source.data}}
     @onInvalidate={{action (noop)}}

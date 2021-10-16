@@ -95,7 +95,6 @@ const (
 )
 
 const (
-	legacyACLReplicationRoutineName       = "legacy ACL replication"
 	aclPolicyReplicationRoutineName       = "ACL policy replication"
 	aclRoleReplicationRoutineName         = "ACL role replication"
 	aclTokenReplicationRoutineName        = "ACL token replication"
@@ -135,10 +134,6 @@ type Server struct {
 
 	aclAuthMethodValidators authmethod.Cache
 
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while we support both
-	// useNewACLs is used to determine whether we can use new ACLs or not
-	useNewACLs int32
-
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
@@ -172,6 +167,9 @@ type Server struct {
 
 	// Connection pool to other consul servers
 	connPool *pool.ConnPool
+
+	// Connection pool to other consul servers using gRPC
+	grpcConnPool GRPCClientConner
 
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
@@ -348,6 +346,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		config:                  config,
 		tokens:                  flat.Tokens,
 		connPool:                flat.ConnPool,
+		grpcConnPool:            flat.GRPCConnPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  serverLogger,
@@ -377,6 +376,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			s.config.PrimaryDatacenter,
 		)
 		s.connPool.GatewayResolver = s.gatewayLocator.PickGateway
+		s.grpcConnPool.SetGatewayResolver(s.gatewayLocator.PickGateway)
 	}
 
 	// Initialize enterprise specific server functionality
@@ -424,7 +424,6 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
 	s.aclConfig = newACLConfig(logger)
-	s.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
 		Delegate:    s,
@@ -1342,11 +1341,7 @@ func (s *Server) Stats() map[string]map[string]string {
 	}
 
 	if s.config.ACLsEnabled {
-		if s.UseLegacyACLs() {
-			stats["consul"]["acl"] = "legacy"
-		} else {
-			stats["consul"]["acl"] = "enabled"
-		}
+		stats["consul"]["acl"] = "enabled"
 	} else {
 		stats["consul"]["acl"] = "disabled"
 	}
@@ -1461,7 +1456,7 @@ func (s *Server) trackLeaderChanges() {
 				continue
 			}
 
-			s.grpcLeaderForwarder.UpdateLeaderAddr(string(leaderObs.Leader))
+			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.Leader))
 		case <-s.shutdownCh:
 			s.raft.DeregisterObserver(observer)
 			return

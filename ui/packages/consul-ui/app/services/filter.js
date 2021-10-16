@@ -1,7 +1,6 @@
 import Service from '@ember/service';
 import { andOr } from 'consul-ui/utils/filter';
 
-import acl from 'consul-ui/filter/predicates/acl';
 import service from 'consul-ui/filter/predicates/service';
 import serviceInstance from 'consul-ui/filter/predicates/service-instance';
 import healthCheck from 'consul-ui/filter/predicates/health-check';
@@ -13,7 +12,6 @@ import policy from 'consul-ui/filter/predicates/policy';
 import authMethod from 'consul-ui/filter/predicates/auth-method';
 
 const predicates = {
-  acl: andOr(acl),
   service: andOr(service),
   ['service-instance']: andOr(serviceInstance),
   ['health-check']: andOr(healthCheck),

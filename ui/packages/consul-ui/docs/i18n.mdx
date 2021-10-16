@@ -1,0 +1,40 @@
+# i18n
+
+At the time of writing we are currently in the process of
+localizing/internationalizing the entire codebase. To help us to do this we
+use the [`ember-intl`](https://github.com/ember-intl/ember-intl) ember addon
+
+Please see [`ember-intl`s documentation](https://ember-intl.github.io/ember-intl/versions/master/docs/quickstart)
+for information on how to use this.
+
+Additionally we have several dev-time only cookie/environment variables to
+help engineers see what still requires localizing, to test copy/text using
+localizations other than en-us and to view any required interpolation
+variables with rendered text, instead of doing the actual interpolation
+itself.
+
+| Link/Bookmarklet | Description |
+| ---- | ----------- |
+| [Enable Intl Debug](javascript:Scenario('CONSUL_INTL_DEBUG=1')) | Render intl interpolation variable names instead of interpolating them |
+| [Intl Lorem Ipsum](javascript:Scenario('CONSUL_INTL_LOCALE=la-fk')) | Render all intl copy as lorem ipsum |
+| [Intl Dashes](javascript:Scenario('CONSUL_INTL_LOCALE=-')) | Render all intl copy as `-` |
+
+## en-us
+
+If in doubt, or unless specifically directed otherwise, all text should use
+sentence case, apart from 'Consul Nouns' which should use capital casing.
+'Consul Nouns' here would be things like 'Services', 'Ingress Gateways', 'Nodes'
+and other things that are specific 'objects' in Consul. We also use the form
+'ACLs' for acronyms instead of 'Acls'.
+
+```yaml
+text: Viewing metrics for Ingress Gateways is not currently supported
+text: ACLs are disabled
+```
+
+instead of:
+
+```yaml
+text: Viewing Metrics for ingress gateways is not currently supported
+text: Acls are disabled
+```

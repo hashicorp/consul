@@ -32,8 +32,6 @@ for the built-in proxy.
         "config": {
           "bind_address": "0.0.0.0",
           "bind_port": 20000,
-          "tcp_check_address": "192.168.0.1",
-          "disable_tcp_check": false,
           "local_service_address": "127.0.0.1:1234",
           "local_connect_timeout_ms": 1000,
           "handshake_timeout_ms": 10000,
@@ -63,19 +61,6 @@ All fields are optional with a reasonable default.
   [configured proxy port range](/docs/agent/options#sidecar_min_port) if available.
   By default the range is [20000, 20255] and the port is selected at random from
   that range.
-
-- `tcp_check_address` - The address the agent will
-  run a [TCP health check](/docs/agent/checks) against. By default this is the same
-  as the proxy's [bind address](#bind_address) except if the bind address is `0.0.0.0`
-  or `[::]` in which case this defaults to `127.0.0.1` and assumes the agent can
-  dial the proxy over loopback. For more complex configurations where agent and proxy
-  communicate over a bridge for example, this configuration can be used to specify
-  a different _address_ (but not port) for the agent to use for health checks if
-  it can't talk to the proxy over localhost or its publicly advertised port. The
-  check always uses the same port that the proxy is bound to.
-
-- `disable_tcp_check` - If true, this disables a
-  TCP check being setup for the proxy. Default is false.
 
 - `local_service_address`- The `[address]:port`
   that the proxy should use to connect to the local application instance. By default

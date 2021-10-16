@@ -2,18 +2,20 @@ import { inject as service } from '@ember/service';
 import Store from '@ember-data/store';
 
 export default class StoreService extends Store {
-  @service('data-source/service')
-  dataSource;
+  @service('data-source/service') dataSource;
 
-  @service('client/http')
-  client;
+  @service('client/http') client;
 
-  clear() {
+  invalidate(status = 401) {
     // Aborting the client will close all open http type sources
-    this.client.abort();
+    this.client.abort(401);
     // once they are closed clear their caches
     this.dataSource.resetCache();
     this.init();
+  }
+
+  clear() {
+    this.invalidate(0);
   }
 
   //

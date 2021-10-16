@@ -13,7 +13,7 @@
     "id": "test-proxy",
     "metadata": {
       "namespace": "default",
-      "envoy_version": "1.18.3"
+      "partition": "default"
     }
   },
   "static_resources": {
@@ -164,6 +164,10 @@
       },
       {
         "tag_name": "consul.source.namespace",
+        "fixed_value": "default"
+      },
+      {
+        "tag_name": "consul.source.partition",
         "fixed_value": "default"
       },
       {

@@ -1,0 +1,126 @@
+<div
+  class="consul-partition-form"
+  ...attributes
+>
+    <DataWriter
+      @sink={{uri
+        '/${partition}/${nspace}/${dc}/partition'
+        (hash
+          partition=''
+          nspace=''
+          dc=@item.Datacenter
+        )
+      }}
+      @type={{'partition'}}
+      @label={{label}}
+      @ondelete={{fn (if @ondelete @ondelete @onsubmit) @item}}
+      @onchange={{fn (optional @onsubmit) @item}}
+      as |writer|>
+
+    <BlockSlot @name="content">
+
+{{#let 
+
+  @item
+
+  (hash
+    help='Must be a valid DNS hostname. Must contain 1-64 characters (numbers, letters, and hyphens), and must begin with a letter. Once created, this cannot be changed.'
+    Name=(array
+      (hash
+        test='^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$'
+        error='Name must be a valid DNS hostname.'
+      )
+    )
+  )
+
+  (hash
+    Description=(array)
+  )
+
+as |item Name Description|}}
+
+<form
+  {{on 'submit' (fn writer.persist item)}}
+  {{disabled (not (can "write partition" item=item))}}
+>
+
+<StateChart 
+  @src={{state-chart 'validate'}}
+as |State Guard Action dispatch state|>
+
+  <fieldset>
+    {{#if (is "new partition" item=item)}}
+    <TextInput
+      @name="Name"
+      @placeholder="Name"
+      @item={{item}}
+      @validations={{Name}}
+      @chart={{hash
+        state=state
+        dispatch=dispatch
+      }}
+    />
+{{/if}}
+    <TextInput
+      @expanded={{true}}
+      @name="Description"
+      @label="Description (Optional)"
+      @item={{item}}
+      @validations={{Description}}
+      @chart={{hash
+        state=state
+        dispatch=dispatch
+      }}
+    />
+  </fieldset>
+
+  <div>
+{{#if (and (is "new partition" item=item) (can "create partitions")) }}
+      <button
+        type="submit"
+        {{disabled (or (is "pristine partition" item=item) (state-matches state "error"))}}
+      >
+        Save
+      </button>
+{{else if (can "write partition" item=item)}}
+      <button type="submit">Save</button>
+{{/if}}
+
+      <button
+        type="reset"
+        {{on 'click' (if @oncancel (fn @oncancel item) (fn @onsubmit item))}}
+      >
+        Cancel
+      </button>
+
+{{#if (and (not (is "new partition" item=item)) (can "delete partition" item=item))}}
+      <ConfirmationDialog @message="Are you sure you want to delete this Partition?">
+        <BlockSlot @name="action" as |confirm|>
+          <button
+            data-test-delete
+            type="button"
+            class="type-delete"
+            {{on 'click' (fn confirm (fn writer.delete item))}}
+          >
+            Delete
+          </button>
+        </BlockSlot>
+        <BlockSlot @name="dialog" as |execute cancel message|>
+          <DeleteConfirmation
+            @message={{message}}
+            @execute={{execute}}
+            @cancel={{cancel}}
+          />
+        </BlockSlot>
+      </ConfirmationDialog>
+{{/if}}
+
+  </div>
+
+</StateChart>
+</form>
+
+{{/let}}
+  </BlockSlot>
+</DataWriter>
+</div>

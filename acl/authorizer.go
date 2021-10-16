@@ -45,6 +45,7 @@ const (
 	ResourceKeyring   Resource = "keyring"
 	ResourceNode      Resource = "node"
 	ResourceOperator  Resource = "operator"
+	ResourceMesh      Resource = "mesh"
 	ResourceQuery     Resource = "query"
 	ResourceService   Resource = "service"
 	ResourceSession   Resource = "session"
@@ -103,6 +104,14 @@ type Authorizer interface {
 
 	// KeyringWrite determines if the keyring can be manipulated
 	KeyringWrite(*AuthorizerContext) EnforcementDecision
+
+	// MeshRead determines if the read-only Consul mesh functions
+	// can be used.
+	MeshRead(*AuthorizerContext) EnforcementDecision
+
+	// MeshWrite determines if the state-changing Consul mesh
+	// functions can be used.
+	MeshWrite(*AuthorizerContext) EnforcementDecision
 
 	// NodeRead checks for permission to read (discover) a given node.
 	NodeRead(string, *AuthorizerContext) EnforcementDecision
@@ -203,6 +212,13 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.KeyringRead(ctx), nil
 		case "write":
 			return authz.KeyringWrite(ctx), nil
+		}
+	case ResourceMesh:
+		switch lowerAccess {
+		case "read":
+			return authz.MeshRead(ctx), nil
+		case "write":
+			return authz.MeshWrite(ctx), nil
 		}
 	case ResourceNode:
 		switch lowerAccess {

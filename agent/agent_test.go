@@ -371,6 +371,9 @@ func (f fakeGRPCConnPool) ClientConnLeader() (*grpc.ClientConn, error) {
 	return nil, nil
 }
 
+func (f fakeGRPCConnPool) SetGatewayResolver(_ func(string) string) {
+}
+
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4524,6 +4527,9 @@ LOOP:
 }
 
 // This is a mirror of a similar test in agent/consul/server_test.go
+//
+// TODO(rb): implement something similar to this as a full containerized test suite with proper
+// isolation so requests can't "cheat" and bypass the mesh gateways
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4771,6 +4777,9 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 	})
 
 	// Ensure we can do some trivial RPC in all directions.
+	//
+	// NOTE: we explicitly make streaming and non-streaming assertions here to
+	// verify both rpc and grpc codepaths.
 	agents := map[string]*TestAgent{"dc1": a1, "dc2": a2, "dc3": a3}
 	names := map[string]string{"dc1": "bob", "dc2": "betty", "dc3": "bonnie"}
 	for _, srcDC := range []string{"dc1", "dc2", "dc3"} {
@@ -4780,20 +4789,39 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 				continue
 			}
 			t.Run(srcDC+" to "+dstDC, func(t *testing.T) {
-				req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
-				require.NoError(t, err)
+				t.Run("normal-rpc", func(t *testing.T) {
+					req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc="+dstDC, nil)
+					require.NoError(t, err)
 
-				resp := httptest.NewRecorder()
-				obj, err := a.srv.CatalogNodes(resp, req)
-				require.NoError(t, err)
-				require.NotNil(t, obj)
+					resp := httptest.NewRecorder()
+					obj, err := a.srv.CatalogNodes(resp, req)
+					require.NoError(t, err)
+					require.NotNil(t, obj)
 
-				nodes, ok := obj.(structs.Nodes)
-				require.True(t, ok)
-				require.Len(t, nodes, 1)
-				node := nodes[0]
-				require.Equal(t, dstDC, node.Datacenter)
-				require.Equal(t, names[dstDC], node.Node)
+					nodes, ok := obj.(structs.Nodes)
+					require.True(t, ok)
+					require.Len(t, nodes, 1)
+					node := nodes[0]
+					require.Equal(t, dstDC, node.Datacenter)
+					require.Equal(t, names[dstDC], node.Node)
+				})
+				t.Run("streaming-grpc", func(t *testing.T) {
+					req, err := http.NewRequest("GET", "/v1/health/service/consul?cached&dc="+dstDC, nil)
+					require.NoError(t, err)
+
+					resp := httptest.NewRecorder()
+					obj, err := a.srv.HealthServiceNodes(resp, req)
+					require.NoError(t, err)
+					require.NotNil(t, obj)
+
+					csns, ok := obj.(structs.CheckServiceNodes)
+					require.True(t, ok)
+					require.Len(t, csns, 1)
+
+					csn := csns[0]
+					require.Equal(t, dstDC, csn.Node.Datacenter)
+					require.Equal(t, names[dstDC], csn.Node.Node)
+				})
 			})
 		}
 	}

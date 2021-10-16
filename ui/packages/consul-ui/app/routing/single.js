@@ -14,9 +14,11 @@ export default Route.extend({
     );
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.optionalParams().nspace;
+    const partition = this.optionalParams().partition;
     const create = this.isCreate(...arguments);
     return hash({
       dc: dc,
+      partition: partition,
       nspace: nspace,
       create: create,
       ...repo.status({
@@ -25,9 +27,11 @@ export default Route.extend({
               repo.create({
                 Datacenter: dc,
                 Namespace: nspace,
+                Partition: partition,
               })
             )
           : repo.findBySlug({
+              partition: partition,
               ns: nspace,
               dc: dc,
               id: params.id,

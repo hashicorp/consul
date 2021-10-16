@@ -167,26 +167,12 @@ func TestSession_Apply_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 session "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-
-	var token string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token := createToken(t, codec, rules)
 
 	// Just add a node.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -405,26 +391,12 @@ func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 session "foo" {
 	policy = "read"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-
-	var token string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token := createToken(t, codec, rules)
 
 	// Create a node and a session.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -764,26 +736,12 @@ func TestSession_Renew_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create the ACL.
-	req := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 session "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-
-	var token string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token := createToken(t, codec, rules)
 
 	// Just add a node.
 	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})

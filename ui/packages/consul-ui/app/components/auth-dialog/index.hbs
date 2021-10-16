@@ -6,13 +6,13 @@
   {{! This DataSource just permanently listens to any changes to the users }}
   {{! token, whether thats a new token, a changed token or a deleted token }}
   <DataSource
-    @src="settings://consul:token"
+    @src={{uri 'settings://consul:token'}}
     @onchange={{queue (action (mut token) value="data") (action dispatch "CHANGE") (action (mut previousToken) value="data")}}
   />
   {{! This DataSink is just used for logging in from the form, }}
   {{! or logging out via the exposed logout function }}
   <DataSink
-    @sink="settings://consul:token"
+    @sink={{uri "settings://consul:token"}}
     as |sink|
   >
     {{yield}}
@@ -22,7 +22,11 @@
       token=token
     ) (hash
       AuthProfile=(component 'auth-profile' item=token)
-      AuthForm=(component 'auth-form' dc=dc nspace=nspace onsubmit=(action sink.open value="data"))
+      AuthForm=(component 'auth-form'
+        dc=dc
+        partition=partition
+        nspace=nspace
+        onsubmit=(action sink.open value="data"))
     ) as |api components|}}
       <State @matches="authorized">
         {{#yield-slot name="authorized"}}

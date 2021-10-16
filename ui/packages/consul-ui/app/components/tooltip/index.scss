@@ -31,19 +31,19 @@
 
 %tooltip-bubble {
   & {
-    background-color: $gray-700;
-    color: $white;
+    background-color: rgb(var(--tone-gray-700));
+    color: rgb(var(--white));
   }
 }
 %tooltip-tail {
   --size: 5px;
   & {
-    color: $gray-700;
+    color: rgb(var(--tone-gray-700));
     width: calc(var(--size) * 2);
     height: calc(var(--size) * 2);
   }
   &::before {
-    border-color: $transparent;
+    border-color: var(--transparent);
     border-style: solid;
   }
 }

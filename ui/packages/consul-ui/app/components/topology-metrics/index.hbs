@@ -9,7 +9,7 @@
     {{did-update this.setHeight 'downstream-lines' @topology.Downstreams}}
   >
     <div>
-      <p>{{@dc}}</p>
+      <p>{{@dc.Name}}</p>
       <span>
         <Tooltip>
           Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
@@ -19,15 +19,18 @@
   {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
       @nspace={{@nspace}}
-      @dc={{@dc}}
+      @dc={{@dc.Name}}
       @service={{@service.Service}}
       @item={{item}}
       @hasMetricsProvider={{@hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
     >
-    {{#if (and @hasMetricsProvider (not-eq @service.Service.Kind 'ingress-gateway'))}}
+    {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
+      {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
       <TopologyMetrics::Stats
+        data-test-topology-metrics-downstream-stats
         @nspace={{or item.Namespace 'default'}}
+        @partition={{or item.Partition 'default'}}
         @dc={{item.Datacenter}}
         @endpoint='downstream-summary-for-service'
         @service={{@service.Service.Service}}
@@ -43,18 +46,20 @@
     <div class="metrics-header">
       {{@service.Service.Service}}
     </div>
-    {{#if @hasMetricsProvider }}
+    {{#if @hasMetricsProvider}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
-        @dc={{@dc}}
+        @partition={{or service.Service.Partition 'default'}}
+        @dc={{@dc.Name}}
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
-      {{#if (not-eq @service.Service.Kind 'ingress-gateway')}}
+      {{#if this.mainNotIngressService}}
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
-        @dc={{@dc}}
+        @partition={{or service.Service.Partition 'default'}}
+        @dc={{@dc.Name}}
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
@@ -94,13 +99,15 @@
     {{/if}}
     {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        @dc={{@dc}}
+        @dc={{@dc.Name}}
         @item={{item}}
         @service={{@service.Service}}
       >
-      {{#if (and @hasMetricsProvider (not-eq @service.Service.Kind 'ingress-gateway'))}}
+      {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
+        {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
         <TopologyMetrics::Stats
           @nspace={{or item.Namespace 'default'}}
+          @partition={{or item.Partition 'default'}}
           @dc={{item.Datacenter}}
           @endpoint='upstream-summary-for-service'
           @service={{@service.Service.Service}}

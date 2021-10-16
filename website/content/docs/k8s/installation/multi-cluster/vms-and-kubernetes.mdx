@@ -35,15 +35,13 @@ The following sections detail how to export this data.
 1. Retrieve the certificate authority cert:
 
    ```sh
-   kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
-     base64 --decode > consul-agent-ca.pem
+   kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" | base64decode }}' > consul-agent-ca.pem
    ```
 
 1. And the certificate authority signing key:
 
    ```sh
-   kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
-      base64 --decode > consul-agent-ca-key.pem
+   kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" | base64decode }}' > consul-agent-ca-key.pem
    ```
 
 1. With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
@@ -243,6 +241,7 @@ You'll need:
      policy = "write"
    }
    namespace_prefix "" {
+     acl = "write"
      service_prefix "" {
        policy = "read"
        intentions = "read"

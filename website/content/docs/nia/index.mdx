@@ -19,15 +19,27 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 ## Glossary
 
-**Condition** - A task-level defined environmental requirement that, when met, triggers the Consul-Terraform-Sync binary to execute the related task to update network infrastructure.
+**Condition** - A task-level defined environmental requirement. When a task’s condition is met, Consul-Terraform-Sync executes that task to update network infrastructure. Depending on the condition type, the condition definition may also define and enable the source input that the task provides to the configured Terraform Module.
 
 **Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
-**Network Drivers** - Network drivers are used by Consul-Terraform-Sync to execute and update network infrastructure. Drivers transform Consul service level information into downstream changes by understanding and abstracting API and resource details tied to specific network infrastructure.
+**Dynamic Tasks** - A dynamic task is a type of task that is dynamically triggered on a change to any relevant Consul catalog values e.g. service instances, Consul KV, catalog-services. See scheduled tasks for a type of non-dynamic task.
+
+-> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+
+**Network Drivers** - Consul-Terraform-Sync uses [network drivers](/docs/nia/network-drivers) to execute and update network infrastructure. Drivers transform Consul service-level information into downstream changes by processing and abstracting API and resource details tied to specific network infrastructure.
+
+**Scheduled Tasks** - A scheduled task is a type of task that is triggered only on a schedule. It is configured with a [schedule condition](/docs/nia/configuration#schedule-condition).
+
+-> **Note:** The terminology "tasks" used throughout the documentation refers to all types of tasks except when specifically stated otherwise.
+
+**Source Input** - A source input defines objects that provide values or metadata to the Terraform module. See [source input](/docs/nia/terraform-modules#source-input) for the supported metadata and values. For example, a user can configure a Consul KV source input to provide KV pairs as variables to their respective Terraform Module. The source input can be included in two ways. It can be specified as a parameter in a condition using `source_includes_var` and also by using the `source_input` block.
 
 **Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered when specific conditions, such as service changes and registration, are met.
 
 **Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
+
+**Terraform Cloud** - Per the [Terraform documentation](https://www.terraform.io/docs/cloud/index.html), "Terraform Cloud" describes both Terraform Cloud and Terraform Enterprise, which are different distributions of the same application. Documentation will apply to both distributions unless specifically stated otherwise.
 
 **Terraform Module** - A [Terraform module](https://www.terraform.io/docs/configuration/modules.html) is a container for multiple Terraform resources that are used together.
 
@@ -35,11 +47,11 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 ## Getting Started With Network Infrastructure Automation
 
-The [Network Infrastructure Automation (NIA)](https://learn.hashicorp.com/collections/consul/network-infrastructure-automation?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) 
-collection contains examples on how to configure Consul-Terraform-Sync to 
-perform Network Infrastructure Automation. The collection contains also a 
-tutorial to secure your Consul-Terraform-Sync configuration for a production 
-environment and one to help you build you own Consul-Terraform-Sync compatible 
+The [Network Infrastructure Automation (NIA)](https://learn.hashicorp.com/collections/consul/network-infrastructure-automation?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+collection contains examples on how to configure Consul-Terraform-Sync to
+perform Network Infrastructure Automation. The collection contains also a
+tutorial to secure your Consul-Terraform-Sync configuration for a production
+environment and one to help you build you own Consul-Terraform-Sync compatible
 module.
 
 ## Community

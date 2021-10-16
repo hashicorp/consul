@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -1208,73 +1209,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	}
 }
 
-func TestLeader_ACLUpgrade(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLsEnabled = true
-		c.PrimaryDatacenter = "dc1"
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	// create a legacy management ACL
-	mgmt := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "Management token",
-			Type: structs.ACLTokenTypeManagement,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var mgmt_id string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &mgmt, &mgmt_id))
-
-	// wait for it to be upgraded
-	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, mgmt_id, nil)
-		require.NoError(t, err)
-		require.NotNil(t, token)
-		require.NotEqual(t, "", token.AccessorID)
-		require.Equal(t, structs.ACLTokenTypeManagement, token.Type)
-		require.Len(t, token.Policies, 1)
-		require.Equal(t, structs.ACLPolicyGlobalManagementID, token.Policies[0].ID)
-	})
-
-	// create a legacy management ACL
-	client := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "Management token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: `node "" { policy = "read"}`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var client_id string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &client, &client_id))
-
-	// wait for it to be upgraded
-	retry.Run(t, func(t *retry.R) {
-		_, token, err := s1.fsm.State().ACLTokenGetBySecret(nil, client_id, nil)
-		require.NoError(t, err)
-		require.NotNil(t, token)
-		require.NotEqual(t, "", token.AccessorID)
-		require.Len(t, token.Policies, 0)
-		require.Equal(t, structs.ACLTokenTypeClient, token.Type)
-		require.Equal(t, client.ACL.Rules, token.Rules)
-	})
-}
-
 func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1324,9 +1258,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	joinWAN(t, s2, s1)
 	waitForLeaderEstablishment(t, s1)
 	waitForLeaderEstablishment(t, s2)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Everybody has the management policy.
@@ -1363,9 +1294,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	defer s2new.Shutdown()
 
 	waitForLeaderEstablishment(t, s2new)
-
-	// It should be able to transition without connectivity to the primary.
-	waitForNewACLs(t, s2new)
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
@@ -1542,30 +1470,6 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	}
 }
 
-func TestLeader_ACLLegacyReplication(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	// This test relies on configuring a secondary DC with no route to the primary DC
-	// Having no route will cause the ACL mode checking of the primary to "fail". In this
-	// scenario legacy ACL replication should be enabled without also running new ACL
-	// replication routines.
-	cb := func(c *Config) {
-		c.Datacenter = "dc2"
-		c.ACLTokenReplication = true
-	}
-	_, srv, _ := testACLServerWithConfig(t, cb, true)
-	waitForLeaderEstablishment(t, srv)
-
-	require.True(t, srv.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclPolicyReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclRoleReplicationRoutineName))
-	require.False(t, srv.leaderRoutineManager.IsRunning(aclTokenReplicationRoutineName))
-}
-
 func TestDatacenterSupportsFederationStates(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -1598,7 +1502,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1653,7 +1557,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1828,7 +1732,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1864,6 +1768,14 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 		})
 	})
+}
+
+func updateSerfTags(s *Server, key, value string) {
+	libserf.UpdateTag(s.serfLAN, key, value)
+
+	if s.serfWAN != nil {
+		libserf.UpdateTag(s.serfWAN, key, value)
+	}
 }
 
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {

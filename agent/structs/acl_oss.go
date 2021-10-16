@@ -62,12 +62,12 @@ func aclServiceIdentityRules(svc string, _ *EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, svc)
 }
 
-func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
-	return nil
+func aclNodeIdentityRules(node string, _ *EnterpriseMeta) string {
+	return fmt.Sprintf(aclPolicyTemplateNodeIdentity, node)
 }
 
-func (m *ACLAuthMethod) TargetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return &m.EnterpriseMeta
+func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
+	return nil
 }
 
 func (t *ACLToken) NodeIdentityList() []*ACLNodeIdentity {

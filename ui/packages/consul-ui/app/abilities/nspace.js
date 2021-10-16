@@ -7,6 +7,10 @@ export default class NspaceAbility extends BaseAbility {
   resource = 'operator';
   segmented = false;
 
+  get isLinkable() {
+    return !this.item.DeletedAt;
+  }
+
   get canManage() {
     return this.canCreate;
   }
@@ -16,7 +20,7 @@ export default class NspaceAbility extends BaseAbility {
   }
 
   get canChoose() {
-    return this.canUse && this.nspaces.length > 0;
+    return this.canUse;
   }
 
   get canUse() {

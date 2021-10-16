@@ -1,5 +1,5 @@
 import Route from '@ember/routing/route';
-import { get, setProperties } from '@ember/object';
+import { get, setProperties, action } from '@ember/object';
 import { inject as service } from '@ember/service';
 import HTTPError from 'consul-ui/utils/http/error';
 
@@ -14,6 +14,38 @@ export default class BaseRoute extends Route {
   @service('env') env;
   @service('repository/permission') permissions;
   @service('router') router;
+
+  _setRouteName() {
+    super._setRouteName(...arguments);
+    const routeName = this.routeName
+      .split('.')
+      .filter(item => item !== 'index')
+      .join('.');
+    const template = get(routes, `${routeName}._options.template`);
+    if(template) {
+      this.templateName = template;
+    }
+    const queryParams = get(routes, `${routeName}._options.queryParams`);
+    if(queryParams && (this.routeName === 'dc.partitions.index' || this.routeName === 'oauth-provider-debug')) {
+      this.queryParams = queryParams;
+    }
+  }
+
+  redirect(model, transition) {
+    // remove any references to index as it is the same as the root routeName
+    const routeName = this.routeName
+      .split('.')
+      .filter(item => item !== 'index')
+      .join('.');
+    const to = get(routes, `${routeName}._options.redirect`);
+    if (typeof to !== 'undefined') {
+      // TODO: Does this need to return?
+      // Almost remember things getting strange if you returned from here
+      // which is why I didn't do it originally so be sure to look properly if
+      // you feel like adding a return
+      this.replaceWith(`${routeName}${to}`, model);
+    }
+  }
 
   /**
    * Inspects a custom `abilities` array on the router for this route. Every
@@ -68,6 +100,21 @@ export default class BaseRoute extends Route {
     return value;
   }
 
+  // TODO: this is only required due to intention_id trying to do too much
+  // therefore we need to change the route parameter intention_id to just
+  // intention or id or similar then we can revert to only returning a model if
+  // we have searchProps (or a child route overwrites model)
+  model() {
+    const model = {};
+    if (
+      typeof this.queryParams !== 'undefined' &&
+      typeof this.queryParams.searchproperty !== 'undefined'
+    ) {
+      model.searchProperties = this.queryParams.searchproperty.empty[0];
+    }
+    return model;
+  }
+
   /**
    * Set the routeName for the controller so that it is available in the template
    * for the route/controller.. This is mainly used to give a route name to the
@@ -75,6 +122,7 @@ export default class BaseRoute extends Route {
    */
   setupController(controller, model) {
     setProperties(controller, {
+      ...model,
       routeName: this.routeName,
     });
     super.setupController(...arguments);
@@ -106,5 +154,31 @@ export default class BaseRoute extends Route {
     } else {
       return params;
     }
+  }
+
+  @action
+  async replaceWith(routeName, obj) {
+    await Promise.resolve();
+    let params = [];
+    if (typeof obj === 'string') {
+      params = [obj];
+    }
+    if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
+      params = Object.values(obj);
+    }
+    return super.replaceWith(routeName, ...params);
+  }
+
+  @action
+  async transitionTo(routeName, obj) {
+    await Promise.resolve();
+    let params = [];
+    if (typeof obj === 'string') {
+      params = [obj];
+    }
+    if (typeof obj !== 'undefined' && !Array.isArray(obj) && typeof obj !== 'string') {
+      params = Object.values(obj);
+    }
+    return super.transitionTo(routeName, ...params);
   }
 }

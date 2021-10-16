@@ -36,6 +36,18 @@ var Gauges = []prometheus.GaugeDefinition{
 		Name: []string{"consul", "members", "servers"},
 		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.9.6.",
 	},
+	{
+		Name: []string{"consul", "kv", "entries"},
+		Help: "Measures the current number of server agents registered with Consul. It is only emitted by Consul servers. Added in v1.10.3.",
+	},
+	{
+		Name: []string{"consul", "state", "connect_instances"},
+		Help: "Measures the current number of unique connect service instances registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
+	},
+	{
+		Name: []string{"consul", "state", "config_entries"},
+		Help: "Measures the current number of unique configuration entries registered with Consul, labeled by Kind. It is only emitted by Consul servers. Added in v1.10.4.",
+	},
 }
 
 type getMembersFunc func() []serf.Member
@@ -145,6 +157,7 @@ func (u *UsageMetricsReporter) Run(ctx context.Context) {
 }
 
 func (u *UsageMetricsReporter) runOnce() {
+	u.logger.Trace("Starting usage run")
 	state := u.stateProvider.State()
 
 	_, nodeUsage, err := state.NodeUsage()
@@ -163,6 +176,20 @@ func (u *UsageMetricsReporter) runOnce() {
 
 	members := u.memberUsage()
 	u.emitMemberUsage(members)
+
+	_, kvUsage, err := state.KVUsage()
+	if err != nil {
+		u.logger.Warn("failed to retrieve kv entry usage from state store", "error", err)
+	}
+
+	u.emitKVUsage(kvUsage)
+
+	_, configUsage, err := state.ConfigEntryUsage()
+	if err != nil {
+		u.logger.Warn("failed to retrieve config usage from state store", "error", err)
+	}
+
+	u.emitConfigEntryUsage(configUsage)
 }
 
 func (u *UsageMetricsReporter) memberUsage() []serf.Member {

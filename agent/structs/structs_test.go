@@ -64,7 +64,6 @@ func TestStructs_Implements(t *testing.T) {
 		_ RPCInfo          = &SessionRequest{}
 		_ RPCInfo          = &SessionSpecificRequest{}
 		_ RPCInfo          = &EventFireRequest{}
-		_ RPCInfo          = &ACLPolicyResolveLegacyRequest{}
 		_ RPCInfo          = &ACLPolicyBatchGetRequest{}
 		_ RPCInfo          = &ACLPolicyGetRequest{}
 		_ RPCInfo          = &ACLTokenGetRequest{}
@@ -791,6 +790,21 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 			"",
 		},
 		{
+			"connect-proxy: Upstreams non default partition another dc",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{ // baseline
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "foo",
+						Datacenter:           "dc1",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"upstreams cannot target another datacenter in non default partition",
+		},
+		{
 			"connect-proxy: Upstreams duplicated by port",
 			func(x *NodeService) {
 				x.Proxy.Upstreams = Upstreams{
@@ -929,6 +943,65 @@ func TestStructs_NodeService_ValidateConnectProxy(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			assert := assert.New(t)
 			ns := TestNodeServiceProxy(t)
+			tc.Modify(ns)
+
+			err := ns.Validate()
+			assert.Equal(err != nil, tc.Err != "", err)
+			if err == nil {
+				return
+			}
+
+			assert.Contains(strings.ToLower(err.Error()), strings.ToLower(tc.Err))
+		})
+	}
+}
+
+func TestStructs_NodeService_ValidateConnectProxy_In_Partition(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Modify func(*NodeService)
+		Err    string
+	}{
+		{
+			"valid",
+			func(x *NodeService) {},
+			"",
+		},
+		{
+			"connect-proxy: Upstreams non default partition another dc",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{ // baseline
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "foo",
+						Datacenter:           "dc1",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"upstreams cannot target another datacenter in non default partition",
+		},
+		{
+			"connect-proxy: Upstreams non default partition same dc",
+			func(x *NodeService) {
+				x.Proxy.Upstreams = Upstreams{
+					{ // baseline
+						DestinationType:      UpstreamDestTypeService,
+						DestinationName:      "foo",
+						DestinationPartition: "foo",
+						LocalBindPort:        5000,
+					},
+				}
+			},
+			"",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			ns := TestNodeServiceProxyInPartition(t, "bar")
 			tc.Modify(ns)
 
 			err := ns.Validate()

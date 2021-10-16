@@ -32,7 +32,7 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
-                "statPrefix": "upstream.cache.default.dc1",
+                "statPrefix": "upstream.cache.default.default.dc1",
                 "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
@@ -86,7 +86,7 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
-                "statPrefix": "upstream.db.default.dc1",
+                "statPrefix": "upstream.db.default.default.dc1",
                 "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
@@ -140,7 +140,7 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
-                "statPrefix": "upstream.web.default.dc1",
+                "statPrefix": "upstream.web.default.default.dc1",
                 "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }

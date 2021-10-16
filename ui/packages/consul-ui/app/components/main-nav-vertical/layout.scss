@@ -11,6 +11,7 @@
 %main-nav-vertical:not(.in-viewport) {
   visibility: hidden;
 }
+%main-nav-vertical li.partitions,
 %main-nav-vertical li.nspaces,
 %main-nav-vertical li.dcs {
   margin-bottom: 25px;

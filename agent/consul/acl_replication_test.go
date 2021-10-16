@@ -327,11 +327,6 @@ func TestACLReplication_Tokens(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// Create a bunch of new tokens and policies
@@ -543,12 +538,7 @@ func TestACLReplication_Policies(t *testing.T) {
 	// Try to join.
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
+	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Create a bunch of new policies
@@ -700,7 +690,6 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	testrpc.WaitForLeader(t, s2.RPC, "dc1")
-	waitForNewACLs(t, s2)
 
 	// ensures replication is working ok
 	retry.Run(t, func(r *retry.R) {
@@ -820,11 +809,6 @@ func TestACLReplication_AllTypes(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	const (

@@ -29,7 +29,7 @@ export default Component.extend({
           },
         };
       };
-      // FIXME: We should probably put the component into idle state
+      // TODO: We should probably put the component into idle state
       this.onchange(e);
     },
   },

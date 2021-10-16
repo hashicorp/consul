@@ -1,0 +1,93 @@
+# validate
+
+Simple validation modifier to make it super easy to add validations to your
+form elements.
+
+**Please note:** You probably should be using one of our many (soon) Form
+Components like `<TextInput />` instead of using this. If you have something
+more custom that needs validation support, then read on!
+
+The `validate` modifier primarily requires a `validations` argument passing to
+it. The shape of this is an object containing property/validation pairs.
+Generally you will only need to pass one of these, and in this case the
+property is also used for naming any resulting errors. For example `Name` will
+result in `{Name: 'Name error message'}` being thrown/called/passed to the
+state's context or the `onchange` event.
+
+In the future we are looking to support validation based on other properties
+in the passed `item` positional argument, hence the slightly more complicated
+shape of this `validations` argument.
+
+Validation objects currently contain 2 properties: `test` and `error`. `test`
+is used to provide a Regular Expression used to validate the users' input, and
+the `error` property is a humanized string which is provided to the state's
+context/onchange event. We may add support for a `success` message in the
+future for when the validation is in a successful state.
+
+Please note: you should only need to use either the `chart` argument or the
+`onchange` listener, not both.
+
+
+```hbs preview-template
+
+{{#let
+
+  (hash
+    help='Must be a valid DNS hostname. Must contain 1-64 characters (numbers, letters, and hyphens), and must begin with a letter. Once created, this cannot be changed.'
+    Name=(array
+      (hash
+        test='^[a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?$'
+        error='Name must be a valid DNS hostname.'
+      )
+    )
+  )
+
+as |validations|}}
+
+<figure>
+  <figcaption>Valid to begin with</figcaption>
+  <input
+    {{validate
+      validations=validations
+      onchange=(fn (mut this.validErrors))
+    }}
+    type="text"
+    value={{'this-is-valid-text-add-a-space-to-see-the-validation-error'}}
+  />
+  {{#if this.validErrors.Name}}
+    <br /><strong>{{this.validErrors.Name.message}}</strong>
+  {{/if}}
+</figure>
+
+<figure>
+  <figcaption>Invalid to begin with</figcaption>
+  <input
+    {{validate
+      validations=validations
+      onchange=(fn (mut this.invalidErrors))
+    }}
+    type="text"
+    value={{"not-valid-text remove-the-space"}}
+  />
+  {{#if this.invalidErrors.Name}}
+    <br /><strong>{{this.invalidErrors.Name.message}}</strong>
+  {{/if}}
+</figure>
+
+{{/let}}
+```
+
+## Positional Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `object` |  | An object containing properties to be validated |
+
+
+## Named Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `validations` | `object` |  | Validation shaped object to use for the validation |
+| `onchange` | `object` |  |  A function called when the validations state changes form successful to erroneous and vice versa |
+| `chart` | `object` |  | A statechart object following a state/dispatch interface to use as an alternative t onchange |

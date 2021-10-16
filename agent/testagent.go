@@ -185,7 +185,12 @@ func (a *TestAgent) Start(t *testing.T) error {
 		}
 		result, err := config.Load(opts)
 		if result.RuntimeConfig != nil {
-			result.RuntimeConfig.Telemetry.Disable = true
+			// If prom metrics need to be enabled, do not disable telemetry
+			if result.RuntimeConfig.Telemetry.PrometheusOpts.Expiration > 0 {
+				result.RuntimeConfig.Telemetry.Disable = false
+			} else {
+				result.RuntimeConfig.Telemetry.Disable = true
+			}
 		}
 		return result, err
 	}
@@ -195,7 +200,11 @@ func (a *TestAgent) Start(t *testing.T) error {
 	}
 
 	bd.Logger = logger
-	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	// if we are not testing telemetry things, let's use a "mock" sink for metrics
+	if bd.RuntimeConfig.Telemetry.Disable {
+		bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	}
+
 	a.Config = bd.RuntimeConfig
 
 	agent, err := New(bd)

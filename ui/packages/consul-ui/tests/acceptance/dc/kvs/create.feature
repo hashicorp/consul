@@ -7,7 +7,7 @@ Feature: dc / kvs / create
       dc: datacenter
     ---
     Then the url should be /datacenter/kv/create
-    And the title should be "New Key/Value - Consul"
+    And the title should be "New Key / Value - Consul"
     Then I fill in with yaml
     ---
       additional: key-value
@@ -25,7 +25,7 @@ Feature: dc / kvs / create
       dc: datacenter
     ---
     Then the url should be /datacenter/kv/create
-    And the title should be "New Key/Value - Consul"
+    And the title should be "New Key / Value - Consul"
     Then I fill in with yaml
     ---
       additional: key-value/

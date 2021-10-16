@@ -7,6 +7,7 @@ class: ember
   <TokenSource
     @dc={{dc}}
     @nspace={{nspace}}
+    @partition={{partition}}
     @type={{or 'oidc' 'secret'}}
     @value={{or identifierForProvider secret}}
     @onchange={{action 'change'}}
@@ -20,6 +21,7 @@ class: ember
 | --- | --- | --- | --- |
 | `dc` | `String` | | The name of the current datacenter |
 | `nspace` | `String` | | The name of the current namespace |
+| `partition` | `String` | | The name of the current partition |
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the jwt data, in this case the autorizationCode and the status |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 

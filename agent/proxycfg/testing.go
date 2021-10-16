@@ -669,9 +669,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(
-		t, "db", "default", "dc1",
-		connect.TestClusterID+".consul", "dc1", nil)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
 
 	upstreams := structs.TestUpstreams(t)
 
@@ -701,7 +699,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 				},
 				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 					"db": {
-						"db.default.dc1": TestUpstreamNodes(t, "db"),
+						"db.default.default.dc1": TestUpstreamNodes(t, "db"),
 					},
 				},
 			},
@@ -1042,9 +1040,36 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Kind: structs.ServiceSplitter,
 				Name: "db",
 				Splits: []structs.ServiceSplit{
-					{Weight: 95.5, Service: "big-side"},
-					{Weight: 4, Service: "goldilocks-side"},
-					{Weight: 0.5, Service: "lil-bit-side"},
+					{
+						Weight:  95.5,
+						Service: "big-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "big"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "big"},
+						},
+					},
+					{
+						Weight:  4,
+						Service: "goldilocks-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "goldilocks"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "goldilocks"},
+						},
+					},
+					{
+						Weight:  0.5,
+						Service: "lil-bit-side",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "small"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "small"},
+						},
+					},
 				},
 			},
 		)
@@ -1283,6 +1308,32 @@ func setupTestVariationConfigEntriesAndSnapshot(
 						}),
 						Destination: toService("split-3-ways"),
 					},
+					{
+						Match: httpMatch(&structs.ServiceRouteHTTPMatch{
+							PathExact: "/header-manip",
+						}),
+						Destination: &structs.ServiceRouteDestination{
+							Service: "header-manip",
+							RequestHeaders: &structs.HTTPHeaderModifiers{
+								Add: map[string]string{
+									"request": "bar",
+								},
+								Set: map[string]string{
+									"bar": "baz",
+								},
+								Remove: []string{"qux"},
+							},
+							ResponseHeaders: &structs.HTTPHeaderModifiers{
+								Add: map[string]string{
+									"response": "bar",
+								},
+								Set: map[string]string{
+									"bar": "baz",
+								},
+								Remove: []string{"qux"},
+							},
+						},
+					},
 				},
 			},
 		)
@@ -1345,9 +1396,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries, additionalEntries...)
 	}
 
-	dbChain := discoverychain.TestCompileConfigEntries(
-		t, "db", "default", "dc1",
-		connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
 
 	upstreams := structs.TestUpstreams(t)
 	snap := ConfigSnapshotUpstreams{
@@ -1357,7 +1406,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		},
 		WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
 			"db": {
-				"db.default.dc1": TestUpstreamNodes(t, "db"),
+				"db.default.default.dc1": TestUpstreamNodes(t, "db"),
 			},
 		},
 		UpstreamConfig: upstreams.ToMap(),
@@ -1369,14 +1418,14 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "simple":
 	case "external-sni":
 	case "failover":
-		snap.WatchedUpstreamEndpoints["db"]["fail.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["fail.default.default.dc1"] =
 			TestUpstreamNodesAlternate(t)
 	case "failover-through-remote-gateway-triggered":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
 		fallthrough
 	case "failover-through-remote-gateway":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc2"] =
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
@@ -1384,13 +1433,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		}
 	case "failover-through-double-remote-gateway-triggered":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc2"] =
 			TestUpstreamNodesInStatusDC2(t, "critical")
 		fallthrough
 	case "failover-through-double-remote-gateway":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
 				"dc2": TestGatewayNodesDC2(t),
@@ -1398,11 +1447,11 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		}
 	case "failover-through-local-gateway-triggered":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
 		fallthrough
 	case "failover-through-local-gateway":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc2"] =
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
@@ -1410,13 +1459,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		}
 	case "failover-through-double-local-gateway-triggered":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc1"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc1"] =
 			TestUpstreamNodesInStatus(t, "critical")
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc2"] =
 			TestUpstreamNodesInStatusDC2(t, "critical")
 		fallthrough
 	case "failover-through-double-local-gateway":
-		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
+		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
 				"dc1": TestGatewayNodesDC1(t),
@@ -1424,18 +1473,18 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		}
 	case "splitter-with-resolver-redirect-multidc":
 		snap.WatchedUpstreamEndpoints["db"] = map[string]structs.CheckServiceNodes{
-			"v1.db.default.dc1": TestUpstreamNodes(t, "db"),
-			"v2.db.default.dc2": TestUpstreamNodesDC2(t),
+			"v1.db.default.default.dc1": TestUpstreamNodes(t, "db"),
+			"v2.db.default.default.dc2": TestUpstreamNodesDC2(t),
 		}
 	case "chain-and-splitter":
 	case "grpc-router":
 	case "chain-and-router":
 	case "http-multiple-services":
 		snap.WatchedUpstreamEndpoints["foo"] = map[string]structs.CheckServiceNodes{
-			"foo.default.dc1": TestUpstreamNodes(t, "foo"),
+			"foo.default.default.dc1": TestUpstreamNodes(t, "foo"),
 		}
 		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
-			"bar.default.dc1": TestUpstreamNodesAlternate(t),
+			"bar.default.default.dc1": TestUpstreamNodesAlternate(t),
 		}
 	case "lb-resolver":
 	default:
@@ -1573,7 +1622,16 @@ func TestConfigSnapshotIngress(t testing.T) *ConfigSnapshot {
 
 func TestConfigSnapshotIngressWithTLSListener(t testing.T) *ConfigSnapshot {
 	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
-	snap.IngressGateway.TLSEnabled = true
+	snap.IngressGateway.TLSConfig.Enabled = true
+	return snap
+}
+
+func TestConfigSnapshotIngressWithGatewaySDS(t testing.T) *ConfigSnapshot {
+	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
+	snap.IngressGateway.TLSConfig.SDS = &structs.GatewayTLSSDSConfig{
+		ClusterName:  "sds-cluster",
+		CertResource: "cert-resource",
+	}
 	return snap
 }
 
@@ -1682,6 +1740,15 @@ func testConfigSnapshotIngressGateway(
 						DestinationName:  "db",
 						LocalBindPort:    9191,
 						LocalBindAddress: "2.3.4.5",
+					},
+				},
+			},
+			Listeners: map[IngressListenerKey]structs.IngressListener{
+				{protocol, 9191}: {
+					Port:     9191,
+					Protocol: protocol,
+					Services: []structs.IngressService{
+						{Name: "db"},
 					},
 				},
 			},
@@ -2017,8 +2084,8 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 		},
 	}
 
-	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
-	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
 
 	snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
 		"foo": fooChain,

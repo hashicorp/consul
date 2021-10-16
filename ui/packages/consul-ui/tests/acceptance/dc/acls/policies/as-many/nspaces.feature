@@ -2,7 +2,7 @@
 @setupApplicationTest
 Feature: dc / acls / policies / as many / nspaces: As many for nspaces
   Scenario:
-    Given 1 datacenter model with the value "datacenter"
+    Given 1 datacenter model with the value "dc1"
     And 1 nspace model from yaml
     ---
       Name: key
@@ -12,9 +12,9 @@ Feature: dc / acls / policies / as many / nspaces: As many for nspaces
     ---
     When I visit the nspace page for yaml
     ---
-      dc: datacenter
+      dc: dc1
       namespace: key
     ---
-    Then the url should be /datacenter/namespaces/key
+    Then the url should be /dc1/namespaces/key
     And I click policies.create
     And I don't see the "#policies [data-test-radiobutton=template_service-identity]" element

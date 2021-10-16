@@ -2,6 +2,7 @@
   @disabled={{disabled}}
   @repo={{repo}}
   @dc={{dc}}
+  @partition={{partition}}
   @nspace={{nspace}}
   @type="policy"
   @placeholder="Search for policy"
@@ -38,7 +39,13 @@
           <h2>New Policy</h2>
         </BlockSlot>
         <BlockSlot @name="body">
-          <PolicyForm @form={{form}} @nspace={{nspace}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
+          <PolicyForm
+            @form={{form}}
+            @nspace={{nspace}}
+            @partition={{partition}}
+            @dc={{dc}}
+            @allowServiceIdentity={{allowServiceIdentity}}
+          />
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
           <button type="submit"
@@ -79,7 +86,14 @@
       <BlockSlot @name="details">
 {{#if (eq item.template '')}}
         <DataSource
-          @src={{concat '/' item.Namespace '/' dc '/policy/' item.ID}}
+          @src={{uri '/${partition}/${nspace}/${dc}/policy/${id}'
+            (hash
+              partition=partition
+              nspace=nspace
+              dc=dc
+              id=item.ID
+            )
+          }}
           @onchange={{action (mut loadedItem) value="data"}}
           @loading="lazy"
         />

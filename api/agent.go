@@ -2,8 +2,8 @@ package api
 
 import (
 	"bufio"
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -330,6 +330,7 @@ type AgentServiceCheck struct {
 	AliasNode              string              `json:",omitempty"`
 	AliasService           string              `json:",omitempty"`
 	SuccessBeforePassing   int                 `json:",omitempty"`
+	FailuresBeforeWarning  int                 `json:",omitempty"`
 	FailuresBeforeCritical int                 `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
@@ -601,6 +602,8 @@ func (a *Agent) AgentHealthServiceByIDOpts(serviceID string, q *QueryOptions) (s
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
+	// not a lot of value in wrapping the doRequest call in a requireHttpCodes call
+	// we manipulate the resp body  and the require calls "swallow" the content on err
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return "", nil, err
@@ -640,6 +643,8 @@ func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (s
 	r.setQueryOptions(q)
 	r.params.Add("format", "json")
 	r.header.Set("Accept", "application/json")
+	// not a lot of value in wrapping the doRequest call in a requireHttpCodes call
+	// we manipulate the resp body  and the require calls "swallow" the content on err
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return "", nil, err
@@ -1232,19 +1237,20 @@ func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMe
 	r.setWriteOptions(q)
 	r.obj = &AgentToken{Token: token}
 
-	rtt, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer closeResponseBody(resp)
-
+	rtt, resp, err := requireOK(a.c.doRequest(r))
 	wm := &WriteMeta{RequestTime: rtt}
 
-	if resp.StatusCode != 200 {
-		var buf bytes.Buffer
-		io.Copy(&buf, resp.Body)
-		return wm, resp.StatusCode, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+	if err != nil {
+		// if the error was bc of a non 200 response
+		// from requireOK
+		var statusE StatusError
+		if errors.As(err, &statusE) {
+			return wm, statusE.Code, statusE
+		}
+		// otherwise, the error came via doRequest
+		return nil, 500, err
 	}
+	defer closeResponseBody(resp)
 
 	return wm, resp.StatusCode, nil
 }

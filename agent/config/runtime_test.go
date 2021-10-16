@@ -338,8 +338,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.GossipWANProbeTimeout = 100 * time.Millisecond
 			rt.GossipWANSuspicionMult = 3
 			rt.ConsulServerHealthInterval = 10 * time.Millisecond
-			rt.XDSPort = 8502
-			rt.XDSAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
+			rt.GRPCPort = 8502
+			rt.GRPCAddrs = []net.Addr{tcpAddr("127.0.0.1:8502")}
 			rt.RPCConfig.EnableStreaming = true
 		},
 	})
@@ -1048,8 +1048,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("0.0.0.0:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("0.0.0.0:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("0.0.0.0:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1121,8 +1121,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1145,8 +1145,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("1.2.3.4:2"), tcpAddr("[2001:db8::1]:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("1.2.3.4:3"), tcpAddr("[2001:db8::1]:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("1.2.3.4:4"), tcpAddr("[2001:db8::1]:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1181,8 +1181,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.HTTPAddrs = []net.Addr{tcpAddr("2.2.2.2:2"), unixAddr("unix://http"), tcpAddr("[2001:db8::20]:2")}
 			rt.HTTPSPort = 3
 			rt.HTTPSAddrs = []net.Addr{tcpAddr("3.3.3.3:3"), unixAddr("unix://https"), tcpAddr("[2001:db8::30]:3")}
-			rt.XDSPort = 4
-			rt.XDSAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
+			rt.GRPCPort = 4
+			rt.GRPCAddrs = []net.Addr{tcpAddr("4.4.4.4:4"), unixAddr("unix://grpc"), tcpAddr("[2001:db8::40]:4")}
 			rt.DataDir = dataDir
 		},
 	})
@@ -1633,13 +1633,25 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expectedWarnings: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 	})
 	run(t, testCase{
-		desc: "acl_replication_token enables acl replication",
-		args: []string{`-data-dir=` + dataDir},
-		json: []string{`{ "acl_replication_token": "a" }`},
-		hcl:  []string{`acl_replication_token = "a"`},
+		desc:             "acl_replication_token enables acl replication",
+		args:             []string{`-data-dir=` + dataDir},
+		json:             []string{`{ "acl_replication_token": "a" }`},
+		hcl:              []string{`acl_replication_token = "a"`},
+		expectedWarnings: []string{deprecationWarning("acl_replication_token", "acl.tokens.replication")},
 		expected: func(rt *RuntimeConfig) {
 			rt.ACLTokens.ACLReplicationToken = "a"
 			rt.ACLTokenReplication = true
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "acl.tokens.replace does not enable acl replication",
+		args: []string{`-data-dir=` + dataDir},
+		json: []string{`{ "acl": { "tokens": { "replication": "a" }}}`},
+		hcl:  []string{`acl { tokens { replication = "a"}}`},
+		expected: func(rt *RuntimeConfig) {
+			rt.ACLTokens.ACLReplicationToken = "a"
+			rt.ACLTokenReplication = false
 			rt.DataDir = dataDir
 		},
 	})
@@ -2330,17 +2342,17 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "check": { "name": "a", "args": ["/bin/true"] } }`,
-			`{ "check": { "name": "b", "args": ["/bin/false"] } }`,
+			`{ "check": { "name": "a", "args": ["/bin/true"], "interval": "1s" } }`,
+			`{ "check": { "name": "b", "args": ["/bin/false"], "interval": "1s" } }`,
 		},
 		hcl: []string{
-			`check = { name = "a" args = ["/bin/true"] }`,
-			`check = { name = "b" args = ["/bin/false"] }`,
+			`check = { name = "a" args = ["/bin/true"] interval = "1s"}`,
+			`check = { name = "b" args = ["/bin/false"] interval = "1s" }`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize},
-				{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize},
+				{Name: "a", ScriptArgs: []string{"/bin/true"}, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
+				{Name: "b", ScriptArgs: []string{"/bin/false"}, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2351,14 +2363,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			`-data-dir=` + dataDir,
 		},
 		json: []string{
-			`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true } }`,
+			`{ "check": { "name": "a", "grpc": "localhost:12345/foo", "grpc_use_tls": true, "interval": "1s" } }`,
 		},
 		hcl: []string{
-			`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true }`,
+			`check = { name = "a" grpc = "localhost:12345/foo", grpc_use_tls = true interval = "1s" }`,
 		},
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
-				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize},
+				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2478,7 +2490,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"name": "y",
 							"DockerContainerID": "z",
 							"DeregisterCriticalServiceAfter": "10s",
-							"ScriptArgs": ["a", "b"]
+							"ScriptArgs": ["a", "b"],
+							"Interval": "2s"
 						}
 					}
 				}`,
@@ -2500,6 +2513,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						DockerContainerID = "z"
 						DeregisterCriticalServiceAfter = "10s"
 						ScriptArgs = ["a", "b"]
+						Interval = "2s"
 					}
 				}`,
 		},
@@ -2517,12 +2531,13 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					EnableTagOverride: true,
 					Checks: []*structs.CheckType{
 						{
-							CheckID:                        types.CheckID("x"),
+							CheckID:                        "x",
 							Name:                           "y",
 							DockerContainerID:              "z",
 							DeregisterCriticalServiceAfter: 10 * time.Second,
 							ScriptArgs:                     []string{"a", "b"},
 							OutputMaxSize:                  checks.DefaultBufSize,
+							Interval:                       2 * time.Second,
 						},
 					},
 					Weights: &structs.Weights{
@@ -5150,6 +5165,7 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.Datacenter = expected.Datacenter
 		expected.ACLResolverSettings.ACLsEnabled = expected.ACLsEnabled
 		expected.ACLResolverSettings.NodeName = expected.NodeName
+		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
 		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 	}
@@ -5189,6 +5205,7 @@ func TestLoad_FullConfig(t *testing.T) {
 	}
 
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
 	expected := &RuntimeConfig{
 		// non-user configurable values
 		AEInterval:                 time.Minute,
@@ -5241,6 +5258,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			ACLsEnabled:      true,
 			Datacenter:       "rzo029wg",
 			NodeName:         "otlLxGaI",
+			EnterpriseMeta:   *nodeEntMeta,
 			ACLDefaultPolicy: "72c2e7a0",
 			ACLDownPolicy:    "03eb2aee",
 			ACLTokenTTL:      3321 * time.Second,
@@ -5296,7 +5314,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSServerName:                  "bdeb5f6a",
 				TLSSkipVerify:                  true,
 				Timeout:                        1813 * time.Second,
-				TTL:                            21743 * time.Second,
 				DeregisterCriticalServiceAfter: 14232 * time.Second,
 			},
 			{
@@ -5323,7 +5340,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSServerName:                  "6adc3bfb",
 				TLSSkipVerify:                  true,
 				Timeout:                        18506 * time.Second,
-				TTL:                            31006 * time.Second,
 				DeregisterCriticalServiceAfter: 2366 * time.Second,
 			},
 			{
@@ -5350,7 +5366,6 @@ func TestLoad_FullConfig(t *testing.T) {
 				TLSServerName:                  "7BdnzBYk",
 				TLSSkipVerify:                  true,
 				Timeout:                        5954 * time.Second,
-				TTL:                            30044 * time.Second,
 				DeregisterCriticalServiceAfter: 13209 * time.Second,
 			},
 		},
@@ -5462,8 +5477,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
 		EncryptVerifyOutgoing:                  true,
-		XDSPort:                                4881,
-		XDSAddrs:                               []net.Addr{tcpAddr("32.31.61.91:4881")},
+		GRPCPort:                               4881,
+		GRPCAddrs:                              []net.Addr{tcpAddr("32.31.61.91:4881")},
 		HTTPAddrs:                              []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:                     []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:                     []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -5556,7 +5571,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "4f191d4F",
 						TLSSkipVerify:                  true,
 						Timeout:                        38333 * time.Second,
-						TTL:                            57201 * time.Second,
 						DeregisterCriticalServiceAfter: 44214 * time.Second,
 					},
 				},
@@ -5608,30 +5622,14 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "f43ouY7a",
 						TLSSkipVerify:                  true,
 						Timeout:                        34738 * time.Second,
-						TTL:                            22773 * time.Second,
 						DeregisterCriticalServiceAfter: 84282 * time.Second,
 					},
 					&structs.CheckType{
-						CheckID:    "UHsDeLxG",
-						Name:       "PQSaPWlT",
-						Notes:      "jKChDOdl",
-						Status:     "5qFz6OZn",
-						ScriptArgs: []string{"NMtYWlT9", "vj74JXsm"},
-						HTTP:       "1LBDJhw4",
-						Header: map[string][]string{
-							"cXPmnv1M": {"imDqfaBx", "NFxZ1bQe"},
-							"vr7wY7CS": {"EtCoNPPL", "9vAarJ5s"},
-						},
-						Method:                         "wzByP903",
-						Body:                           "4I8ucZgZ",
+						CheckID:                        "UHsDeLxG",
+						Name:                           "PQSaPWlT",
+						Notes:                          "jKChDOdl",
+						Status:                         "5qFz6OZn",
 						OutputMaxSize:                  checks.DefaultBufSize,
-						TCP:                            "2exjZIGE",
-						H2PING:                         "jTDuR1DC",
-						Interval:                       5656 * time.Second,
-						DockerContainerID:              "5tDBWpfA",
-						Shell:                          "rlTpLM8s",
-						TLSServerName:                  "sOv5WTtp",
-						TLSSkipVerify:                  true,
 						Timeout:                        4868 * time.Second,
 						TTL:                            11222 * time.Second,
 						DeregisterCriticalServiceAfter: 68482 * time.Second,
@@ -5767,7 +5765,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "axw5QPL5",
 						TLSSkipVerify:                  true,
 						Timeout:                        18913 * time.Second,
-						TTL:                            44743 * time.Second,
 						DeregisterCriticalServiceAfter: 8482 * time.Second,
 					},
 					&structs.CheckType{
@@ -5792,7 +5789,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "7uwWOnUS",
 						TLSSkipVerify:                  true,
 						Timeout:                        38282 * time.Second,
-						TTL:                            1181 * time.Second,
 						DeregisterCriticalServiceAfter: 4992 * time.Second,
 					},
 					&structs.CheckType{
@@ -5817,7 +5813,6 @@ func TestLoad_FullConfig(t *testing.T) {
 						TLSServerName:                  "ECSHk8WF",
 						TLSSkipVerify:                  true,
 						Timeout:                        38483 * time.Second,
-						TTL:                            10943 * time.Second,
 						DeregisterCriticalServiceAfter: 68787 * time.Second,
 					},
 				},
@@ -5919,7 +5914,17 @@ func TestLoad_FullConfig(t *testing.T) {
 	entFullRuntimeConfig(expected)
 
 	expectedWarns := []string{
-		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
+		deprecationWarning("acl_datacenter", "primary_datacenter"),
+		deprecationWarning("acl_agent_master_token", "acl.tokens.agent_master"),
+		deprecationWarning("acl_agent_token", "acl.tokens.agent"),
+		deprecationWarning("acl_token", "acl.tokens.default"),
+		deprecationWarning("acl_master_token", "acl.tokens.master"),
+		deprecationWarning("acl_replication_token", "acl.tokens.replication"),
+		deprecationWarning("enable_acl_replication", "acl.enable_token_replication"),
+		deprecationWarning("acl_default_policy", "acl.default_policy"),
+		deprecationWarning("acl_down_policy", "acl.down_policy"),
+		deprecationWarning("acl_ttl", "acl.token_ttl"),
+		deprecationWarning("acl_enable_key_list_policy", "acl.enable_key_list_policy"),
 		`bootstrap_expect > 0: expecting 53 servers`,
 	}
 	expectedWarns = append(expectedWarns, enterpriseConfigKeyWarnings...)

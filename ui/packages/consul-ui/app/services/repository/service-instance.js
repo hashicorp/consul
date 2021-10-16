@@ -11,20 +11,25 @@ export default class ServiceInstanceService extends RepositoryService {
     return modelName;
   }
 
-  @dataSource('/:ns/:dc/service-instances/for-service/:id')
+  shouldReconcile(item, params) {
+    return super.shouldReconcile(...arguments) && item.Service.Service === params.id;
+  }
+
+  @dataSource('/:partition/:ns/:dc/service-instances/for-service/:id')
   async findByService(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
     }
-    return this.authorizeBySlug(
-      async () => this.store.query(this.getModelName(), params),
+    const instances = await this.authorizeBySlug(
+      async () => this.query(params),
       ACCESS_READ,
       params
     );
+    return instances;
   }
 
-  @dataSource('/:ns/:dc/service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id')
   async findBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -37,7 +42,7 @@ export default class ServiceInstanceService extends RepositoryService {
     );
   }
 
-  @dataSource('/:ns/:dc/proxy-service-instance/:serviceId/:node/:id')
+  @dataSource('/:partition/:ns/:dc/proxy-service-instance/:serviceId/:node/:id')
   async findProxyBySlug(params, configuration = {}) {
     const instance = await this.findBySlug(...arguments);
     let proxy = this.store.peekRecord('proxy', instance.uid);

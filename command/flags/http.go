@@ -85,6 +85,11 @@ func (f *HTTPFlags) MultiTenancyFlags() *flag.FlagSet {
 	return fs
 }
 
+func (f *HTTPFlags) PartitionFlag() *flag.FlagSet {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	f.AddPartitionFlag(fs)
+	return fs
+}
 func (f *HTTPFlags) Addr() string {
 	return f.address.String()
 }

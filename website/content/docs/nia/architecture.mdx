@@ -37,7 +37,7 @@ proxy when an instance goes unhealthy.
 ## Tasks
 
 A task is the action triggered by the updated data monitored in Consul. It
-takes the that dynamic service data and translates it into a call to the
+takes the dynamic service data and translates it into a call to the
 infrastructure application to configure it with the updates. It uses a driver
 to push out these updates, the initial driver being a local Terraform run. An
 example of a task is to automate a firewall security policy rule with
@@ -46,12 +46,15 @@ discovered IP addresses for a set of Consul services.
 ## Drivers
 
 A driver encapsulates the resources required to communicate the updates to the
-network infrastructure. Terraform is the initial supported driver. It comes
-with a set of providers that [enables supporting](/docs/nia/terraform-modules) a wide variety of
-infrastructure applications.
+network infrastructure. The following [drivers](/docs/nia/network-drivers#terraform) are supported:
+
+- Terraform driver
+- Terraform Cloud driver<EnterpriseAlert inline />
+
+Each driver includes a set of providers that [enables support](/docs/nia/terraform-modules) for a wide variety of infrastructure applications.
 
 ## Security Guidelines
 
-The [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) 
-tutorial contains a checklist of best practices to secure your 
+The [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+tutorial contains a checklist of best practices to secure your
 Consul-Terraform-Sync installation for a production environment.

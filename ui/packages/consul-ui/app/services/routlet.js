@@ -93,13 +93,18 @@ export default class RoutletService extends Service {
     if (typeof outlet !== 'undefined' && typeof outlet.args.params !== 'undefined') {
       outletParams = outlet.args.params;
     }
-    const route = this.router.currentRoute;
+    let route = this.router.currentRoute;
+    if (route === null) {
+      route = this.container.lookup('route:application');
+    }
     // TODO: Opportunity to dry out this with transitionable
     // walk up the entire route/s replacing any instances
     // of the specified params with the values specified
     let current = route;
     let parent;
-    let routeParams = {};
+    let routeParams = {
+      ...current.params,
+    };
     // TODO: Not entirely sure whether we are ok exposing queryParams here
     // seeing as accessing them from here means you can get them but not set
     // them as yet
@@ -129,7 +134,7 @@ export default class RoutletService extends Service {
     const key = pos + 1;
     const outlet = outlets.get(keys[key]);
     if (typeof outlet !== 'undefined') {
-      route.model = outlet.model;
+      route._model = outlet.model;
       // TODO: Try to avoid the double computation bug
       schedule('afterRender', () => {
         outlet.routeName = route.args.name;

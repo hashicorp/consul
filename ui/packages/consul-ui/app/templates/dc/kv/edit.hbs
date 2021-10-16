@@ -1,30 +1,93 @@
 <Route
   @name={{routeName}}
-  @title={{if item.Key 'Edit Key/Value' 'New Key/Value'}}
 as |route|>
+
+{{#let
+  '/'
+as |separator|}}
+
+{{#let
+  (concat (join separator (slice 0 -1 (split route.params.key separator))) separator)
+as |parentKey|}}
+
+  <DataLoader
+    @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        key=(if (string-ends-with routeName 'create') parentKey route.params.key)
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+  loader.data
+
+as |dc partition nspace item|}}
+
   <AppView>
     <BlockSlot @name="breadcrumbs">
       <ol>
-          <li><a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a></li>
-  {{#if (not-eq parent.Key '/')}}
-    {{#each (slice 0 -1 (split parent.Key '/')) as |breadcrumb index|}}
-          <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
+          <li>
+            <a data-test-back href={{href-to 'dc.kv.index'}}>Key / Values</a>
+          </li>
+{{#if (not-eq parentKey separator)}}
+
+{{#let
+  (split parentKey separator)
+as |parts|}}
+
+    {{#each parts as |breadcrumb index|}}
+      {{#if (gt breadcrumb.length 0)}}
+        {{! if breadcrumb isn't '' then slice of enough of the parentKey }}
+        {{! to make the correct href. 'Enough' is the current index plus 1.}}
+        {{! We push on a '' here so make sure we get a trailing slash/separator }}
+          <li>
+            <a
+              href={{href-to 'dc.kv.folder'
+                  (join '/'
+                    (append
+                      (slice 0 (add index 1) parts) ''
+                    )
+                  )
+              }}
+            >
+              {{breadcrumb}}
+            </a>
+          </li>
+      {{/if}}
     {{/each}}
-  {{/if}}
+{{/let}}
+
+{{/if}}
       </ol>
     </BlockSlot>
     <BlockSlot @name="header">
         <h1>
-  {{#if item.Key}}
-          {{left-trim item.Key parent.Key}}
+  {{#if (and item.Key (not-eq item.Key parentKey))}}
+          <route.Title @title="Edit Key / Value" @render={{false}} />
+          {{left-trim item.Key parentKey}}
   {{else}}
-          New Key / Value
+          <route.Title @title="New Key / Value" @render={{true}} />
   {{/if}}
         </h1>
     </BlockSlot>
     <BlockSlot @name="content">
     {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
-    {{#if item.Session}}
+{{#if item.Session}}
       <Notice
         @type="warning"
         data-test-session-warning
@@ -35,23 +98,47 @@ as |route|>
           </p>
         </notice.Body>
       </Notice>
-    {{/if}}
+{{/if}}
       <Consul::Kv::Form
         @item={{item}}
-        @dc={{dc}}
-        @nspace={{nspace}}
-        @onsubmit={{if (eq parent.Key '/') (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parent.Key)}}
-        @parent={{parent}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{if (eq parentKey separator) (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parentKey)}}
+        @parent={{parentKey}}
       />
+
     {{! session is slightly different to item.Session as we only have session if you have session:read perms}}
-    {{#if session}}
+{{#if (and item.Session (can "read sessions"))}}
+      <DataSource
+        @src={{uri '/${partition}/${nspace}/${dc}/sessions/for-key/${id}'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+              id=item.Session
+            )
+        }}
+        @onchange={{action (mut session) value="data"}}
+      />
+  {{#if session}}
+      {{!FIXME}}
       <Consul::LockSession::Form
         @item={{session}}
-        @dc={{dc}}
-        @nspace={{nspace}}
-        @onsubmit={{action (mut session) undefined}}
+        @dc={{route.params.dc}}
+        @nspace={{route.params.nspace}}
+        @partition={{route.params.partition}}
+        @onsubmit={{action (noop) undefined}}
       />
-    {{/if}}
+  {{/if}}
+
+{{/if}}
+
     </BlockSlot>
   </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
+  {{/let}}
+{{/let}}
 </Route>

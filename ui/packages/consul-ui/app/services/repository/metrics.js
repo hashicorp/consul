@@ -17,16 +17,17 @@ export default class MetricsService extends RepositoryService {
 
   init() {
     super.init(...arguments);
-    const config = this.config.get();
+    // TODO: this flow should be be async, then can just use either get or a DataSource
+    const config = this.config.getSync();
     // Inject whether or not the proxy is enabled as an option into the opaque
     // JSON options the user provided.
     const opts = config.metrics_provider_options || {};
     opts.metrics_proxy_enabled = config.metrics_proxy_enabled;
+    // Inject the base app URL
+    const provider = config.metrics_provider || 'prometheus';
     // Inject a convenience function for dialing through the metrics proxy.
     opts.fetch = (path, params) =>
       this.client.fetchWithToken(`/v1/internal/ui/metrics-proxy${path}`, params);
-    // Inject the base app URL
-    const provider = config.metrics_provider || 'prometheus';
 
     try {
       this.provider = window.consul.getMetricsProvider(provider, opts);
@@ -38,7 +39,7 @@ export default class MetricsService extends RepositoryService {
     }
   }
 
-  @dataSource('/:ns/:dc/metrics/summary-for-service/:slug/:protocol')
+  @dataSource('/:partition/:ns/:dc/metrics/summary-for-service/:slug/:protocol')
   findServiceSummary(params, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
@@ -70,7 +71,7 @@ export default class MetricsService extends RepositoryService {
     });
   }
 
-  @dataSource('/:ns/:dc/metrics/upstream-summary-for-service/:slug/:protocol')
+  @dataSource('/:partition/:ns/:dc/metrics/upstream-summary-for-service/:slug/:protocol')
   findUpstreamSummary(params, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
@@ -85,7 +86,7 @@ export default class MetricsService extends RepositoryService {
       });
   }
 
-  @dataSource('/:ns/:dc/metrics/downstream-summary-for-service/:slug/:protocol')
+  @dataSource('/:partition/:ns/:dc/metrics/downstream-summary-for-service/:slug/:protocol')
   findDownstreamSummary(params, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);

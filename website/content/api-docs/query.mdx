@@ -176,9 +176,9 @@ The table below shows this endpoint's support for
 
   - `Service` `(string: <required>)` - Specifies the name of the service to
     query.
-    
+
   - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the Consul namespace
-    to query. If not provided the query will use Consul default namespace for resolution. 
+    to query. If not provided the query will use Consul default namespace for resolution.
 
   - `Failover` contains two fields, both of which are optional, and determine
     what happens if no healthy nodes are available in the local datacenter when
@@ -311,7 +311,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
-| `NO`             | `none`            | `none`        | `query:read` |
+| `NO`             | `all`             | `none`        | `query:read` |
 
 ### Parameters
 
@@ -414,7 +414,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
-| `NO`             | `none`            | `none`        | `query:read` |
+| `NO`             | `all`             | `none`        | `query:read` |
 
 ### Parameters
 
@@ -490,7 +490,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required          |
 | ---------------- | ----------------- | ------------- | --------------------- |
-| `NO`             | `none`            | `simple`      | `depends`<sup>1</sup> |
+| `NO`             | `all`             | `simple`      | `depends`<sup>1</sup> |
 
 <sup>1</sup> If an ACL Token was bound to the query when it was defined then it will
 be used when executing the request. Otherwise, the client's supplied ACL Token will
@@ -619,7 +619,7 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
 | ---------------- | ----------------- | ------------- | ------------ |
-| `NO`             | `none`            | `none`        | `query:read` |
+| `NO`             | `all`             | `none`        | `query:read` |
 
 ### Parameters
 

@@ -2,6 +2,9 @@
    {
     "Name": "default",
     "Description": "The default namespace",
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
     "ACLs": {
       "PolicyDefaults": [
 ${range(env('CONSUL_POLICY_COUNT', 3)).map((i) => `
@@ -36,6 +39,9 @@ ${i === 0 ? `
 ` : ``}
    {
     "Name": "${fake.hacker.noun()}-ns-${i}",
+${typeof location.search.partition !== 'undefined' ? `
+            "Partition": "${location.search.partition}",
+` : ``}
     "ACLs": {
       "PolicyDefaults": [
 ${range(env('CONSUL_POLICY_COUNT', 3)).map((i) => `

@@ -199,7 +199,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(0), index)
 
 	// Perform a regular bootstrap.
-	require.NoError(t, s.ACLBootstrap(3, 0, token1.Clone(), false))
+	require.NoError(t, s.ACLBootstrap(3, 0, token1.Clone()))
 
 	// Make sure we can't bootstrap again
 	canBootstrap, index, err = s.CanBootstrapACLToken()
@@ -208,7 +208,7 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	require.Equal(t, uint64(3), index)
 
 	// Make sure another attempt fails.
-	err = s.ACLBootstrap(4, 0, token2.Clone(), false)
+	err = s.ACLBootstrap(4, 0, token2.Clone())
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapNotAllowedErr, err)
 
@@ -225,12 +225,12 @@ func TestStateStore_ACLBootstrap(t *testing.T) {
 	compareTokens(t, token1, tokens[0])
 
 	// bootstrap reset
-	err = s.ACLBootstrap(32, index-1, token2.Clone(), false)
+	err = s.ACLBootstrap(32, index-1, token2.Clone())
 	require.Error(t, err)
 	require.Equal(t, structs.ACLBootstrapInvalidResetIndexErr, err)
 
 	// bootstrap reset
-	err = s.ACLBootstrap(32, index, token2.Clone(), false)
+	err = s.ACLBootstrap(32, index, token2.Clone())
 	require.NoError(t, err)
 
 	_, tokens, err = s.ACLTokenList(nil, true, true, "", "", "", nil, nil)
@@ -1511,34 +1511,6 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		require.Nil(t, rtoken)
 	})
 
-	t.Run("Secret", func(t *testing.T) {
-		t.Parallel()
-		s := testACLTokensStateStore(t)
-
-		token := &structs.ACLToken{
-			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
-			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
-			Policies: []structs.ACLTokenPolicyLink{
-				{
-					ID: structs.ACLPolicyGlobalManagementID,
-				},
-			},
-			Local: true,
-		}
-
-		require.NoError(t, s.ACLTokenSet(2, token.Clone(), false))
-
-		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
-		require.NoError(t, err)
-		require.NotNil(t, rtoken)
-
-		require.NoError(t, s.ACLTokenDeleteBySecret(3, "34ec8eb3-095d-417a-a937-b439af7a8e8b", nil))
-
-		_, rtoken, err = s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
-		require.NoError(t, err)
-		require.Nil(t, rtoken)
-	})
-
 	t.Run("Multiple", func(t *testing.T) {
 		t.Parallel()
 		s := testACLTokensStateStore(t)
@@ -1592,7 +1564,6 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 		s := testACLTokensStateStore(t)
 
 		require.Error(t, s.ACLTokenDeleteByAccessor(3, structs.ACLTokenAnonymousID, nil))
-		require.Error(t, s.ACLTokenDeleteBySecret(3, "anonymous", nil))
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -1601,7 +1572,6 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 
 		// deletion of non-existent policies is not an error
 		require.NoError(t, s.ACLTokenDeleteByAccessor(3, "ea58a09c-2100-4aef-816b-8ee0ade77dcd", nil))
-		require.NoError(t, s.ACLTokenDeleteBySecret(3, "376d0cae-dd50-4213-9668-2c7797a7fb2d", nil))
 	})
 }
 
@@ -3737,7 +3707,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(4), idx)
 		require.ElementsMatch(t, tokens, res)
-		require.Equal(t, uint64(4), s.maxIndex("acl-tokens"))
+		require.Equal(t, uint64(4), s.maxIndex(tableACLTokens))
 	}()
 }
 
@@ -3819,13 +3789,19 @@ func TestTokenPoliciesIndex(t *testing.T) {
 		Name:         "global",
 		AllowMissing: true,
 		Unique:       false,
-		Indexer:      &TokenExpirationIndex{LocalFilter: false},
+		Indexer: indexerSingle{
+			readIndex:  readIndex(indexFromTimeQuery),
+			writeIndex: writeIndex(indexExpiresGlobalFromACLToken),
+		},
 	}
 	localIndex := &memdb.IndexSchema{
 		Name:         "local",
 		AllowMissing: true,
 		Unique:       false,
-		Indexer:      &TokenExpirationIndex{LocalFilter: true},
+		Indexer: indexerSingle{
+			readIndex:  readIndex(indexFromTimeQuery),
+			writeIndex: writeIndex(indexExpiresLocalFromACLToken),
+		},
 	}
 	schema := &memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
@@ -4143,7 +4119,7 @@ func TestStateStore_ACLAuthMethods_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, methods, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-auth-methods"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLAuthMethods))
 	}()
 }
 
@@ -4207,7 +4183,7 @@ func TestStateStore_ACLBindingRules_Snapshot_Restore(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
 		require.ElementsMatch(t, rules, res)
-		require.Equal(t, uint64(2), s.maxIndex("acl-binding-rules"))
+		require.Equal(t, uint64(2), s.maxIndex(tableACLBindingRules))
 	}()
 }
 

@@ -12,38 +12,93 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 // ClientConnPool creates and stores a connection for each datacenter.
 type ClientConnPool struct {
-	dialer    dialer
-	servers   ServerLocator
-	conns     map[string]*grpc.ClientConn
-	connsLock sync.Mutex
+	dialer        dialer
+	servers       ServerLocator
+	gwResolverDep gatewayResolverDep
+	conns         map[string]*grpc.ClientConn
+	connsLock     sync.Mutex
 }
 
 type ServerLocator interface {
-	// ServerForAddr is used to look up server metadata from an address.
-	ServerForAddr(addr string) (*metadata.Server, error)
+	// ServerForGlobalAddr returns server metadata for a server with the specified globally unique address.
+	ServerForGlobalAddr(globalAddr string) (*metadata.Server, error)
+
 	// Authority returns the target authority to use to dial the server. This is primarily
 	// needed for testing multiple agents in parallel, because gRPC requires the
 	// resolver to be registered globally.
 	Authority() string
 }
 
+// gatewayResolverDep is just a holder for a function pointer that can be
+// updated lazily after the structs are instantiated (but before first use)
+// and all structs with a reference to this struct will see the same update.
+type gatewayResolverDep struct {
+	// GatewayResolver is a function that returns a suitable random mesh
+	// gateway address for dialing servers in a given DC. This is only
+	// needed if wan federation via mesh gateways is enabled.
+	GatewayResolver func(string) string
+}
+
 // TLSWrapper wraps a non-TLS connection and returns a connection with TLS
 // enabled.
 type TLSWrapper func(dc string, conn net.Conn) (net.Conn, error)
 
+// ALPNWrapper is a function that is used to wrap a non-TLS connection and
+// returns an appropriate TLS connection or error. This taks a datacenter and
+// node name as argument to configure the desired SNI value and the desired
+// next proto for configuring ALPN.
+type ALPNWrapper func(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, error)
+
 type dialer func(context.Context, string) (net.Conn, error)
 
-// NewClientConnPool create new GRPC client pool to connect to servers using GRPC over RPC
-func NewClientConnPool(servers ServerLocator, tls TLSWrapper, useTLSForDC func(dc string) bool) *ClientConnPool {
-	return &ClientConnPool{
-		dialer:  newDialer(servers, tls, useTLSForDC),
-		servers: servers,
+type ClientConnPoolConfig struct {
+	// Servers is a reference for how to figure out how to dial any server.
+	Servers ServerLocator
+
+	// SrcAddr is the source address for outgoing connections.
+	SrcAddr *net.TCPAddr
+
+	// TLSWrapper is the specifics of wrapping a socket when doing an TYPE_BYTE+TLS
+	// wrapped RPC request.
+	TLSWrapper TLSWrapper
+
+	// ALPNWrapper is the specifics of wrapping a socket when doing an ALPN+TLS
+	// wrapped RPC request (typically only for wan federation via mesh
+	// gateways).
+	ALPNWrapper ALPNWrapper
+
+	// UseTLSForDC is a function to determine if dialing a given datacenter
+	// should use TLS.
+	UseTLSForDC func(dc string) bool
+
+	// DialingFromServer should be set to true if this connection pool is owned
+	// by a consul server instance.
+	DialingFromServer bool
+
+	// DialingFromDatacenter is the datacenter of the consul agent using this
+	// pool.
+	DialingFromDatacenter string
+}
+
+// NewClientConnPool create new GRPC client pool to connect to servers using
+// GRPC over RPC.
+func NewClientConnPool(cfg ClientConnPoolConfig) *ClientConnPool {
+	c := &ClientConnPool{
+		servers: cfg.Servers,
 		conns:   make(map[string]*grpc.ClientConn),
 	}
+	c.dialer = newDialer(cfg, &c.gwResolverDep)
+	return c
+}
+
+// SetGatewayResolver is only to be called during setup before the pool is used.
+func (c *ClientConnPool) SetGatewayResolver(gatewayResolver func(string) string) {
+	c.gwResolverDep.GatewayResolver = gatewayResolver
 }
 
 // ClientConn returns a grpc.ClientConn for the datacenter. If there are no
@@ -102,22 +157,39 @@ func (c *ClientConnPool) dial(datacenter string, serverType string) (*grpc.Clien
 
 // newDialer returns a gRPC dialer function that conditionally wraps the connection
 // with TLS based on the Server.useTLS value.
-func newDialer(servers ServerLocator, wrapper TLSWrapper, useTLSForDC func(dc string) bool) func(context.Context, string) (net.Conn, error) {
-	return func(ctx context.Context, addr string) (net.Conn, error) {
-		d := net.Dialer{}
-		conn, err := d.DialContext(ctx, "tcp", addr)
+func newDialer(cfg ClientConnPoolConfig, gwResolverDep *gatewayResolverDep) func(context.Context, string) (net.Conn, error) {
+	return func(ctx context.Context, globalAddr string) (net.Conn, error) {
+		server, err := cfg.Servers.ServerForGlobalAddr(globalAddr)
 		if err != nil {
 			return nil, err
 		}
 
-		server, err := servers.ServerForAddr(addr)
+		if cfg.DialingFromServer &&
+			gwResolverDep.GatewayResolver != nil &&
+			cfg.ALPNWrapper != nil &&
+			server.Datacenter != cfg.DialingFromDatacenter {
+			// NOTE: TLS is required on this branch.
+			conn, _, err := pool.DialRPCViaMeshGateway(
+				ctx,
+				server.Datacenter,
+				server.ShortName,
+				cfg.SrcAddr,
+				tlsutil.ALPNWrapper(cfg.ALPNWrapper),
+				pool.ALPN_RPCGRPC,
+				cfg.DialingFromServer,
+				gwResolverDep.GatewayResolver,
+			)
+			return conn, err
+		}
+
+		d := net.Dialer{LocalAddr: cfg.SrcAddr, Timeout: pool.DefaultDialTimeout}
+		conn, err := d.DialContext(ctx, "tcp", server.Addr.String())
 		if err != nil {
-			conn.Close()
 			return nil, err
 		}
 
-		if server.UseTLS && useTLSForDC(server.Datacenter) {
-			if wrapper == nil {
+		if server.UseTLS && cfg.UseTLSForDC(server.Datacenter) {
+			if cfg.TLSWrapper == nil {
 				conn.Close()
 				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
 			}
@@ -129,7 +201,7 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper, useTLSForDC func(dc st
 			}
 
 			// Wrap the connection in a TLS client
-			tlsConn, err := wrapper(server.Datacenter, conn)
+			tlsConn, err := cfg.TLSWrapper(server.Datacenter, conn)
 			if err != nil {
 				conn.Close()
 				return nil, err
@@ -137,7 +209,7 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper, useTLSForDC func(dc st
 			conn = tlsConn
 		}
 
-		_, err = conn.Write([]byte{pool.RPCGRPC})
+		_, err = conn.Write([]byte{byte(pool.RPCGRPC)})
 		if err != nil {
 			conn.Close()
 			return nil, err

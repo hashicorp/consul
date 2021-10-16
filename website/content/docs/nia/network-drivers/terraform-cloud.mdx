@@ -1,0 +1,111 @@
+---
+layout: docs
+page_title: Terraform Cloud Driver
+description: >-
+  Consul-Terraform-Sync Network Drivers with Terraform Cloud
+---
+
+# Terraform Cloud Driver
+<EnterpriseAlert>
+  This feature requires{' '}
+  <a href="https://www.hashicorp.com/products/consul/features">Consul-Terraform-Sync Enterprise</a>{' '}
+  which is available with <strong>Consul Enterprise</strong>.
+</EnterpriseAlert>
+
+Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Cloud](https://www.terraform.io/cloud). Integrating with Terraform Cloud provides features, such as enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. Consul-Terraform-Sync is compatible with both the [self-hosted](https://www.hashicorp.com/products/terraform/editions/enterprise) and [managed service](https://www.hashicorp.com/products/terraform/editions/cloud) versions of Terraform Cloud. It also supports all [tiers](https://www.hashicorp.com/products/terraform/pricing) of the Terraform Cloud managed service.
+
+
+This page describes how the Terraform Cloud driver operates within Consul-Terraform-Sync.
+
+## Terraform Workspace Automation
+
+Consul-Terraform-Sync manages Terraform runs following the [API-driven run workflow](https://www.terraform.io/docs/cloud/run/api.html) for workspaces in Terraform Cloud.
+
+On startup, Consul-Terraform-Sync:
+1. Creates or discovers Terraform Cloud workspaces corresponding to the configured tasks.
+2. Prepares the local environment and generates Terraform configuration files that make up the root module for each task.
+3. Packages the generated files and uploads them as a configuration version for the task's workspace on Terraform Cloud.
+
+Once all workspaces are set up, Consul-Terraform-Sync monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform Cloud driver dynamically updates input variables for that task directly as [workspace variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) using the Terraform Cloud API. The driver then queues a run on the workspace, with auto-apply enabled, to update your network infrastructure.
+
+~> **Note:** Although workspaces for tasks are executed in isolated environments, this does not guarantee the infrastructure changes from concurrent task executions are independent. Ensure that modules across all tasks are not modifying the same resource objects or have overlapping changes that may result in race conditions during automation.
+
+## Remote Workspaces
+
+Consul-Terraform-Sync will discover or create a new workspaces based on your configured tasks. The task configuration options for `name`, `description`, and `terraform_version` are used to set the workspace name, description, and Terraform version.
+
+[![CTS Workspace Overview](/img/nia/cts-tfc-workspace.png)](/img/nia/cts-tfc-workspace.png)
+
+Workspace automation requirements for Consul-Terraform-Sync:
+* Must be set to remote execution mode
+* Cannot be connected to a VCS
+* Cannot have an existing configuration version uploaded by another application
+
+Other workspace settings can be pre-configured or updated, such as adding a [run notification](https://www.terraform.io/docs/cloud/workspaces/notifications.html) to send messages to a Slack channel when Consul-Terraform-Sync updates your network infrastructure.
+
+## Configuration Version
+
+An example configuration version for a task named "cts-example" would have the folder structure below when running with the Terraform Cloud driver and using the default working directory.
+
+```shell-session
+$ tree sync-tasks/
+
+sync-tasks/
+└── cts-example/
+    ├── main.tf
+    └── variables.tf
+```
+
+- `main.tf` - The main file contains the terraform block, provider blocks, and a module block calling the module configured for the task.
+  - `terraform` block - The corresponding provider source and versions for the task from the configuration files are placed into this block for the root module.
+  - `provider` blocks - The provider blocks generated in the root module resemble the `terraform_provider` blocks from the configuration for Consul-Terraform-Sync. They have identical arguments present and are set from the intermediate variable created per provider.
+  - `module` block - The module block is where the task's module is called as a [child module](https://www.terraform.io/docs/configuration/modules.html#calling-a-child-module). The child module contains the core logic for automation. Required and optional input variables are passed as arguments to the module.
+- `variables.tf` - This file contains three types of variable declarations:
+  -  `services` input variable (required) determines module compatibility with Consul-Terraform Sync (read more on [compatible Terraform modules](/docs/nia/terraform-modules) for more details).
+  - Any additional [optional input variables](/docs/nia/terraform-modules#optional-input-variables) provided by Consul-Terraform-Sync that the module may include.
+  - Various intermediate variables used to configure providers. Intermediate provider variables are interpolated from the provider blocks and arguments configured in the Consul-Terraform-Sync configuration.
+- `variables.module.tf` - This file is created if there are [variables configured for the task](/docs/nia/configuration#variable_files) and contains the interpolated variable declarations that match the variables from configuration. These are then used to proxy the configured variables to the module through explicit assignment in the module block.
+
+## Variables
+
+Consul-Terraform-Sync uses Terraform input variables to reflect the latest Consul service information. They are used as parameters for your Terraform module. Input variables are dynamic and are updated by the driver throughout the runtime of Consul-Terraform-Sync.
+
+You can view the latest service information in the Terraform UI by navigating to that workspace and clicking the "Variables" tab in the workspace navigation.
+
+[![CTS Workspace Variables](/img/nia/cts-tfc-workspace-variables.png)](/img/nia/cts-tfc-workspace-variables.png)
+
+~> **Caution:** Dynamic variables maintained by Consul-Terraform-Sync are formatted for automation. Unexpected manual changes to these variables may result in automation errors.
+
+## Setting Up Terraform Cloud Driver
+
+### Deployment
+
+Because a Consul-Terraform-Sync instance can only be configured with one driver, an instance can only be associated with either a Terraform driver or a Terraform Cloud driver. If there is a need to run both types of drivers, users will need to deploy a separate Consul-Terraform-Sync instance for each type of driver. Relatedly, if there is a need to run Consul-Terraform-Sync across multiple Terraform Cloud organizations, users will need to deploy a separate instance for each organization.
+
+### Required Setup
+
+This section captures requirements for setting up Consul-Terraform-Sync to integrate with your [Terraform Cloud](https://www.hashicorp.com/cloud) solution.
+
+1. Hostname of your Terraform Cloud, self-hosted distribution
+1. Name of your organization
+1. [Team API token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens) used for authentication with Terraform Cloud
+
+Prior to running Consul-Terraform-Sync with a Terraform Cloud driver, you will need an account and organization set up, as well as a dedicated token. We recommend using a team token that is restricted to [Manage Workspaces](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html#managing-workspace-access)-level permissions. Below are the steps for the recommended setup.
+
+The first step is to create an account with your Terraform Cloud service. After creating an account, create a new [organization](https://www.terraform.io/docs/cloud/users-teams-organizations/organizations.html#creating-organizations) or select an existing organization. The address of your Terraform Cloud service will be used to configure the [`hostname`](/docs/nia/configuration#hostname), and the organization name will be used to configure the [`organization`](/docs/nia/configuration#organization) on the Terraform Cloud driver.
+
+Once you have an account and organization, the next step is to [create a team](https://www.terraform.io/docs/cloud/users-teams-organizations/teams.html). We recommend using a dedicated team and team token to run and authenticate Consul-Terraform-Sync. Using a team token has the benefits of restricting organization permissions as well as associating Consul-Terraform-Sync automated actions with the team rather than an individual.
+
+After creating a dedicated team, update the team's permissions with "Manage Workspaces" organization access-level. Consul-Terraform-Sync's main work revolves around creating and managing workspaces. Therefore restricting the dedicated team's permission to Manage Workspaces level is sufficient and reduces security risk.
+
+[![CTS Terraform Team Setup](/img/nia/cts-tfc-team-setup.png)](/img/nia/cts-tfc-team-setup.png)
+
+After setting the team's permissions, the final setup step is to [generate the associated team token](https://www.terraform.io/docs/cloud/users-teams-organizations/api-tokens.html#team-api-tokens), which can be done on the same team management page. This token will be used by Consul-Terraform-Sync for API authentication and will be used to configure the [`token`](/docs/nia/configuration#token-1) on the Terraform Cloud driver.
+
+### Recommendations
+
+We recommend configuring workspaces managed by Consul-Terraform-Sync with [run notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html) through the Terraform web application. Run notifications notify external systems about the progress of runs and could help notify users of Consul-Terraform-Sync events, particularly errored runs.
+
+[![CTS Terraform Cloud Run Notifications](/img/nia/cts-tfc-run-notifications.png)](/img/nia/cts-tfc-run-notifications.png)
+
+In order to configure a run notification, users can [manually create a notification configuration](https://www.terraform.io/docs/cloud/workspaces/notifications.html#creating-a-notification-configuration) for workspaces automated by Consul-Terraform-Sync. A workspace may already exist for a task if the workspace name is identical to the configured task's [`name`](/docs/nia/configuration#name-2). This may occur if Consul-Terraform-Sync has already already run and created the workspace for the task. This may also occur if the workspace is manually created for the task prior to Consul-Terraform-Sync running.

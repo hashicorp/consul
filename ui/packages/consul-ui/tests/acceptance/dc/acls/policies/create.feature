@@ -17,11 +17,10 @@ Feature: dc / acls / policies / create
       Description: [Description]
     ---
     And I submit
-    Then a PUT request was made to "/v1/acl/policy?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/acl/policy?dc=datacenter&ns=@namespace" from yaml
     ---
       body:
         Name: my-policy
-        Namespace: @namespace
         Description: [Description]
     ---
     Then the url should be /datacenter/acls/policies

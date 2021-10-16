@@ -413,11 +413,22 @@ key in your configuration file.
 }
 ```
 
-## Success/Failures before passing/critical
+## Success/Failures before passing/warning/critical
 
-In Consul 1.7.0 and later, a check may be configured to become passing/critical
-only after a specified number of consecutive checks return passing/critical.
+To prevent flapping health checks, and limit the load they cause on the cluster,
+a health check may be configured to become passing/warning/critical only after a
+specified number of consecutive checks return passing/critical.
 The status will not transition states until the configured threshold is reached.
+
+* `success_before_passing` - Number of consecutive successful results required
+  before check status transitions to passing. Defaults to `0`.  Added in Consul 1.7.0.
+* `failures_before_warning` - Number of consecutive unsuccessful results required
+  before check status transitions to warning. Defaults to the same value as that of
+  `failures_before_critical` to maintain the expected behavior of not changing the
+  status of serivce checks to `warning` before `critical` unless configured to do so.
+  Values higher than `failures_before_critical` are invalid. Added in Consul 1.11.0.
+* `failures_before_critical` - Number of consecutive unsuccessful results required
+  before check status transitions to critical. Defaults to `0`. Added in Consul 1.7.0.
 
 This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
 By default, both passing and critical thresholds will be set to 0 so the check
@@ -432,6 +443,7 @@ status will always reflect the last check result.
       "interval": "10s",
       "timeout": "1s",
       "success_before_passing": 3,
+      "failures_before_warning": 1,
       "failures_before_critical": 3
     }
   ]

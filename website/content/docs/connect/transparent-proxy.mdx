@@ -115,7 +115,7 @@ Traffic redirection interferes with [Kubernetes HTTP health
 probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) since the
 probes expect that kubelet can directly reach the application container on the probe's endpoint, but that traffic will
 be redirected through the sidecar proxy, causing errors because kubelet itself is not encrypting that traffic using a
-mesh proxy. For this reason, Consul allows you to (overwrite Kubernetes HTTP health probes)[/docs/k8s/connect/health] to point to the proxy instead.
+mesh proxy. For this reason, Consul allows you to [overwrite Kubernetes HTTP health probes](/docs/k8s/connect/health) to point to the proxy instead.
 This can be done using the Helm value `connectInject.transparentProxy.defaultOverwriteProbes`
 or the Pod annotation `consul.hashicorp.com/transparent-proxy-overwrite-probes`.
 
@@ -132,14 +132,12 @@ configure exceptions on a per-Pod basis. The following Pod annotations allow you
 ## Known Limitations
 
 * Traffic can only be transparently proxied when the address dialed corresponds to the address of a service in the
-transparent proxy's datacenter. Cross-datacenter transparent proxying is only possible using
-[service-resolver configuration entries that resolve to remote datacenters](/docs/connect/config-entries/service-resolver#other-datacenters).
-Services can also dial explicit upstreams in other datacenters without transparent proxy, for example, by adding an
+transparent proxy's datacenter. Services can also dial explicit upstreams in other datacenters without transparent proxy, for example, by adding an
 [annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) such as
 `"consul.hashicorp.com/connect-service-upstreams": "my-service:1234:dc2"` to reach an upstream service called `my-service`
 in the datacenter `dc2`.
 * In the deployment configuration where a [single Consul datacenter spans multiple Kubernetes clusters](https://www.consul.io/docs/k8s/installation/deployment-configurations/single-dc-multi-k8s), services in one Kubernetes cluster must explicitly dial a service in another Kubernetes cluster using the [consul.hashicorp.com/connect-service-upstreams](/docs/k8s/connect#consul-hashicorp-com-connect-service-upstreams) annotation. An example would be
-`"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters. 
+`"consul.hashicorp.com/connect-service-upstreams": "my-service:1234"`, where `my-service` is the service that exists in another Kubernetes cluster and is exposed on port `1234`. Although Transparent Proxy is enabled, KubeDNS is not utilized when communicating between services existing on separate Kubernetes clusters.
 * When dialing headless services the request will be proxied using a plain TCP proxy with a 5s connection timeout.
 Currently the upstream's protocol and connection timeout are not considered.
 

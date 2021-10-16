@@ -4,11 +4,11 @@
     left: calc(0px - (var(--size) / 2)) !important;
   }
   .tippy-arrow::before {
-    background-color: $white;
+    background-color: rgb(var(--white));
     width: calc(1px + var(--size));
     height: calc(1px + var(--size));
-    border: $decor-border-100;
-    border-color: $gray-300;
+    border: var(--decor-border-100);
+    border-color: rgb(var(--tone-gray-300));
   }
   // potential icon
   .tippy-arrow::after {
@@ -23,8 +23,8 @@
       border-bottom-left-radius: 0 !important;
     }
     .tippy-arrow::before {
-      border-bottom-left-radius: $decor-radius-200;
-      border-bottom-right-radius: $decor-radius-200;
+      border-bottom-left-radius: var(--decor-radius-200);
+      border-bottom-right-radius: var(--decor-radius-200);
       border-top: 0 !important;
     }
     .tippy-arrow::after {
@@ -39,8 +39,8 @@
       border-top-left-radius: 0 !important;
     }
     .tippy-arrow::before {
-      border-top-left-radius: $decor-radius-200;
-      border-top-right-radius: $decor-radius-200;
+      border-top-left-radius: var(--decor-radius-200);
+      border-top-right-radius: var(--decor-radius-200);
       border-bottom: 0 !important;
     }
     .tippy-arrow::after {

@@ -352,20 +352,15 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 	r := op.c.newRequest("GET", "/v1/operator/autopilot/health")
 	r.setQueryOptions(q)
 
-	// we cannot just use requireOK because this endpoint might use a 429 status to indicate
-	// that unhealthiness
-	_, resp, err := op.c.doRequest(r)
+	// we use 429 status to indicate unhealthiness
+	d, resp, err := op.c.doRequest(r)
+	_, resp, err = requireHttpCodes(d, resp, err, 200, 429)
+
 	if err != nil {
 		if resp != nil {
 			closeResponseBody(resp)
 		}
 		return nil, err
-	}
-
-	// these are the only 2 status codes that would indicate that we should
-	// expect the body to contain the right format.
-	if resp.StatusCode != 200 && resp.StatusCode != 429 {
-		return nil, generateUnexpectedResponseCodeError(resp)
 	}
 
 	defer closeResponseBody(resp)

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
@@ -379,8 +380,6 @@ type ServiceRouteDestination struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
-	// NOTE: Partition is not represented here by design. Do not add it.
-
 	// PrefixRewrite allows for the proxied request to have its matching path
 	// prefix modified before being sent to the destination. Described more
 	// below in the envoy implementation section.
@@ -402,6 +401,10 @@ type ServiceRouteDestination struct {
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any reasonable proxy.
 	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
+
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
@@ -662,6 +665,81 @@ type ServiceSplit struct {
 	Namespace string `json:",omitempty"`
 
 	// NOTE: Partition is not represented here by design. Do not add it.
+
+	// NOTE: Any configuration added to Splits that needs to be passed to the
+	// proxy needs special handling MergeParent below.
+
+	// Allow HTTP header manipulation to be configured.
+	RequestHeaders  *HTTPHeaderModifiers `json:",omitempty" alias:"request_headers"`
+	ResponseHeaders *HTTPHeaderModifiers `json:",omitempty" alias:"response_headers"`
+}
+
+// MergeParent is called by the discovery chain compiler when a split directs to
+// another splitter. We refer to the first ServiceSplit as the parent and the
+// ServiceSplits of the second splitter as its children. The parent ends up
+// "flattened" by the compiler, i.e. replaced with its children recursively with
+// the weights modified as necessary.
+//
+// Since the parent is never included in the output, any request processing
+// config attached to it (e.g. header manipulation) would be lost and not take
+// affect when splitters direct to other splitters. To avoid that, we define a
+// MergeParent operation which is called by the compiler on each child split
+// during flattening. It must merge any request processing configuration from
+// the passed parent into the child such that the end result is equivalent to a
+// request first passing through the parent and then the child. Response
+// handling must occur as if the request first passed through the through the
+// child to the parent.
+//
+// MergeDefaults leaves both s and parent unchanged and returns a deep copy to
+// avoid confusing issues where config changes after being compiled.
+func (s *ServiceSplit) MergeParent(parent *ServiceSplit) (*ServiceSplit, error) {
+	if s == nil && parent == nil {
+		return nil, nil
+	}
+
+	var err error
+	var copy ServiceSplit
+
+	if s == nil {
+		copy = *parent
+		copy.RequestHeaders, err = parent.RequestHeaders.Clone()
+		if err != nil {
+			return nil, err
+		}
+		copy.ResponseHeaders, err = parent.ResponseHeaders.Clone()
+		if err != nil {
+			return nil, err
+		}
+		return &copy, nil
+	} else {
+		copy = *s
+	}
+
+	var parentReq *HTTPHeaderModifiers
+	if parent != nil {
+		parentReq = parent.RequestHeaders
+	}
+
+	// Merge any request handling from parent _unless_ it's overridden by us.
+	copy.RequestHeaders, err = MergeHTTPHeaderModifiers(parentReq, s.RequestHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	var parentResp *HTTPHeaderModifiers
+	if parent != nil {
+		parentResp = parent.ResponseHeaders
+	}
+
+	// Merge any response handling. Note that we allow parent to override this
+	// time since responses flow the other way so the unflattened behavior would
+	// be that the parent processing happens _after_ ours potentially overriding
+	// it.
+	copy.ResponseHeaders, err = MergeHTTPHeaderModifiers(s.ResponseHeaders, parentResp)
+	if err != nil {
+		return nil, err
+	}
+	return &copy, nil
 }
 
 // ServiceResolverConfigEntry defines which instances of a service should
@@ -846,6 +924,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if e.Redirect != nil {
+		if e.PartitionOrEmpty() != acl.DefaultPartitionName && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross datacenters redirect is not allowed for non default partition")
+		}
 		r := e.Redirect
 
 		if len(e.Failover) > 0 {
@@ -873,7 +954,11 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if len(e.Failover) > 0 {
+
 		for subset, f := range e.Failover {
+			if e.PartitionOrEmpty() != acl.DefaultPartitionName && len(f.Datacenters) != 0 {
+				return fmt.Errorf("Cross datacenters failover is not allowed for non default partition")
+			}
 			if subset != "*" && !isSubset(subset) {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
@@ -988,6 +1073,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 		if redirectID != svcID {
 			found[redirectID] = struct{}{}
 		}
+
 	}
 
 	if len(e.Failover) > 0 {
@@ -1052,8 +1138,6 @@ type ServiceResolverRedirect struct {
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
 	Datacenter string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // There are some restrictions on what is allowed in here:
@@ -1088,8 +1172,6 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
-
-	// NOTE: Partition is not represented here by design. Do not add it.
 }
 
 // LoadBalancer determines the load balancing policy and configuration for services
@@ -1345,8 +1427,6 @@ type DiscoveryChainRequest struct {
 	EvaluateInNamespace  string
 	EvaluateInPartition  string
 
-	// NOTE: Partition is not represented here by design. Do not add it.
-
 	// OverrideMeshGateway allows for the mesh gateway setting to be overridden
 	// for any resolver in the compiled chain.
 	OverrideMeshGateway MeshGatewayConfig
@@ -1462,4 +1542,95 @@ func IsProtocolHTTPLike(protocol string) bool {
 	default:
 		return false
 	}
+}
+
+// HTTPHeaderModifiers is a set of rules for HTTP header modification that
+// should be performed by proxies as the request passes through them. It can
+// operate on either request or response headers depending on the context in
+// which it is used.
+type HTTPHeaderModifiers struct {
+	// Add is a set of name -> value pairs that should be appended to the request
+	// or response (i.e. allowing duplicates if the same header already exists).
+	Add map[string]string `json:",omitempty"`
+
+	// Set is a set of name -> value pairs that should be added to the request or
+	// response, overwriting any existing header values of the same name.
+	Set map[string]string `json:",omitempty"`
+
+	// Remove is the set of header names that should be stripped from the request
+	// or response.
+	Remove []string `json:",omitempty"`
+}
+
+func (m *HTTPHeaderModifiers) IsZero() bool {
+	if m == nil {
+		return true
+	}
+	return len(m.Add) == 0 && len(m.Set) == 0 && len(m.Remove) == 0
+}
+
+func (m *HTTPHeaderModifiers) Validate(protocol string) error {
+	if m.IsZero() {
+		return nil
+	}
+	if !IsProtocolHTTPLike(protocol) {
+		// Non nil but context is not an httpish protocol
+		return fmt.Errorf("only valid for http, http2 and grpc protocols")
+	}
+	return nil
+}
+
+// Clone returns a deep-copy of m unless m is nil
+func (m *HTTPHeaderModifiers) Clone() (*HTTPHeaderModifiers, error) {
+	if m == nil {
+		return nil, nil
+	}
+
+	cpy, err := copystructure.Copy(m)
+	if err != nil {
+		return nil, err
+	}
+	m = cpy.(*HTTPHeaderModifiers)
+	return m, nil
+}
+
+// MergeHTTPHeaderModifiers takes a base HTTPHeaderModifiers and merges in field
+// defined in overrides. Precedence is given to the overrides field if there is
+// a collision. The resulting object is returned leaving both base and overrides
+// unchanged. The `Add` field in override also replaces same-named keys of base
+// since we have no way to express multiple adds to the same key. We could
+// change that, but it makes the config syntax more complex for a huge edgecase.
+func MergeHTTPHeaderModifiers(base, overrides *HTTPHeaderModifiers) (*HTTPHeaderModifiers, error) {
+	if base.IsZero() {
+		return overrides.Clone()
+	}
+
+	merged, err := base.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	if overrides.IsZero() {
+		return merged, nil
+	}
+
+	for k, v := range overrides.Add {
+		merged.Add[k] = v
+	}
+	for k, v := range overrides.Set {
+		merged.Set[k] = v
+	}
+
+	// Deduplicate removes.
+	removed := make(map[string]struct{})
+	for _, k := range merged.Remove {
+		removed[k] = struct{}{}
+	}
+	for _, k := range overrides.Remove {
+		if _, ok := removed[k]; !ok {
+			merged.Remove = append(merged.Remove, k)
+		}
+	}
+
+	return merged, nil
 }

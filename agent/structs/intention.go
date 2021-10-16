@@ -52,6 +52,11 @@ type Intention struct {
 	SourceNS, SourceName           string
 	DestinationNS, DestinationName string
 
+	// SourcePartition and DestinationPartition cannot be wildcards "*" and
+	// are not compatible with legacy intentions.
+	SourcePartition      string `json:",omitempty"`
+	DestinationPartition string `json:",omitempty"`
+
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
 
@@ -111,10 +116,12 @@ func (t *Intention) Clone() *Intention {
 
 func (t *Intention) ToExact() *IntentionQueryExact {
 	return &IntentionQueryExact{
-		SourceNS:        t.SourceNS,
-		SourceName:      t.SourceName,
-		DestinationNS:   t.DestinationNS,
-		DestinationName: t.DestinationName,
+		SourcePartition:      t.SourcePartition,
+		SourceNS:             t.SourceNS,
+		SourceName:           t.SourceName,
+		DestinationPartition: t.DestinationPartition,
+		DestinationNS:        t.DestinationNS,
+		DestinationName:      t.DestinationName,
 	}
 }
 
@@ -322,6 +329,14 @@ func (ixn *Intention) CanRead(authz acl.Authorizer) bool {
 }
 
 func (ixn *Intention) CanWrite(authz acl.Authorizer) bool {
+	if ixn.DestinationName == "" {
+		// This is likely a strange form of legacy intention data validation
+		// that happened within the authorization check, since intentions without
+		// a destination cannot be written.
+		// This may be able to be removed later.
+		return false
+	}
+
 	var authzContext acl.AuthorizerContext
 	ixn.FillAuthzContext(&authzContext, true)
 	return authz.IntentionWrite(ixn.DestinationName, &authzContext) == acl.Allow
@@ -379,6 +394,16 @@ func (x *Intention) String() string {
 		idPart = "ID: " + x.ID + ", "
 	}
 
+	var srcPartitionPart string
+	if x.SourcePartition != "" {
+		srcPartitionPart = x.SourcePartition + "/"
+	}
+
+	var dstPartitionPart string
+	if x.DestinationPartition != "" {
+		dstPartitionPart = x.DestinationPartition + "/"
+	}
+
 	var detailPart string
 	if len(x.Permissions) > 0 {
 		detailPart = fmt.Sprintf("Permissions: %d", len(x.Permissions))
@@ -386,9 +411,9 @@ func (x *Intention) String() string {
 		detailPart = "Action: " + strings.ToUpper(string(x.Action))
 	}
 
-	return fmt.Sprintf("%s/%s => %s/%s (%sPrecedence: %d, %s)",
-		x.SourceNS, x.SourceName,
-		x.DestinationNS, x.DestinationName,
+	return fmt.Sprintf("%s%s/%s => %s%s/%s (%sPrecedence: %d, %s)",
+		srcPartitionPart, x.SourceNS, x.SourceName,
+		dstPartitionPart, x.DestinationNS, x.DestinationName,
 		idPart,
 		x.Precedence,
 		detailPart,
@@ -625,6 +650,7 @@ type IntentionQueryMatch struct {
 
 // IntentionMatchEntry is a single entry for matching an intention.
 type IntentionMatchEntry struct {
+	Partition string `json:",omitempty"`
 	Namespace string
 	Name      string
 }
@@ -636,6 +662,10 @@ type IntentionQueryCheck struct {
 	// exact values.
 	SourceNS, SourceName           string
 	DestinationNS, DestinationName string
+
+	// TODO(partitions): check query works with partitions
+	SourcePartition      string `json:",omitempty"`
+	DestinationPartition string `json:",omitempty"`
 
 	// SourceType is the type of the value for the source.
 	SourceType IntentionSourceType
@@ -673,9 +703,13 @@ type IntentionDecisionSummary struct {
 type IntentionQueryExact struct {
 	SourceNS, SourceName           string
 	DestinationNS, DestinationName string
+
+	// TODO(partitions): check query works with partitions
+	SourcePartition      string `json:",omitempty"`
+	DestinationPartition string `json:",omitempty"`
 }
 
-// Validate is used to ensure all 4 parameters are specified.
+// Validate is used to ensure all 4 required parameters are specified.
 func (q *IntentionQueryExact) Validate() error {
 	var err error
 	if q.SourceNS == "" {
@@ -721,17 +755,23 @@ func (s IntentionPrecedenceSorter) Less(i, j int) bool {
 		return a.Precedence > b.Precedence
 	}
 
-	// Tie break on lexicographic order of the 4-tuple in canonical form (SrcNS,
-	// Src, DstNS, Dst). This is arbitrary but it keeps sorting deterministic
-	// which is a nice property for consistency. It is arguably open to abuse if
-	// implementations rely on this however by definition the order among
-	// same-precedence rules is arbitrary and doesn't affect whether an allow or
-	// deny rule is acted on since all applicable rules are checked.
+	// Tie break on lexicographic order of the tuple in canonical form (SrcPxn,
+	// SrcNS, Src, DstPxn, DstNS, Dst). This is arbitrary but it keeps sorting
+	// deterministic which is a nice property for consistency. It is arguably
+	// open to abuse if implementations rely on this however by definition the
+	// order among same-precedence rules is arbitrary and doesn't affect whether
+	// an allow or deny rule is acted on since all applicable rules are checked.
+	if a.SourcePartition != b.SourcePartition {
+		return a.SourcePartition < b.SourcePartition
+	}
 	if a.SourceNS != b.SourceNS {
 		return a.SourceNS < b.SourceNS
 	}
 	if a.SourceName != b.SourceName {
 		return a.SourceName < b.SourceName
+	}
+	if a.DestinationPartition != b.DestinationPartition {
+		return a.DestinationPartition < b.DestinationPartition
 	}
 	if a.DestinationNS != b.DestinationNS {
 		return a.DestinationNS < b.DestinationNS

@@ -4,6 +4,6 @@ package consul
 
 import "github.com/hashicorp/consul/agent/structs"
 
-func (c *Config) agentEnterpriseMeta() *structs.EnterpriseMeta {
+func (c *Config) AgentEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.NodeEnterpriseMetaInDefaultPartition()
 }

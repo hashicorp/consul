@@ -117,7 +117,6 @@ check = {
     tls_server_name = "7BdnzBYk"
     tls_skip_verify = true
     timeout = "5954s"
-    ttl = "30044s"
     deregister_critical_service_after = "13209s"
 },
 checks = [
@@ -145,7 +144,6 @@ checks = [
         tls_server_name = "bdeb5f6a"
         tls_skip_verify = true
         timeout = "1813s"
-        ttl = "21743s"
         deregister_critical_service_after = "14232s"
     },
     {
@@ -172,7 +170,6 @@ checks = [
         tls_server_name = "6adc3bfb"
         tls_skip_verify = true
         timeout = "18506s"
-        ttl = "31006s"
         deregister_critical_service_after = "2366s"
     }
 ]
@@ -389,7 +386,6 @@ service = {
         tls_server_name = "ECSHk8WF"
         tls_skip_verify = true
         timeout = "38483s"
-        ttl = "10943s"
         deregister_critical_service_after = "68787s"
     }
     checks = [
@@ -415,7 +411,6 @@ service = {
             tls_server_name = "axw5QPL5"
             tls_skip_verify = true
             timeout = "18913s"
-            ttl = "44743s"
             deregister_critical_service_after = "8482s"
         },
         {
@@ -440,7 +435,6 @@ service = {
             tls_server_name = "7uwWOnUS"
             tls_skip_verify = true
             timeout = "38282s"
-            ttl = "1181s"
             deregister_critical_service_after = "4992s"
         }
     ]
@@ -479,7 +473,6 @@ services = [
             tls_server_name = "4f191d4F"
             tls_skip_verify = true
             timeout = "38333s"
-            ttl = "57201s"
             deregister_critical_service_after = "44214s"
         }
         connect {
@@ -521,7 +514,6 @@ services = [
                 tls_server_name = "f43ouY7a"
                 tls_skip_verify = true
                 timeout = "34738s"
-                ttl = "22773s"
                 deregister_critical_service_after = "84282s"
             },
             {
@@ -529,22 +521,7 @@ services = [
                 name = "PQSaPWlT"
                 notes = "jKChDOdl"
                 status = "5qFz6OZn"
-                args = ["NMtYWlT9", "vj74JXsm"]
-                http = "1LBDJhw4"
-                header = {
-                    "cXPmnv1M" = [ "imDqfaBx", "NFxZ1bQe" ],
-                    "vr7wY7CS" = [ "EtCoNPPL", "9vAarJ5s" ]
-                }
-                method = "wzByP903"
-                body = "4I8ucZgZ"
-                tcp = "2exjZIGE"
-                h2ping = "jTDuR1DC"
-                interval = "5656s"
                 output_max_size = 4096
-                docker_container_id = "5tDBWpfA"
-                shell = "rlTpLM8s"
-                tls_server_name = "sOv5WTtp"
-                tls_skip_verify = true
                 timeout = "4868s"
                 ttl = "11222s"
                 deregister_critical_service_after = "68482s"

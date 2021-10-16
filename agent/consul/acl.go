@@ -54,14 +54,6 @@ const (
 	// are not allowed to be displayed.
 	redactedToken = "<hidden>"
 
-	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
-	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
-	// with all tokens in it.
-	aclUpgradeBatchSize = 128
-
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
-	aclUpgradeRateLimit rate.Limit = 1.0
-
 	// aclTokenReapingRateLimit is the number of batch token reaping requests per second allowed.
 	aclTokenReapingRateLimit rate.Limit = 1.0
 
@@ -76,18 +68,6 @@ const (
 	// aclBatchUpsertSize is the target size in bytes we want to submit for a batch upsert request. We estimate the size at runtime
 	// due to the data being more variable in its size.
 	aclBatchUpsertSize = 256 * 1024
-
-	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
-	// aclModeCheckMinInterval is the minimum amount of time between checking if the
-	// agent should be using the new or legacy ACL system. All the places it is
-	// currently used will backoff as it detects that it is remaining in legacy mode.
-	// However the initial min value is kept small so that new cluster creation
-	// can enter into new ACL mode quickly.
-	aclModeCheckMinInterval = 50 * time.Millisecond
-
-	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
-	// checks if it should be using the new or legacy ACL system.
-	aclModeCheckMaxInterval = 30 * time.Second
 
 	// Maximum number of re-resolution requests to be made if the token is modified between
 	// resolving the token and resolving its policies that would remove one of its policies.
@@ -170,7 +150,6 @@ func tokenSecretCacheID(token string) string {
 
 type ACLResolverDelegate interface {
 	ACLDatacenter(legacy bool) string
-	UseLegacyACLs() bool
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
@@ -217,9 +196,10 @@ const aclClientDisabledTTL = 30 * time.Second
 
 // TODO: rename the fields to remove the ACL prefix
 type ACLResolverSettings struct {
-	ACLsEnabled bool
-	Datacenter  string
-	NodeName    string
+	ACLsEnabled    bool
+	Datacenter     string
+	NodeName       string
+	EnterpriseMeta structs.EnterpriseMeta
 
 	// ACLPolicyTTL is used to control the time-to-live of cached ACL policies. This has
 	// a major impact on performance. By default, it is set to 30 seconds.
@@ -301,7 +281,11 @@ type ACLResolver struct {
 	agentMasterAuthz acl.Authorizer
 }
 
-func agentMasterAuthorizer(nodeName string) (acl.Authorizer, error) {
+func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (acl.Authorizer, error) {
+	// TODO(partitions,acls): this function likely needs split so that the generated policy can be partitioned appropriately
+
+	// TODO(partitions,acls): after this all works, write a test for this function when partitioned
+
 	// Build a policy for the agent master token.
 	// The builtin agent master policy allows reading any node information
 	// and allows writes to the agent with the node name of the running agent
@@ -350,12 +334,12 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 	case "deny":
 		down = acl.DenyAll()
 	case "async-cache", "extend-cache":
-		// Leave the down policy as nil to signal this.
+		down = acl.RootAuthorizer(config.Config.ACLDefaultPolicy)
 	default:
 		return nil, fmt.Errorf("invalid ACL down policy %q", config.Config.ACLDownPolicy)
 	}
 
-	authz, err := agentMasterAuthorizer(config.Config.NodeName)
+	authz, err := agentMasterAuthorizer(config.Config.NodeName, &config.Config.EnterpriseMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize the agent master authorizer")
 	}
@@ -375,134 +359,6 @@ func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
 
 func (r *ACLResolver) Close() {
 	r.aclConf.Close()
-}
-
-func (r *ACLResolver) fetchAndCacheTokenLegacy(token string, cached *structs.AuthorizerCacheEntry) (acl.Authorizer, error) {
-	req := structs.ACLPolicyResolveLegacyRequest{
-		Datacenter: r.delegate.ACLDatacenter(true),
-		ACL:        token,
-	}
-
-	cacheTTL := r.config.ACLTokenTTL
-	if cached != nil {
-		cacheTTL = cached.TTL
-	}
-
-	var reply structs.ACLPolicyResolveLegacyResponse
-	err := r.delegate.RPC("ACL.GetPolicy", &req, &reply)
-	if err == nil {
-		parent := acl.RootAuthorizer(reply.Parent)
-		if parent == nil {
-			var authorizer acl.Authorizer
-			if cached != nil {
-				authorizer = cached.Authorizer
-			}
-			r.cache.PutAuthorizerWithTTL(token, authorizer, cacheTTL)
-			return authorizer, acl.ErrInvalidParent
-		}
-
-		var policies []*acl.Policy
-		policy := reply.Policy
-		if policy != nil {
-			policies = append(policies, policy.ConvertFromLegacy())
-		}
-
-		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(parent, policies, r.aclConf)
-
-		r.cache.PutAuthorizerWithTTL(token, authorizer, reply.TTL)
-		return authorizer, err
-	}
-
-	if acl.IsErrNotFound(err) {
-		// Make sure to remove from the cache if it was deleted
-		r.cache.PutAuthorizerWithTTL(token, nil, cacheTTL)
-		return nil, acl.ErrNotFound
-
-	}
-
-	// some other RPC error
-	switch r.config.ACLDownPolicy {
-	case "allow":
-		r.cache.PutAuthorizerWithTTL(token, acl.AllowAll(), cacheTTL)
-		return acl.AllowAll(), nil
-	case "async-cache", "extend-cache":
-		if cached != nil {
-			r.cache.PutAuthorizerWithTTL(token, cached.Authorizer, cacheTTL)
-			return cached.Authorizer, nil
-		}
-		fallthrough
-	default:
-		r.cache.PutAuthorizerWithTTL(token, acl.DenyAll(), cacheTTL)
-		return acl.DenyAll(), nil
-	}
-}
-
-func (r *ACLResolver) resolveTokenLegacy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	defer metrics.MeasureSince([]string{"acl", "resolveTokenLegacy"}, time.Now())
-
-	// Attempt to resolve locally first (local results are not cached)
-	// This is only useful for servers where either legacy replication is being
-	// done or the server is within the primary datacenter.
-	if done, identity, err := r.delegate.ResolveIdentityFromToken(token); done {
-		if err == nil && identity != nil {
-			policies, err := r.resolvePoliciesForIdentity(identity)
-			if err != nil {
-				return identity, nil, err
-			}
-
-			authz, err := policies.Compile(r.cache, r.aclConf)
-			if err != nil {
-				return identity, nil, err
-			}
-
-			return identity, acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.RootAuthorizer(r.config.ACLDefaultPolicy)}), nil
-		}
-
-		return nil, nil, err
-	}
-
-	identity := &missingIdentity{
-		reason: "legacy-token",
-		token:  token,
-	}
-
-	// Look in the cache prior to making a RPC request
-	entry := r.cache.GetAuthorizer(token)
-
-	if entry != nil && entry.Age() <= minTTL(entry.TTL, r.config.ACLTokenTTL) {
-		metrics.IncrCounter([]string{"acl", "token", "cache_hit"}, 1)
-		if entry.Authorizer != nil {
-			return identity, entry.Authorizer, nil
-		}
-		return identity, nil, acl.ErrNotFound
-	}
-
-	metrics.IncrCounter([]string{"acl", "token", "cache_miss"}, 1)
-
-	// Resolve the token in the background and wait on the result if we must
-	waitChan := r.legacyGroup.DoChan(token, func() (interface{}, error) {
-		authorizer, err := r.fetchAndCacheTokenLegacy(token, entry)
-		return authorizer, err
-	})
-
-	waitForResult := entry == nil || r.config.ACLDownPolicy != "async-cache"
-	if !waitForResult {
-		// waitForResult being false requires the cacheEntry to not be nil
-		if entry.Authorizer != nil {
-			return identity, entry.Authorizer, nil
-		}
-		return identity, nil, acl.ErrNotFound
-	}
-
-	// block waiting for the async RPC to finish.
-	res := <-waitChan
-
-	var authorizer acl.Authorizer
-	if res.Val != nil { // avoid a nil-not-nil bug
-		authorizer = res.Val.(acl.Authorizer)
-	}
-
-	return identity, authorizer, res.Err
 }
 
 func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *structs.IdentityCacheEntry) (structs.ACLIdentity, error) {
@@ -752,10 +608,12 @@ func (r *ACLResolver) filterPoliciesByScope(policies structs.ACLPolicies) struct
 }
 
 func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (structs.ACLPolicies, error) {
-	policyIDs := identity.PolicyIDs()
-	roleIDs := identity.RoleIDs()
-	serviceIdentities := identity.ServiceIdentityList()
-	nodeIdentities := identity.NodeIdentityList()
+	var (
+		policyIDs         = identity.PolicyIDs()
+		roleIDs           = identity.RoleIDs()
+		serviceIdentities = identity.ServiceIdentityList()
+		nodeIdentities    = identity.NodeIdentityList()
+	)
 
 	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
 		policy := identity.EmbeddedPolicy()
@@ -789,7 +647,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	// Generate synthetic policies for all service identities in effect.
 	syntheticPolicies := r.synthesizePoliciesForServiceIdentities(serviceIdentities, identity.EnterpriseMetadata())
-	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForNodeIdentities(nodeIdentities)...)
+	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForNodeIdentities(nodeIdentities, identity.EnterpriseMetadata())...)
 
 	// For the new ACLs policy replication is mandatory for correct operation on servers. Therefore
 	// we only attempt to resolve policies locally
@@ -800,6 +658,7 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 
 	policies = append(policies, syntheticPolicies...)
 	filtered := r.filterPoliciesByScope(policies)
+	// TODO(partitions,acls): filter these by the partition/namespace of the token trying to use them?
 	return filtered, nil
 }
 
@@ -816,14 +675,14 @@ func (r *ACLResolver) synthesizePoliciesForServiceIdentities(serviceIdentities [
 	return syntheticPolicies
 }
 
-func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity) []*structs.ACLPolicy {
+func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*structs.ACLNodeIdentity, entMeta *structs.EnterpriseMeta) []*structs.ACLPolicy {
 	if len(nodeIdentities) == 0 {
 		return nil
 	}
 
 	syntheticPolicies := make([]*structs.ACLPolicy, 0, len(nodeIdentities))
 	for _, n := range nodeIdentities {
-		syntheticPolicies = append(syntheticPolicies, n.SyntheticPolicy())
+		syntheticPolicies = append(syntheticPolicies, n.SyntheticPolicy(entMeta))
 	}
 
 	return syntheticPolicies
@@ -1236,12 +1095,6 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 		return ident, authz, nil
 	}
 
-	if r.delegate.UseLegacyACLs() {
-		identity, authorizer, err := r.resolveTokenLegacy(token)
-		r.handleACLDisabledError(err)
-		return identity, authorizer, err
-	}
-
 	defer metrics.MeasureSince([]string{"acl", "ResolveToken"}, time.Now())
 
 	identity, policies, err := r.resolveTokenToIdentityAndPolicies(token)
@@ -1301,12 +1154,6 @@ func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity,
 		return ident, nil
 	}
 
-	if r.delegate.UseLegacyACLs() {
-		identity, _, err := r.resolveTokenLegacy(token)
-		r.handleACLDisabledError(err)
-		return identity, err
-	}
-
 	defer metrics.MeasureSince([]string{"acl", "ResolveTokenToIdentity"}, time.Now())
 
 	return r.resolveIdentityFromToken(token)
@@ -1326,19 +1173,6 @@ func (r *ACLResolver) ACLsEnabled() bool {
 	}
 
 	return true
-}
-
-func (r *ACLResolver) GetMergedPolicyForToken(token string) (structs.ACLIdentity, *acl.Policy, error) {
-	ident, policies, err := r.resolveTokenToIdentityAndPolicies(token)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(policies) == 0 {
-		return nil, nil, acl.ErrNotFound
-	}
-
-	policy, err := policies.Merge(r.cache, r.aclConf)
-	return ident, policy, err
 }
 
 // aclFilter is used to filter results from our state store based on ACL rules
@@ -1443,7 +1277,7 @@ func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
 		if f.allowNode(node.Node, &authzContext) && f.allowService(node.ServiceName, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node.Node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node, &node.EnterpriseMeta))
 		sn = append(sn[:i], sn[i+1:]...)
 		i--
 	}
@@ -1457,8 +1291,7 @@ func (f *aclFilter) filterNodeServices(services **structs.NodeServices) {
 	}
 
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	(*services).Node.FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
 		return
@@ -1482,8 +1315,7 @@ func (f *aclFilter) filterNodeServiceList(services **structs.NodeServiceList) {
 	}
 
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+	(*services).Node.FillAuthzContext(&authzContext)
 	if !f.allowNode((*services).Node.Node, &authzContext) {
 		*services = nil
 		return
@@ -1523,7 +1355,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 		if f.allowNode(node.Node.Node, &authzContext) && f.allowService(node.Service.Service, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node.Node.Node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node.Node.Node, node.Node.GetEnterpriseMeta()))
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
 	}
@@ -1580,15 +1412,14 @@ func (f *aclFilter) filterSessions(sessions *structs.Sessions) {
 func (f *aclFilter) filterCoordinates(coords *structs.Coordinates) {
 	c := *coords
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(c); i++ {
+		c[i].FillAuthzContext(&authzContext)
 		node := c[i].Node
 		if f.allowNode(node, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, c[i].GetEnterpriseMeta()))
 		c = append(c[:i], c[i+1:]...)
 		i--
 	}
@@ -1622,10 +1453,9 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 		info := nd[i]
 
 		// Filter nodes
-		// TODO(partitions): put partition into this wildcard?
-		structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
+		info.FillAuthzContext(&authzContext)
 		if node := info.Node; !f.allowNode(node, &authzContext) {
-			f.logger.Debug("dropping node from result due to ACLs", "node", node)
+			f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, info.GetEnterpriseMeta()))
 			nd = append(nd[:i], nd[i+1:]...)
 			i--
 			continue
@@ -1691,15 +1521,14 @@ func (f *aclFilter) filterNodes(nodes *structs.Nodes) {
 	n := *nodes
 
 	var authzContext acl.AuthorizerContext
-	// TODO(partitions): put partition into this wildcard?
-	structs.WildcardEnterpriseMetaInDefaultPartition().FillAuthzContext(&authzContext)
 
 	for i := 0; i < len(n); i++ {
+		n[i].FillAuthzContext(&authzContext)
 		node := n[i].Node
 		if f.allowNode(node, &authzContext) {
 			continue
 		}
-		f.logger.Debug("dropping node from result due to ACLs", "node", node)
+		f.logger.Debug("dropping node from result due to ACLs", "node", structs.NodeNameString(node, n[i].GetEnterpriseMeta()))
 		n = append(n[:i], n[i+1:]...)
 		i--
 	}

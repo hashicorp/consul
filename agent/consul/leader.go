@@ -13,7 +13,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
@@ -68,11 +67,6 @@ func (s *Server) monitorLeadership() {
 	// cleanup and to ensure we never run multiple leader loops.
 	raftNotifyCh := s.raftNotifyCh
 
-	aclModeCheckWait := aclModeCheckMinInterval
-	var aclUpgradeCh <-chan time.Time
-	if s.config.ACLsEnabled {
-		aclUpgradeCh = time.After(aclModeCheckWait)
-	}
 	var weAreLeaderCh chan struct{}
 	var leaderLoop sync.WaitGroup
 	for {
@@ -104,33 +98,6 @@ func (s *Server) monitorLeadership() {
 				leaderLoop.Wait()
 				weAreLeaderCh = nil
 				s.logger.Info("cluster leadership lost")
-			}
-		case <-aclUpgradeCh:
-			if atomic.LoadInt32(&s.useNewACLs) == 0 {
-				aclModeCheckWait = aclModeCheckWait * 2
-				if aclModeCheckWait > aclModeCheckMaxInterval {
-					aclModeCheckWait = aclModeCheckMaxInterval
-				}
-				aclUpgradeCh = time.After(aclModeCheckWait)
-
-				if canUpgrade := s.canUpgradeToNewACLs(weAreLeaderCh != nil); canUpgrade {
-					if weAreLeaderCh != nil {
-						if err := s.initializeACLs(&lib.StopChannelContext{StopCh: weAreLeaderCh}, true); err != nil {
-							s.logger.Error("error transitioning to using new ACLs", "error", err)
-							continue
-						}
-					}
-
-					s.logger.Debug("transitioning out of legacy ACL mode")
-					atomic.StoreInt32(&s.useNewACLs, 1)
-					s.updateACLAdvertisement()
-
-					// setting this to nil ensures that we will never hit this case again
-					aclUpgradeCh = nil
-				}
-			} else {
-				// establishLeadership probably transitioned us
-				aclUpgradeCh = nil
 			}
 		case <-s.shutdownCh:
 			return
@@ -305,15 +272,7 @@ WAIT:
 // state is up-to-date.
 func (s *Server) establishLeadership(ctx context.Context) error {
 	start := time.Now()
-	// check for the upgrade here - this helps us transition to new ACLs much
-	// quicker if this is a new cluster or this is a test agent
-	if canUpgrade := s.canUpgradeToNewACLs(true); canUpgrade {
-		if err := s.initializeACLs(ctx, true); err != nil {
-			return err
-		}
-		atomic.StoreInt32(&s.useNewACLs, 1)
-		s.updateACLAdvertisement()
-	} else if err := s.initializeACLs(ctx, false); err != nil {
+	if err := s.initializeACLs(ctx); err != nil {
 		return err
 	}
 
@@ -398,105 +357,9 @@ func (s *Server) revokeLeadership() {
 	<-s.autopilot.Stop()
 }
 
-// DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed
-func (s *Server) initializeLegacyACL() error {
-	if !s.config.ACLsEnabled {
-		return nil
-	}
-
-	authDC := s.config.PrimaryDatacenter
-
-	// Create anonymous token if missing.
-	state := s.fsm.State()
-	_, token, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
-	if err != nil {
-		return fmt.Errorf("failed to get anonymous token: %v", err)
-	}
-	// Ignoring expiration times to avoid an insertion collision.
-	if token == nil {
-		req := structs.ACLRequest{
-			Datacenter: authDC,
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				ID:   anonymousToken,
-				Name: "Anonymous Token",
-				Type: structs.ACLTokenTypeClient,
-			},
-		}
-		_, err := s.raftApply(structs.ACLRequestType, &req)
-		if err != nil {
-			return fmt.Errorf("failed to create anonymous token: %v", err)
-		}
-		s.logger.Info("Created the anonymous token")
-	}
-
-	// Check for configured master token.
-	if master := s.config.ACLMasterToken; len(master) > 0 {
-		_, token, err = state.ACLTokenGetBySecret(nil, master, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get master token: %v", err)
-		}
-		// Ignoring expiration times to avoid an insertion collision.
-		if token == nil {
-			req := structs.ACLRequest{
-				Datacenter: authDC,
-				Op:         structs.ACLSet,
-				ACL: structs.ACL{
-					ID:   master,
-					Name: "Master Token",
-					Type: structs.ACLTokenTypeManagement,
-				},
-			}
-			_, err := s.raftApply(structs.ACLRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to create master token: %v", err)
-			}
-			s.logger.Info("Created ACL master token from configuration")
-		}
-	}
-
-	// Check to see if we need to initialize the ACL bootstrap info. This
-	// needs a Consul version check since it introduces a new Raft operation
-	// that'll produce an error on older servers, and it also makes a piece
-	// of state in the state store that will cause problems with older
-	// servers consuming snapshots, so we have to wait to create it.
-	var minVersion = version.Must(version.NewVersion("0.9.1"))
-	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minVersion); ok {
-		canBootstrap, _, err := state.CanBootstrapACLToken()
-		if err != nil {
-			return fmt.Errorf("failed looking for ACL bootstrap info: %v", err)
-		}
-		if canBootstrap {
-			req := structs.ACLRequest{
-				Datacenter: authDC,
-				Op:         structs.ACLBootstrapInit,
-			}
-			resp, err := s.raftApply(structs.ACLRequestType, &req)
-			if err != nil {
-				return fmt.Errorf("failed to initialize ACL bootstrap: %v", err)
-			}
-			switch v := resp.(type) {
-			case bool:
-				if v {
-					s.logger.Info("ACL bootstrap enabled")
-				} else {
-					s.logger.Info("ACL bootstrap disabled, existing management tokens found")
-				}
-
-			default:
-				return fmt.Errorf("unexpected response trying to initialize ACL bootstrap: %T", v)
-			}
-		}
-	} else {
-		s.logger.Warn("Can't initialize ACL bootstrap until all servers are >= " + minVersion.String())
-	}
-
-	return nil
-}
-
 // initializeACLs is used to setup the ACLs if we are the leader
 // and need to do this.
-func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
+func (s *Server) initializeACLs(ctx context.Context) error {
 	if !s.config.ACLsEnabled {
 		return nil
 	}
@@ -525,11 +388,6 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 	}
 
 	if s.InACLDatacenter() {
-		if s.UseLegacyACLs() && !upgrade {
-			s.logger.Info("initializing legacy acls")
-			return s.initializeLegacyACL()
-		}
-
 		s.logger.Info("initializing acls")
 
 		// TODO(partitions): initialize acls in all of the partitions?
@@ -674,20 +532,6 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
 	} else {
-		if s.UseLegacyACLs() && !upgrade {
-			if s.IsACLReplicationEnabled() {
-				s.startLegacyACLReplication(ctx)
-			}
-			// return early as we don't want to start new ACL replication
-			// or ACL token reaping as these are new ACL features.
-			return nil
-		}
-
-		if upgrade {
-			s.stopACLReplication()
-		}
-
-		// ACL replication is now mandatory
 		s.startACLReplication(ctx)
 	}
 
@@ -696,9 +540,19 @@ func (s *Server) initializeACLs(ctx context.Context, upgrade bool) error {
 	return nil
 }
 
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
+// legacyACLTokenUpgrade runs a single time to upgrade any tokens that may
+// have been created immediately before the Consul upgrade, or any legacy tokens
+// from a restored snapshot.
+// TODO(ACL-Legacy-Compat): remove in phase 2
 func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
+	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
+	const aclUpgradeRateLimit rate.Limit = 1.0
+
+	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
+	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
+	// with all tokens in it.
+	const aclUpgradeBatchSize = 128
+
 	limiter := rate.NewLimiter(aclUpgradeRateLimit, int(aclUpgradeRateLimit))
 	for {
 		if err := limiter.Wait(ctx); err != nil {
@@ -707,21 +561,16 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 
 		// actually run the upgrade here
 		state := s.fsm.State()
-		tokens, waitCh, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
+		tokens, _, err := state.ACLTokenListUpgradeable(aclUpgradeBatchSize)
 		if err != nil {
 			s.logger.Warn("encountered an error while searching for tokens without accessor ids", "error", err)
 		}
 		// No need to check expiration time here, as that only exists for v2 tokens.
 
 		if len(tokens) == 0 {
-			ws := memdb.NewWatchSet()
-			ws.Add(state.AbandonCh())
-			ws.Add(waitCh)
-			ws.Add(ctx.Done())
-
-			// wait for more tokens to need upgrading or the aclUpgradeCh to be closed
-			ws.Watch(nil)
-			continue
+			// No new legacy tokens can be created, so we can exit
+			s.stopACLUpgrade() // required to prevent goroutine leak, according to TestAgentLeaks_Server
+			return nil
 		}
 
 		var newTokens structs.ACLTokens
@@ -770,6 +619,8 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 	}
 }
 
+// TODO(ACL-Legacy-Compat): remove in phase 2. Keeping it for now so that we
+// can upgrade any tokens created immediately before the upgrade happens.
 func (s *Server) startACLUpgrade(ctx context.Context) {
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		// token upgrades should only run in the primary
@@ -781,67 +632,6 @@ func (s *Server) startACLUpgrade(ctx context.Context) {
 
 func (s *Server) stopACLUpgrade() {
 	s.leaderRoutineManager.Stop(aclUpgradeRoutineName)
-}
-
-// This function is only intended to be run as a managed go routine, it will block until
-// the context passed in indicates that it should exit.
-func (s *Server) runLegacyACLReplication(ctx context.Context) error {
-	var lastRemoteIndex uint64
-	legacyACLLogger := s.aclReplicationLogger(logging.Legacy)
-	limiter := rate.NewLimiter(rate.Limit(s.config.ACLReplicationRate), s.config.ACLReplicationBurst)
-
-	for {
-		if err := limiter.Wait(ctx); err != nil {
-			return err
-		}
-
-		if s.tokens.ReplicationToken() == "" {
-			continue
-		}
-
-		index, exit, err := s.replicateLegacyACLs(ctx, legacyACLLogger, lastRemoteIndex)
-		if exit {
-			return nil
-		}
-
-		if err != nil {
-			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
-				0,
-			)
-			lastRemoteIndex = 0
-			s.updateACLReplicationStatusError(err.Error())
-			legacyACLLogger.Warn("Legacy ACL replication error (will retry if still leader)", "error", err)
-		} else {
-			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "status"},
-				1,
-			)
-			metrics.SetGauge([]string{"leader", "replication", "acl-legacy", "index"},
-				float32(index),
-			)
-			lastRemoteIndex = index
-			s.updateACLReplicationStatusIndex(structs.ACLReplicateLegacy, index)
-			legacyACLLogger.Debug("Legacy ACL replication completed through remote index", "index", index)
-		}
-	}
-}
-
-func (s *Server) startLegacyACLReplication(ctx context.Context) {
-	if s.InACLDatacenter() {
-		return
-	}
-
-	// unlike some other leader routines this initializes some extra state
-	// and therefore we want to prevent re-initialization if things are already
-	// running
-	if s.leaderRoutineManager.IsRunning(legacyACLReplicationRoutineName) {
-		return
-	}
-
-	s.initReplicationStatus()
-
-	s.leaderRoutineManager.Start(ctx, legacyACLReplicationRoutineName, s.runLegacyACLReplication)
-	s.logger.Info("started legacy ACL replication")
-	s.updateACLReplicationStatusRunning(structs.ACLReplicateLegacy)
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
@@ -966,7 +756,6 @@ func (s *Server) aclReplicationLogger(singularNoun string) hclog.Logger {
 
 func (s *Server) stopACLReplication() {
 	// these will be no-ops when not started
-	s.leaderRoutineManager.Stop(legacyACLReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclPolicyReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclRoleReplicationRoutineName)
 	s.leaderRoutineManager.Stop(aclTokenReplicationRoutineName)

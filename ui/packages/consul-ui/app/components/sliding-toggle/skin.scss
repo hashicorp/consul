@@ -3,7 +3,7 @@
   cursor: pointer;
 }
 %sliding-toggle label span::after {
-  border-radius: $decor-radius-full;
+  border-radius: var(--decor-radius-full);
 }
 %sliding-toggle label span::before {
   border-radius: 7px;
@@ -15,16 +15,16 @@
   @extend %sliding-toggle-negative;
 }
 %sliding-toggle label span {
-  color: $gray-900;
+  color: rgb(var(--tone-gray-900));
 }
 %sliding-toggle label span::after {
-  background-color: $white;
+  background-color: rgb(var(--white));
 }
 %sliding-toggle label input:checked + span::before,
 %sliding-toggle-negative label input + span::before {
-  background-color: $blue-500;
+  background-color: rgb(var(--tone-blue-500));
 }
 %sliding-toggle label span::before,
 %sliding-toggle-negative label input:checked + span::before {
-  background-color: $gray-300;
+  background-color: rgb(var(--tone-gray-300));
 }

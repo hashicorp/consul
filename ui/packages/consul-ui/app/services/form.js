@@ -2,23 +2,23 @@ import Service, { inject as service } from '@ember/service';
 import builderFactory from 'consul-ui/utils/form/builder';
 
 import kv from 'consul-ui/forms/kv';
-import acl from 'consul-ui/forms/acl';
 import token from 'consul-ui/forms/token';
 import policy from 'consul-ui/forms/policy';
 import role from 'consul-ui/forms/role';
 import intention from 'consul-ui/forms/intention';
 import nspace from 'consul-ui/forms/nspace';
+import partition from 'consul-ui/forms/partition';
 
 const builder = builderFactory();
 
 const forms = {
   kv: kv,
-  acl: acl,
   token: token,
   policy: policy,
   role: role,
   intention: intention,
   nspace: nspace,
+  partition: partition,
 };
 
 export default class FormService extends Service {

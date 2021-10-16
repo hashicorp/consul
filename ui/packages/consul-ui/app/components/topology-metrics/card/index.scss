@@ -5,15 +5,15 @@
 #upstream-container .topology-metrics-card,
 #downstream-container .topology-metrics-card {
   display: block;
-  color: $gray-700;
+  color: rgb(var(--tone-gray-700));
   overflow: hidden;
-  background-color: $white;
-  border-radius: $decor-radius-100;
-  border: 1px solid $gray-200;
+  background-color: rgb(var(--white));
+  border-radius: var(--decor-radius-100);
+  border: 1px solid rgb(var(--tone-gray-200));
   p {
     padding: 12px 12px 0 12px;
-    font-size: $typo-size-500;
-    font-weight: $typo-weight-semibold;
+    font-size: var(--typo-size-500);
+    font-weight: var(--typo-weight-semibold);
     margin-bottom: 0 !important;
   }
   p.empty {
@@ -26,7 +26,7 @@
       margin-right: 8px;
     }
     dd {
-      color: $gray-700;
+      color: rgb(var(--tone-gray-700));
     }
     span {
       margin-right: 8px;
@@ -53,23 +53,23 @@
     }
     .nspace dt::before,
     .health dt::before {
-      background-color: $gray-500;
+      background-color: rgb(var(--tone-gray-500));
     }
     .passing::before {
       @extend %with-check-circle-fill-mask, %as-pseudo;
-      background-color: $green-500;
+      background-color: rgb(var(--tone-green-500));
     }
     .warning::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: $orange-500;
+      background-color: rgb(var(--tone-orange-500));
     }
     .critical::before {
       @extend %with-cancel-square-fill-mask, %as-pseudo;
-      background-color: $red-500;
+      background-color: rgb(var(--tone-red-500));
     }
     .empty::before {
       @extend %with-minus-square-fill-mask, %as-pseudo;
-      color: $gray-500;
+      color: rgb(var(--tone-gray-500));
     }
   }
   .details {

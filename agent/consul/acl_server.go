@@ -1,12 +1,10 @@
 package consul
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -84,70 +82,8 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 	return !structs.ACLIDReserved(id), nil
 }
 
-func (s *Server) updateSerfTags(key, value string) {
-	// Update the LAN serf
-	serf.UpdateTag(s.serfLAN, key, value)
-
-	if s.serfWAN != nil {
-		serf.UpdateTag(s.serfWAN, key, value)
-	}
-
-	s.updateEnterpriseSerfTags(key, value)
-}
-
-func (s *Server) updateACLAdvertisement() {
-	// One thing to note is that once in new ACL mode the server will
-	// never transition to legacy ACL mode. This is not currently a
-	// supported use case.
-	s.updateSerfTags("acls", string(structs.ACLModeEnabled))
-}
-
-func (s *Server) canUpgradeToNewACLs(isLeader bool) bool {
-	if atomic.LoadInt32(&s.useNewACLs) != 0 {
-		// can't upgrade because we are already upgraded
-		return false
-	}
-
-	// Check to see if we already upgraded the last time we ran by seeing if we
-	// have a copy of any global management policy stored locally. This should
-	// always be true because policies always replicate.
-	_, mgmtPolicy, err := s.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMetaInDefaultPartition())
-	if err != nil {
-		s.logger.Warn("Failed to get the builtin global-management policy to check for a completed ACL upgrade; skipping this optimization", "error", err)
-	} else if mgmtPolicy != nil {
-		return true
-	}
-
-	if !s.InACLDatacenter() {
-		foundServers, mode, _ := ServersGetACLMode(s, "", s.config.PrimaryDatacenter)
-		if mode != structs.ACLModeEnabled || !foundServers {
-			s.logger.Debug("Cannot upgrade to new ACLs, servers in acl datacenter are not yet upgraded", "PrimaryDatacenter", s.config.PrimaryDatacenter, "mode", mode, "found", foundServers)
-			return false
-		}
-	}
-
-	leaderAddr := string(s.raft.Leader())
-	foundServers, mode, leaderMode := ServersGetACLMode(s, leaderAddr, s.config.Datacenter)
-	if isLeader {
-		if mode == structs.ACLModeLegacy {
-			return true
-		}
-	} else {
-		if leaderMode == structs.ACLModeEnabled {
-			return true
-		}
-	}
-
-	s.logger.Debug("Cannot upgrade to new ACLs", "leaderMode", leaderMode, "mode", mode, "found", foundServers, "leader", leaderAddr)
-	return false
-}
-
 func (s *Server) InACLDatacenter() bool {
 	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
-}
-
-func (s *Server) UseLegacyACLs() bool {
-	return atomic.LoadInt32(&s.useNewACLs) == 0
 }
 
 func (s *Server) LocalTokensEnabled() bool {

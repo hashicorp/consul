@@ -9,11 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
-
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestEventFire(t *testing.T) {
@@ -72,21 +70,7 @@ func TestEventFire_token(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Create an ACL token
-	args := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name:  "User token",
-			Type:  structs.ACLTokenTypeClient,
-			Rules: testEventPolicy,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	if err := a.RPC("ACL.Apply", &args, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	token := createToken(t, a, testEventPolicy)
 
 	type tcase struct {
 		event   string

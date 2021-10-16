@@ -59,6 +59,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: s.proxyID.NamespaceOrDefault(),
+					Partition: s.proxyID.PartitionOrDefault(),
 					Name:      s.proxyCfg.DestinationServiceName,
 				},
 			},
@@ -97,7 +98,7 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			Name:           structs.MeshConfigMesh,
 			Datacenter:     s.source.Datacenter,
 			QueryOptions:   structs.QueryOptions{Token: s.token},
-			EnterpriseMeta: *s.proxyID.DefaultEnterpriseMetaForPartition(),
+			EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(s.proxyID.PartitionOrDefault()),
 		}, meshConfigEntryID, s.ch)
 		if err != nil {
 			return snap, err
@@ -135,6 +136,11 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 			ns = u.DestinationNamespace
 		}
 
+		partition := s.proxyID.PartitionOrDefault()
+		if u.DestinationPartition != "" {
+			partition = u.DestinationPartition
+		}
+
 		cfg, err := parseReducedUpstreamConfig(u.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. We'll fall back on
@@ -162,14 +168,14 @@ func (s *handlerConnectProxy) initialize(ctx context.Context) (ConfigSnapshot, e
 		case structs.UpstreamDestTypeService:
 			fallthrough
 
-			// TODO (partition): pass Partition to DiscoveryChainRequest?
-		case "": // Treat unset as the default Service type
+		case "":
 			err = s.cache.Notify(ctx, cachetype.CompiledDiscoveryChainName, &structs.DiscoveryChainRequest{
 				Datacenter:             s.source.Datacenter,
 				QueryOptions:           structs.QueryOptions{Token: s.token},
 				Name:                   u.DestinationName,
 				EvaluateInDatacenter:   dc,
 				EvaluateInNamespace:    ns,
+				EvaluateInPartition:    partition,
 				OverrideMeshGateway:    s.proxyCfg.MeshGateway.OverlayWith(u.MeshGateway),
 				OverrideProtocol:       cfg.Protocol,
 				OverrideConnectTimeout: cfg.ConnectTimeout(),
@@ -229,7 +235,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				// Use the centralized upstream defaults if they exist and there isn't specific configuration for this upstream
 				// This is only relevant to upstreams from intentions because for explicit upstreams the defaulting is handled
 				// by the ResolveServiceConfig endpoint.
-				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WildcardEnterpriseMetaForPartition())
+				wildcardSID := structs.NewServiceID(structs.WildcardSpecifier, s.proxyID.WithWildcardNamespace())
 				defaults, ok := snap.ConnectProxy.UpstreamConfig[wildcardSID.String()]
 				if ok {
 					u = defaults
@@ -257,6 +263,7 @@ func (s *handlerConnectProxy) handleUpdate(ctx context.Context, u cache.UpdateEv
 				id:          svc.String(),
 				name:        svc.Name,
 				namespace:   svc.NamespaceOrDefault(),
+				partition:   svc.PartitionOrDefault(),
 				datacenter:  s.source.Datacenter,
 				cfg:         cfg,
 				meshGateway: meshGateway,

@@ -13,14 +13,14 @@
     @extend %with-visibility-show-icon, %as-pseudo;
   }
   code {
-    background-color: var(--gray-050);
+    background-color: rgb(var(--tone-gray-050));
     overflow-wrap: break-word;
     max-width: min-content;
     padding: 0 12px;
   }
   hr {
-    border: 3px dashed var(--gray-300);
-    background-color: $white;
+    border: 3px dashed rgb(var(--tone-gray-300));
+    background-color: rgb(var(--white));
     width: 150px;
     margin: auto;
     margin-top: 9px;

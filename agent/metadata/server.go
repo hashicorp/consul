@@ -9,8 +9,6 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
-
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Key is used in maps and for equality tests.  A key is based on endpoints.
@@ -42,7 +40,6 @@ type Server struct {
 	Addr         net.Addr
 	Status       serf.MemberStatus
 	ReadReplica  bool
-	ACLs         structs.ACLMode
 	FeatureFlags map[string]int
 
 	// If true, use TLS when connecting to this server
@@ -95,13 +92,6 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return false, nil
-	}
-
-	var acls structs.ACLMode
-	if aclMode, ok := m.Tags["acls"]; ok {
-		acls = structs.ACLMode(aclMode)
-	} else {
-		acls = structs.ACLModeUnknown
 	}
 
 	segmentAddrs := make(map[string]string)
@@ -188,11 +178,13 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		UseTLS:       useTLS,
 		// DEPRECATED - remove nonVoter check once support for that tag is removed
 		ReadReplica:  nonVoter || readReplica,
-		ACLs:         acls,
 		FeatureFlags: featureFlags,
 	}
 	return true, parts
 }
+
+// TODO(ACL-Legacy-Compat): remove in phase 2
+const TagACLs = "acls"
 
 const featureFlagPrefix = "ft_"
 

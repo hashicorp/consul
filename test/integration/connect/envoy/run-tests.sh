@@ -9,7 +9,7 @@ readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
-OLD_XDSV2_AWARE_CONSUL_VERSION="${OLD_XDSV2_AWARE_CONSUL_VERSION:-"${HASHICORP_DOCKER_PROXY}/library/consul:1.9.5"}"
+OLD_XDSV2_AWARE_CONSUL_VERSION="${OLD_XDSV2_AWARE_CONSUL_VERSION:-"${HASHICORP_DOCKER_PROXY}/library/consul:1.9.8"}"
 export OLD_XDSV2_AWARE_CONSUL_VERSION
 
 # TEST_V2_XDS=1 causes it to do just the 'consul connect envoy' part using
@@ -18,7 +18,7 @@ TEST_V2_XDS=${TEST_V2_XDS:-}
 export TEST_V2_XDS
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.18.3"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.19.1"}
 export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
@@ -27,7 +27,7 @@ fi
 
 if [[ -n "$TEST_V2_XDS" ]] ; then
     if [[ ! "${ENVOY_VERSION}" =~ ^1\.1[456]\. ]]; then
-        echo "Envoy version ${ENVOY_VERSION} is not compatible with Consul 1.9.1 so we cannot test the xDS v2 fallback code"
+        echo "Envoy version ${ENVOY_VERSION} is not compatible with Consul 1.9.8 so we cannot test the xDS v2 fallback code"
         exit 1
     fi
 fi
@@ -88,6 +88,10 @@ function init_workdir {
 
   # move all of the registration files OUT of the consul config dir now
   find workdir/${DC}/consul -type f -name 'service_*.hcl' -exec mv -f {} workdir/${DC}/register \;
+
+  # copy the ca-certs for SDS so we can verify the right ones are served
+  mkdir -p workdir/test-sds-server/certs
+  cp test-sds-server/certs/ca-root.crt workdir/test-sds-server/certs/ca-root.crt
 
   if test -d "${CASE_DIR}/data"
   then
@@ -283,6 +287,7 @@ function run_tests {
   CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
   export CASE_NAME
+  export SKIP_CASE=""
 
   init_vars
 
@@ -295,6 +300,12 @@ function run_tests {
   fi
 
   global_setup
+
+  # Allow vars.sh to set a reason to skip this test case based on the ENV
+  if [ "$SKIP_CASE" != "" ] ; then
+    echoyellow "SKIPPING CASE: $SKIP_CASE"
+    return 0
+  fi
 
   # Wipe state
   wipe_volumes
@@ -366,6 +377,10 @@ function suite_setup {
     docker build -t consul-dev-envoy:${ENVOY_VERSION} \
         --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
         -f Dockerfile-consul-envoy .
+
+    # pre-build the test-sds-server container
+    echo "Rebuilding 'test-sds-server' image..."
+    docker build -t test-sds-server -f Dockerfile-test-sds-server .
 }
 
 function suite_teardown {
@@ -574,6 +589,13 @@ function run_container_jaeger {
     $(network_snippet primary) \
     "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
     --collector.zipkin.http-port=9411
+}
+
+function run_container_test-sds-server {
+  docker run -d --name $(container_name) \
+    $WORKDIR_SNIPPET \
+    $(network_snippet primary) \
+    "test-sds-server"
 }
 
 function container_name {

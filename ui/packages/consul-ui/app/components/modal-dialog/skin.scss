@@ -1,28 +1,28 @@
 %modal-dialog.warning header {
-  background-color: $yellow-050;
-  border-color: $yellow-500;
-  color: $yellow-800;
+  background-color: rgb(var(--tone-yellow-050));
+  border-color: rgb(var(--tone-yellow-500));
+  color: rgb(var(--tone-yellow-800));
 }
 %modal-dialog.warning header > *:not(label) {
-  font-size: $typo-size-500;
-  font-weight: $typo-weight-semibold;
+  font-size: var(--typo-size-500);
+  font-weight: var(--typo-weight-semibold);
 }
 %modal-dialog.warning header::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: $yellow-500;
+  color: rgb(var(--tone-yellow-500));
   float: left;
   margin-top: 2px;
   margin-right: 3px;
 }
 %modal-dialog-overlay {
-  background-color: rgba($white, 0.9);
+  background-color: rgb(var(--white) / 90%);
 }
 %modal-window {
-  box-shadow: $decor-elevation-800;
+  box-shadow: var(--decor-elevation-800);
 }
 %modal-window {
   /*%frame-gray-000*/
-  background-color: var(--gray-000);
+  background-color: rgb(var(--tone-gray-000));
 }
 %modal-window > footer,
 %modal-window > header {
@@ -35,7 +35,7 @@
 .modal-dialog-body,
 %modal-window > footer,
 %modal-window > header {
-  border-color: var(--gray-300);
+  border-color: rgb(var(--tone-gray-300));
 }
 .modal-dialog-body {
   border-style: solid;
@@ -50,9 +50,9 @@
 %modal-window > header [data-a11y-dialog-hide] {
   @extend %with-cancel-plain-icon;
   cursor: pointer;
-  border: $decor-border-100;
+  border: var(--decor-border-100);
   /*%frame-gray-050??*/
-  background-color: var(--gray-050);
-  border-color: var(--gray-300);
-  border-radius: $decor-radius-100;
+  background-color: rgb(var(--tone-gray-050));
+  border-color: rgb(var(--tone-gray-300));
+  border-radius: var(--decor-radius-100);
 }

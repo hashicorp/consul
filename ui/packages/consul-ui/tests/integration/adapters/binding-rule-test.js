@@ -9,8 +9,9 @@ module('Integration | Adapter | binding-rule', function(hooks) {
   test('requestForQuery returns the correct url/method', function(assert) {
     const adapter = this.owner.lookup('adapter:binding-rule');
     const client = this.owner.lookup('service:client/http');
+    const request = client.requestParams.bind(client);
     const expected = `GET /v1/acl/binding-rules?dc=${dc}`;
-    const actual = adapter.requestForQuery(client.requestParams.bind(client), {
+    const actual = adapter.requestForQuery(request, {
       dc: dc,
     });
     assert.equal(`${actual.method} ${actual.url}`, expected);
@@ -18,7 +19,8 @@ module('Integration | Adapter | binding-rule', function(hooks) {
   test('requestForQuery returns the correct body', function(assert) {
     return nspaceRunner(
       (adapter, serializer, client) => {
-        return adapter.requestForQuery(client.body, {
+        const request = client.body.bind(client);
+        return adapter.requestForQuery(request, {
           dc: dc,
           ns: 'team-1',
           index: 1,

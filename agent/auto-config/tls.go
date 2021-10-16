@@ -216,7 +216,7 @@ func (ac *AutoConfig) generateCSR() (csr string, key string, err error) {
 		Host:       unknownTrustDomain,
 		Datacenter: ac.config.Datacenter,
 		Agent:      ac.config.NodeName,
-		// TODO(rb)(partitions): populate the partition field from the agent config
+		Partition:  ac.config.PartitionOrDefault(),
 	}
 
 	caConfig, err := ac.config.ConnectCAConfiguration()

@@ -113,7 +113,7 @@ func TestGRPC_Proxied(t *testing.T) {
 		Output: ioutil.Discard,
 	})
 
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckGRPC{
@@ -147,7 +147,7 @@ func TestGRPC_NotProxied(t *testing.T) {
 		Output: ioutil.Discard,
 	})
 
-	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	statusHandler := NewStatusHandler(notif, logger, 0, 0, 0)
 	cid := structs.NewCheckID("foo", nil)
 
 	check := &CheckGRPC{

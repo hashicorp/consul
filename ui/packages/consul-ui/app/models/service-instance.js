@@ -50,6 +50,7 @@ export default class ServiceInstance extends Model {
   @alias('Service.Tags') Tags;
   @alias('Service.Meta') Meta;
   @alias('Service.Namespace') Namespace;
+  @alias('Service.Partition') Partition;
 
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'service') ServiceChecks;
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;

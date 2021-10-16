@@ -26,4 +26,4 @@ export default class <%= classifiedModuleName %>Repository extends RepositorySer
   async findBySlug() {
     return super.findBySlug(...arguments);
   }
-};
+}

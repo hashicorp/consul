@@ -2,12 +2,12 @@
   @name={{routeName}}
 as |route|>
   <DataLoader
-    @src={{uri
-      '/${nspace}/${dc}/intentions/for-service/${slug}'
+    @src={{uri '/${partition}/${nspace}/${dc}/intentions/for-service/${slug}'
       (hash
-        nspace=nspace
-        dc=dc
-        slug=slug
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        slug=route.params.name
       )
     }}
   as |api|>
@@ -56,9 +56,15 @@ as |route|>
           @filter={{filters}}
         />
   {{/if}}
-
         <DataWriter
-          @sink={{concat '/' dc '/' nspace '/intention/'}}
+          @sink={{uri
+            '/${partition}/${dc}/${nspace}/intention/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
           @type="intention"
           @ondelete={{refresh-route}}
         as |writer|>
@@ -83,10 +89,31 @@ as |route|>
               </collection.Collection>
               <collection.Empty>
                 <EmptyState>
+                  <BlockSlot @name="header">
+                    <h2>
+                      {{#if (gt items.length 0)}}
+                        No intentions found
+                      {{else}}
+                        Welcome to Intentions
+                      {{/if}}
+                    </h2>
+                  </BlockSlot>
                   <BlockSlot @name="body">
                     <p>
-                        There are no intentions {{if (gt items.length 0) 'found '}} for this service.
+                      {{#if (gt items.length 0)}}
+                        No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
+                      {{else}}
+                        There don't seem to be any intentions, or you may not have access to view intentions yet.
+                      {{/if}}
                     </p>
+                  </BlockSlot>
+                  <BlockSlot @name="actions">
+                    <li class="docs-link">
+                      <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
+                    </li>
+                    <li class="learn-link">
+                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                    </li>
                   </BlockSlot>
                 </EmptyState>
               </collection.Empty>

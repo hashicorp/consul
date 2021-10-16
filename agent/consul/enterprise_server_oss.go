@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package consul
@@ -59,6 +60,18 @@ func (s *Server) validateEnterpriseRequest(entMeta *structs.EnterpriseMeta, writ
 	return nil
 }
 
+func (s *Server) validateEnterpriseIntentionPartition(partition string) error {
+	if partition == "" {
+		return nil
+	} else if strings.ToLower(partition) == "default" {
+		return nil
+	}
+
+	// No special handling for wildcard partitions as they are pointless in OSS.
+
+	return errors.New("Partitions is a Consul Enterprise feature")
+}
+
 func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 	if ns == "" {
 		return nil
@@ -72,11 +85,5 @@ func (s *Server) validateEnterpriseIntentionNamespace(ns string, _ bool) error {
 }
 
 func addEnterpriseSerfTags(_ map[string]string, _ *structs.EnterpriseMeta) {
-	// do nothing
-}
-
-// updateEnterpriseSerfTags in enterprise will update any instances of Serf with the tag that
-// are not the normal LAN or WAN serf instances (network segments and network areas)
-func (_ *Server) updateEnterpriseSerfTags(_, _ string) {
 	// do nothing
 }

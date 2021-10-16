@@ -89,6 +89,7 @@ func (a *Agent) ConnectAuthorize(token string,
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: req.TargetNamespace(),
+					Partition: req.TargetPartition(),
 					Name:      req.Target,
 				},
 			},
@@ -113,7 +114,8 @@ func (a *Agent) ConnectAuthorize(token string,
 	var ixnMatch *structs.Intention
 	for _, ixn := range reply.Matches[0] {
 		// We match on the intention source because the uriService is the source of the connection to authorize.
-		if _, ok := connect.AuthorizeIntentionTarget(uriService.Service, uriService.Namespace, ixn, structs.IntentionMatchSource); ok {
+		if _, ok := connect.AuthorizeIntentionTarget(
+			uriService.Service, uriService.Namespace, uriService.Partition, ixn, structs.IntentionMatchSource); ok {
 			ixnMatch = ixn
 			break
 		}
