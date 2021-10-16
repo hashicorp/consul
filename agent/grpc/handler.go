@@ -4,7 +4,6 @@ Package grpc provides a Handler and client for agent gRPC connections.
 package grpc
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"time"
@@ -14,8 +13,8 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
-	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -23,13 +22,12 @@ import (
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
 func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)) *Handler {
-	recoveryOpts := []recovery.Option{
-		recovery.WithRecoveryHandlerContext(newPanicHandler(logger)),
-	}
 	metrics := defaultMetrics()
-	// We don't need to pass tls.Config to the server since it's multiplexed
-	// behind the RPC listener, which already has TLS configured.
-	srv := grpc.NewServer(
+
+	recoveryOpts := PanicHandlerMiddlewareOpts(logger)
+
+	opts := []grpc.ServerOption{
+		grpc.StatsHandler(newStatsHandler(metrics)),
 		middleware.WithUnaryServerChain(
 			// Add middlware interceptors to recover in case of panics.
 			recovery.UnaryServerInterceptor(recoveryOpts...),
@@ -39,21 +37,32 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 			recovery.StreamServerInterceptor(recoveryOpts...),
 			(&activeStreamCounter{metrics: metrics}).Intercept,
 		),
-		grpc.StatsHandler(newStatsHandler(metrics)),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime: 15 * time.Second,
 		}),
-	)
+	}
+
+	// We don't need to pass tls.Config to the server since it's multiplexed
+	// behind the RPC listener, which already has TLS configured.
+	srv := grpc.NewServer(opts...)
 	register(srv)
 
 	lis := &chanListener{addr: addr, conns: make(chan net.Conn), done: make(chan struct{})}
 	return &Handler{srv: srv, listener: lis}
 }
 
-// newPanicHandler returns a recovery.RecoveryHandlerFuncContext closure function
+// PanicHandlerMiddlewareOpts returns the []recovery.Option containing
+// recovery handler function.
+func PanicHandlerMiddlewareOpts(logger Logger) []recovery.Option {
+	return []recovery.Option{
+		recovery.WithRecoveryHandler(NewPanicHandler(logger)),
+	}
+}
+
+// NewPanicHandler returns a recovery.RecoveryHandlerFunc closure function
 // to handle panic in GRPC server's handlers.
-func newPanicHandler(logger Logger) recovery.RecoveryHandlerFuncContext {
-	return func(ctx context.Context, p interface{}) (err error) {
+func NewPanicHandler(logger Logger) recovery.RecoveryHandlerFunc {
+	return func(p interface{}) (err error) {
 		// Log the panic and the stack trace of the Goroutine that caused the panic.
 		stacktrace := hclog.Stacktrace()
 		logger.Error("panic serving grpc request",
@@ -61,7 +70,7 @@ func newPanicHandler(logger Logger) recovery.RecoveryHandlerFuncContext {
 			"stack", stacktrace,
 		)
 
-		return status.Errorf(codes.Internal, "grpc: panic serving request: %v", p)
+		return status.Errorf(codes.Internal, "grpc: panic serving request")
 	}
 }
 

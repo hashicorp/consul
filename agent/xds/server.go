@@ -10,11 +10,11 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
-	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
@@ -550,27 +551,10 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// newPanicHandler returns a recovery.RecoveryHandlerFuncContext closure function
-// to handle panic in GRPC server's handlers.
-func newPanicHandler(logger hclog.Logger) recovery.RecoveryHandlerFuncContext {
-	return func(ctx context.Context, p interface{}) (err error) {
-		// Log the panic and the stack trace of the Goroutine that caused the panic.
-		stacktrace := hclog.Stacktrace()
-		logger.Error("panic serving grpc request",
-			"panic", p,
-			"stack", stacktrace,
-		)
-
-		return status.Errorf(codes.Internal, "grpc: panic serving request: %v", p)
-	}
-}
-
 // NewGRPCServer creates a grpc.Server, registers the Server, and then returns
 // the grpc.Server.
 func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Server {
-	recoveryOpts := []recovery.Option{
-		recovery.WithRecoveryHandlerContext(newPanicHandler(s.Logger)),
-	}
+	recoveryOpts := agentgrpc.PanicHandlerMiddlewareOpts(s.Logger)
 
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
