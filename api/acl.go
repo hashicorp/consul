@@ -489,12 +489,14 @@ func (c *Client) ACL() *ACL {
 // to get the first management token.
 func (a *ACL) Bootstrap() (*ACLToken, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/bootstrap")
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {
@@ -510,8 +512,11 @@ func (a *ACL) Create(acl *ACLEntry, q *WriteOptions) (string, *WriteMeta, error)
 	r := a.c.newRequest("PUT", "/v1/acl/create")
 	r.setWriteOptions(q)
 	r.obj = acl
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return "", nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
 	defer closeResponseBody(resp)
@@ -531,12 +536,14 @@ func (a *ACL) Update(acl *ACLEntry, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/update")
 	r.setWriteOptions(q)
 	r.obj = acl
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
 }
@@ -547,8 +554,11 @@ func (a *ACL) Update(acl *ACLEntry, q *WriteOptions) (*WriteMeta, error) {
 func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/destroy/"+id)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -563,8 +573,11 @@ func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/clone/"+id)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return "", nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
 	defer closeResponseBody(resp)
@@ -583,12 +596,14 @@ func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/info/"+id)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -609,12 +624,14 @@ func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
 func (a *ACL) List(q *QueryOptions) ([]*ACLEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/list")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -630,12 +647,14 @@ func (a *ACL) List(q *QueryOptions) ([]*ACLEntry, *QueryMeta, error) {
 func (a *ACL) Replication(q *QueryOptions) (*ACLReplicationStatus, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/replication")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -653,12 +672,14 @@ func (a *ACL) TokenCreate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 	r := a.c.newRequest("PUT", "/v1/acl/token")
 	r.setWriteOptions(q)
 	r.obj = token
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {
@@ -678,12 +699,14 @@ func (a *ACL) TokenUpdate(token *ACLToken, q *WriteOptions) (*ACLToken, *WriteMe
 	r := a.c.newRequest("PUT", "/v1/acl/token/"+token.AccessorID)
 	r.setWriteOptions(q)
 	r.obj = token
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {
@@ -705,12 +728,14 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 	r := a.c.newRequest("PUT", "/v1/acl/token/"+tokenID+"/clone")
 	r.setWriteOptions(q)
 	r.obj = struct{ Description string }{description}
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {
@@ -725,8 +750,11 @@ func (a *ACL) TokenClone(tokenID string, description string, q *WriteOptions) (*
 func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/token/"+tokenID)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -740,12 +768,14 @@ func (a *ACL) TokenDelete(tokenID string, q *WriteOptions) (*WriteMeta, error) {
 func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/token/"+tokenID)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -764,12 +794,14 @@ func (a *ACL) TokenRead(tokenID string, q *QueryOptions) (*ACLToken, *QueryMeta,
 func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/token/self")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -787,12 +819,14 @@ func (a *ACL) TokenReadSelf(q *QueryOptions) (*ACLToken, *QueryMeta, error) {
 func (a *ACL) TokenList(q *QueryOptions) ([]*ACLTokenListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/tokens")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -813,12 +847,14 @@ func (a *ACL) PolicyCreate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 	r := a.c.newRequest("PUT", "/v1/acl/policy")
 	r.setWriteOptions(q)
 	r.obj = policy
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLPolicy
 	if err := decodeBody(resp, &out); err != nil {
@@ -838,12 +874,14 @@ func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 	r := a.c.newRequest("PUT", "/v1/acl/policy/"+policy.ID)
 	r.setWriteOptions(q)
 	r.obj = policy
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLPolicy
 	if err := decodeBody(resp, &out); err != nil {
@@ -857,11 +895,14 @@ func (a *ACL) PolicyUpdate(policy *ACLPolicy, q *WriteOptions) (*ACLPolicy, *Wri
 func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/policy/"+policyID)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -871,12 +912,14 @@ func (a *ACL) PolicyDelete(policyID string, q *WriteOptions) (*WriteMeta, error)
 func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/policy/"+policyID)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -920,12 +963,14 @@ func (a *ACL) PolicyReadByName(policyName string, q *QueryOptions) (*ACLPolicy, 
 func (a *ACL) PolicyList(q *QueryOptions) ([]*ACLPolicyListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/policies")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -945,11 +990,15 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	r := a.c.newRequest("POST", "/v1/acl/rules/translate")
 	r.body = rules
 	r.header.Set("Content-Type", "text/plain")
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return "", err
 	}
+	if err := requireOK(resp); err != nil {
+		return "", err
+	}
 	defer closeResponseBody(resp)
+
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -969,8 +1018,11 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 // when legacy ACL support is removed.
 func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
 	r := a.c.newRequest("GET", "/v1/acl/rules/translate/"+tokenID)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return "", err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", err
 	}
 	defer closeResponseBody(resp)
@@ -996,12 +1048,14 @@ func (a *ACL) RoleCreate(role *ACLRole, q *WriteOptions) (*ACLRole, *WriteMeta, 
 	r := a.c.newRequest("PUT", "/v1/acl/role")
 	r.setWriteOptions(q)
 	r.obj = role
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLRole
 	if err := decodeBody(resp, &out); err != nil {
@@ -1021,12 +1075,14 @@ func (a *ACL) RoleUpdate(role *ACLRole, q *WriteOptions) (*ACLRole, *WriteMeta, 
 	r := a.c.newRequest("PUT", "/v1/acl/role/"+role.ID)
 	r.setWriteOptions(q)
 	r.obj = role
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLRole
 	if err := decodeBody(resp, &out); err != nil {
@@ -1040,8 +1096,11 @@ func (a *ACL) RoleUpdate(role *ACLRole, q *WriteOptions) (*ACLRole, *WriteMeta, 
 func (a *ACL) RoleDelete(roleID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/role/"+roleID)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -1108,12 +1167,14 @@ func (a *ACL) RoleReadByName(roleName string, q *QueryOptions) (*ACLRole, *Query
 func (a *ACL) RoleList(q *QueryOptions) ([]*ACLRole, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/roles")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -1134,12 +1195,14 @@ func (a *ACL) AuthMethodCreate(method *ACLAuthMethod, q *WriteOptions) (*ACLAuth
 	r := a.c.newRequest("PUT", "/v1/acl/auth-method")
 	r.setWriteOptions(q)
 	r.obj = method
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLAuthMethod
 	if err := decodeBody(resp, &out); err != nil {
@@ -1158,12 +1221,14 @@ func (a *ACL) AuthMethodUpdate(method *ACLAuthMethod, q *WriteOptions) (*ACLAuth
 	r := a.c.newRequest("PUT", "/v1/acl/auth-method/"+url.QueryEscape(method.Name))
 	r.setWriteOptions(q)
 	r.obj = method
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLAuthMethod
 	if err := decodeBody(resp, &out); err != nil {
@@ -1181,8 +1246,11 @@ func (a *ACL) AuthMethodDelete(methodName string, q *WriteOptions) (*WriteMeta, 
 
 	r := a.c.newRequest("DELETE", "/v1/acl/auth-method/"+url.QueryEscape(methodName))
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -1227,12 +1295,14 @@ func (a *ACL) AuthMethodRead(methodName string, q *QueryOptions) (*ACLAuthMethod
 func (a *ACL) AuthMethodList(q *QueryOptions) ([]*ACLAuthMethodListEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/auth-methods")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -1255,12 +1325,14 @@ func (a *ACL) BindingRuleCreate(rule *ACLBindingRule, q *WriteOptions) (*ACLBind
 	r := a.c.newRequest("PUT", "/v1/acl/binding-rule")
 	r.setWriteOptions(q)
 	r.obj = rule
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLBindingRule
 	if err := decodeBody(resp, &out); err != nil {
@@ -1280,12 +1352,14 @@ func (a *ACL) BindingRuleUpdate(rule *ACLBindingRule, q *WriteOptions) (*ACLBind
 	r := a.c.newRequest("PUT", "/v1/acl/binding-rule/"+rule.ID)
 	r.setWriteOptions(q)
 	r.obj = rule
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLBindingRule
 	if err := decodeBody(resp, &out); err != nil {
@@ -1299,8 +1373,11 @@ func (a *ACL) BindingRuleUpdate(rule *ACLBindingRule, q *WriteOptions) (*ACLBind
 func (a *ACL) BindingRuleDelete(bindingRuleID string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("DELETE", "/v1/acl/binding-rule/"+bindingRuleID)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -1342,12 +1419,14 @@ func (a *ACL) BindingRuleList(methodName string, q *QueryOptions) ([]*ACLBinding
 		r.params.Set("authmethod", methodName)
 	}
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -1365,12 +1444,14 @@ func (a *ACL) Login(auth *ACLLoginParams, q *WriteOptions) (*ACLToken, *WriteMet
 	r.setWriteOptions(q)
 	r.obj = auth
 
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {
@@ -1383,8 +1464,11 @@ func (a *ACL) Login(auth *ACLLoginParams, q *WriteOptions) (*ACLToken, *WriteMet
 func (a *ACL) Logout(q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("POST", "/v1/acl/logout")
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	closeResponseBody(resp)
@@ -1403,8 +1487,11 @@ func (a *ACL) OIDCAuthURL(auth *ACLOIDCAuthURLParams, q *WriteOptions) (string, 
 	r.setWriteOptions(q)
 	r.obj = auth
 
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return "", nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
 	defer closeResponseBody(resp)
@@ -1438,12 +1525,14 @@ func (a *ACL) OIDCCallback(auth *ACLOIDCCallbackParams, q *WriteOptions) (*ACLTo
 	r.setWriteOptions(q)
 	r.obj = auth
 
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
 	if err := decodeBody(resp, &out); err != nil {

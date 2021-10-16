@@ -18,8 +18,11 @@ func (s *Status) LeaderWithQueryOptions(q *QueryOptions) (string, error) {
 		r.setQueryOptions(q)
 	}
 
-	err := requireOK(s.c.doRequest(r))
+	_, resp, err := s.c.doRequest(r)
 	if err != nil {
+		return "", err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", err
 	}
 	defer closeResponseBody(resp)
@@ -43,8 +46,11 @@ func (s *Status) PeersWithQueryOptions(q *QueryOptions) ([]string, error) {
 		r.setQueryOptions(q)
 	}
 
-	err := requireOK(s.c.doRequest(r))
+	_, resp, err := s.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)

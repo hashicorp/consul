@@ -49,8 +49,11 @@ func (p *Partitions) Create(ctx context.Context, partition *AdminPartition, q *W
 	r.setWriteOptions(q)
 	r.ctx = ctx
 	r.obj = partition
-	err := requireOK(p.c.doRequest(r))
+	rtt, resp, err := p.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
@@ -73,8 +76,11 @@ func (p *Partitions) Update(ctx context.Context, partition *AdminPartition, q *W
 	r.setWriteOptions(q)
 	r.ctx = ctx
 	r.obj = partition
-	err := requireOK(p.c.doRequest(r))
+	rtt, resp, err := p.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
@@ -117,8 +123,11 @@ func (p *Partitions) Delete(ctx context.Context, name string, q *WriteOptions) (
 	r := p.c.newRequest("DELETE", "/v1/partition/"+name)
 	r.setWriteOptions(q)
 	r.ctx = ctx
-	err := requireOK(p.c.doRequest(r))
+	rtt, resp, err := p.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	resp.Body.Close()
@@ -132,8 +141,11 @@ func (p *Partitions) List(ctx context.Context, q *QueryOptions) (*AdminPartition
 	r := p.c.newRequest("GET", "/v1/partitions")
 	r.setQueryOptions(q)
 	r.ctx = ctx
-	err := requireOK(p.c.doRequest(r))
+	rtt, resp, err := p.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer resp.Body.Close()

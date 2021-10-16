@@ -154,8 +154,11 @@ func (c *PreparedQuery) Create(query *PreparedQueryDefinition, q *WriteOptions) 
 	r := c.c.newRequest("POST", "/v1/query")
 	r.setWriteOptions(q)
 	r.obj = query
-	err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
+		return "", nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
 	defer closeResponseBody(resp)
@@ -200,8 +203,11 @@ func (c *PreparedQuery) Get(queryID string, q *QueryOptions) ([]*PreparedQueryDe
 func (c *PreparedQuery) Delete(queryID string, q *WriteOptions) (*WriteMeta, error) {
 	r := c.c.newRequest("DELETE", "/v1/query/"+queryID)
 	r.setWriteOptions(q)
-	err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
