@@ -1316,25 +1316,16 @@ func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMe
 
 	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
-		return nil, 0, err
+		return nil, 500, err
 	}
 	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return nil, 0, err
-	}
 	wm := &WriteMeta{RequestTime: rtt}
-
-	if err != nil {
-		// if the error was bc of a non 200 response
-		// from requireOK
+	if err := requireOK(resp); err != nil {
 		var statusE StatusError
 		if errors.As(err, &statusE) {
 			return wm, statusE.Code, statusE
 		}
-		// otherwise, the error came via doRequest
-		return nil, 500, err
+		return nil, 0, err
 	}
-	defer closeResponseBody(resp)
-
 	return wm, resp.StatusCode, nil
 }
