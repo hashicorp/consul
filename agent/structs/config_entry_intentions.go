@@ -119,19 +119,22 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 	}
 
 	ixn := &Intention{
-		ID:              src.LegacyID,
-		Description:     src.Description,
-		SourceNS:        src.NamespaceOrDefault(),
-		SourceName:      src.Name,
-		SourceType:      src.Type,
-		Action:          src.Action,
-		Permissions:     src.Permissions,
-		Meta:            meta,
-		Precedence:      src.Precedence,
-		DestinationNS:   e.NamespaceOrDefault(),
-		DestinationName: e.Name,
-		RaftIndex:       e.RaftIndex,
+		ID:                   src.LegacyID,
+		Description:          src.Description,
+		SourcePartition:      src.PartitionOrEmpty(),
+		SourceNS:             src.NamespaceOrDefault(),
+		SourceName:           src.Name,
+		SourceType:           src.Type,
+		Action:               src.Action,
+		Permissions:          src.Permissions,
+		Meta:                 meta,
+		Precedence:           src.Precedence,
+		DestinationPartition: e.PartitionOrEmpty(),
+		DestinationNS:        e.NamespaceOrDefault(),
+		DestinationName:      e.Name,
+		RaftIndex:            e.RaftIndex,
 	}
+
 	if src.LegacyCreateTime != nil {
 		ixn.CreatedAt = *src.LegacyCreateTime
 	}
@@ -764,6 +767,9 @@ func validateIntentionWildcards(name string, entMeta *EnterpriseMeta) error {
 			return fmt.Errorf("Name: exact value cannot follow wildcard namespace")
 		}
 	}
+	if strings.Contains(entMeta.PartitionOrDefault(), WildcardSpecifier) {
+		return fmt.Errorf("Partition: cannot use wildcard '*' in partition")
+	}
 	return nil
 }
 
@@ -815,5 +821,23 @@ func MigrateIntentions(ixns Intentions) []*ServiceIntentionsConfigEntry {
 	for _, entry := range collated {
 		out = append(out, entry)
 	}
+	sort.Slice(out, func(i, j int) bool {
+		a := out[i]
+		b := out[j]
+
+		if a.PartitionOrDefault() < b.PartitionOrDefault() {
+			return true
+		} else if a.PartitionOrDefault() > b.PartitionOrDefault() {
+			return false
+		}
+
+		if a.NamespaceOrDefault() < b.NamespaceOrDefault() {
+			return true
+		} else if a.NamespaceOrDefault() > b.NamespaceOrDefault() {
+			return false
+		}
+
+		return a.Name < b.Name
+	})
 	return out
 }

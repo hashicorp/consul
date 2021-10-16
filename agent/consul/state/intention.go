@@ -3,12 +3,12 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -732,26 +732,33 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	return tx.Commit()
 }
 
+type IntentionDecisionOpts struct {
+	Target           string
+	Namespace        string
+	Partition        string
+	Intentions       structs.Intentions
+	MatchType        structs.IntentionMatchType
+	DefaultDecision  acl.EnforcementDecision
+	AllowPermissions bool
+}
+
 // IntentionDecision returns whether a connection should be allowed to a source or destination given a set of intentions.
 //
 // allowPermissions determines whether the presence of L7 permissions leads to a DENY decision.
 // This should be false when evaluating a connection between a source and destination, but not the request that will be sent.
-func (s *Store) IntentionDecision(
-	target, targetNS string, intentions structs.Intentions, matchType structs.IntentionMatchType,
-	defaultDecision acl.EnforcementDecision, allowPermissions bool,
-) (structs.IntentionDecisionSummary, error) {
+func (s *Store) IntentionDecision(opts IntentionDecisionOpts) (structs.IntentionDecisionSummary, error) {
 
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
-	for _, ixn := range intentions {
-		if _, ok := connect.AuthorizeIntentionTarget(target, targetNS, ixn, matchType); ok {
+	for _, ixn := range opts.Intentions {
+		if _, ok := connect.AuthorizeIntentionTarget(opts.Target, opts.Namespace, opts.Partition, ixn, opts.MatchType); ok {
 			ixnMatch = ixn
 			break
 		}
 	}
 
 	resp := structs.IntentionDecisionSummary{
-		DefaultAllow: defaultDecision == acl.Allow,
+		DefaultAllow: opts.DefaultDecision == acl.Allow,
 	}
 	if ixnMatch == nil {
 		// No intention found, fall back to default
@@ -764,7 +771,7 @@ func (s *Store) IntentionDecision(
 	if len(ixnMatch.Permissions) > 0 {
 		// If any permissions are present, fall back to allowPermissions.
 		// We are not evaluating requests so we cannot know whether the L7 permission requirements will be met.
-		resp.Allowed = allowPermissions
+		resp.Allowed = opts.AllowPermissions
 		resp.HasPermissions = true
 	}
 	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
@@ -911,6 +918,7 @@ func intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	return result, nil
 }
 
+// TODO(partitions): Update for partitions
 // intentionMatchGetParams returns the tx.Get parameters to find all the
 // intentions for a certain entry.
 func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}, error) {
@@ -976,6 +984,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 	}
 	entry := structs.IntentionMatchEntry{
 		Namespace: target.NamespaceOrDefault(),
+		Partition: target.PartitionOrDefault(),
 		Name:      target.Name,
 	}
 	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType)
@@ -1008,7 +1017,7 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 			return true
 		}
 		return false
-	}, structs.WildcardEnterpriseMetaInDefaultPartition())
+	}, target.WithWildcardNamespace())
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to fetch catalog service list: %v", err)
 	}
@@ -1028,7 +1037,16 @@ func (s *Store) intentionTopologyTxn(tx ReadTxn, ws memdb.WatchSet,
 		if candidate.Name == structs.ConsulServiceName {
 			continue
 		}
-		decision, err := s.IntentionDecision(candidate.Name, candidate.NamespaceOrDefault(), intentions, decisionMatchType, defaultDecision, true)
+		opts := IntentionDecisionOpts{
+			Target:           candidate.Name,
+			Namespace:        candidate.NamespaceOrDefault(),
+			Partition:        candidate.PartitionOrDefault(),
+			Intentions:       intentions,
+			MatchType:        decisionMatchType,
+			DefaultDecision:  defaultDecision,
+			AllowPermissions: true,
+		}
+		decision, err := s.IntentionDecision(opts)
 		if err != nil {
 			src, dst := target, candidate
 			if downstreams {

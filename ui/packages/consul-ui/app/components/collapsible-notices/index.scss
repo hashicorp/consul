@@ -16,7 +16,7 @@
   }
   button {
     @extend %button;
-    color: $color-action;
+    color: rgb(var(--color-action));
     float: right;
     grid-area: toggle-button;
     margin-top: 1em;

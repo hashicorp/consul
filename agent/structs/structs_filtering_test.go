@@ -652,6 +652,11 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
+	"SourcePartition": &bexpr.FieldConfiguration{
+		StructFieldName:     "SourcePartition",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
 	"SourceNS": &bexpr.FieldConfiguration{
 		StructFieldName:     "SourceNS",
 		CoerceFn:            bexpr.CoerceString,
@@ -659,6 +664,11 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 	},
 	"SourceName": &bexpr.FieldConfiguration{
 		StructFieldName:     "SourceName",
+		CoerceFn:            bexpr.CoerceString,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
+	},
+	"DestinationPartition": &bexpr.FieldConfiguration{
+		StructFieldName:     "DestinationPartition",
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},

@@ -20,6 +20,8 @@ func (t RPCType) ALPNString() string {
 		return ALPN_RPCGossip
 	case RPCTLSInsecure:
 		return "" // unsupported
+	case RPCGRPC:
+		return ALPN_RPCGRPC
 	default:
 		return "" // unsupported
 	}
@@ -28,19 +30,19 @@ func (t RPCType) ALPNString() string {
 const (
 	// keep numbers unique.
 	RPCConsul      RPCType = 0
-	RPCRaft                = 1
-	RPCMultiplex           = 2 // Old Muxado byte, no longer supported.
-	RPCTLS                 = 3
-	RPCMultiplexV2         = 4
-	RPCSnapshot            = 5
-	RPCGossip              = 6
+	RPCRaft        RPCType = 1
+	RPCMultiplex   RPCType = 2 // Old Muxado byte, no longer supported.
+	RPCTLS         RPCType = 3
+	RPCMultiplexV2 RPCType = 4
+	RPCSnapshot    RPCType = 5
+	RPCGossip      RPCType = 6
 	// RPCTLSInsecure is used to flag RPC calls that require verify
 	// incoming to be disabled, even when it is turned on in the
 	// configuration. At the time of writing there is only AutoEncrypt.Sign
 	// that is supported and it might be the only one there
 	// ever is.
-	RPCTLSInsecure = 7
-	RPCGRPC        = 8
+	RPCTLSInsecure RPCType = 7
+	RPCGRPC        RPCType = 8
 
 	// RPCMaxTypeValue is the maximum rpc type byte value currently used for the
 	// various protocols riding over our "rpc" port.
@@ -79,6 +81,7 @@ var RPCNextProtos = []string{
 	ALPN_RPCMultiplexV2,
 	ALPN_RPCSnapshot,
 	ALPN_RPCGossip,
+	ALPN_RPCGRPC,
 	ALPN_WANGossipPacket,
 	ALPN_WANGossipStream,
 }

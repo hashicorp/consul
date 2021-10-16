@@ -61,9 +61,8 @@ The options below are all specified on the command-line.
   address is advertised. However, in some cases, there may be a routable address
   that cannot be bound. This flag enables gossiping a different address to support
   this. If this address is not routable, the node will be in a constant flapping
-  state as other nodes will treat the non-routability as a failure. In Consul 1.0
-  and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template.
+  state as other nodes will treat the non-routability as a failure. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-advertise-wan` ((#\_advertise-wan)) - The advertise WAN address is used
   to change the address that we advertise to server nodes joining through the WAN.
@@ -73,7 +72,8 @@ The options below are all specified on the command-line.
   and private datacenters. This flag enables server nodes gossiping through the public
   network for the WAN while using private VLANs for gossiping to each other and their
   client agents, and it allows client agents to be reached at this address when being
-  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](#translate_wan_addrs). In Consul 1.0 and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template
+  accessed from a remote datacenter if the remote datacenter is configured with [`translate_wan_addrs`](#translate_wan_addrs). In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-bootstrap` ((#\_bootstrap)) - This flag is used to control if a server
   is in "bootstrap" mode. It is important that no more than one server **per** datacenter
@@ -99,9 +99,8 @@ The options below are all specified on the command-line.
   `"[::]"`, Consul will [advertise](/docs/agent/options#_advertise) the public
   IPv6 address. If there are multiple public IPv6 addresses available, Consul will
   exit with an error at startup. Consul uses both TCP and UDP and the same port for
-  both. If you have any firewalls, be sure to allow both protocols. In Consul 1.0
-  and later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template that needs to resolve to a single address. Some example templates:
+  both. If you have any firewalls, be sure to allow both protocols. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that must resolve at runtime to a single address. Some example templates:
 
   ```shell
   # Using address within a specific CIDR
@@ -121,17 +120,15 @@ The options below are all specified on the command-line.
 - `-serf-wan-bind` ((#\_serf_wan_bind)) - The address that should be bound
   to for Serf WAN gossip communications. By default, the value follows the same rules
   as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind`
-  option is used. This is available in Consul 0.7.1 and later. In Consul 1.0 and
-  later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  option is used. This is available in Consul 0.7.1 and later. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-serf-lan-bind` ((#\_serf_lan_bind)) - The address that should be bound
   to for Serf LAN gossip communications. This is an IP address that should be reachable
   by all other LAN nodes in the cluster. By default, the value follows the same rules
   as [`-bind` command-line flag](#_bind), and if this is not specified, the `-bind`
-  option is used. This is available in Consul 0.7.1 and later. In Consul 1.0 and
-  later this can be set to a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  option is used. This is available in Consul 0.7.1 and later. In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-check_output_max_size` - Override the default
   limit of 4k for maximum size of checks, this is a positive value. By limiting this
@@ -142,7 +139,7 @@ The options below are all specified on the command-line.
 - `-client` ((#\_client)) - The address to which Consul will bind client
   interfaces, including the HTTP and DNS servers. By default, this is "127.0.0.1",
   allowing only loopback connections. In Consul 1.0 and later this can be set to
-  a space-separated list of addresses to bind to, or a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  a space-separated list of addresses to bind to, or a [go-sockaddr]
   template that can potentially resolve to multiple addresses.
 
 - `-config-file` ((#\_config_file)) - A configuration file to load. For
@@ -242,12 +239,8 @@ The options below are all specified on the command-line.
   If it is provided after Consul has been initialized with an encryption key, then
   the provided key is ignored and a warning will be displayed.
 
-- `-xds-port` - the xDS gRPC port to listen on. Default
-  -1 (disabled). See [ports](#ports) documentation for more detail.
-
-- `-grpc-port` ((#\_grpc_port)) - **Deprecated in Consul 1.11**.
-  Use `-xds-port` instead. The xDS gRPC port to listen on. Default
-  -1 (disabled). See [ports](#ports) documentation for more detail.
+- `-grpc-port` ((#\_grpc_port)) - the gRPC API port to listen on. Default
+  -1 (gRPC disabled). See [ports](#ports) documentation for more detail.
 
 - `-hcl` ((#\_hcl)) - A HCL configuration fragment. This HCL configuration
   fragment is appended to the configuration and allows to specify the full range
@@ -299,9 +292,12 @@ The options below are all specified on the command-line.
   By default, the agent won't join any nodes when it starts up. Note that using [`retry_join`](#retry_join) could be more appropriate to help mitigate node startup race conditions when automating
   a Consul cluster deployment.
 
-  In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  In Consul 1.1.0 and later this can be dynamically defined with a
+  [go-sockaddr]
+  template that is resolved at runtime.
+
+  If using Enterprise network segments, see [additional documentation on
+  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
 
 - `-retry-join` ((#\_retry_join)) - Similar to [`-join`](#_join) but allows retrying a join until
   it is successful. Once it joins successfully to a member in a list of members
@@ -309,15 +305,23 @@ The options below are all specified on the command-line.
   membership via gossip. This is useful for cases where you know the address will
   eventually be available. This option can be specified multiple times to
   specify multiple agents to join. The value can contain IPv4, IPv6, or DNS
-  addresses. In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template. If Consul is running on the non-default Serf LAN port, the port must
+  addresses. IPv6 must use the "bracketed" syntax. If multiple values
+  are given, they are tried and retried in the order listed until the first
+  succeeds.
+
+  In Consul 1.1.0 and later this can be dynamically defined with a
+  [go-sockaddr]
+  template that is resolved at runtime.
+
+  If Consul is running on the non-default Serf LAN port, the port must
   be specified in the join address, or configured as the agent's default Serf port
   using the [`ports.serf_lan`](#serf_lan_port) configuration option or
   [`-serf-lan-port`](#_serf_lan_port) command line flag.
-  IPv6 must use the "bracketed" syntax. If multiple values
-  are given, they are tried and retried in the order listed until the first
-  succeeds. Here are some examples:
+
+  If using network segments (Enterprise), see [additional documentation on
+  joining a client to a segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+
+  Here are some examples of using `-retry-join`:
 
   ```shell
   # Using a DNS entry
@@ -369,18 +373,16 @@ The options below are all specified on the command-line.
   startup will fail. By default, the agent won't [`-join-wan`](#_join_wan) any nodes
   when it starts up.
 
-  In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template.
+  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-retry-join-wan` ((#\_retry_join_wan)) - Similar to [`retry-join`](#_retry_join)
   but allows retrying a wan join if the first attempt fails. This is useful for cases
   where we know the address will become available eventually. As of Consul 0.9.3
   [Cloud Auto-Joining](#cloud-auto-joining) is supported as well.
 
-  In Consul 1.1.0 and later this can be set to a
-  [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
-  template
+  In Consul 1.1.0 and later this can be dynamically defined with a [go-sockaddr]
+  template that is resolved at runtime.
 
 - `-retry-interval-wan` ((#\_retry_interval_wan)) - Time to wait between
   [`-join-wan`](#_join_wan) attempts. Defaults to 30s.
@@ -435,7 +437,7 @@ The options below are all specified on the command-line.
   but allows retrying discovery of fallback addresses for the mesh gateways in the
   primary datacenter if the first attempt fails. This is useful for cases where we
   know the address will become available eventually. [Cloud Auto-Joining](#cloud-auto-joining)
-  is supported as well as [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template)
+  is supported as well as [go-sockaddr]
   templates. This was added in Consul 1.8.0.
 
 - `-raft-protocol` ((#\_raft_protocol)) - This controls the internal version
@@ -453,10 +455,11 @@ The options below are all specified on the command-line.
 
 - `-segment` ((#\_segment)) <EnterpriseAlert inline /> - This flag is used to set
   the name of the network segment the agent belongs to. An agent can only join and
-  communicate with other agents within its network segment. Review the [Network Segments
-  tutorial](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters) for
-  more details. By default, this is an empty string, which is the default network
-  segment.
+  communicate with other agents within its network segment. Ensure the [join
+  operation uses the correct port for this segment](/docs/enterprise/network-segments#join_a_client_to_a_segment).
+  Review the [Network Segments documentation](/docs/enterprise/network-segments)
+  for more details. By default, this is an empty string, which is the `<default>`
+  network segment.
 
 - `-serf-lan-allowed-cidrs` ((#\_serf_lan_allowed_cidrs)) - The Serf LAN allowed CIDRs allow to accept incoming
   connections for Serf only from several networks (multiple values are supported).
@@ -547,12 +550,12 @@ definitions support being updated during a reload.
   "server": true,
   "watches": [
     {
-        "type": "checks",
-        "handler": "/usr/bin/health-check-handler.sh"
+      "type": "checks",
+      "handler": "/usr/bin/health-check-handler.sh"
     }
   ],
   "telemetry": {
-     "statsite_address": "127.0.0.1:2180"
+    "statsite_address": "127.0.0.1:2180"
   }
 }
 ```
@@ -596,8 +599,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     token cannot be read from the [`primary_datacenter`](#primary_datacenter) or
     leader node, the down policy is applied. In "allow" mode, all actions are permitted,
     "deny" restricts all operations, and "extend-cache" allows any cached objects
-    to be used, ignoring their TTL values. If a non-cached ACL is used, "extend-cache"
-    acts like "deny". The value "async-cache" acts the same way as "extend-cache"
+    to be used, ignoring the expiry time of the cached entry. If the request uses an
+    ACL that is not in the cache, "extend-cache" falls back to the behaviour of
+    `default_policy`.
+    The value "async-cache" acts the same way as "extend-cache"
     but performs updates asynchronously when ACL is present but its TTL is expired,
     thus, if latency is bad between the primary and secondary datacenters, latency
     of operations is not impacted.
@@ -609,8 +614,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     In "deny" mode, ACLs are an allowlist: any operation not specifically
     allowed is blocked. **Note**: this will not take effect until you've enabled ACLs.
 
-  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Boolean value, defaults to false. 
-    When true, the `list` permission will be required on the prefix being recursively read from the KV store. 
+  - `enable_key_list_policy` ((#acl_enable_key_list_policy)) - Boolean value, defaults to false.
+    When true, the `list` permission will be required on the prefix being recursively read from the KV store.
     Regardless of being enabled, the full set of KV entries under the prefix will be filtered
     to remove any entries that the request's ACL token does not grant at least read
     permissions. This option is only available in Consul 1.0 and newer.
@@ -752,10 +757,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   running Consul 0.7 or later. When provided, this will enable [ACL replication](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
   using this ACL replication using this token to retrieve and replicate the ACLs
   to the non-authoritative local datacenter. In Consul 0.9.1 and later you can enable
-  ACL replication using [`enable_acl_replication`](#enable_acl_replication) and then
+  ACL replication using [`acl.enable_token_replication`](#acl_enable_token_replication) and then
   set the token later using the [agent token API](/api/agent#update-acl-tokens)
   on each server. If the `acl_replication_token` is set in the config, it will automatically
-  set [`enable_acl_replication`](#enable_acl_replication) to true for backward compatibility.
+  set [`acl.enable_token_replication`](#acl_enable_token_replication) to true for backward compatibility.
 
   If there's a partition or other outage affecting the authoritative datacenter, and the
   [`acl_down_policy`](/docs/agent/options#acl_down_policy) is set to "extend-cache", tokens not
@@ -777,9 +782,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `addresses` - This is a nested object that allows setting
   bind addresses. In Consul 1.0 and later these can be set to a space-separated list
-  of addresses to bind to, or a [go-sockaddr](https://godoc.org/github.com/hashicorp/go-sockaddr/template) template that can potentially resolve to multiple addresses.
+  of addresses to bind to, or a [go-sockaddr] template that can potentially resolve to multiple addresses.
 
-  `http`, `https` and `xds` all support binding to a Unix domain socket. A
+  `http`, `https` and `grpc` all support binding to a Unix domain socket. A
   socket can be specified in the form `unix:///path/to/socket`. A new domain
   socket will be created at the given path. If the specified file path already
   exists, Consul will attempt to clear the file and create the domain socket
@@ -800,8 +805,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `dns` - The DNS server. Defaults to `client_addr`
   - `http` - The HTTP API. Defaults to `client_addr`
   - `https` - The HTTPS API. Defaults to `client_addr`
-  - `xds` - The xDS gRPC API. Defaults to `client_addr`
-  - `grpc` - **Deprecated in Consul 1.11**. Use `xds` instead. The xDS gRPC API. Defaults to `client_addr`
+  - `grpc` - The gRPC API. Defaults to `client_addr`
 
 - `advertise_addr` Equivalent to the [`-advertise` command-line flag](#_advertise).
 
@@ -821,6 +825,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   `reconnect_timeout` setting when determining when this node may be removed from the cluster.
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
+  This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
 
 - `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](#_serf_lan_allowed_cidrs).
 
@@ -938,6 +943,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     object available for use on Consul servers. Enabling this option also turns
     on Connect because it is vital for `auto_config`, more specifically the CA
     and certificates infrastructure.
+
+    ~> **Warning:** Enabling `auto_config` conflicts with the [`auto_encrypt.tls`](#tls) feature.
+    Only one option may be specified.
 
   - `intro_token` (Defaults to `""`) This specifies the JWT to use for the initial
     `auto_config` RPC to the Consul servers. This can be overridden with the
@@ -1078,6 +1086,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     or only with a ACL enabled, or only with CA and `verify_server_hostname`, or
     only with a CA, or finally without a CA and without ACL enabled. In any case,
     the communication to the `auto_encrypt` endpoint is always TLS encrypted.
+
+    ~> **Warning:** Enabling `auto_encrypt.tls` conflicts with the [`auto_config`](#auto_config) feature.
+    Only one option may be specified.
 
   - `dns_san` (Defaults to `[]`) When this option is being
     used, the certificates requested by `auto_encrypt` from the server have these
@@ -1433,7 +1444,8 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `domain` Equivalent to the [`-domain` command-line flag](#_domain).
 
-- `enable_acl_replication` When set on a Consul server, enables ACL replication without having to set
+- `enable_acl_replication` **Deprecated in Consul 1.11. Use the [`acl.enable_token_replication`](#acl_enable_token_replication) field instead.**
+  When set on a Consul server, enables ACL replication without having to set
   the replication token via [`acl_replication_token`](#acl_replication_token). Instead, enable ACL replication
   and then introduce the token using the [agent token API](/api/agent#update-acl-tokens) on each server.
   See [`acl_replication_token`](#acl_replication_token) for more details.
@@ -1605,7 +1617,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
   - `use_cache` ((#http_config_use_cache)) Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
 
-  - `max_header_bytes` This setting controls the maximum number of bytes the consul http server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body.  If zero, or negative, http.DefaultMaxHeaderBytes is used, which equates to 1 Megabyte.
+  - `max_header_bytes` This setting controls the maximum number of bytes the consul http server will read parsing the request header's keys and values, including the request line. It does not limit the size of the request body. If zero, or negative, http.DefaultMaxHeaderBytes is used, which equates to 1 Megabyte.
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
@@ -1688,16 +1700,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   - `https` ((#https_port)) - The HTTPS API, -1 to disable. Default -1
     (disabled). **We recommend using `8501`** for `https` by convention as some tooling
     will work automatically with this.
-  - `xds` - The xDS gRPC API, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `xds` by convention as some tooling will work
+  - `grpc` ((#grpc_port)) - The gRPC API, -1 to disable. Default -1 (disabled).
+    **We recommend using `8502`** for `grpc` by convention as some tooling will work
     automatically with this. This is set to `8502` by default when the agent runs
-    in `-dev` mode. Currently xDS is only used to expose Envoy xDS API to Envoy
-    proxies.
-  - `grpc` ((#grpc_port)) - **Deprecated in Consul 1.11**. Use `xds` instead.
-    The xDS gRPC API, -1 to disable. Default -1 (disabled).
-    **We recommend using `8502`** for `xds` by convention as some tooling will work
-    automatically with this. This is set to `8502` by default when the agent runs
-    in `-dev` mode. Currently xDS is only used to expose Envoy xDS API to Envoy
+    in `-dev` mode. Currently gRPC is only used to expose Envoy xDS API to Envoy
     proxies.
   - `serf_lan` ((#serf_lan_port)) - The Serf LAN port. Default 8301. TCP
     and UDP. Equivalent to the [`-serf-lan-port` command line flag](#_serf_lan_port).
@@ -1843,9 +1849,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
-- `segments` <EnterpriseAlert inline /> - This is a list of nested objects
-  that allows setting the bind/advertise information for network segments. This can
-  only be set on servers. Review the [Network Segments tutorial](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters)
+- `segments` <EnterpriseAlert inline /> - (Server agents only) This is a list of nested objects
+  that specifies user-defined network segments, not including the `<default>` segment, which is
+  created automatically. Review the [Network Segments documentation](/docs/enterprise/network-segments)
   for more details.
 
   - `name` ((#segment_name)) - The name of the segment. Must be a string
@@ -2379,3 +2385,7 @@ items which are reloaded include:
 - TLS Configuration
   - Please be aware that this is currently limited to reload a configuration that is already TLS enabled. You cannot enable or disable TLS only with reloading.
 - Watches
+
+<!-- list of reference-style links -->
+
+[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

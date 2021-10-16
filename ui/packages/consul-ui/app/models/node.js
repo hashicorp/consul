@@ -11,6 +11,7 @@ export default class Node extends Model {
   @attr('string') ID;
 
   @attr('string') Datacenter;
+  @attr('string') Partition;
   @attr('string') Address;
   @attr('string') Node;
   @attr('number') SyncTime;

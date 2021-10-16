@@ -13,7 +13,7 @@
     "id": "test-proxy",
     "metadata": {
       "namespace": "default",
-      "envoy_version": "1.18.3"
+      "partition": "default"
     }
   },
   "static_resources": {

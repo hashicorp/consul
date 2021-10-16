@@ -56,12 +56,18 @@ func TestNodeServiceWithName(t testing.T, name string) *NodeService {
 // TestNodeServiceProxy returns a *NodeService representing a valid
 // Connect proxy.
 func TestNodeServiceProxy(t testing.T) *NodeService {
+	return TestNodeServiceProxyInPartition(t, "")
+}
+
+func TestNodeServiceProxyInPartition(t testing.T, partition string) *NodeService {
+	entMeta := DefaultEnterpriseMetaInPartition(partition)
 	return &NodeService{
-		Kind:    ServiceKindConnectProxy,
-		Service: "web-proxy",
-		Address: "127.0.0.2",
-		Port:    2222,
-		Proxy:   TestConnectProxyConfig(t),
+		Kind:           ServiceKindConnectProxy,
+		Service:        "web-proxy",
+		Address:        "127.0.0.2",
+		Port:           2222,
+		Proxy:          TestConnectProxyConfig(t),
+		EnterpriseMeta: *entMeta,
 	}
 }
 

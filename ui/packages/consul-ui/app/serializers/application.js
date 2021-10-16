@@ -1,17 +1,18 @@
 import Serializer from './http';
 import { set } from '@ember/object';
+
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
   HEADERS_INDEX as HTTP_HEADERS_INDEX,
   HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
   HEADERS_NAMESPACE as HTTP_HEADERS_NAMESPACE,
+  HEADERS_PARTITION as HTTP_HEADERS_PARTITION,
 } from 'consul-ui/utils/http/consul';
 import { CACHE_CONTROL as HTTP_HEADERS_CACHE_CONTROL } from 'consul-ui/utils/http/headers';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
+import { PARTITION_KEY } from 'consul-ui/models/partition';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
-
-const DEFAULT_NSPACE = '';
 
 const map = function(obj, cb) {
   if (!Array.isArray(obj)) {
@@ -26,28 +27,28 @@ const attachHeaders = function(headers, body, query = {}) {
   Object.keys(headers).forEach(function(key) {
     lower[key.toLowerCase()] = headers[key];
   });
-  // Add a 'pretend' Datacenter/Nspace header, they are not headers the come
-  // from the request but we add them here so we can use them later for store
-  // reconciliation
-  if (typeof query.dc !== 'undefined') {
-    lower[HTTP_HEADERS_DATACENTER.toLowerCase()] = query.dc;
-  }
-  lower[HTTP_HEADERS_NAMESPACE.toLowerCase()] =
-    typeof query.ns !== 'undefined' ? query.ns : DEFAULT_NSPACE;
   //
   body[HTTP_HEADERS_SYMBOL] = lower;
   return body;
 };
-
 export default class ApplicationSerializer extends Serializer {
   attachHeaders = attachHeaders;
-  fingerprint = createFingerprinter(DATACENTER_KEY, NSPACE_KEY);
+  fingerprint = createFingerprinter(DATACENTER_KEY, NSPACE_KEY, PARTITION_KEY);
 
   respondForQuery(respond, query) {
     return respond((headers, body) =>
       attachHeaders(
         headers,
-        map(body, this.fingerprint(this.primaryKey, this.slugKey, query.dc)),
+        map(
+          body,
+          this.fingerprint(
+            this.primaryKey,
+            this.slugKey,
+            query.dc,
+            headers[HTTP_HEADERS_NAMESPACE],
+            headers[HTTP_HEADERS_PARTITION]
+          )
+        ),
         query
       )
     );
@@ -55,26 +56,44 @@ export default class ApplicationSerializer extends Serializer {
 
   respondForQueryRecord(respond, query) {
     return respond((headers, body) =>
-      attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body), query)
+      attachHeaders(
+        headers,
+        this.fingerprint(
+          this.primaryKey,
+          this.slugKey,
+          query.dc,
+          headers[HTTP_HEADERS_NAMESPACE],
+          headers[HTTP_HEADERS_PARTITION]
+        )(body),
+        query
+      )
     );
   }
 
   respondForCreateRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
+
     return respond((headers, body) => {
       // If creates are true use the info we already have
       if (body === true) {
         body = data;
       }
       // Creates need a primaryKey adding
-      return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
+      return this.fingerprint(
+        primaryKey,
+        slugKey,
+        data[DATACENTER_KEY],
+        headers[HTTP_HEADERS_NAMESPACE],
+        data.Partition
+      )(body);
     });
   }
 
   respondForUpdateRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
+
     return respond((headers, body) => {
       // If updates are true use the info we already have
       // TODO: We may aswell avoid re-fingerprinting here if we are just going
@@ -85,13 +104,20 @@ export default class ApplicationSerializer extends Serializer {
       if (body === true) {
         body = data;
       }
-      return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
+      return this.fingerprint(
+        primaryKey,
+        slugKey,
+        data[DATACENTER_KEY],
+        headers[HTTP_HEADERS_NAMESPACE],
+        headers[HTTP_HEADERS_PARTITION]
+      )(body);
     });
   }
 
   respondForDeleteRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
+
     return respond((headers, body) => {
       // Deletes only need the primaryKey/uid returning and they need the slug
       // key AND potential namespace in order to create the correct
@@ -100,10 +126,13 @@ export default class ApplicationSerializer extends Serializer {
         [primaryKey]: this.fingerprint(
           primaryKey,
           slugKey,
-          data[DATACENTER_KEY]
+          data[DATACENTER_KEY],
+          headers[HTTP_HEADERS_NAMESPACE],
+          headers[HTTP_HEADERS_PARTITION]
         )({
           [slugKey]: data[slugKey],
           [NSPACE_KEY]: data[NSPACE_KEY],
+          [PARTITION_KEY]: data[PARTITION_KEY],
         })[primaryKey],
       };
     });
@@ -161,6 +190,7 @@ export default class ApplicationSerializer extends Serializer {
       cursor: headers[HTTP_HEADERS_INDEX.toLowerCase()],
       dc: headers[HTTP_HEADERS_DATACENTER.toLowerCase()],
       nspace: headers[HTTP_HEADERS_NAMESPACE.toLowerCase()],
+      partition: headers[HTTP_HEADERS_PARTITION.toLowerCase()],
     };
     if (typeof headers['x-range'] !== 'undefined') {
       meta.range = headers['x-range'];

@@ -246,7 +246,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 
 		// now generate the load assignment for all subsets
 		for subsetName, groups := range clusterEndpoints {
-			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			la := makeLoadAssignment(
 				clusterName,
 				groups,

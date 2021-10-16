@@ -9,7 +9,10 @@ module('Integration | Serializer | dc', function(hooks) {
       url: `/v1/catalog/datacenters`,
     };
     return get(request.url).then(function(payload) {
-      const expected = payload;
+      const expected = {
+        body: payload,
+        headers: {},
+      };
       const actual = serializer.respondForQuery(function(cb) {
         const headers = {};
         const body = payload;

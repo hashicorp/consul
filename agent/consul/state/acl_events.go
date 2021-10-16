@@ -16,7 +16,7 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 
 	for _, change := range changes.Changes {
 		switch change.Table {
-		case "acl-tokens":
+		case tableACLTokens:
 			token := changeObject(change).(*structs.ACLToken)
 			secretIDs = append(secretIDs, token.SecretID)
 

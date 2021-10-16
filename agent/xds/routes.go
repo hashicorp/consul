@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
@@ -29,7 +30,11 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 	case structs.ServiceKindConnectProxy:
 		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return s.routesForIngressGateway(cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+		return s.routesForIngressGateway(
+			cfgSnap.IngressGateway.Listeners,
+			cfgSnap.IngressGateway.Upstreams,
+			cfgSnap.IngressGateway.DiscoveryChain,
+		)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesFromSnapshotTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
@@ -77,7 +82,7 @@ func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxyc
 
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
 
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
@@ -109,7 +114,7 @@ func (s *ResourceGenerator) routesFromSnapshotTerminatingGateway(cfgSnap *proxyc
 
 		// If there is a service-resolver for this service then also setup routes for each subset
 		for name := range resolver.Subsets {
-			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 			route, err := makeNamedDefaultRouteWithLB(clusterName, lb, true)
 			if err != nil {
 				s.Logger.Error("failed to make route", "cluster", clusterName, "error", err)
@@ -160,6 +165,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 // routesForIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
 func (s *ResourceGenerator) routesForIngressGateway(
+	listeners map[proxycfg.IngressListenerKey]structs.IngressListener,
 	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
 	chains map[string]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {
@@ -171,13 +177,17 @@ func (s *ResourceGenerator) routesForIngressGateway(
 			continue
 		}
 
-		upstreamRoute := &envoy_route_v3.RouteConfiguration{
+		// Depending on their TLS config, upstreams are either attached to the
+		// default route or have their own routes. We'll add any upstreams that
+		// don't have custom filter chains and routes to this.
+		defaultRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
 			ValidateClusters: makeBoolValue(true),
 		}
+
 		for _, u := range upstreams {
 			upstreamID := u.Identifier()
 			chain := chains[upstreamID]
@@ -190,13 +200,86 @@ func (s *ResourceGenerator) routesForIngressGateway(
 			if err != nil {
 				return nil, err
 			}
-			upstreamRoute.VirtualHosts = append(upstreamRoute.VirtualHosts, virtualHost)
+
+			// Lookup listener and service config details from ingress gateway
+			// definition.
+			lCfg, ok := listeners[listenerKey]
+			if !ok {
+				return nil, fmt.Errorf("missing ingress listener config (listener on port %d)", listenerKey.Port)
+			}
+			svc := findIngressServiceMatchingUpstream(lCfg, u)
+			if svc == nil {
+				return nil, fmt.Errorf("missing service in listener config (service %q listener on port %d)",
+					u.DestinationID(), listenerKey.Port)
+			}
+
+			if err := injectHeaderManipToVirtualHost(svc, virtualHost); err != nil {
+				return nil, err
+			}
+
+			// See if this upstream has its own route/filter chain
+			svcRouteName := routeNameForUpstream(lCfg, *svc)
+
+			// If the routeName is the same as the default one, merge the virtual host
+			// to the default route
+			if svcRouteName == defaultRoute.Name {
+				defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
+			} else {
+				svcRoute := &envoy_route_v3.RouteConfiguration{
+					Name:             svcRouteName,
+					ValidateClusters: makeBoolValue(true),
+					VirtualHosts:     []*envoy_route_v3.VirtualHost{virtualHost},
+				}
+				result = append(result, svcRoute)
+			}
 		}
 
-		result = append(result, upstreamRoute)
+		if len(defaultRoute.VirtualHosts) > 0 {
+			result = append(result, defaultRoute)
+		}
 	}
 
 	return result, nil
+}
+
+func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.HeaderValueOption {
+	opts := make([]*envoy_core_v3.HeaderValueOption, 0, len(vals))
+	for k, v := range vals {
+		o := &envoy_core_v3.HeaderValueOption{
+			Header: &envoy_core_v3.HeaderValue{
+				Key:   k,
+				Value: v,
+			},
+			Append: makeBoolValue(add),
+		}
+		opts = append(opts, o)
+	}
+	return opts
+}
+
+func findIngressServiceMatchingUpstream(l structs.IngressListener, u structs.Upstream) *structs.IngressService {
+	// Hunt through for the matching service. We validate now that there is
+	// only one IngressService for each unique name although originally that
+	// wasn't checked as it didn't matter. Assume there is only one now
+	// though!
+	wantSID := u.DestinationID()
+	var foundSameNSWildcard *structs.IngressService
+	for _, s := range l.Services {
+		sid := structs.NewServiceID(s.Name, &s.EnterpriseMeta)
+		if wantSID.Matches(sid) {
+			return &s
+		}
+		if s.Name == structs.WildcardSpecifier &&
+			s.NamespaceOrDefault() == wantSID.NamespaceOrDefault() &&
+			s.PartitionOrDefault() == wantSID.PartitionOrDefault() {
+			// Make a copy so we don't take a reference to the loop variable
+			found := s
+			foundSameNSWildcard = &found
+		}
+	}
+	// Didn't find an exact match. Return the wildcard from same service if we
+	// found one.
+	return foundSameNSWildcard
 }
 
 func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {
@@ -283,24 +366,23 @@ func makeUpstreamRouteForDiscoveryChain(
 					return nil, err
 				}
 
-				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-				}
-
 			case structs.DiscoveryGraphNodeTypeResolver:
 				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
-
-				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
-					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
-				}
 
 			default:
 				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
+			if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+				return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+			}
+
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
 
 			destination := discoveryRoute.Definition.Destination
+
+			route := &envoy_route_v3.Route{}
+
 			if destination != nil {
 				if destination.PrefixRewrite != "" {
 					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
@@ -331,12 +413,16 @@ func makeUpstreamRouteForDiscoveryChain(
 
 					routeAction.Route.RetryPolicy = retryPolicy
 				}
+
+				if err := injectHeaderManipToRoute(destination, route); err != nil {
+					return nil, fmt.Errorf("failed to apply header manipulation configuration to route: %v", err)
+				}
 			}
 
-			routes = append(routes, &envoy_route_v3.Route{
-				Match:  routeMatch,
-				Action: routeAction,
-			})
+			route.Match = routeMatch
+			route.Action = routeAction
+
+			routes = append(routes, route)
 		}
 
 	case structs.DiscoveryGraphNodeTypeSplitter:
@@ -558,6 +644,9 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
+		if err := injectHeaderManipToWeightedCluster(split.Definition, cw); err != nil {
+			return nil, err
+		}
 
 		clusters = append(clusters, cw)
 	}
@@ -640,5 +729,101 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 		}
 	}
 	action.HashPolicy = result
+	return nil
+}
+
+func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_route_v3.Route) error {
+	if !dest.RequestHeaders.IsZero() {
+		r.RequestHeadersToAdd = append(
+			r.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Add, true)...,
+		)
+		r.RequestHeadersToAdd = append(
+			r.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Set, false)...,
+		)
+		r.RequestHeadersToRemove = append(
+			r.RequestHeadersToRemove,
+			dest.RequestHeaders.Remove...,
+		)
+	}
+	if !dest.ResponseHeaders.IsZero() {
+		r.ResponseHeadersToAdd = append(
+			r.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Add, true)...,
+		)
+		r.ResponseHeadersToAdd = append(
+			r.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Set, false)...,
+		)
+		r.ResponseHeadersToRemove = append(
+			r.ResponseHeadersToRemove,
+			dest.ResponseHeaders.Remove...,
+		)
+	}
+	return nil
+}
+
+func injectHeaderManipToVirtualHost(dest *structs.IngressService, vh *envoy_route_v3.VirtualHost) error {
+	if !dest.RequestHeaders.IsZero() {
+		vh.RequestHeadersToAdd = append(
+			vh.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Add, true)...,
+		)
+		vh.RequestHeadersToAdd = append(
+			vh.RequestHeadersToAdd,
+			makeHeadersValueOptions(dest.RequestHeaders.Set, false)...,
+		)
+		vh.RequestHeadersToRemove = append(
+			vh.RequestHeadersToRemove,
+			dest.RequestHeaders.Remove...,
+		)
+	}
+	if !dest.ResponseHeaders.IsZero() {
+		vh.ResponseHeadersToAdd = append(
+			vh.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Add, true)...,
+		)
+		vh.ResponseHeadersToAdd = append(
+			vh.ResponseHeadersToAdd,
+			makeHeadersValueOptions(dest.ResponseHeaders.Set, false)...,
+		)
+		vh.ResponseHeadersToRemove = append(
+			vh.ResponseHeadersToRemove,
+			dest.ResponseHeaders.Remove...,
+		)
+	}
+	return nil
+}
+
+func injectHeaderManipToWeightedCluster(split *structs.ServiceSplit, c *envoy_route_v3.WeightedCluster_ClusterWeight) error {
+	if !split.RequestHeaders.IsZero() {
+		c.RequestHeadersToAdd = append(
+			c.RequestHeadersToAdd,
+			makeHeadersValueOptions(split.RequestHeaders.Add, true)...,
+		)
+		c.RequestHeadersToAdd = append(
+			c.RequestHeadersToAdd,
+			makeHeadersValueOptions(split.RequestHeaders.Set, false)...,
+		)
+		c.RequestHeadersToRemove = append(
+			c.RequestHeadersToRemove,
+			split.RequestHeaders.Remove...,
+		)
+	}
+	if !split.ResponseHeaders.IsZero() {
+		c.ResponseHeadersToAdd = append(
+			c.ResponseHeadersToAdd,
+			makeHeadersValueOptions(split.ResponseHeaders.Add, true)...,
+		)
+		c.ResponseHeadersToAdd = append(
+			c.ResponseHeadersToAdd,
+			makeHeadersValueOptions(split.ResponseHeaders.Set, false)...,
+		)
+		c.ResponseHeadersToRemove = append(
+			c.ResponseHeadersToRemove,
+			split.ResponseHeaders.Remove...,
+		)
+	}
 	return nil
 }

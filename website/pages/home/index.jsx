@@ -25,7 +25,7 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
             external: false,
             title: 'Try HCP Consul',
             url:
-              'https://portal.cloud.hashicorp.com/sign-up?utm_source=docs&utm_content=consul_hero',
+              'https://portal.cloud.hashicorp.com/sign-up?utm_source=consul_io&utm_content=consul_hero',
           },
           {
             external: false,
@@ -136,14 +136,12 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
         callouts={[
           {
             icon: require('./img/kubernetes/logo.svg?include'),
-            title: 'Consul for Kubernetes',
+            title: 'Consul on Kubernetes',
             description:
-              "Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.",
-            eyebrow: 'Tutorial',
+              'Consul service mesh works on any Kubernetes distribution, connects multiple clusters, and supports VM-based applications. Consul CRDs provide a self-service, Kubernetes native workflow to manage traffic patterns and permissions in the mesh.',
             link: {
-              text: 'Get Started with Consul on Kubernetes',
-              url:
-                'https://learn.hashicorp.com/tutorials/consul/kubernetes-custom-resource-definitions?in=consul/kubernetes',
+              text: 'Learn more',
+              url: '/consul-on-kubernetes',
             },
           },
           {

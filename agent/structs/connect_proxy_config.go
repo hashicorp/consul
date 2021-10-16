@@ -39,17 +39,21 @@ const (
 const (
 	// TODO (freddy) Should we have a TopologySourceMixed when there is a mix of proxy reg and tproxy?
 	//				 Currently we label as proxy-registration if ANY instance has the explicit upstream definition.
-	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions
+	// TopologySourceRegistration is used to label upstreams or downstreams from explicit upstream definitions.
 	TopologySourceRegistration = "proxy-registration"
 
-	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions
+	// TopologySourceSpecificIntention is used to label upstreams or downstreams from specific intentions.
 	TopologySourceSpecificIntention = "specific-intention"
 
-	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions
+	// TopologySourceWildcardIntention is used to label upstreams or downstreams from wildcard intentions.
 	TopologySourceWildcardIntention = "wildcard-intention"
 
-	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy
+	// TopologySourceDefaultAllow is used to label upstreams or downstreams from default allow ACL policy.
 	TopologySourceDefaultAllow = "default-allow"
+
+	// TopologySourceRoutingConfig is used to label upstreams that are not backed by a service instance
+	// and are simply used for routing configurations.
+	TopologySourceRoutingConfig = "routing-config"
 )
 
 // MeshGatewayConfig controls how Mesh Gateways are configured and used
@@ -371,9 +375,11 @@ type Upstream struct {
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 
-	// IngressHosts are a list of hosts that should route to this upstream from
-	// an ingress gateway. This cannot and should not be set by a user, it is
-	// used internally to store the association of hosts to an upstream service.
+	// IngressHosts are a list of hosts that should route to this upstream from an
+	// ingress gateway. This cannot and should not be set by a user, it is used
+	// internally to store the association of hosts to an upstream service.
+	// TODO(banks): we shouldn't need this any more now we pass through full
+	// listener config in the ingress snapshot.
 	IngressHosts []string `json:"-" bexpr:"-"`
 
 	// CentrallyConfigured indicates whether the upstream was defined in a proxy

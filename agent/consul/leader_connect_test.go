@@ -240,9 +240,6 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 
 			testrpc.WaitForLeader(t, s2.RPC, "secondary")
 
-			waitForNewACLs(t, s1)
-			waitForNewACLs(t, s2)
-
 			// Ensure s2 is authoritative.
 			waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 

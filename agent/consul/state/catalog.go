@@ -1540,7 +1540,7 @@ func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 func updateAllServiceIndexesOfNode(tx WriteTxn, idx uint64, nodeID string, entMeta *structs.EnterpriseMeta) error {
 	services, err := tx.Get(tableServices, indexNode, Query{
 		Value:          nodeID,
-		EnterpriseMeta: *entMeta.WildcardEnterpriseMetaForPartition(),
+		EnterpriseMeta: *entMeta.WithWildcardNamespace(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
@@ -2359,7 +2359,7 @@ func parseCheckServiceNodes(
 		q := NodeServiceQuery{
 			Node:           sn.Node,
 			Service:        "", // node checks have no service
-			EnterpriseMeta: *sn.EnterpriseMeta.WildcardEnterpriseMetaForPartition(),
+			EnterpriseMeta: *sn.EnterpriseMeta.WithWildcardNamespace(),
 		}
 		iter, err := tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {
@@ -3092,44 +3092,77 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var (
-		seenUpstreams   = make(map[string]struct{})
-		upstreamSources = make(map[string]string)
-	)
+	var upstreamSources = make(map[string]string)
 	for _, un := range upstreamNames {
-		if _, ok := seenUpstreams[un.String()]; !ok {
-			seenUpstreams[un.String()] = struct{}{}
-		}
 		upstreamSources[un.String()] = structs.TopologySourceRegistration
 	}
 
-	idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
-	if err != nil {
-		return 0, nil, err
-	}
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
-	for _, svc := range intentionUpstreams {
-		if _, ok := seenUpstreams[svc.Name.String()]; ok {
-			// Avoid duplicating entry
-			continue
-		}
-		upstreamDecisions[svc.Name.String()] = svc.Decision
-		upstreamNames = append(upstreamNames, svc.Name)
 
-		var source string
-		switch {
-		case svc.Decision.HasExact:
-			source = structs.TopologySourceSpecificIntention
-		case svc.Decision.DefaultAllow:
-			source = structs.TopologySourceDefaultAllow
-		default:
-			source = structs.TopologySourceWildcardIntention
+	// Only transparent proxies have upstreams from intentions
+	if hasTransparent {
+		idx, intentionUpstreams, err := s.intentionTopologyTxn(tx, ws, sn, false, defaultAllow)
+		if err != nil {
+			return 0, nil, err
 		}
-		upstreamSources[svc.Name.String()] = source
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+
+		for _, svc := range intentionUpstreams {
+			if _, ok := upstreamSources[svc.Name.String()]; ok {
+				// Avoid duplicating entry
+				continue
+			}
+			upstreamDecisions[svc.Name.String()] = svc.Decision
+			upstreamNames = append(upstreamNames, svc.Name)
+
+			var source string
+			switch {
+			case svc.Decision.HasExact:
+				source = structs.TopologySourceSpecificIntention
+			case svc.Decision.DefaultAllow:
+				source = structs.TopologySourceDefaultAllow
+			default:
+				source = structs.TopologySourceWildcardIntention
+			}
+			upstreamSources[svc.Name.String()] = source
+		}
+	}
+
+	matchEntry := structs.IntentionMatchEntry{
+		Namespace: entMeta.NamespaceOrDefault(),
+		Partition: entMeta.PartitionOrDefault(),
+		Name:      service,
+	}
+	_, srcIntentions, err := compatIntentionMatchOneTxn(
+		tx,
+		ws,
+		matchEntry,
+
+		// The given service is a source relative to its upstreams
+		structs.IntentionMatchSource,
+	)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
+	}
+
+	for _, un := range upstreamNames {
+		opts := IntentionDecisionOpts{
+			Target:           un.Name,
+			Namespace:        un.NamespaceOrDefault(),
+			Partition:        un.PartitionOrDefault(),
+			Intentions:       srcIntentions,
+			MatchType:        structs.IntentionMatchDestination,
+			DefaultDecision:  defaultAllow,
+			AllowPermissions: false,
+		}
+		decision, err := s.IntentionDecision(opts)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				sn.String(), un.String(), err)
+		}
+		upstreamDecisions[un.String()] = decision
 	}
 
 	idx, unfilteredUpstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
@@ -3154,28 +3187,29 @@ func (s *Store) ServiceTopology(
 		upstreams = append(upstreams, upstream)
 	}
 
-	matchEntry := structs.IntentionMatchEntry{
-		Namespace: entMeta.NamespaceOrDefault(),
-		Name:      service,
+	var foundUpstreams = make(map[structs.ServiceName]struct{})
+	for _, csn := range upstreams {
+		foundUpstreams[csn.Service.CompoundServiceName()] = struct{}{}
 	}
-	_, srcIntentions, err := compatIntentionMatchOneTxn(
-		tx,
-		ws,
-		matchEntry,
 
-		// The given service is a source relative to its upstreams
-		structs.IntentionMatchSource,
-	)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
-	}
+	// Check upstream names that had no service instances to see if they are routing config.
 	for _, un := range upstreamNames {
-		decision, err := s.IntentionDecision(un.Name, un.NamespaceOrDefault(), srcIntentions, structs.IntentionMatchDestination, defaultAllow, false)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
-				sn.String(), un.String(), err)
+		if _, ok := foundUpstreams[un]; ok {
+			continue
 		}
-		upstreamDecisions[un.String()] = decision
+
+		for _, kind := range serviceGraphKinds {
+			idx, entry, err := configEntryTxn(tx, ws, kind, un.Name, &un.EnterpriseMeta)
+			if err != nil {
+				return 0, nil, err
+			}
+			if entry != nil {
+				upstreamSources[un.String()] = structs.TopologySourceRoutingConfig
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+		}
 	}
 
 	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
@@ -3186,14 +3220,8 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var (
-		seenDownstreams   = make(map[string]struct{})
-		downstreamSources = make(map[string]string)
-	)
+	var downstreamSources = make(map[string]string)
 	for _, dn := range downstreamNames {
-		if _, ok := seenDownstreams[dn.String()]; !ok {
-			seenDownstreams[dn.String()] = struct{}{}
-		}
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
@@ -3207,7 +3235,7 @@ func (s *Store) ServiceTopology(
 
 	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 	for _, svc := range intentionDownstreams {
-		if _, ok := seenDownstreams[svc.Name.String()]; ok {
+		if _, ok := downstreamSources[svc.Name.String()]; ok {
 			// Avoid duplicating entry
 			continue
 		}
@@ -3224,6 +3252,35 @@ func (s *Store) ServiceTopology(
 			source = structs.TopologySourceWildcardIntention
 		}
 		downstreamSources[svc.Name.String()] = source
+	}
+
+	_, dstIntentions, err := compatIntentionMatchOneTxn(
+		tx,
+		ws,
+		matchEntry,
+
+		// The given service is a destination relative to its downstreams
+		structs.IntentionMatchDestination,
+	)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
+	}
+	for _, dn := range downstreamNames {
+		opts := IntentionDecisionOpts{
+			Target:           dn.Name,
+			Namespace:        dn.NamespaceOrDefault(),
+			Partition:        dn.PartitionOrDefault(),
+			Intentions:       dstIntentions,
+			MatchType:        structs.IntentionMatchSource,
+			DefaultDecision:  defaultAllow,
+			AllowPermissions: false,
+		}
+		decision, err := s.IntentionDecision(opts)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				dn.String(), sn.String(), err)
+		}
+		downstreamDecisions[dn.String()] = decision
 	}
 
 	idx, unfilteredDownstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
@@ -3251,29 +3308,12 @@ func (s *Store) ServiceTopology(
 			sn = structs.NewServiceName(downstream.Service.Proxy.DestinationServiceName, &downstream.Service.EnterpriseMeta)
 		}
 		if _, ok := tproxyMap[sn]; !ok && downstreamSources[sn.String()] != structs.TopologySourceRegistration {
+			// If downstream is not a transparent proxy, remove references
+			delete(downstreamSources, sn.String())
+			delete(downstreamDecisions, sn.String())
 			continue
 		}
 		downstreams = append(downstreams, downstream)
-	}
-
-	_, dstIntentions, err := compatIntentionMatchOneTxn(
-		tx,
-		ws,
-		matchEntry,
-
-		// The given service is a destination relative to its downstreams
-		structs.IntentionMatchDestination,
-	)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
-	}
-	for _, dn := range downstreamNames {
-		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), dstIntentions, structs.IntentionMatchSource, defaultAllow, false)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
-				dn.String(), sn.String(), err)
-		}
-		downstreamDecisions[dn.String()] = decision
 	}
 
 	resp := &structs.ServiceTopology{
@@ -3411,8 +3451,8 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 	oldUpstreams := make(map[structs.ServiceName]bool)
 	if e, ok := existing.(*structs.ServiceNode); ok {
 		for _, u := range e.ServiceProxy.Upstreams {
-			upstreamMeta := e.NewEnterpriseMetaInPartition(u.DestinationNamespace)
-			sn := structs.NewServiceName(u.DestinationName, upstreamMeta)
+			upstreamMeta := structs.NewEnterpriseMetaWithPartition(e.PartitionOrDefault(), u.DestinationNamespace)
+			sn := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
 			oldUpstreams[sn] = true
 		}
@@ -3427,8 +3467,8 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 		}
 
 		// TODO (freddy): Account for upstream datacenter
-		upstreamMeta := svc.NewEnterpriseMetaInPartition(u.DestinationNamespace)
-		upstream := structs.NewServiceName(u.DestinationName, upstreamMeta)
+		upstreamMeta := structs.NewEnterpriseMetaWithPartition(svc.PartitionOrDefault(), u.DestinationNamespace)
+		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
 		obj, err := tx.First(tableMeshTopology, indexID, upstream, downstream)
 		if err != nil {

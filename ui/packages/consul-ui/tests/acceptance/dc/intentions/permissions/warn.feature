@@ -4,10 +4,12 @@ Feature: dc / intentions / permissions / warn: Intention Permission Warn
     Given 1 datacenter model with the value "datacenter"
     And 1 intention model from yaml
     ---
-      SourceNS: default
       SourceName: web
-      DestinationNS: default
       DestinationName: db
+      SourceNS: default
+      DestinationNS: default
+      SourcePartition: default
+      DestinationPartition: default
       Action: ~
       Permissions:
       - Action: allow
@@ -28,4 +30,4 @@ Feature: dc / intentions / permissions / warn: Intention Permission Warn
     And I submit
     And I see the warning object
     And I click the warning.confirm object
-    Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fdefault%2Fweb&destination=default%2Fdefault%2Fdb&dc=datacenter" from yaml

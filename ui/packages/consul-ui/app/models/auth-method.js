@@ -12,6 +12,7 @@ export default class AuthMethod extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Namespace;
+  @attr('string') Partition;
   @attr('string', { defaultValue: () => '' }) Description;
   @attr('string', { defaultValue: () => '' }) DisplayName;
   @attr('string', { defaultValue: () => 'local' }) TokenLocality;

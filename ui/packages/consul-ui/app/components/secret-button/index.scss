@@ -15,7 +15,7 @@
 }
 %secret-button span::before {
   @extend %with-visibility-show-mask, %as-pseudo;
-  background-color: $gray-500;
+  background-color: rgb(var(--tone-gray-500));
 }
 %secret-button input:checked + span::before {
   @extend %with-visibility-hide-mask;

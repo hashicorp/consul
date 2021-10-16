@@ -1,9 +1,9 @@
 %crumbs {
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
   text-decoration: none;
 }
 %crumbs:hover {
-  color: $blue-500;
+  color: rgb(var(--tone-blue-500));
   text-decoration: underline;
 }
 %crumbs::before {
@@ -11,9 +11,9 @@
 }
 %breadcrumb-milestone::before {
   @extend %with-chevron-left-mask, %as-pseudo;
-  background-color: $gray-500;
+  background-color: rgb(var(--tone-gray-500));
 }
 %breadcrumb::before {
   content: '/';
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
 }

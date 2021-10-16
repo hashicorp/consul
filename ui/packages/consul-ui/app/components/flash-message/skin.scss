@@ -1,21 +1,21 @@
 %flash-message p {
   border-width: 1px;
-  border-radius: $decor-radius-100;
+  border-radius: var(--decor-radius-100);
 }
 %flash-message p strong::before {
   @extend %as-pseudo;
 }
 %flash-message p.success strong::before {
   @extend %with-check-circle-fill-mask;
-  color: $green-500;
+  color: rgb(var(--tone-green-500));
 }
 %flash-message p.warning strong::before {
   @extend %with-alert-triangle-mask;
-  color: $orange-500;
+  color: rgb(var(--tone-orange-500));
 }
 %flash-message p.error strong::before {
   @extend %with-cancel-square-fill-mask;
-  color: $red-500;
+  color: rgb(var(--tone-red-500));
 }
 %flash-message p.success {
   @extend %frame-green-500;

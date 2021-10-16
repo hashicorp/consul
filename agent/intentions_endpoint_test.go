@@ -6,11 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestIntentionList(t *testing.T) {
@@ -427,6 +428,27 @@ func TestIntentionCreate(t *testing.T) {
 			require.Equal(t, "foo", actual.SourceName)
 		}
 	})
+
+	t.Run("partition rejected", func(t *testing.T) {
+		{
+			args := structs.TestIntention(t)
+			args.SourcePartition = "part1"
+			req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionCreate(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a source partition")
+		}
+		{
+			args := structs.TestIntention(t)
+			args.DestinationPartition = "part2"
+			req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionCreate(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a destination partition")
+		}
+	})
 }
 
 func TestIntentionSpecificGet(t *testing.T) {
@@ -531,6 +553,26 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 		actual := resp.Intentions[0]
 		require.Equal(t, "bar", actual.SourceName)
 	}
+
+	t.Run("partitions rejected", func(t *testing.T) {
+		{
+			ixn.DestinationPartition = "part1"
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionSpecific(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a destination partition")
+		}
+		{
+			ixn.DestinationPartition = "default"
+			ixn.SourcePartition = "part2"
+			req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
+			resp := httptest.NewRecorder()
+			_, err := a.srv.IntentionSpecific(resp, req)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "Cannot specify a source partition")
+		}
+	})
 }
 
 func TestIntentionDeleteExact(t *testing.T) {
@@ -700,41 +742,58 @@ func TestIntentionSpecificDelete(t *testing.T) {
 
 func TestParseIntentionStringComponent(t *testing.T) {
 	cases := []struct {
-		Input                    string
-		ExpectedNS, ExpectedName string
-		Err                      bool
+		TestName     string
+		Input        string
+		ExpectedAP   string
+		ExpectedNS   string
+		ExpectedName string
+		Err          bool
 	}{
 		{
-			"foo",
-			"", "foo",
-			false,
+			TestName:     "single name",
+			Input:        "foo",
+			ExpectedAP:   "",
+			ExpectedNS:   "",
+			ExpectedName: "foo",
 		},
 		{
-			"foo/bar",
-			"foo", "bar",
-			false,
+			TestName:     "namespace and name",
+			Input:        "foo/bar",
+			ExpectedAP:   "",
+			ExpectedNS:   "foo",
+			ExpectedName: "bar",
 		},
 		{
-			"/bar",
-			"", "bar",
-			false,
+			TestName:     "partition, namespace, and name",
+			Input:        "foo/bar/baz",
+			ExpectedAP:   "foo",
+			ExpectedNS:   "bar",
+			ExpectedName: "baz",
 		},
 		{
-			"foo/bar/baz",
-			"", "",
-			true,
+			TestName:     "empty ns",
+			Input:        "/bar",
+			ExpectedAP:   "",
+			ExpectedNS:   "",
+			ExpectedName: "bar",
+		},
+		{
+			TestName: "invalid input",
+			Input:    "uhoh/blah/foo/bar",
+			Err:      true,
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.Input, func(t *testing.T) {
+		t.Run(tc.TestName, func(t *testing.T) {
 			var entMeta structs.EnterpriseMeta
-			ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
+			ap, ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
 			if tc.Err {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 
+				assert.Equal(t, tc.ExpectedAP, ap)
 				assert.Equal(t, tc.ExpectedNS, ns)
 				assert.Equal(t, tc.ExpectedName, name)
 			}

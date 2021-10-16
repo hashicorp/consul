@@ -1,32 +1,46 @@
 package consul
 
 import (
+	"bufio"
 	"bytes"
+	"context"
+	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-msgpack/codec"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
+	agent_grpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func TestRPC_NoLeader_Fail(t *testing.T) {
@@ -460,7 +474,7 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 
 	// Write TLS byte to avoid being closed by either the (outer) first byte
 	// timeout or the fact that server requires TLS
-	_, err = conn.Write([]byte{pool.RPCTLS})
+	_, err = conn.Write([]byte{byte(pool.RPCTLS)})
 	require.NoError(t, err)
 
 	// Wait for more than the timeout before we start a TLS handshake. This is
@@ -681,10 +695,10 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 		magicByte  pool.RPCType
 		tlsEnabled bool
 	}{
-		{"RPC", pool.RPCMultiplexV2, false},
-		{"RPC TLS", pool.RPCMultiplexV2, true},
-		{"Raft", pool.RPCRaft, false},
-		{"Raft TLS", pool.RPCRaft, true},
+		{"RPC v2", pool.RPCMultiplexV2, false},
+		{"RPC v2 TLS", pool.RPCMultiplexV2, true},
+		{"RPC", pool.RPCConsul, false},
+		{"RPC TLS", pool.RPCConsul, true},
 	}
 
 	for _, tc := range cases {
@@ -859,11 +873,6 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	testrpc.WaitForLeader(t, s1.RPC, "dc2")
-
-	// Wait for legacy acls to be disabled so we are clear that
-	// legacy replication isn't meddling.
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	// create simple kv policy
@@ -951,6 +960,196 @@ func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
 	err = msgpackrpc.CallWithCodec(codec2, "KVS.Apply", &arg, &out)
 	require.NoError(t, err)
 	require.Equal(t, localToken2.SecretID, arg.WriteRequest.Token, "token should not be stripped")
+}
+
+func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.ACLMasterToken = "root"
+		c.RPCConfig.EnableStreaming = true
+	})
+	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+		c.RPCConfig.EnableStreaming = true
+	})
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+	s2.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	// Try to join.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
+	// create simple service policy
+	policy, err := upsertTestPolicyWithRules(codec, "root", "dc1", `
+	node_prefix "" { policy = "read" }
+	service_prefix "" { policy = "read" }
+	`)
+	require.NoError(t, err)
+
+	// Wait for it to replicate
+	retry.Run(t, func(r *retry.R) {
+		_, p, err := s2.fsm.State().ACLPolicyGetByID(nil, policy.ID, &structs.EnterpriseMeta{})
+		require.Nil(r, err)
+		require.NotNil(r, p)
+	})
+
+	// create local token that only works in DC2
+	localToken2, err := upsertTestToken(codec, "root", "dc2", func(token *structs.ACLToken) {
+		token.Local = true
+		token.Policies = []structs.ACLTokenPolicyLink{
+			{ID: policy.ID},
+		}
+	})
+	require.NoError(t, err)
+
+	runStep(t, "Register a dummy node with a service", func(t *testing.T) {
+		req := &structs.RegisterRequest{
+			Node:       "node1",
+			Address:    "3.4.5.6",
+			Datacenter: "dc1",
+			Service: &structs.NodeService{
+				ID:      "redis1",
+				Service: "redis",
+				Address: "3.4.5.6",
+				Port:    8080,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out struct{}
+		require.NoError(t, s1.RPC("Catalog.Register", &req, &out))
+	})
+
+	var conn *grpc.ClientConn
+	{
+		client, builder := newClientWithGRPCResolver(t, func(c *Config) {
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.RPCConfig.EnableStreaming = true
+		})
+		joinLAN(t, client, s2)
+		testrpc.WaitForTestAgent(t, client.RPC, "dc2", testrpc.WithToken("root"))
+
+		pool := agent_grpc.NewClientConnPool(agent_grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			DialingFromServer:     false,
+			DialingFromDatacenter: "dc2",
+		})
+
+		conn, err = pool.ClientConn("dc2")
+		require.NoError(t, err)
+	}
+
+	// Try to use it locally (it should work)
+	runStep(t, "token used locally should work", func(t *testing.T) {
+		arg := &pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        "redis",
+			Token:      localToken2.SecretID,
+			Datacenter: "dc2",
+		}
+		event, err := getFirstSubscribeEventOrError(conn, arg)
+		require.NoError(t, err)
+		require.NotNil(t, event)
+
+		// make sure that token restore defer works
+		require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
+	})
+
+	runStep(t, "token used remotely should not work", func(t *testing.T) {
+		arg := &pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        "redis",
+			Token:      localToken2.SecretID,
+			Datacenter: "dc1",
+		}
+
+		event, err := getFirstSubscribeEventOrError(conn, arg)
+
+		// NOTE: the subscription endpoint is a filtering style instead of a
+		// hard-fail style so when the token isn't present 100% of the data is
+		// filtered out leading to a stream with an empty snapshot.
+		require.NoError(t, err)
+		require.IsType(t, &pbsubscribe.Event_EndOfSnapshot{}, event.Payload)
+		require.True(t, event.Payload.(*pbsubscribe.Event_EndOfSnapshot).EndOfSnapshot)
+	})
+
+	runStep(t, "update anonymous token to read services", func(t *testing.T) {
+		tokenUpsertReq := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				AccessorID: structs.ACLTokenAnonymousID,
+				Policies: []structs.ACLTokenPolicyLink{
+					{ID: policy.ID},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		token := structs.ACLToken{}
+		err = msgpackrpc.CallWithCodec(codec, "ACL.TokenSet", &tokenUpsertReq, &token)
+		require.NoError(t, err)
+		require.NotEmpty(t, token.SecretID)
+	})
+
+	runStep(t, "token used remotely should fallback on anonymous token now", func(t *testing.T) {
+		arg := &pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        "redis",
+			Token:      localToken2.SecretID,
+			Datacenter: "dc1",
+		}
+
+		event, err := getFirstSubscribeEventOrError(conn, arg)
+		require.NoError(t, err)
+		require.NotNil(t, event)
+
+		// So now that we can read data, we should get a snapshot with just instances of the "consul" service.
+		require.NoError(t, err)
+
+		require.IsType(t, &pbsubscribe.Event_ServiceHealth{}, event.Payload)
+		esh := event.Payload.(*pbsubscribe.Event_ServiceHealth)
+
+		require.Equal(t, pbsubscribe.CatalogOp_Register, esh.ServiceHealth.Op)
+		csn := esh.ServiceHealth.CheckServiceNode
+
+		require.NotNil(t, csn)
+		require.NotNil(t, csn.Node)
+		require.Equal(t, "node1", csn.Node.Node)
+		require.Equal(t, "3.4.5.6", csn.Node.Address)
+		require.NotNil(t, csn.Service)
+		require.Equal(t, "redis1", csn.Service.ID)
+		require.Equal(t, "redis", csn.Service.Service)
+
+		// make sure that token restore defer works
+		require.Equal(t, localToken2.SecretID, arg.Token, "token should not be stripped")
+	})
 }
 
 func TestCanRetry(t *testing.T) {
@@ -1058,4 +1257,316 @@ func (r isReadRequest) IsRead() bool {
 
 func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
 	return false
+}
+
+func TestRPC_AuthorizeRaftRPC(t *testing.T) {
+	caPEM, caPK, err := tlsutil.GenerateCA(tlsutil.CAOpts{Days: 5, Domain: "consul"})
+	require.NoError(t, err)
+
+	caSigner, err := tlsutil.ParseSigner(caPK)
+	require.NoError(t, err)
+
+	dir := testutil.TempDir(t, "certs")
+	err = ioutil.WriteFile(filepath.Join(dir, "ca.pem"), []byte(caPEM), 0600)
+	require.NoError(t, err)
+
+	intermediatePEM, intermediatePK, err := tlsutil.GenerateCert(tlsutil.CertOpts{IsCA: true, CA: caPEM, Signer: caSigner, Days: 5})
+	require.NoError(t, err)
+
+	err = ioutil.WriteFile(filepath.Join(dir, "intermediate.pem"), []byte(intermediatePEM), 0600)
+	require.NoError(t, err)
+
+	newCert := func(t *testing.T, caPEM, pk, node, name string) {
+		t.Helper()
+
+		signer, err := tlsutil.ParseSigner(pk)
+		require.NoError(t, err)
+
+		pem, key, err := tlsutil.GenerateCert(tlsutil.CertOpts{
+			Signer:      signer,
+			CA:          caPEM,
+			Name:        name,
+			Days:        5,
+			DNSNames:    []string{node + "." + name, name, "localhost"},
+			ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		})
+		require.NoError(t, err)
+
+		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".pem"), []byte(pem), 0600)
+		require.NoError(t, err)
+		err = ioutil.WriteFile(filepath.Join(dir, node+"-"+name+".key"), []byte(key), 0600)
+		require.NoError(t, err)
+	}
+
+	newCert(t, caPEM, caPK, "srv1", "server.dc1.consul")
+
+	_, connectCApk, err := connect.GeneratePrivateKey()
+	require.NoError(t, err)
+
+	_, srv := testServerWithConfig(t, func(c *Config) {
+		c.TLSConfig.Domain = "consul." // consul. is the default value in agent/config
+		c.TLSConfig.CAFile = filepath.Join(dir, "ca.pem")
+		c.TLSConfig.CertFile = filepath.Join(dir, "srv1-server.dc1.consul.pem")
+		c.TLSConfig.KeyFile = filepath.Join(dir, "srv1-server.dc1.consul.key")
+		c.TLSConfig.VerifyIncoming = true
+		c.TLSConfig.VerifyServerHostname = true
+		// Enable Auto-Encrypt so that Connect CA roots are added to the
+		// tlsutil.Configurator.
+		c.AutoEncryptAllowTLS = true
+		c.CAConfig = &structs.CAConfiguration{
+			ClusterID: connect.TestClusterID,
+			Provider:  structs.ConsulCAProvider,
+			Config:    map[string]interface{}{"PrivateKey": connectCApk},
+		}
+
+	})
+	defer srv.Shutdown()
+
+	// Wait for ConnectCA initiation to complete.
+	retry.Run(t, func(r *retry.R) {
+		_, root := srv.caManager.getCAProvider()
+		if root == nil {
+			r.Fatal("ConnectCA root is still nil")
+		}
+	})
+
+	useTLSByte := func(t *testing.T, c *tlsutil.Configurator) net.Conn {
+		wrapper := tlsutil.SpecificDC("dc1", c.OutgoingRPCWrapper())
+		tlsEnabled := func(_ raft.ServerAddress) bool {
+			return true
+		}
+
+		rl := NewRaftLayer(nil, nil, wrapper, tlsEnabled)
+		conn, err := rl.Dial(raft.ServerAddress(srv.Listener.Addr().String()), 100*time.Millisecond)
+		require.NoError(t, err)
+		return conn
+	}
+
+	useNativeTLS := func(t *testing.T, c *tlsutil.Configurator) net.Conn {
+		wrapper := c.OutgoingALPNRPCWrapper()
+		dialer := &net.Dialer{Timeout: 100 * time.Millisecond}
+
+		rawConn, err := dialer.Dial("tcp", srv.Listener.Addr().String())
+		require.NoError(t, err)
+
+		tlsConn, err := wrapper("dc1", "srv1", pool.ALPN_RPCRaft, rawConn)
+		require.NoError(t, err)
+		return tlsConn
+	}
+
+	setupAgentTLSCert := func(name string) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			newCert(t, caPEM, caPK, "node1", name)
+			return filepath.Join(dir, "node1-"+name)
+		}
+	}
+
+	setupAgentTLSCertWithIntermediate := func(name string) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			newCert(t, intermediatePEM, intermediatePK, "node1", name)
+			certPrefix := filepath.Join(dir, "node1-"+name)
+			f, err := os.OpenFile(certPrefix+".pem", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := f.Write([]byte(intermediatePEM)); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.Close(); err != nil {
+				t.Fatal(err)
+			}
+			return certPrefix
+		}
+	}
+
+	setupConnectCACert := func(name string) func(t *testing.T) string {
+		return func(t *testing.T) string {
+			_, caRoot := srv.caManager.getCAProvider()
+			newCert(t, caRoot.RootCert, connectCApk, "node1", name)
+			return filepath.Join(dir, "node1-"+name)
+		}
+	}
+
+	type testCase struct {
+		name        string
+		conn        func(t *testing.T, c *tlsutil.Configurator) net.Conn
+		setupCert   func(t *testing.T) string
+		expectError bool
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		certPath := tc.setupCert(t)
+
+		cfg := tlsutil.Config{
+			VerifyOutgoing:       true,
+			VerifyServerHostname: true,
+			CAFile:               filepath.Join(dir, "ca.pem"),
+			CertFile:             certPath + ".pem",
+			KeyFile:              certPath + ".key",
+			Domain:               "consul",
+		}
+		c, err := tlsutil.NewConfigurator(cfg, hclog.New(nil))
+		require.NoError(t, err)
+
+		_, err = doRaftRPC(tc.conn(t, c), srv.config.NodeName)
+		if tc.expectError {
+			if !isConnectionClosedError(err) {
+				t.Fatalf("expected a connection closed error, got: %v", err)
+			}
+			return
+		}
+		require.NoError(t, err)
+	}
+
+	var testCases = []testCase{
+		{
+			name:        "TLS byte with client cert",
+			setupCert:   setupAgentTLSCert("client.dc1.consul"),
+			conn:        useTLSByte,
+			expectError: true,
+		},
+		{
+			name:        "TLS byte with server cert in different DC",
+			setupCert:   setupAgentTLSCert("server.dc2.consul"),
+			conn:        useTLSByte,
+			expectError: true,
+		},
+		{
+			name:      "TLS byte with server cert in same DC",
+			setupCert: setupAgentTLSCert("server.dc1.consul"),
+			conn:      useTLSByte,
+		},
+		{
+			name:      "TLS byte with server cert in same DC and with unknown intermediate",
+			setupCert: setupAgentTLSCertWithIntermediate("server.dc1.consul"),
+			conn:      useTLSByte,
+		},
+		{
+			name:        "TLS byte with ConnectCA leaf cert",
+			setupCert:   setupConnectCACert("server.dc1.consul"),
+			conn:        useTLSByte,
+			expectError: true,
+		},
+		{
+			name:        "native TLS with client cert",
+			setupCert:   setupAgentTLSCert("client.dc1.consul"),
+			conn:        useNativeTLS,
+			expectError: true,
+		},
+		{
+			name:        "native TLS with server cert in different DC",
+			setupCert:   setupAgentTLSCert("server.dc2.consul"),
+			conn:        useNativeTLS,
+			expectError: true,
+		},
+		{
+			name:      "native TLS with server cert in same DC",
+			setupCert: setupAgentTLSCert("server.dc1.consul"),
+			conn:      useNativeTLS,
+		},
+		{
+			name:        "native TLS with ConnectCA leaf cert",
+			setupCert:   setupConnectCACert("server.dc1.consul"),
+			conn:        useNativeTLS,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func doRaftRPC(conn net.Conn, leader string) (raft.AppendEntriesResponse, error) {
+	var resp raft.AppendEntriesResponse
+
+	var term uint64 = 0xc
+	a := raft.AppendEntriesRequest{
+		RPCHeader:         raft.RPCHeader{ProtocolVersion: 3},
+		Term:              0,
+		Leader:            []byte(leader),
+		PrevLogEntry:      0,
+		PrevLogTerm:       term,
+		LeaderCommitIndex: 50,
+	}
+
+	if err := appendEntries(conn, a, &resp); err != nil {
+		return resp, err
+	}
+	return resp, nil
+}
+
+func appendEntries(conn net.Conn, req raft.AppendEntriesRequest, resp *raft.AppendEntriesResponse) error {
+	w := bufio.NewWriter(conn)
+	enc := codec.NewEncoder(w, &codec.MsgpackHandle{})
+
+	const rpcAppendEntries = 0
+	if err := w.WriteByte(rpcAppendEntries); err != nil {
+		return fmt.Errorf("failed to write raft-RPC byte: %w", err)
+	}
+
+	if err := enc.Encode(req); err != nil {
+		return fmt.Errorf("failed to send append entries RPC: %w", err)
+	}
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush RPC: %w", err)
+	}
+
+	if err := decodeRaftRPCResponse(conn, resp); err != nil {
+		return fmt.Errorf("response error: %w", err)
+	}
+	return nil
+}
+
+// copied and modified from raft/net_transport.go
+func decodeRaftRPCResponse(conn net.Conn, resp *raft.AppendEntriesResponse) error {
+	r := bufio.NewReader(conn)
+	dec := codec.NewDecoder(r, &codec.MsgpackHandle{})
+
+	var rpcError string
+	if err := dec.Decode(&rpcError); err != nil {
+		return fmt.Errorf("failed to decode response error: %w", err)
+	}
+	if err := dec.Decode(resp); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+	if rpcError != "" {
+		return fmt.Errorf("rpc error: %v", rpcError)
+	}
+	return nil
+}
+
+func isConnectionClosedError(err error) bool {
+	switch {
+	case err == nil:
+		return false
+	case errors.Is(err, io.EOF):
+		return true
+	case strings.Contains(err.Error(), "connection reset by peer"):
+		return true
+	default:
+		return false
+	}
+}
+
+func getFirstSubscribeEventOrError(conn *grpc.ClientConn, req *pbsubscribe.SubscribeRequest) (*pbsubscribe.Event, error) {
+	streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	handle, err := streamClient.Subscribe(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	event, err := handle.Recv()
+	if err == io.EOF {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return event, nil
 }

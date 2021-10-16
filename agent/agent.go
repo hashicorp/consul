@@ -143,7 +143,6 @@ type delegate interface {
 	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 
 	RPC(method string, args interface{}, reply interface{}) error
-	UseLegacyACLs() bool
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
@@ -621,7 +620,8 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.apiServers.Start(srv)
 	}
 
-	if err := a.listenAndServeXDS(); err != nil {
+	// Start gRPC server.
+	if err := a.listenAndServeGRPC(); err != nil {
 		return err
 	}
 
@@ -669,8 +669,8 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-func (a *Agent) listenAndServeXDS() error {
-	if len(a.config.XDSAddrs) < 1 {
+func (a *Agent) listenAndServeGRPC() error {
+	if len(a.config.GRPCAddrs) < 1 {
 		return nil
 	}
 
@@ -690,9 +690,10 @@ func (a *Agent) listenAndServeXDS() error {
 	if a.config.HTTPSPort <= 0 {
 		tlsConfig = nil
 	}
+	var err error
 	a.grpcServer = xds.NewGRPCServer(xdsServer, tlsConfig)
 
-	ln, err := a.startListeners(a.config.XDSAddrs)
+	ln, err := a.startListeners(a.config.GRPCAddrs)
 	if err != nil {
 		return err
 	}
@@ -2459,6 +2460,11 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			maxOutputSize = chkType.OutputMaxSize
 		}
 
+		// FailuresBeforeWarning has to default to same value as FailuresBeforeCritical
+		if chkType.FailuresBeforeWarning == 0 {
+			chkType.FailuresBeforeWarning = chkType.FailuresBeforeCritical
+		}
+
 		// Get the address of the proxy for this service if it exists
 		// Need its config to know whether we should reroute checks to it
 		var proxy *structs.NodeService
@@ -2473,7 +2479,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 		}
 
-		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeCritical)
+		statusHandler := checks.NewStatusHandler(a.State, a.logger, chkType.SuccessBeforePassing, chkType.FailuresBeforeWarning, chkType.FailuresBeforeCritical)
 		sid := check.CompoundServiceID()
 
 		cid := check.CompoundCheckID()
@@ -2857,44 +2863,6 @@ func (a *Agent) ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.Ch
 // AdvertiseAddrLAN returns the AdvertiseAddrLAN config value
 func (a *Agent) AdvertiseAddrLAN() string {
 	return a.config.AdvertiseAddrLAN.String()
-}
-
-// resolveProxyCheckAddress returns the best address to use for a TCP check of
-// the proxy's public listener. It expects the input to already have default
-// values populated by applyProxyConfigDefaults. It may return an empty string
-// indicating that the TCP check should not be created at all.
-//
-// By default this uses the proxy's bind address which in turn defaults to the
-// agent's bind address. If the proxy bind address ends up being 0.0.0.0 we have
-// to assume the agent can dial it over loopback which is usually true.
-//
-// In some topologies such as proxy being in a different container, the IP the
-// agent used to dial proxy over a local bridge might not be the same as the
-// container's public routable IP address so we allow a manual override of the
-// check address in config "tcp_check_address" too.
-//
-// Finally the TCP check can be disabled by another manual override
-// "disable_tcp_check" in cases where the agent will never be able to dial the
-// proxy directly for some reason.
-func (a *Agent) resolveProxyCheckAddress(proxyCfg map[string]interface{}) string {
-	// If user disabled the check return empty string
-	if disable, ok := proxyCfg["disable_tcp_check"].(bool); ok && disable {
-		return ""
-	}
-
-	// If user specified a custom one, use that
-	if chkAddr, ok := proxyCfg["tcp_check_address"].(string); ok && chkAddr != "" {
-		return chkAddr
-	}
-
-	// If we have a bind address and its diallable, use that
-	if bindAddr, ok := proxyCfg["bind_address"].(string); ok &&
-		bindAddr != "" && bindAddr != "0.0.0.0" && bindAddr != "[::]" {
-		return bindAddr
-	}
-
-	// Default to localhost
-	return "127.0.0.1"
 }
 
 func (a *Agent) cancelCheckMonitors(checkID structs.CheckID) {

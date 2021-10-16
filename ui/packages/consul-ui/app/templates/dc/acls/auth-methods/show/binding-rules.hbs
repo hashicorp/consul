@@ -1,28 +1,63 @@
+<Route
+  @routeName={{routeName}}
+as |route|>
 
-<div class="tab-section">
-{{#if (gt bindingRules.length 0)}}
-  <p>Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
-  </p>
-  <p>Successful authentication with an auth method returns a set of trusted identity attributes corresponding to the authenticated identity. Those attributes are matched against all configured binding rules for that auth method to determine what privileges to grant the Consul ACL token it will ultimately create.
-  </p>
-  <hr />
-  {{#each bindingRules as |item|}}
-    <Consul::AuthMethod::BindingList @item={{item}} />
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/binding-rules/for-auth-method/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.id
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+  loader.data
+as |items|}}
+
+  <div class="tab-section">
+  {{#if (gt items.length 0)}}
+    <p>
+      Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
+    </p>
+    <p>
+      Successful authentication with an auth method returns a set of trusted identity attributes corresponding to the authenticated identity. Those attributes are matched against all configured binding rules for that auth method to determine what privileges to grant the Consul ACL token it will ultimately create.
+    </p>
     <hr />
-  {{/each}}
-{{else}}
-  <EmptyState>
-    <BlockSlot @name="header">
-      <h2>No binding rules</h2>
+    {{#each items as |item|}}
+      <Consul::AuthMethod::BindingList @item={{item}} />
+      <hr />
+    {{/each}}
+  {{else}}
+    <EmptyState>
+      <BlockSlot @name="header">
+        <h2>No binding rules</h2>
+      </BlockSlot>
+      <BlockSlot @name="body">
+        <p>
+          Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.
+        </p>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+        <li class="docs-link">
+          <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/binding-rules" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+        </li>
+      </BlockSlot>
+    </EmptyState>
+  {{/if}}
+  </div>
+{{/let}}
+
     </BlockSlot>
-    <BlockSlot @name="body">
-      <p>Binding rules allow an operator to express a systematic way of automatically linking roles and service identities to newly created tokens without operator intervention.</p>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-      <li class="docs-link">
-        <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/binding-rules" rel="noopener noreferrer" target="_blank">Read the documentation</a>
-      </li>
-    </BlockSlot>
-  </EmptyState>
-{{/if}}
-</div>
+  </DataLoader>
+</Route>

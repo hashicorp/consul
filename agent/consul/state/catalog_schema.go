@@ -21,6 +21,7 @@ const (
 	indexService     = "service"
 	indexConnect     = "connect"
 	indexKind        = "kind"
+	indexKindOnly    = "kind-only"
 	indexStatus      = "status"
 	indexNodeService = "node_service"
 	indexNode        = "node"

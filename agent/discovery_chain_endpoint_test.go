@@ -26,8 +26,8 @@ func TestDiscoveryChainRead(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	newTarget := func(service, serviceSubset, namespace, datacenter string) *structs.DiscoveryTarget {
-		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, datacenter)
+	newTarget := func(service, serviceSubset, namespace, partition, datacenter string) *structs.DiscoveryTarget {
+		t := structs.NewDiscoveryTarget(service, serviceSubset, namespace, partition, datacenter)
 		t.SNI = connect.TargetSNI(t, connect.TestClusterID+".consul")
 		t.Name = t.SNI
 		return t
@@ -76,22 +76,23 @@ func TestDiscoveryChainRead(t *testing.T) {
 			expect := &structs.CompiledDiscoveryChain{
 				ServiceName: "web",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc1",
+				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": {
+					"resolver:web.default.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc1",
+						Name: "web.default.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target:         "web.default.dc1",
+							Target:         "web.default.default.dc1",
 						},
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": newTarget("web", "", "default", "dc1"),
+					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -119,22 +120,23 @@ func TestDiscoveryChainRead(t *testing.T) {
 			expect := &structs.CompiledDiscoveryChain{
 				ServiceName: "web",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc2",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc2",
+				StartNode:   "resolver:web.default.default.dc2",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc2": {
+					"resolver:web.default.default.dc2": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc2",
+						Name: "web.default.default.dc2",
 						Resolver: &structs.DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target:         "web.default.dc2",
+							Target:         "web.default.default.dc2",
 						},
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc2": newTarget("web", "", "default", "dc2"),
+					"web.default.default.dc2": newTarget("web", "", "default", "default", "dc2"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -171,22 +173,23 @@ func TestDiscoveryChainRead(t *testing.T) {
 			expect := &structs.CompiledDiscoveryChain{
 				ServiceName: "web",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc1",
+				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": {
+					"resolver:web.default.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc1",
+						Name: "web.default.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							Default:        true,
 							ConnectTimeout: 5 * time.Second,
-							Target:         "web.default.dc1",
+							Target:         "web.default.default.dc1",
 						},
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": newTarget("web", "", "default", "dc1"),
+					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
 				},
 			}
 			require.Equal(t, expect, value.Chain)
@@ -233,25 +236,26 @@ func TestDiscoveryChainRead(t *testing.T) {
 			expect := &structs.CompiledDiscoveryChain{
 				ServiceName: "web",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc1",
 				Protocol:    "tcp",
-				StartNode:   "resolver:web.default.dc1",
+				StartNode:   "resolver:web.default.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": {
+					"resolver:web.default.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
-						Name: "web.default.dc1",
+						Name: "web.default.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							ConnectTimeout: 33 * time.Second,
-							Target:         "web.default.dc1",
+							Target:         "web.default.default.dc1",
 							Failover: &structs.DiscoveryFailover{
-								Targets: []string{"web.default.dc2"},
+								Targets: []string{"web.default.default.dc2"},
 							},
 						},
 					},
 				},
 				Targets: map[string]*structs.DiscoveryTarget{
-					"web.default.dc1": newTarget("web", "", "default", "dc1"),
-					"web.default.dc2": newTarget("web", "", "default", "dc2"),
+					"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
+					"web.default.default.dc2": newTarget("web", "", "default", "default", "dc2"),
 				},
 			}
 			if !reflect.DeepEqual(expect, value.Chain) {
@@ -260,7 +264,7 @@ func TestDiscoveryChainRead(t *testing.T) {
 		})
 	}))
 
-	expectTarget_DC2 := newTarget("web", "", "default", "dc2")
+	expectTarget_DC2 := newTarget("web", "", "default", "default", "dc2")
 	expectTarget_DC2.MeshGateway = structs.MeshGatewayConfig{
 		Mode: structs.MeshGatewayModeLocal,
 	}
@@ -268,26 +272,27 @@ func TestDiscoveryChainRead(t *testing.T) {
 	expectModifiedWithOverrides := &structs.CompiledDiscoveryChain{
 		ServiceName:       "web",
 		Namespace:         "default",
+		Partition:         "default",
 		Datacenter:        "dc1",
 		Protocol:          "grpc",
 		CustomizationHash: "98809527",
-		StartNode:         "resolver:web.default.dc1",
+		StartNode:         "resolver:web.default.default.dc1",
 		Nodes: map[string]*structs.DiscoveryGraphNode{
-			"resolver:web.default.dc1": {
+			"resolver:web.default.default.dc1": {
 				Type: structs.DiscoveryGraphNodeTypeResolver,
-				Name: "web.default.dc1",
+				Name: "web.default.default.dc1",
 				Resolver: &structs.DiscoveryResolver{
 					ConnectTimeout: 22 * time.Second,
-					Target:         "web.default.dc1",
+					Target:         "web.default.default.dc1",
 					Failover: &structs.DiscoveryFailover{
-						Targets: []string{"web.default.dc2"},
+						Targets: []string{"web.default.default.dc2"},
 					},
 				},
 			},
 		},
 		Targets: map[string]*structs.DiscoveryTarget{
-			"web.default.dc1":   newTarget("web", "", "default", "dc1"),
-			expectTarget_DC2.ID: expectTarget_DC2,
+			"web.default.default.dc1": newTarget("web", "", "default", "default", "dc1"),
+			expectTarget_DC2.ID:       expectTarget_DC2,
 		},
 	}
 

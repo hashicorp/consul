@@ -10,7 +10,7 @@ Feature: dc / services / instances / error: Visit Service Instance what doesn't 
       node: node-0
       id: id-that-doesnt-exist
     ---
-    Then the url should be /dc1/services/service-0/instances/node-0/id-that-doesnt-exist
+    Then the url should be /dc1/services/service-0/instances/node-0/id-that-doesnt-exist/health-checks
     Then I see status on the error like "404"
 
 

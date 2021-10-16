@@ -139,6 +139,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:          ServiceResolver,
 				Name:          "test-failover",
+				Partition:     defaultPartition,
 				Namespace:     defaultNamespace,
 				DefaultSubset: "v1",
 				Subsets: map[string]ServiceResolverSubset{
@@ -171,6 +172,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:      ServiceResolver,
 				Name:      "test-redirect",
+				Partition: defaultPartition,
 				Namespace: defaultNamespace,
 				Redirect: &ServiceResolverRedirect{
 					Service:       "test-failover",
@@ -186,6 +188,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceSplitterConfigEntry{
 				Kind:      ServiceSplitter,
 				Name:      "test-split",
+				Partition: defaultPartition,
 				Namespace: defaultNamespace,
 				Splits: []ServiceSplit{
 					{
@@ -193,6 +196,14 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Service:       "test-failover",
 						ServiceSubset: "v1",
 						Namespace:     defaultNamespace,
+						RequestHeaders: &HTTPHeaderModifiers{
+							Set: map[string]string{
+								"x-foo": "bar",
+							},
+						},
+						ResponseHeaders: &HTTPHeaderModifiers{
+							Remove: []string{"x-foo"},
+						},
 					},
 					{
 						Weight:    10,
@@ -212,6 +223,7 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 			entry: &ServiceRouterConfigEntry{
 				Kind:      ServiceRouter,
 				Name:      "test-route",
+				Partition: defaultPartition,
 				Namespace: defaultNamespace,
 				Routes: []ServiceRoute{
 					{
@@ -235,6 +247,14 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							NumRetries:            5,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{500, 503, 401},
+							RequestHeaders: &HTTPHeaderModifiers{
+								Set: map[string]string{
+									"x-foo": "bar",
+								},
+							},
+							ResponseHeaders: &HTTPHeaderModifiers{
+								Remove: []string{"x-foo"},
+							},
 						},
 					},
 				},
@@ -313,6 +333,7 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 			entry: &ServiceResolverConfigEntry{
 				Kind:      ServiceResolver,
 				Name:      "test-least-req",
+				Partition: defaultPartition,
 				Namespace: defaultNamespace,
 				LoadBalancer: &LoadBalancer{
 					Policy:             "least_request",
@@ -327,6 +348,7 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 				Kind:      ServiceResolver,
 				Name:      "test-ring-hash",
 				Namespace: defaultNamespace,
+				Partition: defaultPartition,
 				LoadBalancer: &LoadBalancer{
 					Policy: "ring_hash",
 					RingHashConfig: &RingHashConfig{

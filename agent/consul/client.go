@@ -58,10 +58,6 @@ type Client struct {
 	// acls is used to resolve tokens to effective policies
 	acls *ACLResolver
 
-	// DEPRECATED (ACL-Legacy-Compat) - Only needed while we support both
-	// useNewACLs is a flag to indicate whether we are using the new ACL system
-	useNewACLs int32
-
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
@@ -121,7 +117,6 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		return nil, err
 	}
 
-	c.useNewACLs = 0
 	aclConfig := ACLResolverConfig{
 		Config:          config.ACLResolverSettings,
 		Delegate:        c,
@@ -153,12 +148,6 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 	// Start LAN event handlers after the router is complete since the event
 	// handlers depend on the router and the router depends on Serf.
 	go c.lanEventHandler()
-
-	// This needs to happen after initializing c.router to prevent a race
-	// condition where the router manager is used when the pointer is nil
-	if c.acls.ACLsEnabled() {
-		go c.monitorACLMode()
-	}
 
 	return c, nil
 }
@@ -365,11 +354,7 @@ func (c *Client) Stats() map[string]map[string]string {
 	}
 
 	if c.config.ACLsEnabled {
-		if c.UseLegacyACLs() {
-			stats["consul"]["acl"] = "legacy"
-		} else {
-			stats["consul"]["acl"] = "enabled"
-		}
+		stats["consul"]["acl"] = "enabled"
 	} else {
 		stats["consul"]["acl"] = "disabled"
 	}

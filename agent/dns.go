@@ -373,7 +373,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(cfg, m)
+		d.addSOA(cfg, m, q.Name)
 	}
 
 	datacenter := d.agent.config.Datacenter
@@ -417,7 +417,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 				AllowStale: cfg.AllowStale,
 			},
 			ServiceAddress: serviceAddress,
-			EnterpriseMeta: *d.defaultEnterpriseMeta.WildcardEnterpriseMetaForPartition(),
+			EnterpriseMeta: *d.defaultEnterpriseMeta.WithWildcardNamespace(),
 		}
 
 		var sout structs.IndexedServiceNodes
@@ -486,7 +486,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
 		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
-		m.Answer = append(m.Answer, d.soa(cfg))
+		m.Answer = append(m.Answer, d.soa(cfg, q.Name))
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
 		m.SetRcode(req, dns.RcodeSuccess)
@@ -504,7 +504,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		err = d.dispatch(resp.RemoteAddr(), req, m, maxRecursionLevelDefault)
 		rCode := rCodeFromError(err)
 		if rCode == dns.RcodeNameError || errors.Is(err, errNoData) {
-			d.addSOA(cfg, m)
+			d.addSOA(cfg, m, q.Name)
 		}
 		m.SetRcode(req, rCode)
 	}
@@ -518,18 +518,23 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-func (d *DNSServer) soa(cfg *dnsConfig) *dns.SOA {
+func (d *DNSServer) soa(cfg *dnsConfig, questionName string) *dns.SOA {
+	domain := d.domain
+	if d.altDomain != "" && strings.HasSuffix(questionName, "."+d.altDomain) {
+		domain = d.altDomain
+	}
+
 	return &dns.SOA{
 		Hdr: dns.RR_Header{
-			Name:   d.domain,
+			Name:   domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			// Has to be consistent with MinTTL to avoid invalidation
 			Ttl: cfg.SOAConfig.Minttl,
 		},
-		Ns:      "ns." + d.domain,
+		Ns:      "ns." + domain,
 		Serial:  uint32(time.Now().Unix()),
-		Mbox:    "hostmaster." + d.domain,
+		Mbox:    "hostmaster." + domain,
 		Refresh: cfg.SOAConfig.Refresh,
 		Retry:   cfg.SOAConfig.Retry,
 		Expire:  cfg.SOAConfig.Expire,
@@ -538,8 +543,8 @@ func (d *DNSServer) soa(cfg *dnsConfig) *dns.SOA {
 }
 
 // addSOA is used to add an SOA record to a message for the given domain
-func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
-	msg.Ns = append(msg.Ns, d.soa(cfg))
+func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg, questionName string) {
+	msg.Ns = append(msg.Ns, d.soa(cfg, questionName))
 }
 
 // nameservers returns the names and ip addresses of up to three random servers
@@ -598,6 +603,12 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 	}
 
 	return
+}
+
+func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
+	d.logger.Warn("QName invalid", "qname", qName)
+	d.addSOA(cfg, resp, qName)
+	resp.SetRcode(req, dns.RcodeNameError)
 }
 
 func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {

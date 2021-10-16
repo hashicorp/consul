@@ -3,8 +3,9 @@ package structs
 import (
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	lru "github.com/hashicorp/golang-lru"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 type ACLCachesConfig struct {
@@ -216,14 +217,6 @@ func (c *ACLCaches) PutAuthorizer(id string, authorizer acl.Authorizer) {
 	}
 
 	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now()})
-}
-
-func (c *ACLCaches) PutAuthorizerWithTTL(id string, authorizer acl.Authorizer, ttl time.Duration) {
-	if c == nil || c.authorizers == nil {
-		return
-	}
-
-	c.authorizers.Add(id, &AuthorizerCacheEntry{Authorizer: authorizer, CacheTime: time.Now(), TTL: ttl})
 }
 
 func (c *ACLCaches) PutRole(roleID string, role *ACLRole) {

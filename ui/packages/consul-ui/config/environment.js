@@ -13,6 +13,8 @@ const repositorySHA = utils.repositorySHA;
 const binaryVersion = utils.binaryVersion(repositoryRoot);
 
 module.exports = function(environment, $ = process.env) {
+  // available environments
+  // ['production', 'development', 'staging', 'test'];
   const env = utils.env($);
   // basic 'get env var with fallback' accessor
 
@@ -23,10 +25,9 @@ module.exports = function(environment, $ = process.env) {
     locationType: 'fsm-with-optional',
     historySupportMiddleware: true,
 
-    // We use a complete dynamically (from Consul) configured torii provider.
-    // We provide this object here to prevent ember from giving a log message
-    // when starting ember up
-    torii: {},
+    torii: {
+      disableRedirectInitializer: false
+    },
 
     EmberENV: {
       FEATURES: {
@@ -128,8 +129,18 @@ module.exports = function(environment, $ = process.env) {
         }),
       });
       break;
+    case environment === 'development':
+      ENV = Object.assign({}, ENV, {
+        torii: {
+          disableRedirectInitializer: true
+        },
+      });
+      break;
     case environment === 'staging':
       ENV = Object.assign({}, ENV, {
+        torii: {
+          disableRedirectInitializer: true
+        },
         // On staging sites everything defaults to being turned on by
         // different staging sites can be built with certain features disabled
         // by setting an environment variable to 0 during building (e.g.

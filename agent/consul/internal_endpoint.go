@@ -357,6 +357,7 @@ func (m *Internal) GatewayIntentions(args *structs.IntentionQueryRequest, reply 
 			for _, gs := range gatewayServices {
 				entry := structs.IntentionMatchEntry{
 					Namespace: gs.Service.NamespaceOrDefault(),
+					Partition: gs.Service.PartitionOrDefault(),
 					Name:      gs.Service.Name,
 				}
 				idx, intentions, err := state.IntentionMatchOne(ws, entry, structs.IntentionMatchDestination)

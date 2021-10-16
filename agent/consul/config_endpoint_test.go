@@ -163,26 +163,13 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 operator = "write"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ConfigEntryRequest{
@@ -292,26 +279,13 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "read"
 }
 operator = "read"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -505,26 +479,13 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "read"
 }
 operator = "read"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -590,26 +551,13 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "read"
 }
 operator = "read"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -749,26 +697,13 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 operator = "write"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()
@@ -1971,26 +1906,13 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 operator = "write"
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Create some dummy service/proxy configs to be looked up.
 	state := s1.fsm.State()

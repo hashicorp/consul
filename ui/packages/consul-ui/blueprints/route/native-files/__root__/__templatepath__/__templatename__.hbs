@@ -1,5 +1,12 @@
-<Outlet
+<Route
   @name={{routeName}}
-as |o|>
-  {{outlet}}
-</Outlet>
+as |route|>
+
+  <route.Title @title="<%= classifiedModuleName %>" />
+
+  <Outlet
+    @name={{routeName}}
+  as |o|>
+    {{outlet}}
+  </Outlet>
+</Route>

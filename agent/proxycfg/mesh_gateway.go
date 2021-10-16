@@ -29,7 +29,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 		return snap, err
 	}
 
-	wildcardEntMeta := s.proxyID.WildcardEnterpriseMetaForPartition()
+	wildcardEntMeta := s.proxyID.WithWildcardNamespace()
 
 	// Watch for all services
 	err = s.cache.Notify(ctx, cachetype.CatalogServiceListName, &structs.DCSpecificRequest{

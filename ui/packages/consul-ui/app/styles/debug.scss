@@ -13,7 +13,41 @@
 html.is-debug body > .brand-loader {
   display: none !important;
 }
-
+html.is-debug [class*='partition-'] {
+  display: block !important;
+}
+html:not(.with-data-source) .data-source-debug {
+  display: none;
+}
+html:not(.with-data-source) .data-source-debug {
+  display: none;
+}
+%debug-box {
+  color: red;
+  background-color: rgb(255 255 255 / 70%);
+  position: absolute;
+  /* hi */
+  z-index: 100000;
+}
+html.with-href-to [href^='console://']::before {
+  @extend %p3;
+  @extend %debug-box;
+  content: attr(href);
+  display: inline;
+}
+html.with-route-announcer .route-title {
+  @extend %unvisually-hidden;
+}
+.data-source-debug {
+  @extend %debug-box;
+}
+.data-source-debug input:checked + pre code::after {
+  content: attr(data-json);
+  display: block;
+}
+.data-source-debug input {
+  display: none;
+}
 .docs {
   .tabular-collection,
   .list-collection {
@@ -107,7 +141,7 @@ html.is-debug body > .brand-loader {
         border-top: 1px solid;
         border-left: 1px solid;
         border-right: 1px solid;
-        border-color: var(--gray-200);
+        border-color: rgb(var(--tone-gray-200));
         padding: 1rem;
         margin-bottom: 0;
       }
@@ -120,19 +154,19 @@ html.is-debug body > .brand-loader {
       }
       figcaption {
         margin-bottom: 0.5rem;
-        color: var(--gray-400);
+        color: rgb(var(--tone-gray-400));
         font-style: italic;
       }
       figcaption code {
         @extend %inline-code;
       }
       figure > [type='text'] {
-        border: 1px solid var(--gray-999);
+        border: 1px solid rgb(var(--tone-gray-999));
         width: 100%;
         padding: 0.5rem;
       }
       figure > select {
-        border: 1px solid var(--gray-999);
+        border: 1px solid rgb(var(--tone-gray-999));
         padding: 0.5rem;
       }
     }

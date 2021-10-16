@@ -1,13 +1,13 @@
 %informed-action {
   & {
-    border-radius: $decor-radius-200;
-    border: $decor-border-100;
-    border-color: $gray-300;
-    background-color: $white;
+    border-radius: var(--decor-radius-200);
+    border: var(--decor-border-100);
+    border-color: rgb(var(--tone-gray-300));
+    background-color: rgb(var(--white));
   }
   > div {
-    border-top-left-radius: $decor-radius-200;
-    border-top-right-radius: $decor-radius-200;
+    border-top-left-radius: var(--decor-radius-200);
+    border-top-right-radius: var(--decor-radius-200);
     cursor: default;
   }
   header {
@@ -18,52 +18,52 @@
   }
   p {
     @extend %p2;
-    color: $black;
+    color: var(--black);
   }
   > ul {
     list-style: none;
   }
   > ul > li > *:hover,
   > ul > li > *:focus {
-    background-color: $gray-100;
+    background-color: rgb(var(--tone-gray-100));
   }
   /* variants */
   &.info {
     header {
-      color: $blue-700;
+      color: rgb(var(--tone-blue-700));
     }
     header::before {
       @extend %with-info-circle-fill-mask, %as-pseudo;
-      background-color: $blue-500;
+      background-color: rgb(var(--tone-blue-500));
       margin-right: 5px;
     }
     > div {
-      background-color: $blue-010;
+      background-color: rgb(var(--tone-blue-010));
     }
   }
   &.dangerous {
     header {
-      color: $red-700;
+      color: rgb(var(--tone-red-700));
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: $red-500;
+      background-color: rgb(var(--tone-red-500));
     }
     > div {
-      background-color: $red-010;
+      background-color: rgb(var(--tone-red-010));
     }
   }
   &.warning {
     header {
-      color: $orange-700;
+      color: rgb(var(--tone-orange-700));
     }
     header::before {
       @extend %with-alert-triangle-mask, %as-pseudo;
-      background-color: $yellow-500;
+      background-color: rgb(var(--tone-yellow-500));
       margin-right: 5px;
     }
     > div {
-      background-color: $yellow-050;
+      background-color: rgb(var(--tone-yellow-050));
     }
   }
   /* brands */
@@ -74,7 +74,7 @@
   }
   /**/
   > ul > .action > * {
-    color: $blue-500;
+    color: rgb(var(--tone-blue-500));
   }
   > ul > .dangerous > * {
     @extend %frame-red-300;

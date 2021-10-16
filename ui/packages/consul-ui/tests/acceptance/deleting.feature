@@ -24,7 +24,6 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Edit     | Listing     | Method | URL                                                                             | Data                                                                 |
     | token     | tokens     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace | {"AccessorID": "001fda31-194e-4ff1-a5ec-589abf2cafd0"}               |
-    # | acl      | acls       | PUT    | /v1/acl/destroy/something?dc=datacenter                                        | {"Name": "something", "ID": "something"}                             |
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
     When I visit the [Model] page for yaml
@@ -37,6 +36,12 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     Then a [Method] request was made to "[URL]"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
+  Where:
+    -----------------------------------------------------------------------------------------------------------------------------------------------------------
+    | Model     | Method | URL                                                                              | Slug                                            |
+    | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
+    -----------------------------------------------------------------------------------------------------------------------------------------------------------
+  Scenario: Deleting a [Model] from the [Model] detail page error
     When I visit the [Model] page for yaml
     ---
       dc: datacenter
@@ -51,5 +56,4 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
     | Model     | Method | URL                                                                              | Slug                                            |
     | token     | DELETE | /v1/acl/token/001fda31-194e-4ff1-a5ec-589abf2cafd0?dc=datacenter&ns=@!namespace  | token: 001fda31-194e-4ff1-a5ec-589abf2cafd0     |
-    # | acl       | PUT    | /v1/acl/destroy/something?dc=datacenter                                      | acl: something                                  |
     -----------------------------------------------------------------------------------------------------------------------------------------------------------

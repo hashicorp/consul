@@ -169,10 +169,6 @@ func (e *ServiceConfigEntry) Validate() error {
 			if err != nil {
 				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
 			}
-
-			if err := validateInnerEnterpriseMeta(&override.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
-				validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream override for %s: %v", override.ServiceName(), err))
-			}
 		}
 
 		if e.UpstreamConfig.Defaults != nil {
@@ -315,7 +311,7 @@ func (e *ProxyConfigEntry) CanRead(authz acl.Authorizer) bool {
 func (e *ProxyConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
-	return authz.OperatorWrite(&authzContext) == acl.Allow
+	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
 func (e *ProxyConfigEntry) GetRaftIndex() *RaftIndex {

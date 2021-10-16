@@ -25,6 +25,8 @@ Feature: dc / list-blocking
     | Page       | Model       | Url               |
     | nodes      | node        | nodes             |
     ------------------------------------------------
+  # FIXME
+  @ignore
   Scenario: Viewing detail pages with a listing for [Page]
     Given 3 [Model] models
     And a network latency of 100

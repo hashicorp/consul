@@ -1,9 +1,9 @@
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
-// if (true) {
-//   OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
-// }
-//
+if (env('CONSUL_PARTITIONS_ENABLED')) {
+  OPTIONAL.partition = /^-([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
+}
+
 if (env('CONSUL_NSPACES_ENABLED')) {
   OPTIONAL.nspace = /^~([a-zA-Z0-9]([a-zA-Z0-9-]{0,62}[a-zA-Z0-9])?)$/;
 }
@@ -165,7 +165,7 @@ export default class FSMWithOptionalLocation {
 
   optionalParams() {
     let optional = this.optional || {};
-    return Object.keys(OPTIONAL).reduce((prev, item) => {
+    return ['partition', 'nspace'].reduce((prev, item) => {
       let value = '';
       if (typeof optional[item] !== 'undefined') {
         value = optional[item].match;
@@ -193,21 +193,41 @@ export default class FSMWithOptionalLocation {
     if (typeof hash.nspace !== 'undefined') {
       hash.nspace = `~${hash.nspace}`;
     }
-    // if (typeof hash.partition !== 'undefined') {
-    //   hash.partition = `-${hash.partition}`;
-    // }
+    if (typeof hash.partition !== 'undefined') {
+      hash.partition = `-${hash.partition}`;
+    }
     if (typeof this.router === 'undefined') {
       this.router = this.container.lookup('router:main');
     }
-    const router = this.router._routerMicrolib;
-    const url = router.generate(routeName, ...params, {
-      queryParams: {},
-    });
     let withOptional = true;
     switch (true) {
       case routeName === 'settings':
       case routeName.startsWith('docs.'):
         withOptional = false;
+        break;
+    }
+    const router = this.router._routerMicrolib;
+    let url;
+    try {
+      url = router.generate(routeName, ...params, {
+        queryParams: {},
+      });
+    } catch(e) {
+      if(
+        !(this.router.currentRouteName.startsWith('docs') &&
+          e.message.startsWith('There is no route named ')
+        )
+      ) {
+        if(this.router.currentRouteName.startsWith('docs') && routeName.startsWith('dc')) {
+          params.unshift('dc-1');
+          url = router.generate(routeName, ...params, {
+            queryParams: {},
+          });
+        } else {
+          throw e;
+        }
+      }
+      return `console://${routeName} <= ${JSON.stringify(params)}`;
     }
     return this.formatURL(url, hash, withOptional);
   }
@@ -217,6 +237,10 @@ export default class FSMWithOptionalLocation {
    * performs an ember transition/refresh and browser location update using that
    */
   transitionTo(url) {
+    if(this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
+      console.log(`location.transitionTo: ${url.substr(10)}`);
+      return true;
+    }
     const transitionURL = this.getURLForTransition(url);
     if (this._previousURL === transitionURL) {
       // probably an optional parameter change
@@ -263,7 +287,7 @@ export default class FSMWithOptionalLocation {
         optional = undefined;
       }
       optional = Object.values(optional || this.optional || {});
-      optional = optional.map(item => item.value || item, []);
+      optional = optional.filter(item => Boolean(item)).map(item => item.value || item, []);
       temp.splice(...[1, 0].concat(optional));
       url = temp.join('/');
     }

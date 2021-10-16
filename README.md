@@ -29,13 +29,14 @@ Consul provides several key features:
   dynamic configuration, feature flagging, coordination, leader election and
   more. The simple HTTP API makes it easy to use anywhere.
 
-Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows. A commercial
-version called [Consul Enterprise](https://www.hashicorp.com/products/consul)
-is also available.
+Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
+optional [browser based UI](https://demo.consul.io). A commercial version
+called [Consul Enterprise](https://www.hashicorp.com/products/consul) is also
+available.
 
 **Please note**: We take Consul's security and our users' trust very seriously. If you
-believe you have found a security issue in Consul, please [responsibly disclose](https://www.hashicorp.com/security#vulnerability-reporting) by
-contacting us at security@hashicorp.com.
+believe you have found a security issue in Consul, please [responsibly disclose](https://www.hashicorp.com/security#vulnerability-reporting)
+by contacting us at security@hashicorp.com.
 
 ## Quick Start
 
@@ -54,4 +55,7 @@ https://www.consul.io/docs
 
 ## Contributing
 
-Thank you for your interest in contributing! Please refer to [CONTRIBUTING.md](https://github.com/hashicorp/consul/blob/main/.github/CONTRIBUTING.md) for guidance.
+Thank you for your interest in contributing! Please refer to [CONTRIBUTING.md](https://github.com/hashicorp/consul/blob/main/.github/CONTRIBUTING.md)
+for guidance. For contributions specifically to the browser based UI, please
+refer to the UI's [README.md](https://github.com/hashicorp/consul/blob/main/ui/packages/consul-ui/README.md)
+for guidance.

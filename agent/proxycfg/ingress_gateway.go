@@ -54,6 +54,7 @@ func (s *handlerIngressGateway) initialize(ctx context.Context) (ConfigSnapshot,
 	snap.IngressGateway.WatchedUpstreamEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
 	snap.IngressGateway.WatchedGateways = make(map[string]map[string]context.CancelFunc)
 	snap.IngressGateway.WatchedGatewayEndpoints = make(map[string]map[string]structs.CheckServiceNodes)
+	snap.IngressGateway.Listeners = make(map[IngressListenerKey]structs.IngressListener)
 	return snap, nil
 }
 
@@ -79,8 +80,15 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 			return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 		}
 
-		snap.IngressGateway.TLSEnabled = gatewayConf.TLS.Enabled
-		snap.IngressGateway.TLSSet = true
+		snap.IngressGateway.GatewayConfigLoaded = true
+		snap.IngressGateway.TLSConfig = gatewayConf.TLS
+
+		// Load each listener's config from the config entry so we don't have to
+		// pass listener config through "upstreams" types as that grows.
+		for _, l := range gatewayConf.Listeners {
+			key := IngressListenerKeyFromListener(l)
+			snap.IngressGateway.Listeners[key] = l
+		}
 
 		if err := s.watchIngressLeafCert(ctx, snap); err != nil {
 			return err
@@ -115,7 +123,7 @@ func (s *handlerIngressGateway) handleUpdate(ctx context.Context, u cache.Update
 
 			hosts = append(hosts, service.Hosts...)
 
-			id := IngressListenerKey{Protocol: service.Protocol, Port: service.Port}
+			id := IngressListenerKeyFromGWService(*service)
 			upstreamsMap[id] = append(upstreamsMap[id], u)
 		}
 
@@ -161,7 +169,9 @@ func makeUpstream(g *structs.GatewayService) structs.Upstream {
 }
 
 func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *ConfigSnapshot) error {
-	if !snap.IngressGateway.TLSSet || !snap.IngressGateway.HostsSet {
+	// Note that we DON'T test for TLS.Enabled because we need a leaf cert for the
+	// gateway even without TLS to use as a client cert.
+	if !snap.IngressGateway.GatewayConfigLoaded || !snap.IngressGateway.HostsSet {
 		return nil
 	}
 
@@ -189,7 +199,7 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 func (s *handlerIngressGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
 	// Update our leaf cert watch with wildcard entries for our DNS domains as well as any
 	// configured custom hostnames from the service.
-	if !snap.IngressGateway.TLSEnabled {
+	if !snap.IngressGateway.TLSConfig.Enabled {
 		return nil
 	}
 

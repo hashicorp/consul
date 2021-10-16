@@ -1,0 +1,55 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+      "name": "9191",
+      "virtualHosts": [
+        {
+          "name": "foo",
+          "domains": [
+            "foo.example.com",
+            "foo.example.com:9191"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+      "name": "9191_web",
+      "virtualHosts": [
+        {
+          "name": "web",
+          "domains": [
+            "www.example.com",
+            "www.example.com:9191"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters": true
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+  "nonce": "00000001"
+}

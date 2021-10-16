@@ -252,6 +252,20 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// default config if there is an error so it's safe to continue.
 			s.Logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 		}
+
+		// If escape hatch is present, create a listener from it and move on to the next
+		if cfg.EnvoyListenerJSON != "" {
+			upstreamListener, err := makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
+			if err != nil {
+				s.Logger.Error("failed to parse envoy_listener_json",
+					"upstream", u.Identifier(),
+					"error", err)
+				continue
+			}
+			resources = append(resources, upstreamListener)
+			continue
+		}
+
 		upstreamListener := makeListener(id, u, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
@@ -497,75 +511,47 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 	return resources, err
 }
 
-func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	var resources []proto.Message
+func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
+	var mergedCfg structs.GatewayTLSSDSConfig
 
-	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
-		var tlsContext *envoy_tls_v3.DownstreamTlsContext
-		if cfgSnap.IngressGateway.TLSEnabled {
-			tlsContext = &envoy_tls_v3.DownstreamTlsContext{
-				CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
-				RequireClientCertificate: &wrappers.BoolValue{Value: false},
-			}
+	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
+	if gwSDS != nil {
+		mergedCfg.ClusterName = gwSDS.ClusterName
+		mergedCfg.CertResource = gwSDS.CertResource
+	}
+
+	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
+	if !ok {
+		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
+	}
+
+	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
+		if listenerCfg.TLS.SDS.ClusterName != "" {
+			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
 		}
-
-		if listenerKey.Protocol == "tcp" {
-			// We rely on the invariant of upstreams slice always having at least 1
-			// member, because this key/value pair is created only when a
-			// GatewayService is returned in the RPC
-			u := upstreams[0]
-			id := u.Identifier()
-
-			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
-
-			var upstreamListener proto.Message
-			upstreamListener, err := s.makeUpstreamListenerForDiscoveryChain(
-				&u,
-				address,
-				chain,
-				cfgSnap,
-				tlsContext,
-			)
-			if err != nil {
-				return nil, err
-			}
-			resources = append(resources, upstreamListener)
-		} else {
-			// If multiple upstreams share this port, make a special listener for the protocol.
-			listener := makePortListener(listenerKey.Protocol, address, listenerKey.Port, envoy_core_v3.TrafficDirection_OUTBOUND)
-			opts := listenerFilterOpts{
-				useRDS:          true,
-				protocol:        listenerKey.Protocol,
-				filterName:      listenerKey.RouteName(),
-				routeName:       listenerKey.RouteName(),
-				cluster:         "",
-				statPrefix:      "ingress_upstream_",
-				routePath:       "",
-				httpAuthzFilter: nil,
-			}
-			filter, err := makeListenerFilter(opts)
-			if err != nil {
-				return nil, err
-			}
-
-			transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
-			if err != nil {
-				return nil, err
-			}
-
-			listener.FilterChains = []*envoy_listener_v3.FilterChain{
-				{
-					Filters: []*envoy_listener_v3.Filter{
-						filter,
-					},
-					TransportSocket: transportSocket,
-				},
-			}
-			resources = append(resources, listener)
+		if listenerCfg.TLS.SDS.CertResource != "" {
+			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
 		}
 	}
 
-	return resources, nil
+	// Validate. Either merged should have both fields empty or both set. Other
+	// cases shouldn't be possible as we validate them at input but be robust to
+	// bugs later.
+	switch {
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
+		return nil, nil
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
+		return &mergedCfg, nil
+
+	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
+		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
+
+	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
+		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
+	}
+
+	return &mergedCfg, nil
 }
 
 // makeListener returns a listener with name and bind details set. Filters must
@@ -1013,7 +999,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	// Make a FilterChain for each linked service
 	// Match on the cluster name,
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 		// Resolvers are optional.
 		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
@@ -1048,7 +1034,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		if hasResolver {
 			// generate 1 filter chain for each service subset
 			for subsetName := range resolver.Subsets {
-				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+				subsetClusterName := connect.ServiceSNI(svc.Name, subsetName, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 
 				subsetClusterChain, err := s.makeFilterChainTerminatingGateway(
 					cfgSnap,
@@ -1134,7 +1120,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(
 	// HTTP filter to do intention checks here instead.
 	opts := listenerFilterOpts{
 		protocol:   protocol,
-		filterName: fmt.Sprintf("%s.%s.%s", service.Name, service.NamespaceOrDefault(), cfgSnap.Datacenter),
+		filterName: fmt.Sprintf("%s.%s.%s.%s", service.Name, service.NamespaceOrDefault(), service.PartitionOrDefault(), cfgSnap.Datacenter),
 		routeName:  cluster, // Set cluster name for route config since each will have its own
 		cluster:    cluster,
 		statPrefix: "upstream.",
@@ -1279,12 +1265,13 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 	useRDS := true
 
 	var (
-		clusterName                        string
-		destination, datacenter, namespace string
+		clusterName                                   string
+		destination, datacenter, partition, namespace string
 	)
 
+	// TODO (SNI partition) add partition for SNI
 	if chain != nil {
-		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
+		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
 	}
 	if (chain == nil || chain.IsDefault()) && u != nil {
 		useRDS = false
@@ -1297,6 +1284,9 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		}
 		if destination == "" {
 			destination = u.DestinationName
+		}
+		if partition == "" {
+			partition = u.DestinationPartition
 		}
 		if namespace == "" {
 			namespace = u.DestinationNamespace
@@ -1328,7 +1318,12 @@ func (s *ResourceGenerator) makeUpstreamFilterChainForDiscoveryChain(
 		namespace = structs.IntentionDefaultNamespace
 	}
 
-	filterName := fmt.Sprintf("%s.%s.%s", destination, namespace, datacenter)
+	// Default the partition to match how SNIs are generated
+	if partition == "" {
+		partition = structs.IntentionDefaultNamespace
+	}
+
+	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
 	if u != nil && u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 		// Avoid encoding dc and namespace for prepared queries.
 		// Those are defined in the query itself and are not available here.
@@ -1395,8 +1390,8 @@ func (s *ResourceGenerator) makeUpstreamListenerForDiscoveryChain(
 
 	useRDS := true
 	var (
-		clusterName                        string
-		destination, datacenter, namespace string
+		clusterName                                   string
+		destination, datacenter, partition, namespace string
 	)
 	if chain == nil || chain.IsDefault() {
 		useRDS = false
@@ -1405,13 +1400,13 @@ func (s *ResourceGenerator) makeUpstreamListenerForDiscoveryChain(
 		if dc == "" {
 			dc = cfgSnap.Datacenter
 		}
-		destination, datacenter, namespace = u.DestinationName, dc, u.DestinationNamespace
+		destination, datacenter, partition, namespace = u.DestinationName, dc, u.DestinationPartition, u.DestinationNamespace
 
 		sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
 		clusterName = CustomizeClusterName(sni, chain)
 
 	} else {
-		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
+		destination, datacenter, partition, namespace = chain.ServiceName, chain.Datacenter, chain.Partition, chain.Namespace
 
 		if cfg.Protocol == "tcp" {
 			useRDS = false
@@ -1434,7 +1429,12 @@ func (s *ResourceGenerator) makeUpstreamListenerForDiscoveryChain(
 	if namespace == "" {
 		namespace = structs.IntentionDefaultNamespace
 	}
-	filterName := fmt.Sprintf("%s.%s.%s", destination, namespace, datacenter)
+
+	// Default the partition to match how SNIs are generated
+	if partition == "" {
+		partition = structs.IntentionDefaultNamespace
+	}
+	filterName := fmt.Sprintf("%s.%s.%s.%s", destination, namespace, partition, datacenter)
 
 	if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
 		// Avoid encoding dc and namespace for prepared queries.
@@ -1556,9 +1556,9 @@ func makeTLSInspectorListenerFilter() (*envoy_listener_v3.ListenerFilter, error)
 	return &envoy_listener_v3.ListenerFilter{Name: "envoy.filters.listener.tls_inspector"}, nil
 }
 
-func makeSNIFilterChainMatch(sniMatch string) *envoy_listener_v3.FilterChainMatch {
+func makeSNIFilterChainMatch(sniMatches ...string) *envoy_listener_v3.FilterChainMatch {
 	return &envoy_listener_v3.FilterChainMatch{
-		ServerNames: []string{sniMatch},
+		ServerNames: sniMatches,
 	}
 }
 
@@ -1735,7 +1735,6 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 		return nil
 	}
 
-	// TODO(banks): verify this actually works with Envoy (docs are not clear).
 	rootPEMS := ""
 	for _, root := range cfgSnap.Roots.Roots {
 		rootPEMS += ca.EnsureTrailingNewline(root.RootCert)

@@ -2,6 +2,7 @@ package pool
 
 import (
 	"container/list"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log"
@@ -11,14 +12,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/yamux"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/tlsutil"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/hashicorp/yamux"
 )
 
-const defaultDialTimeout = 10 * time.Second
+const DefaultDialTimeout = 10 * time.Second
 
 // muxSession is used to provide an interface for a stream multiplexer.
 type muxSession interface {
@@ -291,21 +293,24 @@ func (p *ConnPool) DialTimeout(
 ) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
 
-	if p.Server && p.GatewayResolver != nil && p.TLSConfigurator != nil && dc != p.Datacenter {
+	if p.Server &&
+		p.GatewayResolver != nil &&
+		p.TLSConfigurator != nil &&
+		dc != p.Datacenter {
 		// NOTE: TLS is required on this branch.
-		return DialTimeoutWithRPCTypeViaMeshGateway(
+		nextProto := actualRPCType.ALPNString()
+		if nextProto == "" {
+			return nil, nil, fmt.Errorf("rpc type %d cannot be routed through a mesh gateway", actualRPCType)
+		}
+		return DialRPCViaMeshGateway(
+			context.Background(),
 			dc,
 			nodeName,
-			addr,
 			p.SrcAddr,
 			p.TLSConfigurator.OutgoingALPNRPCWrapper(),
-			actualRPCType,
-			RPCTLS,
-			// gateway stuff
+			nextProto,
 			p.Server,
-			p.TLSConfigurator,
 			p.GatewayResolver,
-			p.Datacenter,
 		)
 	}
 
@@ -319,7 +324,7 @@ func (p *ConnPool) dial(
 	tlsRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: defaultDialTimeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: DefaultDialTimeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -372,41 +377,25 @@ func (p *ConnPool) dial(
 	return conn, hc, nil
 }
 
-// DialTimeoutWithRPCTypeViaMeshGateway dials the destination node and sets up
-// the connection to be the correct RPC type using ALPN. This currently is
-// exclusively used to dial other servers in foreign datacenters via mesh
-// gateways.
-//
-// NOTE: There is a close mirror of this method in agent/consul/wanfed/wanfed.go:dial
-func DialTimeoutWithRPCTypeViaMeshGateway(
-	dc string,
-	nodeName string,
-	addr net.Addr,
-	src *net.TCPAddr,
-	wrapper tlsutil.ALPNWrapper,
-	actualRPCType RPCType,
-	tlsRPCType RPCType,
-	// gateway stuff
+// DialRPCViaMeshGateway dials the destination node and sets up the connection
+// to be the correct RPC type using ALPN. This currently is exclusively used to
+// dial other servers in foreign datacenters via mesh gateways.
+func DialRPCViaMeshGateway(
+	ctx context.Context,
+	dc string, // (metadata.Server).Datacenter
+	nodeName string, // (metadata.Server).ShortName
+	srcAddr *net.TCPAddr,
+	alpnWrapper tlsutil.ALPNWrapper,
+	nextProto string,
 	dialingFromServer bool,
-	tlsConfigurator *tlsutil.Configurator,
 	gatewayResolver func(string) string,
-	thisDatacenter string,
 ) (net.Conn, HalfCloser, error) {
 	if !dialingFromServer {
 		return nil, nil, fmt.Errorf("must dial via mesh gateways from a server agent")
 	} else if gatewayResolver == nil {
 		return nil, nil, fmt.Errorf("gatewayResolver is nil")
-	} else if tlsConfigurator == nil {
-		return nil, nil, fmt.Errorf("tlsConfigurator is nil")
-	} else if dc == thisDatacenter {
-		return nil, nil, fmt.Errorf("cannot dial servers in the same datacenter via a mesh gateway")
-	} else if wrapper == nil {
+	} else if alpnWrapper == nil {
 		return nil, nil, fmt.Errorf("cannot dial via a mesh gateway when outgoing TLS is disabled")
-	}
-
-	nextProto := actualRPCType.ALPNString()
-	if nextProto == "" {
-		return nil, nil, fmt.Errorf("rpc type %d cannot be routed through a mesh gateway", actualRPCType)
 	}
 
 	gwAddr := gatewayResolver(dc)
@@ -414,20 +403,23 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 		return nil, nil, structs.ErrDCNotAvailable
 	}
 
-	dialer := &net.Dialer{LocalAddr: src, Timeout: defaultDialTimeout}
+	dialer := &net.Dialer{LocalAddr: srcAddr, Timeout: DefaultDialTimeout}
 
-	rawConn, err := dialer.Dial("tcp", gwAddr)
+	rawConn, err := dialer.DialContext(ctx, "tcp", gwAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if tcp, ok := rawConn.(*net.TCPConn); ok {
-		_ = tcp.SetKeepAlive(true)
-		_ = tcp.SetNoDelay(true)
+	if nextProto != ALPN_RPCGRPC {
+		// agent/grpc/client.go:dial() handles this in another way for gRPC
+		if tcp, ok := rawConn.(*net.TCPConn); ok {
+			_ = tcp.SetKeepAlive(true)
+			_ = tcp.SetNoDelay(true)
+		}
 	}
 
 	// NOTE: now we wrap the connection in a TLS client.
-	tlsConn, err := wrapper(dc, nodeName, nextProto, rawConn)
+	tlsConn, err := alpnWrapper(dc, nodeName, nextProto, rawConn)
 	if err != nil {
 		return nil, nil, err
 	}

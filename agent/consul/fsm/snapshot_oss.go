@@ -15,7 +15,7 @@ func init() {
 	registerRestorer(structs.KVSRequestType, restoreKV)
 	registerRestorer(structs.TombstoneRequestType, restoreTombstone)
 	registerRestorer(structs.SessionRequestType, restoreSession)
-	registerRestorer(structs.ACLRequestType, restoreACL)
+	registerRestorer(structs.DeprecatedACLRequestType, restoreACL)
 	registerRestorer(structs.ACLBootstrapRequestType, restoreACLBootstrap)
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)

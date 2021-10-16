@@ -108,7 +108,7 @@ func init() {
 	registerCommand(structs.KVSRequestType, (*FSM).applyKVSOperation)
 	registerCommand(structs.SessionRequestType, (*FSM).applySessionOperation)
 	// DEPRECATED (ACL-Legacy-Compat) - Only needed for v1 ACL compat
-	registerCommand(structs.ACLRequestType, (*FSM).applyACLOperation)
+	registerCommand(structs.DeprecatedACLRequestType, (*FSM).deprecatedApplyACLOperation)
 	registerCommand(structs.TombstoneRequestType, (*FSM).applyTombstoneOperation)
 	registerCommand(structs.CoordinateBatchUpdateType, (*FSM).applyCoordinateBatchUpdate)
 	registerCommand(structs.PreparedQueryRequestType, (*FSM).applyPreparedQueryOperation)
@@ -243,51 +243,8 @@ func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
-// DEPRECATED (ACL-Legacy-Compat) - Only needed for legacy compat
-func (c *FSM) applyACLOperation(buf []byte, index uint64) interface{} {
-	// TODO (ACL-Legacy-Compat) - Should we warn here somehow about using deprecated features
-	//                            maybe emit a second metric?
-	var req structs.ACLRequest
-	if err := structs.Decode(buf, &req); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
-	}
-	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl"}, time.Now(),
-		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
-	switch req.Op {
-	case structs.ACLBootstrapInit:
-		enabled, _, err := c.state.CanBootstrapACLToken()
-		if err != nil {
-			return err
-		}
-		return enabled
-	case structs.ACLBootstrapNow:
-		// This is a bootstrap request from a non-upgraded node
-		if err := c.state.ACLBootstrap(index, 0, req.ACL.Convert(), true); err != nil {
-			return err
-		}
-
-		// No need to check expiration times as those did not exist in legacy tokens.
-		if _, token, err := c.state.ACLTokenGetBySecret(nil, req.ACL.ID, nil); err != nil {
-			return err
-		} else {
-			acl, err := token.Convert()
-			if err != nil {
-				return err
-			}
-			return acl
-		}
-
-	case structs.ACLForceSet, structs.ACLSet:
-		if err := c.state.ACLTokenSet(index, req.ACL.Convert(), true); err != nil {
-			return err
-		}
-		return req.ACL.ID
-	case structs.ACLDelete:
-		return c.state.ACLTokenDeleteBySecret(index, req.ACL.ID, nil)
-	default:
-		c.logger.Warn("Invalid ACL operation", "operation", req.Op)
-		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
-	}
+func (c *FSM) deprecatedApplyACLOperation(_ []byte, _ uint64) interface{} {
+	return fmt.Errorf("legacy ACL command has been removed with the legacy ACL system")
 }
 
 func (c *FSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
@@ -514,7 +471,6 @@ func (c *FSM) applyACLTokenSetOperation(buf []byte, index uint64) interface{} {
 		CAS:                          req.CAS,
 		AllowMissingPolicyAndRoleIDs: req.AllowMissingLinks,
 		ProhibitUnprivileged:         req.ProhibitUnprivileged,
-		Legacy:                       false,
 		FromReplication:              req.FromReplication,
 	}
 	return c.state.ACLTokenBatchSet(index, req.Tokens, opts)
@@ -538,7 +494,7 @@ func (c *FSM) applyACLTokenBootstrap(buf []byte, index uint64) interface{} {
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "bootstrap"}})
-	return c.state.ACLBootstrap(index, req.ResetIndex, &req.Token, false)
+	return c.state.ACLBootstrap(index, req.ResetIndex, &req.Token)
 }
 
 func (c *FSM) applyACLPolicySetOperation(buf []byte, index uint64) interface{} {

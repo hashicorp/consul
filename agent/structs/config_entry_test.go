@@ -6,14 +6,201 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
+	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestConfigEntries_ACLs(t *testing.T) {
+	type testACL = configEntryTestACL
+	type testcase = configEntryACLTestCase
+
+	newAuthz := func(t *testing.T, src string) acl.Authorizer {
+		policy, err := acl.NewPolicyFromSource("", 0, src, acl.SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		authorizer, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		require.NoError(t, err)
+		return authorizer
+	}
+
+	cases := []testcase{
+		// =================== proxy-defaults ===================
+		{
+			name:  "proxy-defaults",
+			entry: &ProxyConfigEntry{},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator deny",
+					authorizer: newAuthz(t, `operator = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator read",
+					authorizer: newAuthz(t, `operator = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator write",
+					authorizer: newAuthz(t, `operator = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "proxy-defaults: mesh deny",
+					authorizer: newAuthz(t, `mesh = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: mesh read",
+					authorizer: newAuthz(t, `mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: mesh write",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "proxy-defaults: operator deny and mesh read",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "proxy-defaults: operator deny and mesh write",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+			},
+		},
+		// =================== mesh ===================
+		{
+			name:  "mesh",
+			entry: &MeshConfigEntry{},
+			expectACLs: []testACL{
+				{
+					name:       "no-authz",
+					authorizer: newAuthz(t, ``),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator deny",
+					authorizer: newAuthz(t, `operator = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator read",
+					authorizer: newAuthz(t, `operator = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator write",
+					authorizer: newAuthz(t, `operator = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "mesh: mesh deny",
+					authorizer: newAuthz(t, `mesh = "deny"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: mesh read",
+					authorizer: newAuthz(t, `mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: mesh write",
+					authorizer: newAuthz(t, `mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+				{
+					name:       "mesh: operator deny and mesh read",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "read"`),
+					canRead:    true, // unauthenticated
+					canWrite:   false,
+				},
+				{
+					name:       "mesh: operator deny and mesh write",
+					authorizer: newAuthz(t, `operator = "deny" mesh = "write"`),
+					canRead:    true, // unauthenticated
+					canWrite:   true,
+				},
+			},
+		},
+	}
+
+	testConfigEntries_ListRelatedServices_AndACLs(t, cases)
+}
+
+type configEntryTestACL struct {
+	name       string
+	authorizer acl.Authorizer
+	canRead    bool
+	canWrite   bool
+}
+
+type configEntryACLTestCase struct {
+	name           string
+	entry          ConfigEntry
+	expectServices []ServiceID // optional
+	expectACLs     []configEntryTestACL
+}
+
+func testConfigEntries_ListRelatedServices_AndACLs(t *testing.T, cases []configEntryACLTestCase) {
+	// This test tests both of these because they are related functions.
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// verify test inputs
+			require.NoError(t, tc.entry.Normalize())
+			require.NoError(t, tc.entry.Validate())
+
+			if dce, ok := tc.entry.(discoveryChainConfigEntry); ok {
+				got := dce.ListRelatedServices()
+				require.Equal(t, tc.expectServices, got)
+			}
+
+			if len(tc.expectACLs) == 1 {
+				a := tc.expectACLs[0]
+				require.Empty(t, a.name)
+			} else {
+				for _, a := range tc.expectACLs {
+					require.NotEmpty(t, a.name)
+					t.Run(a.name, func(t *testing.T) {
+						require.Equal(t, a.canRead, tc.entry.CanRead(a.authorizer), "unexpected CanRead result")
+						require.Equal(t, a.canWrite, tc.entry.CanWrite(a.authorizer), "unexpected CanWrite result")
+					})
+				}
+			}
+		})
+	}
+}
 
 // TestDecodeConfigEntry is the 'structs' mirror image of
 // command/config/write/config_write_test.go:TestParseConfigEntry
@@ -278,6 +465,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  num_retries            = 12345
 						  retry_on_connect_failure = true
 						  retry_on_status_codes    = [401, 209]
+							request_headers {
+								add {
+									x-foo = "bar"
+								}
+								set {
+									bar = "baz"
+								}
+								remove = ["qux"]
+							}
+							response_headers {
+								add {
+									x-foo = "bar"
+								}
+								set {
+									bar = "baz"
+								}
+								remove = ["qux"]
+							}
 						}
 					},
 					{
@@ -361,6 +566,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 						  NumRetries            = 12345
 						  RetryOnConnectFailure = true
 						  RetryOnStatusCodes    = [401, 209]
+							RequestHeaders {
+								Add {
+									x-foo = "bar"
+								}
+								Set {
+									bar = "baz"
+								}
+								Remove = ["qux"]
+							}
+							ResponseHeaders {
+								Add {
+									x-foo = "bar"
+								}
+								Set {
+									bar = "baz"
+								}
+								Remove = ["qux"]
+							}
 						}
 					},
 					{
@@ -444,6 +667,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 							NumRetries:            12345,
 							RetryOnConnectFailure: true,
 							RetryOnStatusCodes:    []uint32{401, 209},
+							RequestHeaders: &HTTPHeaderModifiers{
+								Add:    map[string]string{"x-foo": "bar"},
+								Set:    map[string]string{"bar": "baz"},
+								Remove: []string{"qux"},
+							},
+							ResponseHeaders: &HTTPHeaderModifiers{
+								Add:    map[string]string{"x-foo": "bar"},
+								Set:    map[string]string{"bar": "baz"},
+								Remove: []string{"qux"},
+							},
 						},
 					},
 					{
@@ -489,13 +722,31 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				splits = [
 				  {
-					weight        = 99.1
-					service_subset = "v1"
+						weight        = 99.1
+						service_subset = "v1"
+						request_headers {
+							add {
+								foo = "bar"
+							}
+							set {
+								bar = "baz"
+							}
+							remove = ["qux"]
+						}
+						response_headers {
+							add {
+								foo = "bar"
+							}
+							set {
+								bar = "baz"
+							}
+							remove = ["qux"]
+						}
 				  },
 				  {
-					weight    = 0.9
-					service   = "other"
-					namespace = "alt"
+						weight    = 0.9
+						service   = "other"
+						namespace = "alt"
 				  },
 				]
 			`,
@@ -508,13 +759,31 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 				Splits = [
 				  {
-					Weight        = 99.1
-					ServiceSubset = "v1"
+						Weight        = 99.1
+						ServiceSubset = "v1"
+						RequestHeaders {
+							Add {
+								foo = "bar"
+							}
+							Set {
+								bar = "baz"
+							}
+							Remove = ["qux"]
+						}
+						ResponseHeaders {
+							Add {
+								foo = "bar"
+							}
+							Set {
+								bar = "baz"
+							}
+							Remove = ["qux"]
+						}
 				  },
 				  {
-					Weight    = 0.9
-					Service   = "other"
-					Namespace = "alt"
+						Weight    = 0.9
+						Service   = "other"
+						Namespace = "alt"
 				  },
 				]
 			`,
@@ -529,6 +798,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 					{
 						Weight:        99.1,
 						ServiceSubset: "v1",
+						RequestHeaders: &HTTPHeaderModifiers{
+							Add:    map[string]string{"foo": "bar"},
+							Set:    map[string]string{"bar": "baz"},
+							Remove: []string{"qux"},
+						},
+						ResponseHeaders: &HTTPHeaderModifiers{
+							Add:    map[string]string{"foo": "bar"},
+							Set:    map[string]string{"bar": "baz"},
+							Remove: []string{"qux"},
+						},
 					},
 					{
 						Weight:    0.9,
@@ -852,6 +1131,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								name = "db"
+								request_headers {
+									add {
+										foo = "bar"
+									}
+									set {
+										bar = "baz"
+									}
+									remove = ["qux"]
+								}
+								response_headers {
+									add {
+										foo = "bar"
+									}
+									set {
+										bar = "baz"
+									}
+									remove = ["qux"]
+								}
 							}
 						]
 					},
@@ -896,6 +1193,24 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Name = "db"
+								RequestHeaders {
+									Add {
+										foo = "bar"
+									}
+									Set {
+										bar = "baz"
+									}
+									Remove = ["qux"]
+								}
+								ResponseHeaders {
+									Add {
+										foo = "bar"
+									}
+									Set {
+										bar = "baz"
+									}
+									Remove = ["qux"]
+								}
 							}
 						]
 					},
@@ -940,6 +1255,16 @@ func TestDecodeConfigEntry(t *testing.T) {
 							},
 							{
 								Name: "db",
+								RequestHeaders: &HTTPHeaderModifiers{
+									Add:    map[string]string{"foo": "bar"},
+									Set:    map[string]string{"bar": "baz"},
+									Remove: []string{"qux"},
+								},
+								ResponseHeaders: &HTTPHeaderModifiers{
+									Add:    map[string]string{"foo": "bar"},
+									Set:    map[string]string{"bar": "baz"},
+									Remove: []string{"qux"},
+								},
 							},
 						},
 					},
@@ -2196,8 +2521,9 @@ type configEntryTestcase struct {
 	normalizeErr string
 	validateErr  string
 
-	// Only one of either expected or check can be set.
-	expected ConfigEntry
+	// Only one of expected, expectUnchanged or check can be set.
+	expected        ConfigEntry
+	expectUnchanged bool
 	// check is called between normalize and validate
 	check func(t *testing.T, entry ConfigEntry)
 }
@@ -2208,19 +2534,48 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			err := tc.entry.Normalize()
+			beforeNormalize, err := copystructure.Copy(tc.entry)
+			require.NoError(t, err)
+
+			err = tc.entry.Normalize()
 			if tc.normalizeErr != "" {
 				testutil.RequireErrorContains(t, err, tc.normalizeErr)
 				return
 			}
 			require.NoError(t, err)
 
-			if tc.expected != nil && tc.check != nil {
-				t.Fatal("cannot set both 'expected' and 'check' test case fields")
+			checkMethods := 0
+			if tc.expected != nil {
+				checkMethods++
+			}
+			if tc.expectUnchanged {
+				checkMethods++
+			}
+			if tc.check != nil {
+				checkMethods++
+			}
+
+			if checkMethods > 1 {
+				t.Fatal("cannot set more than one of 'expected', 'expectUnchanged' and 'check' test case fields")
 			}
 
 			if tc.expected != nil {
 				require.Equal(t, tc.expected, tc.entry)
+			}
+
+			if tc.expectUnchanged {
+				// EnterpriseMeta.Normalize behaves differently in Ent and OSS which
+				// causes an exact comparison to fail. It's still useful to assert that
+				// nothing else changes though during Normalize. So we ignore
+				// EnterpriseMeta Defaults.
+				opts := cmp.Options{
+					cmp.Comparer(func(a, b EnterpriseMeta) bool {
+						return a.IsSame(&b)
+					}),
+				}
+				if diff := cmp.Diff(beforeNormalize, tc.entry, opts); diff != "" {
+					t.Fatalf("expect unchanged after Normalize, got diff:\n%s", diff)
+				}
 			}
 
 			if tc.check != nil {
@@ -2233,8 +2588,6 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 
 			err = tc.entry.Validate()
 			if tc.validateErr != "" {
-				// require.Error(t, err)
-				// require.Contains(t, err.Error(), tc.validateErr)
 				testutil.RequireErrorContains(t, err, tc.validateErr)
 				return
 			}

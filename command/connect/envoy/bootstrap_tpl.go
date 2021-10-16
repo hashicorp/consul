@@ -89,12 +89,12 @@ type BootstrapTplArgs struct {
 	// as registered with the Consul agent.
 	Namespace string
 
+	// Partition is the Consul Enterprise Partition of the proxy service instance
+	// as registered with the Consul agent.
+	Partition string
+
 	// Datacenter is the datacenter where the proxy service instance is registered.
 	Datacenter string
-
-	// EnvoyVersion is the envoy version, which is necessary to generate the
-	// correct configuration.
-	EnvoyVersion string
 
 	// PrometheusBackendPort will configure a "prometheus_backend" cluster which
 	// envoy_prometheus_bind_addr will point to.
@@ -141,7 +141,7 @@ const bootstrapTemplate = `{
     "id": "{{ .ProxyID }}",
     "metadata": {
       "namespace": "{{if ne .Namespace ""}}{{ .Namespace }}{{else}}default{{end}}",
-      "envoy_version": "{{ .EnvoyVersion }}"
+      "partition": "{{if ne .Partition ""}}{{ .Partition }}{{else}}default{{end}}"
     }
   },
   "static_resources": {

@@ -82,6 +82,15 @@ const (
 	HTTPPartitionEnvName = "CONSUL_PARTITION"
 )
 
+type StatusError struct {
+	Code int
+	Body string
+}
+
+func (e StatusError) Error() string {
+	return fmt.Sprintf("Unexpected response code: %d (%s)", e.Code, e.Body)
+}
+
 // QueryOptions are used to parameterize a query
 type QueryOptions struct {
 	// Namespace overrides the `default` namespace
@@ -660,6 +669,14 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
+	if config.Namespace == "" {
+		config.Namespace = defConfig.Namespace
+	}
+
+	if config.Partition == "" {
+		config.Partition = defConfig.Partition
+	}
+
 	parts := strings.SplitN(config.Address, "://", 2)
 	if len(parts) == 2 {
 		switch parts[0] {
@@ -964,7 +981,7 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
 	r := c.newRequest("GET", endpoint)
 	r.setQueryOptions(q)
-	rtt, resp, err := c.doRequest(r)
+	rtt, resp, err := requireOK(c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
@@ -1082,16 +1099,28 @@ func encodeBody(obj interface{}) (io.Reader, error) {
 
 // requireOK is used to wrap doRequest and check for a 200
 func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *http.Response, error) {
+	return requireHttpCodes(d, resp, e, 200)
+}
+
+// requireHttpCodes checks for the "allowable" http codes for a response
+func requireHttpCodes(d time.Duration, resp *http.Response, e error, httpCodes ...int) (time.Duration, *http.Response, error) {
 	if e != nil {
 		if resp != nil {
 			closeResponseBody(resp)
 		}
 		return d, nil, e
 	}
-	if resp.StatusCode != 200 {
-		return d, nil, generateUnexpectedResponseCodeError(resp)
+
+	// if there is an http code that we require, return w no error
+	for _, httpCode := range httpCodes {
+		if resp.StatusCode == httpCode {
+			return d, resp, nil
+		}
 	}
-	return d, resp, nil
+
+	// if we reached here, then none of the http codes in resp matched any that we expected
+	// so err out
+	return d, nil, generateUnexpectedResponseCodeError(resp)
 }
 
 // closeResponseBody reads resp.Body until EOF, and then closes it. The read
@@ -1117,7 +1146,9 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	var buf bytes.Buffer
 	io.Copy(&buf, resp.Body)
 	closeResponseBody(resp)
-	return fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+
+	trimmed := strings.TrimSpace(string(buf.Bytes()))
+	return StatusError{Code: resp.StatusCode, Body: trimmed}
 }
 
 func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {

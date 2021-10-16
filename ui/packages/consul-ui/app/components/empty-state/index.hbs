@@ -22,7 +22,7 @@
           {{on "click" login}}
         >
           <DataSource
-            @src="settings://consul:token"
+            @src={{uri 'settings://consul:token'}}
             @onchange={{action (mut token) value="data"}}
           />
           {{#if token.AccessorID}}

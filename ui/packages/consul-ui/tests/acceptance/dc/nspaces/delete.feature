@@ -22,10 +22,10 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class
   Where:
-    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    | Edit     | Listing     | Method | URL                                                                             | Data                                                                 |
-    | nspace    | nspaces    | DELETE | /v1/namespace/a-namespace                                                       | {"Name": "a-namespace"}                                              |
-    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------------------------------------
+    | Edit     | Listing     | Method | URL                                      | Data                    |
+    | nspace    | nspaces    | DELETE | /v1/namespace/a-namespace?dc=datacenter  | {"Name": "a-namespace"} |
+    --------------------------------------------------------------------------------------------------------
   Scenario: Deleting a [Model] from the [Model] detail page
     When I visit the [Model] page for yaml
     ---
@@ -48,7 +48,7 @@ Feature: dc / nspaces / delete: Deleting items with confirmations, success and e
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "error" class
   Where:
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------
-    | Model     | Method | URL                                                                              | Slug                                            |
-    | nspace    | DELETE | /v1/namespace/a-namespace                                                        | namespace: a-namespace                          |
-    -----------------------------------------------------------------------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------
+    | Model     | Method | URL                                      | Slug                    |
+    | nspace    | DELETE | /v1/namespace/a-namespace?dc=datacenter  | namespace: a-namespace  |
+    -------------------------------------------------------------------------------------------

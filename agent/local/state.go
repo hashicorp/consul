@@ -989,7 +989,7 @@ func (l *State) updateSyncState() error {
 			AllowStale:       true,
 			MaxStaleDuration: fullSyncReadMaxStale,
 		},
-		EnterpriseMeta: *l.agentEnterpriseMeta.WildcardEnterpriseMetaForPartition(),
+		EnterpriseMeta: *l.agentEnterpriseMeta.WithWildcardNamespace(),
 	}
 
 	var out1 structs.IndexedNodeServiceList

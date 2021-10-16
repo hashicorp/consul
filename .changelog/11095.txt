@@ -1,0 +1,3 @@
+```release-note:bug
+ui: **(Enterprise Only)** Fix saving intentions with namespaced source/destination
+```

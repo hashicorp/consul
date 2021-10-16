@@ -1,10 +1,8 @@
 {{yield}}
 <StateChart @src={{chart}} as |State Guard Action dispatch state|>
-
   <Ref @target={{this}} @name="dispatch" @value={{dispatch}} />
   <Guard @name="loaded" @cond={{action "isLoaded"}} />
 
-  {{did-update (fn dispatch "LOAD") src=src}}
 
 {{#let (hash
   data=data
@@ -54,12 +52,14 @@
         {{#yield-slot name="disconnected" params=(block-params (component 'notification' after=(action dispatch "RESET")))}}
           {{yield api}}
         {{else}}
+        {{#if (not eq error.status '401')}}
           <Notification @sticky={{true}}>
             <p data-notification role="alert" class="warning notification-update">
               <strong>Warning!</strong>
               An error was returned whilst loading this data, refresh to try again.
             </p>
           </Notification>
+        {{/if}}
         {{/yield-slot}}
     </State>
     {{#if (eq error.status "403")}}
@@ -77,4 +77,5 @@
   </State>
 
 {{/let}}
+  {{did-update (fn dispatch "LOAD") src=src}}
 </StateChart>

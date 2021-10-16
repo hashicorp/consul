@@ -23,19 +23,19 @@
 
 %popover-select .value-passing button::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
-  color: $green-500;
+  color: rgb(var(--tone-green-500));
 }
 %popover-select .value-warning button::before {
   @extend %with-alert-triangle-mask, %as-pseudo;
-  color: $orange-500;
+  color: rgb(var(--tone-orange-500));
 }
 %popover-select .value-critical button::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
-  color: $red-500;
+  color: rgb(var(--tone-red-500));
 }
 %popover-select .value-empty button::before {
   @extend %with-minus-square-fill-mask, %as-pseudo;
-  color: $gray-400;
+  color: rgb(var(--tone-gray-400));
 }
 %popover-select.type-source li button {
   text-transform: capitalize;

@@ -220,25 +220,7 @@ func TestCoordinate_Update_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL that can write to the node.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
-node "node1" {
-	policy = "write"
-}
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	id := createToken(t, codec, `node "node1" { policy = "write" }`)
 
 	// With the token, it should now go through.
 	req.Token = id
@@ -460,27 +442,7 @@ func TestCoordinate_ListNodes_ACLFilter(t *testing.T) {
 		t.Fatalf("bad: %#v", resp.Coordinates)
 	}
 
-	// Create an ACL that can read one of the nodes.
-	var id string
-	{
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name: "User token",
-				Type: structs.ACLTokenTypeClient,
-				Rules: `
-node "foo" {
-	policy = "read"
-}
-`,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+	id := createToken(t, codec, ` node "foo" { policy = "read" } `)
 
 	// With the token, it should now go through.
 	arg.Token = id
@@ -598,25 +560,7 @@ func TestCoordinate_Node_ACLDeny(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Create an ACL that can read from the node.
-	aclReq := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
-node "node1" {
-	policy = "read"
-}
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &aclReq, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	id := createToken(t, codec, `node "node1" { policy = "read" } `)
 
 	// With the token, it should now go through.
 	arg.Token = id

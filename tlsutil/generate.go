@@ -54,6 +54,7 @@ type CertOpts struct {
 	DNSNames    []string
 	IPAddresses []net.IP
 	ExtKeyUsage []x509.ExtKeyUsage
+	IsCA        bool
 }
 
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
@@ -176,6 +177,10 @@ func GenerateCert(opts CertOpts) (string, string, error) {
 		SubjectKeyId:          id,
 		DNSNames:              opts.DNSNames,
 		IPAddresses:           opts.IPAddresses,
+	}
+	if opts.IsCA {
+		template.IsCA = true
+		template.KeyUsage = x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature
 	}
 
 	bs, err := x509.CreateCertificate(rand.Reader, &template, parent, signee.Public(), opts.Signer)

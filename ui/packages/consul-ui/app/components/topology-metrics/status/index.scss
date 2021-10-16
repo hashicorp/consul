@@ -1,18 +1,18 @@
-.topology-metrics-error,
-.topology-metrics-loader {
+.topology-metrics-status-error,
+.topology-metrics-status-loader {
   font-weight: normal;
   font-size: 0.875rem;
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
   text-align: center;
   margin: 0 auto !important;
   display: block;
 
   span::before {
     @extend %with-info-circle-outline-mask, %as-pseudo;
-    background-color: $gray-500;
+    background-color: rgb(var(--tone-gray-500));
   }
 }
 
-span.topology-metrics-loader::after {
+span.topology-metrics-status-loader::after {
   @extend %with-loading-icon, %as-pseudo;
 }

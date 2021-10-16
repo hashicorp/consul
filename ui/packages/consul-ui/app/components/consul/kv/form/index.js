@@ -26,7 +26,7 @@ export default Component.extend({
             set(item, 'Value', this.encoder.execute(target.value));
             break;
           case 'additional':
-            parent = get(this, 'parent.Key');
+            parent = get(this, 'parent');
             set(item, 'Key', `${parent !== '/' ? parent : ''}${target.value}`);
             break;
           case 'json':

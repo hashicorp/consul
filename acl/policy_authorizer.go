@@ -40,6 +40,9 @@ type policyAuthorizer struct {
 	// operatorRule contains the operator policies.
 	operatorRule *policyAuthorizerRule
 
+	// meshRule contains the mesh policies.
+	meshRule *policyAuthorizerRule
+
 	// embedded enterprise policy authorizer
 	enterprisePolicyAuthorizer
 }
@@ -310,6 +313,15 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 		p.operatorRule = &policyAuthorizerRule{access: access}
 	}
 
+	// Load the mesh policy
+	if policy.Mesh != "" {
+		access, err := AccessLevelFromString(policy.Mesh)
+		if err != nil {
+			return err
+		}
+		p.meshRule = &policyAuthorizerRule{access: access}
+	}
+
 	return nil
 }
 
@@ -524,9 +536,6 @@ func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) En
 // IntentionWrite checks if writing (creating, updating, or deleting) of an
 // intention is allowed.
 func (p *policyAuthorizer) IntentionWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
-	if prefix == "" {
-		return Deny
-	}
 	if prefix == "*" {
 		return p.allAllowed(p.intentionRules, AccessWrite)
 	}
@@ -662,6 +671,25 @@ func (p *policyAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision 
 		return enforce(p.keyringRule.access, AccessWrite)
 	}
 	return Default
+}
+
+// MeshRead determines if the read-only mesh functions are allowed.
+func (p *policyAuthorizer) MeshRead(ctx *AuthorizerContext) EnforcementDecision {
+	if p.meshRule != nil {
+		return enforce(p.meshRule.access, AccessRead)
+	}
+	// default to OperatorRead access
+	return p.OperatorRead(ctx)
+}
+
+// MeshWrite determines if the state-changing mesh functions are
+// allowed.
+func (p *policyAuthorizer) MeshWrite(ctx *AuthorizerContext) EnforcementDecision {
+	if p.meshRule != nil {
+		return enforce(p.meshRule.access, AccessWrite)
+	}
+	// default to OperatorWrite access
+	return p.OperatorWrite(ctx)
 }
 
 // OperatorRead determines if the read-only operator functions are allowed.

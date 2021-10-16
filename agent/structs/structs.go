@@ -41,7 +41,7 @@ const (
 	DeregisterRequestType                       = 1
 	KVSRequestType                              = 2
 	SessionRequestType                          = 3
-	ACLRequestType                              = 4 // DEPRECATED (ACL-Legacy-Compat)
+	DeprecatedACLRequestType                    = 4 // Removed with the legacy ACL system
 	TombstoneRequestType                        = 5
 	CoordinateBatchUpdateType                   = 6
 	PreparedQueryRequestType                    = 7
@@ -81,7 +81,7 @@ var requestTypeStrings = map[MessageType]string{
 	DeregisterRequestType:           "Deregister",
 	KVSRequestType:                  "KVS",
 	SessionRequestType:              "Session",
-	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	DeprecatedACLRequestType:        "ACL", // DEPRECATED (ACL-Legacy-Compat)
 	TombstoneRequestType:            "Tombstone",
 	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
 	PreparedQueryRequestType:        "PreparedQuery",
@@ -1250,6 +1250,17 @@ func (s *NodeService) Validate() error {
 			bindAddrs    = make(map[string]struct{})
 		)
 		for _, u := range s.Proxy.Upstreams {
+			destinationPartition := u.DestinationPartition
+			if destinationPartition == "" {
+				destinationPartition = acl.DefaultPartitionName
+			}
+
+			// cross DC Upstreams are only allowed for non "default" partitions
+			if u.Datacenter != "" && (destinationPartition != acl.DefaultPartitionName || s.PartitionOrDefault() != "default") {
+				result = multierror.Append(result, fmt.Errorf(
+					"upstreams cannot target another datacenter in non default partition"))
+				continue
+			}
 			if err := u.Validate(); err != nil {
 				result = multierror.Append(result, err)
 				continue
@@ -1495,7 +1506,7 @@ type HealthCheck struct {
 func (hc *HealthCheck) NodeIdentity() Identity {
 	return Identity{
 		ID:             hc.Node,
-		EnterpriseMeta: *hc.NodeEnterpriseMetaForPartition(),
+		EnterpriseMeta: *NodeEnterpriseMetaInPartition(hc.PartitionOrDefault()),
 	}
 }
 
@@ -1822,6 +1833,14 @@ type NodeInfo struct {
 	Meta            map[string]string
 	Services        []*NodeService
 	Checks          HealthChecks
+}
+
+func (n *NodeInfo) GetEnterpriseMeta() *EnterpriseMeta {
+	return NodeEnterpriseMetaInPartition(n.Partition)
+}
+
+func (n *NodeInfo) PartitionOrDefault() string {
+	return PartitionOrDefault(n.Partition)
 }
 
 // NodeDump is used to dump all the nodes with all their

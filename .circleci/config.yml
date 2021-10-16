@@ -22,7 +22,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v4-{{ checksum "ui/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v5-{{ checksum "ui/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -220,7 +220,6 @@ jobs:
       - run:
           name: go test
           command: |
-            mkdir -p $TEST_RESULTS_DIR
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./... | circleci tests split --split-by=timings --timings-type=classname)
             echo "Running $(echo $PACKAGE_NAMES | wc -w) packages"
@@ -228,10 +227,14 @@ jobs:
             gotestsum \
               --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-${CIRCLE_NODE_INDEX}.log \
+              --debug \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
-              -cover -coverprofile=coverage.txt \
-              $PACKAGE_NAMES
+              -cover -coverprofile=coverage.txt
 
       - store_test_results:
           path: *TEST_RESULTS_DIR
@@ -239,6 +242,10 @@ jobs:
           path: *TEST_RESULTS_DIR
       - store_artifacts:
           path: /tmp/jsonfile
+      - run: &rerun-fails-report
+          name: "Re-run fails report"
+          command: |
+            .circleci/scripts/rerun-fails-report.sh /tmp/gotestsum-rerun-fails
       - run: *notify-slack-failure
 
   go-test-race:
@@ -301,11 +308,16 @@ jobs:
           command: |
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             go env
+            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
             gotestsum \
               --jsonfile /tmp/jsonfile/go-test-32bit.log \
+              --rerun-fails=3 \
+              --rerun-fails-max-failures=40 \
+              --rerun-fails-report=/tmp/gotestsum-rerun-fails \
+              --packages="$PACKAGE_NAMES" \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
-              -short ./...
+              -short
 
       - store_test_results:
           path: *TEST_RESULTS_DIR
@@ -590,7 +602,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui && yarn install
+          command: cd ui && make deps
 
       - save_cache:
           key: *YARN_CACHE_KEY
@@ -780,14 +792,14 @@ jobs:
           command: make test-coverage-ci
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_5: &ENVOY_TESTS
+  envoy-integration-test-1_16_5: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
     parallelism: 2
     environment:
-      ENVOY_VERSION: "1.15.5"
+      ENVOY_VERSION: "1.16.5"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
       - checkout
       # Get go binary from workspace
@@ -820,32 +832,26 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1_15_5-v2compat:
+  envoy-integration-test-1_16_5-v2compat:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.15.5"
+      ENVOY_VERSION: "1.16.5"
       TEST_V2_XDS: "1"
 
-  envoy-integration-test-1_16_4:
+  envoy-integration-test-1_17_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.4"
+      ENVOY_VERSION: "1.17.4"
 
-  envoy-integration-test-1_16_4-v2compat:
+  envoy-integration-test-1_18_4:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.16.4"
-      TEST_V2_XDS: "1"
+      ENVOY_VERSION: "1.18.4"
 
-  envoy-integration-test-1_17_3:
+  envoy-integration-test-1_19_1:
     <<: *ENVOY_TESTS
     environment:
-      ENVOY_VERSION: "1.17.3"
-
-  envoy-integration-test-1_18_3:
-    <<: *ENVOY_TESTS
-    environment:
-      ENVOY_VERSION: "1.18.3"
+      ENVOY_VERSION: "1.19.1"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1087,22 +1093,19 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_5:
+      - envoy-integration-test-1_16_5:
           requires:
             - dev-build
-      - envoy-integration-test-1_15_5-v2compat:
+      - envoy-integration-test-1_16_5-v2compat:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_4:
+      - envoy-integration-test-1_17_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_4-v2compat:
+      - envoy-integration-test-1_18_4:
           requires:
             - dev-build
-      - envoy-integration-test-1_17_3:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_18_3:
+      - envoy-integration-test-1_19_1:
           requires:
             - dev-build
 

@@ -359,7 +359,7 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Install with Helm Chart",
+            "title": "Installing Consul on Kubernetes",
             "path": "k8s/installation/install"
           },
           {
@@ -459,12 +459,12 @@
             "path": "k8s/connect/ingress-controllers"
           },
           {
-            "title": "Configuring a Connect CA Provider",
-            "path": "k8s/connect/connect-ca-provider"
+            "title": "Ambassador Edge Stack Integration",
+            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
           },
           {
-            "title": "Ambassador Integration",
-            "path": "k8s/connect/ambassador"
+            "title": "Configuring a Connect CA Provider",
+            "path": "k8s/connect/connect-ca-provider"
           },
           {
             "title": "Health Checks",
@@ -552,11 +552,15 @@
       {
         "title": "Helm Chart Configuration",
         "path": "k8s/helm"
+      },
+      {
+        "title": "Consul K8s CLI Reference",
+        "path": "k8s/k8s-cli"
       }
     ]
   },
   {
-    "title": "AWS ECS <sup>Tech Preview</sup>",
+    "title": "AWS ECS <sup>BETA</sup>",
     "routes": [
       {
         "title": "Overview",
@@ -566,16 +570,28 @@
         "title": "Get Started",
         "routes": [
           {
-            "title": "Example Installation",
+            "title": "Example Installation on ECS Fargate",
             "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate"
+          },
+          {
+            "title": "Example Installation on ECS EC2",
+            "href": "https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2"
           },
           {
             "title": "Requirements",
             "path": "ecs/get-started/requirements"
           },
           {
-            "title": "Install",
+            "title": "Installation",
             "path": "ecs/get-started/install"
+          },
+          {
+            "title": "Production Installation",
+            "path": "ecs/get-started/production-installation"
+          },
+          {
+            "title": "Migrate Existing Tasks",
+            "path": "ecs/get-started/migrate-existing-tasks"
           }
         ]
       },
@@ -660,8 +676,39 @@
         "path": "nia/terraform-modules"
       },
       {
+        "title": "Enterprise",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/enterprise"
+          },
+
+          {
+            "title": "License",
+            "path": "nia/enterprise/license"
+          },
+          {
+            "title": "Terraform Cloud Driver",
+            "href": "/docs/nia/network-drivers/terraform-cloud"
+          }
+        ]
+      },
+      {
         "title": "Network Drivers",
-        "path": "nia/network-drivers"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "nia/network-drivers"
+          },
+          {
+            "title": "Terraform",
+            "path": "nia/network-drivers/terraform"
+          },
+          {
+            "title": "Terraform Cloud",
+            "path": "nia/network-drivers/terraform-cloud"
+          }
+        ]
       },
       {
         "title": "Compatibility",
@@ -828,12 +875,16 @@
         "path": "enterprise/federation"
       },
       {
+        "title": "Network Segments",
+        "path": "enterprise/network-segments"
+      },
+      {
         "title": "Namespaces",
         "path": "enterprise/namespaces"
       },
       {
-        "title": "Network Segments",
-        "path": "enterprise/network-segments"
+        "title": "NIA with TFE",
+        "href": "/docs/nia/enterprise"
       },
       {
         "title": "Sentinel",

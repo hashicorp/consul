@@ -19,7 +19,7 @@
   {{~/if~}}
 {{~else~}}
   <button
-    type="button"
+    type={{or @type 'button'}}
     {{on 'click' (optional @onclick)}}
     tabindex={{@tabindex}}
     ...attributes

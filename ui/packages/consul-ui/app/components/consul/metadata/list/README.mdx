@@ -8,7 +8,7 @@ A presentational component for presenting Consul Metadata
 The following example shows how to construct the required structure from the Consul API using ember-componsable-helpers' `entries` helper.
 
 ```hbs
-<DataSource @src="/default/dc-1/service-instance/service-id/node-0/service-0" as |source|>
+<DataSource @src="/partition/default/dc-1/service-instance/service-id/node-0/service-0" as |source|>
   <Consul::Metadata::List
     @items={{entries source.data.firstObject.Meta}}
   />

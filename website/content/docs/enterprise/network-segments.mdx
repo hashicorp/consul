@@ -11,19 +11,33 @@ description: |-
 <EnterpriseAlert>
   This feature requires{' '}
   <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a>{' '}
-  with the Global Visibility, Routing, and Scale module.
+  version 0.9.3+ with the Global Visibility, Routing, and Scale module.
 </EnterpriseAlert>
 
-Consul Network Segments enables operators to create separate LAN gossip segments
-in one Consul cluster. Agents in a segment are only able to join and communicate
-with other agents in its network segment. This functionality is useful for
-clusters that have multiple tenants that should not be able to communicate
-with each other.
+Consul requires full connectivity between all agents (servers and clients) in a
+[datacenter](/docs/agent/options#_datacenter) within a given
+LAN gossip pool. By default, all Consul agents will be a part of one shared Serf LAN
+gossip pool known as the `<default>` network segment, thus requiring full mesh
+connectivity within the datacenter.
 
-To get started with network segments you can review the tutorial on HashiCorp Learn for
-[Network Segments](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters).
+![Consul datacenter default agent connectivity: one network segment](/img/network-segments/consul-network-segments-single.png)
 
-~> **Note:** Prior to Consul 1.7.3, a Consul agent configured with too many network segments may not be able to start due to [limitations](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters#network-segments-limitations) in Serf.
+In some environments, full connectivity between all agents is not possible—known as a
+"segmented network". This is usually the result of business policies enforced through
+network rules or firewalls. To use Consul in a segmented network, you must break up
+the LAN gossip pool along network communication boundaries into separate "network
+segments". Network segments are isolated LAN gossip pools that only require full
+connectivity between agent members on the same segment.
+
+![Consul datacenter agent connectivity with network segments](/img/network-segments/consul-network-segments-multiple.png)
+
+To get started with network segments you can review the tutorial on HashiCorp
+Learn for [Network Segments](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters).
+
+-> **Info:** Network segments enable you to operate a Consul datacenter without full
+mesh (LAN) connectivity between agents. To federate multiple Consul datacenters
+without full mesh (WAN) connectivity between all server agents in all datacenters,
+use [Network Areas (Enterprise)](/docs/enterprise/federation).
 
 # Consul Networking Models
 
@@ -52,3 +66,171 @@ among themselves, and use Serf to maintain a shared view of the members of the
 pool for different purposes, like finding a Consul server in a local cluster,
 or finding servers in a remote cluster. A **segmented** LAN Gossip Pool limits a
 group of agents to only connect with the agents in its segment.
+
+# Network Segments Configuration
+
+## Server Configuration
+
+Server agents are members of all segments. The datacenter includes a `<default>`
+segment, as well as additional segments defined in the
+[`segments`](/docs/agent/options#segments) server agent configuration option.
+Each additional segment is defined by:
+
+- a non-empty name
+- a unique port
+- optionally, a custom bind and advertise address for the additional segment's
+  Serf LAN listener on the server
+
+~> **Note:** Prior to Consul 1.7.3, a Consul server agent configured with too
+many network segments may not be able to start due to [limitations](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters#network-segments-limitations)
+in Serf.
+
+### Example Server Configuration
+
+The following server agent configuration will create two user-defined network
+segments: `alpha` and `beta`.
+
+<CodeTabs heading="Example network segments configuration for server agents">
+
+```hcl
+segments = [
+  {
+    name = "alpha"
+    bind = "{{GetPrivateIP}}"
+    advertise = "{{GetPrivateIP}}"
+    port = 8303
+  },
+  {
+    name = "beta"
+    bind = "{{GetPrivateIP}}"
+    advertise = "{{GetPrivateIP}}"
+    port = 8304
+  }
+]
+```
+
+```json
+{
+  "segments": [
+    {
+      "name": "alpha",
+      "bind": "{{GetPrivateIP}}",
+      "advertise": "{{GetPrivateIP}}",
+      "port": 8303
+    },
+    {
+      "name": "beta",
+      "bind": "{{GetPrivateIP}}",
+      "advertise": "{{GetPrivateIP}}",
+      "port": 8304
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+The server [agent configuration](/docs/agent/options) options relevant to network
+segments are:
+
+- [`ports.serf_lan`](/docs/agent/options#serf_lan_port): The Serf LAN port on this server
+  for the `<default>` network segment's gossip pool.
+- [`segments`](/docs/agent/options#segments): A list of user-defined network segments
+  on this server, including their names and Serf LAN ports.
+
+## Client Configuration
+
+Each client agent can only be a member of one segment at a time. This will be the
+`<default>` segment unless otherwise specified in the agent's
+[`segment`](/docs/agent/options.html#_segment) agent configuration option.
+
+### Join a Client to a Segment ((#join_a_client_to_a_segment))
+
+For a client agent to [join](/commands/join) the Consul
+datacenter, it must connect to another agent (client or server) within its
+configured segment.
+
+<Tabs>
+<Tab heading="Join via another client">
+
+Clients A and B specify the same segment S. Client B is already joined to the segment S
+LAN gossip pool. Client A wants to join via Client B. In order to do so, Client A
+must connect to Client B's configured [Serf LAN port](/docs/agent/options#serf_lan_port).
+
+</Tab>
+<Tab heading="Join via a server">
+
+Client A specifies segment S and wants to join the segment S gossip pool via Server 1.
+In order to do so, Client A must connect to Server 1's configured [Serf LAN port
+for segment S](/docs/agent/options#segment_port).
+
+</Tab>
+</Tabs>
+
+There are several methods to specify the port used by the join operation, listed in order
+of precedence:
+
+1. **Specify an explicit port in the join address**. This can be done at the CLI when starting
+   the agent (e.g., `consul agent -retry-join "client-b-address:8303"`), or in the agent's
+   configuration using the [retry-join option](/docs/agent/options#retry_join). This method
+   is not compatible with [cloud auto-join](/docs/install/cloud-auto-join#auto-join-with-network-segments).
+
+2. **Specify an alternate Serf LAN port for the agent**. This can be done at the CLI when starting
+   the agent (e.g., `consul agent -retry-join "client-b-address" -serf-lan-port 8303`), or in
+   the agent's configuration using the [serf_lan](/docs/agent/options#serf_lan_port) option.
+   When a Serf LAN port is not explicitly specified in the join address, the agent will attempt to
+   join the target host at the Serf LAN port specified in CLI or agent configuration.
+
+3. **Use the default Serf LAN port (8301)**. The agent will attempt to join the target host
+   on port 8301.
+
+-> Agents within a segment can use different port numbers for their Serf LAN port.
+For example, on the `<default>` segment, Server S can use port 8301, Client A
+can use 8303, and Client B can use 8304. However, if an agent wishes to join a
+segment via an agent that uses a different port number, the target agent's Serf LAN
+port must be specified in the join address (method 1 above).
+
+### Example Client Configuration
+
+The following client agent configuration will cause the agent to:
+
+- Open a Serf LAN listener port on 8303.
+- Attempt to join the cluster via servers on port 8303 (since an alternate port is not
+  specified in the `retry_join` addresses).
+
+<CodeTabs heading="Example network segment configuration for client agents">
+
+```hcl
+node_name = "consul-client1"
+retry_join = ["consul-server1", "consul-server2", "consul-server3"]
+segment = "alpha"
+ports = {
+  serf_lan = 8303
+}
+```
+
+```json
+{
+  "node_name": "consul-client1",
+  "retry_join": ["consul-server1", "consul-server2", "consul-server3"],
+  "segment": "alpha",
+  "ports": {
+    "serf_lan": 8303
+  }
+}
+```
+
+</CodeTabs>
+
+The client [agent configuration](/docs/agent/options) options relevant to network
+segments are:
+
+- [`segment`](/docs/agent/options#segment-2): The name of the network segment this
+  client agent belongs to.
+- [`ports.serf_lan`](/docs/agent/options#serf_lan_port):
+  Serf LAN port for the above segment on this client. This is not required
+  to match the configured Serf LAN port for other agents on this segment.
+- [`retry_join`](/docs/agent/options#retry_join) or
+  [`start_join`](/docs/agent/options#start_join): A list of agent addresses to join
+  when starting. Ensure the correct Serf LAN port for this segment is used when joining
+  the LAN gossip pool using one of the [available configuration methods](#join_a_client_to_a_segment).

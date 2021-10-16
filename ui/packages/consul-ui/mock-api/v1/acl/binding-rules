@@ -19,7 +19,8 @@
             "Selector": "serviceaccount.namespace==${fake.hacker.noun()} and serviceaccount.name!=${fake.hacker.noun()}",
             "BindType": "${fake.helpers.randomize(['service', 'node', 'role'])}",
             "BindName": "${fake.hacker.noun()}-${i}",
-            "Namespace": "${location.search.ns}",
+            "Namespace": "${location.search.ns || 'default'}",
+            "Partition": "${location.search.partition || 'default'}",
             "CreateIndex": ${fake.random.number()},
             "ModifyIndex": 10
           }

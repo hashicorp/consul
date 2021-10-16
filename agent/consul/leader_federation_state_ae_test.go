@@ -376,14 +376,13 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 		c.ACLMasterToken = "root"
 		c.ACLResolverSettings.ACLDefaultPolicy = "deny"
 	})
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	// Try to join.
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 
 	// Create the ACL token.
 	opWriteToken, err := upsertTestTokenWithPolicyRules(client, "root", "dc1", `operator = "write"`)

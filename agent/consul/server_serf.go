@@ -72,11 +72,12 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		conf.Tags["use_tls"] = "1"
 	}
 
+	// TODO(ACL-Legacy-Compat): remove in phase 2. These are kept for now to
+	// allow for upgrades.
 	if s.acls.ACLsEnabled() {
-		// we start in legacy mode and allow upgrading later
-		conf.Tags["acls"] = string(structs.ACLModeLegacy)
+		conf.Tags[metadata.TagACLs] = string(structs.ACLModeEnabled)
 	} else {
-		conf.Tags["acls"] = string(structs.ACLModeDisabled)
+		conf.Tags[metadata.TagACLs] = string(structs.ACLModeDisabled)
 	}
 
 	// feature flag: advertise support for federation states
@@ -176,7 +177,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
 
-	addEnterpriseSerfTags(conf.Tags, s.config.agentEnterpriseMeta())
+	addEnterpriseSerfTags(conf.Tags, s.config.AgentEnterpriseMeta())
 
 	if s.config.OverrideInitialSerfTags != nil {
 		s.config.OverrideInitialSerfTags(conf.Tags)

@@ -6,8 +6,30 @@ import { isChangeset } from 'validated-changeset';
 import HTTPError from 'consul-ui/utils/http/error';
 import { ACCESS_READ } from 'consul-ui/abilities/base';
 
+export const softDelete = (repo, item) => {
+  // Some deletes need to be more of a soft delete.
+  // Therefore the partition still exists once we've requested a delete/removal.
+  // This makes 'removing' more of a custom action rather than a standard
+  // ember-data delete.
+  // Here we use the same request for a delete but we bypass ember-data's
+  // destroyRecord/unloadRecord and serialization so we don't get
+  // ember data error messages when the UI tries to update a 'DeletedAt' property
+  // on an object that ember-data is trying to delete
+  const res = repo.store.adapterFor(repo.getModelName()).rpc(
+    (adapter, request, serialized, unserialized) => {
+      return adapter.requestForDeleteRecord(request, serialized, unserialized);
+    },
+    (serializer, respond, serialized, unserialized) => {
+      return item;
+    },
+    item,
+    repo.getModelName()
+  );
+  return res;
+}
 export default class RepositoryService extends Service {
   @service('store') store;
+  @service('env') env;
   @service('repository/permission') permissions;
 
   getModelName() {
@@ -66,23 +88,33 @@ export default class RepositoryService extends Service {
     return item;
   }
 
-  reconcile(meta = {}) {
+  shouldReconcile(item, params) {
+    const dc = get(item, 'Datacenter');
+    if (dc !== params.dc) {
+      return false;
+    }
+    if (this.env.var('CONSUL_NSPACES_ENABLED')) {
+      const nspace = get(item, 'Namespace');
+      if (typeof nspace !== 'undefined' && nspace !== params.ns) {
+        return false;
+      }
+    }
+    if (this.env.var('CONSUL_PARTITIONS_ENABLED')) {
+      const partition = get(item, 'Partition');
+      if (typeof partiton !== 'undefined' && partition !== params.partition) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  reconcile(meta = {}, params = {}, configuration = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
-      const checkNspace = meta.nspace !== '';
       this.store.peekAll(this.getModelName()).forEach(item => {
-        const dc = get(item, 'Datacenter');
-        if (dc === meta.dc) {
-          if (checkNspace) {
-            const nspace = get(item, 'Namespace');
-            if (typeof nspace !== 'undefined' && nspace !== meta.nspace) {
-              return;
-            }
-          }
-          const date = get(item, 'SyncTime');
-          if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date) {
-            this.store.unloadRecord(item);
-          }
+        const date = get(item, 'SyncTime');
+        if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date && this.shouldReconcile(item, params)) {
+          this.store.unloadRecord(item);
         }
       });
     }
@@ -92,12 +124,51 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
-  findAllByDatacenter(params, configuration = {}) {
+  cached(params) {
+    const entries = Object.entries(params);
+    return this.store.peekAll(this.getModelName()).filter(item => {
+      return entries.every(([key, value]) => item[key] === value);
+    });
+  }
+
+  // @deprecated
+  async findAllByDatacenter(params, configuration = {}) {
+    return this.findAll(...arguments);
+  }
+
+  async findAll(params = {}, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
       params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), params);
+    return this.query(params);
+  }
+
+  async query(params = {}, configuration = {}) {
+    let error, meta, res;
+    try {
+      res = await this.store.query(this.getModelName(), params);
+      meta = res.meta;
+    } catch(e) {
+      switch(get(e, 'errors.firstObject.status')) {
+        case '404':
+        case '403':
+          meta = {
+            date: Number.POSITIVE_INFINITY
+          };
+          error = e;
+          break;
+        default:
+          throw e;
+      }
+    }
+    if(typeof meta !== 'undefined') {
+      this.reconcile(meta, params, configuration);
+    }
+    if(typeof error !== 'undefined') {
+      throw error;
+    }
+    return res;
   }
 
   async findBySlug(params, configuration = {}) {
@@ -105,6 +176,7 @@ export default class RepositoryService extends Service {
       return this.create({
         Datacenter: params.dc,
         Namespace: params.ns,
+        Partition: params.partition,
       });
     }
     if (typeof configuration.cursor !== 'undefined') {

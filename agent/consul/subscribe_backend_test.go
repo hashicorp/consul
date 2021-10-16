@@ -25,6 +25,8 @@ import (
 func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 	t.Parallel()
 
+	// TODO(rb): add tests for the wanfed/alpn variations
+
 	_, conf1 := testServerConfig(t)
 	conf1.TLSConfig.VerifyIncoming = true
 	conf1.TLSConfig.VerifyOutgoing = true
@@ -60,7 +62,13 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 
 	// Start a Subscribe call to our streaming endpoint from the client.
 	{
-		pool := grpc.NewClientConnPool(builder, grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()), client.tlsConfigurator.UseTLS)
+		pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
+			UseTLSForDC:           client.tlsConfigurator.UseTLS,
+			DialingFromServer:     true,
+			DialingFromDatacenter: "dc1",
+		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
 
@@ -91,8 +99,13 @@ func TestSubscribeBackend_IntegrationWithServer_TLSEnabled(t *testing.T) {
 
 	// Start a Subscribe call to our streaming endpoint from the server's loopback client.
 	{
-
-		pool := grpc.NewClientConnPool(builder, grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()), client.tlsConfigurator.UseTLS)
+		pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+			Servers:               builder,
+			TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
+			UseTLSForDC:           client.tlsConfigurator.UseTLS,
+			DialingFromServer:     true,
+			DialingFromDatacenter: "dc1",
+		})
 		conn, err := pool.ClientConn("dc1")
 		require.NoError(t, err)
 
@@ -166,7 +179,13 @@ func TestSubscribeBackend_IntegrationWithServer_TLSReload(t *testing.T) {
 	// Subscribe calls should fail initially
 	joinLAN(t, client, server)
 
-	pool := grpc.NewClientConnPool(builder, grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()), client.tlsConfigurator.UseTLS)
+	pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+		Servers:               builder,
+		TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
+		UseTLSForDC:           client.tlsConfigurator.UseTLS,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
 
@@ -294,7 +313,13 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 		}
 	}()
 
-	pool := grpc.NewClientConnPool(builder, grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()), client.tlsConfigurator.UseTLS)
+	pool := grpc.NewClientConnPool(grpc.ClientConnPoolConfig{
+		Servers:               builder,
+		TLSWrapper:            grpc.TLSWrapper(client.tlsConfigurator.OutgoingRPCWrapper()),
+		UseTLSForDC:           client.tlsConfigurator.UseTLS,
+		DialingFromServer:     true,
+		DialingFromDatacenter: "dc1",
+	})
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
 
@@ -337,16 +362,18 @@ func TestSubscribeBackend_IntegrationWithServer_DeliversAllMessages(t *testing.T
 }
 
 func newClientWithGRPCResolver(t *testing.T, ops ...func(*Config)) (*Client, *resolver.ServerResolverBuilder) {
-	builder := resolver.NewServerResolverBuilder(resolver.Config{Authority: t.Name()})
-	resolver.Register(builder)
-	t.Cleanup(func() {
-		resolver.Deregister(builder.Authority())
-	})
-
 	_, config := testClientConfig(t)
 	for _, op := range ops {
 		op(config)
 	}
+
+	builder := resolver.NewServerResolverBuilder(newTestResolverConfig(t,
+		"client."+config.Datacenter+"."+string(config.NodeID)))
+
+	resolver.Register(builder)
+	t.Cleanup(func() {
+		resolver.Deregister(builder.Authority())
+	})
 
 	deps := newDefaultDeps(t, config)
 	deps.Router = router.NewRouter(

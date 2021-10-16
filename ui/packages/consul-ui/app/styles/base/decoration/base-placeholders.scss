@@ -8,11 +8,15 @@
   padding: 0;
   border: 0;
 }
+%visually-unhidden,
 %unvisually-hidden {
-  clip: auto;
+  position: static;
+  clip: unset;
   overflow: visible;
   width: auto;
   height: auto;
+  margin: 0;
+  padding: 0;
 }
 %visually-hidden-text {
   text-indent: -9000px;

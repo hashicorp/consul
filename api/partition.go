@@ -1,0 +1,149 @@
+package api
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+// AdminPartition is the configuration of a single admin partition. Admin Partitions are a Consul Enterprise feature.
+type AdminPartition struct {
+	// Name is the name of the Partition.
+	Name string `json:"Name"`
+
+	// Description is where the user puts any information they want
+	// about the partition. It is not used internally.
+	Description string `json:"Description,omitempty"`
+
+	// DeletedAt is the time when the Partition was marked for deletion
+	// This is nullable so that we can omit if empty when encoding in JSON
+	DeletedAt *time.Time `json:"DeletedAt,omitempty" alias:"deleted_at"`
+
+	// CreateIndex is the Raft index at which the Partition was created
+	CreateIndex uint64 `json:"CreateIndex,omitempty"`
+
+	// ModifyIndex is the latest Raft index at which the Partition was modified.
+	ModifyIndex uint64 `json:"ModifyIndex,omitempty"`
+}
+
+type AdminPartitions struct {
+	Partitions []*AdminPartition
+}
+
+// Partitions can be used to manage Partitions in Consul Enterprise..
+type Partitions struct {
+	c *Client
+}
+
+// Operator returns a handle to the operator endpoints.
+func (c *Client) Partitions() *Partitions {
+	return &Partitions{c}
+}
+
+func (p *Partitions) Create(ctx context.Context, partition *AdminPartition, q *WriteOptions) (*AdminPartition, *WriteMeta, error) {
+	if partition.Name == "" {
+		return nil, nil, fmt.Errorf("Must specify a Name for Partition creation")
+	}
+
+	r := p.c.newRequest("PUT", "/v1/partition")
+	r.setWriteOptions(q)
+	r.ctx = ctx
+	r.obj = partition
+	rtt, resp, err := requireOK(p.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	var out AdminPartition
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, wm, nil
+}
+
+func (p *Partitions) Update(ctx context.Context, partition *AdminPartition, q *WriteOptions) (*AdminPartition, *WriteMeta, error) {
+	if partition.Name == "" {
+		return nil, nil, fmt.Errorf("Must specify a Name for Partition updating")
+	}
+
+	r := p.c.newRequest("PUT", "/v1/partition/"+partition.Name)
+	r.setWriteOptions(q)
+	r.ctx = ctx
+	r.obj = partition
+	rtt, resp, err := requireOK(p.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	var out AdminPartition
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, wm, nil
+}
+
+func (p *Partitions) Read(ctx context.Context, name string, q *QueryOptions) (*AdminPartition, *QueryMeta, error) {
+	var out AdminPartition
+	r := p.c.newRequest("GET", "/v1/partition/"+name)
+	r.setQueryOptions(q)
+	r.ctx = ctx
+	found, rtt, resp, err := requireNotFoundOrOK(p.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if !found {
+		return nil, qm, nil
+	}
+
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
+}
+
+func (p *Partitions) Delete(ctx context.Context, name string, q *WriteOptions) (*WriteMeta, error) {
+	r := p.c.newRequest("DELETE", "/v1/partition/"+name)
+	r.setWriteOptions(q)
+	r.ctx = ctx
+	rtt, resp, err := requireOK(p.c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	return wm, nil
+}
+
+func (p *Partitions) List(ctx context.Context, q *QueryOptions) (*AdminPartitions, *QueryMeta, error) {
+	var out *AdminPartitions
+	r := p.c.newRequest("GET", "/v1/partitions")
+	r.setQueryOptions(q)
+	r.ctx = ctx
+	rtt, resp, err := requireOK(p.c.doRequest(r))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return out, qm, nil
+}

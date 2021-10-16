@@ -33,6 +33,7 @@
       @disabled={{not (can "write nspace" item=item)}}
       @dc={{dc}}
       @nspace="default"
+      @partition={{partition}}
       @items={{item.ACLs.RoleDefaults}}
     />
   </fieldset>
@@ -49,6 +50,7 @@
       @disabled={{not (can "write nspace" item=item)}}
       @dc={{dc}}
       @nspace="default"
+      @partition={{partition}}
       @allowIdentity={{false}}
       @items={{item.ACLs.PolicyDefaults}}
     />

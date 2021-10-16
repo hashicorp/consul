@@ -6,7 +6,7 @@ import (
 
 // TestIntention returns a valid, uninserted (no ID set) intention.
 func TestIntention(t testing.T) *Intention {
-	return &Intention{
+	ixn := &Intention{
 		SourceNS:        IntentionDefaultNamespace,
 		SourceName:      "api",
 		DestinationNS:   IntentionDefaultNamespace,
@@ -15,4 +15,6 @@ func TestIntention(t testing.T) *Intention {
 		SourceType:      IntentionSourceConsul,
 		Meta:            map[string]string{},
 	}
+	ixn.FillPartitionAndNamespace(nil, true)
+	return ixn
 }

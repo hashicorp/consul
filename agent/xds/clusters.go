@@ -38,51 +38,22 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	case structs.ServiceKindMeshGateway:
 		res, err := s.clustersFromSnapshotMeshGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	case structs.ServiceKindIngressGateway:
 		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
-		return s.maybeInjectStubClusterForGateways(res)
+		return res, nil
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
-}
-
-func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.Message) ([]proto.Message, error) {
-	switch {
-	case !s.IncrementalXDS:
-		return resources, nil
-	case !s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS:
-		return resources, nil
-	case len(resources) > 0:
-		return resources, nil
-	}
-
-	// For more justification for this hacky fix, check the comments associated
-	// with s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS
-
-	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
-	return []proto.Message{
-		&envoy_cluster_v3.Cluster{
-			Name:                 stubName,
-			ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
-			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
-			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
-				ClusterName: stubName,
-				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
-					{LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{}},
-				},
-			},
-		},
-	}, nil
 }
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"
@@ -306,7 +277,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 	clusters := make([]proto.Message, 0, len(services))
 
 	for svc := range services {
-		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
 		resolver, hasResolver := resolvers[svc]
 
 		var loadBalancer *structs.LoadBalancer
@@ -345,7 +316,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			}
 
 			opts := gatewayClusterOpts{
-				name:              connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
+				name:              connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
 				hostnameEndpoints: subsetHostnameEndpoints,
 				onlyPassing:       subset.OnlyPassing,
 				connectTimeout:    resolver.ConnectTimeout,
@@ -639,10 +610,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		targetSpiffeID := connect.SpiffeIDService{
 			Host:       cfgSnap.Roots.TrustDomain,
 			Namespace:  target.Namespace,
+			Partition:  target.Partition,
 			Datacenter: target.Datacenter,
 			Service:    target.Service,
-
-			// TODO(partitions) Store partition
 		}
 
 		if failoverThroughMeshGateway {
@@ -676,10 +646,9 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 				id := connect.SpiffeIDService{
 					Host:       cfgSnap.Roots.TrustDomain,
 					Namespace:  target.Namespace,
+					Partition:  target.Partition,
 					Datacenter: target.Datacenter,
 					Service:    target.Service,
-
-					// TODO(partitions) Store partition
 				}
 
 				// Failover targets might be subsets of the same service, so these are deduplicated.

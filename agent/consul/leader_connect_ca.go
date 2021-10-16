@@ -1438,7 +1438,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 			csr.URIs = uris
 		}
-		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
+		entMeta.Merge(agentID.GetEnterpriseMeta())
 	}
 
 	commonCfg, err := config.GetCommonConfig()

@@ -82,7 +82,7 @@ func (s *HTTPHandlers) CoordinateNodes(resp http.ResponseWriter, req *http.Reque
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +108,7 @@ func (s *HTTPHandlers) CoordinateNode(resp http.ResponseWriter, req *http.Reques
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	if err := parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
+	if err := s.parseEntMetaPartition(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
 

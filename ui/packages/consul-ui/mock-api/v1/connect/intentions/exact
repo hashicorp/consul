@@ -8,10 +8,12 @@ return `
     "ID": "${legacy ? ID : ''}"
 ${ http.method !== "PUT" ? `
     ,"Description": "${fake.lorem.sentence()}",
-    "SourceNS": "${source[0]}",
-    "SourceName": "${source[1]}",
-    "DestinationNS": "${destination[0]}",
-    "DestinationName": "${destination[1]}",
+    "SourceName": "${source[2]}",
+    "DestinationName": "${destination[2]}",
+    "SourceNS": "${source[1]}",
+    "DestinationNS": "${destination[1]}",
+    "SourcePartition": "${source[0]}",
+    "DestinationPartition": "${destination[0]}",
     "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
 ${legacy ? `
     "Action": "${fake.helpers.randomize(['allow', 'deny'])}",

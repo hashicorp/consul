@@ -1,7 +1,59 @@
 <Route
   @name={{routeName}}
-  @title="Key/Value"
 as |route|>
+  <DataSource
+    @src={{uri '/${partition}/${nspace}/${dc}/kv/${key}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        key=(or route.params.key '/')
+      )
+    }}
+    @onchange={{action (mut parent) value="data"}}
+  />
+  <DataLoader
+    @src={{uri '/${partition}/${nspace}/${dc}/kvs/${key}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        key=(or route.params.key '/')
+      )}}
+    as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+      <BlockSlot @name="disconnected" as |Notification|>
+        {{#if (eq loader.error.status "404")}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="warning notification-update">
+              <strong>Warning!</strong>
+              This KV or parent of this KV was deleted.
+            </p>
+          </Notification>
+        {{else if (eq loader.error.status "403")}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="error notification-update">
+              <strong>Error!</strong>
+              You no longer have access to this KV.
+            </p>
+          </Notification>
+        {{else}}
+          <Notification @sticky={{true}}>
+            <p data-notification role="alert" class="warning notification-update">
+              <strong>Warning!</strong>
+              An error was returned whilst loading this data, refresh to try again.
+            </p>
+          </Notification>
+        {{/if}}
+      </BlockSlot>
+
+    <BlockSlot @name="loaded">
 {{#let
 
   (hash
@@ -16,9 +68,10 @@ as |route|>
     )
   )
 
-  items
+  parent
+  loader.data
 
-as |sort filters items|}}
+as |sort filters parent items|}}
     <AppView>
     {{#if (not-eq parent.Key '/') }}
       <BlockSlot @name="breadcrumbs">
@@ -33,9 +86,9 @@ as |sort filters items|}}
       <BlockSlot @name="header">
           <h1>
             {{#if (eq parent.Key '/')}}
-              Key / Value
+              <route.Title @title="Key / Value" />
             {{else}}
-              {{take 1 (drop 1 (reverse (split parent.Key '/')))}}
+              <route.Title @title={{take 1 (drop 1 (reverse (split parent.Key '/')))}} />
             {{/if}}
           </h1>
           <label for="toolbar-toggle"></label>
@@ -63,7 +116,13 @@ as |sort filters items|}}
       </BlockSlot>
       <BlockSlot @name="content">
         <DataWriter
-          @sink={{concat '/' dc '/' nspace '/kv/'}}
+          @sink={{uri '/${partition}/${nspace}/${dc}/kv/'
+            (hash
+              partition=route.params.partition
+              nspace=route.params.nspace
+              dc=route.params.dc
+            )
+          }}
           @type="kv"
           @label="key"
           @ondelete={{refresh-route}}
@@ -121,4 +180,6 @@ as |sort filters items|}}
       </BlockSlot>
     </AppView>
 {{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

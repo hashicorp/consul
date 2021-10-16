@@ -1,7 +1,24 @@
 <Route
   @name={{routeName}}
 as |route|>
-  <EventSource @src={{items}} />
+  <DataLoader @src={{
+      uri '/${partition}/${nspace}/${dc}/gateways/for-service/${name}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        name=route.params.name
+      )
+  }} as |loader|>
+
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
   <div class="tab-section">
   {{#let
 
@@ -25,7 +42,7 @@ as |route|>
       )
     )
 
-    items
+    loader.data
 
   as |sort filters items|}}
   {{#if (gt items.length 0)}}
@@ -69,4 +86,6 @@ as |route|>
       </DataCollection>
   {{/let}}
   </div>
+    </BlockSlot>
+  </DataLoader>
 </Route>

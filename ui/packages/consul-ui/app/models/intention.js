@@ -12,10 +12,14 @@ export default class Intention extends Model {
 
   @attr('string') Datacenter;
   @attr('string') Description;
-  @attr('string', { defaultValue: () => 'default' }) SourceNS;
+
   @attr('string', { defaultValue: () => '*' }) SourceName;
-  @attr('string', { defaultValue: () => 'default' }) DestinationNS;
   @attr('string', { defaultValue: () => '*' }) DestinationName;
+  @attr('string', { defaultValue: () => 'default' }) SourceNS;
+  @attr('string', { defaultValue: () => 'default' }) DestinationNS;
+  @attr('string', { defaultValue: () => 'default' }) SourcePartition;
+  @attr('string', { defaultValue: () => 'default' }) DestinationPartition;
+
   @attr('number') Precedence;
   @attr('string', { defaultValue: () => 'consul' }) SourceType;
   @nullValue(undefined) @attr('string') Action;
@@ -36,10 +40,5 @@ export default class Intention extends Model {
       ([key, value]) => key === 'external-source' && value === 'kubernetes'
     );
     return typeof meta !== 'undefined';
-  }
-
-  @computed('IsManagedByCRD')
-  get IsEditable() {
-    return !this.IsManagedByCRD;
   }
 }

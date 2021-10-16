@@ -5,14 +5,9 @@ import { get, action } from '@ember/object';
 import transitionable from 'consul-ui/utils/routing/transitionable';
 
 export default class ApplicationController extends Controller {
-  @service('router')
-  router;
-
-  @service('store')
-  store;
-
-  @service('feedback')
-  feedback;
+  @service('router') router;
+  @service('store') store;
+  @service('feedback') feedback;
 
   // TODO: We currently do this in the controller instead of the router
   // as the nspace and dc variables aren't available directly on the Route
@@ -29,7 +24,7 @@ export default class ApplicationController extends Controller {
         // TODO: Currently we clear cache from the ember-data store
         // ideally this would be a static method of the abstract Repository class
         // once we move to proper classes for services take another look at this.
-        this.store.clear();
+        this.store.invalidate();
         //
         const params = {};
         if (e.data) {

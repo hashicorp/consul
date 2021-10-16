@@ -78,8 +78,34 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 				{
 					Name:  "asdf",
 					Hosts: []string{"test.example.com"},
+					RequestHeaders: &HTTPHeaderModifiers{
+						Set: map[string]string{
+							"x-foo": "bar",
+						},
+					},
+					ResponseHeaders: &HTTPHeaderModifiers{
+						Remove: []string{"x-foo"},
+					},
+					TLS: &GatewayServiceTLSConfig{
+						SDS: &GatewayTLSSDSConfig{
+							ClusterName:  "foo",
+							CertResource: "bar",
+						},
+					},
 				},
 			},
+			TLS: &GatewayTLSConfig{
+				SDS: &GatewayTLSSDSConfig{
+					ClusterName:  "baz",
+					CertResource: "qux",
+				},
+			},
+		},
+	}
+	ingress1.TLS = GatewayTLSConfig{
+		SDS: &GatewayTLSSDSConfig{
+			ClusterName:  "qux",
+			CertResource: "bug",
 		},
 	}
 

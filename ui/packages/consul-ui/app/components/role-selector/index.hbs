@@ -18,10 +18,21 @@ as |modal|>
   <BlockSlot @name="body">
 
   <input id="{{name}}_state_role" type="radio" name="{{name}}[state]" value="role" checked={{if (eq state 'role') 'checked'}} onchange={{action 'change'}} />
-    <RoleForm @form={{form}} @dc={{dc}} @nspace={{nspace}}>
+    <RoleForm
+      @form={{form}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @partition={{partition}}
+    >
       <BlockSlot @name="policy">
 
-        <PolicySelector @source={{source}} @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}}>
+        <PolicySelector
+          @source={{source}}
+          @dc={{dc}}
+          @partition={{partition}}
+          @nspace={{nspace}}
+          @items={{item.Policies}}
+        >
           <BlockSlot @name="trigger">
             <label for="{{name}}_state_policy" data-test-create-policy class="type-dialog">
               <span>Create new policy</span>
@@ -33,7 +44,14 @@ as |modal|>
     </RoleForm>
 
     <input id="{{name}}_state_policy" type="radio" name="{{name}}[state]" value="policy" checked={{if (eq state 'policy') 'checked'}} onchange={{action 'change'}} />
-    <PolicyForm data-test-policy-form @name="role[policy]" @form={{policyForm}} @dc={{dc}} />
+    <PolicyForm
+      data-test-policy-form
+      @name="role[policy]"
+      @form={{policyForm}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @partition={{partition}}
+    />
 
   </BlockSlot>
   <BlockSlot @name="actions" as |close|>
@@ -62,7 +80,16 @@ as |modal|>
   </BlockSlot>
 </ModalDialog>
 
-<ChildSelector @disabled={{disabled}} @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
+<ChildSelector
+  @disabled={{disabled}}
+  @repo={{repo}}
+  @dc={{dc}}
+  @partition={{partition}}
+  @nspace={{nspace}}
+  @type="role"
+  @placeholder="Search for role"
+  @items={{items}}
+>
   <BlockSlot @name="label">
     Apply an existing role
   </BlockSlot>
@@ -114,24 +141,35 @@ as |modal|>
               <li role="none" class="dangerous">
                 <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Remove</label>
                 <div role="menu">
-                  <div class="confirmation-alert warning">
-                    <div>
-                      <header>
-                        Confirm Remove
-                      </header>
+                  <InformedAction
+                    class="warning"
+                  >
+                    <:header>
+                      Confirm Remove
+                    </:header>
+                    <:body>
                       <p>
                         Are you sure you want to remove this role?
                       </p>
-                    </div>
-                    <ul>
-                      <li class="dangerous">
-                        <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'remove' item items}}>Remove</button>
-                      </li>
-                      <li>
-                        <label for={{confirm}}>Cancel</label>
-                      </li>
-                    </ul>
-                  </div>
+                    </:body>
+                    <:actions as |Actions|>
+                      <Actions.Action class="dangerous">
+                        <Action
+                          tabindex="-1"
+                          {{on 'click' (action send 'remove' item items)}}
+                        >
+                          Remove
+                        </Action>
+                      </Actions.Action>
+                      <Actions.Action>
+                        <Action
+                          @for={{confirm}}
+                        >
+                          Cancel
+                        </Action>
+                      </Actions.Action>
+                    </:actions>
+                  </InformedAction>
                 </div>
               </li>
 {{/if}}

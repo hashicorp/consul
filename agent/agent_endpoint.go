@@ -73,7 +73,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 			SupportedProxies: map[string][]string{
 				"envoy": proxysupport.EnvoyVersions,
 			},
-			Port: s.agent.config.XDSPort,
+			Port: s.agent.config.GRPCPort,
 		}
 	}
 
@@ -96,14 +96,9 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Server:            s.agent.config.ServerMode,
 		Version:           s.agent.config.Version,
 	}
-	debugConfig := s.agent.config.Sanitized()
-	// Backwards compat for the envoy command. Never use DebugConfig for
-	// programmatic access to data.
-	debugConfig["GRPCPort"] = s.agent.config.XDSPort
-
 	return Self{
 		Config:      config,
-		DebugConfig: debugConfig,
+		DebugConfig: s.agent.config.Sanitized(),
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
 		Stats:       s.agent.Stats(),
@@ -584,6 +579,7 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 	if err != nil {
 		return nil, err
 	}
+	// TODO(partitions): should this be possible in a partition?
 	if authz.OperatorWrite(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
@@ -1076,6 +1072,11 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 			Reason: fmt.Sprintf("Invalid SidecarService: %s", err)}
 	}
 	if sidecar != nil {
+		if err := sidecar.Validate(); err != nil {
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(resp, err.Error())
+			return nil, nil
+		}
 		// Make sure we are allowed to register the sidecar using the token
 		// specified (might be specific to sidecar or the same one as the overall
 		// request).
@@ -1247,7 +1248,10 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	if err != nil {
 		return nil, err
 	}
-	if authz.NodeWrite(s.agent.config.NodeName, nil) != acl.Allow {
+
+	var authzContext acl.AuthorizerContext
+	s.agent.agentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.NodeWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1533,6 +1537,7 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 		return nil, err
 	}
 
+	// TODO(partitions): should this be possible in a partition?
 	if authz.OperatorRead(nil) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}

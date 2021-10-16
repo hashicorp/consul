@@ -1539,6 +1539,7 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: structs.IntentionDefaultNamespace,
+					Partition: acl.DefaultPartitionName,
 					Name:      "terminating-gateway",
 				},
 			},
@@ -1661,6 +1662,7 @@ service_prefix "terminating-gateway" { policy = "read" }
 			Entries: []structs.IntentionMatchEntry{
 				{
 					Namespace: structs.IntentionDefaultNamespace,
+					Partition: acl.DefaultPartitionName,
 					Name:      "terminating-gateway",
 				},
 			},
@@ -1897,6 +1899,60 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			require.Empty(r, out.ServiceTopology.UpstreamSources)
 
 			// No proxies are in transparent mode
+			require.False(r, out.ServiceTopology.TransparentProxy)
+		})
+	})
+}
+
+func TestInternal_ServiceTopology_RoutingConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// dashboard -> routing-config -> { counting, counting-v2 }
+	registerTestRoutingConfigTopologyEntries(t, codec)
+
+	t.Run("dashboard", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "dashboard",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			require.Empty(r, out.ServiceTopology.Downstreams)
+			require.Empty(r, out.ServiceTopology.DownstreamDecisions)
+			require.Empty(r, out.ServiceTopology.DownstreamSources)
+
+			// routing-config will not appear as an Upstream service
+			// but will be present in UpstreamSources as a k-v pair.
+			require.Empty(r, out.ServiceTopology.Upstreams)
+
+			sn := structs.NewServiceName("routing-config", structs.DefaultEnterpriseMetaInDefaultPartition()).String()
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				sn: {DefaultAllow: true, Allowed: true},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+
+			expectUpstreamSources := map[string]string{
+				sn: structs.TopologySourceRoutingConfig,
+			}
+			require.Equal(r, expectUpstreamSources, out.ServiceTopology.UpstreamSources)
+
 			require.False(r, out.ServiceTopology.TransparentProxy)
 		})
 	})

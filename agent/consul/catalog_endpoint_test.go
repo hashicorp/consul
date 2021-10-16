@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -191,28 +193,15 @@ func TestCatalog_Register_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 node "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	argR := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -270,6 +259,41 @@ node "foo" {
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func createToken(t *testing.T, cc rpc.ClientCodec, policyRules string) string {
+	t.Helper()
+	return createTokenWithPolicyName(t, "the-policy", cc, policyRules)
+}
+
+func createTokenWithPolicyName(t *testing.T, policyName string, cc rpc.ClientCodec, policyRules string) string {
+	t.Helper()
+
+	reqPolicy := structs.ACLPolicySetRequest{
+		Datacenter: "dc1",
+		Policy: structs.ACLPolicy{
+			Name:  policyName,
+			Rules: policyRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err := msgpackrpc.CallWithCodec(cc, "ACL.PolicySet", &reqPolicy, &structs.ACLPolicy{})
+	require.NoError(t, err)
+
+	token, err := uuid.GenerateUUID()
+	require.NoError(t, err)
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID: token,
+			Policies: []structs.ACLTokenPolicyLink{{Name: policyName}},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err = msgpackrpc.CallWithCodec(cc, "ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	require.NoError(t, err)
+	return token
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
@@ -438,26 +462,15 @@ func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
 node "foo" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	assert.Nil(msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+`
+	token := createToken(t, codec, rules)
 
 	// Register should fail because we don't have permission on the destination
 	args := structs.TestRegisterRequestProxy(t)
@@ -567,14 +580,7 @@ func TestCatalog_Deregister_ACLDeny(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 node "node" {
 	policy = "write"
 }
@@ -582,14 +588,8 @@ node "node" {
 service "service" {
 	policy = "write"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	id := createToken(t, codec, rules)
 
 	// Register a node, node check, service, and service check.
 	argR := structs.RegisterRequest{
@@ -1325,25 +1325,12 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 		}
 	}
 
-	// Create an ACL that can read the node.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: fmt.Sprintf(`
+	rules := fmt.Sprintf(`
 node "%s" {
 	policy = "read"
 }
-`, s1.config.NodeName),
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`, s1.config.NodeName)
+	id := createToken(t, codec, rules)
 
 	// Now try with the token and it will go through.
 	args.Token = id
@@ -2425,24 +2412,18 @@ func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create the ACL.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
+service "foo-proxy" {
+	policy = "write"
+}
 service "foo" {
 	policy = "write"
 }
-node "" { policy = "read" }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var token string
-	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token))
+node "foo" {
+	policy = "read"
+}
+`
+	token := createToken(t, codec, rules)
 
 	{
 		// Register a proxy
@@ -2717,27 +2698,15 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, codec rp
 	codec = rpcClient(t, srv)
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1", testrpc.WithToken("root"))
 
-	// Create a new token
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: `
+	rules := `
 service "foo" {
 	policy = "write"
 }
-node "" {
+node_prefix "" {
 	policy = "read"
 }
-`,
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &token); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`
+	token = createToken(t, codec, rules)
 
 	// Register a service
 	regArg := structs.RegisterRequest{
@@ -2896,25 +2865,12 @@ func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
 		t.Fatalf("should not nil")
 	}
 
-	// Create an ACL that can read the node.
-	arg := structs.ACLRequest{
-		Datacenter: "dc1",
-		Op:         structs.ACLSet,
-		ACL: structs.ACL{
-			Name: "User token",
-			Type: structs.ACLTokenTypeClient,
-			Rules: fmt.Sprintf(`
+	rules := fmt.Sprintf(`
 node "%s" {
 	policy = "read"
 }
-`, s1.config.NodeName),
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	var id string
-	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+`, s1.config.NodeName)
+	id := createToken(t, codec, rules)
 
 	// Now try with the token and it will go through.
 	args.Token = id

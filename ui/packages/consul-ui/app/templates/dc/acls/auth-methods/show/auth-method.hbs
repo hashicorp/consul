@@ -1,4 +1,7 @@
-
-<div class="tab-section">
-  <Consul::AuthMethod::View @item={{item}} />
-</div>
+<Route
+  @routeName={{routeName}}
+as |route|>
+  <div class="tab-section">
+    <Consul::AuthMethod::View @item={{route.model.item}} />
+  </div>
+</Route>

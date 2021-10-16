@@ -8,6 +8,7 @@ export default class Datacenter extends Model {
   @attr('string') uid;
   @attr('string') Name;
   @attr('boolean') Local;
+  @attr('string') DefaultACLPolicy;
 
   @attr('boolean', { defaultValue: () => true }) MeshEnabled;
 }

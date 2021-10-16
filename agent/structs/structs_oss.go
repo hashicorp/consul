@@ -42,19 +42,7 @@ func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
 	return false
 }
 
-func (m *EnterpriseMeta) WildcardEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) DefaultEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) NodeEnterpriseMetaForPartition() *EnterpriseMeta {
-	return &emptyEnterpriseMeta
-}
-
-func (m *EnterpriseMeta) NewEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
+func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
@@ -79,6 +67,10 @@ func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 	return ""
 }
 
+func (m *EnterpriseMeta) InDefaultNamespace() bool {
+	return true
+}
+
 func (m *EnterpriseMeta) PartitionOrDefault() string {
 	return "default"
 }
@@ -89,6 +81,10 @@ func PartitionOrDefault(_ string) string {
 
 func (m *EnterpriseMeta) PartitionOrEmpty() string {
 	return ""
+}
+
+func (m *EnterpriseMeta) InDefaultPartition() bool {
+	return true
 }
 
 // ReplicationEnterpriseMeta stub
@@ -128,6 +124,12 @@ func WildcardEnterpriseMetaInPartition(_ string) *EnterpriseMeta {
 // FillAuthzContext stub
 func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
+func (_ *Node) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func (_ *Coordinate) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func (_ *NodeInfo) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
 func (_ *EnterpriseMeta) Normalize() {}
 
 // FillAuthzContext stub
@@ -148,6 +150,10 @@ func (_ *TxnServiceOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 // OSS Stub
 func (_ *TxnCheckOp) FillAuthzContext(_ *acl.AuthorizerContext) {}
+
+func NodeNameString(node string, _ *EnterpriseMeta) string {
+	return node
+}
 
 func ServiceIDString(id string, _ *EnterpriseMeta) string {
 	return id

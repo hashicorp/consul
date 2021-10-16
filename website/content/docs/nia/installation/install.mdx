@@ -7,8 +7,7 @@ description: >-
 
 # Install Consul-Terraform-Sync
 
-The [introduction](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial provides a quick walkthrough of installing, configuring, and running 
-Consul-Terraform-Sync on your local machine.
+Refer to the [introduction](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial for details about installing, configuring, and running Consul-Terraform-Sync on your local machine with the Terraform driver.
 
 ## Installing Consul-Terraform-Sync
 
@@ -47,7 +46,7 @@ Consul-Terraform-Sync connects with your Consul cluster in order to monitor the 
 ```hcl
 consul {
   address = "localhost:8500"
-  token = "my-consul-acl-token"
+  token   = "my-consul-acl-token"
 }
 ```
 
@@ -59,7 +58,7 @@ Once you have identified a Terraform provider for all of your network devices, y
 
 ```hcl
 terraform_provider "fake-firewall" {
-  address = "10.10.10.10"
+  address  = "10.10.10.10"
   username = "admin"
   password = "password123"
 }

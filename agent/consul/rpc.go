@@ -22,6 +22,7 @@ import (
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -194,8 +195,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleConsulConn(conn)
 
 	case pool.RPCRaft:
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-		s.raftLayer.Handoff(conn)
+		s.handleRaftRPC(conn)
 
 	case pool.RPCTLS:
 		// Don't allow malicious client to create TLS-in-TLS for ever.
@@ -283,8 +283,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleConsulConn(tlsConn)
 
 	case pool.ALPN_RPCRaft:
-		metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
-		s.raftLayer.Handoff(tlsConn)
+		s.handleRaftRPC(tlsConn)
 
 	case pool.ALPN_RPCMultiplexV2:
 		s.handleMultiplexV2(tlsConn)
@@ -293,7 +292,7 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 		s.handleSnapshotConn(tlsConn)
 
 	case pool.ALPN_RPCGRPC:
-		s.grpcHandler.Handle(conn)
+		s.grpcHandler.Handle(tlsConn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
@@ -373,7 +372,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 		}
 		sub = peeked
 		switch first {
-		case pool.RPCGossip:
+		case byte(pool.RPCGossip):
 			buf := make([]byte, 1)
 			sub.Read(buf)
 			go func() {
@@ -453,6 +452,20 @@ func (s *Server) handleSnapshotConn(conn net.Conn) {
 			)
 		}
 	}()
+}
+
+func (s *Server) handleRaftRPC(conn net.Conn) {
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		err := s.tlsConfigurator.AuthorizeServerConn(s.config.Datacenter, tlsConn)
+		if err != nil {
+			s.rpcLogger().Warn(err.Error(), "from", conn.RemoteAddr(), "operation", "raft RPC")
+			conn.Close()
+			return
+		}
+	}
+
+	metrics.IncrCounter([]string{"rpc", "raft_handoff"}, 1)
+	s.raftLayer.Handoff(conn)
 }
 
 func (s *Server) handleALPN_WANGossipPacketStream(conn net.Conn) error {
@@ -544,13 +557,87 @@ func canRetry(info structs.RPCInfo, err error, start time.Time, config *Config) 
 	return info != nil && info.IsRead() && lib.IsErrEOF(err)
 }
 
-// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
-// Returns a bool of if forwarding was performed, as well as any error
+// ForwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
 func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface{}) (bool, error) {
-	firstCheck := time.Now()
+	forwardToDC := func(dc string) error {
+		return s.forwardDC(method, dc, info, reply)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		return s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
+			method, info, reply)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
 
+// ForwardGRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) ForwardGRPC(connPool GRPCClientConner, info structs.RPCInfo, f func(*grpc.ClientConn) error) (handled bool, err error) {
+	forwardToDC := func(dc string) error {
+		conn, err := connPool.ClientConn(dc)
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+	forwardToLeader := func(leader *metadata.Server) error {
+		conn, err := connPool.ClientConnLeader()
+		if err != nil {
+			return err
+		}
+		return f(conn)
+	}
+	return s.forwardRPC(info, forwardToDC, forwardToLeader)
+}
+
+// forwardRPC is used to potentially forward an RPC request to a remote DC or
+// to the local leader depending upon the request.
+//
+// If info.RequestDatacenter() does not match the local datacenter, then the
+// request will be forwarded to the DC using forwardToDC.
+//
+// Stale read requests will be handled locally if the current node has an
+// initialized raft database, otherwise requests will be forwarded to the local
+// leader using forwardToLeader.
+//
+// Returns a bool of if forwarding was performed, as well as any error. If
+// false is returned (with no error) it is assumed that the current server
+// should handle the request.
+func (s *Server) forwardRPC(
+	info structs.RPCInfo,
+	forwardToDC func(dc string) error,
+	forwardToLeader func(leader *metadata.Server) error,
+) (handled bool, err error) {
+	// Forward the request to the requested datacenter.
+	if handled, err := s.forwardRequestToOtherDatacenter(info, forwardToDC); handled || err != nil {
+		return handled, err
+	}
+
+	// See if we should let this server handle the read request without
+	// shipping the request to the leader.
+	if s.canServeReadRequest(info) {
+		return false, nil
+	}
+
+	return s.forwardRequestToLeader(info, forwardToLeader)
+}
+
+// forwardRequestToOtherDatacenter is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToOtherDatacenter(info structs.RPCInfo, forwardToDC func(dc string) error) (handled bool, err error) {
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
+	if dc == "" {
+		dc = s.config.Datacenter
+	}
 	if dc != s.config.Datacenter {
 		// Local tokens only work within the current datacenter. Check to see
 		// if we are attempting to forward one to a remote datacenter and strip
@@ -569,15 +656,23 @@ func (s *Server) ForwardRPC(method string, info structs.RPCInfo, reply interface
 			}
 		}
 
-		err := s.forwardDC(method, dc, info, reply)
-		return true, err
+		return true, forwardToDC(dc)
 	}
 
+	return false, nil
+}
+
+// canServeReadRequest determines if the request is a stale read request and
+// the current node can safely process that request.
+func (s *Server) canServeReadRequest(info structs.RPCInfo) bool {
 	// Check if we can allow a stale read, ensure our local DB is initialized
-	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
-		return false, nil
-	}
+	return info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero()
+}
 
+// forwardRequestToLeader is an implementation detail of forwardRPC.
+// See the comment for forwardRPC for more details.
+func (s *Server) forwardRequestToLeader(info structs.RPCInfo, forwardToLeader func(leader *metadata.Server) error) (handled bool, err error) {
+	firstCheck := time.Now()
 CHECK_LEADER:
 	// Fail fast if we are in the process of leaving
 	select {
@@ -596,8 +691,7 @@ CHECK_LEADER:
 
 	// Handle the case of a known leader
 	if leader != nil {
-		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
-			method, info, reply)
+		rpcErr = forwardToLeader(leader)
 		if rpcErr == nil {
 			return true, nil
 		}

@@ -1,10 +1,39 @@
 <Route
   @name={{routeName}}
-  @title={{if isAuthorized (if create 'New Role' 'Edit Role') 'Access Controls'}}
 as |route|>
+  <DataLoader @src={{
+    uri '/${partition}/${nspace}/${dc}/role/${id}'
+      (hash
+        partition=route.params.partition
+        nspace=route.params.nspace
+        dc=route.params.dc
+        id=(or route.params.id '')
+      )
+    }}
+  as |loader|>
+
+    <BlockSlot @name="error">
+      {{#if (eq loader.error.status '401')}}
+        <Consul::Acl::Disabled />
+      {{else}}
+        <AppError
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
+      {{/if}}
+    </BlockSlot>
+
+    <BlockSlot @name="loaded">
+{{#let
+
+  route.params.dc
+  route.params.partition
+  route.params.nspace
+
+  loader.data
+  loader.data.isNew
+as |dc partition nspace item create|}}
   <AppView
-    @authorized={{isAuthorized}}
-    @enabled={{isEnabled}}
     @login={{route.model.app.login.open}}
     >
       <BlockSlot @name="notification" as |status type item error|>
@@ -22,15 +51,11 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-  {{#if isAuthorized }}
     {{#if create }}
-              New Role
+              <route.Title @title="New Role" />
     {{else}}
-              Edit Role
+              <route.Title @title="Edit Role" />
     {{/if}}
-  {{else}}
-              Access Controls
-  {{/if}}
           </h1>
       </BlockSlot>
       <BlockSlot @name="content">
@@ -47,4 +72,7 @@ as |route|>
         {{ partial 'dc/acls/roles/form'}}
       </BlockSlot>
   </AppView>
+{{/let}}
+    </BlockSlot>
+  </DataLoader>
 </Route>

@@ -55,7 +55,7 @@ pre code,
 }
 
 %radio-group label {
-  line-height: $typo-lead-200;
+  line-height: var(--typo-lead-200);
 }
 %tab-nav {
   letter-spacing: 0.03em;
@@ -65,12 +65,12 @@ pre code,
 /* strong %p3 */
 %form-element-label,
 %button {
-  font-weight: $typo-weight-semibold;
+  font-weight: var(--typo-weight-semibold);
 }
 %route-card section dt,
 %route-card header:not(.short) dd,
 %splitter-card > header {
-  font-weight: $typo-weight-bold;
+  font-weight: var(--typo-weight-bold);
 }
 /**/
 
@@ -83,7 +83,7 @@ pre code,
 %tbody-th em,
 %app-view h1 em,
 %route-card header dt {
-  font-weight: $typo-weight-normal;
+  font-weight: var(--typo-weight-normal);
 }
 
 %form-element-note,
@@ -95,8 +95,8 @@ pre code,
 
 /* composite row */
 %composite-row-header {
-  font-size: $typo-size-450;
-  font-weight: $typo-weight-medium;
+  font-size: var(--typo-size-450);
+  font-weight: var(--typo-weight-medium);
 }
 %composite-row-header *:not(button) {
   font-size: inherit;
@@ -107,7 +107,7 @@ pre code,
 /* TODO: We have nothing else with a 500 */
 /* either make this the biggest %p or don't use it */
 %app-view h1 em {
-  font-size: $typo-size-500;
+  font-size: var(--typo-size-500);
 }
 /*TODO: This should go in reset, and probably needs select etc adding  */
 @media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {

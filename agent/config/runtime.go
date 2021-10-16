@@ -434,6 +434,9 @@ type RuntimeConfig struct {
 	//     tls_skip_verify = (true|false)
 	//     timeout = "duration"
 	//     ttl = "duration"
+	//     success_before_passing = int
+	//     failures_before_warning = int
+	//     failures_before_critical = int
 	//     deregister_critical_service_after = "duration"
 	//   },
 	//   ...
@@ -672,27 +675,27 @@ type RuntimeConfig struct {
 	// hcl: encrypt_verify_outgoing = (true|false)
 	EncryptVerifyOutgoing bool
 
-	// XDSPort is the port the xDS gRPC server listens on. This port only
+	// GRPCPort is the port the gRPC server listens on. Currently this only
 	// exposes the xDS and ext_authz APIs for Envoy and it is disabled by default.
 	//
-	// hcl: ports { xds = int }
-	// flags: -xds-port int
-	XDSPort int
+	// hcl: ports { grpc = int }
+	// flags: -grpc-port int
+	GRPCPort int
 
-	// XDSAddrs contains the list of TCP addresses and UNIX sockets the xDS gRPC
-	// server will bind to. If the xDS endpoint is disabled (ports.xds <= 0)
+	// GRPCAddrs contains the list of TCP addresses and UNIX sockets the gRPC
+	// server will bind to. If the gRPC endpoint is disabled (ports.grpc <= 0)
 	// the list is empty.
 	//
-	// The addresses are taken from 'addresses.xds' which should contain a
+	// The addresses are taken from 'addresses.grpc' which should contain a
 	// space separated list of ip addresses, UNIX socket paths and/or
 	// go-sockaddr templates. UNIX socket paths must be written as
-	// 'unix://<full path>', e.g. 'unix:///var/run/consul-xds.sock'.
+	// 'unix://<full path>', e.g. 'unix:///var/run/consul-grpc.sock'.
 	//
-	// If 'addresses.xds' was not provided the 'client_addr' addresses are
+	// If 'addresses.grpc' was not provided the 'client_addr' addresses are
 	// used.
 	//
-	// hcl: client_addr = string addresses { xds = string } ports { xds = int }
-	XDSAddrs []net.Addr
+	// hcl: client_addr = string addresses { grpc = string } ports { grpc = int }
+	GRPCAddrs []net.Addr
 
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
