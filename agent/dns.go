@@ -501,14 +501,14 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
-		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
+		ns, glue := d.nameservers(req.Question[0].Name, cfg, maxRecursionLevelDefault)
 		m.Answer = append(m.Answer, d.soa(cfg, q.Name))
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	case dns.TypeNS:
-		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
+		ns, glue := d.nameservers(req.Question[0].Name, cfg, maxRecursionLevelDefault)
 		m.Answer = ns
 		m.Extra = glue
 		m.SetRcode(req, dns.RcodeSuccess)
@@ -566,7 +566,7 @@ func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg, questionName string) {
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 
-func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
+func (d *DNSServer) nameservers(questionName string, cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
 	out, err := d.lookupServiceNodes(cfg, serviceLookup{
 		Datacenter:     d.agent.config.Datacenter,
 		Service:        structs.ConsulServiceName,
@@ -594,14 +594,14 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
-
-		fqdn := name + ".node." + dc + "." + d.domain
+		respDomain := d.getResponseDomain(questionName)
+		fqdn := name + ".node." + dc + "." + respDomain
 		fqdn = dns.Fqdn(strings.ToLower(fqdn))
 
 		// NS record
 		nsrr := &dns.NS{
 			Hdr: dns.RR_Header{
-				Name:   d.domain,
+				Name:   respDomain,
 				Rrtype: dns.TypeNS,
 				Class:  dns.ClassINET,
 				Ttl:    uint32(cfg.NodeTTL / time.Second),

@@ -2128,6 +2128,58 @@ func TestDNS_NSRecords(t *testing.T) {
 	require.Equal(t, wantExtra, in.Extra, "extra")
 }
 
+func TestDNS_AltDomain_NSRecords(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		domain = "CONSUL."
+		node_name = "server1"
+		alt_domain = "test-domain."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	questions := []struct {
+		ask        string
+		domain     string
+		wantDomain string
+	}{
+		{"something.node.consul.", "consul.", "server1.node.dc1.consul."},
+		{"something.node.test-domain.", "test-domain.", "server1.node.dc1.test-domain."},
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question.ask, dns.TypeNS)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		wantAnswer := []dns.RR{
+			&dns.NS{
+				Hdr: dns.RR_Header{Name: question.domain, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: 0, Rdlength: 0x13},
+				Ns:  question.wantDomain,
+			},
+		}
+		require.Equal(t, wantAnswer, in.Answer, "answer")
+		wantExtra := []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{Name: question.wantDomain, Rrtype: dns.TypeA, Class: dns.ClassINET, Rdlength: 0x4, Ttl: 0},
+				A:   net.ParseIP("127.0.0.1").To4(),
+			},
+		}
+
+		require.Equal(t, wantExtra, in.Extra, "extra")
+	}
+
+}
+
 func TestDNS_NSRecords_IPV6(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -2166,6 +2218,59 @@ func TestDNS_NSRecords_IPV6(t *testing.T) {
 	}
 
 	require.Equal(t, wantExtra, in.Extra, "extra")
+
+}
+
+func TestDNS_AltDomain_NSRecords_IPV6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		domain = "CONSUL."
+		node_name = "server1"
+		advertise_addr = "::1"
+		alt_domain = "test-domain."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	questions := []struct {
+		ask        string
+		domain     string
+		wantDomain string
+	}{
+		{"server1.node.dc1.consul.", "consul.", "server1.node.dc1.consul."},
+		{"server1.node.dc1.test-domain.", "test-domain.", "server1.node.dc1.test-domain."},
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question.ask, dns.TypeNS)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		wantAnswer := []dns.RR{
+			&dns.NS{
+				Hdr: dns.RR_Header{Name: question.domain, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: 0, Rdlength: 0x2},
+				Ns:  question.wantDomain,
+			},
+		}
+		require.Equal(t, wantAnswer, in.Answer, "answer")
+		wantExtra := []dns.RR{
+			&dns.AAAA{
+				Hdr:  dns.RR_Header{Name: question.wantDomain, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Rdlength: 0x10, Ttl: 0},
+				AAAA: net.ParseIP("::1"),
+			},
+		}
+
+		require.Equal(t, wantExtra, in.Extra, "extra")
+	}
 
 }
 
