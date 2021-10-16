@@ -25,9 +25,12 @@ func (c *Client) Debug() *Debug {
 // Heap returns a pprof heap dump
 func (d *Debug) Heap() ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/heap")
-	err := requireOK(d.c.doRequest(r))
+	_, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
+	}
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 	defer closeResponseBody(resp)
 
@@ -48,9 +51,12 @@ func (d *Debug) Profile(seconds int) ([]byte, error) {
 	// Capture a profile for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	err := requireOK(d.c.doRequest(r))
+	_, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
+	}
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 	defer closeResponseBody(resp)
 
@@ -73,11 +79,13 @@ func (d *Debug) PProf(ctx context.Context, name string, seconds int) (io.ReadClo
 	// Capture a profile for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	err := requireOK(d.c.doRequest(r))
+	_, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
 	}
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	return resp.Body, nil
 }
 
@@ -88,9 +96,12 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 	// Capture a trace for the specified number of seconds
 	r.params.Set("seconds", strconv.Itoa(seconds))
 
-	err := requireOK(d.c.doRequest(r))
+	_, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
+	}
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 	defer closeResponseBody(resp)
 
@@ -108,9 +119,12 @@ func (d *Debug) Trace(seconds int) ([]byte, error) {
 func (d *Debug) Goroutine() ([]byte, error) {
 	r := d.c.newRequest("GET", "/debug/pprof/goroutine")
 
-	err := requireOK(d.c.doRequest(r))
+	_, resp, err := d.c.doRequest(r)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %s", err)
+	}
+	if err := requireOK(resp); err != nil {
+		return nil, err
 	}
 	defer closeResponseBody(resp)
 

@@ -161,7 +161,7 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 // Datacenters is used to query for all the known datacenters
 func (c *Catalog) Datacenters() ([]string, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/datacenters")
-	rtt, resp, err := c.c.doRequest(r)
+	_, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeServiceList, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/node-services/"+node)
 	r.setQueryOptions(q)
-	rtt, resp, rtt, resp, err := c.c.doRequest(r)
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -340,7 +340,7 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*GatewayService, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/gateway-services/"+gateway)
 	r.setQueryOptions(q)
-	rtt, resp, rtt, resp, err := c.c.doRequest(r)
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}

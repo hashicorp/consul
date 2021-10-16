@@ -62,8 +62,11 @@ func (op *Operator) LicenseGetSigned(q *QueryOptions) (string, error) {
 	r := op.c.newRequest("GET", "/v1/operator/license")
 	r.params.Set("signed", "1")
 	r.setQueryOptions(q)
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return "", err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", err
 	}
 	defer closeResponseBody(resp)
@@ -85,8 +88,11 @@ func (op *Operator) LicenseReset(opts *WriteOptions) (*LicenseReply, error) {
 	var reply LicenseReply
 	r := op.c.newRequest("DELETE", "/v1/operator/license")
 	r.setWriteOptions(opts)
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -105,8 +111,11 @@ func (op *Operator) LicensePut(license string, opts *WriteOptions) (*LicenseRepl
 	r := op.c.newRequest("PUT", "/v1/operator/license")
 	r.setWriteOptions(opts)
 	r.body = strings.NewReader(license)
-	err := requireOK(op.c.doRequest(r))
+	_, resp, err := op.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()

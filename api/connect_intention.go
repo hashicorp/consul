@@ -258,8 +258,11 @@ func (h *Connect) IntentionDeleteExact(source, destination string, q *WriteOptio
 	r.params.Set("source", source)
 	r.params.Set("destination", destination)
 
-	err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
@@ -276,10 +279,14 @@ func (h *Connect) IntentionDeleteExact(source, destination string, q *WriteOptio
 func (h *Connect) IntentionDelete(id string, q *WriteOptions) (*WriteMeta, error) {
 	r := h.c.newRequest("DELETE", "/v1/connect/intentions/"+id)
 	r.setWriteOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
+
 	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
@@ -302,7 +309,7 @@ func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[str
 	for _, name := range args.Names {
 		r.params.Add("name", name)
 	}
-	rtt, resp, rtt, resp, err := h.c.doRequest(r)
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -332,8 +339,11 @@ func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *
 	if args.SourceType != "" {
 		r.params.Set("source-type", string(args.SourceType))
 	}
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
+		return false, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return false, nil, err
 	}
 	defer closeResponseBody(resp)
@@ -357,7 +367,7 @@ func (c *Connect) IntentionUpsert(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	r.params.Set("source", maybePrefixNamespace(ixn.SourceNS, ixn.SourceName))
 	r.params.Set("destination", maybePrefixNamespace(ixn.DestinationNS, ixn.DestinationName))
 	r.obj = ixn
-	rtt, resp, rtt, resp, err := c.c.doRequest(r)
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -387,8 +397,11 @@ func (c *Connect) IntentionCreate(ixn *Intention, q *WriteOptions) (string, *Wri
 	r := c.c.newRequest("POST", "/v1/connect/intentions")
 	r.setWriteOptions(q)
 	r.obj = ixn
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
+		return "", nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
 	defer closeResponseBody(resp)
@@ -411,7 +424,7 @@ func (c *Connect) IntentionUpdate(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	r := c.c.newRequest("PUT", "/v1/connect/intentions/"+ixn.ID)
 	r.setWriteOptions(q)
 	r.obj = ixn
-	rtt, resp, rtt, resp, err := c.c.doRequest(r)
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}

@@ -47,8 +47,11 @@ func (e *Event) Fire(params *UserEvent, q *WriteOptions) (string, *WriteMeta, er
 	}
 	r.header.Set("Content-Type", "application/octet-stream")
 
-	err := requireOK(e.c.doRequest(r))
+	rtt, resp, err := e.c.doRequest(r)
 	if err != nil {
+		return "", nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
 	defer closeResponseBody(resp)
@@ -71,8 +74,11 @@ func (e *Event) List(name string, q *QueryOptions) ([]*UserEvent, *QueryMeta, er
 	if name != "" {
 		r.params.Set("name", name)
 	}
-	err := requireOK(e.c.doRequest(r))
+	rtt, resp, err := e.c.doRequest(r)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
