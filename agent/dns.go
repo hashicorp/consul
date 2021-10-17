@@ -678,6 +678,9 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 	// have to deref to clone it so we don't modify (start from the agent's defaults)
 	var entMeta = d.defaultEnterpriseMeta
 
+	// Choose correct response domain
+	respDomain := d.getResponseDomain(req.Question[0].Name)
+
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
 	qName = d.trimDomain(qName)
@@ -849,7 +852,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			//check if the query type is  A for IPv4 or ANY
 			aRecord := &dns.A{
 				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
+					Name:   qName + respDomain,
 					Rrtype: dns.TypeA,
 					Class:  dns.ClassINET,
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
@@ -870,7 +873,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			//check if the query type is  AAAA for IPv6 or ANY
 			aaaaRecord := &dns.AAAA{
 				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
+					Name:   qName + respDomain,
 					Rrtype: dns.TypeAAAA,
 					Class:  dns.ClassINET,
 					Ttl:    uint32(cfg.NodeTTL / time.Second),

@@ -2814,6 +2814,110 @@ func TestDNS_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
 	}
 }
 
+func TestDNS_AltDomain_ServiceLookup_ServiceAddressIPV6(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, `
+		alt_domain = "test-domain"
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"primary"},
+				Address: "2607:20:4005:808::200e",
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := a.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "test",
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []struct {
+		ask  string
+		want string
+	}{
+		{"db.service.consul.", "2607002040050808000000000000200e.addr.dc1.consul."},
+		{"db.service.test-domain.", "2607002040050808000000000000200e.addr.dc1.test-domain."},
+		{id + ".query.consul.", "2607002040050808000000000000200e.addr.dc1.consul."},
+		{id + ".query.test-domain.", "2607002040050808000000000000200e.addr.dc1.test-domain."},
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question.ask, dns.TypeSRV)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		srvRec, ok := in.Answer[0].(*dns.SRV)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if srvRec.Port != 12345 {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Target != question.want {
+			t.Fatalf("Bad: %#v", srvRec)
+		}
+		if srvRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+
+		aRec, ok := in.Extra[0].(*dns.AAAA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != question.want {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.AAAA.String() != "2607:20:4005:808::200e" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+}
+
 func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
