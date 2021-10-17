@@ -1551,13 +1551,14 @@ func findWeight(node structs.CheckServiceNode) int {
 	}
 }
 
-func (d *DNSServer) encodeIPAsFqdn(dc string, ip net.IP) string {
+func (d *DNSServer) encodeIPAsFqdn(questionName string, dc string, ip net.IP) string {
 	ipv4 := ip.To4()
+	respDomain := d.getResponseDomain(questionName)
 	if ipv4 != nil {
 		ipStr := hex.EncodeToString(ip)
-		return fmt.Sprintf("%s.addr.%s.%s", ipStr[len(ipStr)-(net.IPv4len*2):], dc, d.domain)
+		return fmt.Sprintf("%s.addr.%s.%s", ipStr[len(ipStr)-(net.IPv4len*2):], dc, respDomain)
 	} else {
-		return fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(ip), dc, d.domain)
+		return fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(ip), dc, respDomain)
 	}
 }
 
@@ -1681,7 +1682,7 @@ func (d *DNSServer) makeRecordFromIP(dc string, addr net.IP, serviceNode structs
 	}
 
 	if q.Qtype == dns.TypeSRV {
-		ipFQDN := d.encodeIPAsFqdn(dc, addr)
+		ipFQDN := d.encodeIPAsFqdn(q.Name, dc, addr)
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
