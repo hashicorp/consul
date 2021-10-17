@@ -55,7 +55,7 @@ ${
 
     return `
 {
-  "Protocol": "${serviceProto}",
+  "Protocol": "tcp",
   "FilteredByACLs": ${fake.random.boolean()},
   "TransparentProxy": ${fake.random.boolean()},
   "Upstreams": [
