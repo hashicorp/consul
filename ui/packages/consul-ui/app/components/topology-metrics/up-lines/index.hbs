@@ -82,16 +82,14 @@
 {{/each}}
   </svg>
 {{/if}}
-{{#let (not (can "update intention for service" item=@service.Service)) as |disabled|}}
 {{#each @items as |item|}}
   {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
     <TopologyMetrics::Popover
       @type={{if item.Intention.HasPermissions 'l7' 'deny'}}
       @position={{find-by 'id' (concat this.guid item.Namespace item.Name) this.iconPositions}}
       @item={{item}}
-      @disabled={{disabled}}
+      @disabled={{false}}
       @oncreate={{action @oncreate @service item}}
     />
   {{/if}}
 {{/each}}
-{{/let}}
