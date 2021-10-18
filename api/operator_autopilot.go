@@ -301,10 +301,10 @@ func (op *Operator) AutopilotGetConfiguration(q *QueryOptions) (*AutopilotConfig
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	var out AutopilotConfiguration
 	if err := decodeBody(resp, &out); err != nil {
@@ -388,10 +388,10 @@ func (op *Operator) AutopilotState(q *QueryOptions) (*AutopilotState, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	var out AutopilotState
 	if err := decodeBody(resp, &out); err != nil {

@@ -262,10 +262,10 @@ func (h *Connect) IntentionDeleteExact(source, destination string, q *WriteOptio
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -371,10 +371,10 @@ func (c *Connect) IntentionUpsert(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -428,10 +428,10 @@ func (c *Connect) IntentionUpdate(ixn *Intention, q *WriteOptions) (*WriteMeta, 
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

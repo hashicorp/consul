@@ -165,10 +165,10 @@ func (c *Catalog) Datacenters() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	var out []string
 	if err := decodeBody(resp, &out); err != nil {

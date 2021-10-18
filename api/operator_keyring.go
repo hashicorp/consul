@@ -55,10 +55,10 @@ func (op *Operator) KeyringList(q *QueryOptions) ([]*KeyringResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	var out []*KeyringResponse
 	if err := decodeBody(resp, &out); err != nil {

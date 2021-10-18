@@ -38,10 +38,10 @@ func (c *Coordinate) Datacenters() ([]*CoordinateDatacenterMap, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	var out []*CoordinateDatacenterMap
 	if err := decodeBody(resp, &out); err != nil {
@@ -83,10 +83,10 @@ func (c *Coordinate) Update(coord *CoordinateEntry, q *WriteOptions) (*WriteMeta
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

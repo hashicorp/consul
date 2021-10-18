@@ -1008,10 +1008,10 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	if out != nil {

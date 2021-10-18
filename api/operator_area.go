@@ -160,10 +160,10 @@ func (op *Operator) AreaDelete(areaID string, q *WriteOptions) (*WriteMeta, erro
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

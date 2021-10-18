@@ -207,10 +207,10 @@ func (c *PreparedQuery) Delete(queryID string, q *WriteOptions) (*WriteMeta, err
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
