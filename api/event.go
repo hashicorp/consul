@@ -51,10 +51,10 @@ func (e *Event) Fire(params *UserEvent, q *WriteOptions) (string, *WriteMeta, er
 	if err != nil {
 		return "", nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out UserEvent

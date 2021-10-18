@@ -516,10 +516,10 @@ func (a *ACL) Create(acl *ACLEntry, q *WriteOptions) (string, *WriteMeta, error)
 	if err != nil {
 		return "", nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out struct{ ID string }
@@ -577,10 +577,10 @@ func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 	if err != nil {
 		return "", nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out struct{ ID string }
@@ -1491,10 +1491,10 @@ func (a *ACL) OIDCAuthURL(auth *ACLOIDCAuthURLParams, q *WriteOptions) (string, 
 	if err != nil {
 		return "", nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", nil, err
 	}
-	defer closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out aclOIDCAuthURLResponse
