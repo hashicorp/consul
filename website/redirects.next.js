@@ -1084,6 +1084,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/docs/commands/acl/role',
+    destination: '/commands/acl/role',
+    permanent: true,
+  },
+  {
     source: '/docs/commands/acl/role/create',
     destination: '/commands/acl/role/create',
     permanent: true,

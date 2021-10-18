@@ -1438,8 +1438,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 
 			csr.URIs = uris
 		}
-		// TODO(partitions): support auto-config in different partitions
-		entMeta.Merge(structs.DefaultEnterpriseMetaInDefaultPartition())
+		entMeta.Merge(agentID.GetEnterpriseMeta())
 	}
 
 	commonCfg, err := config.GetCommonConfig()
