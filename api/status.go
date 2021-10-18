@@ -22,10 +22,10 @@ func (s *Status) LeaderWithQueryOptions(q *QueryOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", err
 	}
-	defer closeResponseBody(resp)
 
 	var leader string
 	if err := decodeBody(resp, &leader); err != nil {

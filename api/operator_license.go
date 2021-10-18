@@ -66,10 +66,10 @@ func (op *Operator) LicenseGetSigned(q *QueryOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", err
 	}
-	defer closeResponseBody(resp)
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

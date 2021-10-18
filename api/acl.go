@@ -994,10 +994,10 @@ func (a *ACL) RulesTranslate(rules io.Reader) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1022,10 +1022,10 @@ func (a *ACL) RulesTranslateToken(tokenID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return "", err
 	}
-	defer closeResponseBody(resp)
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
