@@ -235,10 +235,10 @@ func (h *Health) Node(node string, q *QueryOptions) (HealthChecks, *QueryMeta, e
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -259,10 +259,10 @@ func (h *Health) Checks(service string, q *QueryOptions) (HealthChecks, *QueryMe
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -339,10 +339,10 @@ func (h *Health) service(service string, tags []string, passingOnly bool, q *Que
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -372,10 +372,10 @@ func (h *Health) State(state string, q *QueryOptions) (HealthChecks, *QueryMeta,
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

@@ -170,10 +170,10 @@ func (h *Connect) Intentions(q *QueryOptions) ([]*Intention, *QueryMeta, error) 
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -313,10 +313,10 @@ func (h *Connect) IntentionMatch(args *IntentionMatch, q *QueryOptions) (map[str
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

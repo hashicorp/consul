@@ -185,10 +185,10 @@ func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -209,10 +209,10 @@ func (c *Catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, er
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -269,10 +269,10 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -293,10 +293,10 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -320,10 +320,10 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -344,10 +344,10 @@ func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*GatewaySe
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
