@@ -452,10 +452,10 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 	if err != nil {
 		return false, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return false, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, resp.Body); err != nil {

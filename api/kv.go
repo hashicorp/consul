@@ -213,10 +213,10 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 	if err != nil {
 		return false, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return false, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -260,10 +260,10 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 	if err != nil {
 		return false, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return false, nil, err
 	}
-	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
