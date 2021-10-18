@@ -55,11 +55,15 @@
 %popover-select .oidc button::before {
   @extend %with-logo-oidc-color-icon, %as-pseudo;
 }
-%popover-select .consul button::before {
+%popover-select .consul button::before,
+%popover-select .consul-api-gateway button::before {
   @extend %with-logo-consul-color-icon, %as-pseudo;
 }
 %popover-select .nomad button::before {
   @extend %with-logo-nomad-color-icon, %as-pseudo;
+}
+%popover-select .vault button::before {
+  @extend %with-logo-vault-color-icon, %as-pseudo;
 }
 %popover-select .terraform button::before {
   @extend %with-logo-terraform-color-icon, %as-pseudo;
