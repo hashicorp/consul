@@ -936,11 +936,15 @@ func (a *ACL) PolicyRead(policyID string, q *QueryOptions) (*ACLPolicy, *QueryMe
 func (a *ACL) PolicyReadByName(policyName string, q *QueryOptions) (*ACLPolicy, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/policy/name/"+url.QueryEscape(policyName))
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1113,11 +1117,15 @@ func (a *ACL) RoleDelete(roleID string, q *WriteOptions) (*WriteMeta, error) {
 func (a *ACL) RoleRead(roleID string, q *QueryOptions) (*ACLRole, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/role/"+roleID)
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1139,11 +1147,15 @@ func (a *ACL) RoleRead(roleID string, q *QueryOptions) (*ACLRole, *QueryMeta, er
 func (a *ACL) RoleReadByName(roleName string, q *QueryOptions) (*ACLRole, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/role/name/"+url.QueryEscape(roleName))
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1267,11 +1279,15 @@ func (a *ACL) AuthMethodRead(methodName string, q *QueryOptions) (*ACLAuthMethod
 
 	r := a.c.newRequest("GET", "/v1/acl/auth-method/"+url.QueryEscape(methodName))
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1390,11 +1406,15 @@ func (a *ACL) BindingRuleDelete(bindingRuleID string, q *WriteOptions) (*WriteMe
 func (a *ACL) BindingRuleRead(bindingRuleID string, q *QueryOptions) (*ACLBindingRule, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/binding-rule/"+bindingRuleID)
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

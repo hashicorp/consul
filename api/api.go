@@ -1148,19 +1148,13 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	return StatusError{Code: resp.StatusCode, Body: trimmed}
 }
 
-func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
-	if e != nil {
-		if resp != nil {
-			closeResponseBody(resp)
-		}
-		return false, d, nil, e
-	}
+func requireNotFoundOrOK(resp *http.Response) (bool, *http.Response, error) {
 	switch resp.StatusCode {
 	case 200:
-		return true, d, resp, nil
+		return true, resp, nil
 	case 404:
-		return false, d, resp, nil
+		return false, resp, nil
 	default:
-		return false, d, nil, generateUnexpectedResponseCodeError(resp)
+		return false, nil, generateUnexpectedResponseCodeError(resp)
 	}
 }

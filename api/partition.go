@@ -99,11 +99,15 @@ func (p *Partitions) Read(ctx context.Context, name string, q *QueryOptions) (*A
 	r := p.c.newRequest("GET", "/v1/partition/"+name)
 	r.setQueryOptions(q)
 	r.ctx = ctx
-	found, rtt, resp, err := requireNotFoundOrOK(p.c.doRequest(r))
+	rtt, resp, err := p.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

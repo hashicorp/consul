@@ -111,11 +111,15 @@ func (n *Namespaces) Read(name string, q *QueryOptions) (*Namespace, *QueryMeta,
 	var out Namespace
 	r := n.c.newRequest("GET", "/v1/namespace/"+name)
 	r.setQueryOptions(q)
-	found, rtt, resp, err := requireNotFoundOrOK(n.c.doRequest(r))
+	rtt, resp, err := n.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
