@@ -81,7 +81,10 @@ as |route|>
                       (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
           '')
                       (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-          (if (and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service))
+          (if (and
+              (not-eq item.Service.Kind 'terminating-gateway')
+              (can 'read intention for service' item=item.Service)
+            )
                       (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
           '')
           (if (and dc.MeshEnabled item.IsOrigin)
