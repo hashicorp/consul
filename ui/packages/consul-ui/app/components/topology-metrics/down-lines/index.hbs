@@ -82,7 +82,7 @@
   </svg>
 {{/if}}
 
-{{#let (not (can 'update intention for service' item=item.Service)) as |disabled|}}
+{{#let (not (can 'update intention for service' item=@service.Service)) as |disabled|}}
 {{#each @items as |item|}}
   {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
     <TopologyMetrics::Popover
