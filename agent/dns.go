@@ -352,7 +352,6 @@ func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.
 // respects DNS case insensitivity
 func (d *DNSServer) getResponseDomain(questionName string) string {
 	labels := dns.SplitDomainName(questionName)
-
 	domain := d.domain
 	for i := len(labels) - 1; i >= 0; i-- {
 		currentSuffix := strings.Join(labels[i:], ".") + "."
@@ -360,7 +359,6 @@ func (d *DNSServer) getResponseDomain(questionName string) string {
 			domain = currentSuffix
 		}
 	}
-
 	return domain
 }
 
