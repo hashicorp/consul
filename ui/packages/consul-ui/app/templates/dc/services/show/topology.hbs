@@ -65,7 +65,7 @@ as |nspace dc items topology|}}
           @action={{true}}
         />
       {{/if}}
-      {{#if (and topology.noDependecies (env 'CONSUL_ACLS_ENABLED'))}}
+      {{#if (and topology.noDependencies (env 'CONSUL_ACLS_ENABLED'))}}
         <TopologyMetrics::Notice
           data-test-notice='no-dependencies'
           @type="info"

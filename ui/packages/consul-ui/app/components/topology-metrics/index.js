@@ -70,14 +70,14 @@ export default class TopologyMetrics extends Component {
   }
 
   emptyColumn() {
-    const noDependencies = get(this.args.topology, 'noDependecies');
+    const noDependencies = get(this.args.topology, 'noDependencies');
     return !this.env.var('CONSUL_ACLS_ENABLED') || noDependencies;
   }
 
   get downstreams() {
     const downstreams = get(this.args.topology, 'Downstreams') || [];
     const items = [...downstreams];
-    const noDependencies = get(this.args.topology, 'noDependecies');
+    const noDependencies = get(this.args.topology, 'noDependencies');
 
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {
       items.push({
@@ -103,7 +103,7 @@ export default class TopologyMetrics extends Component {
     const items = [...upstreams];
     const defaultACLPolicy = get(this.args.dc, 'DefaultACLPolicy');
     const wildcardIntention = get(this.args.topology, 'wildcardIntention');
-    const noDependencies = get(this.args.topology, 'noDependecies');
+    const noDependencies = get(this.args.topology, 'noDependencies');
 
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {
       items.push({
