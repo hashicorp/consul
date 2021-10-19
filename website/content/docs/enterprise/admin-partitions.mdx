@@ -59,23 +59,18 @@ Your Consul configuration must meet the following requirements to use admin part
 ### Security Configurations
 
 * The agent token used by the client agent will need to allow `node:write` in the admin partition. 
-* The `read` permission for `proxy-defaults` require `admin_partition:read` for the specific partition. The `write` permission for proxy-defaults require `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information
+* The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 * The write permissions for ingress and terminating gateways must be `mesh:write`.
-* Existing intentions must be set to `deny` all traffic from outside the admin partition.
-* Wildcards (`*`) are not supported when creating intentions for admin partitions. 
-
+* Wildcards (`*`) are not supported when creating intentions for admin partitions, but you can use a wildcard to specify services within a partition. 
 
 ### Agent Configurations
 
-* Any queries for the proxy-defaults config entry must include the appropriate `EnterpriseMeta`, which specifies the admin partition.
 * In client agent configurations, the admin partition name should be specified in the agent configuration:
 
   ```hcl
   partition = "<NAME>"
   ```
 * The anti-entropy sync will use the configured admin partition name when registering the node. 
-* Any map keys used to compile the [discovery chain](/docs/connect/l7-traffic/discovery-chain) must include the admin partition name.
-
 
 ### Kubernetes Requirements
 
@@ -228,10 +223,6 @@ kubectl create secret generic license --from-file=key=[license file path i.e. ./
 ### CLI Usage
 
 You can use create and manage admin partitions through the CLI. Refer to the [admin partition CLI documentation](/commands/admin-partition) for details. 
-
-### Admin Partitions on Kubernetes Tutorial
-
-Refer to the [LINK TO TUTORIAL]() tutorial for additional information on how to create Consul admin partitions on Kubernetes  
 
 ## Known Limitations
 

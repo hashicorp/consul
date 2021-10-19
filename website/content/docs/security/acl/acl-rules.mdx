@@ -614,7 +614,11 @@ specific namespace are prevented from accessing resources in another namespace.
 
 #### Admin Partition Rules <EnterpriseAlert inline />
 
-The `admin_partition` and `admin_partition_prefix` rules define the scope to one or more admin partitions. The `mesh` resource controls access to the `partition` API. You can include any number of namespace rules. In the following example, the agent has write access to the `ex-namespace` namespace, as well as namespaces prefixed with `ex-` in the `example` partition:
+The `admin_partition` and `admin_partition_prefix` rules set the scope to one or more admin partitions. 
+
+The `mesh` resource provides operator-level permissions for resources in the partition, such as ingress gateways or mesh proxy defaults.  
+
+You can include any number of namespace rules. In the following example, the agent has write access to the `ex-namespace` namespace, as well as namespaces prefixed with `ex-` in the `example` partition:
 
 ```hcl
 admin_partition "example" { 
