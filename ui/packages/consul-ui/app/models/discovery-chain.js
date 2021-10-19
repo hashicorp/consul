@@ -9,9 +9,9 @@ export default class DiscoveryChain extends Model {
 
   @attr('string') Datacenter;
   // Whilst the disco chain itself is scoped to a ns/partition we generally only
-  // use data from within the dicso chain itself when displaying data (i.e. the
+  // use data from within the disco chain itself when displaying data (i.e. the
   // configs themselves) We also use the API response JSON for fingerprinting
-  // already All in-all these properties are mainly here for consistency rather
+  // already. All in-all these properties are mainly here for consistency rather
   // than need as of writing in case any assumptions are made expecting disco
   // chain root Partition/Namespace
   @attr('string') Partition;
