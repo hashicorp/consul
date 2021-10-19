@@ -118,10 +118,10 @@ Below is an example configuration for a task that will execute on a schedule and
 
 ```hcl
 task {
-  name = "services_condition_task"
+  name        = "services_condition_task"
   description = "execute on changes to services whose name starts with web"
-  providers = ["my-provider"]
-  source = "path/to/services-condition-module"
+  providers   = ["my-provider"]
+  source      = "path/to/services-condition-module"
   condition "schedule" {
     cron = "* * * * Mon"
   }
@@ -156,19 +156,21 @@ Below is a similar example to the one provided in the [Consul KV Condition](/doc
 
 ```hcl
 task {
-  name = "consul_kv_schedule_task"
+  name        = "consul_kv_schedule_task"
   description = "executes on Monday monitoring Consul KV"
-  providers = ["my-provider"]
-  services = ["web-api"]
-  source = "path/to/consul-kv-module"
-  source_input "consul-kv" {
-    path                = "my-key"
-    recurse             = true
-    datacenter          = "dc1"
-    namespace           = "default"
-  }
+  providers   = ["my-provider"]
+  services    = ["web-api"]
+  source      = "path/to/consul-kv-module"
+
   condition "schedule" {
     cron = "* * * * Mon"
+  }
+
+  source_input "consul-kv" {
+    path       = "my-key"
+    recurse    = true
+    datacenter = "dc1"
+    namespace  = "default"
   }
 }
 ```
@@ -201,11 +203,11 @@ Example of a catalog-services condition which supports source input through `sou
 
 ```hcl
 task {
-  name = "catalog_services_condition_task"
+  name        = "catalog_services_condition_task"
   description = "execute on registration/deregistration of services"
-  providers = ["my-provider"]
-  services = ["web-api"]
-  source = "path/to/catalog-services-module"
+  providers   = ["my-provider"]
+  services    = ["web-api"]
+  source      = "path/to/catalog-services-module"
   condition "catalog-services" {
     datacenter          = "dc1"
     namespace           = "default"
@@ -312,7 +314,7 @@ If you are creating a module for a [catalog-services condition](/docs/nia/tasks#
 ```hcl
 variable "catalog_services" {
   description = "Consul catalog service names and tags monitored by Consul-Terraform-Sync"
-  type = map(list(string))
+  type        = map(list(string))
 }
 ```
 
@@ -333,7 +335,7 @@ If you are creating a module for a [consul-kv condition](/docs/nia/tasks#consul-
 ```hcl
 variable "consul_kv" {
 	description = "Keys and values of the Consul KV pairs monitored by Consul-Terraform-Sync"
-	type = map(string)
+	type        = map(string)
 }
 ```
 

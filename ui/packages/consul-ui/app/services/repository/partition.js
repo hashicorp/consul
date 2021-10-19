@@ -76,7 +76,6 @@ export default class PartitionRepository extends RepositoryService {
     const items = this.store.peekAll(type).toArray();
     if (currentName.length === 0) {
       const token = await this.settings.findBySlug('token');
-      // FIXME: Is the default partition '' or 'default'?
       currentName = token['Partition'] || 'default';
     }
     // if there is only 1 item then use that, otherwise find the

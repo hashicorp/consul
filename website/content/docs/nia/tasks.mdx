@@ -13,12 +13,12 @@ Below is an example task configuration:
 
 ```hcl
 task {
-  name = "frontend-firewall-policies"
+  name        = "frontend-firewall-policies"
   description = "Add firewall policy rules for frontend services"
-  providers = ["fake-firewall", "null"]
-  services = ["web", "image"]
-  source = "example/firewall-policy/module"
-  version = "1.0.0"
+  providers   = ["fake-firewall", "null"]
+  services    = ["web", "image"]
+  source      = "example/firewall-policy/module"
+  version     = "1.0.0"
 }
 ```
 
@@ -69,19 +69,19 @@ The services condition is the default behavior if no `condition` block is config
 
 ```hcl
 task {
-  name = "services_condition_task_1"
+  name        = "services_condition_task_1"
   description = "execute on changes to api, db, and web services"
-  providers = ["my-provider"]
-  source = "path/to/services-condition-module"
-  services = ["api", "db", "web"]
+  providers   = ["my-provider"]
+  source      = "path/to/services-condition-module"
+  services    = ["api", "db", "web"]
 }
 
 task {
-  name = "services_condition_task_2"
+  name        = "services_condition_task_2"
   description = "execute on changes to api, db, and web services"
-  providers = ["my-provider"]
-  source = "path/to/services-condition-module"
-  services = ["api", "db", "web"]
+  providers   = ["my-provider"]
+  source      = "path/to/services-condition-module"
+  services    = ["api", "db", "web"]
 
   condition "services" {}
 }
@@ -91,10 +91,10 @@ Below is an example configuration for a task that will execute when a service wi
 
 ```hcl
 task {
-  name = "services_condition_task"
+  name        = "services_condition_task"
   description = "execute on changes to services whose name starts with web"
-  providers = ["my-provider"]
-  source = "path/to/services-condition-module"
+  providers   = ["my-provider"]
+  source      = "path/to/services-condition-module"
 
   condition "services" {
     regexp = "^web.*"
@@ -112,10 +112,10 @@ Below is an example configuration for a task that will execute when a service wi
 
 ```hcl
 task {
-  name = "catalog_service_condition_task"
-  source = "path/to/catalog-services-module"
+  name      = "catalog_service_condition_task"
+  source    = "path/to/catalog-services-module"
   providers = ["my-provider"]
-  services = ["web-api"]
+  services  = ["web-api"]
 
   condition "catalog-services" {
     datacenter          = "dc1"
@@ -125,7 +125,7 @@ task {
 }
 
 service {
-  name = "web-api"
+  name       = "web-api"
   datacenter = "dc2"
 }
 ```
@@ -144,11 +144,11 @@ Based on the `recurse` option, the condition either monitors a single Consul KV 
 
 ```hcl
 task {
-  name = "consul_kv_condition_task"
+  name        = "consul_kv_condition_task"
   description = "execute on changes to Consul KV entry"
-  source = "path/to/consul-kv-module"
-  providers = ["my-provider"]
-  services = ["web-api"]
+  source      = "path/to/consul-kv-module"
+  providers   = ["my-provider"]
+  services    = ["web-api"]
 
   condition "consul-kv" {
     path                = "my-key"
@@ -170,10 +170,10 @@ Below is an example configuration for a task that will execute every Monday, whi
 
 ```hcl
 task {
-  name = "scheduled_task"
+  name        = "scheduled_task"
   description = "execute every Monday using service information from web and db"
-  services = ["web", "db"]
-  source = "path/to/module"
+  services    = ["web", "db"]
+  source      = "path/to/module"
 
   condition "schedule" {
     cron = "* * * * Mon"
