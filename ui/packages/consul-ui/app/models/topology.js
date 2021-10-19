@@ -48,7 +48,7 @@ export default class Topology extends Model {
   }
 
   @computed('Downstreams', 'Upstreams')
-  get noDependecies() {
+  get noDependencies() {
     return this.Upstreams.length === 0 && this.Downstreams.length === 0;
   }
 }
