@@ -211,14 +211,16 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
-		consul.CertExpirationGauges,
+		consul.AgentCertExpirationGauges,
 		Gauges,
 		raftGauges,
 	}
 
 	// TODO(ffmmm): conditionally add only leader specific metrics to gauges, counters, summaries, etc
 	if isServer {
-		gauges = append(gauges, consul.AutopilotGauges)
+		gauges = append(gauges,
+			consul.AutopilotGauges,
+			consul.LeaderCertExpirationGauges)
 	}
 
 	// Flatten definitions

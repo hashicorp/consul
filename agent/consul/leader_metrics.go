@@ -22,7 +22,7 @@ import (
 var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
 var metricsKeyMeshActiveSigningCAExpiry = []string{"mesh", "active-signing-ca", "expiry"}
 
-var CertExpirationGauges = []prometheus.GaugeDefinition{
+var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
 	{
 		Name: metricsKeyMeshRootCAExpiry,
 		Help: "Seconds until the service mesh root certificate expires. Updated every hour",
@@ -31,6 +31,9 @@ var CertExpirationGauges = []prometheus.GaugeDefinition{
 		Name: metricsKeyMeshActiveSigningCAExpiry,
 		Help: "Seconds until the service mesh signing certificate expires. Updated every hour",
 	},
+}
+
+var AgentCertExpirationGauges = []prometheus.GaugeDefinition{
 	{
 		Name: metricsKeyAgentTLSCertExpiry,
 		Help: "Seconds until the agent tls certificate expires. Updated every hour",
