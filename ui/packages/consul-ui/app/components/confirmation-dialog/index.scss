@@ -8,10 +8,6 @@ table td > div.with-confirmation.confirming {
   right: 0;
 }
 
-div.with-confirmation.permanent {
-  display: block;
-  text-align: right;
-}
 @media #{$--lt-wide-form} {
   %confirmation-dialog {
     float: none;

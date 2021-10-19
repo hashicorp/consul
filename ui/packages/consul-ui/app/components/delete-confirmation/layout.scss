@@ -1,6 +1,8 @@
 %delete-confirmation {
   & {
     max-width: 250px;
-    text-align: left;
+    position: absolute;
+    right: 150px;
+    z-index: 1;
   }
 }
