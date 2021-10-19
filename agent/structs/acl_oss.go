@@ -70,10 +70,6 @@ func (p *ACLPolicy) EnterprisePolicyMeta() *acl.EnterprisePolicyMeta {
 	return nil
 }
 
-func (m *ACLAuthMethod) TargetEnterpriseMeta(_ *EnterpriseMeta) *EnterpriseMeta {
-	return &m.EnterpriseMeta
-}
-
 func (t *ACLToken) NodeIdentityList() []*ACLNodeIdentity {
 	if len(t.NodeIdentities) == 0 {
 		return nil

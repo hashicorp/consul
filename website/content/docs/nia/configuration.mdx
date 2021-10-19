@@ -14,16 +14,18 @@ The Consul-Terraform-Sync daemon is configured using configuration files and sup
 Top level options are reserved for configuring Consul-Terraform-Sync.
 
 ```hcl
-log_level = "INFO"
+log_level   = "INFO"
 working_dir = "sync-tasks"
-port = 8558
+port        = 8558
+
 syslog {
   facility = "local2"
 }
+
 buffer_period {
   enabled = true
-  min = "5s"
-  max = "20s"
+  min     = "5s"
+  max     = "20s"
 }
 ```
 
@@ -89,8 +91,8 @@ A `service` block is an optional block to explicitly define configuration of ser
 
 ```hcl
 service {
-  name = "web"
-  datacenter = "dc1"
+  name        = "web"
+  datacenter  = "dc1"
   description = "all instances of the service web in datacenter dc1"
 }
 ```
@@ -110,13 +112,13 @@ A `task` block configures which task to execute in automation. When the task sho
 
 ```hcl
 task {
-  name = "taskA"
-  description = ""
-  enabled = true,
-  providers = []
-  services = ["web", "api"]
-  source = "org/example/module"
-  version = "1.0.0"
+  name           = "taskA"
+  description    = ""
+  enabled        = true,
+  providers      = []
+  services       = ["web", "api"]
+  source         = "org/example/module"
+  version        = "1.0.0"
   variable_files = []
   condition "catalog-services" {
     regexp = ".*"
@@ -147,14 +149,19 @@ task {
 
 - `variable_files` - (list[string]) Specifies list of paths to [Terraform variable definition files (`.tfvars`)](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files). The content of these files should consist of only variable name assignments. The variable assignments must match the corresponding variable declarations made available by the Terraform module for the task.
   - Variables are loaded in the order they appear in the files. Duplicate variables are overwritten with the later value. _Unless specified by the module, configure arguments for Terraform providers using [`terraform_provider` blocks](#terraform-provider)._
+
+    <CodeBlockConfig filename="example.tfvars">
+
     ```hcl
-    # example.tfvars
     address_group = "consul-services"
     tags = [
       "consul-terraform-sync",
       "terraform"
     ]
     ```
+
+    </CodeBlockConfig>
+
 - `version` - (string) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
 - `working_dir` - (string) The working directory to manage generated artifacts by Consul-Terraform-Sync for this task, including Terraform configuration files. By default, a working directory is created for each task as a subdirectory in the base [`working_dir`](#working_dir), e.g. `sync-tasks/task-name`.
 - `buffer_period` - Configures the buffer period for a dynamic task to dampen the effects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping. Buffer periods do not apply to scheduled tasks.
@@ -177,10 +184,10 @@ See [Task Execution: Services Condition](/docs/nia/tasks#services-condition) for
 
 ```hcl
 task {
-  name = "services_condition_task"
+  name        = "services_condition_task"
   description = "execute on changes to services with names starting with web"
-  providers = ["my-provider"]
-  source = "path/to/services-condition-module"
+  providers   = ["my-provider"]
+  source      = "path/to/services-condition-module"
 
   condition "services" {
     regexp = "^web.*"
@@ -198,10 +205,10 @@ See [Task Execution: Catalog Services Condition](/docs/nia/tasks#catalog-service
 
 ```hcl
 task {
-  name = "catalog_service_condition_task"
+  name        = "catalog_service_condition_task"
   description = "execute on service de/registrations with name matching 'web.*'"
-  source = "path/to/catalog-services-module"
-  providers = ["my-provider"]
+  source      = "path/to/catalog-services-module"
+  providers   = ["my-provider"]
 
   // configure depending on module. provides detailed information for these
   // services but does not execute task. refer to module docs on how to configure.
@@ -233,11 +240,11 @@ See [Task Execution: Consul KV Condition](/docs/nia/tasks#consul-kv-condition) f
 
 ```hcl
 task {
-  name = "consul_kv_condition_task"
+  name        = "consul_kv_condition_task"
   description = "execute on changes to Consul KV entry"
-  source = "path/to/consul-kv-module"
-  providers = ["my-provider"]
-  services = ["web-api"]
+  source      = "path/to/consul-kv-module"
+  providers   = ["my-provider"]
+  services    = ["web-api"]
 
   condition "consul-kv" {
     path                = "my-key"
@@ -267,10 +274,10 @@ See [Terraform Module: Source Input](/docs/nia/terraform-modules#source-input) f
 
 ```hcl
 task {
-  name = "scheduled_task"
+  name        = "scheduled_task"
   description = "execute every Monday using service information from web and db"
-  services = ["web", "db"]
-  source = "path/to/module"
+  services    = ["web", "db"]
+  source      = "path/to/module"
   condition "schedule" {
     cron = "* * * * Mon"
   }
@@ -355,9 +362,9 @@ The Terraform driver block is used to configure Consul-Terraform-Sync for instal
 
 ```hcl
 driver "terraform" {
-  log = false
+  log         = false
   persist_log = false
-  path = ""
+  path        = ""
 
   backend "consul" {
     gzip = true
@@ -365,7 +372,7 @@ driver "terraform" {
 
   required_providers {
     myprovider = {
-      source = "namespace/myprovider"
+      source  = "namespace/myprovider"
       version = "1.3.0"
     }
   }
@@ -401,7 +408,7 @@ Only one network driver can be configured per deployment of Consul-Terraform-Syn
 
 ```hcl
 driver "terraform-cloud" {
-  hostname     = "my.tfe.hostname.io"
+  hostname     = "https://app.terraform.io"
   organization = "my-org"
   token        = "<TEAM_TOKEN>"
   // Optionally set the token to be securely queried from Vault instead of
@@ -410,7 +417,7 @@ driver "terraform-cloud" {
 
   required_providers {
     myprovider = {
-      source = "namespace/myprovider"
+      source  = "namespace/myprovider"
       version = "1.3.0"
     }
   }
@@ -452,21 +459,21 @@ The below configuration captures the general design of defining a provider using
 driver "terraform" {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "3.33.0"
     }
   }
 }
 
 terraform_provider "aws" {
-  # Configuration options
+  // Configuration options
   region = "us-east-1"
 }
 
 task {
-  source = "some/source"
+  source    = "some/source"
   providers = ["aws"]
-  services = ["web", "api"]
+  services  = ["web", "api"]
 }
 ```
 
@@ -572,7 +579,7 @@ The example Consul-Terraform-Sync configuration below defines two similar tasks 
 
 ```hcl
 terraform_provider "aws" {
-  alias = "a"
+  alias   = "a"
   profile = "team-a"
   task_env {
     "AWS_ACCESS_KEY_ID" = "{{ env \"CTS_AWS_ACCESS_KEY_ID_A\" }}"
@@ -580,7 +587,7 @@ terraform_provider "aws" {
 }
 
 terraform_provider "aws" {
-  alias = "b"
+  alias   = "b"
   profile = "team-b"
   task_env {
     "AWS_ACCESS_KEY_ID" = "{{ env \"CTS_AWS_ACCESS_KEY_ID_B\" }}"
@@ -592,15 +599,15 @@ terraform_provider "dns" {
 }
 
 task {
-  name = "task-a"
-  source = "org/module"
+  name      = "task-a"
+  source    = "org/module"
   providers = ["aws.a", "dns"]
   // ...
 }
 
 task {
-  name = "task-b"
-  source = "org/module"
+  name      = "task-b"
+  source    = "org/module"
   providers = ["aws.b", "dns"]
   // ...
 }

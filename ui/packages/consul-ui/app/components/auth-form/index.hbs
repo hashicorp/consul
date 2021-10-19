@@ -80,7 +80,7 @@
       @src={{uri '/${partition}/${nspace}/${dc}/oidc/providers'
         (hash
           partition=partition
-          nspace=(or nspace '')
+          nspace=nspace
           dc=dc
         )
       }}
@@ -102,11 +102,10 @@
 {{/if}}
   </div>
   <State @matches="loading">
-  {{!FIXME: default partition?}}
     <TokenSource
       @dc={{dc}}
       @nspace={{or value.Namespace nspace}}
-      @partition={{or value.Partition 'default'}}
+      @partition={{or value.Partition partition}}
       @type={{if value.Name 'oidc' 'secret'}}
       @value={{if value.Name value.Name value}}
       @onchange={{queue (action dispatch "RESET") (action onsubmit)}}
