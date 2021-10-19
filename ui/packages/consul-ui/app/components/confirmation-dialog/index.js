@@ -18,10 +18,16 @@ export default Component.extend(Slotted, {
       this.sendAction(...['actionName', ...this['arguments']]);
     },
     confirm: function() {
-      const [action, ...args] = arguments;
-      set(this, 'actionName', action);
-      set(this, 'arguments', args);
-      set(this, 'confirming', true);
+      var isConfirming = this.get('confirming');
+      if (isConfirming == true) {
+        set(this, 'confirming', false);
+      }
+      if (!isConfirming) {
+        const [action, ...args] = arguments;
+        set(this, 'actionName', action);
+        set(this, 'arguments', args);
+        set(this, 'confirming', true);
+      }
     },
   },
 });
