@@ -1087,12 +1087,6 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1_16_5:
-          requires:
-            - dev-build
-      - envoy-integration-test-1_16_5-v2compat:
-          requires:
-            - dev-build
       - envoy-integration-test-1_17_4:
           requires:
             - dev-build
