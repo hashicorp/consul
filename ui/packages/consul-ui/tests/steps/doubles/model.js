@@ -38,6 +38,9 @@ export default function(scenario, create, set, win = window, doc = document) {
     .given(['ACLs are disabled'], function() {
       doc.cookie = `CONSUL_ACLS_ENABLE=0`;
     })
+    .given(['the default ACL policy is "$policy"'], function(policy) {
+      set('CONSUL_ACL_POLICY', policy);
+    })
     .given(['a "$value" metrics provider'], function(value) {
       doc.cookie = `CONSUL_METRICS_PROXY_ENABLE=1`;
       doc.cookie = `CONSUL_METRICS_PROVIDER=${value}`;

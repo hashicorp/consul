@@ -46,7 +46,7 @@ Consul-Terraform-Sync connects with your Consul cluster in order to monitor the 
 ```hcl
 consul {
   address = "localhost:8500"
-  token = "my-consul-acl-token"
+  token   = "my-consul-acl-token"
 }
 ```
 
@@ -58,7 +58,7 @@ Once you have identified a Terraform provider for all of your network devices, y
 
 ```hcl
 terraform_provider "fake-firewall" {
-  address = "10.10.10.10"
+  address  = "10.10.10.10"
   username = "admin"
   password = "password123"
 }
