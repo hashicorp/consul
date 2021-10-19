@@ -60,7 +60,7 @@ Your Consul configuration must meet the following requirements to use admin part
 
 * The agent token used by the client agent will need to allow `node:write` in the admin partition. 
 * The `read` permission for `proxy-defaults` require `admin_partition:read` for the specific partition. The `write` permission for proxy-defaults require `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information
-* The write permissions for ingress and terminating gateways must be `operator:write`.
+* The write permissions for ingress and terminating gateways must be `mesh:write`.
 * Existing intentions must be set to `deny` all traffic from outside the admin partition.
 * Wildcards (`*`) are not supported when creating intentions for admin partitions. 
 
@@ -122,7 +122,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Create the license secret in each cluster, e.g.:
 
   ```shell-session
-  kubectl create secret generic license --from-literal=key=<LICENSE_KEY>
+kubectl create secret generic license --from-file=key=[license file path i.e. ./license.hclic]
   ```
   This step must also be completed for each workload cluster. 
 
@@ -175,7 +175,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   global:
   enabled: false
   enableConsulNamespaces: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-alpha
+  image: hashicorp/consul-enterprise:1.11.0-ent-beta1
   adminPartitions:
     enabled: true
     name: "clients" // partition name
@@ -193,7 +193,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
       secretKey: key
   externalServers:
     enabled: true
-    hosts: "35.192.119.38"
+    hosts: "35.192.119.38" # Insert External IP of LoadBalancer here 
     tlsServerName: server.dc1.consul
   client:
     enabled: true

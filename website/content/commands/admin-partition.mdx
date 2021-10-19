@@ -42,7 +42,7 @@ Usage: consul admin-partition <subcommand> [options] [args]
 
   Read an admin partition:
 
-    $ consul admin-partition read ns1
+    $ consul admin-partition read team1
 
   List all admin partitions:
 
@@ -54,7 +54,7 @@ Usage: consul admin-partition <subcommand> [options] [args]
 
   Delete an admin partition:
 
-    $ consul admin-partition delete ns1
+    $ consul admin-partition delete team1
 
   For more examples, ask for subcommand help or view the documentation.
 ```
@@ -214,7 +214,7 @@ consul admin-partition delete webdev
 
 ## Admin Partition Definition
 
-Namespaces are managed exclusively through the HTTP API and the Consul CLI. The HTTP API accepts only JSON formatted definitions while the CLI will parse either JSON or HCL.
+Admin partitions are managed exclusively through the HTTP API and the Consul CLI. The HTTP API accepts only JSON formatted definitions while the CLI will parse either JSON or HCL.
 
 The following parameters are supported in admin partition defintion files:
 
