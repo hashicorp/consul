@@ -106,6 +106,8 @@ jobs:
 
       - name: Build
         env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
           GOLDFLAGS: "${{needs.get-product-version.outputs.shared-ldflags}}"
         run: |
@@ -198,6 +200,8 @@ jobs:
 
       - name: Build
         env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
@@ -289,6 +293,8 @@ jobs:
 
       - name: Build
         env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
@@ -377,6 +383,8 @@ jobs:
 
       - name: Build
         env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
@@ -418,7 +426,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-${{ needs.get-product-version.outputs.pkg-version }}-${{ needs.get-product-version.outputs.pre-version }}.rpm
           path: out/${{ github.event.repository.name }}-${{ needs.get-product-version.outputs.pkg-version }}~${{ needs.get-product-version.outputs.pre-version }}*.rpm
-#
+
   build-darwin:
     needs: get-product-version
     runs-on: macos-latest
@@ -467,6 +475,8 @@ jobs:
 
       - name: Build
         env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
