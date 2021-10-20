@@ -16,13 +16,17 @@ This topic provides and overview of admin partitions, which are entities that de
 
 ## Introduction
 
-Admin partitions exist a level above namespaces in the identity hierarchy and contain one or more namespaces. Admin partitions allow multiple independent tenants to share a Consul server cluster. As a result, admin partitions enable you to define administrative and communication boundaries between services managed by separate teams or belonging to separate stakeholders. They can also segment production and non-production services within the Consul deployment. 
+Admin partitions exist a level above namespaces in the identity hierarchy. They contain one or more namespaces and allow multiple independent tenants to share a Consul server cluster. As a result, admin partitions enable you to define administrative and communication boundaries between services managed by separate teams or belonging to separate stakeholders. They can also segment production and non-production services within the Consul deployment. 
+
+-> **Preexisting resource nodes and namespaces**: Admin partitions were introduced in Consul 1.11. Resource nodes were not namespaced prior to 1.11. After upgrading to Consul 1.11 or later, all resource nodes will be namespaced.
 
 ### Default Admin Partition
 
-Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will exist in the default partition.
+Each Consul cluster will have at least one default admin partition (named `default`). Any resource created without specifying an admin partition will inherit the partition of the ACL token.  
 
 The `default` admin partition is special in that it may contain namespaces and other entities that are replicated between datacenters.
+
+-> **Preexisting resources and the `default` partition**: Admin partitions were introduced in Consul 1.11. After upgrading to Consul 1.11 or later, the `default` partition will contain all resources created in previous versions.
 
 ### Naming Admin Partitions
 
@@ -49,8 +53,6 @@ Client agents will be configured to operate within a specific admin partition. T
 ### Service Mesh Configurations
 
 Values specified for [`proxy-defaults`](docs/connect/config-entries/proxy-defaults) configurations are scoped to a specific partition. Services registered in the partition will use the partition's `proxy-defaults` values.
-
-
 
 ## Requirements
 
