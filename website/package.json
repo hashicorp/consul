@@ -40,6 +40,7 @@
     "@hashicorp/react-text-split-with-image": "^4.2.5",
     "@hashicorp/react-use-cases": "^5.0.0",
     "@hashicorp/react-vertical-text-block-list": "^7.0.0",
+    "ci": "^2.1.1",
     "next": "^11.1.2",
     "next-mdx-remote": "3.0.1",
     "next-remote-watch": "1.0.0",
