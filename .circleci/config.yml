@@ -15,7 +15,7 @@ references:
   images:
     # When updating the Go version, remember to also update the versions in the
     # workflows section for go-test-lib jobs.
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.16.7
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.17.2
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:14-browsers
 
   paths:
@@ -1017,9 +1017,9 @@ workflows:
           go-version: "1.16"
           requires: [dev-build]
       - go-test-lib:
-          name: "go-test-api go1.15"
+          name: "go-test-api go1.17"
           path: api
-          go-version: "1.15"
+          go-version: "1.17"
           requires: [dev-build]
       - go-test-lib:
           name: "go-test-sdk go1.16"
@@ -1027,9 +1027,9 @@ workflows:
           go-version: "1.16"
           <<: *filter-ignore-non-go-branches
       - go-test-lib:
-          name: "go-test-sdk go1.15"
+          name: "go-test-sdk go1.17"
           path: sdk
-          go-version: "1.15"
+          go-version: "1.17"
           <<: *filter-ignore-non-go-branches
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-32bit: *filter-ignore-non-go-branches
