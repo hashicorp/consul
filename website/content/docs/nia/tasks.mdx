@@ -46,7 +46,9 @@ The services condition is the default condition to execute a task. Tasks with th
 
 In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services) or a regex must be configured in the task's `condition` block. Only one of these two options can be configured for a single task. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
 
-The services condition operates by monitoring the [List Service Instances for Service Health API](/api-docs/health#list-nodes-for-service) for healthy, passing service instances. Unhealthy service instances are excluded by default but can be included using the `services` block [`filter`](/docs/nia/configuration#filter) configuration. When there is any change of information for configured services, the task executes. These changes include one or more changes to service values, like IP address, added or removed service instance, tags, status. A complete list of values that would cause a task to run are expanded below:
+When the `services` condition is configured, Consul monitors the [/health/service/:service](/api-docs/health#list-nodes-for-service) API endpoint for changes. Only healthy and passing service instances are monitored by default, but you can configure the [`filter`](/docs/nia/configuration#filter) parameter in the `services` block to include unhealthy service instances. 
+
+The task executes when the value changes for one or more configured services, such as IP address or new/removed values in the service instance `tags` or `status` attributes. The following table describes all attributes that can trigger task execution:
 
 | Attribute               | Description                                                                                        |
 | ----------------------- | -------------------------------------------------------------------------------------------------- |
@@ -57,7 +59,7 @@ The services condition operates by monitoring the [List Service Instances for Se
 | `meta`                  | List of user-defined metadata key/value pairs for the service                                      |
 | `tags`                  | List of tags for the service                                                                       |
 | `namespace`             | Consul Enterprise namespace of the service instance                                                |
-| `status`                | Overall status for the service instance based on an aggregate of all its health checks <sup>1</sup>|
+| `status`                | The overall status for the service instance is determined by aggregating all node and service health checks and returning the least healthy status according to the following order: <br/> `maintenance` (least healthy)<br/> `critical`<br/> `warning`<br/> `passing` (healthiest) |
 | `node`                  | Name of the Consul node on which the service is registered                                         |
 | `node_id`               | ID of the node on which the service is registered.                                                 |
 | `node_address`          | The IP address of the Consul node on which the service is registered.                              |
@@ -65,9 +67,6 @@ The services condition operates by monitoring the [List Service Instances for Se
 | `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent                                            |
 | `node_meta`             | List of user-defined metadata key/value pairs for the node                                         |
 
-<p>
-  <sup>1</sup> Overall status is determined by aggregating all (node and service) health checks and returning the "worst" status from the following order: maintenance, critical, warning, passing - where maintenance is the worst.
-</p>
 
 The services condition is the default behavior if no `condition` block is configured for a task. The two tasks below have equivalent behavior, which is to execute when any of the listed services have changes to the previously stated attributes.
 
