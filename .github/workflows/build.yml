@@ -16,6 +16,7 @@ jobs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
       pre-version: ${{ steps.get-product-version.outputs.pre-version }}
       pkg-version: ${{ steps.get-product-version.outputs.pkg-version }}
+      shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
       - uses: actions/checkout@v2
       - name: get product version
@@ -23,16 +24,19 @@ jobs:
         run: |
           OUTPUT=$(make -f Makefile version)
           echo $OUTPUT
-          IFS="-"; OUTPUT=$(make -f Makefile version); 
+          IFS="-"; OUTPUT=$(make -f Makefile version);
           read -a V <<< "$OUTPUT"; unset IFS;
 
           VERSION=${V[0]}
           PREREL_VERSION=${V[1]}
-          
+
           echo "::set-output name=product-version::${VERSION}-${PREREL_VERSION}"
           echo "::set-output name=pre-version::${PREREL_VERSION}"
           echo "::set-output name=pkg-version::${VERSION}"
-          #echo "::set-output name=product-version::$(make -f Makefile version)"
+
+      - name: Set shared -ldflags
+        id: shared-ldflags
+        run: echo "::set-output name=shared-ldflags::-X github.com/hashicorp/consul/version.GitCommit=${GITHUB_SHA::8} -X github.com/hashicorp/consul/version.GitDescribe=${{ steps.get-product-version.outputs.product-version }}"
 
   generate-metadata-file:
     needs: get-product-version
@@ -76,10 +80,14 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - name: Build
+        env:
+          CGO_ENABLED: 0
+          GOLDFLAGS: "${{needs.get-product-version.outputs.shared-ldflags}}"
         run: |
           mkdir dist out
-          go build -o dist/ .
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -141,9 +149,12 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Build
+        env:
+          CGO_ENABLED: 0
+          GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
-          go build -o dist/
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -207,10 +218,11 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Build
+        env:
+          GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
-          go build -o dist/
-
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -272,10 +284,13 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Build
+        env:
+          GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
-          go build -o dist/
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -311,7 +326,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-${{ needs.get-product-version.outputs.pkg-version }}-${{ needs.get-product-version.outputs.pre-version }}.rpm
           path: out/${{ github.event.repository.name }}-${{ needs.get-product-version.outputs.pkg-version }}~${{ needs.get-product-version.outputs.pre-version }}*.rpm
-
+#
   build-darwin:
     needs: get-product-version
     runs-on: macos-latest
@@ -337,10 +352,13 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Build
+        env:
+          GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
-          go build -o dist/
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
