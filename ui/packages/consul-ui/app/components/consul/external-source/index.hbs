@@ -8,7 +8,7 @@
               class="consul-external-source {{externalSource}}"
               ...attributes
             >
-              Registered via {{t (concat "components.consul.external-source." externalSource)}}
+              Registered via {{t (concat "common.brand." externalSource)}}
             </span>
           </dt>
           <dd>
@@ -18,7 +18,7 @@
               </BlockSlot>
               <BlockSlot @name="menu">
                 <li role="separator">
-                  About {{t (concat "components.consul.external-source." externalSource)}}
+                  About {{t (concat "common.brand." externalSource)}}
                 </li>
                 <li role="none" class="learn-link">
                   <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL')}} rel="noopener noreferrer" target="_blank">
@@ -38,7 +38,7 @@
       {{#if @label}}
         {{@label}}
       {{else}}
-        Registered via {{t (concat "components.consul.external-source." externalSource)}}
+        Registered via {{t (concat "common.brand." externalSource)}}
       {{/if}}
     </span>
   {{/if}}

@@ -170,12 +170,3 @@ source:
   menu-title: About Routing Configs
   links:
     documentation: Documentation
-external-source:
-  consul-api-gateway: Consul API Gateway
-  vault: Vault
-  kubernetes: Kubernetes
-  terraform: Terraform
-  nomad: Nomad
-  consul: Consul
-  aws: AWS
-
