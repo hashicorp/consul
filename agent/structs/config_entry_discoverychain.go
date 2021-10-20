@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-bexpr"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
 
@@ -901,12 +902,17 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if len(e.Subsets) > 0 {
-		for name := range e.Subsets {
+		for name, subset := range e.Subsets {
 			if name == "" {
 				return fmt.Errorf("Subset defined with empty name")
 			}
 			if err := validateServiceSubset(name); err != nil {
 				return fmt.Errorf("Subset %q is invalid: %v", name, err)
+			}
+			if subset.Filter != "" {
+				if _, err := bexpr.CreateEvaluator(subset.Filter, nil); err != nil {
+					return fmt.Errorf("Filter for subset %q is not a valid expression: %v", name, err)
+				}
 			}
 		}
 	}
