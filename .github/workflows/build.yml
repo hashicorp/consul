@@ -69,16 +69,41 @@ jobs:
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-
     steps:
       - uses: actions/checkout@v2
+
       - name: Setup go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
+
       - name: Build
         env:
           CGO_ENABLED: 0
@@ -134,12 +159,8 @@ jobs:
         go: ["1.16"]
       fail-fast: true
 
+
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -147,6 +168,33 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
 
       - name: Build
         env:
@@ -204,11 +252,6 @@ jobs:
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -216,6 +259,33 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
 
       - name: Build
         env:
@@ -270,11 +340,6 @@ jobs:
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -282,6 +347,33 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
 
       - name: Build
         env:
@@ -338,11 +430,6 @@ jobs:
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-
     steps:
       - uses: actions/checkout@v2
 
@@ -350,6 +437,33 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
 
       - name: Build
         env:
