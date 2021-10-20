@@ -1,0 +1,247 @@
+---
+layout: commands
+page_title: 'Commands: Admin-partition'
+description: |
+  The admin-partition command enables you create and manage Consul Enterprise admin partitions.
+---
+
+# Consul Admin Partition
+
+Command: `consul admin-partition`
+
+<EnterpriseAlert />
+
+The `admin-partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple namespaces with the same name to exist independently of each other. This features is currently in beta.
+
+If ACLs are enabled then a token with operator privileges may be required in order to use this command. 
+
+You should only run the `admin-partition` command in the primary datacenter.
+
+## Usage
+
+```shell-session
+consul admin-partition <SUBCOMMAND> <OPTIONS> 
+```
+
+Issue the `consul admin-partition -h` command to view the subcommands.
+
+```shell-session
+Usage: consul admin-partition <subcommand> [options] [args]
+
+  This command has subcommands for interacting with Consul Enterprise
+  admin partitions. Here are some simple examples. More detailed
+  examples are available in the subcommands or the documentation.
+
+  Create an admin partition
+
+    $ consul admin-partition create -name team1
+
+  Create or Update an admin partition from its full definition:
+
+    $ consul admin-partition write part1
+
+  Read an admin partition:
+
+    $ consul admin-partition read team1
+
+  List all admin partitions:
+
+    $ consul admin-partition list
+
+  Update an admin partition
+
+    $ consul admin-partition update -name team1 -description "first admin-partition"
+
+  Delete an admin partition:
+
+    $ consul admin-partition delete team1
+
+  For more examples, ask for subcommand help or view the documentation.
+```
+
+## Subcommands
+
+You can issue the folloing subcommands with the `consul admin-partition` command.
+
+### `create`
+
+The `create` subcommand sends a request to the server to create a new admin partition. 
+
+```shell-session
+consul admin-partition create <OPTIONS> 
+```
+
+The admin partition is created according to the values specified in the options. You can specify the following options:
+
+| Option | Description | Default | Required |
+| ---    | ---         | ---     | ---      |
+| `-name` | String value that specifies the name for the new partition. | none | Required |
+| `-description` &nbsp; &nbsp; &nbsp; &nbsp; | String value that specifies a description of the new partition. | none | Optional |
+| `-format` | Specifies how to format the output of the operation in the console. | none | Optional |
+| `-show-meta` | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional | 
+
+In the following example, a partition named `webdev` is created:
+
+```shell-session
+consul admin-partition create -name "webdev" -description "Partition for admin of webdev services" -format  json -show-meta
+
+{
+   "Name": "webdev",
+   "Description": "Partition for admin of webdev services",
+   "CreateIndex": 940,
+   "ModifyIndex": 940
+}
+```
+
+### `write`
+
+The `write` subcommand sends a request to the server to create a new admin partition or update an existing partition from its full definition. You can specify an admin partition definition file or use values from `stdin`.
+
+Use the following syntax to write from file:
+
+```shell-session
+consul admin-partition write <OPTIONS> <FILE>
+```
+
+Use the following syntax to write from `stdin`:
+
+```shell-session
+consul admin-partition write <OPTIONS> -
+```
+
+The definition file or `stdin` values can be provided in JSON or HCL format. Refer to the  [Admin Partition Definition](#admin-partition-definition) section for details about the supported parameters.
+
+You can specify the following options:
+
+| Option | Description | Default | Required |
+| ---    | ---         | ---     | ---      |
+| `-format` | Specifies how to format the output of the operation in the console. | none | Optional |
+| `-show-meta` &nbsp; &nbsp; | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional | 
+
+In the following example, the `webdev-bu` partition is written using `stdin` values:
+
+```shell-session
+consul admin-partition write -format  json -show-meta - <<< 'name = "webdev-bu" description = "backup webdev partition"' 
+
+{
+   "Name": "webdev-bu",
+   "Description": "backup webdev partition",
+   "CreateIndex": 1462,
+   "ModifyIndex": 1462
+}
+```
+
+### `read`
+
+The `read` subcommand sends a request to the server to read the configuration for the specified partition and print it to the console. 
+
+```shell-session
+consul admin-partition read <OPTIONS> <PARTITION_NAME>
+```
+
+The admin partition is created according to the values specified in the options. You can specify the following options:
+
+| Option | Description | Default | Required |
+| ---    | ---         | ---     | ---      |
+| `-format` &nbsp; &nbsp; | Specifies how to format the output of the operation in the console. | none | Optional |
+| `-meta` | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional | 
+
+In the following example, the configuration for the `webdev` partition is read:
+
+```shell-session
+consul admin-partition read -format json -meta webdev
+
+{
+   "Name": "webdev",
+   "CreateIndex": 940,
+   "ModifyIndex": 1458
+}
+```
+
+### `list`
+
+The `list` subcommand prints existing admin partitions to the console. 
+
+```shell-session
+consul admin-partition list <OPTIONS> 
+```
+
+The admin partition is created according to the values specified in the options. You can specify the following options:
+
+| Option | Description | Default | Required |
+| ---    | ---         | ---     | ---      |
+| `-format` | Specifies how to format the output of the operation in the console. | none | Optional |
+| `-show-meta` | Prints the description and raft indices to the console in the response. <br/> This option does not take a value. Include the option when issuing the command to enable. | Disabled | Optional | 
+
+The following example lists the admin partitions and their meta data in JSON format:
+
+```shell-session
+consul admin-partition list -format  json -show-meta
+
+[
+   {
+      "Name": "default",
+      "Description": "Builtin Default Partition",
+      "CreateIndex": 4,
+      "ModifyIndex": 4
+   },
+   {
+      "Name": "webdev",
+      "CreateIndex": 940,
+      "ModifyIndex": 1458
+   },
+   {
+      "Name": "webdev-bu",
+      "Description": "backup webdev partition",
+      "CreateIndex": 1462,
+      "ModifyIndex": 1462
+   }
+]
+```
+
+### `delete`
+
+The `delete` subcommand sends a request to the server to remove the specified partition. 
+
+```shell-session
+consul admin-partition delete PARTITION_NAME>
+```
+In the following example, the `webdev-bu` partition is deleted:
+
+```shell-session
+consul admin-partition delete webdev
+```
+
+## Admin Partition Definition
+
+Admin partitions are managed exclusively through the HTTP API and the Consul CLI. The HTTP API accepts only JSON formatted definitions while the CLI will parse either JSON or HCL.
+
+The following parameters are supported in admin partition defintion files:
+
+| Option | Description | Default | Required |
+| ---    | ---         | ---     | ---      |
+| `Name` | String value that specifies the name of partiion you are creating or writing. <br/> The value must be valid DNS hostname value. | none | Required |
+| `Description` | String value that specifies a description for the partition you are creating or writing. <br/> The value should provide human-readable information to help other users understand the purpose of the partition. | none | Optional |
+
+### Example Definition File
+
+The following example shows an admin partition definition file that could be used with the [`write`](#write) command to create a partition:
+
+```hcl
+Name = "dev-partition"
+Description = "Partition for dev team"
+```
+
+## HTTP API Options
+
+You can include the following options to interact with the HTTP API when using the `admin-partition` command. 
+
+| Option | Description | Default | Required |
+| ---    | ---         | ---     | ---      |
+| `-ca-file` | Specifies the path to a certificate authority (CA) file when TLS is enabled.<br/> You can also specify `CONSUL_CACERT` as the value if the environment variable is configured. | none | Required if TLS is enabled |
+| `-ca-path` | Specifies the path to a client certificate file when TLS is enabled. <br/> You can also specify `CONSUL_CAPATH` as the value if the environment variable is configured. | none | Required if TLS is enabled |
+| `-client-cert` | Specifies the path to a client certificate file when TLS and the `verify_incoming` option are enabled. <br/> You can also specify `CONSUL_CLIENT_CERT` as the value if the environment variable is configured. | none | Required if TLS and `verify_incoming` are enabled |
+| `-client-key` | Specifies the path to a client key file when TLS and the `verify_incoming` option are enabled. <br/> You can also specify `CONSUL_CLIENT_KEY` as the value if the environment variable is configured. | none | Required if TLS and `verify_incoming` are enabled |
+| `-datacenter` &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Specifies the name of the datacenter to query. | Datacenter of the queried agent | Optional |
+| `-http-addr` | Specifies the address and port number of the Consul HTTP agent. <br/>IP and DNS addresses are supported. The address must also include the port. <br/>You can also specify `CONSUL_HTTP_ADDR` if the environment variable is configured. <br/>To use an HTTPS address, set the `CONSUL_HTTP_SSL` environment variable to `true`. | `http://127.0.0.1:8500` | Optional |
+| `-stale` | Boolean value that enables any Consul server (non-leader) to respond to the request. <br/>This switch can lower latency and increase throughput, but may result in stale data. This option has no effect on non-read operations. | `false` | Optional |
