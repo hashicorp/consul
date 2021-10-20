@@ -2721,6 +2721,167 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "service-exports",
+			snake: `
+				kind = "service-exports"
+				partition = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				services = [
+					{
+						name = "web"
+						namespace = "foo"
+						consumers = [
+							{
+								partition = "bar"
+							},
+							{
+								partition = "baz"
+							}
+						]
+					},
+					{
+						name = "db"
+						namespace = "bar"
+						consumers = [
+							{
+								partition = "zoo"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "service-exports"
+				Partition = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Services = [
+					{
+						Name = "web"
+						Namespace = "foo"
+						Consumers = [
+							{
+								Partition = "bar"
+							},
+							{
+								Partition = "baz"
+							}
+						]
+					},
+					{
+						Name = "db"
+						Namespace = "bar"
+						Consumers = [
+							{
+								Partition = "zoo"
+							}
+						]
+					}
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "service-exports",
+				"partition": "foo",
+				"meta": {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"services": [
+					{
+						"name": "web",
+						"namespace": "foo",
+						"consumers": [
+							{
+								"partition": "bar"
+							},
+							{
+								"partition": "baz"
+							}
+						]
+					},
+					{
+						"name": "db",
+						"namespace": "bar",
+						"consumers": [
+							{
+								"partition": "zoo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "service-exports",
+				"Partition": "foo",
+				"Meta": {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"Services": [
+					{
+						"Name": "web",
+						"Namespace": "foo",
+						"Consumers": [
+							{
+								"Partition": "bar"
+							},
+							{
+								"Partition": "baz"
+							}
+						]
+					},
+					{
+						"Name": "db",
+						"Namespace": "bar",
+						"Consumers": [
+							{
+								"Partition": "zoo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &api.ServiceExportsConfigEntry{
+				Partition: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				Services: []api.ExportedService{
+					{
+						Name:      "web",
+						Namespace: "foo",
+						Consumers: []api.ServiceConsumer{
+							{
+								Partition: "bar",
+							},
+							{
+								Partition: "baz",
+							},
+						},
+					},
+					{
+						Name:      "db",
+						Namespace: "bar",
+						Consumers: []api.ServiceConsumer{
+							{
+								Partition: "zoo",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 
