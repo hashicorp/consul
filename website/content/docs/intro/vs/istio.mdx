@@ -42,10 +42,17 @@ whereas Consul is able to efficiently distribute updates and perform all
 work on the edge.
 
 Consul provides layer 7 features for path-based routing, traffic shifting,
-load balancing, and telemetry. Consul enforces authorization and identity to
+load balancing and some telemetry. Consul enforces authorization and identity to
 layer 4 only &mdash; either the TLS connection can be established or it can't.
 We believe service identity should be tied to layer 4, whereas layer 7 should be
 used for routing, telemetry, etc. We will be adding more layer 7 features to Consul in the future.
+
+Consul telemetry support is not as complete as Istio. By design, Consul does not initiate
+traces on ingress, but will pass through headers received from a downstream caller.
+The Istio sidecar proxy (Envoy) generates the initial headers if they are not
+provided by the request. Applications must still propagate the trace context
+between incoming and outgoing requests. Istio has detailed information in the 
+Istio Distributed Tracing Tasks for Jaeger, Lightstep and Zipkin.
 
 The data plane for Consul is pluggable. It includes a built-in proxy with
 a larger performance trade off for ease of use. But you may also use third
