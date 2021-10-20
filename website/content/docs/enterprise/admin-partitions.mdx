@@ -16,7 +16,7 @@ This topic provides and overview of admin partitions, which are entities that de
 
 ## Introduction
 
-Admin partitions exist a level above namespaces in the identity hierarchy and contain one or more namespaces. Admin partitions support multiple independent namespaces with the same name. As a result, admin partitions enable you to define administrative and communcation boundaries between services managed by separate teams or belonging to separate stakeholders. They can also segment production and non-production services within the Consul deployment. 
+Admin partitions exist a level above namespaces in the identity hierarchy and contain one or more namespaces. Admin partitions allow multiple independent tenants to share a Consul server cluster. As a result, admin partitions enable you to define administrative and communication boundaries between services managed by separate teams or belonging to separate stakeholders. They can also segment production and non-production services within the Consul deployment. 
 
 ### Default Admin Partition
 
@@ -44,7 +44,7 @@ Only resources in the default admin partition will be replicated to secondary da
 
 ### DNS Queries
 
-Client agents will be configured to operate within a specific admin partition. The DNS interface will only return results for a single admin partition.  
+Client agents will be configured to operate within a specific admin partition. The DNS interface will only return results for the admin partition within the scope of the client.  
 
 ### Service Mesh Configurations
 
@@ -56,11 +56,15 @@ Values specified for [`proxy-defaults`](docs/connect/config-entries/proxy-defaul
 
 Your Consul configuration must meet the following requirements to use admin partitions.
 
+### Versions  
+
+* Consul 1.11.0 and newer
+
 ### Security Configurations
 
 * The agent token used by the client agent will need to allow `node:write` in the admin partition. 
 * The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
-* The write permissions for ingress and terminating gateways must be `mesh:write`.
+* The `write` permissions for ingress and terminating gateways require `mesh:write` privileges.
 * Wildcards (`*`) are not supported when creating intentions for admin partitions, but you can use a wildcard to specify services within a partition. 
 
 ### Agent Configurations
@@ -128,7 +132,7 @@ kubectl create secret generic license --from-file=key=[license file path i.e. ./
   enableConsulNamespaces: true
   tls:
     enabled: true
-  image: hashicorp/consul-enterprise:1.11.0-ent-alpha
+  image: hashicorp/consul-enterprise:1.11.0-ent-beta1
   adminPartitions:
     enabled: true
   server:
