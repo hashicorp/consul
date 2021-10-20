@@ -1,0 +1,3 @@
+```release-note:improvement
+config: Allow ${} style interpolation for UI Dashboard template URLs
+```
