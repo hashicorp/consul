@@ -79,7 +79,7 @@ export default class TopologyMetrics extends Component {
     const items = [...downstreams];
     const noDependencies = get(this.args.topology, 'noDependencies');
 
-    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
+    if (!this.env.var('CONSUL_ACLS_ENABLED') && noDependencies) {
       items.push({
         Name: 'Downstreams unknown.',
         Empty: true,
@@ -105,7 +105,7 @@ export default class TopologyMetrics extends Component {
     const wildcardIntention = get(this.args.topology, 'wildcardIntention');
     const noDependencies = get(this.args.topology, 'noDependencies');
 
-    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
+    if (!this.env.var('CONSUL_ACLS_ENABLED') && noDependencies) {
       items.push({
         Name: 'Upstreams unknown.',
         Empty: true,
