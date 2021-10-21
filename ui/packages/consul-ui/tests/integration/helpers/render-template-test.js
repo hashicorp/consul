@@ -16,6 +16,26 @@ module('Integration | Helper | render-template', function(hooks) {
       result: 'http://localhost/?=name/id',
     },
     {
+      href: 'http://localhost/?={{ Name }}/{{  ID  }}',
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?=name/id',
+    },
+    {
+      href: `http://localhost/?={{ 
+        Name 
+      }}/{{  
+        ID  
+      }}`,
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?=name/id',
+    },
+    {
       href: 'http://localhost/?={{Name}}/{{ID}}',
       vars: {
         Name: '{{Name}}',
@@ -42,6 +62,14 @@ module('Integration | Helper | render-template', function(hooks) {
       // If you don't pass actual variables then nothing
       // gets replaced and nothing is URL encoded
       result: 'http://localhost/?={{}}/{{}}',
+    },
+    {
+      href: 'http://localhost/?={{ }}/{{\r\n}}',
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?={{ }}/{{\r\n}}',
     },
     {
       href: 'http://localhost/?={{Service_Name}}/{{Meta-Key}}',
@@ -114,6 +142,26 @@ module('Integration | Helper | render-template', function(hooks) {
       result: 'http://localhost/?=name/id',
     },
     {
+      href: 'http://localhost/?=${ Name }/${  ID  }',
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?=name/id',
+    },
+    {
+      href: `http://localhost/?=\${ 
+        Name 
+      }/\${  
+        ID  
+      }`,
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?=name/id',
+    },
+    {
       href: 'http://localhost/?=${Name}/${ID}',
       vars: {
         Name: '{{Name}}',
@@ -140,6 +188,14 @@ module('Integration | Helper | render-template', function(hooks) {
       // If you don't pass actual variables then nothing
       // gets replaced and nothing is URL encoded
       result: 'http://localhost/?=${}/${}',
+    },
+    {
+      href: 'http://localhost/?=${ }/${\r\n}',
+      vars: {
+        Name: 'name',
+        ID: 'id',
+      },
+      result: 'http://localhost/?=${ }/${\r\n}',
     },
     {
       href: 'http://localhost/?=${Service_Name}/${Meta-Key}',

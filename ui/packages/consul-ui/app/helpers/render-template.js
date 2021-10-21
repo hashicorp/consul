@@ -5,11 +5,13 @@ import { inject as service } from '@ember/service';
 // what this regex does
 // (?:\$|\{)            - Match either $ or {
 // \{                   - Match {
+// [\s\n\r]*            - Skip spaces/newlines
 // ([a-z.0-9_-]+)       - Capturing group
+// [\s\n\r]*            - Skip spaces/newlines
 // (?:(?<=\$\{[^{]+)    - Use a positive lookbehind to assert that ${ was matched previously
 //   |\}            )   - or match a }
 // \}                   - Match }
-const templateRe = /(?:\$|\{)\{([a-z.0-9_-]+)(?:(?<=\$\{[^{]+)|\})\}/gi;
+const templateRe = /(?:\$|\{)\{[\s\n\r]*([a-z.0-9_-]+)[\s\n\r]*(?:(?<=\$\{[^{]+)|\})\}/gi;
 let render;
 export default class RenderTemplateHelper extends Helper {
   @service('encoder') encoder;
