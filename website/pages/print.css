@@ -1,8 +1,8 @@
 /* Print Styles - Hide Elements */
 @media print {
   iframe,
+  #__next > header,
   .g-footer,
-  .g-mega-nav,
   [aria-hidden='true'],
   [id='__next-build-watcher'],
   [id='edit-this-page'],
