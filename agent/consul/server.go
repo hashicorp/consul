@@ -1012,7 +1012,9 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if !s.attemptLeadershipTransfer() {
+		if s.attemptLeadershipTransfer() {
+			isLeader = false
+		} else {
 			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
 			if err := future.Error(); err != nil {
 				s.logger.Error("failed to remove ourself as raft peer", "error", err)
