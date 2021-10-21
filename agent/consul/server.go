@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
@@ -92,6 +94,8 @@ const (
 	// from Serf with the Catalog. If this is exhausted we will drop updates,
 	// and wait for a periodic reconcile.
 	reconcileChSize = 256
+
+	LeaderTransferMinVersion = "1.6.0"
 )
 
 const (
@@ -992,8 +996,28 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
-			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
+		leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
+		removeServer := false
+		if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion); !ok {
+			// Transfer leadership to another node then leave the cluster
+			future := s.raft.LeadershipTransfer()
+			if err := future.Error(); err != nil {
+				s.logger.Error("failed to transfer leadership, removing the server", "error", err)
+				// leadership transfer failed, fallback to removing the server from raft
+				removeServer = true
+			} else {
+				// we are not leader anymore, continue the flow to leave as follower
+				isLeader = false
+			}
+		} else {
+			// Leadership transfer is not available in the current version, fallback to removing the server from raft
+			removeServer = true
+		}
+		if removeServer {
+			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
+			if err := future.Error(); err != nil {
+				s.logger.Error("failed to remove ourself as raft peer", "error", err)
+			}
 		}
 	}
 
