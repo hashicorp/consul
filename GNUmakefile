@@ -231,9 +231,6 @@ test-internal:
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
 
-test-flake: other-consul lint
-	@$(SHELL) $(CURDIR)/build-support/scripts/test-flake.sh --pkg "$(FLAKE_PKG)" --test "$(FLAKE_TEST)" --cpus "$(FLAKE_CPUS)" --n "$(FLAKE_N)"
-
 test-docker: linux go-build-image
 	@# -ti run in the foreground showing stdout
 	@# --rm removes the container once its finished running
@@ -372,6 +369,6 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
-.PHONY: all bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
+.PHONY: all bin dev dist cov test test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
 .PHONY: version proto test-envoy-integ
