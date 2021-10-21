@@ -5855,6 +5855,7 @@ func TestLoad_FullConfig(t *testing.T) {
 			StatsiteAddr:                       "HpFwKB8R",
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: 15 * time.Second,
+				Name:       "ftO6DySn", // notice this is the same as the metrics prefix
 			},
 		},
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
