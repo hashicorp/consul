@@ -213,10 +213,17 @@ func (r *Raft) runFollower() {
 					didWarn = true
 				}
 			} else {
-				r.logger.Warn("heartbeat timeout reached, starting election", "last-leader", lastLeader)
 				metrics.IncrCounter([]string{"raft", "transition", "heartbeat_timeout"}, 1)
-				r.setState(Candidate)
-				return
+				if inConfig(r.configurations.latest, r.localID) {
+					r.logger.Warn("heartbeat timeout reached, starting election", "last-leader", lastLeader)
+					r.setState(Candidate)
+					return
+				} else {
+					if !didWarn {
+						r.logger.Warn("heartbeat timeout reached, not part of stable configuration, not triggering a leader election")
+						didWarn = true
+					}
+				}
 			}
 
 		case <-r.shutdownCh:
@@ -507,9 +514,18 @@ func (r *Raft) startStopReplication() {
 			r.goFunc(func() { r.replicate(s) })
 			asyncNotifyCh(s.triggerCh)
 			r.observe(PeerObservation{Peer: server, Removed: false})
-		} else if ok && s.peer.Address != server.Address {
-			r.logger.Info("updating peer", "peer", server.ID)
-			s.peer = server
+		} else if ok {
+
+			s.peerLock.RLock()
+			peer := s.peer
+			s.peerLock.RUnlock()
+
+			if peer.Address != server.Address {
+				r.logger.Info("updating peer", "peer", server.ID)
+				s.peerLock.Lock()
+				s.peer = server
+				s.peerLock.Unlock()
+			}
 		}
 	}
 
