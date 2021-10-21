@@ -1,3 +1,3 @@
 ```release-note:enhancement
-try to transfer leadership to another server when leaving.
+raft: Consul leaders will attempt to transfer leadership to another server as part of gracefully leaving the cluster.
 ```
