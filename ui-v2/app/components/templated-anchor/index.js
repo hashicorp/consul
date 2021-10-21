@@ -24,9 +24,17 @@ const createWeak = function(wm = new WeakMap()) {
   };
 };
 const weak = createWeak();
+// regexp that matches {{item.Name}} or ${item.Name}
+// what this regex does
+// (?:\$|\{)            - Match either $ or {
+// \{                   - Match {
+// ([a-z.0-9_-]+)       - Capturing group
+// (?:(?<=\$\{[^{]+)    - Use a positive lookbehind to assert that ${ was matched previously
+//   |\}            )   - or match a }
+// \}                   - Match }
 // Covers alpha-capitalized dot separated API keys such as
 // `{{Name}}`, `{{Service.Name}}` etc. but not `{{}}`
-const templateRe = /{{([A-Za-z.0-9_-]+)}}/g;
+const templateRe = /(?:\$|\{)\{([a-z.0-9_-]+)(?:(?<=\$\{[^{]+)|\})\}/gi;
 export default Component.extend({
   tagName: 'a',
   attributeBindings: ['href', 'rel', 'target'],
