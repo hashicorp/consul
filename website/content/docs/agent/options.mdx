@@ -2252,12 +2252,18 @@ signed by the CA can be used to gain full access to Consul.
   considered less secure; avoid using these if possible.
 
 - `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
-  supported ciphersuites as a comma-separated-list. The list of all supported
-  ciphersuites is available through
+  supported ciphersuites as a comma-separated-list. Applicable to TLS 1.2 and below only.
+  The list of all supported ciphersuites is available through
   [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+
+  ~> **Note:** The ordering of cipher suites will not be guaranteed from Consul 1.11 onwards. See this
+  [post](https://go.dev/blog/tls-cipher-suites) for details.
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
   will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
+
+  ~> **Note:** This config will be deprecated in Consul 1.11. See this
+  [post](https://go.dev/blog/tls-cipher-suites) for details.
 
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client
