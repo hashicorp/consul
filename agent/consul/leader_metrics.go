@@ -169,7 +169,7 @@ var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
 
 // AgentTLSCertExpirationMonitor returns a CertExpirationMonitor which will
 // monitor the expiration of the certificate used for agent TLS.
-func AgentTLSCertExpirationMonitor(c *tlsutil.Configurator, logger hclog.Logger, dc string) CertExpirationMonitor {
+func AgentTLSCertExpirationMonitor(c *tlsutil.Configurator, logger hclog.Logger) CertExpirationMonitor {
 	return CertExpirationMonitor{
 		Key:    metricsKeyAgentTLSCertExpiry,
 		Logger: logger,
@@ -185,5 +185,14 @@ func AgentTLSCertExpirationMonitor(c *tlsutil.Configurator, logger hclog.Logger,
 			}
 			return time.Until(cert.NotAfter), nil
 		},
+	}
+}
+
+// initLeaderMetrics sets all metrics that are emitted only on leaders to a NaN
+// value so that they don't incorrectly report 0 when a server starts as a
+// follower.
+func initLeaderMetrics() {
+	for _, g := range LeaderCertExpirationGauges {
+		metrics.SetGaugeWithLabels(g.Name, float32(math.NaN()), g.ConstLabels)
 	}
 }
