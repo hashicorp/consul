@@ -669,7 +669,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 	upstreams := structs.TestUpstreams(t)
 
@@ -1396,7 +1396,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		entries = append(entries, additionalEntries...)
 	}
 
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", compileSetup, entries...)
 
 	upstreams := structs.TestUpstreams(t)
 	snap := ConfigSnapshotUpstreams{
@@ -2085,8 +2085,8 @@ func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *C
 		},
 	}
 
-	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
-	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 	snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
 		"foo": fooChain,

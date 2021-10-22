@@ -568,7 +568,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
 							}),
@@ -578,7 +578,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-failover-remote?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeRemote
 							}),
@@ -588,7 +588,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-failover-local?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
 							}),
@@ -598,7 +598,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-failover-direct?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeNone
 							}),
@@ -608,7 +608,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
 							}, &structs.ServiceResolverConfigEntry{
@@ -1032,7 +1032,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + api.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", "dc1", nil),
+								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", nil),
 							},
 							Err: nil,
 						},
@@ -1863,7 +1863,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + db.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", "dc1", nil),
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil),
 							},
 							Err: nil,
 						},
@@ -2012,7 +2012,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + db.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", "dc1", nil, &structs.ServiceResolverConfigEntry{
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil, &structs.ServiceResolverConfigEntry{
 									Kind: structs.ServiceResolver,
 									Name: "db",
 									Redirect: &structs.ServiceResolverRedirect{
@@ -2180,7 +2180,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + upstreamIDForDC2(db.String()),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc2", "trustdomain.consul", "dc1",
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc2", "trustdomain.consul",
 									func(req *discoverychain.CompileRequest) {
 										req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
 									}),

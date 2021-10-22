@@ -12,7 +12,6 @@ func TestCompileConfigEntries(t testing.T,
 	evaluateInPartition string,
 	evaluateInDatacenter string,
 	evaluateInTrustDomain string,
-	_ string,
 	setup func(req *CompileRequest), entries ...structs.ConfigEntry) *structs.CompiledDiscoveryChain {
 	set := structs.NewDiscoveryChainConfigEntries()
 
