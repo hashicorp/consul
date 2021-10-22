@@ -6,10 +6,10 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
-// ServiceExportsConfigEntry is the top-level struct for exporting a service to be exposed
+// PartitionExportsConfigEntry is the top-level struct for exporting a service to be exposed
 // across other admin partitions.
-type ServiceExportsConfigEntry struct {
-	Partition string
+type PartitionExportsConfigEntry struct {
+	Name string
 
 	// Services is a list of services to be exported and the list of partitions
 	// to expose them to.
@@ -39,7 +39,7 @@ type ServiceConsumer struct {
 	Partition string
 }
 
-func (e *ServiceExportsConfigEntry) Clone() *ServiceExportsConfigEntry {
+func (e *PartitionExportsConfigEntry) Clone() *PartitionExportsConfigEntry {
 	e2 := *e
 	e2.Services = make([]ExportedService, len(e.Services))
 	for _, svc := range e.Services {
@@ -54,32 +54,30 @@ func (e *ServiceExportsConfigEntry) Clone() *ServiceExportsConfigEntry {
 	return &e2
 }
 
-func (e *ServiceExportsConfigEntry) GetKind() string {
-	return ServiceExports
+func (e *PartitionExportsConfigEntry) GetKind() string {
+	return PartitionExports
 }
 
-func (e *ServiceExportsConfigEntry) GetName() string {
+func (e *PartitionExportsConfigEntry) GetName() string {
 	if e == nil {
 		return ""
 	}
 
-	return e.Partition
+	return e.Name
 }
 
-func (e *ServiceExportsConfigEntry) GetMeta() map[string]string {
+func (e *PartitionExportsConfigEntry) GetMeta() map[string]string {
 	if e == nil {
 		return nil
 	}
 	return e.Meta
 }
 
-func (e *ServiceExportsConfigEntry) Normalize() error {
+func (e *PartitionExportsConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
 	}
-
-	meta := DefaultEnterpriseMetaInPartition(e.Partition)
-	e.EnterpriseMeta.Merge(meta)
+	e.EnterpriseMeta = *DefaultEnterpriseMetaInPartition(e.Name)
 	e.EnterpriseMeta.Normalize()
 
 	for i := range e.Services {
@@ -89,12 +87,12 @@ func (e *ServiceExportsConfigEntry) Normalize() error {
 	return nil
 }
 
-func (e *ServiceExportsConfigEntry) Validate() error {
-	if e.Partition == "" {
-		return fmt.Errorf("Partition is required")
+func (e *PartitionExportsConfigEntry) Validate() error {
+	if e.Name == "" {
+		return fmt.Errorf("Name is required")
 	}
-	if e.Partition == WildcardSpecifier {
-		return fmt.Errorf("service-exports Partition must be the name of a partition, and not a wildcard")
+	if e.Name == WildcardSpecifier {
+		return fmt.Errorf("partition-exports Name must be the name of a partition, and not a wildcard")
 	}
 
 	validationErr := validateConfigEntryMeta(e.Meta)
@@ -116,19 +114,19 @@ func (e *ServiceExportsConfigEntry) Validate() error {
 	return validationErr
 }
 
-func (e *ServiceExportsConfigEntry) CanRead(authz acl.Authorizer) bool {
+func (e *PartitionExportsConfigEntry) CanRead(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.MeshRead(&authzContext) == acl.Allow
 }
 
-func (e *ServiceExportsConfigEntry) CanWrite(authz acl.Authorizer) bool {
+func (e *PartitionExportsConfigEntry) CanWrite(authz acl.Authorizer) bool {
 	var authzContext acl.AuthorizerContext
 	e.FillAuthzContext(&authzContext)
 	return authz.MeshWrite(&authzContext) == acl.Allow
 }
 
-func (e *ServiceExportsConfigEntry) GetRaftIndex() *RaftIndex {
+func (e *PartitionExportsConfigEntry) GetRaftIndex() *RaftIndex {
 	if e == nil {
 		return &RaftIndex{}
 	}
@@ -136,7 +134,7 @@ func (e *ServiceExportsConfigEntry) GetRaftIndex() *RaftIndex {
 	return &e.RaftIndex
 }
 
-func (e *ServiceExportsConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
+func (e *PartitionExportsConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	if e == nil {
 		return nil
 	}

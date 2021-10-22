@@ -1665,9 +1665,9 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-exports",
+			name: "partition-exports",
 			snake: `
-				kind = "service-exports"
+				kind = "partition-exports"
 				partition = "foo"
 				meta {
 					"foo" = "bar"
@@ -1698,7 +1698,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				]
 			`,
 			camel: `
-				Kind = "service-exports"
+				Kind = "partition-exports"
 				Partition = "foo"
 				Meta {
 					"foo" = "bar"
@@ -1728,8 +1728,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 					}
 				]
 			`,
-			expect: &ServiceExportsConfigEntry{
-				Partition: "foo",
+			expect: &PartitionExportsConfigEntry{
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
