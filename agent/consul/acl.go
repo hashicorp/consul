@@ -1090,8 +1090,13 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 
 	// Build the Authorizer
 	var chain []acl.Authorizer
+	var conf acl.Config
+	if r.aclConf != nil {
+		conf = *r.aclConf
+	}
+	conf.LocalPartition = identity.EnterpriseMetadata().PartitionOrDefault()
 
-	authz, err := policies.Compile(r.cache, r.aclConf)
+	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
 		return nil, nil, err
 	}
