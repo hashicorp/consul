@@ -955,6 +955,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 			StatsiteAddr:                       stringVal(c.Telemetry.StatsiteAddr),
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+				Name:       stringVal(c.Telemetry.MetricsPrefix),
 			},
 		},
 
