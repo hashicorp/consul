@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/mitchellh/copystructure"
 
@@ -38,11 +39,11 @@ type ConfigSnapshotUpstreams struct {
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 
 	// WatchedGateways is a map of upstream.Identifier() -> (map of
-	// TargetID -> CancelFunc) in order to cancel watches for mesh gateways
+	// GatewayKey.String() -> CancelFunc) in order to cancel watches for mesh gateways
 	WatchedGateways map[string]map[string]context.CancelFunc
 
 	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
-	// TargetID -> CheckServiceNodes) and is used to determine the backing
+	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of a mesh gateway.
 	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
 
@@ -51,6 +52,27 @@ type ConfigSnapshotUpstreams struct {
 
 	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
 	PassthroughUpstreams map[string]ServicePassthroughAddrs
+}
+
+type GatewayKey struct {
+	Datacenter string
+	Partition  string
+}
+
+func (k GatewayKey) String() string {
+	return k.Partition + "." + k.Datacenter
+}
+
+func (k GatewayKey) IsEmpty() bool {
+	return k.Partition == "" && k.Datacenter == ""
+}
+
+func gatewayKeyFromString(s string) GatewayKey {
+	split := strings.Split(s, ".")
+	return GatewayKey{
+		Partition:  split[0],
+		Datacenter: split[1],
+	}
 }
 
 // ServicePassthroughAddrs contains the LAN addrs

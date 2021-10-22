@@ -649,8 +649,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"upstream-target:api-failover-remote.default.default.dc2:api-failover-remote?dc=dc2": genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
 				"upstream-target:api-failover-local.default.default.dc2:api-failover-local?dc=dc2":   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
 				"upstream-target:api-failover-direct.default.default.dc2:api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
-				"mesh-gateway:dc2:api-failover-remote?dc=dc2":                                        genVerifyGatewayWatch("dc2"),
-				"mesh-gateway:dc1:api-failover-local?dc=dc2":                                         genVerifyGatewayWatch("dc1"),
+				"mesh-gateway:default.dc2:api-failover-remote?dc=dc2":                                genVerifyGatewayWatch("dc2"),
+				"mesh-gateway:default.dc1:api-failover-local?dc=dc2":                                 genVerifyGatewayWatch("dc1"),
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
@@ -673,7 +673,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
-			stage1.requiredWatches["mesh-gateway:dc1:api-dc2"] = genVerifyGatewayWatch("dc1")
+			stage1.requiredWatches["mesh-gateway:default.dc1:api-dc2"] = genVerifyGatewayWatch("dc1")
 		}
 
 		return testCase{
