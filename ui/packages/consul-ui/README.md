@@ -104,8 +104,10 @@ Examples:
 ### Contributing/Engineering Documentation
 
 We have an in-app (only during development) component storybook and
-documentation site which can be visited using the [Eng Docs](http://localhost:4200/ui/docs)
-link in the top navigation of the UI.
+documentation site which can be visited using the [Eng
+Docs](http://localhost:4200/ui/docs) link in the top navigation of the UI.
+Alternatively all of these docs are also readable via GitHub's UI, so folks can
+use whatever works best for them.
 
 ### Browser 'Debug Utility' Functions and 'Environment' Variables
 
@@ -123,6 +125,8 @@ Tests use the mock api (see ./mock-api for details)
 
 * `make test` or `yarn run test`
 * `make test-view` or `yarn run test:view` to view the tests running in Chrome
+
+For more guidance on running tests, see the [testing section of the engineering docs](./docs/testing.mdx).
 
 OSS only tests can also be run using:
 
