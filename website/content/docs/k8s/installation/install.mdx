@@ -18,7 +18,7 @@ a server running inside or outside of Kubernetes.
 You can install Consul on Kubernetes using the following methods:
 
 1. [Helm chart install](#helm-chart-installation)
-1. [Consul K8s CLI install <sup>ALPHA</sup>.](#consul-k8s-cli-installation)
+1. [Consul K8s CLI install <sup>BETA</sup>.](#consul-k8s-cli-installation)
 
 Refer to the [architecture](/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
 For a hands-on experience with Consul as a service mesh
@@ -99,11 +99,11 @@ use the following config file:
 
 ```yaml
 global:
-name: consul
+  name: consul
 connectInject:
-enabled: true
+  enabled: true
 controller:
-enabled: true
+  enabled: true
 ```
 
 </CodeBlockConfig>
