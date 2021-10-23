@@ -256,10 +256,10 @@ type configSnapshotMeshGateway struct {
 	// health check to pass.
 	WatchedServicesSet bool
 
-	// WatchedDatacenters is a map of datacenter name to a cancel function.
+	// WatchedGateways is a map of GatewayKeys to a cancel function.
 	// This cancel function is tied to the watch of mesh-gateway services in
-	// that datacenter.
-	WatchedDatacenters map[string]context.CancelFunc
+	// that datacenter/partition.
+	WatchedGateways map[string]context.CancelFunc
 
 	// ServiceGroups is a map of service name to the service instances of that
 	// service in the local datacenter.
@@ -315,7 +315,7 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 	}
 	return len(c.WatchedServices) == 0 &&
 		!c.WatchedServicesSet &&
-		len(c.WatchedDatacenters) == 0 &&
+		len(c.WatchedGateways) == 0 &&
 		len(c.ServiceGroups) == 0 &&
 		len(c.ServiceResolvers) == 0 &&
 		len(c.GatewayGroups) == 0 &&
@@ -466,7 +466,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.TerminatingGateway.WatchedConfigs = nil
 		snap.TerminatingGateway.WatchedResolvers = nil
 	case structs.ServiceKindMeshGateway:
-		snap.MeshGateway.WatchedDatacenters = nil
+		snap.MeshGateway.WatchedGateways = nil
 		snap.MeshGateway.WatchedServices = nil
 	case structs.ServiceKindIngressGateway:
 		snap.IngressGateway.WatchedUpstreams = nil
