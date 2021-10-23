@@ -109,28 +109,28 @@ func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *pro
 }
 
 func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters()
-	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
+	keys := cfgSnap.MeshGateway.Keys()
+	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the endpoints for the gateways in the remote datacenters
-	for _, dc := range datacenters {
+	for _, key := range keys {
 		// Skip creating endpoints for mesh gateways in local DC and gateways in remote DCs with a hostname as their address
 		// EDS cannot resolve hostnames so we provide them through CDS instead
-		if dc == cfgSnap.Datacenter || len(cfgSnap.MeshGateway.HostnameDatacenters[dc]) > 0 {
+		if key.Datacenter == cfgSnap.Datacenter || len(cfgSnap.MeshGateway.HostnameDatacenters[key.String()]) > 0 {
 			continue
 		}
 
-		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
+		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[key.String()]
 		if !ok {
-			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[dc]
+			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[key.String()]
 			if !ok { // not possible
-				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", dc)
+				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
 				continue
 			}
 		}
 
 		{ // standard connect
-			clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.DatacenterSNI(key.Datacenter, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
 				clusterName,
@@ -143,7 +143,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		}
 
 		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-			clusterName := cfgSnap.ServerSNIFn(dc, "")
+			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 
 			la := makeLoadAssignment(
 				clusterName,

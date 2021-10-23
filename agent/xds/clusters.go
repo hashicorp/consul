@@ -202,21 +202,21 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
 func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters()
+	keys := cfgSnap.MeshGateway.Keys()
 
 	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
-	clusters := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
+	clusters := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the remote dc clusters
-	for _, dc := range datacenters {
-		if dc == cfgSnap.Datacenter {
+	for _, key := range keys {
+		if key.Datacenter == cfgSnap.Datacenter {
 			continue // skip local
 		}
 
 		opts := gatewayClusterOpts{
-			name:              connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain),
-			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[dc],
-			isRemote:          dc != cfgSnap.Datacenter,
+			name:              connect.DatacenterSNI(key.Datacenter, cfgSnap.Roots.TrustDomain),
+			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[key.String()],
+			isRemote:          key.Datacenter != cfgSnap.Datacenter,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 		clusters = append(clusters, cluster)
@@ -224,18 +224,18 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 
 	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
 		// Add all of the remote wildcard datacenter mappings for servers.
-		for _, dc := range datacenters {
-			hostnameEndpoints := cfgSnap.MeshGateway.HostnameDatacenters[dc]
+		for _, key := range keys {
+			hostnameEndpoints := cfgSnap.MeshGateway.HostnameDatacenters[key.String()]
 
 			// If the DC is our current DC then this cluster is for traffic from a remote DC to a local server.
 			// HostnameDatacenters is populated with gateway addresses, so it does not apply here.
-			if dc == cfgSnap.Datacenter {
+			if key.Datacenter == cfgSnap.Datacenter {
 				hostnameEndpoints = nil
 			}
 			opts := gatewayClusterOpts{
-				name:              cfgSnap.ServerSNIFn(dc, ""),
+				name:              cfgSnap.ServerSNIFn(key.Datacenter, ""),
 				hostnameEndpoints: hostnameEndpoints,
-				isRemote:          dc != cfgSnap.Datacenter,
+				isRemote:          key.Datacenter != cfgSnap.Datacenter,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)

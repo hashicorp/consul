@@ -60,7 +60,11 @@ type GatewayKey struct {
 }
 
 func (k GatewayKey) String() string {
-	return k.Partition + "." + k.Datacenter
+	resp := k.Datacenter
+	if k.Partition != "" {
+		resp = k.Partition + "." + resp
+	}
+	return resp
 }
 
 func (k GatewayKey) IsEmpty() bool {
@@ -69,10 +73,11 @@ func (k GatewayKey) IsEmpty() bool {
 
 func gatewayKeyFromString(s string) GatewayKey {
 	split := strings.SplitN(s, ".", 2)
-	return GatewayKey{
-		Partition:  split[0],
-		Datacenter: split[1],
+
+	if len(split) == 1 {
+		return GatewayKey{Datacenter: split[0]}
 	}
+	return GatewayKey{Partition: split[0], Datacenter: split[1]}
 }
 
 // ServicePassthroughAddrs contains the LAN addrs
@@ -285,7 +290,7 @@ type configSnapshotMeshGateway struct {
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 }
 
-func (c *configSnapshotMeshGateway) Datacenters() []string {
+func (c *configSnapshotMeshGateway) Keys() []GatewayKey {
 	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
 
 	sz := sz1
@@ -293,20 +298,25 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 		sz = sz2
 	}
 
-	dcs := make([]string, 0, sz)
-	for dc := range c.GatewayGroups {
-		dcs = append(dcs, dc)
+	keys := make([]GatewayKey, 0, sz)
+	for key := range c.GatewayGroups {
+		keys = append(keys, gatewayKeyFromString(key))
 	}
-	for dc := range c.FedStateGateways {
-		if _, ok := c.GatewayGroups[dc]; !ok {
-			dcs = append(dcs, dc)
+	for key := range c.FedStateGateways {
+		if _, ok := c.GatewayGroups[key]; !ok {
+			keys = append(keys, gatewayKeyFromString(key))
 		}
 	}
 
 	// Always sort the results to ensure we generate deterministic things over
 	// xDS, such as mesh-gateway listener filter chains.
-	sort.Strings(dcs)
-	return dcs
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].Datacenter != keys[j].Datacenter {
+			return keys[i].Datacenter < keys[j].Datacenter
+		}
+		return keys[i].Partition < keys[j].Partition
+	})
+	return keys
 }
 
 func (c *configSnapshotMeshGateway) IsEmpty() bool {
