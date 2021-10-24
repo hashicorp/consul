@@ -209,7 +209,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 
 	// generate the remote dc clusters
 	for _, key := range keys {
-		if key.Datacenter == cfgSnap.Datacenter {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
 			continue // skip local
 		}
 

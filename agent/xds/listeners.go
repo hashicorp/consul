@@ -1139,9 +1139,10 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	// We need 1 Filter Chain per datacenter
 	keys := cfgSnap.MeshGateway.Keys()
 	for _, key := range keys {
-		if key.Datacenter == cfgSnap.Datacenter {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
 			continue // skip local
 		}
+
 		clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 		filterName := fmt.Sprintf("%s.%s", name, key.String())
 		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote.")

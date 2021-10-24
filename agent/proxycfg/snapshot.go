@@ -71,6 +71,10 @@ func (k GatewayKey) IsEmpty() bool {
 	return k.Partition == "" && k.Datacenter == ""
 }
 
+func (k GatewayKey) Matches(dc, partition string) bool {
+	return k.Partition == partition && k.Datacenter == dc
+}
+
 func gatewayKeyFromString(s string) GatewayKey {
 	split := strings.SplitN(s, ".", 2)
 
