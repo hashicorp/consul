@@ -214,7 +214,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		}
 
 		opts := gatewayClusterOpts{
-			name:              connect.DatacenterSNI(key.Datacenter, cfgSnap.Roots.TrustDomain),
+			name:              connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain),
 			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[key.String()],
 			isRemote:          key.Datacenter != cfgSnap.Datacenter,
 		}

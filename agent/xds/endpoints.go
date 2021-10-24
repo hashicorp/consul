@@ -130,7 +130,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		}
 
 		{ // standard connect
-			clusterName := connect.DatacenterSNI(key.Datacenter, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
 				clusterName,

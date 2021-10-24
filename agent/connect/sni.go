@@ -24,8 +24,17 @@ func UpstreamSNI(u *structs.Upstream, subset string, dc string, trustDomain stri
 	return ServiceSNI(u.DestinationName, subset, u.DestinationNamespace, u.DestinationPartition, dc, trustDomain)
 }
 
-func DatacenterSNI(dc string, trustDomain string) string {
-	return fmt.Sprintf("%s.internal.%s", dc, trustDomain)
+func GatewaySNI(dc string, partition, trustDomain string) string {
+	if partition == "" {
+		partition = "default"
+	}
+
+	switch partition {
+	case "default":
+		return dotJoin(dc, internal, trustDomain)
+	default:
+		return dotJoin(partition, dc, internalVersion, trustDomain)
+	}
 }
 
 func ServiceSNI(service string, subset string, namespace string, partition string, datacenter string, trustDomain string) string {
