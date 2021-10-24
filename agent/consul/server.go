@@ -427,7 +427,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.aclConfig = newACLConfig(logger)
+	partitionInfo := serverPartitionInfo(s)
+	s.aclConfig = newACLConfig(partitionInfo, logger)
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
 		Delegate:    s,

@@ -1094,7 +1094,7 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	if r.aclConf != nil {
 		conf = *r.aclConf
 	}
-	conf.LocalPartition = identity.EnterpriseMetadata().PartitionOrDefault()
+	r.setEnterpriseConf(identity, &conf)
 
 	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
@@ -1899,4 +1899,10 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	}
 	filterACLWithAuthorizer(r.logger, authorizer, subj)
 	return nil
+}
+
+type partitionInfoNoop struct{}
+
+func (p *partitionInfoNoop) DownstreamPartitions(service string, ctx *acl.AuthorizerContext) []string {
+	return []string{}
 }
