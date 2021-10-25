@@ -32,7 +32,7 @@ as |item readOnly|}}
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-  {{#if readOnly}}
+  {{#if (not readOnly)}}
     {{#if item.ID}}
             <route.Title @title="Edit Intention" />
     {{else}}
