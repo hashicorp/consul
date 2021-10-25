@@ -58,7 +58,7 @@ func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *stru
 // given context, using a prefix match.
 func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMeta()
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 
 	// TODO: wildcard namespace handling (previously broken?)
