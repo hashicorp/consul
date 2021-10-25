@@ -142,6 +142,7 @@ func (b *indexBuilder) Bytes() []byte {
 // be indexed by a single ID and a structs.EnterpriseMeta to scope the ID.
 type singleValueID interface {
 	IDValue() string
+	PartitionOrDefault() string
 	NamespaceOrDefault() string
 }
 
