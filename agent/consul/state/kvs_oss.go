@@ -12,22 +12,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// indexFromKVEntry creates an index key from a structs.DirEntry, Query, or
-// *Tombstone. The index is case sensitive.
-func indexFromKVEntry(raw interface{}) ([]byte, error) {
-	e, ok := raw.(singleValueID)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+func kvsIndexer() indexerSingleWithPrefix {
+	return indexerSingleWithPrefix{
+		readIndex:   readIndex(indexFromKVEntry),
+		writeIndex:  writeIndex(indexFromKVEntry),
+		prefixIndex: prefixIndex(prefixIndexForKVEntry),
 	}
-
-	v := e.IDValue()
-	if v == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(v)
-	return b.Bytes(), nil
 }
 
 func prefixIndexForKVEntry(arg interface{}) ([]byte, error) {
