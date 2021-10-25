@@ -33,7 +33,7 @@ as |api|>
 
     <BlockSlot @name="form">
 {{#let api.data as |item|}}
-{{#if (can 'write intention' item=item)}}
+{{#if (not readonly)}}
 
   {{#let (changeset-get item 'Action') as |newAction|}}
       <ModalDialog
