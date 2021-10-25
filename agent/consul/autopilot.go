@@ -59,6 +59,9 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 		// https://www.consul.io/docs/agent/telemetry#autopilot
 		metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
 
+		// also emit NaN for failure tolerance to be backwards compatible
+		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
+
 	}
 }
 
@@ -83,6 +86,7 @@ func (s *Server) initAutopilot(config *Config) {
 	)
 
 	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
+	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
