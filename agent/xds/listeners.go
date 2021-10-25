@@ -511,49 +511,6 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 	return resources, err
 }
 
-func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
-	var mergedCfg structs.GatewayTLSSDSConfig
-
-	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
-	if gwSDS != nil {
-		mergedCfg.ClusterName = gwSDS.ClusterName
-		mergedCfg.CertResource = gwSDS.CertResource
-	}
-
-	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
-	if !ok {
-		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
-	}
-
-	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
-		if listenerCfg.TLS.SDS.ClusterName != "" {
-			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
-		}
-		if listenerCfg.TLS.SDS.CertResource != "" {
-			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
-		}
-	}
-
-	// Validate. Either merged should have both fields empty or both set. Other
-	// cases shouldn't be possible as we validate them at input but be robust to
-	// bugs later.
-	switch {
-	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
-		return nil, nil
-
-	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
-		return &mergedCfg, nil
-
-	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
-		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
-
-	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
-		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
-	}
-
-	return &mergedCfg, nil
-}
-
 // makeListener returns a listener with name and bind details set. Filters must
 // be added before it's useful.
 //
