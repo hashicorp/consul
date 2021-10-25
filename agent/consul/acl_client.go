@@ -3,7 +3,6 @@ package consul
 import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -79,9 +78,4 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 	entMeta.FillAuthzContext(authzContext)
 
 	return authz, err
-}
-
-func (c *Client) updateSerfTags(key, value string) {
-	// Update the LAN serf
-	serf.UpdateTag(c.serf, key, value)
 }
