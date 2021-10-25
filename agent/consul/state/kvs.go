@@ -25,11 +25,7 @@ func kvsTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
-					readIndex:   readIndex(indexFromKVEntry),
-					writeIndex:  writeIndex(indexFromKVEntry),
-					prefixIndex: prefixIndex(prefixIndexForKVEntry),
-				},
+				Indexer:      kvsIndexer(),
 			},
 			indexSession: {
 				Name:         indexSession,
@@ -43,6 +39,24 @@ func kvsTableSchema() *memdb.TableSchema {
 	}
 }
 
+// indexFromKVEntry creates an index key from a structs.DirEntry, Query, or
+// *Tombstone. The index is case sensitive.
+func indexFromKVEntry(raw interface{}) ([]byte, error) {
+	e, ok := raw.(singleValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+	}
+
+	v := e.IDValue()
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(v)
+	return b.Bytes(), nil
+}
+
 // tombstonesTableSchema returns a new table schema used for storing tombstones
 // during KV delete operations to prevent the index from sliding backwards.
 func tombstonesTableSchema() *memdb.TableSchema {
@@ -53,11 +67,7 @@ func tombstonesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingleWithPrefix{
-					readIndex:   readIndex(indexFromKVEntry),
-					writeIndex:  writeIndex(indexFromKVEntry),
-					prefixIndex: prefixIndex(prefixIndexForKVEntry),
-				},
+				Indexer:      kvsIndexer(),
 			},
 		},
 	}
