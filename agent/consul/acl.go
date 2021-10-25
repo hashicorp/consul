@@ -31,10 +31,6 @@ var ACLCounters = []prometheus.CounterDefinition{
 
 var ACLSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"acl", "resolveTokenLegacy"},
-		Help: "This measures the time it takes to resolve an ACL token using the legacy ACL system.",
-	},
-	{
 		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
