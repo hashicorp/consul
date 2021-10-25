@@ -30,7 +30,6 @@ export default class ServiceInstanceService extends RepositoryService {
       ACCESS_READ,
       params
     );
-    return instances;
   }
 
   @dataSource('/:partition/:ns/:dc/service-instance/:serviceId/:node/:id')
