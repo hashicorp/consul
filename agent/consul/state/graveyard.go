@@ -3,6 +3,8 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/proto/pbnamespace"
+
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -60,19 +62,36 @@ func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, entMeta *structs.E
 	if entMeta == nil {
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
+	ns := entMeta.NamespaceOrDefault()
+	var metas []structs.EnterpriseMeta
+	if ns != pbnamespace.WildcardName {
+		metas = []structs.EnterpriseMeta{*entMeta}
+	} else {
+		var err error
+		_, nsRaw, err := namespaceListTxn(tx, nil, entMeta.PartitionOrDefault())
+		if err != nil {
+			return 0, fmt.Errorf("failed to lookup metas: %v", err)
+		}
 
-	// TODO: wildcard namespace handling (previously broken?)
-	q := Query{Value: prefix, EnterpriseMeta: *entMeta}
-	stones, err := tx.Get(tableTombstones, indexID+"_prefix", q)
-	if err != nil {
-		return 0, fmt.Errorf("failed querying tombstones: %s", err)
+		for _, ns := range nsRaw {
+			e := entMeta
+			e.Namespace = ns.Name
+			metas = append(metas, *e)
+		}
 	}
 
 	var lindex uint64
-	for stone := stones.Next(); stone != nil; stone = stones.Next() {
-		s := stone.(*Tombstone)
-		if s.Index > lindex {
-			lindex = s.Index
+	for _, m := range metas {
+		q := Query{Value: prefix, EnterpriseMeta: m}
+		stones, err := tx.Get(tableTombstones, indexID+"_prefix", q)
+		if err != nil {
+			return 0, fmt.Errorf("failed querying tombstones: %s", err)
+		}
+		for stone := stones.Next(); stone != nil; stone = stones.Next() {
+			s := stone.(*Tombstone)
+			if s.Index > lindex {
+				lindex = s.Index
+			}
 		}
 	}
 	return lindex, nil
