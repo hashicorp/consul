@@ -2,6 +2,7 @@
   @name={{routeName}}
   @title={{if item.ID 'Edit Intention' 'New Intention'}}
 as |route|>
+{{#let (not (can "write intention" item=item)) as |readOnly|}}
   <AppView>
       <BlockSlot @name="breadcrumbs">
           <ol>
@@ -10,7 +11,7 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-  {{#if (can "write intention" item=item)}}
+  {{#if readOnly}}
     {{#if item.ID}}
             Edit Intention
     {{else}}
@@ -23,6 +24,7 @@ as |route|>
       </BlockSlot>
       <BlockSlot @name="content">
         <Consul::Intention::Form
+          @readonly={{readOnly}}
           @item={{item}}
           @dc={{dc}}
           @nspace={{nspace}}
@@ -30,4 +32,5 @@ as |route|>
         />
       </BlockSlot>
   </AppView>
+{{/let}}
 </Route>
