@@ -4,7 +4,7 @@
 >
 <DataForm
   @type="intention"
-  @dc={{@dc}}
+  @dc={{@dc.Name}}
   @nspace={{@nspace}}
   @partition={{@partition}}
   @autofill={{@autofill}}
@@ -77,7 +77,7 @@ as |api|>
         @src={{uri '/${partition}/*/${dc}/services'
           (hash
             partition=@partition
-            dc=@dc
+            dc=@dc.Name
           )
         }}
         @onchange={{action this.createServices item}}
@@ -88,7 +88,7 @@ as |api|>
           @src={{uri '/${partition}/*/${dc}/namespaces'
             (hash
               partition=@partition
-              dc=@dc
+              dc=@dc.Name
             )
           }}
           @onchange={{action this.createNspaces item}}
@@ -99,7 +99,7 @@ as |api|>
         <DataSource
           @src={{uri '/*/*/${dc}/partitions'
             (hash
-              dc=@dc
+              dc=@dc.Name
             )
           }}
           @onchange={{action this.createPartitions item}}
@@ -114,6 +114,7 @@ as |api|>
       >
         <Consul::Intention::Form::Fieldsets
           @nspaces={{this.nspaces}}
+          @dc={{@dc}}
           @partitions={{this.partitions}}
           @services={{this.services}}
           @SourceName={{this.SourceName}}

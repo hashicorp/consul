@@ -1,6 +1,15 @@
 @import './skin';
 @import './layout';
 /* things that should look like nav buttons */
+
+/* items are single things that look like button */
+/* but aren't clickable */
+%main-nav-vertical > ul > li[aria-label] {
+  @extend %main-nav-vertical-item;
+}
+/**/
+
+/* actual clickable button-y things plus states */
 %main-nav-vertical > ul > li > a {
   @extend %main-nav-vertical-action;
 }
@@ -21,6 +30,8 @@
 %main-nav-vertical > ul > li > label {
   @extend %main-nav-vertical-action;
 }
+/**/
+
 %main-nav-vertical .popover-menu {
   margin-top: 0.5rem;
 }
