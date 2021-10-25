@@ -24,7 +24,7 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 }
 
 func (c *Client) ACLDatacenter() string {
-	// For resolution running on clients servers within the current datacenter
+	// For resolution running on clients, servers within the current datacenter
 	// must be queried first to pick up local tokens.
 	return c.config.Datacenter
 }
