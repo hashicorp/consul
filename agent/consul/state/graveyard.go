@@ -3,8 +3,6 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/proto/pbnamespace"
-
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -54,47 +52,6 @@ func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *stru
 		tx.Defer(func() { g.gc.Hint(idx) })
 	}
 	return nil
-}
-
-// GetMaxIndexTxn returns the highest index tombstone whose key matches the
-// given context, using a prefix match.
-func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
-	ns := entMeta.NamespaceOrDefault()
-	var metas []structs.EnterpriseMeta
-	if ns != pbnamespace.WildcardName {
-		metas = []structs.EnterpriseMeta{*entMeta}
-	} else {
-		var err error
-		_, nsRaw, err := namespaceListTxn(tx, nil, entMeta.PartitionOrDefault())
-		if err != nil {
-			return 0, fmt.Errorf("failed to lookup metas: %v", err)
-		}
-
-		for _, ns := range nsRaw {
-			e := entMeta
-			e.Namespace = ns.Name
-			metas = append(metas, *e)
-		}
-	}
-
-	var lindex uint64
-	for _, m := range metas {
-		q := Query{Value: prefix, EnterpriseMeta: m}
-		stones, err := tx.Get(tableTombstones, indexID+"_prefix", q)
-		if err != nil {
-			return 0, fmt.Errorf("failed querying tombstones: %s", err)
-		}
-		for stone := stones.Next(); stone != nil; stone = stones.Next() {
-			s := stone.(*Tombstone)
-			if s.Index > lindex {
-				lindex = s.Index
-			}
-		}
-	}
-	return lindex, nil
 }
 
 // DumpTxn returns all the tombstones.
