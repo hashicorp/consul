@@ -48,7 +48,6 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ACL.BootstrapTokens", &arg, &out))
 	require.Equal(t, 36, len(out.AccessorID))
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 
@@ -69,7 +68,6 @@ func TestACLEndpoint_BootstrapTokens(t *testing.T) {
 	require.Equal(t, 36, len(out.AccessorID))
 	require.NotEqual(t, oldID, out.AccessorID)
 	require.True(t, strings.HasPrefix(out.Description, "Bootstrap Token"))
-	require.Equal(t, out.Type, structs.ACLTokenTypeManagement)
 	require.True(t, out.CreateIndex > 0)
 	require.Equal(t, out.CreateIndex, out.ModifyIndex)
 }

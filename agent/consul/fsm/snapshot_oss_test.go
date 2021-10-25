@@ -111,8 +111,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 		CreateTime: time.Now(),
 		Local:      false,
-		// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-		Type: structs.ACLTokenTypeManagement,
+		Type:       "management",
 	}
 	require.NoError(t, fsm.state.ACLBootstrap(10, 0, token))
 

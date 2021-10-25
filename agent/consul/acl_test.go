@@ -613,7 +613,7 @@ func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchG
 	return nil
 }
 
-func (d *ACLResolverTestDelegate) ACLDatacenter(legacy bool) string {
+func (d *ACLResolverTestDelegate) ACLDatacenter() string {
 	return d.datacenter
 }
 
@@ -2110,38 +2110,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		require.NoError(t, err)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
-	})
-
-	runTwiceAndReset("legacy-management", func(t *testing.T) {
-		delegate.UseTestLocalData([]interface{}{
-			&structs.ACLToken{
-				AccessorID: "d109a033-99d1-47e2-a711-d6593373a973",
-				SecretID:   "legacy-management",
-				Type:       structs.ACLTokenTypeManagement,
-			},
-		})
-		authz, err := r.ResolveToken("legacy-management")
-		require.NotNil(t, authz)
-		require.NoError(t, err)
-		require.Equal(t, acl.Allow, authz.ACLWrite(nil))
-		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
-	})
-
-	runTwiceAndReset("legacy-client", func(t *testing.T) {
-		delegate.UseTestLocalData([]interface{}{
-			&structs.ACLToken{
-				AccessorID: "b7375838-b104-4a25-b457-329d939bf257",
-				SecretID:   "legacy-client",
-				Type:       structs.ACLTokenTypeClient,
-				Rules:      `service "" { policy = "read" }`,
-			},
-		})
-		authz, err := r.ResolveToken("legacy-client")
-		require.NoError(t, err)
-		require.NotNil(t, authz)
-		require.Equal(t, acl.Deny, authz.MeshRead(nil))
-		require.Equal(t, acl.Deny, authz.OperatorRead(nil))
-		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
 	})
 
 	runTwiceAndReset("service and intention wildcard write", func(t *testing.T) {

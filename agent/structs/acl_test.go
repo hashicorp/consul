@@ -44,56 +44,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 }
 
-func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
-
-	t.Run("No Rules", func(t *testing.T) {
-
-		token := &ACLToken{}
-		require.Nil(t, token.EmbeddedPolicy())
-	})
-
-	t.Run("Legacy Client", func(t *testing.T) {
-
-		// None of the other fields should be considered
-		token := &ACLToken{
-			Type:  ACLTokenTypeClient,
-			Rules: `acl = "read"`,
-		}
-
-		policy := token.EmbeddedPolicy()
-		require.NotNil(t, policy)
-		require.NotEqual(t, "", policy.ID)
-		require.True(t, strings.HasPrefix(policy.Name, "legacy-policy-"))
-		require.Equal(t, token.Rules, policy.Rules)
-		require.Equal(t, policy.Syntax, acl.SyntaxLegacy)
-		require.NotNil(t, policy.Hash)
-		require.NotEqual(t, []byte{}, policy.Hash)
-	})
-
-	t.Run("Same Policy for Tokens with same Rules", func(t *testing.T) {
-
-		token1 := &ACLToken{
-			AccessorID:  "f55b260c-5e05-418e-ab19-d421d1ab4b52",
-			SecretID:    "b2165bac-7006-459b-8a72-7f549f0f06d6",
-			Description: "token 1",
-			Type:        ACLTokenTypeClient,
-			Rules:       `acl = "read"`,
-		}
-
-		token2 := &ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "token 2",
-			Type:        ACLTokenTypeClient,
-			Rules:       `acl = "read"`,
-		}
-
-		policy1 := token1.EmbeddedPolicy()
-		policy2 := token2.EmbeddedPolicy()
-		require.Equal(t, policy1, policy2)
-	})
-}
-
 func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
 
 	cases := []struct {
@@ -205,7 +155,6 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 }
 
 func TestStructs_ACLToken_Stub(t *testing.T) {
-
 	t.Run("Basic", func(t *testing.T) {
 
 		token := ACLToken{
@@ -237,28 +186,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 		require.Equal(t, token.CreateIndex, stub.CreateIndex)
 		require.Equal(t, token.ModifyIndex, stub.ModifyIndex)
 		require.False(t, stub.Legacy)
-	})
-
-	t.Run("Legacy", func(t *testing.T) {
-		token := ACLToken{
-			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
-			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
-			Description: "test",
-			Type:        ACLTokenTypeClient,
-			Rules:       `key "" { policy = "read" }`,
-		}
-
-		stub := token.Stub()
-		require.Equal(t, token.AccessorID, stub.AccessorID)
-		require.Equal(t, token.SecretID, stub.SecretID)
-		require.Equal(t, token.Description, stub.Description)
-		require.Equal(t, token.Policies, stub.Policies)
-		require.Equal(t, token.Local, stub.Local)
-		require.Equal(t, token.CreateTime, stub.CreateTime)
-		require.Equal(t, token.Hash, stub.Hash)
-		require.Equal(t, token.CreateIndex, stub.CreateIndex)
-		require.Equal(t, token.ModifyIndex, stub.ModifyIndex)
-		require.True(t, stub.Legacy)
 	})
 }
 
