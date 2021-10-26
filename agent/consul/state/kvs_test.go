@@ -519,7 +519,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	}
 
 	// Check that the index table was updated
-	if idx := s.maxIndex("kvs"); idx != 3 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -551,7 +551,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	if err := s.KVSDelete(5, "foo", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("kvs"); idx != 3 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -634,7 +634,7 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 	if !ok || err != nil {
 		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
 	}
-	if idx := s.maxIndex("kvs"); idx != 5 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -853,7 +853,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	if err := s.KVSDeleteTree(9, "bar", nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx := s.maxIndex("kvs"); idx != 4 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -884,7 +884,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	}
 
 	// Index should be updated if modifications are made
-	if idx := s.maxIndex("kvs"); idx != 5 {
+	if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1359,7 +1359,7 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 		}
 
 		// Check that the index was updated.
-		if idx := s.maxIndex("kvs"); idx != 7 {
+		if idx := s.maxIndex(partitionedIndexEntryName(tableKVs, "default")); idx != 7 {
 			t.Fatalf("bad index: %d", idx)
 		}
 	}()
