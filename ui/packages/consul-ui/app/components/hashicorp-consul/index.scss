@@ -1,4 +1,4 @@
-.hashicorp-consul {
+%hashicorp-consul {
   [role='banner'] nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
@@ -26,4 +26,7 @@
     top: 2px;
     margin-left: 2px;
   }
+}
+.hashicorp-consul {
+  @extend %hashicorp-consul;
 }

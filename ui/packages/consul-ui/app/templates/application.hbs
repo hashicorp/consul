@@ -73,39 +73,45 @@ as |dcs|>
 {{! Once we have a list of DCs make sure the DC we are asking for exists }}
 {{! If not use the DC that the UI is running in }}
 {{#let
+
   (or
 
-    (get (object-at 0 (cached-model
-      'dc'
-        (hash
-          Name=notfound.dc
+    (if nofound.dc
+        (object-at 0 (cached-model
+          'dc'
+          (hash
+            Name=notfound.dc
+          )
         )
-    )) 'Name')
+      )
+    )
 
-    (get (object-at 0 (cached-model
-      'dc'
+    (object-at 0 (cached-model
+        'dc'
         (hash
           Name=route.params.dc
         )
-    )) 'Name')
+      )
+    )
 
-    (env "CONSUL_DATACENTER_LOCAL")
+    (hash
+      Name=(env "CONSUL_DATACENTER_LOCAL")
+    )
 
   )
 
   dcs.data
 
 as |dc dcs|}}
-
-  {{#if (and (gt dc.length 0) dcs nspace partition)}}
+  {{#if (and (gt dc.Name.length 0) dcs nspace partition)}}
 
     {{! figure out our current DC and convert it to a model }}
     <DataSource
       @src={{uri '/${partition}/*/${dc}/datacenter/${name}'
         (hash
-          dc=dc
+          dc=dc.Name
           partition=partition
-          name=dc
+          name=dc.Name
         )
       }}
     as |dc|>

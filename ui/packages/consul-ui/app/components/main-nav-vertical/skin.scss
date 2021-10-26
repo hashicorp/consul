@@ -32,6 +32,7 @@
 %main-nav-vertical-action {
   color: rgb(var(--tone-gray-800));
 }
+%main-nav-vertical-item,
 %main-nav-vertical-action-intent,
 %main-nav-vertical-action-active {
   color: rgb(var(--tone-gray-999));
@@ -40,13 +41,16 @@
   background-color: rgb(var(--tone-gray-150));
   border-color: rgb(var(--tone-gray-999));
 }
+%main-nav-vertical li[aria-label]::before,
 %main-nav-vertical .popover-menu[aria-label]::before {
+  color: rgb(var(--tone-gray-700));
   content: attr(aria-label);
   display: block;
   margin-top: -0.5rem;
   margin-bottom: 0.5rem;
 }
-%main-nav-vertical .is-local span:last-of-type {
+%main-nav-vertical .is-primary span,
+%main-nav-vertical .is-local span {
   @extend %pill-200;
   color: rgb(var(--tone-gray-000));
   background-color: rgb(var(--tone-gray-500));
