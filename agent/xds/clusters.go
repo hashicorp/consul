@@ -223,7 +223,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		clusters = append(clusters, cluster)
 	}
 
-	if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+	if cfgSnap.ProxyID.InDefaultPartition() &&
 		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
 		cfgSnap.ServerSNIFn != nil {
 

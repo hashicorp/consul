@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect/ca"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -1161,7 +1160,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		})
 	}
 
-	if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+	if cfgSnap.ProxyID.InDefaultPartition() &&
 		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
 		cfgSnap.ServerSNIFn != nil {
 

@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -10,7 +11,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	bexpr "github.com/hashicorp/go-bexpr"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -144,7 +144,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			resources = append(resources, la)
 		}
 
-		if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+		if cfgSnap.ProxyID.InDefaultPartition() &&
 			cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
 			cfgSnap.ServerSNIFn != nil {
 
@@ -161,7 +161,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	}
 
 	// generate endpoints for our servers if WAN federation is enabled
-	if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+	if cfgSnap.ProxyID.InDefaultPartition() &&
 		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
 		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint

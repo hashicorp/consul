@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
@@ -62,7 +61,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 		return snap, err
 	}
 
-	if s.proxyID.PartitionOrEmpty() == acl.DefaultPartitionName {
+	if s.proxyID.InDefaultPartition() {
 		if err := s.initializeCrossDCWatches(ctx); err != nil {
 			return snap, err
 		}
