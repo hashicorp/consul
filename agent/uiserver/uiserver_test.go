@@ -40,6 +40,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "",
@@ -72,6 +73,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"ACLsEnabled": false,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "foo",
@@ -92,6 +94,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"ACLsEnabled": true,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "",
@@ -120,6 +123,7 @@ func TestUIServerIndex(t *testing.T) {
 				"ACLsEnabled": false,
 				"SSOEnabled": true,
 				"LocalDatacenter": "dc1",
+				"PrimaryDatacenter": "dc1",
 				"ContentPath": "/ui/",
 				"UIConfig": {
 					"metrics_provider": "bar",
@@ -216,7 +220,8 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 			Enabled:     true,
 			ContentPath: "/ui/",
 		},
-		Datacenter: "dc1",
+		Datacenter:        "dc1",
+		PrimaryDatacenter: "dc1",
 	}
 	for _, f := range opts {
 		f(cfg)
@@ -380,6 +385,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		expected := `{
 		"ACLsEnabled": false,
 		"LocalDatacenter": "dc1",
+		"PrimaryDatacenter": "dc1",
 		"ContentPath": "/ui/",
 		"UIConfig": {
 			"metrics_provider": "",
@@ -402,6 +408,7 @@ func TestHandler_ServeHTTP_TransformIsEvaluatedOnEachRequest(t *testing.T) {
 		expected := `{
 			"ACLsEnabled": false,
 			"LocalDatacenter": "dc1",
+			"PrimaryDatacenter": "dc1",
 			"ContentPath": "/ui/",
 			"UIConfig": {
 				"metrics_provider": "",
