@@ -1903,6 +1903,6 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 
 type partitionInfoNoop struct{}
 
-func (p *partitionInfoNoop) DownstreamPartitions(service string, ctx *acl.AuthorizerContext) []string {
+func (p *partitionInfoNoop) DownstreamPartitions(service string, anyService bool, ctx *acl.AuthorizerContext) []string {
 	return []string{}
 }

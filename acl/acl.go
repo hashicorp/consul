@@ -16,7 +16,7 @@ type Config struct {
 
 type PartitionExportInfo interface {
 	// DownstreamPartitions returns the list of partitions the given service has been exported to.
-	DownstreamPartitions(service string, ctx *AuthorizerContext) []string
+	DownstreamPartitions(service string, anyService bool, ctx *AuthorizerContext) []string
 }
 
 // GetWildcardName will retrieve the configured wildcard name or provide a default
