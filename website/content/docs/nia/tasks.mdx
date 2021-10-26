@@ -44,7 +44,9 @@ Below are details on the types of execution conditions that Consul-Terraform-Syn
 
 The services condition is the default condition to execute a task. Tasks with the services condition monitor and execute on either changes to a list of configured services or changes to any services that match a given regex.
 
-In order to configure a task with the services condition, the list of services to trigger the task must be configured in the task's [`services`](/docs/nia/configuration#services) or a regex must be configured in the task's `condition` block. Only one of these two options can be configured for a single task. See the [Services Condition](/docs/nia/configuration#services-condition) configuration section for more details.
+To configure a task to trigger on services, you can configure one of two options for a given task:
+1. task block's  [`services`](/docs/nia/configuration#services) field: configure a list of services that will trigger the task
+2. task block's [service `condition`](/docs/nia/configuration#services-condition) block: configure a regular expression to match on services that will trigger the task
 
 When the `services` condition is configured, Consul monitors the [/health/service/:service](/api-docs/health#list-nodes-for-service) API endpoint for changes. Only healthy and passing service instances are monitored by default, but you can configure the [`filter`](/docs/nia/configuration#filter) parameter in the `services` block to include unhealthy service instances. 
 
