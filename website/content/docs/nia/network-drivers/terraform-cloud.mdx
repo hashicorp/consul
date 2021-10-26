@@ -55,7 +55,7 @@ Other workspace settings can be pre-configured or updated, such as setting the w
 
 ### Manual Apply
 
-Consul-Terraform-Sync can automate remote workspaces with either auto apply or manual apply configured. Having CTS manage workspaces with manual apply is useful to add an approval stage to CTS automation. Operators can manually inspect and approve or discard runs that CTS had queued based on the task run condition.
+Consul-Terraform-Sync (CTS) can automate remote workspaces with either auto apply or manual apply configured. Having CTS manage workspaces with manual apply is useful to add an approval stage to CTS automation. Operators can manually inspect and approve or discard runs that CTS had queued based on the task run condition.
 
 When CTS detects new changes for a workspace that already has a run pending on approval, CTS will discard the stale run and queue a new run with the latest values. The new run will go through plan and then again wait on an operator to approve it. Only once the run is approved will the infrastructure be updated with the latest Consul changes.
 
