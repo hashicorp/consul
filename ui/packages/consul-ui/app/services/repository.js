@@ -124,6 +124,10 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
+  peekAll() {
+    return this.store.peekAll(this.getModelName());
+  }
+
   cached(params) {
     const entries = Object.entries(params);
     return this.store.peekAll(this.getModelName()).filter(item => {

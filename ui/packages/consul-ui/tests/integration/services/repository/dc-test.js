@@ -21,12 +21,10 @@ test('findAll returns the correct data for list endpoint', function(assert) {
       return service.findAll();
     },
     function performAssertion(actual, expected) {
-      assert.deepEqual(
-        actual,
-        expected(function(payload) {
-          return payload.map((item, i) => ({ Name: item, Local: i === 0 ? true : false }));
-        })
-      );
+      actual.forEach((item, i) => {
+        assert.equal(actual[i].Name, item.Name);
+        assert.equal(item.Local, i === 0);
+      });
     }
   );
 });
