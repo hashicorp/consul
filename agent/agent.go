@@ -124,14 +124,35 @@ func ConfigSourceFromName(name string) (configSource, bool) {
 // delegate defines the interface shared by both
 // consul.Client and consul.Server.
 type delegate interface {
-	GetLANCoordinate() (lib.CoordinateSet, error)
+	// Leave is used to prepare for a graceful shutdown.
 	Leave() error
-	LANMembers() []serf.Member
-	LANMembersAllSegments() ([]serf.Member, error)
-	LANSegmentMembers(segment string) ([]serf.Member, error)
-	LocalMember() serf.Member
-	JoinLAN(addrs []string) (n int, err error)
-	RemoveFailedNode(node string, prune bool) error
+
+	// AgentLocalMember is used to retrieve the LAN member for the local node.
+	AgentLocalMember() serf.Member
+
+	// LANMembersInAgentPartition returns the LAN members for this agent's
+	// canonical serf pool. For clients this is the only pool that exists. For
+	// servers it's the pool in the default segment and the default partition.
+	LANMembersInAgentPartition() []serf.Member
+
+	// LANMembers returns the LAN members for one of:
+	//
+	// - the requested partition
+	// - the requested segment
+	// - all segments
+	//
+	// This is limited to segments and partitions that the node is a member of.
+	LANMembers(f consul.LANMemberFilter) ([]serf.Member, error)
+
+	// GetLANCoordinate returns the coordinate of the node in the LAN gossip pool.
+	GetLANCoordinate() (lib.CoordinateSet, error)
+
+	// JoinLAN is used to have Consul join the inner-DC pool The target address
+	// should be another node inside the DC listening on the Serf LAN address
+	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error)
+
+	// RemoveFailedNode is used to remove a failed node from the cluster.
+	RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error
 
 	// TODO: replace this method with consul.ACLResolver
 	ResolveTokenToIdentity(token string) (structs.ACLIdentity, error)
@@ -515,8 +536,11 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.delegate = client
 	}
 
-	// the staggering of the state syncing depends on the cluster size.
-	a.sync.ClusterSize = func() int { return len(a.delegate.LANMembers()) }
+	// The staggering of the state syncing depends on the cluster size.
+	//
+	// NOTE: we will use the agent's canonical serf pool for this since that's
+	// similarly scoped with the state store side of anti-entropy.
+	a.sync.ClusterSize = func() int { return len(a.delegate.LANMembersInAgentPartition()) }
 
 	// link the state with the consul server/client and the state syncer
 	// via callbacks. After several attempts this was easier than using
@@ -1443,9 +1467,9 @@ func (a *Agent) ShutdownCh() <-chan struct{} {
 }
 
 // JoinLAN is used to have the agent join a LAN cluster
-func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
+func (a *Agent) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
 	a.logger.Info("(LAN) joining", "lan_addresses", addrs)
-	n, err = a.delegate.JoinLAN(addrs)
+	n, err = a.delegate.JoinLAN(addrs, entMeta)
 	if err == nil {
 		a.logger.Info("(LAN) joined", "number_of_nodes", n)
 		if a.joinLANNotifier != nil {
@@ -1510,12 +1534,13 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 }
 
 // ForceLeave is used to remove a failed node from the cluster
-func (a *Agent) ForceLeave(node string, prune bool) (err error) {
+func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) (err error) {
 	a.logger.Info("Force leaving node", "node", node)
+	// TODO(partitions): merge IsMember into the RemoveFailedNode call.
 	if ok := a.IsMember(node); !ok {
 		return fmt.Errorf("agent: No node found with name '%s'", node)
 	}
-	err = a.delegate.RemoveFailedNode(node, prune)
+	err = a.delegate.RemoveFailedNode(node, prune, entMeta)
 	if err != nil {
 		a.logger.Warn("Failed to remove node",
 			"node", node,
@@ -1525,20 +1550,19 @@ func (a *Agent) ForceLeave(node string, prune bool) (err error) {
 	return err
 }
 
-// LocalMember is used to return the local node
-func (a *Agent) LocalMember() serf.Member {
-	return a.delegate.LocalMember()
+// AgentLocalMember is used to retrieve the LAN member for the local node.
+func (a *Agent) AgentLocalMember() serf.Member {
+	return a.delegate.AgentLocalMember()
 }
 
-// LANMembers is used to retrieve the LAN members
-func (a *Agent) LANMembers() []serf.Member {
-	// TODO(partitions): filter this by the partition?
-	return a.delegate.LANMembers()
+// LANMembersInAgentPartition is used to retrieve the LAN members for this
+// agent's partition.
+func (a *Agent) LANMembersInAgentPartition() []serf.Member {
+	return a.delegate.LANMembersInAgentPartition()
 }
 
 // WANMembers is used to retrieve the WAN members
 func (a *Agent) WANMembers() []serf.Member {
-	// TODO(partitions): filter this by the partition by omitting wan results for now?
 	if srv, ok := a.delegate.(*consul.Server); ok {
 		return srv.WANMembers()
 	}
@@ -1548,7 +1572,7 @@ func (a *Agent) WANMembers() []serf.Member {
 // IsMember is used to check if a node with the given nodeName
 // is a member
 func (a *Agent) IsMember(nodeName string) bool {
-	for _, m := range a.LANMembers() {
+	for _, m := range a.LANMembersInAgentPartition() {
 		if m.Name == nodeName {
 			return true
 		}
@@ -1626,12 +1650,12 @@ OUTER:
 	for {
 		rate := a.config.SyncCoordinateRateTarget
 		min := a.config.SyncCoordinateIntervalMin
-		intv := lib.RateScaledInterval(rate, min, len(a.LANMembers()))
+		intv := lib.RateScaledInterval(rate, min, len(a.LANMembersInAgentPartition()))
 		intv = intv + lib.RandomStagger(intv)
 
 		select {
 		case <-time.After(intv):
-			members := a.LANMembers()
+			members := a.LANMembersInAgentPartition()
 			grok, err := consul.CanServersUnderstandProtocol(members, 3)
 			if err != nil {
 				a.logger.Error("Failed to check servers", "error", err)
@@ -1655,7 +1679,7 @@ OUTER:
 					Node:           a.config.NodeName,
 					Segment:        segment,
 					Coord:          coord,
-					EnterpriseMeta: *a.agentEnterpriseMeta(),
+					EnterpriseMeta: *a.AgentEnterpriseMeta(),
 					WriteRequest:   structs.WriteRequest{Token: agentToken},
 				}
 				var reply struct{}
@@ -2732,7 +2756,7 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 			var rpcReq structs.NodeSpecificRequest
 			rpcReq.Datacenter = a.config.Datacenter
-			rpcReq.EnterpriseMeta = *a.agentEnterpriseMeta()
+			rpcReq.EnterpriseMeta = *a.AgentEnterpriseMeta()
 
 			// The token to set is really important. The behavior below follows
 			// the same behavior as anti-entropy: we use the user-specified token

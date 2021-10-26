@@ -6250,7 +6250,7 @@ func TestDNS_NonExistentDC_RPC(t *testing.T) {
 
 	// Join LAN cluster
 	addr := fmt.Sprintf("127.0.0.1:%d", s.Config.SerfPortLAN)
-	_, err := c.JoinLAN([]string{addr})
+	_, err := c.JoinLAN([]string{addr}, nil)
 	require.NoError(t, err)
 	testrpc.WaitForTestAgent(t, c.RPC, "dc1")
 

@@ -4500,7 +4500,7 @@ services {
 	// Now connect to server
 	_, err := a1.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	t.Logf("joined client to server")

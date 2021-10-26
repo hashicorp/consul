@@ -1891,12 +1891,12 @@ func TestAgent_Join(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if len(a1.LANMembers()) != 2 {
+	if len(a1.LANMembersInAgentPartition()) != 2 {
 		t.Fatalf("should have 2 members")
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a2.LANMembers()), 2; got != want {
+		if got, want := len(a2.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
 	})
@@ -2002,7 +2002,7 @@ func TestAgent_JoinLANNotify(t *testing.T) {
 	a1.joinLANNotifier = notif
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2030,7 +2030,7 @@ func TestAgent_Leave(t *testing.T) {
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2045,7 +2045,7 @@ func TestAgent_Leave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -2101,7 +2101,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2110,7 +2110,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 	a2.Shutdown()
 	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusFailed; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -2126,7 +2126,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -2210,7 +2210,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2219,7 +2219,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 	a2.Shutdown()
 	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		for _, member := range m {
 			if member.Name == a2.Config.NodeName {
 				if member.Status != serf.StatusFailed {
@@ -2239,7 +2239,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m := len(a1.LANMembers())
+		m := len(a1.LANMembersInAgentPartition())
 		if m != 1 {
 			r.Fatalf("want one member, got %v", m)
 		}

@@ -177,7 +177,7 @@ func (c *Client) Shutdown() error {
 	return nil
 }
 
-// Leave is used to prepare for a graceful shutdown
+// Leave is used to prepare for a graceful shutdown.
 func (c *Client) Leave() error {
 	c.logger.Info("client starting leave")
 
@@ -190,40 +190,49 @@ func (c *Client) Leave() error {
 	return nil
 }
 
-// JoinLAN is used to have Consul client join the inner-DC pool
-// The target address should be another node inside the DC
-// listening on the Serf LAN address
-func (c *Client) JoinLAN(addrs []string) (int, error) {
+// JoinLAN is used to have Consul join the inner-DC pool The target address
+// should be another node inside the DC listening on the Serf LAN address
+func (c *Client) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+	// TODO(partitions): assert that the partitions match
 	return c.serf.Join(addrs, true)
 }
 
-// LocalMember is used to return the local node
-func (c *Client) LocalMember() serf.Member {
+// AgentLocalMember is used to retrieve the LAN member for the local node.
+func (c *Client) AgentLocalMember() serf.Member {
 	return c.serf.LocalMember()
 }
 
-// LANMembers is used to return the members of the LAN cluster
-func (c *Client) LANMembers() []serf.Member {
+// LANMembersInAgentPartition returns the LAN members for this agent's
+// canonical serf pool. For clients this is the only pool that exists. For
+// servers it's the pool in the default segment and the default partition.
+func (c *Client) LANMembersInAgentPartition() []serf.Member {
 	return c.serf.Members()
 }
 
-// LANMembersAllSegments returns members from all segments.
-func (c *Client) LANMembersAllSegments() ([]serf.Member, error) {
+// LANMembers returns the LAN members for one of:
+//
+// - the requested partition
+// - the requested segment
+// - all segments
+//
+// This is limited to segments and partitions that the node is a member of.
+func (c *Client) LANMembers(filter LANMemberFilter) ([]serf.Member, error) {
+	if err := filter.Validate(); err != nil {
+		return nil, err
+	}
+
+	// TODO(partitions): assert that the partitions match
+
+	if !filter.AllSegments && filter.Segment != c.config.Segment {
+		return nil, fmt.Errorf("segment %q not found", filter.Segment)
+	}
+
 	return c.serf.Members(), nil
 }
 
-// LANSegmentMembers only returns our own segment's members, because clients
-// can't be in multiple segments.
-func (c *Client) LANSegmentMembers(segment string) ([]serf.Member, error) {
-	if segment == c.config.Segment {
-		return c.LANMembers(), nil
-	}
-
-	return nil, fmt.Errorf("segment %q not found", segment)
-}
-
-// RemoveFailedNode is used to remove a failed node from the cluster
-func (c *Client) RemoveFailedNode(node string, prune bool) error {
+// RemoveFailedNode is used to remove a failed node from the cluster.
+func (c *Client) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	// TODO(partitions): assert that the partitions match
 	if prune {
 		return c.serf.RemoveFailedNodePrune(node)
 	}
@@ -362,9 +371,9 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
-// GetLANCoordinate returns the network coordinate of the current node, as
-// maintained by Serf.
+// GetLANCoordinate returns the coordinate of the node in the LAN gossip pool.
 func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
+	// TODO(partitions): possibly something here
 	lan, err := c.serf.GetCoordinate()
 	if err != nil {
 		return nil, err

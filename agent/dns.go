@@ -136,7 +136,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		domain:                domain,
 		altDomain:             altDomain,
 		logger:                a.logger.Named(logging.DNS),
-		defaultEnterpriseMeta: *a.agentEnterpriseMeta(),
+		defaultEnterpriseMeta: *a.AgentEnterpriseMeta(),
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {

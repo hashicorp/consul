@@ -38,8 +38,8 @@ func TestJoinCommandJoin_lan(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	if len(a1.LANMembers()) != 2 {
-		t.Fatalf("bad: %#v", a1.LANMembers())
+	if len(a1.LANMembersInAgentPartition()) != 2 {
+		t.Fatalf("bad: %#v", a1.LANMembersInAgentPartition())
 	}
 }
 
