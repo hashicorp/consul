@@ -182,7 +182,7 @@ func WaitForServiceIntentions(t *testing.T, rpc rpcFn, dc string) {
 				Name: fakeConfigName,
 			},
 		}
-		var ignored struct{}
+		var ignored structs.ConfigEntryDeleteResponse
 		if err := rpc("ConfigEntry.Delete", args, &ignored); err != nil {
 			r.Fatalf("err: %v", err)
 		}
