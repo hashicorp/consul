@@ -68,7 +68,7 @@ func (k GatewayKey) IsEmpty() bool {
 }
 
 func gatewayKeyFromString(s string) GatewayKey {
-	split := strings.Split(s, ".")
+	split := strings.SplitN(s, ".", 2)
 	return GatewayKey{
 		Partition:  split[0],
 		Datacenter: split[1],
