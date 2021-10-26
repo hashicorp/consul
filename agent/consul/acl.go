@@ -293,9 +293,9 @@ func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (ac
 		},
 	}
 
-	var cfg *acl.Config
-	setEnterpriseConf(entMeta, cfg)
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
+	cfg := acl.Config{}
+	setEnterpriseConf(entMeta, &cfg)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, &cfg)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
