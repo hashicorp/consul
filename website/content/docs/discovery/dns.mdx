@@ -21,9 +21,9 @@ are located in the `us-east-1` datacenter, and have no failing health checks.
 It's that simple!
 
 There are a number of configuration options that are important for the DNS interface,
-specifically [`client_addr`](/docs/agent/options#client_addr),[`alt_domain`](/docs/agent/options#alt_domain),
-[`ports.dns`](/docs/agent/options#dns_port), [`recursors`](/docs/agent/options#recursors),
-[`domain`](/docs/agent/options#domain), and [`dns_config`](/docs/agent/options#dns_config).
+specifically [`client_addr`](/docs/agent/options#client_addr),[`ports.dns`](/docs/agent/options#dns_port),
+[`recursors`](/docs/agent/options#recursors),[`domain`](/docs/agent/options#domain),
+[`alt_domain`](/docs/agent/options#alt_domain), and [`dns_config`](/docs/agent/options#dns_config).
 By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the `consul.`
 domain, without support for further DNS recursion. Please consult the
 [documentation on configuration options](/docs/agent/options),
