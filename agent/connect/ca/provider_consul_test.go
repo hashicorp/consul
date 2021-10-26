@@ -45,6 +45,7 @@ func testConsulCAConfig() *structs.CAConfiguration {
 			// Tests duration parsing after msgpack type mangling during raft apply.
 			"LeafCertTTL":         []uint8("72h"),
 			"IntermediateCertTTL": []uint8("288h"),
+			"RootCertTTL":         []uint8("87600h"),
 		},
 	}
 }
@@ -88,6 +89,14 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	require.Equal(parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
 	requireNotEncoded(t, parsed.SubjectKeyId)
 	requireNotEncoded(t, parsed.AuthorityKeyId)
+
+	// test that the root cert ttl is the same as the expected value
+	// notice that we allow a margin of "error" of 10 minutes between the
+	// generateCA() creation and this check
+	defaultRootCertTTL, err := time.ParseDuration(structs.DefaultRootCertTTL)
+	require.NoError(err)
+	expectedNotAfter := time.Now().Add(defaultRootCertTTL).UTC()
+	require.True(expectedNotAfter.Sub(parsed.NotAfter) < 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 }
 
 func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
@@ -95,7 +104,7 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 
 	// Make sure setting a custom private key/root cert works.
 	require := require.New(t)
-	rootCA := connect.TestCA(t, nil)
+	rootCA := connect.TestCAWithTTL(t, nil, 5*time.Hour)
 	conf := testConsulCAConfig()
 	conf.Config = map[string]interface{}{
 		"PrivateKey": rootCA.SigningKey,
@@ -110,6 +119,16 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	root, err := provider.ActiveRoot()
 	require.NoError(err)
 	require.Equal(root, rootCA.RootCert)
+
+	// Should be a valid cert
+	parsed, err := connect.ParseCert(root)
+	require.NoError(err)
+
+	// test that the default root cert ttl was not applied to the provided cert
+	defaultRootCertTTL, err := time.ParseDuration(structs.DefaultRootCertTTL)
+	require.NoError(err)
+	defaultNotAfter := time.Now().Add(defaultRootCertTTL).UTC()
+	require.NotEqualf(defaultNotAfter, parsed.NotAfter, "parsed cert ttl expected to be different from default root cert ttl")
 }
 
 func TestConsulCAProvider_SignLeaf(t *testing.T) {

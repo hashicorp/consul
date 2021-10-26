@@ -122,6 +122,30 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "good root cert/ intermediate TTLs",
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         1 * time.Hour,
+				IntermediateCertTTL: 4 * time.Hour,
+				RootCertTTL:         5 * time.Hour,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
+			wantErr: false,
+			wantMsg: "",
+		},
+		{
+			name: "bad root cert/ intermediate TTLs",
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         1 * time.Hour,
+				IntermediateCertTTL: 4 * time.Hour,
+				RootCertTTL:         3 * time.Hour,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
+			},
+			wantErr: true,
+			wantMsg: "root Cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: 3h0m0s, intermediate cert ttl 4h0m0s",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

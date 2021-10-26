@@ -199,6 +199,7 @@
     "ca_config": {
       "intermediate_cert_ttl": "8760h",
       "leaf_cert_ttl": "1h",
+      "root_cert_ttl": "87600h",
       "csr_max_per_second": 100,
       "csr_max_concurrent": 2
     },

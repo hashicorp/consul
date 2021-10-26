@@ -724,6 +724,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
+			"root_cert_ttl":      "RootCertTTL",
 		})
 	}
 

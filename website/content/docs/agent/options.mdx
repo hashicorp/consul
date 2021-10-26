@@ -1267,6 +1267,11 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       for more than twice the _current_ `leaf_cert_ttl`, it will be removed
       from the trusted list.
 
+    - `root_cert_ttl` ((#todo)) todo. Defaults to 10 years as `87600h`.
+      todo restrictions.
+
+      todo
+
     - `private_key_type` ((#ca_private_key_type)) The type of key to generate
       for this CA. This is only used when the provider is generating a new key. If
       `private_key` is set for the Consul provider, or existing root or intermediate
