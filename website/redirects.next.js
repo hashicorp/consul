@@ -58,7 +58,7 @@ module.exports = [
   },
   {
     source: '/api-docs/acl-legacy',
-    destination: '/docs/security/acl/acl-legacy',
+    destination: '/api-docs/acl/legacy',
     permanent: true,
   },
   {
