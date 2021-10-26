@@ -32,7 +32,7 @@ export default function App({ Component, pageProps }) {
         title="Consul by HashiCorp"
         siteName="Consul by HashiCorp"
         description="Consul is a service networking solution to automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
-        image="https://www.consul.io/img/open-graph-image.png"
+        image="https://www.consul.io/img/og-image.png"
         icon={[{ href: '/favicon.ico' }]}
       >
         <meta
