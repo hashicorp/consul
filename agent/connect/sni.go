@@ -26,6 +26,7 @@ func UpstreamSNI(u *structs.Upstream, subset string, dc string, trustDomain stri
 
 func GatewaySNI(dc string, partition, trustDomain string) string {
 	if partition == "" {
+		// TODO(partitions) Make default available in OSS as a constant for uses like this one
 		partition = "default"
 	}
 
@@ -39,9 +40,10 @@ func GatewaySNI(dc string, partition, trustDomain string) string {
 
 func ServiceSNI(service string, subset string, namespace string, partition string, datacenter string, trustDomain string) string {
 	if namespace == "" {
-		namespace = "default"
+		namespace = structs.IntentionDefaultNamespace
 	}
 	if partition == "" {
+		// TODO(partitions) Make default available in OSS as a constant for uses like this one
 		partition = "default"
 	}
 
