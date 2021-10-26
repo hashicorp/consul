@@ -20,14 +20,23 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	kind string
-	name string
+	kind        string
+	name        string
+	cas         bool
+	modifyIndex uint64
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.StringVar(&c.kind, "kind", "", "The kind of configuration to delete.")
 	c.flags.StringVar(&c.name, "name", "", "The name of configuration to delete.")
+	c.flags.BoolVar(&c.cas, "cas", false,
+		"Perform a Check-And-Set operation. Specifying this value also "+
+			"requires the -modify-index flag to be set. The default value "+
+			"is false.")
+	c.flags.Uint64Var(&c.modifyIndex, "modify-index", 0,
+		"Unsigned integer representing the ModifyIndex of the config entry. "+
+			"This is used in combination with the -cas flag.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -55,10 +64,23 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
+	entries := client.ConfigEntries()
 
-	_, err = client.ConfigEntries().Delete(c.kind, c.name, nil)
+	var deleted bool
+	if c.cas {
+		deleted, _, err = entries.DeleteCAS(c.kind, c.name, c.modifyIndex, nil)
+	} else {
+		_, err = entries.Delete(c.kind, c.name, nil)
+		deleted = err == nil
+	}
+
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error deleting config entry %s/%s: %v", c.kind, c.name, err))
+		return 1
+	}
+
+	if !deleted {
+		c.UI.Error(fmt.Sprintf("Config entry not deleted: %s/%s", c.kind, c.name))
 		return 1
 	}
 
