@@ -114,3 +114,7 @@ func kvsDeleteWithEntry(tx WriteTxn, entry *structs.DirEntry, idx uint64) error 
 
 	return nil
 }
+
+func partitionedIndexEntryName(entry string, _ string) string {
+	return entry
+}
