@@ -114,11 +114,12 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	for _, key := range keys {
-		// Skip creating endpoints for mesh gateways in local DC/partition.
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
+			continue // skip local
+		}
 		// Also skip gateways with a hostname as their address. EDS cannot resolve hostnames,
 		// so we provide them through CDS instead.
-		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) ||
-			len(cfgSnap.MeshGateway.HostnameDatacenters[key.String()]) > 0 {
+		if len(cfgSnap.MeshGateway.HostnameDatacenters[key.String()]) > 0 {
 			continue
 		}
 
