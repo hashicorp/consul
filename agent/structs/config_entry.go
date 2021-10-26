@@ -1122,3 +1122,7 @@ func validateConfigEntryMeta(meta map[string]string) error {
 	}
 	return err
 }
+
+type ConfigEntryDeleteResponse struct {
+	Deleted bool
+}
