@@ -28,7 +28,7 @@ func TestHTTPHandlers_ACLLegacy(t *testing.T) {
 		resp := httptest.NewRecorder()
 
 		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, resp.Code, http.StatusGone)
+		require.Equal(t, http.StatusGone, resp.Code)
 		require.Contains(t, resp.Body.String(), "the legacy ACL system was removed")
 	}
 
