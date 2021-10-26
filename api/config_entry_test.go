@@ -249,6 +249,37 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		})
 	})
 
+	t.Run("CAS deletion", func(t *testing.T) {
+		require := require.New(t)
+
+		entry := &ProxyConfigEntry{
+			Kind: ProxyDefaults,
+			Name: ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+		}
+
+		// Create a config entry.
+		created, _, err := config_entries.Set(entry, nil)
+		require.NoError(err)
+		require.True(created, "entry should have been created")
+
+		// Read it back to get the ModifyIndex.
+		result, _, err := config_entries.Get(entry.Kind, entry.Name, nil)
+		require.NoError(err)
+		require.NotNil(entry)
+
+		// Attempt a deletion with an invalid index.
+		deleted, _, err := config_entries.DeleteCAS(entry.Kind, entry.Name, result.GetModifyIndex()-1, nil)
+		require.NoError(err)
+		require.False(deleted, "entry should not have been deleted")
+
+		// Attempt a deletion with a valid index.
+		deleted, _, err = config_entries.DeleteCAS(entry.Kind, entry.Name, result.GetModifyIndex(), nil)
+		require.NoError(err)
+		require.True(deleted, "entry should have been deleted")
+	})
 }
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
