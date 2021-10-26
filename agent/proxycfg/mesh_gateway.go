@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
-const exportingPartitionsWatchID = "exporting-partitions"
-
 type handlerMeshGateway struct {
 	handlerState
 }
