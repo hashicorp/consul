@@ -292,7 +292,10 @@ func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (ac
 			},
 		},
 	}
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+
+	var cfg *acl.Config
+	setEnterpriseConf(entMeta, cfg)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, cfg)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
@@ -1094,7 +1097,7 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	if r.aclConf != nil {
 		conf = *r.aclConf
 	}
-	r.setEnterpriseConf(identity, &conf)
+	setEnterpriseConf(identity.EnterpriseMetadata(), &conf)
 
 	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {

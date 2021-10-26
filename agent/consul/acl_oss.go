@@ -46,4 +46,4 @@ func (_ *ACLResolver) resolveLocallyManagedEnterpriseToken(_ string) (structs.AC
 	return nil, nil, false
 }
 
-func (_ *ACLResolver) setEnterpriseConf(identity structs.ACLIdentity, conf *acl.Config) {}
+func setEnterpriseConf(entMeta *structs.EnterpriseMeta, conf *acl.Config) {}
