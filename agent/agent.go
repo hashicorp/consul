@@ -139,7 +139,7 @@ type delegate interface {
 	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
 	// actions based on the permissions granted to the token.
 	// If either entMeta or authzContext are non-nil they will be populated with the
-	// default namespace from the token.
+	// default partition and namespace from the token.
 	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 
 	RPC(method string, args interface{}, reply interface{}) error

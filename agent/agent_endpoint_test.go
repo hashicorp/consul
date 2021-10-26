@@ -4685,7 +4685,7 @@ func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Fails when no enable flag provided
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/maintenance", nil)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -4706,7 +4706,7 @@ func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Force the node into maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken&token=mytoken", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=true&reason=broken&token=mytoken", nil)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -4746,7 +4746,7 @@ func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 	a.EnableNodeMaintenance("", "")
 
 	// Leave maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=false", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=false", nil)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -4772,14 +4772,14 @@ func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=true&reason=broken", nil)
 		if _, err := a.srv.AgentNodeMaintenance(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken&token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=true&reason=broken&token=root", nil)
 		if _, err := a.srv.AgentNodeMaintenance(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -5227,21 +5227,21 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
-		expectedErr error
+		expectedErr string
 	}{
 		{
 			name:        "bad token name",
 			method:      "PUT",
 			url:         "nope?token=root",
 			body:        body("X"),
-			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
+			expectedErr: `Token "nope" is unknown`,
 		},
 		{
-			name:   "bad JSON",
-			method: "PUT",
-			url:    "acl_token?token=root",
-			body:   badJSON(),
-			code:   http.StatusBadRequest,
+			name:        "bad JSON",
+			method:      "PUT",
+			url:         "acl_token?token=root",
+			body:        badJSON(),
+			expectedErr: `Bad request: Request decode failed: json: cannot unmarshal bool into Go value of type api.AgentToken`,
 		},
 		{
 			name:      "set user legacy",
@@ -5398,8 +5398,8 @@ func TestAgent_Token(t *testing.T) {
 			req, _ := http.NewRequest(tt.method, url, tt.body)
 
 			_, err := a.srv.AgentToken(resp, req)
-			if tt.expectedErr != nil {
-				require.Equal(t, tt.expectedErr, err)
+			if tt.expectedErr != "" {
+				require.EqualError(t, err, tt.expectedErr)
 				return
 			}
 			require.NoError(t, err)

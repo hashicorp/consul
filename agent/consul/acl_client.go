@@ -58,6 +58,10 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 		return nil, err
 	}
 
+	if entMeta == nil {
+		entMeta = &structs.EnterpriseMeta{}
+	}
+
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
 	// in the case of unknown identity
 	if identity != nil {
