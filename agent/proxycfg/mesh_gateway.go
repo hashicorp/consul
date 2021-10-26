@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/consul/logging"
 )
 
+const exportingPartitionsWatchID = "exporting-partitions"
+
 type handlerMeshGateway struct {
 	handlerState
 }
@@ -33,7 +35,7 @@ func (s *handlerMeshGateway) initialize(ctx context.Context) (ConfigSnapshot, er
 	wildcardEntMeta := s.proxyID.WithWildcardNamespace()
 
 	// Watch for all services.
-	// Eventually we will have to watch connect enable instances for each service as well as the
+	// Eventually we will have to watch connect enabled instances for each service as well as the
 	// destination services themselves but those notifications will be setup later.
 	// We cannot setup those watches until we know what the services are.
 	err = s.cache.Notify(ctx, cachetype.CatalogServiceListName, &structs.DCSpecificRequest{

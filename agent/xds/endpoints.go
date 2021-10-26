@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	bexpr "github.com/hashicorp/go-bexpr"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -109,14 +110,13 @@ func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *pro
 }
 
 func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	keys := cfgSnap.MeshGateway.Keys()
+	keys := cfgSnap.MeshGateway.GatewayKeys()
 	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
-	// generate the endpoints for the gateways in the remote datacenters
 	for _, key := range keys {
-		// Skip creating endpoints for mesh gateways in local DC/partition and gateways.
-		// Also skip gateways with a hostname as their address.
-		// EDS cannot resolve hostnames, so we provide them through CDS instead.
+		// Skip creating endpoints for mesh gateways in local DC/partition.
+		// Also skip gateways with a hostname as their address. EDS cannot resolve hostnames,
+		// so we provide them through CDS instead.
 		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) ||
 			len(cfgSnap.MeshGateway.HostnameDatacenters[key.String()]) > 0 {
 			continue
@@ -144,9 +144,11 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			resources = append(resources, la)
 		}
 
-		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
+		if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+			cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+			cfgSnap.ServerSNIFn != nil {
 
+			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 			la := makeLoadAssignment(
 				clusterName,
 				[]loadAssignmentEndpointGroup{
@@ -159,7 +161,9 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	}
 
 	// generate endpoints for our servers if WAN federation is enabled
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+	if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {

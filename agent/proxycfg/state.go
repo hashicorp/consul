@@ -37,7 +37,6 @@ const (
 	datacentersWatchID                 = "datacenters"
 	serviceResolversWatchID            = "service-resolvers"
 	gatewayServicesWatchID             = "gateway-services"
-	exportingPartitionsWatchID         = "exporting-partitions"
 	gatewayConfigWatchID               = "gateway-config"
 	externalServiceIDPrefix            = "external-service:"
 	serviceLeafIDPrefix                = "service-leaf:"

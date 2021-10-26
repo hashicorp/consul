@@ -294,7 +294,7 @@ type configSnapshotMeshGateway struct {
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 }
 
-func (c *configSnapshotMeshGateway) Keys() []GatewayKey {
+func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
 
 	sz := sz1

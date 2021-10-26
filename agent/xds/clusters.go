@@ -19,6 +19,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -202,7 +203,7 @@ func makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message,
 // for a mesh gateway. This will include 1 cluster per remote datacenter as well as
 // 1 cluster for each service subset.
 func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	keys := cfgSnap.MeshGateway.Keys()
+	keys := cfgSnap.MeshGateway.GatewayKeys()
 
 	// 1 cluster per remote dc + 1 cluster per local service (this is a lower bound - all subset specific clusters will be appended)
 	clusters := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
@@ -222,7 +223,10 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 		clusters = append(clusters, cluster)
 	}
 
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+	if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
+
 		// Add all of the remote wildcard datacenter mappings for servers.
 		for _, key := range keys {
 			hostnameEndpoints := cfgSnap.MeshGateway.HostnameDatacenters[key.String()]

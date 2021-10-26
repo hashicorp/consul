@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect/ca"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -1137,7 +1138,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
 	// We need 1 Filter Chain per datacenter
-	keys := cfgSnap.MeshGateway.Keys()
+	keys := cfgSnap.MeshGateway.GatewayKeys()
 	for _, key := range keys {
 		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
 			continue // skip local
@@ -1160,7 +1161,10 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		})
 	}
 
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+	if cfgSnap.ProxyID.PartitionOrEmpty() == acl.DefaultPartitionName &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
+
 		for _, key := range keys {
 			if key.Datacenter == cfgSnap.Datacenter {
 				continue // skip local
