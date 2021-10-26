@@ -19,7 +19,7 @@ func serverPartitionInfo(s *Server) acl.PartitionExportInfo {
 	return &partitionInfoNoop{}
 }
 
-func newACLConfig(_ acl.PartitionExportInfo, hclog.Logger) *acl.Config {
+func newACLConfig(_ acl.PartitionExportInfo, _ hclog.Logger) *acl.Config {
 	return &acl.Config{
 		WildcardName: structs.WildcardSpecifier,
 	}
