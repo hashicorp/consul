@@ -114,7 +114,9 @@ func (c *cmd) startupJoin(agent *agent.Agent, cfg *config.RuntimeConfig) error {
 	}
 
 	c.logger.Info("Joining cluster")
-	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN)
+	// NOTE: For partitioned servers you are only capable of using start join
+	// to join nodes in the default partition.
+	n, err := agent.JoinLAN(cfg.StartJoinAddrsLAN, agent.AgentEnterpriseMeta())
 	if err != nil {
 		return err
 	}

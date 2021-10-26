@@ -66,8 +66,9 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 }
 
 func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
+	serverEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	go func() {
-		if err := d.server.RemoveFailedNode(srv.Name, false); err != nil {
+		if err := d.server.RemoveFailedNode(srv.Name, false, serverEntMeta); err != nil {
 			d.server.logger.Error("failed to remove server", "name", srv.Name, "id", srv.ID, "error", err)
 		}
 	}()

@@ -51,6 +51,6 @@ func (a *Agent) enterpriseStats() map[string]map[string]string {
 	return nil
 }
 
-func (a *Agent) agentEnterpriseMeta() *structs.EnterpriseMeta {
+func (a *Agent) AgentEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.NodeEnterpriseMetaInDefaultPartition()
 }

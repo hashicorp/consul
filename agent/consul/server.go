@@ -561,7 +561,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithDatacenter(s.config.Datacenter).
 			WithReportingInterval(s.config.MetricsReportingInterval).
 			WithGetMembersFunc(func() []serf.Member {
-				members, err := s.LANMembersAllSegments()
+				members, err := s.lanPoolAllMembers()
 				if err != nil {
 					return []serf.Member{}
 				}
@@ -993,7 +993,7 @@ func (s *Server) attemptLeadershipTransfer() (success bool) {
 	return true
 }
 
-// Leave is used to prepare for a graceful shutdown of the server
+// Leave is used to prepare for a graceful shutdown.
 func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
@@ -1097,10 +1097,10 @@ func (s *Server) Leave() error {
 	return nil
 }
 
-// JoinLAN is used to have Consul join the inner-DC pool
-// The target address should be another node inside the DC
-// listening on the Serf LAN address
-func (s *Server) JoinLAN(addrs []string) (int, error) {
+// JoinLAN is used to have Consul join the inner-DC pool The target address
+// should be another node inside the DC listening on the Serf LAN address
+func (s *Server) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+	// TODO(partitions): handle the different partitions
 	return s.serfLAN.Join(addrs, true)
 }
 
@@ -1149,13 +1149,13 @@ func (s *Server) PrimaryGatewayFallbackAddresses() []string {
 	return s.gatewayLocator.PrimaryGatewayFallbackAddresses()
 }
 
-// LocalMember is used to return the local node
-func (s *Server) LocalMember() serf.Member {
+// AgentLocalMember is used to retrieve the LAN member for the local node.
+func (s *Server) AgentLocalMember() serf.Member {
 	return s.serfLAN.LocalMember()
 }
 
-// LANMembers is used to return the members of the LAN cluster
-func (s *Server) LANMembers() []serf.Member {
+// LANMembersInAgentPartition is used to return the members of the LAN cluster
+func (s *Server) LANMembersInAgentPartition() []serf.Member {
 	return s.serfLAN.Members()
 }
 
@@ -1167,8 +1167,9 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
-// RemoveFailedNode is used to remove a failed node from the cluster
-func (s *Server) RemoveFailedNode(node string, prune bool) error {
+// RemoveFailedNode is used to remove a failed node from the cluster.
+func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	// TODO(partitions): handle the different partitions
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
