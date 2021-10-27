@@ -101,7 +101,7 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range servers[leaderIndex].LANMembers() {
+		for _, m := range servers[leaderIndex].LANMembersInAgentPartition() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
@@ -498,7 +498,7 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 		if leader == nil {
 			r.Fatalf("no members set")
 		}
-		for _, m := range leader.LANMembers() {
+		for _, m := range leader.LANMembersInAgentPartition() {
 			if m.Name == dead.config.NodeName && m.Status != serf.StatusLeft {
 				r.Fatalf("%v should be left, got %v", m.Name, m.Status.String())
 			}
@@ -515,7 +515,7 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 		if leader == nil {
 			r.Fatalf("no members set")
 		}
-		for _, m := range leader.LANMembers() {
+		for _, m := range leader.LANMembersInAgentPartition() {
 			if m.Name == dead.config.NodeName && m.Status != serf.StatusFailed {
 				r.Fatalf("%v should be failed, got %v", m.Name, m.Status.String())
 			}

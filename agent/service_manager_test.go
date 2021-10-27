@@ -330,7 +330,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	// Join first
 	_, err := a.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", serverAgent.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(err)
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -589,7 +589,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	// Join first
 	_, err := a.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", serverAgent.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")

@@ -14,6 +14,15 @@ type Config struct {
 	EnterpriseConfig
 }
 
+type ExportFetcher interface {
+	// ExportsForPartition returns the config entry defining exports for a partition
+	ExportsForPartition(partition string) PartitionExports
+}
+
+type PartitionExports struct {
+	Data map[string]map[string][]string
+}
+
 // GetWildcardName will retrieve the configured wildcard name or provide a default
 // in the case that the config is Nil or the wildcard name is unset.
 func (c *Config) GetWildcardName() string {

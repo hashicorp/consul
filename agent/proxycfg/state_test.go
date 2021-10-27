@@ -349,15 +349,33 @@ func genVerifyConfigEntryWatch(expectedKind, expectedName, expectedDatacenter st
 	}
 }
 
-func ingressConfigWatchEvent(tlsEnabled bool) cache.UpdateEvent {
+func ingressConfigWatchEvent(gwTLS bool, mixedTLS bool) cache.UpdateEvent {
+	e := &structs.IngressGatewayConfigEntry{
+		TLS: structs.GatewayTLSConfig{
+			Enabled: gwTLS,
+		},
+	}
+
+	if mixedTLS {
+		// Add two listeners one with and one without connect TLS enabled
+		e.Listeners = []structs.IngressListener{
+			{
+				Port:     8080,
+				Protocol: "tcp",
+				TLS:      &structs.GatewayTLSConfig{Enabled: true},
+			},
+			{
+				Port:     9090,
+				Protocol: "tcp",
+				TLS:      nil,
+			},
+		}
+	}
+
 	return cache.UpdateEvent{
 		CorrelationID: gatewayConfigWatchID,
 		Result: &structs.ConfigEntryResponse{
-			Entry: &structs.IngressGatewayConfigEntry{
-				TLS: structs.GatewayTLSConfig{
-					Enabled: tlsEnabled,
-				},
-			},
+			Entry: e,
 		},
 		Err: nil,
 	}
@@ -550,7 +568,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
 							}),
@@ -560,7 +578,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-failover-remote?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-remote", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeRemote
 							}),
@@ -570,7 +588,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-failover-local?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-local", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
 							}),
@@ -580,7 +598,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-failover-direct?dc=dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-failover-direct", "default", "default", "dc2", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = structs.MeshGatewayModeNone
 							}),
@@ -590,7 +608,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				{
 					CorrelationID: "discovery-chain:api-dc2",
 					Result: &structs.DiscoveryChainResponse{
-						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul", "dc1",
+						Chain: discoverychain.TestCompileConfigEntries(t, "api-dc2", "default", "default", "dc1", "trustdomain.consul",
 							func(req *discoverychain.CompileRequest) {
 								req.OverrideMeshGateway.Mode = meshGatewayProxyConfigValue
 							}, &structs.ServiceResolverConfigEntry{
@@ -631,8 +649,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				"upstream-target:api-failover-remote.default.default.dc2:api-failover-remote?dc=dc2": genVerifyServiceWatch("api-failover-remote", "", "dc2", true),
 				"upstream-target:api-failover-local.default.default.dc2:api-failover-local?dc=dc2":   genVerifyServiceWatch("api-failover-local", "", "dc2", true),
 				"upstream-target:api-failover-direct.default.default.dc2:api-failover-direct?dc=dc2": genVerifyServiceWatch("api-failover-direct", "", "dc2", true),
-				"mesh-gateway:dc2:api-failover-remote?dc=dc2":                                        genVerifyGatewayWatch("dc2"),
-				"mesh-gateway:dc1:api-failover-local?dc=dc2":                                         genVerifyGatewayWatch("dc1"),
+				"mesh-gateway:default.dc2:api-failover-remote?dc=dc2":                                genVerifyGatewayWatch("dc2"),
+				"mesh-gateway:default.dc1:api-failover-local?dc=dc2":                                 genVerifyGatewayWatch("dc1"),
 			},
 			verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 				require.True(t, snap.Valid())
@@ -655,7 +673,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		}
 
 		if meshGatewayProxyConfigValue == structs.MeshGatewayModeLocal {
-			stage1.requiredWatches["mesh-gateway:dc1:api-dc2"] = genVerifyGatewayWatch("dc1")
+			stage1.requiredWatches["mesh-gateway:default.dc1:api-dc2"] = genVerifyGatewayWatch("dc1")
 		}
 
 		return testCase{
@@ -732,7 +750,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Empty(t, snap.MeshGateway.WatchedServices)
 						require.False(t, snap.MeshGateway.WatchedServicesSet)
-						require.Empty(t, snap.MeshGateway.WatchedDatacenters)
+						require.Empty(t, snap.MeshGateway.WatchedGateways)
 						require.Empty(t, snap.MeshGateway.ServiceGroups)
 						require.Empty(t, snap.MeshGateway.ServiceResolvers)
 						require.Empty(t, snap.MeshGateway.GatewayGroups)
@@ -754,7 +772,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						require.Equal(t, indexedRoots, snap.Roots)
 						require.Empty(t, snap.MeshGateway.WatchedServices)
 						require.True(t, snap.MeshGateway.WatchedServicesSet)
-						require.Empty(t, snap.MeshGateway.WatchedDatacenters)
+						require.Empty(t, snap.MeshGateway.WatchedGateways)
 						require.Empty(t, snap.MeshGateway.ServiceGroups)
 						require.Empty(t, snap.MeshGateway.ServiceResolvers)
 						require.Empty(t, snap.MeshGateway.GatewayGroups)
@@ -938,7 +956,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					events: []cache.UpdateEvent{
-						ingressConfigWatchEvent(false),
+						ingressConfigWatchEvent(false, false),
 					},
 					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
 						require.False(t, snap.Valid(), "gateway without hosts set is not valid")
@@ -1014,7 +1032,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + api.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", "dc1", nil),
+								Chain: discoverychain.TestCompileConfigEntries(t, "api", "default", "default", "dc1", "trustdomain.consul", nil),
 							},
 							Err: nil,
 						},
@@ -1088,7 +1106,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					},
 					events: []cache.UpdateEvent{
 						rootWatchEvent(),
-						ingressConfigWatchEvent(true),
+						ingressConfigWatchEvent(true, false),
 						{
 							CorrelationID: gatewayServicesWatchID,
 							Result: &structs.IndexedGatewayServices{
@@ -1122,6 +1140,94 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				},
 				{
 					requiredWatches: map[string]verifyWatchRequest{
+						leafWatchID: genVerifyLeafWatchWithDNSSANs("ingress-gateway", "dc1", []string{
+							"test.example.com",
+							"*.ingress.consul.",
+							"*.ingress.dc1.consul.",
+							"*.ingress.alt.consul.",
+							"*.ingress.dc1.alt.consul.",
+						}),
+					},
+					events: []cache.UpdateEvent{
+						{
+							CorrelationID: gatewayServicesWatchID,
+							Result:        &structs.IndexedGatewayServices{},
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.Len(t, snap.IngressGateway.Upstreams, 0)
+						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 0)
+						require.NotContains(t, snap.IngressGateway.WatchedDiscoveryChains, "api")
+					},
+				},
+			},
+		},
+		"ingress-gateway-with-mixed-tls": {
+			ns: structs.NodeService{
+				Kind:    structs.ServiceKindIngressGateway,
+				ID:      "ingress-gateway",
+				Service: "ingress-gateway",
+				Address: "10.0.1.1",
+			},
+			sourceDC: "dc1",
+			stages: []verificationStage{
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						rootsWatchID:           genVerifyRootsWatch("dc1"),
+						gatewayConfigWatchID:   genVerifyConfigEntryWatch(structs.IngressGateway, "ingress-gateway", "dc1"),
+						gatewayServicesWatchID: genVerifyGatewayServiceWatch("ingress-gateway", "dc1"),
+					},
+					events: []cache.UpdateEvent{
+						rootWatchEvent(),
+						ingressConfigWatchEvent(false, true),
+						{
+							CorrelationID: gatewayServicesWatchID,
+							Result: &structs.IndexedGatewayServices{
+								Services: structs.GatewayServices{
+									{
+										Gateway: structs.NewServiceName("ingress-gateway", nil),
+										Service: structs.NewServiceName("api", nil),
+										Hosts:   []string{"test.example.com"},
+										Port:    9999,
+									},
+								},
+							},
+							Err: nil,
+						},
+						{
+							CorrelationID: leafWatchID,
+							Result:        issuedCert,
+							Err:           nil,
+						},
+					},
+					verifySnapshot: func(t testing.TB, snap *ConfigSnapshot) {
+						require.True(t, snap.Valid())
+						require.True(t, snap.IngressGateway.GatewayConfigLoaded)
+						// GW level TLS should be disabled
+						require.False(t, snap.IngressGateway.TLSConfig.Enabled)
+						// Mixed listener TLS
+						l, ok := snap.IngressGateway.Listeners[IngressListenerKey{"tcp", 8080}]
+						require.True(t, ok)
+						require.NotNil(t, l.TLS)
+						require.True(t, l.TLS.Enabled)
+						l, ok = snap.IngressGateway.Listeners[IngressListenerKey{"tcp", 9090}]
+						require.True(t, ok)
+						require.Nil(t, l.TLS)
+
+						require.True(t, snap.IngressGateway.HostsSet)
+						require.Len(t, snap.IngressGateway.Hosts, 1)
+						require.Len(t, snap.IngressGateway.Upstreams, 1)
+						require.Len(t, snap.IngressGateway.WatchedDiscoveryChains, 1)
+						require.Contains(t, snap.IngressGateway.WatchedDiscoveryChains, api.String())
+					},
+				},
+				{
+					requiredWatches: map[string]verifyWatchRequest{
+						// This is the real point of this test - ensure we still generate
+						// the right DNS SANs for the whole gateway even when only a subset
+						// of listeners have TLS enabled.
 						leafWatchID: genVerifyLeafWatchWithDNSSANs("ingress-gateway", "dc1", []string{
 							"test.example.com",
 							"*.ingress.consul.",
@@ -1757,7 +1863,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + db.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", "dc1", nil),
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil),
 							},
 							Err: nil,
 						},
@@ -1906,7 +2012,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + db.String(),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", "dc1", nil, &structs.ServiceResolverConfigEntry{
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", nil, &structs.ServiceResolverConfigEntry{
 									Kind: structs.ServiceResolver,
 									Name: "db",
 									Redirect: &structs.ServiceResolverRedirect{
@@ -2074,7 +2180,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 						{
 							CorrelationID: "discovery-chain:" + upstreamIDForDC2(db.String()),
 							Result: &structs.DiscoveryChainResponse{
-								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc2", "trustdomain.consul", "dc1",
+								Chain: discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc2", "trustdomain.consul",
 									func(req *discoverychain.CompileRequest) {
 										req.OverrideMeshGateway.Mode = structs.MeshGatewayModeLocal
 									}),

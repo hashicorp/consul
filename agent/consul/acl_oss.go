@@ -15,7 +15,11 @@ func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
-func newACLConfig(hclog.Logger) *acl.Config {
+func serverPartitionInfo(s *Server) acl.ExportFetcher {
+	return &partitionInfoNoop{}
+}
+
+func newACLConfig(_ acl.ExportFetcher, _ hclog.Logger) *acl.Config {
 	return &acl.Config{
 		WildcardName: structs.WildcardSpecifier,
 	}
@@ -41,3 +45,5 @@ func (_ *ACLResolver) resolveEnterpriseIdentityAndPolicies(_ structs.ACLIdentity
 func (_ *ACLResolver) resolveLocallyManagedEnterpriseToken(_ string) (structs.ACLIdentity, acl.Authorizer, bool) {
 	return nil, nil, false
 }
+
+func setEnterpriseConf(entMeta *structs.EnterpriseMeta, conf *acl.Config) {}

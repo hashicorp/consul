@@ -325,13 +325,13 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 	return nil
 }
 
-func newPolicyAuthorizer(policies []*Policy, ent *Config) (Authorizer, error) {
+func newPolicyAuthorizer(policies []*Policy, ent *Config) (*policyAuthorizer, error) {
 	policy := MergePolicies(policies)
 
 	return newPolicyAuthorizerFromRules(&policy.PolicyRules, ent)
 }
 
-func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (Authorizer, error) {
+func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (*policyAuthorizer, error) {
 	p := &policyAuthorizer{
 		agentRules:         radix.New(),
 		intentionRules:     radix.New(),
@@ -765,6 +765,10 @@ func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) Enfor
 		return enforce(rule.access, AccessWrite)
 	}
 	return Default
+}
+
+func (p *policyAuthorizer) serviceWriteAny(_ *AuthorizerContext) EnforcementDecision {
+	return p.anyAllowed(p.serviceRules, AccessWrite)
 }
 
 // SessionRead checks for permission to read sessions for a given node.

@@ -22,6 +22,7 @@ const (
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
+	PartitionExports   string = "partition-exports"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -276,6 +277,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
 	case MeshConfig:
 		return &MeshConfigEntry{}, nil
+	case PartitionExports:
+		return &PartitionExportsConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

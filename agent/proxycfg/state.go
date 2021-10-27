@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"reflect"
 	"time"
@@ -425,4 +426,24 @@ func hostnameEndpoints(logger hclog.Logger, localDC string, nodes structs.CheckS
 			"dc", dc, "service", sn.String())
 	}
 	return resp
+}
+
+type gatewayWatchOpts struct {
+	notifier   CacheNotifier
+	notifyCh   chan cache.UpdateEvent
+	source     structs.QuerySource
+	token      string
+	key        GatewayKey
+	upstreamID string
+}
+
+func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
+	return opts.notifier.Notify(ctx, cachetype.InternalServiceDumpName, &structs.ServiceDumpRequest{
+		Datacenter:     opts.key.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: opts.token},
+		ServiceKind:    structs.ServiceKindMeshGateway,
+		UseServiceKind: true,
+		Source:         opts.source,
+		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
+	}, fmt.Sprintf("mesh-gateway:%s:%s", opts.key.String(), opts.upstreamID), opts.notifyCh)
 }

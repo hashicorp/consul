@@ -20,7 +20,10 @@ export default class PartitionAbility extends BaseAbility {
   }
 
   get canChoose() {
-    return this.canUse;
+    if(typeof this.dc === 'undefined') {
+      return false;
+    }
+    return this.canUse && this.dc.Primary;
   }
 
   get canUse() {

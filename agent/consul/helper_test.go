@@ -108,8 +108,8 @@ func joinAddrWAN(s *Server) string {
 }
 
 type clientOrServer interface {
-	JoinLAN(addrs []string) (int, error)
-	LANMembers() []serf.Member
+	JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error)
+	LANMembersInAgentPartition() []serf.Member
 }
 
 // joinLAN is a convenience function for
@@ -129,15 +129,15 @@ func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 		memberAddr = fmt.Sprintf("127.0.0.1:%d", x.config.SerfLANConfig.MemberlistConfig.BindPort)
 	}
 	leaderAddr := joinAddrLAN(leader)
-	if _, err := member.JoinLAN([]string{leaderAddr}); err != nil {
+	if _, err := member.JoinLAN([]string{leaderAddr}, nil); err != nil {
 		t.Fatal(err)
 	}
 	retry.Run(t, func(r *retry.R) {
-		if !seeEachOther(leader.LANMembers(), member.LANMembers(), leaderAddr, memberAddr) {
+		if !seeEachOther(leader.LANMembersInAgentPartition(), member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
 			r.Fatalf("leader and member cannot see each other on LAN")
 		}
 	})
-	if !seeEachOther(leader.LANMembers(), member.LANMembers(), leaderAddr, memberAddr) {
+	if !seeEachOther(leader.LANMembersInAgentPartition(), member.LANMembersInAgentPartition(), leaderAddr, memberAddr) {
 		t.Fatalf("leader and member cannot see each other on LAN")
 	}
 }

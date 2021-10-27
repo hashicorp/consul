@@ -2,6 +2,7 @@
 {{will-destroy this.disconnect}}
 <section
   {{did-insert (fn this.attributeChanged 'element')}}
+  {{did-update (fn this.attributeChanged 'model' @model)}}
   class="outlet"
   data-outlet={{@name}}
   data-route={{this.routeName}}

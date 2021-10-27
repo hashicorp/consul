@@ -101,7 +101,7 @@ func TestRetryJoin(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a.LANMembers()), 2; got != want {
+		if got, want := len(a.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
 	})

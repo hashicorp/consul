@@ -45,7 +45,7 @@ as |item|}}
       <BlockSlot @name="content">
         <Consul::Intention::Form
           @item={{item}}
-          @dc={{route.params.dc}}
+          @dc={{route.model.dc}}
           @nspace={{route.params.nspace}}
           @partition={{route.params.partition}}
           @onsubmit={{route-action 'transitionTo' 'dc.intentions.index'

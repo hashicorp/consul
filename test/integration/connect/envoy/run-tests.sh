@@ -212,7 +212,10 @@ function verify {
 
   echo "Running ${DC} verification step for ${CASE_DIR}..."
 
+  # need to tell the PID 1 inside of the container that it won't be actual PID
+  # 1 because we're using --pid=host so we use TINI_SUBREAPER
   if docker run --name envoy_verify-${DC}_1 -t \
+    -e TINI_SUBREAPER=1 \
     -e ENVOY_VERSION \
     $WORKDIR_SNIPPET \
     --pid=host \

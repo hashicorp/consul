@@ -12,10 +12,14 @@
   visibility: hidden;
 }
 %main-nav-vertical li.partitions,
-%main-nav-vertical li.nspaces,
-%main-nav-vertical li.dcs {
+%main-nav-vertical li.partition,
+%main-nav-vertical li.nspaces {
   margin-bottom: 25px;
   padding: 0 26px;
+}
+%main-nav-vertical li.dcs {
+  margin-bottom: 18px;
+  padding: 0 18px;
 }
 // TODO: We no longer have the rule that menu-panel buttons only contain two
 // items, left and right aligned. We should remove this and look to use

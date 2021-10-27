@@ -1,0 +1,3 @@
+```release-note:deprecation
+tls: With the upgrade to Go 1.17, the ordering of `tls_cipher_suites` will no longer be honored, and `tls_prefer_server_cipher_suites` is now ignored.
+```

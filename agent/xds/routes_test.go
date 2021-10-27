@@ -200,10 +200,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						ConnectTimeout: 22 * time.Second,
 					},
 				}
-				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
 				snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
 					"foo": fooChain,
@@ -801,11 +801,11 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 		webChain := discoverychain.TestCompileConfigEntries(t, "web",
 			o.entMetas["web"].NamespaceOrDefault(),
 			o.entMetas["web"].PartitionOrDefault(), "dc1",
-			connect.TestClusterID+".consul", "dc1", nil, entries...)
+			connect.TestClusterID+".consul", nil, entries...)
 		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
 			o.entMetas["foo"].NamespaceOrDefault(),
 			o.entMetas["web"].PartitionOrDefault(), "dc1",
-			connect.TestClusterID+".consul", "dc1", nil, entries...)
+			connect.TestClusterID+".consul", nil, entries...)
 
 		snap.IngressGateway.DiscoveryChain[webUpstream.Identifier()] = webChain
 		snap.IngressGateway.DiscoveryChain[fooUpstream.Identifier()] = fooChain

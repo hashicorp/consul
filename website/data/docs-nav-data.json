@@ -847,6 +847,10 @@
         "path": "enterprise"
       },
       {
+        "title": "Admin Partitions <sup>BETA</sup>",
+        "path": "enterprise/admin-partitions"
+      },
+      {
         "title": "Audit Logging",
         "path": "enterprise/audit-logging"
       },

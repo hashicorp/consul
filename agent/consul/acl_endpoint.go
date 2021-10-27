@@ -235,10 +235,8 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
-			CreateTime: time.Now(),
-			Local:      false,
-			// DEPRECATED (ACL-Legacy-Compat) - This is used so that the bootstrap token is still visible via the v1 acl APIs
-			Type:           structs.ACLTokenTypeManagement,
+			CreateTime:     time.Now(),
+			Local:          false,
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 		},
 		ResetIndex: specifiedIndex,
