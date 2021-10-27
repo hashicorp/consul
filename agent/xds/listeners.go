@@ -1135,8 +1135,7 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
-	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
-	// We need 1 Filter Chain per datacenter
+	// We need 1 Filter Chain per remote cluster
 	keys := cfgSnap.MeshGateway.GatewayKeys()
 	for _, key := range keys {
 		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
