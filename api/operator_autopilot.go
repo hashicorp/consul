@@ -363,15 +363,14 @@ func (op *Operator) AutopilotServerHealth(q *QueryOptions) (*OperatorHealthReply
 
 	// we use 429 status to indicate unhealthiness
 	_, resp, err := op.c.doRequest(r)
-	err = requireHttpCodes(resp, 200, 429)
-
 	if err != nil {
-		if resp != nil {
-			closeResponseBody(resp)
-		}
 		return nil, err
 	}
-
+	defer closeResponseBody(resp)
+	err = requireHttpCodes(resp, 200, 429)
+	if err != nil {
+		return nil, err
+	}
 	defer closeResponseBody(resp)
 
 	var out OperatorHealthReply
