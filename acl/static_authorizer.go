@@ -219,13 +219,6 @@ func (s *staticAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementD
 	return Deny
 }
 
-func (s *staticAuthorizer) ServiceWriteAny(*AuthorizerContext) EnforcementDecision {
-	if s.defaultAllow {
-		return Allow
-	}
-	return Deny
-}
-
 func (s *staticAuthorizer) SessionRead(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
