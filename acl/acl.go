@@ -14,6 +14,11 @@ type Config struct {
 	EnterpriseConfig
 }
 
+type PartitionExportInfo interface {
+	// DownstreamPartitions returns the list of partitions the given service has been exported to.
+	DownstreamPartitions(service string, anyService bool, ctx *AuthorizerContext) []string
+}
+
 // GetWildcardName will retrieve the configured wildcard name or provide a default
 // in the case that the config is Nil or the wildcard name is unset.
 func (c *Config) GetWildcardName() string {

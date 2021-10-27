@@ -767,6 +767,10 @@ func (p *policyAuthorizer) ServiceWrite(name string, _ *AuthorizerContext) Enfor
 	return Default
 }
 
+func (p *policyAuthorizer) ServiceWriteAny(_ *AuthorizerContext) EnforcementDecision {
+	return p.anyAllowed(p.serviceRules, AccessWrite)
+}
+
 // SessionRead checks for permission to read sessions for a given node.
 func (p *policyAuthorizer) SessionRead(node string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(node, p.sessionRules); ok {

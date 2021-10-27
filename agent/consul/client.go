@@ -123,7 +123,7 @@ func NewClient(config *Config, deps Deps) (*Client, error) {
 		Logger:          c.logger,
 		DisableDuration: aclClientDisabledTTL,
 		CacheConfig:     clientACLCacheConfig,
-		ACLConfig:       newACLConfig(c.logger),
+		ACLConfig:       newACLConfig(&partitionInfoNoop{}, c.logger),
 		Tokens:          deps.Tokens,
 	}
 	var err error

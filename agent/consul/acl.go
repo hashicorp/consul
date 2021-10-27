@@ -292,7 +292,10 @@ func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (ac
 			},
 		},
 	}
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+
+	cfg := acl.Config{}
+	setEnterpriseConf(entMeta, &cfg)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, &cfg)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
@@ -1090,8 +1093,13 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 
 	// Build the Authorizer
 	var chain []acl.Authorizer
+	var conf acl.Config
+	if r.aclConf != nil {
+		conf = *r.aclConf
+	}
+	setEnterpriseConf(identity.EnterpriseMetadata(), &conf)
 
-	authz, err := policies.Compile(r.cache, r.aclConf)
+	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1894,4 +1902,10 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	}
 	filterACLWithAuthorizer(r.logger, authorizer, subj)
 	return nil
+}
+
+type partitionInfoNoop struct{}
+
+func (p *partitionInfoNoop) DownstreamPartitions(service string, anyService bool, ctx *acl.AuthorizerContext) []string {
+	return []string{}
 }
