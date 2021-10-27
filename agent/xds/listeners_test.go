@@ -810,7 +810,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.ConnectProxy.MeshConfigSet = true
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
-				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
@@ -847,7 +847,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -864,7 +864,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
-				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
@@ -885,7 +885,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -894,9 +894,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
 
-				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
-				snap.ConnectProxy.DiscoveryChain["kafka"] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["kafka"] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 				kafka := structs.NewServiceName("kafka", structs.DefaultEnterpriseMetaInDefaultPartition())
 				mongo := structs.NewServiceName("mongo", structs.DefaultEnterpriseMetaInDefaultPartition())

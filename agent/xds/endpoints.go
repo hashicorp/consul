@@ -3,7 +3,6 @@ package xds
 import (
 	"errors"
 	"fmt"
-
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -51,7 +50,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		es := s.endpointsFromDiscoveryChain(
 			id,
 			chain,
-			cfgSnap.Datacenter,
+			proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
 			cfgSnap.ConnectProxy.UpstreamConfig[id],
 			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
@@ -275,7 +274,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 			es := s.endpointsFromDiscoveryChain(
 				id,
 				cfgSnap.IngressGateway.DiscoveryChain[id],
-				cfgSnap.Datacenter,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
 				&u,
 				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
 				cfgSnap.IngressGateway.WatchedGatewayEndpoints[id],
@@ -311,9 +310,10 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	id string,
 	chain *structs.CompiledDiscoveryChain,
-	datacenter string,
+	gatewayKey proxycfg.GatewayKey,
 	upstream *structs.Upstream,
-	upstreamEndpoints, gatewayEndpoints map[string]structs.CheckServiceNodes,
+	upstreamEndpoints map[string]structs.CheckServiceNodes,
+	gatewayEndpoints map[string]structs.CheckServiceNodes,
 ) []proto.Message {
 	var resources []proto.Message
 
@@ -387,7 +387,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			upstreamEndpoints,
 			gatewayEndpoints,
 			targetID,
-			datacenter,
+			gatewayKey,
 		)
 		if !valid {
 			continue // skip the cluster if we're still populating the snapshot
@@ -406,7 +406,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 					upstreamEndpoints,
 					gatewayEndpoints,
 					failTargetID,
-					datacenter,
+					gatewayKey,
 				)
 				if !valid {
 					continue // skip the failover target if we're still populating the snapshot
@@ -420,7 +420,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		la := makeLoadAssignment(
 			clusterName,
 			endpointGroups,
-			datacenter,
+			gatewayKey.Datacenter,
 		)
 		resources = append(resources, la)
 	}
@@ -486,7 +486,7 @@ func makeLoadAssignmentEndpointGroup(
 	targetHealth map[string]structs.CheckServiceNodes,
 	gatewayHealth map[string]structs.CheckServiceNodes,
 	targetID string,
-	currentDatacenter string,
+	localKey proxycfg.GatewayKey,
 ) (loadAssignmentEndpointGroup, bool) {
 	realEndpoints, ok := targetHealth[targetID]
 	if !ok {
@@ -495,15 +495,19 @@ func makeLoadAssignmentEndpointGroup(
 	}
 	target := targets[targetID]
 
-	var gatewayDatacenter string
+	var gatewayKey proxycfg.GatewayKey
+
 	switch target.MeshGateway.Mode {
 	case structs.MeshGatewayModeRemote:
-		gatewayDatacenter = target.Datacenter
+		gatewayKey.Datacenter = target.Datacenter
+		gatewayKey.Partition = target.Partition
+
 	case structs.MeshGatewayModeLocal:
-		gatewayDatacenter = currentDatacenter
+		gatewayKey = localKey
 	}
 
-	if gatewayDatacenter == "" {
+	if gatewayKey.IsEmpty() || (structs.EqualPartitions(localKey.Partition, target.Partition) && localKey.Datacenter == target.Datacenter) {
+		// Gateways are not needed if the request isn't for a remote DC or partition.
 		return loadAssignmentEndpointGroup{
 			Endpoints:   realEndpoints,
 			OnlyPassing: target.Subset.OnlyPassing,
@@ -511,7 +515,7 @@ func makeLoadAssignmentEndpointGroup(
 	}
 
 	// If using a mesh gateway we need to pull those endpoints instead.
-	gatewayEndpoints, ok := gatewayHealth[gatewayDatacenter]
+	gatewayEndpoints, ok := gatewayHealth[gatewayKey.String()]
 	if !ok {
 		// skip the cluster if we're still populating the snapshot
 		return loadAssignmentEndpointGroup{}, false
