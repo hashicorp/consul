@@ -2,7 +2,6 @@ package consul
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"math"
@@ -16,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/tlsutil"
 )
 
 var metricsKeyMeshRootCAExpiry = []string{"mesh", "active-root-ca", "expiry"}
@@ -30,13 +28,6 @@ var LeaderCertExpirationGauges = []prometheus.GaugeDefinition{
 	{
 		Name: metricsKeyMeshActiveSigningCAExpiry,
 		Help: "Seconds until the service mesh signing certificate expires. Updated every hour",
-	},
-}
-
-var AgentCertExpirationGauges = []prometheus.GaugeDefinition{
-	{
-		Name: metricsKeyAgentTLSCertExpiry,
-		Help: "Seconds until the agent tls certificate expires. Updated every hour",
 	},
 }
 
@@ -162,29 +153,6 @@ func (m CertExpirationMonitor) Monitor(ctx context.Context) error {
 		case <-ticker.C:
 			emitMetric()
 		}
-	}
-}
-
-var metricsKeyAgentTLSCertExpiry = []string{"agent", "tls", "cert", "expiry"}
-
-// AgentTLSCertExpirationMonitor returns a CertExpirationMonitor which will
-// monitor the expiration of the certificate used for agent TLS.
-func AgentTLSCertExpirationMonitor(c *tlsutil.Configurator, logger hclog.Logger) CertExpirationMonitor {
-	return CertExpirationMonitor{
-		Key:    metricsKeyAgentTLSCertExpiry,
-		Logger: logger,
-		Query: func() (time.Duration, error) {
-			raw := c.Cert()
-			if raw == nil {
-				return 0, fmt.Errorf("tls not enabled")
-			}
-
-			cert, err := x509.ParseCertificate(raw.Certificate[0])
-			if err != nil {
-				return 0, fmt.Errorf("failed to parse agent tls cert: %w", err)
-			}
-			return time.Until(cert.NotAfter), nil
-		},
 	}
 }
 

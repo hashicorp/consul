@@ -211,7 +211,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig, isServer bool) ([]prometheus.Gau
 		xds.StatsGauges,
 		usagemetrics.Gauges,
 		consul.ReplicationGauges,
-		consul.AgentCertExpirationGauges,
+		CertExpirationGauges,
 		Gauges,
 		raftGauges,
 	}
