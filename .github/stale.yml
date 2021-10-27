@@ -16,4 +16,6 @@ markComment: >
   if you feel this has happened by mistake. Thank you for your contributions.
 # Comment to post when closing a stale issue. Set to `false` to disable
 closeComment: >
-  Closing due to inactivity. Please re-open if you feel this is a mistake.
+  Closing due to inactivity. If you feel this was a mistake or you wish to
+  re-open at any time in the future, please leave a comment and it will be
+  re-surfaced for the maintainers to review within 7 days.
