@@ -2,10 +2,15 @@ package api
 
 import "encoding/json"
 
-// ServiceExportsConfigEntry manages the exported services for a single admin partition.
+// PartitionExportsConfigEntry manages the exported services for a single admin partition.
 // Admin Partitions are a Consul Enterprise feature.
-type ServiceExportsConfigEntry struct {
-	// Partition is the partition the ServiceExportsConfigEntry applies to.
+type PartitionExportsConfigEntry struct {
+	// Name is the name of the partition the PartitionExportsConfigEntry applies to.
+	// Partitioning is a Consul Enterprise feature.
+	Name string `json:",omitempty"`
+
+	// Partition is the partition where the PartitionExportsConfigEntry is stored.
+	// If the partition does not match the name, the name will overwrite the partition.
 	// Partitioning is a Consul Enterprise feature.
 	Partition string `json:",omitempty"`
 
@@ -44,23 +49,23 @@ type ServiceConsumer struct {
 	Partition string
 }
 
-func (e *ServiceExportsConfigEntry) GetKind() string            { return ServiceExports }
-func (e *ServiceExportsConfigEntry) GetName() string            { return e.Partition }
-func (e *ServiceExportsConfigEntry) GetPartition() string       { return e.Partition }
-func (e *ServiceExportsConfigEntry) GetNamespace() string       { return IntentionDefaultNamespace }
-func (e *ServiceExportsConfigEntry) GetMeta() map[string]string { return e.Meta }
-func (e *ServiceExportsConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
-func (e *ServiceExportsConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
+func (e *PartitionExportsConfigEntry) GetKind() string            { return PartitionExports }
+func (e *PartitionExportsConfigEntry) GetName() string            { return e.Name }
+func (e *PartitionExportsConfigEntry) GetPartition() string       { return e.Name }
+func (e *PartitionExportsConfigEntry) GetNamespace() string       { return IntentionDefaultNamespace }
+func (e *PartitionExportsConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *PartitionExportsConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
+func (e *PartitionExportsConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 // MarshalJSON adds the Kind field so that the JSON can be decoded back into the
 // correct type.
-func (e *ServiceExportsConfigEntry) MarshalJSON() ([]byte, error) {
-	type Alias ServiceExportsConfigEntry
+func (e *PartitionExportsConfigEntry) MarshalJSON() ([]byte, error) {
+	type Alias PartitionExportsConfigEntry
 	source := &struct {
 		Kind string
 		*Alias
 	}{
-		Kind:  ServiceExports,
+		Kind:  PartitionExports,
 		Alias: (*Alias)(e),
 	}
 	return json.Marshal(source)

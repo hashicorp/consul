@@ -360,7 +360,7 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
-	case structs.ServiceExports:
+	case structs.PartitionExports:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}

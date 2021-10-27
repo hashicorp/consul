@@ -1665,10 +1665,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
-			name: "service-exports",
+			name: "partition-exports",
 			snake: `
-				kind = "service-exports"
-				partition = "foo"
+				kind = "partition-exports"
+				name = "foo"
 				meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1698,8 +1698,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				]
 			`,
 			camel: `
-				Kind = "service-exports"
-				Partition = "foo"
+				Kind = "partition-exports"
+				Name = "foo"
 				Meta {
 					"foo" = "bar"
 					"gir" = "zim"
@@ -1728,8 +1728,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 					}
 				]
 			`,
-			expect: &ServiceExportsConfigEntry{
-				Partition: "foo",
+			expect: &PartitionExportsConfigEntry{
+				Name: "foo",
 				Meta: map[string]string{
 					"foo": "bar",
 					"gir": "zim",
@@ -1757,7 +1757,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 					},
 				},
-				EnterpriseMeta: NewEnterpriseMetaWithPartition("foo", ""),
 			},
 		},
 	} {
