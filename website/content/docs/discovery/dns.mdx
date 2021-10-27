@@ -40,7 +40,7 @@ domain to a Consul agent from the existing DNS server. Review the
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
 ```shell-session
-$ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
+$ dig @127.0.0.1 -p 8600 redis.service.dc1.consul ANY
 ```
 
 -> **Note:** In DNS, all queries are case-insensitive. A lookup of `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`.
