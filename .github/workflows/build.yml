@@ -5,7 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
       # Push events on crt-consul-migration branch
-      - crt-consul-migration
+      - crt-migration-1.11.0-betax
 env:
   PKG_NAME: consul
 
@@ -86,8 +86,8 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
-          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
 
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
@@ -185,8 +185,8 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          go get -u -v github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
-          go get -u -v github.com/hashicorp/go-bindata/go-bindata@bf7910a
+          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
 
       - name: Setup with node and yarn
         uses: actions/setup-node@v2
