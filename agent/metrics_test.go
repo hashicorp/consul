@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 
 	"github.com/stretchr/testify/require"
@@ -155,4 +156,57 @@ func TestHTTPHandlers_AgentMetrics_TLSCertExpiry_Prometheus(t *testing.T) {
 	recordPromMetrics(t, a, respRec)
 
 	require.Contains(t, respRec.Body.String(), "agent_3_agent_tls_cert_expiry 1.7")
+}
+
+func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
+	skipIfShortTesting(t)
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+
+	t.Run("non-leader emits NaN", func(t *testing.T) {
+		hcl := `
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_hostname = true
+			metrics_prefix = "agent_4"
+		}
+		connect {
+			enabled = true
+		}
+		bootstrap = false
+		`
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		require.Contains(t, respRec.Body.String(), "agent_4_mesh_active_root_ca_expiry NaN")
+		require.Contains(t, respRec.Body.String(), "agent_4_mesh_active_signing_ca_expiry NaN")
+	})
+
+	t.Run("leader emits a value", func(t *testing.T) {
+		hcl := `
+		telemetry = {
+			prometheus_retention_time = "5s",
+			disable_hostname = true
+			metrics_prefix = "agent_5"
+		}
+		connect {
+			enabled = true
+		}
+		`
+
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+		respRec := httptest.NewRecorder()
+		recordPromMetrics(t, a, respRec)
+
+		out := respRec.Body.String()
+		require.Contains(t, out, "agent_5_mesh_active_root_ca_expiry 3.15")
+		require.Contains(t, out, "agent_5_mesh_active_signing_ca_expiry 3.15")
+	})
+
 }
