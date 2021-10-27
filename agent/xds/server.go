@@ -204,12 +204,6 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 	return errors.New("not implemented")
 }
 
-const (
-	stateInit int = iota
-	statePendingInitialConfig
-	stateRunning
-)
-
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
