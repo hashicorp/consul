@@ -1393,10 +1393,10 @@ func (a *ACL) BindingRuleDelete(bindingRuleID string, q *WriteOptions) (*WriteMe
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil

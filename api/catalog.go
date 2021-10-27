@@ -128,10 +128,10 @@ func (c *Catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMet
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -147,10 +147,10 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

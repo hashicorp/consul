@@ -323,10 +323,10 @@ func (op *Operator) AutopilotSetConfiguration(conf *AutopilotConfiguration, q *W
 	if err != nil {
 		return err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return err
 	}
-	closeResponseBody(resp)
 	return nil
 }
 

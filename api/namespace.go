@@ -142,10 +142,10 @@ func (n *Namespaces) Delete(name string, q *WriteOptions) (*WriteMeta, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil

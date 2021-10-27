@@ -69,10 +69,10 @@ func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) err
 	if err != nil {
 		return err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return err
 	}
-	closeResponseBody(resp)
 	return nil
 }
 
@@ -88,9 +88,9 @@ func (op *Operator) RaftRemovePeerByID(id string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return err
 	}
-	closeResponseBody(resp)
 	return nil
 }

@@ -53,10 +53,10 @@ func (p *Partitions) Create(ctx context.Context, partition *AdminPartition, q *W
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out AdminPartition
@@ -80,10 +80,10 @@ func (p *Partitions) Update(ctx context.Context, partition *AdminPartition, q *W
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out AdminPartition
@@ -131,10 +131,10 @@ func (p *Partitions) Delete(ctx context.Context, name string, q *WriteOptions) (
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -149,10 +149,10 @@ func (p *Partitions) List(ctx context.Context, q *QueryOptions) (*AdminPartition
 	if err != nil {
 		return nil, nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

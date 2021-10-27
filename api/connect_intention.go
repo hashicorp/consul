@@ -283,11 +283,10 @@ func (h *Connect) IntentionDelete(id string, q *WriteOptions) (*WriteMeta, error
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-
-	defer closeResponseBody(resp)
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt

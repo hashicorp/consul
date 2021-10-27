@@ -40,10 +40,10 @@ func (op *Operator) KeyringInstall(key string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return err
 	}
-	closeResponseBody(resp)
 	return nil
 }
 
@@ -78,10 +78,10 @@ func (op *Operator) KeyringRemove(key string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return err
 	}
-	closeResponseBody(resp)
 	return nil
 }
 
@@ -96,9 +96,9 @@ func (op *Operator) KeyringUse(key string, q *WriteOptions) error {
 	if err != nil {
 		return err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return err
 	}
-	closeResponseBody(resp)
 	return nil
 }

@@ -92,10 +92,10 @@ func (op *Operator) LicenseReset(opts *WriteOptions) (*LicenseReply, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 	if err := decodeBody(resp, &reply); err != nil {
 		return nil, err
 	}
@@ -115,10 +115,10 @@ func (op *Operator) LicensePut(license string, opts *WriteOptions) (*LicenseRepl
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if err := decodeBody(resp, &reply); err != nil {
 		return nil, err
