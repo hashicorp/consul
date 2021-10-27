@@ -1542,8 +1542,8 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 				structs.NewServiceName("bar", nil): nil,
 			},
 			WatchedServicesSet: true,
-			WatchedDatacenters: map[string]context.CancelFunc{
-				"dc2": nil,
+			WatchedGateways: map[string]context.CancelFunc{
+				"default.dc2": nil,
 			},
 			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
 				structs.NewServiceName("foo", nil): TestGatewayServiceGroupFooDC1(t),

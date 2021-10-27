@@ -3786,6 +3786,8 @@ func (a *Agent) registerCache() {
 
 	a.cache.RegisterType(cachetype.FederationStateListMeshGatewaysName,
 		&cachetype.FederationStateListMeshGateways{RPC: a})
+
+	a.registerEntCache()
 }
 
 // LocalState returns the agent's local state

@@ -3,6 +3,7 @@ package xds
 import (
 	"errors"
 	"fmt"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -109,28 +110,30 @@ func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *pro
 }
 
 func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters()
-	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
+	keys := cfgSnap.MeshGateway.GatewayKeys()
+	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
-	// generate the endpoints for the gateways in the remote datacenters
-	for _, dc := range datacenters {
-		// Skip creating endpoints for mesh gateways in local DC and gateways in remote DCs with a hostname as their address
-		// EDS cannot resolve hostnames so we provide them through CDS instead
-		if dc == cfgSnap.Datacenter || len(cfgSnap.MeshGateway.HostnameDatacenters[dc]) > 0 {
+	for _, key := range keys {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
+			continue // skip local
+		}
+		// Also skip gateways with a hostname as their address. EDS cannot resolve hostnames,
+		// so we provide them through CDS instead.
+		if len(cfgSnap.MeshGateway.HostnameDatacenters[key.String()]) > 0 {
 			continue
 		}
 
-		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
+		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[key.String()]
 		if !ok {
-			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[dc]
+			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[key.String()]
 			if !ok { // not possible
-				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", dc)
+				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
 				continue
 			}
 		}
 
 		{ // standard connect
-			clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
 				clusterName,
@@ -142,9 +145,11 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			resources = append(resources, la)
 		}
 
-		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-			clusterName := cfgSnap.ServerSNIFn(dc, "")
+		if cfgSnap.ProxyID.InDefaultPartition() &&
+			cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+			cfgSnap.ServerSNIFn != nil {
 
+			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 			la := makeLoadAssignment(
 				clusterName,
 				[]loadAssignmentEndpointGroup{
@@ -157,7 +162,9 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	}
 
 	// generate endpoints for our servers if WAN federation is enabled
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+	if cfgSnap.ProxyID.InDefaultPartition() &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {

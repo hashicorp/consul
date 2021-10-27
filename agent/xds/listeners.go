@@ -1135,15 +1135,15 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
-	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
-	// We need 1 Filter Chain per datacenter
-	datacenters := cfgSnap.MeshGateway.Datacenters()
-	for _, dc := range datacenters {
-		if dc == cfgSnap.Datacenter {
+	// We need 1 Filter Chain per remote cluster
+	keys := cfgSnap.MeshGateway.GatewayKeys()
+	for _, key := range keys {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
 			continue // skip local
 		}
-		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
-		filterName := fmt.Sprintf("%s.%s", name, dc)
+
+		clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
+		filterName := fmt.Sprintf("%s.%s", name, key.String())
 		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote.")
 		if err != nil {
 			return nil, err
@@ -1159,13 +1159,16 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		})
 	}
 
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-		for _, dc := range datacenters {
-			if dc == cfgSnap.Datacenter {
+	if cfgSnap.ProxyID.InDefaultPartition() &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
+
+		for _, key := range keys {
+			if key.Datacenter == cfgSnap.Datacenter {
 				continue // skip local
 			}
-			clusterName := cfgSnap.ServerSNIFn(dc, "")
-			filterName := fmt.Sprintf("%s.%s", name, dc)
+			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
+			filterName := fmt.Sprintf("%s.%s", name, key.String())
 			dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote.")
 			if err != nil {
 				return nil, err
