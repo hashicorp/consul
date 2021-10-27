@@ -1,29 +1,10 @@
 package xds
 
-import (
-	"sync/atomic"
-	"testing"
-	"time"
-
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
-)
-
 // NOTE: For these tests, prefer not using xDS protobuf "factory" methods if
 // possible to avoid using them to test themselves.
 //
 // Stick to very straightforward stuff in xds_protocol_helpers_test.go.
-
+/*
 func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -183,7 +164,8 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_TCP(t *testing.T) {
 		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
-
+*/
+/*
 func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -353,7 +335,8 @@ func TestServer_StreamAggregatedResources_v2_BasicProtocol_HTTP(t *testing.T) {
 		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
-
+*/
+/*
 func TestServer_StreamAggregatedResources_v2_ACLEnforcement(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -479,7 +462,8 @@ func TestServer_StreamAggregatedResources_v2_ACLEnforcement(t *testing.T) {
 		})
 	}
 }
-
+*/
+/*
 func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedDuringDiscoveryRequest(t *testing.T) {
 	aclRules := `service "web" { policy = "write" }`
 	token := "service-write-on-web"
@@ -566,7 +550,8 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedDur
 		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
-
+*/
+/*
 func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInBackground(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -665,7 +650,8 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInB
 		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
-
+*/
+/*
 func TestServer_StreamAggregatedResources_v2_IngressEmptyResponse(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -722,7 +708,8 @@ func TestServer_StreamAggregatedResources_v2_IngressEmptyResponse(t *testing.T) 
 		t.Fatalf("timed out waiting for handler to finish")
 	}
 }
-
+*/
+/*
 func assertChanBlocked(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse) {
 	t.Helper()
 	select {
@@ -732,7 +719,9 @@ func assertChanBlocked(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse) {
 		return
 	}
 }
+*/
 
+/*
 func assertResponseSent(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse, want *envoy_api_v2.DiscoveryResponse) {
 	t.Helper()
 	select {
@@ -742,7 +731,9 @@ func assertResponseSent(t *testing.T, ch chan *envoy_api_v2.DiscoveryResponse, w
 		t.Fatalf("no response received after 50ms")
 	}
 }
+*/
 
+/*
 // assertResponse is a helper to test a envoy.DiscoveryResponse matches the
 // expected value. We use JSON during comparison here because the responses use protobuf
 // Any type which includes binary protobuf encoding.
@@ -753,7 +744,9 @@ func assertResponse(t *testing.T, got, want *envoy_api_v2.DiscoveryResponse) {
 	wantJSON := protoToJSON(t, want)
 	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
 }
+*/
 
+/*
 func makeTestResources_v2(t *testing.T, resources ...proto.Message) []*any.Any {
 	var ret []*any.Any
 	for _, res := range resources {
@@ -763,31 +756,40 @@ func makeTestResources_v2(t *testing.T, resources ...proto.Message) []*any.Any {
 	}
 	return ret
 }
+*/
 
+/*
 func makeTestListener_v2(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_api_v2.Listener {
 	v3 := makeTestListener(t, snap, fixtureName)
 	v2, err := convertListenerToV2(v3)
 	require.NoError(t, err)
 	return v2
 }
+*/
 
+/*
 func makeTestCluster_v2(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_api_v2.Cluster {
 	v3 := makeTestCluster(t, snap, fixtureName)
 	v2, err := convertClusterToV2(v3)
 	require.NoError(t, err)
 	return v2
 }
+*/
 
+/*
 func makeTestEndpoints_v2(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_api_v2.ClusterLoadAssignment {
 	v3 := makeTestEndpoints(t, snap, fixtureName)
 	v2, err := convertClusterLoadAssignmentToV2(v3)
 	require.NoError(t, err)
 	return v2
 }
+*/
 
+/*
 func makeTestRoute_v2(t *testing.T, fixtureName string) *envoy_api_v2.RouteConfiguration {
 	v3 := makeTestRoute(t, fixtureName)
 	v2, err := convertRouteConfigurationToV2(v3)
 	require.NoError(t, err)
 	return v2
 }
+*/

@@ -3,12 +3,9 @@ package xds
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync/atomic"
 	"time"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/armon/go-metrics"
@@ -23,7 +20,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -36,7 +32,6 @@ var StatsGauges = []prometheus.GaugeDefinition{
 
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
-type ADSStream_v2 = envoy_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
 	// Resource types in xDS v3. These are copied from
@@ -45,20 +40,20 @@ const (
 	apiTypePrefix = "type.googleapis.com/"
 
 	// EndpointType is the TypeURL for Endpoint discovery responses.
-	EndpointType    = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
-	EndpointType_v2 = apiTypePrefix + "envoy.api.v2.ClusterLoadAssignment"
+	EndpointType = apiTypePrefix + "envoy.config.endpoint.v3.ClusterLoadAssignment"
+	// EndpointType_v2 = apiTypePrefix + "envoy.api.v2.ClusterLoadAssignment"
 
 	// ClusterType is the TypeURL for Cluster discovery responses.
-	ClusterType    = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
-	ClusterType_v2 = apiTypePrefix + "envoy.api.v2.Cluster"
+	ClusterType = apiTypePrefix + "envoy.config.cluster.v3.Cluster"
+	// ClusterType_v2 = apiTypePrefix + "envoy.api.v2.Cluster"
 
 	// RouteType is the TypeURL for Route discovery responses.
-	RouteType    = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
-	RouteType_v2 = apiTypePrefix + "envoy.api.v2.RouteConfiguration"
+	RouteType = apiTypePrefix + "envoy.config.route.v3.RouteConfiguration"
+	// RouteType_v2 = apiTypePrefix + "envoy.api.v2.RouteConfiguration"
 
 	// ListenerType is the TypeURL for Listener discovery responses.
-	ListenerType    = apiTypePrefix + "envoy.config.listener.v3.Listener"
-	ListenerType_v2 = apiTypePrefix + "envoy.api.v2.Listener"
+	ListenerType = apiTypePrefix + "envoy.config.listener.v3.Listener"
+	// ListenerType_v2 = apiTypePrefix + "envoy.api.v2.Listener"
 
 	// PublicListenerName is the name we give the public listener in Envoy config.
 	PublicListenerName = "public_listener"
@@ -150,8 +145,6 @@ type Server struct {
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
 
-	DisableV2Protocol bool
-
 	// ResourceMapMutateFn exclusively exists for testing purposes.
 	ResourceMapMutateFn func(resourceMap *IndexedResources)
 
@@ -215,6 +208,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 }
 
 // Deprecated: remove when xDS v2 is no longer supported
+/*
 func (s *Server) streamAggregatedResources(stream ADSStream) error {
 	defer s.activeStreams.Increment("v2")()
 
@@ -249,6 +243,7 @@ func (s *Server) streamAggregatedResources(stream ADSStream) error {
 
 	return err
 }
+*/
 
 const (
 	stateInit int = iota
@@ -257,6 +252,7 @@ const (
 )
 
 // Deprecated: remove when xDS v2 is no longer supported
+/*
 func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.DiscoveryRequest) error {
 	// xDS requires a unique nonce to correlate response/request pairs
 	var nonce uint64
@@ -459,8 +455,10 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 		}
 	}
 }
+*/
 
 // Deprecated: remove when xDS v2 is no longer supported
+/*
 type xDSType struct {
 	generator *ResourceGenerator
 	typeURL   string
@@ -535,6 +533,7 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	t.lastNonce = nonceStr
 	return nil
 }
+*/
 
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -563,9 +562,6 @@ func NewGRPCServer(s *Server, tlsConfigurator *tlsutil.Configurator) *grpc.Serve
 	srv := grpc.NewServer(opts...)
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
 
-	if !s.DisableV2Protocol {
-		envoy_discovery_v2.RegisterAggregatedDiscoveryServiceServer(srv, &adsServerV2Shim{srv: s})
-	}
 	return srv
 }
 

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -136,7 +135,7 @@ type TestEnvoy struct {
 	proxyID string
 	token   string
 
-	stream      *TestADSStream      // SoTW v2
+	// stream      *TestADSStream      // SoTW v2
 	deltaStream *TestADSDeltaStream // Incremental v3
 }
 
@@ -156,7 +155,7 @@ func NewTestEnvoy(t testing.T, proxyID, token string) *TestEnvoy {
 		proxyID: proxyID,
 		token:   token,
 
-		stream:      NewTestADSStream(t, ctx),
+		// stream:      NewTestADSStream(t, ctx),
 		deltaStream: NewTestADSDeltaStream(t, ctx),
 	}
 }
@@ -195,6 +194,7 @@ func stringToEnvoyVersion(vs string) (*envoy_type_v3.SemanticVersion, bool) {
 }
 
 // SendReq sends a request from the test server.
+/*
 func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -230,9 +230,9 @@ func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) 
 		t.Fatalf("send to stream blocked for too long")
 	}
 }
-
+*/
 func (e *TestEnvoy) SetSendErr(err error) {
-	e.stream.SetSendErr(err)
+	// e.stream.SetSendErr(err)
 	e.deltaStream.SetSendErr(err)
 }
 
@@ -312,10 +312,12 @@ func (e *TestEnvoy) Close() error {
 	defer e.mu.Unlock()
 
 	// unblock the recv chans to simulate recv errors when client disconnects
-	if e.stream != nil && e.stream.recvCh != nil {
-		close(e.stream.recvCh)
-		e.stream = nil
-	}
+	/*
+		if e.stream != nil && e.stream.recvCh != nil {
+			close(e.stream.recvCh)
+			e.stream = nil
+		}
+	*/
 	if e.deltaStream != nil && e.deltaStream.recvCh != nil {
 		close(e.deltaStream.recvCh)
 		e.deltaStream = nil

@@ -1,7 +1,6 @@
 package xds
 
 import (
-	"errors"
 	"fmt"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -32,7 +31,6 @@ import (
 	envoy_sni_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v2 "github.com/envoyproxy/go-control-plane/envoy/type"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -40,7 +38,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"google.golang.org/grpc"
 )
 
 // The plumbing in this file supports converting xDS v3 requests and responses
@@ -59,7 +56,7 @@ import (
 // - 1.19.x (v2 deleted)
 // - 1.18.x (v2 deleted)
 // - 1.17.x (v2 opt-in)
-
+/*
 type adsServerV2Shim struct {
 	srv *Server
 }
@@ -79,7 +76,8 @@ func (s *adsServerV2Shim) StreamAggregatedResources(stream ADSStream_v2) error {
 func (s *adsServerV2Shim) DeltaAggregatedResources(_ envoy_discovery_v2.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	return errors.New("not implemented")
 }
-
+*/
+/*
 type adsStreamV3Shim struct {
 	stream ADSStream_v2
 	grpc.ServerStream
@@ -109,7 +107,7 @@ func (s *adsStreamV3Shim) Recv() (*envoy_discovery_v3.DiscoveryRequest, error) {
 
 	return reqv3, nil
 }
-
+*/
 func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_discovery_v3.DiscoveryRequest, error) {
 	var pbuf proto.Buffer
 	if err := pbuf.Marshal(req); err != nil {
