@@ -125,18 +125,6 @@ type testServerScenario struct {
 	errCh  <-chan error
 }
 
-/*
-func newTestServerScenario(
-	t *testing.T,
-	resolveToken ACLResolverFunc,
-	proxyID string,
-	token string,
-	authCheckFrequency time.Duration,
-) *testServerScenario {
-	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, false)
-}
-*/
-
 func newTestServerDeltaScenario(
 	t *testing.T,
 	resolveToken ACLResolverFunc,

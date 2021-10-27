@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -77,6 +76,7 @@ func (s *TestADSDeltaStream) Recv() (*envoy_discovery_v3.DeltaDiscoveryRequest, 
 // TestADSStream mocks
 // discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer to allow
 // testing ADS handler.
+/*
 type TestADSStream struct {
 	stubGrpcServerStream
 	sendCh chan *envoy_api_v2.DiscoveryResponse
@@ -124,7 +124,7 @@ func (s *TestADSStream) Recv() (*envoy_api_v2.DiscoveryRequest, error) {
 	}
 	return r, nil
 }
-
+*/
 // TestEnvoy is a helper to simulate Envoy ADS requests.
 type TestEnvoy struct {
 	mu sync.Mutex
