@@ -72,7 +72,7 @@ func (k GatewayKey) IsEmpty() bool {
 }
 
 func (k GatewayKey) Matches(dc, partition string) bool {
-	return k.Partition == partition && k.Datacenter == dc
+	return structs.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
 }
 
 func gatewayKeyFromString(s string) GatewayKey {
