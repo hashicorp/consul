@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/mitchellh/copystructure"
 
@@ -38,11 +39,11 @@ type ConfigSnapshotUpstreams struct {
 	WatchedUpstreamEndpoints map[string]map[string]structs.CheckServiceNodes
 
 	// WatchedGateways is a map of upstream.Identifier() -> (map of
-	// TargetID -> CancelFunc) in order to cancel watches for mesh gateways
+	// GatewayKey.String() -> CancelFunc) in order to cancel watches for mesh gateways
 	WatchedGateways map[string]map[string]context.CancelFunc
 
 	// WatchedGatewayEndpoints is a map of upstream.Identifier() -> (map of
-	// TargetID -> CheckServiceNodes) and is used to determine the backing
+	// GatewayKey.String() -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of a mesh gateway.
 	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
 
@@ -51,6 +52,36 @@ type ConfigSnapshotUpstreams struct {
 
 	// PassthroughEndpoints is a map of: ServiceName -> ServicePassthroughAddrs.
 	PassthroughUpstreams map[string]ServicePassthroughAddrs
+}
+
+type GatewayKey struct {
+	Datacenter string
+	Partition  string
+}
+
+func (k GatewayKey) String() string {
+	resp := k.Datacenter
+	if k.Partition != "" {
+		resp = k.Partition + "." + resp
+	}
+	return resp
+}
+
+func (k GatewayKey) IsEmpty() bool {
+	return k.Partition == "" && k.Datacenter == ""
+}
+
+func (k GatewayKey) Matches(dc, partition string) bool {
+	return structs.EqualPartitions(k.Partition, partition) && k.Datacenter == dc
+}
+
+func gatewayKeyFromString(s string) GatewayKey {
+	split := strings.SplitN(s, ".", 2)
+
+	if len(split) == 1 {
+		return GatewayKey{Datacenter: split[0]}
+	}
+	return GatewayKey{Partition: split[0], Datacenter: split[1]}
 }
 
 // ServicePassthroughAddrs contains the LAN addrs
@@ -234,10 +265,10 @@ type configSnapshotMeshGateway struct {
 	// health check to pass.
 	WatchedServicesSet bool
 
-	// WatchedDatacenters is a map of datacenter name to a cancel function.
+	// WatchedGateways is a map of GatewayKeys to a cancel function.
 	// This cancel function is tied to the watch of mesh-gateway services in
-	// that datacenter.
-	WatchedDatacenters map[string]context.CancelFunc
+	// that datacenter/partition.
+	WatchedGateways map[string]context.CancelFunc
 
 	// ServiceGroups is a map of service name to the service instances of that
 	// service in the local datacenter.
@@ -263,7 +294,7 @@ type configSnapshotMeshGateway struct {
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 }
 
-func (c *configSnapshotMeshGateway) Datacenters() []string {
+func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
 
 	sz := sz1
@@ -271,20 +302,25 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 		sz = sz2
 	}
 
-	dcs := make([]string, 0, sz)
-	for dc := range c.GatewayGroups {
-		dcs = append(dcs, dc)
+	keys := make([]GatewayKey, 0, sz)
+	for key := range c.GatewayGroups {
+		keys = append(keys, gatewayKeyFromString(key))
 	}
-	for dc := range c.FedStateGateways {
-		if _, ok := c.GatewayGroups[dc]; !ok {
-			dcs = append(dcs, dc)
+	for key := range c.FedStateGateways {
+		if _, ok := c.GatewayGroups[key]; !ok {
+			keys = append(keys, gatewayKeyFromString(key))
 		}
 	}
 
 	// Always sort the results to ensure we generate deterministic things over
 	// xDS, such as mesh-gateway listener filter chains.
-	sort.Strings(dcs)
-	return dcs
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].Datacenter != keys[j].Datacenter {
+			return keys[i].Datacenter < keys[j].Datacenter
+		}
+		return keys[i].Partition < keys[j].Partition
+	})
+	return keys
 }
 
 func (c *configSnapshotMeshGateway) IsEmpty() bool {
@@ -293,7 +329,7 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 	}
 	return len(c.WatchedServices) == 0 &&
 		!c.WatchedServicesSet &&
-		len(c.WatchedDatacenters) == 0 &&
+		len(c.WatchedGateways) == 0 &&
 		len(c.ServiceGroups) == 0 &&
 		len(c.ServiceResolvers) == 0 &&
 		len(c.GatewayGroups) == 0 &&
@@ -444,7 +480,7 @@ func (s *ConfigSnapshot) Clone() (*ConfigSnapshot, error) {
 		snap.TerminatingGateway.WatchedConfigs = nil
 		snap.TerminatingGateway.WatchedResolvers = nil
 	case structs.ServiceKindMeshGateway:
-		snap.MeshGateway.WatchedDatacenters = nil
+		snap.MeshGateway.WatchedGateways = nil
 		snap.MeshGateway.WatchedServices = nil
 	case structs.ServiceKindIngressGateway:
 		snap.IngressGateway.WatchedUpstreams = nil

@@ -57,6 +57,11 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/api-docs/acl-legacy',
+    destination: '/api-docs/acl/legacy',
+    permanent: true,
+  },
+  {
     source: '/docs/guides/acl-migrate-tokens',
     destination: '/docs/security/acl/acl-migrate-tokens',
     permanent: true,

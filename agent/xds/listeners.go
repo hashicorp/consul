@@ -511,49 +511,6 @@ func (s *ResourceGenerator) listenersFromSnapshotGateway(cfgSnap *proxycfg.Confi
 	return resources, err
 }
 
-func resolveListenerSDSConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey) (*structs.GatewayTLSSDSConfig, error) {
-	var mergedCfg structs.GatewayTLSSDSConfig
-
-	gwSDS := cfgSnap.IngressGateway.TLSConfig.SDS
-	if gwSDS != nil {
-		mergedCfg.ClusterName = gwSDS.ClusterName
-		mergedCfg.CertResource = gwSDS.CertResource
-	}
-
-	listenerCfg, ok := cfgSnap.IngressGateway.Listeners[listenerKey]
-	if !ok {
-		return nil, fmt.Errorf("no listener config found for listener on port %d", listenerKey.Port)
-	}
-
-	if listenerCfg.TLS != nil && listenerCfg.TLS.SDS != nil {
-		if listenerCfg.TLS.SDS.ClusterName != "" {
-			mergedCfg.ClusterName = listenerCfg.TLS.SDS.ClusterName
-		}
-		if listenerCfg.TLS.SDS.CertResource != "" {
-			mergedCfg.CertResource = listenerCfg.TLS.SDS.CertResource
-		}
-	}
-
-	// Validate. Either merged should have both fields empty or both set. Other
-	// cases shouldn't be possible as we validate them at input but be robust to
-	// bugs later.
-	switch {
-	case mergedCfg.ClusterName == "" && mergedCfg.CertResource == "":
-		return nil, nil
-
-	case mergedCfg.ClusterName != "" && mergedCfg.CertResource != "":
-		return &mergedCfg, nil
-
-	case mergedCfg.ClusterName == "" && mergedCfg.CertResource != "":
-		return nil, fmt.Errorf("missing SDS cluster name for listener on port %d", listenerKey.Port)
-
-	case mergedCfg.ClusterName != "" && mergedCfg.CertResource == "":
-		return nil, fmt.Errorf("missing SDS cert resource for listener on port %d", listenerKey.Port)
-	}
-
-	return &mergedCfg, nil
-}
-
 // makeListener returns a listener with name and bind details set. Filters must
 // be added before it's useful.
 //
@@ -1178,15 +1135,15 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 	l := makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
-	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
-	// We need 1 Filter Chain per datacenter
-	datacenters := cfgSnap.MeshGateway.Datacenters()
-	for _, dc := range datacenters {
-		if dc == cfgSnap.Datacenter {
+	// We need 1 Filter Chain per remote cluster
+	keys := cfgSnap.MeshGateway.GatewayKeys()
+	for _, key := range keys {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
 			continue // skip local
 		}
-		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
-		filterName := fmt.Sprintf("%s.%s", name, dc)
+
+		clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
+		filterName := fmt.Sprintf("%s.%s", name, key.String())
 		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote.")
 		if err != nil {
 			return nil, err
@@ -1202,13 +1159,16 @@ func (s *ResourceGenerator) makeMeshGatewayListener(name, addr string, port int,
 		})
 	}
 
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-		for _, dc := range datacenters {
-			if dc == cfgSnap.Datacenter {
+	if cfgSnap.ProxyID.InDefaultPartition() &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
+
+		for _, key := range keys {
+			if key.Datacenter == cfgSnap.Datacenter {
 				continue // skip local
 			}
-			clusterName := cfgSnap.ServerSNIFn(dc, "")
-			filterName := fmt.Sprintf("%s.%s", name, dc)
+			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
+			filterName := fmt.Sprintf("%s.%s", name, key.String())
 			dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote.")
 			if err != nil {
 				return nil, err

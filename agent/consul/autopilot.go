@@ -59,12 +59,16 @@ func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
 		// https://www.consul.io/docs/agent/telemetry#autopilot
 		metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
 
+		// also emit NaN for failure tolerance to be backwards compatible
+		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
+
 	}
 }
 
 func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
+	serverEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	go func() {
-		if err := d.server.RemoveFailedNode(srv.Name, false); err != nil {
+		if err := d.server.RemoveFailedNode(srv.Name, false, serverEntMeta); err != nil {
 			d.server.logger.Error("failed to remove server", "name", srv.Name, "id", srv.ID, "error", err)
 		}
 	}()
@@ -83,6 +87,7 @@ func (s *Server) initAutopilot(config *Config) {
 	)
 
 	metrics.SetGauge([]string{"autopilot", "healthy"}, float32(math.NaN()))
+	metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(math.NaN()))
 }
 
 func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {

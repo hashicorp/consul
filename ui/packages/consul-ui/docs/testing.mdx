@@ -1,0 +1,300 @@
+# Testing
+
+## Running Tests
+
+Our Ember application uses QUnit and QUnit's HTML runner in order to run tests.
+As a human both of these should always be used to run tests. Currently you can
+start the tests running by typing:
+
+```bash
+make test-oss-view
+```
+
+...in your terminal. This command will be changed to be the default `make test`
+command at some point in the future.
+
+As a human please always run the tests in a browser. You will sometimes spot
+tiny details that are wrong with the application if you do this. We have other
+`make` targets for running tests as a machine. Please don't use these machine
+oriented targets as a human.
+
+To re-run tests, simply refresh your browser or click the [Go] button in QUnit's
+HTML test runner. If you then want to filter which tests to run you can use the
+filter field in QUnit's HTML test runner to run a subset of tests (see below).
+If you have started the tests with a filter, you don't have to quit everything
+and start again in order to filter by something different.
+
+### Running a single or a range of tests
+
+Please use the same `make test-oss-view` command to get the tests up and
+running. Once you have opened your browser window to view the tests, click the
+[Abort] button to stop the test running. Then use the QUnit filter input text
+field to filter by the tests you want to run.
+
+Alternatively you can also run a single test by bypassing `make` and using:
+
+```bash
+yarn test:oss:view --filter=<test name substring>
+```
+
+Please note: If filtering using the CLI, normally you would expect a filter to
+accept filenames. This is not the case here. When using Ember, tests are
+filtered by test name not file name. You can get these test names by opening the
+test file itself and finding the test you want run. You may need to escape
+characters when doing that so be aware of that if you are copypasting.
+
+Please be aware this that in bypassing `make` you will not have the project
+setup for you automatically, certain housekeeping duties will not be performed
+and you may skip some tests that are important for the thing (or things) you are
+working on.
+
+We also run a quick lint check for you (plus a few other things) that you should
+fix up before you run your test.
+
+If you do use yarn --filter, please run these other checks before submitting a
+PR. If you just use `make test-oss-view` you (and nobody else) needs to worry
+about those things.
+
+Additionally, there are ongoing discussions regarding moving to use npm and or
+corepack) as a package manager, so if you are using yarn, we may break your
+workflow. If you are using `make`, don't worry as it stands right now nothing
+will change.
+
+If you specify your filter using the CLI and you make a typo or type your filter
+wrong, or want to run a different filter. Don't quit the executing CLI command
+and restart. That takes comparatively long time. You may aswell wait and then
+amend the typo in QUnit's HTML test runner's filter input field.
+
+Ember folks can also just use [`ember test`](https://cli.emberjs.com/release/basic-use/cli-commands/#testingyourapp)
+and bypass both `yarn` and `make` but all of the above regarding using `yarn`
+instead of `make` applies there also.
+
+Please note: Currently the QUnit runner we depend on has an unfortunate UX
+issue which means the filter input field is obscured by the frame used to run
+your tests in. Until this is fixed in a version of QUnit we use, you can use
+the Toggle QUnit Display bookmarklet to easily toggle the visibility of this window (you
+should drag the below link to your browser bookmark bar, then clicking it
+whilst on the test runner will hide the display):
+
+| Link/Bookmarklet | Description |
+| ---- | ----------- |
+| [Toggle QUnit Display](javascript:(function()%7B(function()%7Bconst%20s%20%3D%20document.getElementById(%22ember-testing-container%22).style%3Bs.display%20%3D%20s.display%20%3D%3D%3D%20%22none%22%20%3F%20%22block%22%20%3A%20%22none%22%3B%7D)()%3B%7D)()%3B) | Toggle the QUnit display on or off during browser testing |
+
+This also obscures test errors, messaging and the buttons to help you to re-run
+a single test if you want to. So if you are doing a lot of testing for your
+feature you might want to consider adding this to your bookmarks bar.
+
+### Multiple 'spawning' test runners
+
+Ember's testing support also has an unfortunate UX issue in that it can
+sometimes spawn multiple test runners and once you have a few of these opened
+for you things can get very confusing. To disable Ember from automatically
+opening test runner windows for you, there is non-Ember environment variable we
+added to tell it to stop doing this:
+
+```bash
+export TESTEM_AUTOLAUNCH=0
+```
+
+Suggestion: You could add this to your bash profile if you find it useful.
+
+The above will prevent Ember's 'testem' implementation from automatically
+opening windows for you. This of course means you have to navigate to the test
+runner yourself, but that's sometimes a small wrinkle compared to having lots
+and lots _and lots_ of test runner windows open.
+
+### Testing different scenarios
+
+Most tests are written to automatically switch between different scenarios
+during the test so you don't usually have to worry about this, just run the
+tests and you are done.
+
+The exception is our namespace testing. We run our entire acceptance test
+suite 4 or 5 times for different namespace settings. If you want to run some
+acceptance tests with namespace scenarios enabled, this _could_ be run by
+using:
+
+```bash
+make test-view
+```
+
+...but please don't do that, it takes a long time.
+
+In CI these tests are run by a machine by using:
+
+```bash
+make test
+```
+
+...but again as a human, please don't do that, it takes a long time. PRs are
+blocked for merge until these tests pass CI, i.e. the machine will run it for
+you.
+
+Of course there are times where you want to run these tests as a human. If you
+want to run a specfic test _and_ include testing those tests whilst namespaces
+are enabled then run the test suite as you usually would:
+
+```bash
+make test-view-oss
+```
+
+If you only want to run a filtered set of tests use the QUnit filter input
+field to filter for the test you want run (for example maybe `dc / acls`)
+
+Then use our development bookmarklet for turning on namespace support in the
+UI:
+
+| Link/Bookmarklet | Description |
+| ---- | ----------- |
+| [Enable Nspaces](javascript:Scenario('CONSUL_NSPACES_ENABLE=1')) | Enable Namespace Support |
+
+When you click that it will run the filtered tests against all 'types' of
+namespace scenarios.
+
+Finally, for integration testing where we need to check for namespace support,
+these tests are always run in our integration tests (these run a lot faster
+than acceptance tests). You probably only want to use the above approach when
+needing to test specific acceptance tests with namespace scenarios.
+
+## Writing tests
+
+Speaking generally, currently Consul favours unit tests (in `./tests/unit`)
+and acceptance tests (in `./tests/acceptance`). We also have a fair amount of
+integration tests (in `./tests/integration`) for testing that systems of
+combined units work well together. What ember traditionally calls integration
+tests, are mostly 'component' tests. We have far less of these as the vast
+majority of our components are just 'glorified partials' and mostly contain
+very simple template logic that is mostly (but not always) not very worthwhile
+testing.
+
+Overall, please don't test things we don't own for example don't spend time
+testing that Ember's handlebars templating is printing out variables
+correctly. Don't spend time testing that `ember-composable-helpers` `not`
+helper is working correctly. The great thing about a declarative template
+(basically a configuration file) is that it probably won't need much testing
+in isolation.
+
+### Acceptance tests
+
+Our acceptance tests use a BDD style of testing. This means tests are
+relatively simple to write, the writer does not need to think about
+asynchronicity, and best of all they are very easy to read and understand what
+is being tested, and therefore anyone can roughly understand what is being
+tested/passing (or failing) tests.
+
+We have roughly 20-30 reusable BDD steps you can use to write tests. We
+occasionally add a new step but not very often. You should be able to write
+the majority of your tests using the steps we already have. The steps
+themselves are in `./tests/steps/{assertions,debug,double,interactions}` and
+they are just simple javascript optionally asynchronous functions that are
+specifically built to be __highly reusable__.
+
+If you come to write a new step, please take some time to think about how
+reusable it will be and try to word the title of the step taking that into
+account. Look at some of the existing steps for examples.
+
+We use the `yadda` npm package for our BDD support, just as the ember addon we
+originally used for this used `yadda`. In the future we'd like to re-consider
+and potentially use `cucumber.js`.
+
+In order to create a new acceptance test/feature please use the ember
+generator to do so:
+
+```bash
+ember generate feature dc/model/thing
+```
+
+This creates some additional JS that unfortunately is required by the ember
+addon, so until we move away from that addon, this is the easiest way to get
+started with a brand new acceptance test.
+
+If you are not familiar with the steps available to write tests the best way
+to write a new test is to look at the tests already written/and or scan
+through the steps folders to see what's available. As mentioned above, there
+are only around 30 steps.
+
+We make some use of `ember-page-objects` to encapsulate some DOM
+selecting/functionality. To be fair we kind of dip in and out of using
+`ember-page-objects` and there is ongoing work to remove it entirely and
+replace it with something simpler to work with. We also have
+`ember-test-selectors` installed. So please use either a page object or a
+test-selector for selecting/asserting DOM elements when writing tests. Prefer
+page objects, but if you find it complicated/difficult or just plain smelly,
+feel free to use a test-selector and use that directly in the test instead. At
+some point we will reassess this and bring it all into line with one single
+approach.
+
+__Most importantly__: Please try to only use either a page-object or a
+test-selector for DOM assertions/selections. Please try to avoid using any
+complex selectors.
+
+### Integration testing
+
+We use `sinon` for making mocks for testing that systems work well together,
+other than that please see Ember's own documentation for writing tests.
+
+__Remember__: Integration testing does not mean 'component tests' it means
+checking to make sure the units of a system work well together.
+
+If you want to test a component in isolation whilst working on it, please create
+an `.mdx` file in the component folder and use that to work on the component. We
+use these `.mdx` files to isolate the component, work on it, manually/visually
+test it and document it for others. If somebody needs to change the component in
+future this means they already have test scenarios enabled/arranged for them to
+use. Components should generally be small things, or made up of further small
+components that are individually testable in isolation. There shouldn't be much
+logic required in a new component. And if there is, and it's important enough to
+need testing, you should consider splitting the logic off and testing it outside
+of the component via integration testing and/or unit testing. This more manual
+kind of component testing should be thought of as 'unit testing for a
+component'. You are very unlikely to break something unless you change the code
+of the actual component itself, and if you are doing this you are working with
+the `mdx` file.and likely to notice. Whilst not perfect, this is where we are
+right now.
+
+We have very few single components that are an integrated system of further
+components (where automated testing would be more necessary/useful) and our
+application aims to stay that way for the foreseeable future. But if you write
+something that may require more complicated and/or integrated testing consider
+splitting those pieces into smaller more testable chunks that can be
+automatically tested.
+
+### Unit testing
+
+Unit testing should be just that, _testing a single unit_, and therefore should
+be as vanilla JS as possible. Our application generally favours using vanilla
+JS where possible and then plumbing that functionality/logic into the Ember
+framework. Therefore there should be very little mention of Ember in our Unit
+tests (apart from Ember's test harness).
+
+We do have coverage enabled for most of our unit tests, but it's not something
+we generally use/keep an eye on. Coverage shouldn't necessarily be used as a
+yard stick. We have it enabled for folks that find it useful/beneficial and
+whilst good coverage is a positive it's not always an essential.
+
+Coverage is run in CI but you can also run it locally with:
+
+```bash
+make test-coverage-view
+```
+
+We also have a fair amount of node based unit tests to test things that can't
+be tested using Ember's testing approach or are just quicker to run using
+node. You'll see these executed using TAP reporting when you run the `make
+test-view-oss` command. But they can be executed on their own with:
+
+```bash
+make test-node
+```
+
+These node based unit tests live in `./node-tests` and use the beautifully
+simple `tape` test runner with TAP reporting.
+
+Lastly, just to reiterate when testing, just use:
+
+```bash
+make test-oss-view
+```
+
+If you need to filter to only run specific tests, use the QUnit HTML runner's
+filter input field.

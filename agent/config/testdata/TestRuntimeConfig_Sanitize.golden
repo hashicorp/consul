@@ -379,6 +379,7 @@
             "CounterDefinitions": [],
             "Expiration": "0s",
             "GaugeDefinitions": [],
+            "Name": "",
             "Registerer": null,
             "SummaryDefinitions": []
         },

@@ -857,7 +857,7 @@ node "node1" {
 			SecretID:   token,
 			Rules:      "",
 		}
-		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken, false))
+		require.NoError(t, backend.store.ACLTokenSet(ids.Next("update"), aclToken))
 
 		select {
 		case item := <-chEvents:

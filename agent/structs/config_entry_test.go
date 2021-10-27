@@ -1664,6 +1664,101 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "partition-exports",
+			snake: `
+				kind = "partition-exports"
+				name = "foo"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				services = [
+					{
+						name = "web"
+						namespace = "foo"
+						consumers = [
+							{
+								partition = "bar"
+							},
+							{
+								partition = "baz"
+							}
+						]
+					},
+					{
+						name = "db"
+						namespace = "bar"
+						consumers = [
+							{
+								partition = "zoo"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind = "partition-exports"
+				Name = "foo"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Services = [
+					{
+						Name = "web"
+						Namespace = "foo"
+						Consumers = [
+							{
+								Partition = "bar"
+							},
+							{
+								Partition = "baz"
+							}
+						]
+					},
+					{
+						Name = "db"
+						Namespace = "bar"
+						Consumers = [
+							{
+								Partition = "zoo"
+							}
+						]
+					}
+				]
+			`,
+			expect: &PartitionExportsConfigEntry{
+				Name: "foo",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				Services: []ExportedService{
+					{
+						Name:      "web",
+						Namespace: "foo",
+						Consumers: []ServiceConsumer{
+							{
+								Partition: "bar",
+							},
+							{
+								Partition: "baz",
+							},
+						},
+					},
+					{
+						Name:      "db",
+						Namespace: "bar",
+						Consumers: []ServiceConsumer{
+							{
+								Partition: "zoo",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

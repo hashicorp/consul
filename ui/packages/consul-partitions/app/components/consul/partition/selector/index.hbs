@@ -1,4 +1,4 @@
-{{#if (can "choose partitions")}}
+{{#if (can "choose partitions" dc=@dc)}}
     <li
       class="partitions"
       data-test-partition-menu
@@ -49,5 +49,12 @@
           </BlockSlot>
         </PopoverMenu>
     </li>
+{{else}}
+  <li 
+    class="partition"
+    aria-label="Admin Partition"
+  >
+    {{@partition}}
+  </li>
 {{/if}}
 

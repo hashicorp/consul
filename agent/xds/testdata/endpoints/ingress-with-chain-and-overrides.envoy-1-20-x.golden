@@ -3,7 +3,7 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName": "a236e964~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "clusterName": "78ebd528~db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
           "lbEndpoints": [

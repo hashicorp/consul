@@ -18,7 +18,6 @@ type CompileRequest struct {
 	EvaluateInPartition   string
 	EvaluateInDatacenter  string
 	EvaluateInTrustDomain string
-	UseInDatacenter       string // where the results will be used from
 
 	// OverrideMeshGateway allows for the setting to be overridden for any
 	// resolver in the compiled chain.
@@ -62,7 +61,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		evaluateInPartition   = req.EvaluateInPartition
 		evaluateInDatacenter  = req.EvaluateInDatacenter
 		evaluateInTrustDomain = req.EvaluateInTrustDomain
-		useInDatacenter       = req.UseInDatacenter
 		entries               = req.Entries
 	)
 	if serviceName == "" {
@@ -80,9 +78,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 	if evaluateInTrustDomain == "" {
 		return nil, fmt.Errorf("evaluateInTrustDomain is required")
 	}
-	if useInDatacenter == "" {
-		return nil, fmt.Errorf("useInDatacenter is required")
-	}
 	if entries == nil {
 		return nil, fmt.Errorf("entries is required")
 	}
@@ -93,7 +88,6 @@ func Compile(req CompileRequest) (*structs.CompiledDiscoveryChain, error) {
 		evaluateInNamespace:    evaluateInNamespace,
 		evaluateInDatacenter:   evaluateInDatacenter,
 		evaluateInTrustDomain:  evaluateInTrustDomain,
-		useInDatacenter:        useInDatacenter,
 		overrideMeshGateway:    req.OverrideMeshGateway,
 		overrideProtocol:       req.OverrideProtocol,
 		overrideConnectTimeout: req.OverrideConnectTimeout,
@@ -130,7 +124,6 @@ type compiler struct {
 	evaluateInPartition    string
 	evaluateInDatacenter   string
 	evaluateInTrustDomain  string
-	useInDatacenter        string
 	overrideMeshGateway    structs.MeshGatewayConfig
 	overrideProtocol       string
 	overrideConnectTimeout time.Duration
@@ -936,10 +929,10 @@ RESOLVE_AGAIN:
 		}
 	}
 
-	// TODO (mesh-gateway)- maybe allow using a gateway within a datacenter at some point
-	if target.Datacenter == c.useInDatacenter {
-		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
-	} else if target.External {
+	// TODO(partitions): Document this change in behavior. Discovery chain targets will now return a mesh gateway
+	// 					 mode as long as they are not external. Regardless of the datacenter/partition where
+	// 					 the chain will be used.
+	if target.External {
 		// Bypass mesh gateways if it is an external service.
 		target.MeshGateway.Mode = structs.MeshGatewayModeDefault
 	} else {

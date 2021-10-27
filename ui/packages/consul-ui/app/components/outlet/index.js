@@ -22,6 +22,8 @@ export default class Outlet extends Component {
   @tracked previousState;
   @tracked endTransition;
 
+  @tracked route;
+
   get model() {
     return this.args.model || {};
   }
@@ -51,6 +53,9 @@ export default class Outlet extends Component {
           this.setAppState('loading');
           this.setAppRoute(this.router.currentRouteName);
         }
+        break;
+      case 'model':
+        this.route._model = this.args.model;
         break;
     }
   }

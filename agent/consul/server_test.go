@@ -380,10 +380,10 @@ func TestServer_JoinLAN(t *testing.T) {
 	// Try to join
 	joinLAN(t, s2, s1)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 2; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s1 LAN members want %d", got, want)
 		}
-		if got, want := len(s2.LANMembers()), 2; got != want {
+		if got, want := len(s2.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s2 LAN members want %d", got, want)
 		}
 	})
@@ -428,17 +428,17 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 	defer rs3.Shutdown()
 
 	leaderAddr := joinAddrLAN(s1)
-	if _, err := a2.JoinLAN([]string{leaderAddr}); err != nil {
+	if _, err := a2.JoinLAN([]string{leaderAddr}, nil); err != nil {
 		t.Fatalf("Expected no error, had: %#v", err)
 	}
 	// Try to join
 	joinWAN(t, rs3, s1)
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(s1.LANMembers()), 1; got != want {
+		if got, want := len(s1.LANMembersInAgentPartition()), 1; got != want {
 			// LAN is blocked, should be 1 only
 			r.Fatalf("got %d s1 LAN members want %d", got, want)
 		}
-		if got, want := len(a2.LANMembers()), 2; got != want {
+		if got, want := len(a2.LANMembersInAgentPartition()), 2; got != want {
 			// LAN is blocked a2 can see s1, but not s1
 			r.Fatalf("got %d a2 LAN members want %d", got, want)
 		}
@@ -497,9 +497,9 @@ func TestServer_LANReap(t *testing.T) {
 	testrpc.WaitForLeader(t, s3.RPC, "dc1")
 
 	retry.Run(t, func(r *retry.R) {
-		require.Len(r, s1.LANMembers(), 3)
-		require.Len(r, s2.LANMembers(), 3)
-		require.Len(r, s3.LANMembers(), 3)
+		require.Len(r, s1.LANMembersInAgentPartition(), 3)
+		require.Len(r, s2.LANMembersInAgentPartition(), 3)
+		require.Len(r, s3.LANMembersInAgentPartition(), 3)
 	})
 
 	// Check the router has both
@@ -513,7 +513,7 @@ func TestServer_LANReap(t *testing.T) {
 	s2.Shutdown()
 
 	retry.Run(t, func(r *retry.R) {
-		require.Len(r, s1.LANMembers(), 2)
+		require.Len(r, s1.LANMembersInAgentPartition(), 2)
 		servers := s1.serverLookup.Servers()
 		require.Len(r, servers, 2)
 		// require.Equal(r, s1.config.NodeName, servers[0].Name)
@@ -930,10 +930,10 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 		if got, want := len(s2.WANMembers()), 3; got != want {
 			r.Fatalf("got %d s2 WAN members want %d", got, want)
 		}
-		if got, want := len(s2.LANMembers()), 2; got != want {
+		if got, want := len(s2.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s2 LAN members want %d", got, want)
 		}
-		if got, want := len(s3.LANMembers()), 2; got != want {
+		if got, want := len(s3.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d s3 LAN members want %d", got, want)
 		}
 	})
@@ -964,7 +964,7 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 
 	// Get and check the lan address of s2 from s3
 	var s2LanAddr string
-	for _, lanmember := range s3.LANMembers() {
+	for _, lanmember := range s3.LANMembersInAgentPartition() {
 		if lanmember.Name == s2Name {
 			s2LanAddr = lanmember.Addr.String()
 		}

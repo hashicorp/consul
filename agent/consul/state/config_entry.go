@@ -360,6 +360,7 @@ func validateProposedConfigEntryInGraph(
 		}
 	case structs.ServiceIntentions:
 	case structs.MeshConfig:
+	case structs.PartitionExports:
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kindName.Kind, kindName.Name)
 	}
@@ -393,7 +394,6 @@ func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, serv
 		EvaluateInNamespace:  source.NamespaceOrDefault(),
 		EvaluateInPartition:  source.PartitionOrDefault(),
 		EvaluateInDatacenter: dc,
-		UseInDatacenter:      dc,
 	}
 	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
@@ -451,7 +451,6 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			EvaluateInNamespace:  sn.NamespaceOrDefault(),
 			EvaluateInPartition:  sn.PartitionOrDefault(),
 			EvaluateInDatacenter: dc,
-			UseInDatacenter:      dc,
 		}
 		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
@@ -722,7 +721,6 @@ func testCompileDiscoveryChain(
 		EvaluateInPartition:   entMeta.PartitionOrDefault(),
 		EvaluateInDatacenter:  "dc1",
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
-		UseInDatacenter:       "dc1",
 		Entries:               speculativeEntries,
 	}
 	chain, err := discoverychain.Compile(req)
@@ -1207,7 +1205,6 @@ func protocolForService(
 		EvaluateInDatacenter: "dc1",
 		// Use a dummy trust domain since that won't affect the protocol here.
 		EvaluateInTrustDomain: "b6fc9da3-03d4-4b5a-9134-c045e9b20152.consul",
-		UseInDatacenter:       "dc1",
 		Entries:               entries,
 	}
 	chain, err := discoverychain.Compile(req)

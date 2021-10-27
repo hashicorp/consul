@@ -14,8 +14,8 @@ export default function HomePage({ serviceMeshIngressGatewayCode }) {
     <div className="p-home">
       <HomepageHero
         alert={{
-          url: 'https://www.hashicorp.com/blog/announcing-consul-1-10',
-          text: 'Consul 1.10 Is Now Generally Available',
+          url: 'https://www.hashicorp.com/blog/announcing-hashicorp-consul-api-gateway',
+          text: 'Introducing the Consul API Gateway',
           tag: 'Blog',
         }}
         title="Service Mesh for any runtime or cloud"

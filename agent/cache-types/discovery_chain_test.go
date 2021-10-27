@@ -16,7 +16,7 @@ func TestCompiledDiscoveryChain(t *testing.T) {
 	typ := &CompiledDiscoveryChain{RPC: rpc}
 
 	// just do the default chain
-	chain := discoverychain.TestCompileConfigEntries(t, "web", "default", "default", "dc1", "trustdomain.consul", "dc1", nil)
+	chain := discoverychain.TestCompileConfigEntries(t, "web", "default", "default", "dc1", "trustdomain.consul", nil)
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.

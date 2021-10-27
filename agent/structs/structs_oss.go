@@ -75,6 +75,14 @@ func (m *EnterpriseMeta) PartitionOrDefault() string {
 	return "default"
 }
 
+func EqualPartitions(_, _ string) bool {
+	return true
+}
+
+func IsDefaultPartition(partition string) bool {
+	return true
+}
+
 func PartitionOrDefault(_ string) string {
 	return "default"
 }
