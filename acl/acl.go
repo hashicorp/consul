@@ -14,9 +14,13 @@ type Config struct {
 	EnterpriseConfig
 }
 
-type PartitionExportInfo interface {
-	// DownstreamPartitions returns the list of partitions the given service has been exported to.
-	DownstreamPartitions(service string, anyService bool, ctx *AuthorizerContext) []string
+type ExportFetcher interface {
+	// ExportsForPartition returns the config entry defining exports for a partition
+	ExportsForPartition(partition string) PartitionExports
+}
+
+type PartitionExports struct {
+	Data map[string]map[string][]string
 }
 
 // GetWildcardName will retrieve the configured wildcard name or provide a default

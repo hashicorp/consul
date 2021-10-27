@@ -89,9 +89,6 @@ func (authz testAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecisi
 func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
-func (authz testAuthorizer) ServiceWriteAny(*AuthorizerContext) EnforcementDecision {
-	return EnforcementDecision(authz)
-}
 func (authz testAuthorizer) SessionRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }

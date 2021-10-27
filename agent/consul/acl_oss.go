@@ -15,11 +15,11 @@ func (s *Server) replicationEnterpriseMeta() *structs.EnterpriseMeta {
 	return structs.ReplicationEnterpriseMeta()
 }
 
-func serverPartitionInfo(s *Server) acl.PartitionExportInfo {
+func serverPartitionInfo(s *Server) acl.ExportFetcher {
 	return &partitionInfoNoop{}
 }
 
-func newACLConfig(_ acl.PartitionExportInfo, _ hclog.Logger) *acl.Config {
+func newACLConfig(_ acl.ExportFetcher, _ hclog.Logger) *acl.Config {
 	return &acl.Config{
 		WildcardName: structs.WildcardSpecifier,
 	}

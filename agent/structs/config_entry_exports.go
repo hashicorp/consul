@@ -39,6 +39,23 @@ type ServiceConsumer struct {
 	Partition string
 }
 
+func (e *PartitionExportsConfigEntry) ToMap() map[string]map[string][]string {
+	resp := make(map[string]map[string][]string)
+	for _, svc := range e.Services {
+		if _, ok := resp[svc.Namespace]; !ok {
+			resp[svc.Namespace] = make(map[string][]string)
+		}
+		if _, ok := resp[svc.Namespace][svc.Name]; !ok {
+			consumers := make([]string, 0, len(svc.Consumers))
+			for _, c := range svc.Consumers {
+				consumers = append(consumers, c.Partition)
+			}
+			resp[svc.Namespace][svc.Name] = consumers
+		}
+	}
+	return resp
+}
+
 func (e *PartitionExportsConfigEntry) Clone() *PartitionExportsConfigEntry {
 	e2 := *e
 	e2.Services = make([]ExportedService, len(e.Services))

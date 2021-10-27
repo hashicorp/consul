@@ -149,9 +149,6 @@ type Authorizer interface {
 	// service
 	ServiceWrite(string, *AuthorizerContext) EnforcementDecision
 
-	// ServiceWriteAny checks for permission to read any service
-	ServiceWriteAny(*AuthorizerContext) EnforcementDecision
-
 	// SessionRead checks for permission to read sessions for a given node.
 	SessionRead(string, *AuthorizerContext) EnforcementDecision
 
