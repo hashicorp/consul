@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
@@ -157,4 +158,20 @@ func (e *PartitionExportsConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 	}
 
 	return &e.EnterpriseMeta
+}
+
+// MarshalJSON adds the Kind field so that the JSON can be decoded back into the
+// correct type.
+// This method is implemented on the structs type (as apposed to the api type)
+// because that is what the API currently uses to return a response.
+func (e *PartitionExportsConfigEntry) MarshalJSON() ([]byte, error) {
+	type Alias PartitionExportsConfigEntry
+	source := &struct {
+		Kind string
+		*Alias
+	}{
+		Kind:  PartitionExports,
+		Alias: (*Alias)(e),
+	}
+	return json.Marshal(source)
 }
