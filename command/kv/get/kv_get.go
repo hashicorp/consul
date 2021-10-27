@@ -199,6 +199,9 @@ func prettyKVPair(w io.Writer, pair *api.KVPair, base64EncodeValue bool) error {
 	} else {
 		fmt.Fprintf(tw, "Session\t%s\n", pair.Session)
 	}
+	if pair.Partition != "" {
+		fmt.Fprintf(tw, "Partition\t%s\n", pair.Partition)
+	}
 	if pair.Namespace != "" {
 		fmt.Fprintf(tw, "Namespace\t%s\n", pair.Namespace)
 	}

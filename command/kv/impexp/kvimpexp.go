@@ -11,6 +11,7 @@ type Entry struct {
 	Flags     uint64 `json:"flags"`
 	Value     string `json:"value"`
 	Namespace string `json:"namespace,omitempty"`
+	Partition string `json:"partition,omitempty"`
 }
 
 func ToEntry(pair *api.KVPair) *Entry {
@@ -19,5 +20,6 @@ func ToEntry(pair *api.KVPair) *Entry {
 		Flags:     pair.Flags,
 		Value:     base64.StdEncoding.EncodeToString(pair.Value),
 		Namespace: pair.Namespace,
+		Partition: pair.Partition,
 	}
 }
