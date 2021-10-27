@@ -153,6 +153,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				CreateIndex: ret.Results[0].KV.CreateIndex,
 				ModifyIndex: ret.Results[0].KV.ModifyIndex,
 				Namespace:   ret.Results[0].KV.Namespace,
+				Partition:   defaultPartition,
 			},
 		},
 		&TxnResult{
@@ -164,6 +165,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 				CreateIndex: ret.Results[1].KV.CreateIndex,
 				ModifyIndex: ret.Results[1].KV.ModifyIndex,
 				Namespace:   ret.Results[0].KV.Namespace,
+				Partition:   defaultPartition,
 			},
 		},
 		&TxnResult{
@@ -264,6 +266,7 @@ func TestAPI_ClientTxn(t *testing.T) {
 					CreateIndex: ret.Results[0].KV.CreateIndex,
 					ModifyIndex: ret.Results[0].KV.ModifyIndex,
 					Namespace:   ret.Results[0].KV.Namespace,
+					Partition:   defaultPartition,
 				},
 			},
 			&TxnResult{
