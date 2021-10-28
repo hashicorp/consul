@@ -15,7 +15,7 @@ description: >-
 Consul-Terraform-Sync is more powerful when you integrate it with [Terraform Cloud](https://www.terraform.io/cloud). Integrating with Terraform Cloud provides features, such as enhanced workspaces and insight into Terraform operations as Consul-Terraform-Sync dynamically updates your network infrastructure. Consul-Terraform-Sync is compatible with both the [self-hosted](https://www.hashicorp.com/products/terraform/editions/enterprise) and [managed service](https://www.hashicorp.com/products/terraform/editions/cloud) versions of Terraform Cloud. It also supports all [tiers](https://www.hashicorp.com/products/terraform/pricing) of the Terraform Cloud managed service.
 
 
-This page describes how the Terraform Cloud driver operates within Consul-Terraform-Sync.
+This page describes how the Terraform Cloud driver operates within Consul-Terraform-Sync (CTS).
 
 ## Terraform Workspace Automation
 
@@ -26,7 +26,7 @@ On startup, Consul-Terraform-Sync:
 2. Prepares the local environment and generates Terraform configuration files that make up the root module for each task.
 3. Packages the generated files and uploads them as a configuration version for the task's workspace on Terraform Cloud.
 
-Once all workspaces are set up, Consul-Terraform-Sync monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform Cloud driver dynamically updates input variables for that task directly as [workspace variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) using the Terraform Cloud API. The driver then queues a run on the workspace, with auto-apply enabled, to update your network infrastructure.
+Once all workspaces are set up, CTS monitors the Consul catalog for service changes. When relevant changes are detected, the Terraform Cloud driver dynamically updates input variables for that task directly as [workspace variables](https://www.terraform.io/docs/cloud/workspaces/variables.html) using the Terraform Cloud API. The driver then queues a run on the workspace, with auto-apply enabled, to update your network infrastructure.
 
 ~> **Note:** Although workspaces for tasks are executed in isolated environments, this does not guarantee the infrastructure changes from concurrent task executions are independent. Ensure that modules across all tasks are not modifying the same resource objects or have overlapping changes that may result in race conditions during automation.
 
@@ -67,7 +67,7 @@ There are two approaches to setup manual apply for a workspace managed by CTS ba
   1. Ensure that the apply method for the workspace is set to manual apply.
   1. Configure the task for the workspace and run CTS.
 
--> **Tip**: Setup run notifications for workspaces with manual apply to not miss automated runs by Consul-Terraform-Sync. Look into setting the [buffer period](/docs/nia/configuration#buffer_period-1) or a [schedule condition](/docs/nia/configuration#schedule-condition) to group changes together and reduce runs requiring approval.
+-> **Tip**: Setup [run notifications](https://www.terraform.io/docs/cloud/workspaces/notifications.html#creating-a-notification-configuration) for workspaces with manual apply to not miss automated runs by Consul-Terraform-Sync. Look into setting the [buffer period](/docs/nia/configuration#buffer_period-1) or a [schedule condition](/docs/nia/configuration#schedule-condition) to group changes together and reduce runs requiring approval.
 
 ## Configuration Version
 
