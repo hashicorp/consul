@@ -92,12 +92,15 @@ func TestAgent_Services(t *testing.T) {
 	require.NoError(t, a.State.AddService(srv1, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	val := obj.(map[string]*api.AgentService)
-	assert.Lenf(t, val, 1, "bad services: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
+	require.NoError(t, err)
+	assert.Lenf(t, val, 1, "bad services: %v", val)
 	assert.Equal(t, 5000, val["mysql"].Port)
 	assert.Equal(t, srv1.Meta, val["mysql"].Meta)
 }
@@ -141,10 +144,10 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, resp.Code)
 	decoder := json.NewDecoder(resp.Body)
-	var agentServices map[string]*api.AgentService
-	err := decoder.Decode(&agentServices)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
 	require.NoError(t, err)
-	require.Len(t, agentServices, 2)
+	require.Len(t, val, 2)
 
 	req, _ = http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("kv in Tags"), nil)
 	resp = httptest.NewRecorder()
@@ -152,10 +155,10 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, resp.Code)
 	decoder = json.NewDecoder(resp.Body)
-	agentServices = make(map[string]*api.AgentService)
-	err = decoder.Decode(&agentServices)
+	val = make(map[string]*api.AgentService)
+	err = decoder.Decode(&val)
 	require.NoError(t, err)
-	require.Len(t, agentServices, 1)
+	require.Len(t, val, 1)
 }
 
 // This tests that the agent services endpoint (/v1/agent/services) returns
@@ -185,9 +188,13 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
-	assert.Nil(err)
-	val := obj.(map[string]*api.AgentService)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
+	require.NoError(t, err)
+
 	assert.Len(val, 1)
 	actual := val["db-proxy"]
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
@@ -227,9 +234,13 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
 	require.NoError(err)
-	val := obj.(map[string]*api.AgentService)
+
 	assert.Len(val, 1)
 	actual := val["db-sidecar-proxy"]
 	require.NotNil(actual)
@@ -242,10 +253,8 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	// but this test serves as a regression test incase we change the endpoint to
 	// return the internal struct later and accidentally expose some "internal"
 	// state.
-	output, err := json.Marshal(obj)
-	require.NoError(err)
-	assert.NotContains(string(output), "LocallyRegisteredAsSidecar")
-	assert.NotContains(string(output), "locally_registered_as_sidecar")
+	assert.NotContains(resp.Body.String(), "LocallyRegisteredAsSidecar")
+	assert.NotContains(resp.Body.String(), "locally_registered_as_sidecar")
 }
 
 // This tests that a mesh gateway service is returned as expected.
