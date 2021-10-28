@@ -294,7 +294,8 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.Co
 		return acl.ErrPermissionDenied
 	}
 
-	// Ignore non-delete Ops.
+	// Only delete and delete-cas ops are supported. If the caller erroneously
+	// sent something else, we assume they meant delete.
 	switch args.Op {
 	case structs.ConfigEntryDelete, structs.ConfigEntryDeleteCAS:
 	default:
