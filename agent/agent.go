@@ -1251,6 +1251,10 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
 
+	// Duplicate our own serf config once to make sure that the duplication
+	// function does not drift.
+	cfg.SerfLANConfig = consul.CloneSerfLANConfig(cfg.SerfLANConfig)
+
 	enterpriseConsulConfig(cfg, runtimeCfg)
 	return cfg, nil
 }
