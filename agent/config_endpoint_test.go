@@ -231,8 +231,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 	modifyIndex := out.Entry.GetRaftIndex().ModifyIndex
 
-	{
-		// Attempt to delete it with an invalid index.
+	t.Run("attempt to delete with an invalid index", func(t *testing.T) {
 		req := httptest.NewRequest(
 			"DELETE",
 			fmt.Sprintf("/v1/config/%s/%s?cas=%d", entry.Kind, entry.Name, modifyIndex-1),
@@ -253,10 +252,9 @@ func TestConfig_Delete_CAS(t *testing.T) {
 			Name:       entry.Name,
 		}, &out))
 		require.NotNil(out.Entry)
-	}
+	})
 
-	{
-		// Attempt to delete it with a valid index.
+	t.Run("attempt to delete with a valid index", func(t *testing.T) {
 		req := httptest.NewRequest(
 			"DELETE",
 			fmt.Sprintf("/v1/config/%s/%s?cas=%d", entry.Kind, entry.Name, modifyIndex),
@@ -277,7 +275,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 			Name:       entry.Name,
 		}, &out))
 		require.Nil(out.Entry)
-	}
+	})
 }
 
 func TestConfig_Apply(t *testing.T) {
