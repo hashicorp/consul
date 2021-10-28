@@ -144,10 +144,22 @@ const (
 	// that the member represents a Consul server.
 	MemberTagValueRoleServer = "consul"
 
+	// MemberTagValueRoleClient is the value of the MemberTagKeyRole used to indicate
+	// that the member represents a Consul client.
+	MemberTagValueRoleClient = "node"
+
+	// MemberTagKeyDatacenter is the key used to indicate which datacenter this member is in.
+	MemberTagKeyDatacenter = "dc"
+
 	// MemberTagKeySegment is the key name of the tag used to indicate which network
 	// segment this member is in.
 	// Network Segments are a Consul Enterprise feature.
 	MemberTagKeySegment = "segment"
+
+	// MemberTagKeyPartition is the key name of the tag used to indicate which partition
+	// this member is in.
+	// Partitions are a Consul Enterprise feature.
+	MemberTagKeyPartition = "ap"
 
 	// MemberTagKeyBootstrap is the key name of the tag used to indicate whether this
 	// agent was started with the "bootstrap" configuration enabled
