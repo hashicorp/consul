@@ -1271,7 +1271,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	require.Equal(t, int64(4679716209), c.AutoEncryptCert().NotAfter.Unix())
 }
 
-func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
+func TestConfigurator_AuthorizeServerConn(t *testing.T) {
 	caPEM, caPK, err := GenerateCA(CAOpts{Days: 5, Domain: "consul"})
 	require.NoError(t, err)
 
@@ -1280,10 +1280,28 @@ func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
 	err = ioutil.WriteFile(caPath, []byte(caPEM), 0600)
 	require.NoError(t, err)
 
+	// Cert and key are not used, but required to get past validateConfig
+	signer, err := ParseSigner(caPK)
+	require.NoError(t, err)
+	pub, pk, err := GenerateCert(CertOpts{
+		Signer: signer,
+		CA:     caPEM,
+	})
+	require.NoError(t, err)
+	certFile := filepath.Join("cert.pem")
+	err = ioutil.WriteFile(certFile, []byte(pub), 0600)
+	require.NoError(t, err)
+	keyFile := filepath.Join("cert.key")
+	err = ioutil.WriteFile(keyFile, []byte(pk), 0600)
+	require.NoError(t, err)
+
 	cfg := Config{
 		VerifyServerHostname: true,
+		VerifyIncomingRPC:    true,
 		Domain:               "consul",
 		CAFile:               caPath,
+		CertFile:             certFile,
+		KeyFile:              keyFile,
 	}
 	c, err := NewConfigurator(cfg, hclog.New(nil))
 	require.NoError(t, err)
@@ -1367,6 +1385,22 @@ func TestConfigurator_AuthorizeServerConn_Error(t *testing.T) {
 		err = c.AuthorizeServerConn("dc1", s)
 		testutil.RequireErrorContains(t, err, "certificate specifies an incompatible key usage")
 	})
+
+	t.Run("disabled by verify_incoming_rpc", func(t *testing.T) {
+		cfg := Config{
+			VerifyServerHostname: true,
+			VerifyIncomingRPC:    false,
+			Domain:               "consul",
+			CAFile:               caPath,
+		}
+		c, err := NewConfigurator(cfg, hclog.New(nil))
+		require.NoError(t, err)
+
+		s := fakeTLSConn{}
+		err = c.AuthorizeServerConn("dc1", s)
+		require.NoError(t, err)
+	})
+
 }
 
 type fakeTLSConn struct {
