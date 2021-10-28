@@ -445,6 +445,7 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeResponseBody(resp)
 	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
