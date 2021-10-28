@@ -145,6 +145,10 @@ type singleValueID interface {
 	NamespaceOrDefault() string
 }
 
+var _ singleValueID = (*structs.DirEntry)(nil)
+var _ singleValueID = (*Tombstone)(nil)
+var _ singleValueID = (*Query)(nil)
+
 func (b *indexBuilder) Bool(v bool) {
 	b.Raw([]byte{intFromBool(v)})
 }
