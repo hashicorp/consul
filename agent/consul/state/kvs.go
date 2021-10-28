@@ -39,8 +39,7 @@ func kvsTableSchema() *memdb.TableSchema {
 	}
 }
 
-// indexFromKVEntry creates an index key from a structs.DirEntry, Query, or
-// *Tombstone. The index is case sensitive.
+// indexFromKVEntry creates an index key from any struct that implements singleValueID
 func indexFromKVEntry(raw interface{}) ([]byte, error) {
 	e, ok := raw.(singleValueID)
 	if !ok {
