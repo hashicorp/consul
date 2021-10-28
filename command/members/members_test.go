@@ -5,9 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/agent"
 )
+
+// TODO(partitions): split these tests
 
 func TestMembersCommand_noTabs(t *testing.T) {
 	t.Parallel()

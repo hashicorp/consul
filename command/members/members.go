@@ -8,11 +8,12 @@ import (
 	"sort"
 	"strings"
 
-	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
+
+	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
 )
 
 // cmd is a Command implementation that queries a running
@@ -52,6 +53,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.PartitionFlag())
 	c.help = flags.Usage(help, c.flags)
 }
 

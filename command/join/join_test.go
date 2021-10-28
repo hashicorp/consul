@@ -4,8 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/agent"
 )
 
 func TestJoinCommand_noTabs(t *testing.T) {
@@ -15,6 +16,7 @@ func TestJoinCommand_noTabs(t *testing.T) {
 	}
 }
 
+// TODO(partitions): split this test and verify it works in partitions
 func TestJoinCommandJoin_lan(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
