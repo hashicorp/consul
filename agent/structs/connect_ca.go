@@ -383,15 +383,14 @@ func (c CommonCAProviderConfig) Validate() error {
 	}
 
 	// if the root cert ttl is not set, set it to the default
-	if c.RootCertTTL.Nanoseconds() == 0 {
+	if c.RootCertTTL == 0 {
 		c.RootCertTTL = 10 * 365 * 24 * time.Hour
 	}
 
-	fmt.Println("in here with ", c.RootCertTTL)
 	// it's sufficient to check that the root cert ttl >= intermediate cert ttl
 	// since intermediate cert ttl >= 3* leaf cert ttl; so root cert ttl >= 3 * leaf cert ttl > leaf cert ttl
 	if c.RootCertTTL < c.IntermediateCertTTL {
-		return fmt.Errorf("root Cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: %s, intermediate cert ttl %s", c.RootCertTTL.String(), c.IntermediateCertTTL.String())
+		return fmt.Errorf("root cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: %s, intermediate cert ttl: %s", c.RootCertTTL, c.IntermediateCertTTL)
 	}
 
 	if c.LeafCertTTL < MinLeafCertTTL {

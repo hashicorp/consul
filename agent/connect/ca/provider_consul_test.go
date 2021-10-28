@@ -43,9 +43,9 @@ func testConsulCAConfig() *structs.CAConfiguration {
 		Provider:  "consul",
 		Config: map[string]interface{}{
 			// Tests duration parsing after msgpack type mangling during raft apply.
-			"LeafCertTTL":         []uint8("72h"),
-			"IntermediateCertTTL": []uint8("288h"),
-			"RootCertTTL":         []uint8("87600h"),
+			"LeafCertTTL":         []byte("72h"),
+			"IntermediateCertTTL": []byte("288h"),
+			"RootCertTTL":         []byte("87600h"),
 		},
 	}
 }
@@ -96,7 +96,7 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	defaultRootCertTTL, err := time.ParseDuration(structs.DefaultRootCertTTL)
 	require.NoError(err)
 	expectedNotAfter := time.Now().Add(defaultRootCertTTL).UTC()
-	require.True(expectedNotAfter.Sub(parsed.NotAfter) < 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+	require.WithinDuration(expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 }
 
 func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
@@ -128,7 +128,9 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 	defaultRootCertTTL, err := time.ParseDuration(structs.DefaultRootCertTTL)
 	require.NoError(err)
 	defaultNotAfter := time.Now().Add(defaultRootCertTTL).UTC()
-	require.NotEqualf(defaultNotAfter, parsed.NotAfter, "parsed cert ttl expected to be different from default root cert ttl")
+	// we can't compare given the "delta" between the time the cert is generated
+	// and when we start the test; so just look at the years for now, given different years
+	require.NotEqualf(defaultNotAfter.Year(), parsed.NotAfter.Year(), "parsed cert ttl expected to be different from default root cert ttl")
 }
 
 func TestConsulCAProvider_SignLeaf(t *testing.T) {

@@ -144,7 +144,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 				PrivateKeyBits:      256,
 			},
 			wantErr: true,
-			wantMsg: "root Cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: 3h0m0s, intermediate cert ttl 4h0m0s",
+			wantMsg: "root cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: 3h0m0s, intermediate cert ttl: 4h0m0s",
 		},
 	}
 	for _, tt := range tests {
