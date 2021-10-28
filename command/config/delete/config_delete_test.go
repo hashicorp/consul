@@ -56,9 +56,30 @@ func TestConfigDelete(t *testing.T) {
 func TestConfigDelete_InvalidArgs(t *testing.T) {
 	t.Parallel()
 
-	cases := map[string][]string{
-		"no kind": {},
-		"no name": {"-kind", "service-defaults"},
+	cases := map[string]struct {
+		args []string
+		err  string
+	}{
+		"no kind": {
+			args: []string{},
+			err:  "Must specify the -kind parameter",
+		},
+		"no name": {
+			args: []string{"-kind", api.ServiceDefaults},
+			err:  "Must specify the -name parameter",
+		},
+		"cas but no modify-index": {
+			args: []string{"-kind", api.ServiceDefaults, "-name", "web", "-cas"},
+			err:  "Must specify a -modify-index greater than 0 with -cas",
+		},
+		"cas but no zero modify-index": {
+			args: []string{"-kind", api.ServiceDefaults, "-name", "web", "-cas", "-modify-index", "0"},
+			err:  "Must specify a -modify-index greater than 0 with -cas",
+		},
+		"modify-index but no cas": {
+			args: []string{"-kind", api.ServiceDefaults, "-name", "web", "-modify-index", "1"},
+			err:  "Cannot specify -modify-index without -cas",
+		},
 	}
 
 	for name, tcase := range cases {
@@ -66,8 +87,8 @@ func TestConfigDelete_InvalidArgs(t *testing.T) {
 			ui := cli.NewMockUi()
 			c := New(ui)
 
-			require.NotEqual(t, 0, c.Run(tcase))
-			require.NotEmpty(t, ui.ErrorWriter.String())
+			require.NotEqual(t, 0, c.Run(tcase.args))
+			require.Contains(t, ui.ErrorWriter.String(), tcase.err)
 		})
 	}
 }

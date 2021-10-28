@@ -1,6 +1,7 @@
 package delete
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 
@@ -49,13 +50,8 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	if c.kind == "" {
-		c.UI.Error("Must specify the -kind parameter")
-		return 1
-	}
-
-	if c.name == "" {
-		c.UI.Error("Must specify the -name parameter")
+	if err := c.validateArgs(); err != nil {
+		c.UI.Error(err.Error())
 		return 1
 	}
 
@@ -86,6 +82,26 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Info(fmt.Sprintf("Config entry deleted: %s/%s", c.kind, c.name))
 	return 0
+}
+
+func (c *cmd) validateArgs() error {
+	if c.kind == "" {
+		return errors.New("Must specify the -kind parameter")
+	}
+
+	if c.name == "" {
+		return errors.New("Must specify the -name parameter")
+	}
+
+	if c.cas && c.modifyIndex == 0 {
+		return errors.New("Must specify a -modify-index greater than 0 with -cas")
+	}
+
+	if c.modifyIndex != 0 && !c.cas {
+		return errors.New("Cannot specify -modify-index without -cas")
+	}
+
+	return nil
 }
 
 func (c *cmd) Synopsis() string {
