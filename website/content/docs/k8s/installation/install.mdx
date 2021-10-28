@@ -54,7 +54,7 @@ manual configuration.
 
 ### Prerequisites
 
-The Consul Helm only supports Helm 3. Install the latest version of the Helm CLI here:
+The Consul Helm only supports Helm 3.2+. Install the latest version of the Helm CLI here:
 [Installing Helm](https://helm.sh/docs/intro/install/).
 
 ### Installing Consul
@@ -86,7 +86,7 @@ The Consul Helm only supports Helm 3. Install the latest version of the Helm CLI
     kube-system       Active   18h
     ```
 
-1. Issue the following command to install Consul with the default configuration using Helm 3.2+. You could also install Consul on a dedicated 
+1. Issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated 
    namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
 
    ```shell-session
