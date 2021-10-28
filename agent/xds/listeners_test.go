@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -942,7 +941,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	latestEnvoyVersion_v2 := proxysupport.EnvoyVersionsV2[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -990,36 +988,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 						expectedJSON := goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON)
 						require.JSONEq(t, expectedJSON, gotJSON)
-					})
-
-					t.Run("v2-compat", func(t *testing.T) {
-						if !stringslice.Contains(proxysupport.EnvoyVersionsV2, envoyVersion) {
-							t.Skip()
-						}
-						respV2, err := convertDiscoveryResponseToV2(r)
-						require.NoError(t, err)
-
-						gotJSON := protoToJSON(t, respV2)
-
-						gName := tt.name
-						if tt.overrideGoldenName != "" {
-							gName = tt.overrideGoldenName
-						}
-
-						gName += ".v2compat"
-
-						// It's easy to miss a new type that encodes a version from just
-						// looking at the golden files so lets make it an error here. If
-						// there are ever false positives we can maybe include an allow list
-						// here as it seems safer to assume something was missed than to
-						// assume we'll notice the golden file being wrong. Note the first
-						// one matches both resourceApiVersion and transportApiVersion. I
-						// left it as a suffix in case there are other field names that
-						// follow that convention now or in the future.
-						require.NotContains(t, gotJSON, `ApiVersion": "V3"`)
-						require.NotContains(t, gotJSON, `type.googleapis.com/envoy.api.v3`)
-
-						require.JSONEq(t, goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
 			}
