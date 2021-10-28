@@ -129,8 +129,11 @@ func (k *KV) getInternal(key string, params map[string]string, q *QueryOptions) 
 		r.params.Set(param, val)
 	}
 	rtt, resp, err := k.c.doRequest(r)
-	rtt, resp, err = requireHttpCodes(rtt, resp, err, 200, 404)
+	if err != nil {
+		return nil, nil, err
+	}
 
+	err = requireHttpCodes(resp, 200, 404)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,11 +209,14 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 	}
 	r.body = bytes.NewReader(body)
 	r.header.Set("Content-Type", "application/octet-stream")
-	rtt, resp, err := requireOK(k.c.doRequest(r))
+	rtt, resp, err := k.c.doRequest(r)
 	if err != nil {
 		return false, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -250,11 +256,14 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 	for param, val := range params {
 		r.params.Set(param, val)
 	}
-	rtt, resp, err := requireOK(k.c.doRequest(r))
+	rtt, resp, err := k.c.doRequest(r)
 	if err != nil {
 		return false, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt

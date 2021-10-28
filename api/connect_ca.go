@@ -133,11 +133,14 @@ type LeafCert struct {
 func (h *Connect) CARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/ca/roots")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -154,11 +157,14 @@ func (h *Connect) CARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 func (h *Connect) CAGetConfig(q *QueryOptions) (*CAConfig, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/connect/ca/configuration")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -176,11 +182,14 @@ func (h *Connect) CASetConfig(conf *CAConfig, q *WriteOptions) (*WriteMeta, erro
 	r := h.c.newRequest("PUT", "/v1/connect/ca/configuration")
 	r.setWriteOptions(q)
 	r.obj = conf
-	rtt, resp, err := requireOK(h.c.doRequest(r))
+	rtt, resp, err := h.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt

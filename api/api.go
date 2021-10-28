@@ -981,12 +981,14 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
 	r := c.newRequest("GET", endpoint)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.doRequest(r))
+	rtt, resp, err := c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -1003,11 +1005,14 @@ func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*
 	r := c.newRequest("PUT", endpoint)
 	r.setWriteOptions(q)
 	r.obj = in
-	rtt, resp, err := requireOK(c.doRequest(r))
+	rtt, resp, err := c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{RequestTime: rtt}
 	if out != nil {
@@ -1098,29 +1103,22 @@ func encodeBody(obj interface{}) (io.Reader, error) {
 }
 
 // requireOK is used to wrap doRequest and check for a 200
-func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *http.Response, error) {
-	return requireHttpCodes(d, resp, e, 200)
+func requireOK(resp *http.Response) error {
+	return requireHttpCodes(resp, 200)
 }
 
 // requireHttpCodes checks for the "allowable" http codes for a response
-func requireHttpCodes(d time.Duration, resp *http.Response, e error, httpCodes ...int) (time.Duration, *http.Response, error) {
-	if e != nil {
-		if resp != nil {
-			closeResponseBody(resp)
-		}
-		return d, nil, e
-	}
-
+func requireHttpCodes(resp *http.Response, httpCodes ...int) error {
 	// if there is an http code that we require, return w no error
 	for _, httpCode := range httpCodes {
 		if resp.StatusCode == httpCode {
-			return d, resp, nil
+			return nil
 		}
 	}
 
 	// if we reached here, then none of the http codes in resp matched any that we expected
 	// so err out
-	return d, nil, generateUnexpectedResponseCodeError(resp)
+	return generateUnexpectedResponseCodeError(resp)
 }
 
 // closeResponseBody reads resp.Body until EOF, and then closes it. The read
@@ -1151,19 +1149,13 @@ func generateUnexpectedResponseCodeError(resp *http.Response) error {
 	return StatusError{Code: resp.StatusCode, Body: trimmed}
 }
 
-func requireNotFoundOrOK(d time.Duration, resp *http.Response, e error) (bool, time.Duration, *http.Response, error) {
-	if e != nil {
-		if resp != nil {
-			closeResponseBody(resp)
-		}
-		return false, d, nil, e
-	}
+func requireNotFoundOrOK(resp *http.Response) (bool, *http.Response, error) {
 	switch resp.StatusCode {
 	case 200:
-		return true, d, resp, nil
+		return true, resp, nil
 	case 404:
-		return false, d, resp, nil
+		return false, resp, nil
 	default:
-		return false, d, nil, generateUnexpectedResponseCodeError(resp)
+		return false, nil, generateUnexpectedResponseCodeError(resp)
 	}
 }

@@ -441,11 +441,14 @@ func (c *Client) Agent() *Agent {
 // information about itself
 func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/self")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out map[string]map[string]interface{}
 	if err := decodeBody(resp, &out); err != nil {
@@ -459,12 +462,14 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 // a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out map[string]interface{}
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -476,12 +481,14 @@ func (a *Agent) Host() (map[string]interface{}, error) {
 // its current internal metric data
 func (a *Agent) Metrics() (*MetricsInfo, error) {
 	r := a.c.newRequest("GET", "/v1/agent/metrics")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out *MetricsInfo
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -495,8 +502,11 @@ func (a *Agent) Metrics() (*MetricsInfo, error) {
 func (a *Agent) MetricsStream(ctx context.Context) (io.ReadCloser, error) {
 	r := a.c.newRequest("GET", "/v1/agent/metrics/stream")
 	r.ctx = ctx
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	return resp.Body, nil
@@ -505,11 +515,14 @@ func (a *Agent) MetricsStream(ctx context.Context) (io.ReadCloser, error) {
 // Reload triggers a configuration reload for the agent we are connected to.
 func (a *Agent) Reload() error {
 	r := a.c.newRequest("PUT", "/v1/agent/reload")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -544,12 +557,14 @@ func (a *Agent) ChecksWithFilterOpts(filter string, q *QueryOptions) (map[string
 	r := a.c.newRequest("GET", "/v1/agent/checks")
 	r.setQueryOptions(q)
 	r.filterQuery(filter)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out map[string]*AgentCheck
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -574,12 +589,14 @@ func (a *Agent) ServicesWithFilterOpts(filter string, q *QueryOptions) (map[stri
 	r := a.c.newRequest("GET", "/v1/agent/services")
 	r.setQueryOptions(q)
 	r.filterQuery(filter)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out map[string]*AgentService
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -678,12 +695,14 @@ func (a *Agent) AgentHealthServiceByNameOpts(service string, q *QueryOptions) (s
 func (a *Agent) Service(serviceID string, q *QueryOptions) (*AgentService, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/service/"+serviceID)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -703,12 +722,14 @@ func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 	if wan {
 		r.params.Set("wan", "1")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out []*AgentMember
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -725,12 +746,14 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 		r.params.Set("wan", "1")
 	}
 
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out []*AgentMember
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -761,11 +784,14 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -773,11 +799,14 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 // the local agent
 func (a *Agent) ServiceDeregister(serviceID string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -786,11 +815,14 @@ func (a *Agent) ServiceDeregister(serviceID string) error {
 func (a *Agent) ServiceDeregisterOpts(serviceID string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -841,11 +873,14 @@ func (a *Agent) updateTTL(checkID, note, status string) error {
 	endpoint := fmt.Sprintf("/v1/agent/check/%s/%s", status, checkID)
 	r := a.c.newRequest("PUT", endpoint)
 	r.params.Set("note", note)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -891,11 +926,14 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 		Output: output,
 	}
 
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -904,11 +942,14 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
 	r.obj = check
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -923,11 +964,14 @@ func (a *Agent) CheckDeregister(checkID string) error {
 func (a *Agent) CheckDeregisterOpts(checkID string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/deregister/"+checkID)
 	r.setQueryOptions(q)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -938,33 +982,42 @@ func (a *Agent) Join(addr string, wan bool) error {
 	if wan {
 		r.params.Set("wan", "1")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
 // Leave is used to have the agent gracefully leave the cluster and shutdown
 func (a *Agent) Leave() error {
 	r := a.c.newRequest("PUT", "/v1/agent/leave")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ForceLeave is used to have the agent eject a failed node
 func (a *Agent) ForceLeave(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -973,11 +1026,14 @@ func (a *Agent) ForceLeave(node string) error {
 func (a *Agent) ForceLeavePrune(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
 	r.params.Set("prune", "1")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -986,12 +1042,14 @@ func (a *Agent) ForceLeavePrune(node string) error {
 func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, error) {
 	r := a.c.newRequest("POST", "/v1/agent/connect/authorize")
 	r.obj = auth
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 	var out AgentAuthorize
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, err
@@ -1003,11 +1061,14 @@ func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, e
 func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/roots")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -1024,12 +1085,14 @@ func (a *Agent) ConnectCARoots(q *QueryOptions) (*CARootList, *QueryMeta, error)
 func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/agent/connect/ca/leaf/"+serviceID)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
-
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
@@ -1052,11 +1115,14 @@ func (a *Agent) EnableServiceMaintenanceOpts(serviceID, reason string, q *QueryO
 	r.setQueryOptions(q)
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1070,11 +1136,14 @@ func (a *Agent) DisableServiceMaintenanceOpts(serviceID string, q *QueryOptions)
 	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
 	r.setQueryOptions(q)
 	r.params.Set("enable", "false")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1084,11 +1153,14 @@ func (a *Agent) EnableNodeMaintenance(reason string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
 	r.params.Set("enable", "true")
 	r.params.Set("reason", reason)
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1097,11 +1169,14 @@ func (a *Agent) EnableNodeMaintenance(reason string) error {
 func (a *Agent) DisableNodeMaintenance() error {
 	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
 	r.params.Set("enable", "false")
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1127,8 +1202,11 @@ func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q
 	if logJSON {
 		r.params.Set("logjson", "true")
 	}
-	_, resp, err := requireOK(a.c.doRequest(r))
+	_, resp, err := a.c.doRequest(r)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireOK(resp); err != nil {
 		return nil, err
 	}
 	logCh := make(chan string, 64)
@@ -1237,20 +1315,18 @@ func (a *Agent) updateTokenOnce(target, token string, q *WriteOptions) (*WriteMe
 	r.setWriteOptions(q)
 	r.obj = &AgentToken{Token: token}
 
-	rtt, resp, err := requireOK(a.c.doRequest(r))
-	wm := &WriteMeta{RequestTime: rtt}
-
+	rtt, resp, err := a.c.doRequest(r)
 	if err != nil {
-		// if the error was bc of a non 200 response
-		// from requireOK
+		return nil, 500, err
+	}
+	defer closeResponseBody(resp)
+	wm := &WriteMeta{RequestTime: rtt}
+	if err := requireOK(resp); err != nil {
 		var statusE StatusError
 		if errors.As(err, &statusE) {
 			return wm, statusE.Code, statusE
 		}
-		// otherwise, the error came via doRequest
-		return nil, 500, err
+		return nil, 0, err
 	}
-	defer closeResponseBody(resp)
-
 	return wm, resp.StatusCode, nil
 }
