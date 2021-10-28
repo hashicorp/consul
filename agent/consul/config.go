@@ -541,6 +541,49 @@ func DefaultConfig() *Config {
 	return conf
 }
 
+// CloneSerfLANConfig clones an existing serf.Config used on the LAN by
+// reconstructing it from defaults and re-applying changes made in the agent
+// configs.
+//
+// This function is tricky to keep from rotting so we enforce that it MUST work
+// by cloning our own serf LAN configuration on startup and only using the
+// cloned one so any configs we need to change have to be changed here for them
+// to work at all.
+func CloneSerfLANConfig(base *serf.Config) *serf.Config {
+	cfg := DefaultConfig().SerfLANConfig
+
+	// from consul.DefaultConfig()
+	cfg.ReconnectTimeout = base.ReconnectTimeout
+	cfg.MemberlistConfig.BindPort = base.MemberlistConfig.BindPort
+	cfg.MemberlistConfig.DeadNodeReclaimTime = base.MemberlistConfig.DeadNodeReclaimTime
+
+	// from agent.newConsulConfig()
+	cfg.MemberlistConfig.BindAddr = base.MemberlistConfig.BindAddr
+	cfg.MemberlistConfig.BindPort = base.MemberlistConfig.BindPort
+	cfg.MemberlistConfig.CIDRsAllowed = base.MemberlistConfig.CIDRsAllowed
+	cfg.MemberlistConfig.AdvertiseAddr = base.MemberlistConfig.AdvertiseAddr
+	cfg.MemberlistConfig.AdvertisePort = base.MemberlistConfig.AdvertisePort
+	cfg.MemberlistConfig.GossipVerifyIncoming = base.MemberlistConfig.GossipVerifyIncoming
+	cfg.MemberlistConfig.GossipVerifyOutgoing = base.MemberlistConfig.GossipVerifyOutgoing
+	cfg.MemberlistConfig.GossipInterval = base.MemberlistConfig.GossipInterval
+	cfg.MemberlistConfig.GossipNodes = base.MemberlistConfig.GossipNodes
+	cfg.MemberlistConfig.ProbeInterval = base.MemberlistConfig.ProbeInterval
+	cfg.MemberlistConfig.ProbeTimeout = base.MemberlistConfig.ProbeTimeout
+	cfg.MemberlistConfig.SuspicionMult = base.MemberlistConfig.SuspicionMult
+	cfg.MemberlistConfig.RetransmitMult = base.MemberlistConfig.RetransmitMult
+
+	// agent/keyring.go
+	cfg.MemberlistConfig.Keyring = base.MemberlistConfig.Keyring
+
+	// tests
+	cfg.KeyringFile = base.KeyringFile
+	cfg.ReapInterval = base.ReapInterval
+	cfg.TombstoneTimeout = base.TombstoneTimeout
+	cfg.MemberlistConfig.SecretKey = base.MemberlistConfig.SecretKey
+
+	return cfg
+}
+
 // RPCConfig settings for the RPC server
 //
 // TODO: move many settings to this struct.
