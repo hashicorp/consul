@@ -1,0 +1,3 @@
+```release-note:feature
+ca: Add a configurable ttl for root certs for connect, vault ca providers.
+```

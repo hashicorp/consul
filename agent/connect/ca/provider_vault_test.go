@@ -156,7 +156,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 			require.NoError(err)
 			expectedNotAfter := time.Now().Add(rootCertTTL).UTC()
 
-			require.True(expectedNotAfter.Sub(parsed.NotAfter) < 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+			require.WithinDuration(expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
 		}
 	}
 }

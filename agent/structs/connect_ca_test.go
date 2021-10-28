@@ -80,6 +80,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			cfg: &CommonCAProviderConfig{
 				LeafCertTTL:         2 * time.Hour,
 				IntermediateCertTTL: 4 * time.Hour,
+				RootCertTTL:         5 * time.Hour,
 			},
 			wantErr: true,
 			wantMsg: "Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=6h0m0s).",
@@ -89,6 +90,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			cfg: &CommonCAProviderConfig{
 				LeafCertTTL:         5 * time.Hour,
 				IntermediateCertTTL: 15*time.Hour - 1,
+				RootCertTTL:         15 * time.Hour,
 			},
 			wantErr: true,
 			wantMsg: "Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=15h0m0s).",
@@ -98,6 +100,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			cfg: &CommonCAProviderConfig{
 				LeafCertTTL:         1 * time.Hour,
 				IntermediateCertTTL: 4 * time.Hour,
+				RootCertTTL:         5 * time.Hour,
 			},
 			wantErr: true,
 			wantMsg: "private key type must be either 'ec' or 'rsa'",
@@ -107,6 +110,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			cfg: &CommonCAProviderConfig{
 				LeafCertTTL:         1 * time.Hour,
 				IntermediateCertTTL: 4 * time.Hour,
+				RootCertTTL:         5 * time.Hour,
 				PrivateKeyType:      "ec",
 			},
 			wantErr: true,
@@ -117,6 +121,7 @@ func TestCAProviderConfig_Validate(t *testing.T) {
 			cfg: &CommonCAProviderConfig{
 				LeafCertTTL:         1 * time.Hour,
 				IntermediateCertTTL: 4 * time.Hour,
+				RootCertTTL:         5 * time.Hour,
 				PrivateKeyType:      "ec",
 				PrivateKeyBits:      256,
 			},

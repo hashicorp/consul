@@ -3144,7 +3144,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						"tls_skip_verify": true,
 						"token": "abc",
 						"root_pki_path": "consul-vault",
-						"root_cert_ttl": "87600h",
+						"root_cert_ttl": "96360h",
 						"intermediate_pki_path": "connect-intermediate"
 					}
 				}
@@ -3163,7 +3163,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						root_pki_path = "consul-vault"
 						token = "abc"
 						intermediate_pki_path = "connect-intermediate"
-						root_cert_ttl = "87600h"
+						root_cert_ttl = "96360h"
 					}
 				}
 			`},
@@ -3180,7 +3180,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				"TLSSkipVerify":       true,
 				"Token":               "abc",
 				"RootPKIPath":         "consul-vault",
-				"RootCertTTL":         "87600h",
+				"RootCertTTL":         "96360h",
 				"IntermediatePKIPath": "connect-intermediate",
 			}
 		},
@@ -5492,7 +5492,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		ConnectCAConfig: map[string]interface{}{
 			"IntermediateCertTTL": "8760h",
 			"LeafCertTTL":         "1h",
-			"RootCertTTL":         "87600h",
+			"RootCertTTL":         "96360h",
 			"CSRMaxPerSecond":     float64(100),
 			"CSRMaxConcurrent":    float64(2),
 		},
@@ -6718,7 +6718,7 @@ func TestConnectCAConfiguration(t *testing.T) {
 				ConnectEnabled: true,
 				ConnectCAConfig: map[string]interface{}{
 					"foo":         "bar",
-					"RootCertTTL": "8761h", // 365 * 10 * 24h
+					"RootCertTTL": "8761h", // 365 * 24h + 1
 				},
 			},
 			expected: &structs.CAConfiguration{
@@ -6726,7 +6726,7 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
-					"RootCertTTL":         "8761h", // 365 * 10 * 24h
+					"RootCertTTL":         "8761h", // 365 * 24h + 1
 					"foo":                 "bar",
 				},
 			},
