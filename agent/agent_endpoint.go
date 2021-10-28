@@ -306,6 +306,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -371,6 +372,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -447,6 +449,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -515,17 +518,26 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	// TODO(partitions): likely partitions+segment integration will take care of this
+	// Get the request partition and default to that of the agent.
+	entMeta := s.agent.AgentEnterpriseMeta()
+	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
+		return nil, err
+	}
 
 	var members []serf.Member
 	if wan {
 		members = s.agent.WANMembers()
 	} else {
 		filter := consul.LANMemberFilter{
-			// TODO(partitions): insert the partition from the request
+			Partition: entMeta.PartitionOrDefault(),
 		}
 		if segment == api.AllSegments {
-			filter.AllSegments = true
+			// Older 'consul members' calls will default to adding segment=_all
+			// so we only choose to use that request argument in the case where
+			// the partition is also the default and ignore it the rest of the time.
+			if structs.IsDefaultPartition(filter.Partition) {
+				filter.AllSegments = true
+			}
 		} else {
 			filter.Segment = segment
 		}
@@ -557,6 +569,12 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 		return nil, acl.ErrPermissionDenied
 	}
 
+	// Get the request partition and default to that of the agent.
+	entMeta := s.agent.AgentEnterpriseMeta()
+	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
+		return nil, err
+	}
+
 	// Check if the WAN is being queried
 	wan := false
 	if other := req.URL.Query().Get("wan"); other != "" {
@@ -573,8 +591,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 		}
 		_, err = s.agent.JoinWAN([]string{addr})
 	} else {
-		// TODO(partitions): use the request entmeta
-		_, err = s.agent.JoinLAN([]string{addr}, nil)
+		_, err = s.agent.JoinLAN([]string{addr}, entMeta)
 	}
 	return nil, err
 }
@@ -614,12 +631,17 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 		return nil, acl.ErrPermissionDenied
 	}
 
+	// Get the request partition and default to that of the agent.
+	entMeta := s.agent.AgentEnterpriseMeta()
+	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
+		return nil, err
+	}
+
 	// Check the value of the prune query
 	_, prune := req.URL.Query()["prune"]
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	// TODO(partitions): use the request entmeta
-	return nil, s.agent.ForceLeave(addr, prune, nil)
+	return nil, s.agent.ForceLeave(addr, prune, entMeta)
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync
@@ -635,6 +657,7 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var args structs.CheckDefinition
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
@@ -711,6 +734,7 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &checkID.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -803,6 +827,7 @@ func (s *HTTPHandlers) agentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &cid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -878,6 +903,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		return nil, &BadRequestError{Reason: "Missing serviceID"}
 	}
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -936,6 +962,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, &BadRequestError{Reason: "Missing service Name"}
 	}
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -999,6 +1026,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1165,6 +1193,7 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &sid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1222,6 +1251,7 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &sid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1480,6 +1510,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	}
 	var qOpts structs.QueryOptions
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1527,6 +1558,7 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 
 	var authReq structs.ConnectAuthorizeRequest
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &authReq.EnterpriseMeta); err != nil {
 		return nil, err
 	}
