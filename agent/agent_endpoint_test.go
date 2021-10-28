@@ -5248,19 +5248,19 @@ func TestAgent_Token(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name:   "bad token name",
-			method: "PUT",
-			url:    "nope?token=root",
-			body:   body("X"),
-			code:   http.StatusNotFound,
+			name:        "bad token name",
+			method:      "PUT",
+			url:         "nope?token=root",
+			body:        body("X"),
+			code:        http.StatusNotFound,
 			expectedErr: `Token "nope" is unknown`,
 		},
 		{
-			name:   "bad JSON",
-			method: "PUT",
-			url:    "acl_token?token=root",
-			body:   badJSON(),
-			code:   http.StatusBadRequest,
+			name:        "bad JSON",
+			method:      "PUT",
+			url:         "acl_token?token=root",
+			body:        badJSON(),
+			code:        http.StatusBadRequest,
 			expectedErr: `Bad request: Request decode failed: json: cannot unmarshal bool into Go value of type api.AgentToken`,
 		},
 		{
