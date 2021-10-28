@@ -22,8 +22,7 @@ jobs:
       - name: get product version
         id: get-product-version
         run: |
-          OUTPUT=$(make -f Makefile version)
-          echo $OUTPUT
+          build-support/scripts/version.sh -r
           IFS="-"; OUTPUT=$(make -f Makefile version);
           read -a V <<< "$OUTPUT"; unset IFS;
 
