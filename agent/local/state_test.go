@@ -2307,6 +2307,7 @@ func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
 
 type fakeRPC struct {
 	calls []callRPC
+	call  func(callRPC)
 }
 
 type callRPC struct {
@@ -2316,10 +2317,37 @@ type callRPC struct {
 }
 
 func (f *fakeRPC) RPC(method string, args interface{}, reply interface{}) error {
-	f.calls = append(f.calls, callRPC{method: method, args: args, reply: reply})
+	call := callRPC{method: method, args: args, reply: reply}
+	f.calls = append(f.calls, call)
+	if f.call != nil {
+		f.call(call)
+	}
 	return nil
 }
 
 func (f *fakeRPC) ResolveTokenToIdentity(_ string) (structs.ACLIdentity, error) {
 	return nil, nil
+}
+
+func TestState_SyncChanges_NonBlocking(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	state.TriggerSyncChanges = func() {}
+
+	state.Delegate = &fakeRPC{call: func(rpc callRPC) {
+		select {} // fake slow RPC call
+	}}
+
+	require.NoError(t, state.AddService(&structs.NodeService{}, ""))
+	go func() { require.NoError(t, state.SyncChanges()) }()
+
+	done := make(chan bool)
+	go func() {
+		state.Stats()
+		done <- true
+	}()
+	select {
+	case <-time.After(10 * time.Millisecond):
+		t.Fatal("Test timeout")
+	case <-done:
+	}
 }

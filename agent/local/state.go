@@ -159,6 +159,8 @@ type rpc interface {
 type State struct {
 	sync.RWMutex
 
+	syncLock sync.RWMutex
+
 	// Delegate the RPC interface to the consul server or agent.
 	//
 	// It is set after both the state and the consul server/agent have
@@ -980,6 +982,10 @@ func (l *State) Stats() map[string]string {
 // updateSyncState queries the server for all the services and checks in the catalog
 // registered to this node, and updates the local entries as InSync or Deleted.
 func (l *State) updateSyncState() error {
+	// Prevent multiple sync operations from overlapping.
+	l.syncLock.Lock()
+	defer l.syncLock.Unlock()
+
 	// Get all checks and services from the master
 	req := structs.NodeSpecificRequest{
 		Datacenter: l.config.Datacenter,
@@ -1171,10 +1177,17 @@ func (l *State) SyncFull() error {
 // SyncChanges pushes checks, services and node info data which has been
 // marked out of sync or deleted to the server.
 func (l *State) SyncChanges() error {
+	// Prevent multiple sync operations from overlapping.
+	l.syncLock.Lock()
+	defer l.syncLock.Unlock()
+
+	// Lock on local state changes.
 	l.Lock()
 	defer l.Unlock()
 
 	// Sync the node level info if we need to.
+	// At the start to guarantee sync even if services or checks fail,
+	// which is more likely because there are more syncs happening for them.
 	if l.nodeInfoInSync {
 		l.logger.Debug("Node info in sync")
 	} else {
@@ -1182,10 +1195,6 @@ func (l *State) SyncChanges() error {
 			return err
 		}
 	}
-
-	// We will do node-level info syncing at the end, since it will get
-	// updated by a service or check sync anyway, given how the register
-	// API works.
 
 	// Sync the services
 	// (logging happens in the helper methods)
@@ -1227,6 +1236,14 @@ func (l *State) SyncChanges() error {
 	return nil
 }
 
+// Invoke an RPC request, temporarily releasing the local state lock.
+func (l *State) rpc(method string, req interface{}) error {
+	l.Unlock()
+	defer l.Lock()
+	var out struct{}
+	return l.Delegate.RPC(method, req, &out)
+}
+
 // deleteService is used to delete a service from the server
 func (l *State) deleteService(key structs.ServiceID) error {
 	if key.ID == "" {
@@ -1241,26 +1258,35 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		EnterpriseMeta: key.EnterpriseMeta,
 		WriteRequest:   structs.WriteRequest{Token: st},
 	}
-	var out struct{}
-	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
-	switch {
-	case err == nil || strings.Contains(err.Error(), "Unknown service"):
-		delete(l.services, key)
-		// service deregister also deletes associated checks
-		for _, c := range l.checks {
-			if c.Deleted && c.Check != nil {
-				sid := c.Check.CompoundServiceID()
-				if sid.Matches(key) {
-					l.pruneCheck(c.Check.CompoundCheckID())
-				}
+
+	// store rollback state
+	service := l.services[key]
+	checks := make(map[structs.CheckID]*CheckState)
+
+	delete(l.services, key)
+	// service deregister also deletes associated checks
+	for _, c := range l.checks {
+		if c.Deleted && c.Check != nil {
+			sid := c.Check.CompoundServiceID()
+			if sid.Matches(key) {
+				checkId := c.Check.CompoundCheckID()
+				checks[checkId] = l.checks[checkId]
+				l.pruneCheck(checkId)
 			}
 		}
+	}
+
+	err := l.rpc("Catalog.Deregister", &req)
+
+	switch {
+	case err == nil || strings.Contains(err.Error(), "Unknown service"):
 		l.logger.Info("Deregistered service", "service", key.ID)
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
+		l.services[key] = service
 		l.services[key].InSync = true
 		accessorID := l.aclAccessorID(st)
 		l.logger.Warn("Service deregistration blocked by ACLs", "service", key.String(), "accessorID", accessorID)
@@ -1268,6 +1294,11 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		return nil
 
 	default:
+		// rollback by re-adding service + checks to state
+		l.services[key] = service
+		for checkId, c := range checks {
+			l.checks[checkId] = c
+		}
 		l.logger.Warn("Deregistering service failed.",
 			"service", key.String(),
 			"error", err,
@@ -1290,17 +1321,19 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		EnterpriseMeta: key.EnterpriseMeta,
 		WriteRequest:   structs.WriteRequest{Token: ct},
 	}
-	var out struct{}
-	err := l.Delegate.RPC("Catalog.Deregister", &req, &out)
+	check := l.checks[key]
+	l.pruneCheck(key)
+
+	err := l.rpc("Catalog.Deregister", &req)
 	switch {
 	case err == nil || strings.Contains(err.Error(), "Unknown check"):
-		l.pruneCheck(key)
 		l.logger.Info("Deregistered check", "check", key.String())
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
+		l.checks[key] = check
 		l.checks[key].InSync = true
 		accessorID := l.aclAccessorID(ct)
 		l.logger.Warn("Check deregistration blocked by ACLs", "check", key.String(), "accessorID", accessorID)
@@ -1308,6 +1341,8 @@ func (l *State) deleteCheck(key structs.CheckID) error {
 		return nil
 
 	default:
+		// rollback state
+		l.checks[key] = check
 		l.logger.Warn("Deregistering check failed.",
 			"check", key.String(),
 			"error", err,
@@ -1324,7 +1359,7 @@ func (l *State) pruneCheck(id structs.CheckID) {
 	delete(l.checks, id)
 }
 
-// syncService is used to sync a service to the server
+// syncService is used to sync a service (and associated checks) to the server
 func (l *State) syncService(key structs.ServiceID) error {
 	st := l.aclTokenForServiceSync(key, l.tokens.UserToken)
 
@@ -1368,35 +1403,41 @@ func (l *State) syncService(key structs.ServiceID) error {
 		req.Checks = checks
 	}
 
-	var out struct{}
-	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	l.services[key].InSync = true
+	// Given how the register API works, this info is also updated
+	// every time we sync a service.
+	l.nodeInfoInSync = true
+	for _, check := range checks {
+		checkKey := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
+		l.checks[checkKey].InSync = true
+	}
+
+	err := l.rpc("Catalog.Register", &req)
+
 	switch {
 	case err == nil:
-		l.services[key].InSync = true
-		// Given how the register API works, this info is also updated
-		// every time we sync a service.
-		l.nodeInfoInSync = true
-		for _, check := range checks {
-			checkKey := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
-			l.checks[checkKey].InSync = true
-		}
 		l.logger.Info("Synced service", "service", key.String())
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service and the checks to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
-		l.services[key].InSync = true
-		for _, check := range checks {
-			checkKey := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
-			l.checks[checkKey].InSync = true
-		}
 		accessorID := l.aclAccessorID(st)
 		l.logger.Warn("Service registration blocked by ACLs", "service", key.String(), "accessorID", accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "service", "registration"}, 1)
 		return nil
 
 	default:
+		// rollback InSync state
+		if l.services[key] != nil {
+			l.services[key].InSync = false
+		}
+		l.nodeInfoInSync = false
+		for _, check := range checks {
+			checkKey := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
+			l.checks[checkKey].InSync = false
+		}
+
 		l.logger.Warn("Syncing service failed.",
 			"service", key.String(),
 			"error", err,
@@ -1430,14 +1471,15 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		req.Service = s.Service
 	}
 
-	var out struct{}
-	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+	l.checks[key].InSync = true
+	// Given how the register API works, this info is also updated
+	// every time we sync a check.
+	l.nodeInfoInSync = true
+
+	err := l.rpc("Catalog.Register", &req)
+
 	switch {
 	case err == nil:
-		l.checks[key].InSync = true
-		// Given how the register API works, this info is also updated
-		// every time we sync a check.
-		l.nodeInfoInSync = true
 		l.logger.Info("Synced check", "check", key.String())
 		return nil
 
@@ -1451,6 +1493,11 @@ func (l *State) syncCheck(key structs.CheckID) error {
 		return nil
 
 	default:
+		// rollback state
+		if l.checks[key] != nil {
+			l.checks[key].InSync = false
+		}
+		l.nodeInfoInSync = false
 		l.logger.Warn("Syncing check failed.",
 			"check", key.String(),
 			"error", err,
@@ -1471,24 +1518,26 @@ func (l *State) syncNodeInfo() error {
 		EnterpriseMeta:  l.agentEnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: at},
 	}
-	var out struct{}
-	err := l.Delegate.RPC("Catalog.Register", &req, &out)
+
+	l.nodeInfoInSync = true
+
+	err := l.rpc("Catalog.Register", &req)
+
 	switch {
 	case err == nil:
-		l.nodeInfoInSync = true
 		l.logger.Info("Synced node info")
 		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
-		l.nodeInfoInSync = true
 		accessorID := l.aclAccessorID(at)
 		l.logger.Warn("Node info update blocked by ACLs", "node", l.config.NodeID, "accessorID", accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
 		return nil
 
 	default:
+		l.nodeInfoInSync = false
 		l.logger.Warn("Syncing node info failed.", "error", err)
 		return err
 	}
