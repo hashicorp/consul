@@ -213,6 +213,9 @@ The options below are all specified on the command-line.
   DNS queries in an alternate domain, in addition to the primary domain. If unset,
   no alternate domain is used.
 
+  In Consul 1.10.4 and later, Consul DNS responses will use the same domain as in the query (`-domain` or `-alt-domain`) where applicable.
+  PTR query responses will always use `-domain`, since the desired domain cannot be included in the query.
+
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
   [health checks that execute scripts](/docs/agent/checks) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
@@ -823,6 +826,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   This agent will advertise to all other nodes in the cluster that after this timeout, the node may be completely
   removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
   `reconnect_timeout` setting when determining when this node may be removed from the cluster.
+
+- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](#_alt_domain)
 
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
   This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
