@@ -4,8 +4,8 @@ on:
   push:
     # Sequence of patterns matched against refs/heads
     branches:
-      # Push events on crt-consul-migration branch
-      - release/1.11.x
+      # Provide the release branch
+
 env:
   PKG_NAME: consul
 
@@ -22,8 +22,7 @@ jobs:
       - name: get product version
         id: get-product-version
         run: |
-          build-support/scripts/version.sh -r
-          IFS="-"; OUTPUT=$(make -f Makefile version);
+          IFS="-"; OUTPUT=$(build-support/scripts/version.sh -r);
           read -a V <<< "$OUTPUT"; unset IFS;
 
           VERSION=${V[0]}
