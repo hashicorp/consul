@@ -408,6 +408,7 @@ type ConfigSnapshot struct {
 	Proxy                 structs.ConnectProxyConfig
 	Datacenter            string
 	IntentionDefaultAllow bool
+	Locality              GatewayKey
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots

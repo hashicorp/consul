@@ -286,7 +286,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u cache.Up
 			snap.TerminatingGateway.ServiceGroups[sn] = resp.Nodes
 			snap.TerminatingGateway.HostnameServices[sn] = hostnameEndpoints(
 				s.logger,
-				GatewayKey{Partition: snap.ProxyID.PartitionOrDefault(), Datacenter: snap.Datacenter},
+				snap.Locality,
 				resp.Nodes,
 			)
 		}

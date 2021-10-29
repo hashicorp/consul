@@ -13,6 +13,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
@@ -674,11 +675,12 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 	upstreams := structs.TestUpstreams(t)
 
 	return &ConfigSnapshot{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "web-sidecar-proxy",
-		ProxyID: structs.NewServiceID("web-sidecar-proxy", nil),
-		Address: "0.0.0.0",
-		Port:    9999,
+		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
+		Kind:     structs.ServiceKindConnectProxy,
+		Service:  "web-sidecar-proxy",
+		ProxyID:  structs.NewServiceID("web-sidecar-proxy", nil),
+		Address:  "0.0.0.0",
+		Port:     9999,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceID:   "web",
 			DestinationServiceName: "web",
@@ -798,11 +800,12 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 	roots, leaf := TestCerts(t)
 
 	snap := &ConfigSnapshot{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "web-sidecar-proxy",
-		ProxyID: structs.NewServiceID("web-sidecar-proxy", nil),
-		Address: "0.0.0.0",
-		Port:    9999,
+		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
+		Kind:     structs.ServiceKindConnectProxy,
+		Service:  "web-sidecar-proxy",
+		ProxyID:  structs.NewServiceID("web-sidecar-proxy", nil),
+		Address:  "0.0.0.0",
+		Port:     9999,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceID:   "web",
 			DestinationServiceName: "web",
@@ -1510,11 +1513,12 @@ func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
 func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFederationStates bool) *ConfigSnapshot {
 	roots, _ := TestCerts(t)
 	snap := &ConfigSnapshot{
-		Kind:    structs.ServiceKindMeshGateway,
-		Service: "mesh-gateway",
-		ProxyID: structs.NewServiceID("mesh-gateway", nil),
-		Address: "1.2.3.4",
-		Port:    8443,
+		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
+		Kind:     structs.ServiceKindMeshGateway,
+		Service:  "mesh-gateway",
+		ProxyID:  structs.NewServiceID("mesh-gateway", nil),
+		Address:  "1.2.3.4",
+		Port:     8443,
 		Proxy: structs.ConnectProxyConfig{
 			Config: map[string]interface{}{},
 		},
@@ -1721,6 +1725,7 @@ func testConfigSnapshotIngressGateway(
 	roots, leaf := TestCerts(t)
 
 	snap := &ConfigSnapshot{
+		Locality:   GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
 		Kind:       structs.ServiceKindIngressGateway,
 		Service:    "ingress-gateway",
 		ProxyID:    structs.NewServiceID("ingress-gateway", nil),
@@ -1760,11 +1765,12 @@ func testConfigSnapshotIngressGateway(
 
 func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "web-proxy",
-		ProxyID: structs.NewServiceID("web-proxy", nil),
-		Address: "1.2.3.4",
-		Port:    8080,
+		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
+		Kind:     structs.ServiceKindConnectProxy,
+		Service:  "web-proxy",
+		ProxyID:  structs.NewServiceID("web-proxy", nil),
+		Address:  "1.2.3.4",
+		Port:     8080,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "web",
 			DestinationServiceID:   "web",
@@ -1801,10 +1807,11 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 	roots, _ := TestCerts(t)
 
 	snap := &ConfigSnapshot{
-		Kind:    structs.ServiceKindTerminatingGateway,
-		Service: "terminating-gateway",
-		ProxyID: structs.NewServiceID("terminating-gateway", nil),
-		Address: "1.2.3.4",
+		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
+		Kind:     structs.ServiceKindTerminatingGateway,
+		Service:  "terminating-gateway",
+		ProxyID:  structs.NewServiceID("terminating-gateway", nil),
+		Address:  "1.2.3.4",
 		TaggedAddresses: map[string]structs.ServiceAddress{
 			structs.TaggedAddressWAN: {
 				Address: "198.18.0.1",
@@ -2035,11 +2042,12 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
-		Kind:    structs.ServiceKindConnectProxy,
-		Service: "grpc-proxy",
-		ProxyID: structs.NewServiceID("grpc-proxy", nil),
-		Address: "1.2.3.4",
-		Port:    8080,
+		Locality: GatewayKey{Datacenter: "dc1", Partition: acl.DefaultPartitionName},
+		Kind:     structs.ServiceKindConnectProxy,
+		Service:  "grpc-proxy",
+		ProxyID:  structs.NewServiceID("grpc-proxy", nil),
+		Address:  "1.2.3.4",
+		Port:     8080,
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "grpc",
 			DestinationServiceID:   "grpc",

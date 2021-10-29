@@ -299,10 +299,9 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			hostnameEndpoints = cfgSnap.TerminatingGateway.HostnameServices[svc]
 		}
 
-		localKey := proxycfg.GatewayKey{Partition: cfgSnap.ProxyID.PartitionOrDefault(), Datacenter: cfgSnap.Datacenter}
 		var isRemote bool
 		if len(services[svc]) > 0 {
-			isRemote = !localKey.Matches(services[svc][0].Node.Datacenter, services[svc][0].Node.PartitionOrDefault())
+			isRemote = !cfgSnap.Locality.Matches(services[svc][0].Node.Datacenter, services[svc][0].Node.PartitionOrDefault())
 		}
 
 		opts := gatewayClusterOpts{

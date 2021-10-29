@@ -254,6 +254,7 @@ func newConfigSnapshotFromServiceInstance(s serviceInstance, config stateConfig)
 		TaggedAddresses:       s.taggedAddresses,
 		Proxy:                 s.proxyCfg,
 		Datacenter:            config.source.Datacenter,
+		Locality:              GatewayKey{Datacenter: config.source.Datacenter, Partition: s.proxyID.PartitionOrDefault()},
 		ServerSNIFn:           config.serverSNIFn,
 		IntentionDefaultAllow: config.intentionDefaultAllow,
 	}

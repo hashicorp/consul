@@ -51,7 +51,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		es := s.endpointsFromDiscoveryChain(
 			id,
 			chain,
-			proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
+			cfgSnap.Locality,
 			cfgSnap.ConnectProxy.UpstreamConfig[id],
 			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
@@ -79,7 +79,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
@@ -140,7 +140,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
@@ -155,7 +155,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
@@ -256,7 +256,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 			la := makeLoadAssignment(
 				clusterName,
 				groups,
-				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
