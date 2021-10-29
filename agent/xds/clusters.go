@@ -209,14 +209,14 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 
 	// Generate the remote clusters
 	for _, key := range keys {
-		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
 			continue // skip local
 		}
 
 		opts := gatewayClusterOpts{
 			name:              connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain),
 			hostnameEndpoints: cfgSnap.MeshGateway.HostnameDatacenters[key.String()],
-			isRemote:          key.Datacenter != cfgSnap.Datacenter,
+			isRemote:          true,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 		clusters = append(clusters, cluster)
@@ -238,7 +238,7 @@ func (s *ResourceGenerator) clustersFromSnapshotMeshGateway(cfgSnap *proxycfg.Co
 			opts := gatewayClusterOpts{
 				name:              cfgSnap.ServerSNIFn(key.Datacenter, ""),
 				hostnameEndpoints: hostnameEndpoints,
-				isRemote:          key.Datacenter != cfgSnap.Datacenter,
+				isRemote:          !key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()),
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 			clusters = append(clusters, cluster)
@@ -299,10 +299,17 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 			hostnameEndpoints = cfgSnap.TerminatingGateway.HostnameServices[svc]
 		}
 
+		localKey := proxycfg.GatewayKey{Partition: cfgSnap.ProxyID.PartitionOrDefault(), Datacenter: cfgSnap.Datacenter}
+		var isRemote bool
+		if len(services[svc]) > 0 {
+			isRemote = !localKey.Matches(services[svc][0].Node.Datacenter, services[svc][0].Node.PartitionOrDefault())
+		}
+
 		opts := gatewayClusterOpts{
 			name:              clusterName,
 			hostnameEndpoints: hostnameEndpoints,
 			connectTimeout:    resolver.ConnectTimeout,
+			isRemote:          isRemote,
 		}
 		cluster := s.makeGatewayCluster(cfgSnap, opts)
 
@@ -323,6 +330,7 @@ func (s *ResourceGenerator) makeGatewayServiceClusters(
 				hostnameEndpoints: subsetHostnameEndpoints,
 				onlyPassing:       subset.OnlyPassing,
 				connectTimeout:    resolver.ConnectTimeout,
+				isRemote:          isRemote,
 			}
 			cluster := s.makeGatewayCluster(cfgSnap, opts)
 

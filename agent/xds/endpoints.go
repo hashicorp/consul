@@ -79,7 +79,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				cfgSnap.Datacenter,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
 			)
 			resources = append(resources, la)
 		}
@@ -114,7 +114,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	for _, key := range keys {
-		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrEmpty()) {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
 			continue // skip local
 		}
 		// Also skip gateways with a hostname as their address. EDS cannot resolve hostnames,
@@ -140,7 +140,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				cfgSnap.Datacenter,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
 			)
 			resources = append(resources, la)
 		}
@@ -155,7 +155,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				cfgSnap.Datacenter,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
 			)
 			resources = append(resources, la)
 		}
@@ -256,7 +256,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 			la := makeLoadAssignment(
 				clusterName,
 				groups,
-				cfgSnap.Datacenter,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: cfgSnap.ProxyID.PartitionOrDefault()},
 			)
 			resources = append(resources, la)
 		}
@@ -427,7 +427,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		la := makeLoadAssignment(
 			clusterName,
 			endpointGroups,
-			gatewayKey.Datacenter,
+			gatewayKey,
 		)
 		resources = append(resources, la)
 	}
@@ -441,7 +441,7 @@ type loadAssignmentEndpointGroup struct {
 	OverrideHealth envoy_core_v3.HealthStatus
 }
 
-func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localDatacenter string) *envoy_endpoint_v3.ClusterLoadAssignment {
+func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
 	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
@@ -461,7 +461,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 
 		for _, ep := range endpoints {
 			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
-			addr, port := ep.BestAddress(localDatacenter != ep.Node.Datacenter)
+			addr, port := ep.BestAddress(!localKey.Matches(ep.Node.Datacenter, ep.Node.PartitionOrDefault()))
 			healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
 
 			if endpointGroup.OverrideHealth != envoy_core_v3.HealthStatus_UNKNOWN {
