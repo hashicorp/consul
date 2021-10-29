@@ -460,10 +460,10 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	}
 	chain, ok := response.Data["ca_chain"].([]interface{})
 	if !ok {
-		return "", fmt.Errorf("ca_chain was not a slice of anonymous interfaces")
+		return "", fmt.Errorf("ca_chain was not returned in expected format")
 	}
 	if len(chain) == 0 {
-		return "", fmt.Errorf("no CA chain was returned from Vault")
+		return "", fmt.Errorf("empty CA chain was returned from Vault")
 	}
 
 	out := EnsureTrailingNewline(cert)
