@@ -143,7 +143,10 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u cache.UpdateEve
 
 		for dc, nodes := range dcIndexedNodes.DatacenterNodes {
 			snap.MeshGateway.HostnameDatacenters[dc] = hostnameEndpoints(
-				s.logger.Named(logging.MeshGateway), snap.Datacenter, nodes)
+				s.logger.Named(logging.MeshGateway),
+				GatewayKey{Partition: snap.ProxyID.PartitionOrDefault(), Datacenter: snap.Datacenter},
+				nodes,
+			)
 		}
 
 		for dc := range snap.MeshGateway.HostnameDatacenters {
@@ -323,7 +326,10 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u cache.UpdateEve
 			if len(resp.Nodes) > 0 {
 				snap.MeshGateway.GatewayGroups[key] = resp.Nodes
 				snap.MeshGateway.HostnameDatacenters[key] = hostnameEndpoints(
-					s.logger.Named(logging.MeshGateway), snap.Datacenter, resp.Nodes)
+					s.logger.Named(logging.MeshGateway),
+					GatewayKey{Partition: snap.ProxyID.PartitionOrDefault(), Datacenter: snap.Datacenter},
+					resp.Nodes,
+				)
 			}
 
 		default:

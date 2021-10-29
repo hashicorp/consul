@@ -2313,3 +2313,128 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 		})
 	}
 }
+
+func Test_hostnameEndpoints(t *testing.T) {
+	type testCase struct {
+		name     string
+		localKey GatewayKey
+		nodes    structs.CheckServiceNodes
+		want     structs.CheckServiceNodes
+	}
+	run := func(t *testing.T, tc testCase) {
+		logger := hclog.New(nil)
+		got := hostnameEndpoints(logger, tc.localKey, tc.nodes)
+		require.Equal(t, tc.want, got)
+	}
+
+	cases := []testCase{
+		{
+			name:     "same locality and no LAN hostname endpoints",
+			localKey: GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
+			nodes: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"10.0.1.1", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-1.elb.notaws.com", Port: 443}),
+				},
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"10.0.2.2", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+				},
+			},
+			want: nil,
+		},
+		{
+			name:     "same locality and one LAN hostname endpoint",
+			localKey: GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
+			nodes: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"gateway.mydomain", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-1.elb.notaws.com", Port: 443}),
+				},
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"10.0.2.2", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+				},
+			},
+			want: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"gateway.mydomain", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-1.elb.notaws.com", Port: 443}),
+				},
+			},
+		},
+		{
+			name:     "different locality and one WAN hostname endpoint",
+			localKey: GatewayKey{Datacenter: "dc2", Partition: structs.PartitionOrDefault("")},
+			nodes: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"gateway.mydomain", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "8.8.8.8", Port: 443}),
+				},
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"10.0.2.2", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+				},
+			},
+			want: structs.CheckServiceNodes{
+				{
+					Node: &structs.Node{
+						Node:       "mesh-gateway",
+						Datacenter: "dc1",
+					},
+					Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+						"10.0.2.2", 8443,
+						structs.ServiceAddress{},
+						structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+				},
+			},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			run(t, c)
+		})
+	}
+}
