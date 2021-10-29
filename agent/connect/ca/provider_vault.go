@@ -450,7 +450,7 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error issuing cert: %v", err)
 	}
-	if response == nil || response.Data["certificate"] == "" || response.Data["issuing_ca"] == "" {
+	if response == nil || response.Data["certificate"] == "" {
 		return "", fmt.Errorf("certificate info returned from Vault was blank")
 	}
 
@@ -458,12 +458,20 @@ func (v *VaultProvider) Sign(csr *x509.CertificateRequest) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("certificate was not a string")
 	}
-	ca, ok := response.Data["issuing_ca"].(string)
+	chain, ok := response.Data["ca_chain"].([]interface{})
 	if !ok {
-		return "", fmt.Errorf("issuing_ca was not a string")
+		return "", fmt.Errorf("ca_chain was not a slice of anonymous interfaces")
+	}
+	if len(chain) == 0 {
+		return "", fmt.Errorf("no CA chain was returned from Vault")
 	}
 
-	return EnsureTrailingNewline(cert) + EnsureTrailingNewline(ca), nil
+	out := EnsureTrailingNewline(cert)
+	for _, node := range chain {
+		out = out + EnsureTrailingNewline(fmt.Sprintf("%v", node))
+	}
+
+	return out, nil
 }
 
 // SignIntermediate returns a signed CA certificate with a path length constraint
