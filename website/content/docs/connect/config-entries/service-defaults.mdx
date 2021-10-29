@@ -230,6 +230,7 @@ spec:
   }
 }
 ```
+
 </CodeTabs>
 
 </Tab>
@@ -338,14 +339,13 @@ spec:
                 name: 'Protocol',
                 type: 'string: ""',
                 description:
-                  `The protocol for the upstream listener.
-                  
+                  `The protocol for the upstream listener.<br><br>
                   NOTE: The protocol of a service should ideally be configured via the
                     [\`protocol\`](/docs/connect/config-entries/service-defaults#protocol)
                     field of a
                     [\`service-defaults\`](/docs/connect/config-entries/service-defaults)
                     config entry for the upstream destination service. Configuring it in a
-                    proxy upstream config will not fully enable some 
+                    proxy upstream config will not fully enable some
                     [L7 features](/docs/connect/l7-traffic-management).
                     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                   `,
@@ -375,7 +375,7 @@ spec:
                       It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
                 `,
                 },
-              }, 
+              },
               {
                 name: 'MeshGateway',
                 type: 'MeshGatewayConfig: <optional>',
@@ -454,18 +454,8 @@ spec:
         {
           name: 'Defaults',
           type: 'UpstreamConfig: <optional>',
-          description: `Default configuration that applies to all upstreams of the given service.`,
+          description: `Default configuration that applies to all upstreams of this service.`,
           children: [
-            {
-              name: 'Name',
-              type: 'string: ""',
-              description: 'The upstream name to apply the configuration to.',
-            },
-            {
-              name: 'Namespace',
-              type: 'string: ""',
-              description: 'The namespace of the upstream.',
-            },
             {
               name: 'Protocol',
               type: 'string: ""',
@@ -697,7 +687,7 @@ spec:
           ],
         },
       ],
-    },
+    }
   ]}
 />
 
