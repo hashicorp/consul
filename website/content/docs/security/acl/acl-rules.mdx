@@ -55,7 +55,7 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 
 - `read`: Allows the resource to be read but not modified.
 - `write`: Allows the resource to be read and modified.
-- `deny`: Denies access to the resource.
+- `deny`: Denies read and write access to the resource.
 
 You can also use a special `list` access level to allows access to all keys under a segment in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
 
