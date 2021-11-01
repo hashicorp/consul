@@ -148,6 +148,8 @@ func TestNewDialer_WithALPNWrapper(t *testing.T) {
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 
@@ -189,6 +191,8 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	ports := freeport.MustTake(1)
 	defer freeport.Return(ports)
 

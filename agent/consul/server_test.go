@@ -641,6 +641,8 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 // This is a mirror of a similar test in agent/agent_test.go
 func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
