@@ -72,6 +72,8 @@ func startTLSServer(config *Config, alpnProtos []string, doAlpnVariant bool) (ne
 }
 
 func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -103,6 +105,8 @@ func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		VerifyOutgoing: true,
 		CAFile:         "../test/hostname/CertAuth.crt",
@@ -133,6 +137,8 @@ func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapper_BadDC(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -194,6 +200,8 @@ func TestConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Bob.crt",
@@ -226,6 +234,8 @@ func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
 }
 
 func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	srvConfig := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Alice.crt",
@@ -264,6 +274,8 @@ func TestConfigurator_outgoingWrapperALPN_serverHasNoNodeNameInSAN(t *testing.T)
 }
 
 func TestConfigurator_outgoingWrapperALPN_BadDC(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	config := Config{
 		CAFile:               "../test/hostname/CertAuth.crt",
 		CertFile:             "../test/hostname/Bob.crt",
@@ -761,6 +773,8 @@ func TestConfigurator_OutgoingRPCTLSDisabled(t *testing.T) {
 }
 
 func TestConfigurator_MutualTLSCapable(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	t.Run("no ca", func(t *testing.T) {
 		config := Config{
 			Domain: "consul",

@@ -4531,6 +4531,8 @@ LOOP:
 // TODO(rb): implement something similar to this as a full containerized test suite with proper
 // isolation so requests can't "cheat" and bypass the mesh gateways
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
