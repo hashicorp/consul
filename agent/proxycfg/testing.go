@@ -1432,7 +1432,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
-				"default.dc2": TestGatewayNodesDC2(t),
+				"dc2": TestGatewayNodesDC2(t),
 			},
 		}
 	case "failover-through-double-remote-gateway-triggered":
@@ -1445,8 +1445,8 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
-				"default.dc2": TestGatewayNodesDC2(t),
-				"default.dc3": TestGatewayNodesDC3(t),
+				"dc2": TestGatewayNodesDC2(t),
+				"dc3": TestGatewayNodesDC3(t),
 			},
 		}
 	case "failover-through-local-gateway-triggered":
@@ -1458,7 +1458,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
-				"default.dc1": TestGatewayNodesDC1(t),
+				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
 	case "failover-through-double-local-gateway-triggered":
@@ -1471,7 +1471,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["db"]["db.default.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
 			"db": {
-				"default.dc1": TestGatewayNodesDC1(t),
+				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
 	case "splitter-with-resolver-redirect-multidc":
@@ -1547,7 +1547,7 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 			},
 			WatchedServicesSet: true,
 			WatchedGateways: map[string]context.CancelFunc{
-				"default.dc2": nil,
+				"dc2": nil,
 			},
 			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
 				structs.NewServiceName("foo", nil): TestGatewayServiceGroupFooDC1(t),

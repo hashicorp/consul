@@ -8,6 +8,7 @@ import (
 
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -61,7 +62,7 @@ type GatewayKey struct {
 
 func (k GatewayKey) String() string {
 	resp := k.Datacenter
-	if k.Partition != "" {
+	if !structs.IsDefaultPartition(k.Partition) {
 		resp = k.Partition + "." + resp
 	}
 	return resp
@@ -79,7 +80,7 @@ func gatewayKeyFromString(s string) GatewayKey {
 	split := strings.SplitN(s, ".", 2)
 
 	if len(split) == 1 {
-		return GatewayKey{Datacenter: split[0]}
+		return GatewayKey{Datacenter: split[0], Partition: acl.DefaultPartitionName}
 	}
 	return GatewayKey{Partition: split[0], Datacenter: split[1]}
 }
