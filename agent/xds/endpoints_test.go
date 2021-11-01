@@ -209,7 +209,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 			got := makeLoadAssignment(
 				tt.clusterName,
 				tt.endpoints,
-				"dc1",
+				proxycfg.GatewayKey{Datacenter: "dc1"},
 			)
 			require.Equal(t, tt.want, got)
 		})
