@@ -8,6 +8,7 @@ import (
 
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -61,7 +62,7 @@ type GatewayKey struct {
 
 func (k GatewayKey) String() string {
 	resp := k.Datacenter
-	if k.Partition != "" {
+	if !structs.IsDefaultPartition(k.Partition) {
 		resp = k.Partition + "." + resp
 	}
 	return resp
@@ -79,7 +80,7 @@ func gatewayKeyFromString(s string) GatewayKey {
 	split := strings.SplitN(s, ".", 2)
 
 	if len(split) == 1 {
-		return GatewayKey{Datacenter: split[0]}
+		return GatewayKey{Datacenter: split[0], Partition: acl.DefaultPartitionName}
 	}
 	return GatewayKey{Partition: split[0], Datacenter: split[1]}
 }
@@ -303,12 +304,13 @@ func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	}
 
 	keys := make([]GatewayKey, 0, sz)
-	for key := range c.GatewayGroups {
+	for key := range c.FedStateGateways {
 		keys = append(keys, gatewayKeyFromString(key))
 	}
-	for key := range c.FedStateGateways {
-		if _, ok := c.GatewayGroups[key]; !ok {
-			keys = append(keys, gatewayKeyFromString(key))
+	for key := range c.GatewayGroups {
+		gk := gatewayKeyFromString(key)
+		if _, ok := c.FedStateGateways[gk.Datacenter]; !ok {
+			keys = append(keys, gk)
 		}
 	}
 
@@ -408,6 +410,7 @@ type ConfigSnapshot struct {
 	Proxy                 structs.ConnectProxyConfig
 	Datacenter            string
 	IntentionDefaultAllow bool
+	Locality              GatewayKey
 
 	ServerSNIFn ServerSNIFunc
 	Roots       *structs.IndexedCARoots

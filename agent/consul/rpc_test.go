@@ -448,6 +448,8 @@ func TestRPC_MagicByteTimeout(t *testing.T) {
 }
 
 func TestRPC_TLSHandshakeTimeout(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -684,6 +686,8 @@ func connectClient(t *testing.T, s1 *Server, mb pool.RPCType, useTLS, wantOpen b
 }
 
 func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

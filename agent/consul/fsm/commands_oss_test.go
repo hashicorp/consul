@@ -1352,6 +1352,57 @@ func TestFSM_ConfigEntry(t *testing.T) {
 	}
 }
 
+func TestFSM_ConfigEntry_DeleteCAS(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	logger := testutil.Logger(t)
+	fsm, err := New(nil, logger)
+	require.NoError(err)
+
+	// Create a simple config entry and write it to the state store.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "global",
+	}
+	require.NoError(fsm.state.EnsureConfigEntry(1, entry))
+
+	// Raft index is populated by EnsureConfigEntry, hold on to it so that we can
+	// restore it later.
+	raftIndex := entry.RaftIndex
+	require.NotZero(raftIndex.ModifyIndex)
+
+	// Attempt a CAS delete with an invalid index.
+	entry = entry.Clone()
+	entry.RaftIndex = structs.RaftIndex{
+		ModifyIndex: 99,
+	}
+	req := &structs.ConfigEntryRequest{
+		Op:    structs.ConfigEntryDeleteCAS,
+		Entry: entry,
+	}
+	buf, err := structs.Encode(structs.ConfigEntryRequestType, req)
+	require.NoError(err)
+
+	// Expect to get boolean false back.
+	rsp := fsm.Apply(makeLog(buf))
+	didDelete, isBool := rsp.(bool)
+	require.True(isBool)
+	require.False(didDelete)
+
+	// Attempt a CAS delete with a valid index.
+	entry.RaftIndex = raftIndex
+	buf, err = structs.Encode(structs.ConfigEntryRequestType, req)
+	require.NoError(err)
+
+	// Expect to get boolean true back.
+	rsp = fsm.Apply(makeLog(buf))
+	didDelete, isBool = rsp.(bool)
+	require.True(isBool)
+	require.True(didDelete)
+}
+
 // This adapts another test by chunking the encoded data and then performing
 // out-of-order applies of half the logs. It then snapshots, restores to a new
 // FSM, and applies the rest. The goal is to verify that chunking snapshotting

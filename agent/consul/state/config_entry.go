@@ -242,6 +242,41 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 	return err == nil, err
 }
 
+// DeleteConfigEntryCAS performs a check-and-set deletion of a config entry
+// with the given raft index. If the index is not specified, or is not equal
+// to the entry's current ModifyIndex then the call is a noop, otherwise the
+// normal deletion is performed.
+func (s *Store) DeleteConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
+	if err != nil {
+		return false, fmt.Errorf("failed config entry lookup: %s", err)
+	}
+
+	if existing == nil {
+		return false, nil
+	}
+
+	if existing.(structs.ConfigEntry).GetRaftIndex().ModifyIndex != cidx {
+		return false, nil
+	}
+
+	if err := deleteConfigEntryTxn(
+		tx,
+		idx,
+		conf.GetKind(),
+		conf.GetName(),
+		conf.GetEnterpriseMeta(),
+	); err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	return err == nil, err
+}
+
 func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()

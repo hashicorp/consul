@@ -262,7 +262,7 @@ func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *st
 }
 
 // Delete deletes a config entry.
-func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) error {
+func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *structs.ConfigEntryDeleteResponse) error {
 	if err := c.srv.validateEnterpriseRequest(args.Entry.GetEnterpriseMeta(), true); err != nil {
 		return err
 	}
@@ -294,9 +294,30 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 		return acl.ErrPermissionDenied
 	}
 
-	args.Op = structs.ConfigEntryDelete
-	_, err = c.srv.raftApply(structs.ConfigEntryRequestType, args)
-	return err
+	// Only delete and delete-cas ops are supported. If the caller erroneously
+	// sent something else, we assume they meant delete.
+	switch args.Op {
+	case structs.ConfigEntryDelete, structs.ConfigEntryDeleteCAS:
+	default:
+		args.Op = structs.ConfigEntryDelete
+	}
+
+	rsp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
+	if err != nil {
+		return err
+	}
+
+	if args.Op == structs.ConfigEntryDeleteCAS {
+		// In CAS deletions the FSM will return a boolean value indicating whether the
+		// operation was successful.
+		deleted, _ := rsp.(bool)
+		reply.Deleted = deleted
+	} else {
+		// For non-CAS deletions any non-error result indicates a successful deletion.
+		reply.Deleted = true
+	}
+
+	return nil
 }
 
 // ResolveServiceConfig

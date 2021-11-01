@@ -15,6 +15,10 @@ export default [
         text: 'Multi-Platform Service Mesh',
         url: '/use-cases/multi-platform-service-mesh',
       },
+      {
+        text: 'Consul on Kubernetes',
+        url: '/consul-on-kubernetes',
+      },
     ],
   },
   {

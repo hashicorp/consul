@@ -239,6 +239,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
+				Locality:   GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
 			},
 		},
 		{
@@ -296,6 +297,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
+				Locality:   GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
 			},
 		},
 	}
