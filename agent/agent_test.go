@@ -4336,6 +4336,9 @@ LOOP:
 
 // This is a mirror of a similar test in agent/consul/server_test.go
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
+
 	t.Parallel()
 
 	gwPort := freeport.MustTake(1)
