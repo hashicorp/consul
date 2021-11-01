@@ -51,6 +51,8 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 }
 
 func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
 
