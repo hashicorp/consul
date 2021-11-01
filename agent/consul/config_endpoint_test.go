@@ -676,6 +676,64 @@ func TestConfigEntry_Delete(t *testing.T) {
 	})
 }
 
+func TestConfigEntry_DeleteCAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir, s := testServer(t)
+	defer os.RemoveAll(dir)
+	defer s.Shutdown()
+
+	codec := rpcClient(t, s)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s.RPC, "dc1")
+
+	// Create a simple config entry.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+	}
+	state := s.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, entry))
+
+	// Verify it's there.
+	_, existing, err := state.ConfigEntry(nil, entry.Kind, entry.Name, nil)
+	require.NoError(err)
+
+	// Send a delete CAS request with an invalid index.
+	args := structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Op:         structs.ConfigEntryDeleteCAS,
+	}
+	args.Entry = entry.Clone()
+	args.Entry.GetRaftIndex().ModifyIndex = existing.GetRaftIndex().ModifyIndex - 1
+
+	var rsp structs.ConfigEntryDeleteResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
+	require.False(rsp.Deleted)
+
+	// Verify the entry was not deleted.
+	_, existing, err = s.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+	require.NoError(err)
+	require.NotNil(existing)
+
+	// Restore the valid index and try again.
+	args.Entry.GetRaftIndex().ModifyIndex = existing.GetRaftIndex().ModifyIndex
+
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.Delete", &args, &rsp))
+	require.True(rsp.Deleted)
+
+	// Verify the entry was deleted.
+	_, existing, err = s.fsm.State().ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
+	require.NoError(err)
+	require.Nil(existing)
+}
+
 func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

@@ -196,6 +196,88 @@ func TestConfig_Delete(t *testing.T) {
 	}
 }
 
+func TestConfig_Delete_CAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	require := require.New(t)
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	// Create a config entry.
+	entry := &structs.ServiceConfigEntry{
+		Kind: structs.ServiceDefaults,
+		Name: "foo",
+	}
+	var created bool
+	require.NoError(a.RPC("ConfigEntry.Apply", &structs.ConfigEntryRequest{
+		Datacenter: "dc1",
+		Entry:      entry,
+	}, &created))
+	require.True(created)
+
+	// Read it back to get its ModifyIndex.
+	var out structs.ConfigEntryResponse
+	require.NoError(a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+		Datacenter: "dc1",
+		Kind:       entry.Kind,
+		Name:       entry.Name,
+	}, &out))
+	require.NotNil(out.Entry)
+
+	modifyIndex := out.Entry.GetRaftIndex().ModifyIndex
+
+	t.Run("attempt to delete with an invalid index", func(t *testing.T) {
+		req := httptest.NewRequest(
+			"DELETE",
+			fmt.Sprintf("/v1/config/%s/%s?cas=%d", entry.Kind, entry.Name, modifyIndex-1),
+			nil,
+		)
+		rawRsp, err := a.srv.Config(httptest.NewRecorder(), req)
+		require.NoError(err)
+
+		deleted, isBool := rawRsp.(bool)
+		require.True(isBool, "response should be a boolean")
+		require.False(deleted, "entry should not have been deleted")
+
+		// Verify it was not deleted.
+		var out structs.ConfigEntryResponse
+		require.NoError(a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+			Datacenter: "dc1",
+			Kind:       entry.Kind,
+			Name:       entry.Name,
+		}, &out))
+		require.NotNil(out.Entry)
+	})
+
+	t.Run("attempt to delete with a valid index", func(t *testing.T) {
+		req := httptest.NewRequest(
+			"DELETE",
+			fmt.Sprintf("/v1/config/%s/%s?cas=%d", entry.Kind, entry.Name, modifyIndex),
+			nil,
+		)
+		rawRsp, err := a.srv.Config(httptest.NewRecorder(), req)
+		require.NoError(err)
+
+		deleted, isBool := rawRsp.(bool)
+		require.True(isBool, "response should be a boolean")
+		require.True(deleted, "entry should have been deleted")
+
+		// Verify it was deleted.
+		var out structs.ConfigEntryResponse
+		require.NoError(a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
+			Datacenter: "dc1",
+			Kind:       entry.Kind,
+			Name:       entry.Name,
+		}, &out))
+		require.Nil(out.Entry)
+	})
+}
+
 func TestConfig_Apply(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

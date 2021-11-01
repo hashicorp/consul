@@ -468,20 +468,45 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 }
 
 func (conf *ConfigEntries) Delete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
+	_, wm, err := conf.delete(kind, name, nil, w)
+	return wm, err
+}
+
+// DeleteCAS performs a Check-And-Set deletion of the given config entry, and
+// returns true if it was successful. If the provided index no longer matches
+// the entry's ModifyIndex (i.e. it was modified by another process) then the
+// operation will fail and return false.
+func (conf *ConfigEntries) DeleteCAS(kind, name string, index uint64, w *WriteOptions) (bool, *WriteMeta, error) {
+	return conf.delete(kind, name, map[string]string{"cas": strconv.FormatUint(index, 10)}, w)
+}
+
+func (conf *ConfigEntries) delete(kind, name string, params map[string]string, w *WriteOptions) (bool, *WriteMeta, error) {
 	if kind == "" || name == "" {
-		return nil, fmt.Errorf("Both kind and name parameters must not be empty")
+		return false, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
 
 	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setWriteOptions(w)
+	for param, value := range params {
+		r.params.Set(param, value)
+	}
+
 	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
-		return nil, err
+		return false, nil, err
 	}
 	defer closeResponseBody(resp)
+
 	if err := requireOK(resp); err != nil {
-		return nil, err
+		return false, nil, err
 	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, nil, fmt.Errorf("Failed to read response: %v", err)
+	}
+
+	res := strings.Contains(buf.String(), "true")
 	wm := &WriteMeta{RequestTime: rtt}
-	return wm, nil
+	return res, wm, nil
 }

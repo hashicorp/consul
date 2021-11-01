@@ -445,6 +445,7 @@ const (
 	ConfigEntryUpsert    ConfigEntryOp = "upsert"
 	ConfigEntryUpsertCAS ConfigEntryOp = "upsert-cas"
 	ConfigEntryDelete    ConfigEntryOp = "delete"
+	ConfigEntryDeleteCAS ConfigEntryOp = "delete-cas"
 )
 
 // ConfigEntryRequest is used when creating/updating/deleting a ConfigEntry.
@@ -1120,4 +1121,8 @@ func validateConfigEntryMeta(meta map[string]string) error {
 		}
 	}
 	return err
+}
+
+type ConfigEntryDeleteResponse struct {
+	Deleted bool
 }
