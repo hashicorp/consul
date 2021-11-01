@@ -11,7 +11,7 @@ Command: `consul admin-partition`
 
 <EnterpriseAlert />
 
-The `admin-partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple namespaces with the same name to exist independently of each other. This features is currently in beta.
+The `admin-partition` command enables you to create and manage Consul Enterprise administrative or admin partitions. Admin partitions are boundaries that allow multiple tenants to exist independently of each other on a shared set of Consul servers. This feature is currently in beta.
 
 If ACLs are enabled then a token with operator privileges may be required in order to use this command. Write
 requests are forwarded to the leader in the primary datacenter. Therefore these commands can be run against
@@ -61,7 +61,7 @@ Usage: consul admin-partition <subcommand> [options] [args]
 
 ## Subcommands
 
-You can issue the folloing subcommands with the `consul admin-partition` command.
+You can issue the following subcommands with the `consul admin-partition` command.
 
 ### `create`
 
@@ -204,7 +204,7 @@ consul admin-partition list -format  json -show-meta
 The `delete` subcommand sends a request to the server to remove the specified partition. 
 
 ```shell-session
-consul admin-partition delete PARTITION_NAME>
+consul admin-partition delete <PARTITION_NAME>
 ```
 In the following example, the `webdev-bu` partition is deleted:
 
