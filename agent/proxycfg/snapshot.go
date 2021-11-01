@@ -303,12 +303,13 @@ func (c *configSnapshotMeshGateway) GatewayKeys() []GatewayKey {
 	}
 
 	keys := make([]GatewayKey, 0, sz)
-	for key := range c.GatewayGroups {
+	for key := range c.FedStateGateways {
 		keys = append(keys, gatewayKeyFromString(key))
 	}
-	for key := range c.FedStateGateways {
-		if _, ok := c.GatewayGroups[key]; !ok {
-			keys = append(keys, gatewayKeyFromString(key))
+	for key := range c.GatewayGroups {
+		gk := gatewayKeyFromString(key)
+		if _, ok := c.FedStateGateways[gk.Datacenter]; !ok {
+			keys = append(keys, gk)
 		}
 	}
 
