@@ -2325,6 +2325,11 @@ type ServiceCheck struct {
 	Namespace string
 }
 
+// IDValue implements the state.singleValueID interface for indexing.
+func (s *Session) IDValue() string {
+	return s.ID
+}
+
 func (s *Session) UnmarshalJSON(data []byte) (err error) {
 	type Alias Session
 	aux := &struct {

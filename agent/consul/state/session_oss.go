@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package state
@@ -37,7 +38,7 @@ func nodeChecksIndexer() *memdb.CompoundIndex {
 }
 
 func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64) error {
-	if err := tx.Delete("sessions", session); err != nil {
+	if err := tx.Delete(tableSessions, session); err != nil {
 		return fmt.Errorf("failed deleting session: %s", err)
 	}
 
@@ -50,7 +51,7 @@ func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64)
 }
 
 func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateMax bool, _ bool) error {
-	if err := tx.Insert("sessions", session); err != nil {
+	if err := tx.Insert(tableSessions, session); err != nil {
 		return err
 	}
 
@@ -88,7 +89,7 @@ func allNodeSessionsTxn(tx ReadTxn, node string) (structs.Sessions, error) {
 func nodeSessionsTxn(tx ReadTxn,
 	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
 
-	sessions, err := tx.Get("sessions", "node", node)
+	sessions, err := tx.Get(tableSessions, indexNode, node)
 	if err != nil {
 		return nil, fmt.Errorf("failed session lookup: %s", err)
 	}

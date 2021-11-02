@@ -14,8 +14,8 @@ import (
 
 func kvsIndexer() indexerSingleWithPrefix {
 	return indexerSingleWithPrefix{
-		readIndex:   readIndex(indexFromKVEntry),
-		writeIndex:  writeIndex(indexFromKVEntry),
+		readIndex:   readIndex(indexFromIDValue),
+		writeIndex:  writeIndex(indexFromIDValue),
 		prefixIndex: prefixIndex(prefixIndexForKVEntry),
 	}
 }

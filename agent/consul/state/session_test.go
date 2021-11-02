@@ -385,7 +385,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 
 	// Make sure the session is really gone.
 	tx := s.db.Txn(false)
-	sessions, err := tx.Get("sessions", "id")
+	sessions, err := tx.Get(tableSessions, indexID)
 	if err != nil || sessions.Next() != nil {
 		t.Fatalf("session should not exist")
 	}

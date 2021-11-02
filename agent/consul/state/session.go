@@ -11,20 +11,24 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+const (
+	tableSessions = "sessions"
+)
+
 // sessionsTableSchema returns a new table schema used for storing session
 // information.
 func sessionsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "sessions",
+		Name: tableSessions,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      sessionIndexer(),
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer:      nodeSessionsIndexer(),
@@ -132,7 +136,7 @@ func (index *CheckIDIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
 
 // Sessions is used to pull the full list of sessions for use during snapshots.
 func (s *Snapshot) Sessions() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("sessions", "id")
+	iter, err := s.tx.Get(tableSessions, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +252,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	idx := sessionMaxIndex(tx, entMeta)
 
 	// Query all of the active sessions.
-	sessions, err := getWithTxn(tx, "sessions", "id_prefix", "", entMeta)
+	sessions, err := getWithTxn(tx, tableSessions, indexID+"_prefix", "", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
@@ -299,7 +303,7 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 // session deletion and handle session invalidation, etc.
 func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
-	sess, err := firstWithTxn(tx, "sessions", "id", sessionID, entMeta)
+	sess, err := firstWithTxn(tx, tableSessions, indexID, sessionID, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed session lookup: %s", err)
 	}
