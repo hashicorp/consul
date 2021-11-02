@@ -5419,7 +5419,10 @@ func TestAgent_Token(t *testing.T) {
 
 			a.srv.h.ServeHTTP(resp, req)
 			require.Equal(t, tt.code, resp.Code)
-			require.Contains(t, resp.Body.String(), tt.expectedErr)
+			if tt.expectedErr != "" {
+				require.Contains(t, resp.Body.String(), tt.expectedErr)
+				return
+			}
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
 			require.Equal(t, tt.effective.master, a.tokens.AgentMasterToken())
