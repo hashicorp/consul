@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -589,7 +588,6 @@ func (v *VaultProvider) Stop() {
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
-	fmt.Fprintf(os.Stderr, "%+v\n", raw)
 	config := structs.VaultCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
 	}
@@ -608,7 +606,6 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	if err := decoder.Decode(raw); err != nil {
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
-	fmt.Fprintf(os.Stderr, "%+v\n", config)
 
 	if config.Token == "" {
 		return nil, fmt.Errorf("must provide a Vault token")

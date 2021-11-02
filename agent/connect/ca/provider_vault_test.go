@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 
@@ -50,7 +49,6 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 			expectedValue: func(t *testing.T, v *VaultProvider) {
 
 				h := v.client.Headers()
-				fmt.Fprintf(os.Stderr, "%+v\n", h)
 				require.Equal(t, "ns1", h.Get(vaultconst.NamespaceHeaderName))
 			},
 		},
