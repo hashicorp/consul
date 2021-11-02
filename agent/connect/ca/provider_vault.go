@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -75,6 +76,12 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	}
 
 	client.SetToken(config.Token)
+
+	// We don't want to set the namespace if it's empty to prevent potential
+	// unknown behavior. It's also what the Vault client does.
+	if config.Namespace != "" {
+		client.SetNamespace(config.Namespace)
+	}
 	v.config = config
 	v.client = client
 	v.isPrimary = cfg.IsPrimary
@@ -582,6 +589,7 @@ func (v *VaultProvider) Stop() {
 func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
+	fmt.Fprintf(os.Stderr, "%+v\n", raw)
 	config := structs.VaultCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
 	}
@@ -600,6 +608,7 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 	if err := decoder.Decode(raw); err != nil {
 		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
+	fmt.Fprintf(os.Stderr, "%+v\n", config)
 
 	if config.Token == "" {
 		return nil, fmt.Errorf("must provide a Vault token")

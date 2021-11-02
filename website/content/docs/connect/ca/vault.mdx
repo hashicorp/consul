@@ -129,6 +129,10 @@ The configuration options are listed below.
 - `TLSSkipVerify` / `tls_skip_verify` (`bool: false`) - Specifies if SSL peer
   validation should be enforced.
 
+- `Namespace` / `namespace` (`string: <optional>`) - The Vault Namespace that
+  the `Token` and PKI Certificates are a part of. Vault Namespaces are a Vault
+  Enterprise feature.
+
 @include 'http_api_connect_ca_common_options.mdx'
 
 ## Root and Intermediate PKI Paths

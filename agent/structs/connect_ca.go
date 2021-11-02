@@ -465,6 +465,7 @@ type VaultCAProviderConfig struct {
 	Token               string
 	RootPKIPath         string
 	IntermediatePKIPath string
+	Namespace           string
 
 	CAFile        string
 	CAPath        string
