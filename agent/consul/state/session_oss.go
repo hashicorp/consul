@@ -125,3 +125,27 @@ func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 	}
 	return nil
 }
+
+// SessionList returns a slice containing all of the active sessions.
+func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := sessionMaxIndex(tx, entMeta)
+
+	var result structs.Sessions
+
+	// Query all of the active sessions.
+	sessions, err := getWithTxn(tx, tableSessions, indexID+"_prefix", "", nil)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
+	}
+	ws.Add(sessions.WatchCh())
+	// Go over the sessions and create a slice of them.
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
+		result = append(result, session.(*structs.Session))
+	}
+
+	return idx, result, nil
+}
