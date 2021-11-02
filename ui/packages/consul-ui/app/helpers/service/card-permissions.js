@@ -1,7 +1,7 @@
 import { helper } from '@ember/component/helper';
 
 export default helper(function serviceCardPermissions([params] /*, hash*/) {
-  if (params.Empty) {
+  if (params.Datacenter === '') {
     return 'empty';
   } else {
     const hasPermissions = params.Intention.HasPermissions;

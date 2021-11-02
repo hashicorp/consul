@@ -1,4 +1,4 @@
-{{#if @item.Empty}}
+{{#if (eq @item.Datacenter '')}}
 <a
   class="topology-metrics-card"
   href={{href-to 'dc.services.index'}}

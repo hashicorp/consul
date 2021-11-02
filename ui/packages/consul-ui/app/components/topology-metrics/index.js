@@ -86,10 +86,9 @@ export default class TopologyMetrics extends Component {
         Datacenter: '',
         Namespace: '',
       });
-    } else if (noDependencies) {
+    } else if (downstreams.length === 0) {
       items.push({
         Name: 'No downstreams.',
-        Empty: true,
         Datacenter: '',
         Namespace: '',
       });
@@ -108,26 +107,22 @@ export default class TopologyMetrics extends Component {
     if (!this.env.var('CONSUL_ACLS_ENABLED') && noDependencies) {
       items.push({
         Name: 'Upstreams unknown.',
-        Empty: true,
-        Datacenter: '',
-        Namespace: '',
-      });
-    } else if (noDependencies) {
-      items.push({
-        Name: 'No upstreams.',
-        Empty: true,
         Datacenter: '',
         Namespace: '',
       });
     } else if (defaultACLPolicy === 'allow' || wildcardIntention) {
       items.push({
         Name: '* (All Services)',
-        Empty: true,
+        Datacenter: '',
+        Namespace: '',
+      });
+    } else if (upstreams.length === 0) {
+      items.push({
+        Name: 'No upstreams.',
         Datacenter: '',
         Namespace: '',
       });
     }
-
     return items;
   }
 

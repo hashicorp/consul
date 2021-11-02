@@ -65,7 +65,7 @@ as |nspace dc items topology|}}
           @action={{true}}
         />
       {{/if}}
-      {{#if (and topology.noDependencies (env 'CONSUL_ACLS_ENABLED'))}}
+      {{#if (and topology.noDependencies (can 'use acl'))}}
         <TopologyMetrics::Notice
           data-test-notice='no-dependencies'
           @type="info"
@@ -75,7 +75,7 @@ as |nspace dc items topology|}}
           @action={{true}}
         />
       {{/if}}
-      {{#if (and topology.noDependencies (not (env 'CONSUL_ACLS_ENABLED')))}}
+      {{#if (and topology.noDependencies (not (can 'use acl')))}}
         <TopologyMetrics::Notice
           data-test-notice='acls-disabled'
           @type="warning"
