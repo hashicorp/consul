@@ -45,6 +45,8 @@ type cmd struct {
 	excludeOutboundCIDRs []string
 	excludeUIDs          []string
 	netNS                string
+	// todo dns pass in consul dns ip
+
 }
 
 func (c *cmd) init() {
