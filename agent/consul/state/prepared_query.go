@@ -206,7 +206,7 @@ func preparedQuerySetTxn(tx WriteTxn, idx uint64, query *structs.PreparedQuery) 
 
 	// Verify that the session exists.
 	if query.Session != "" {
-		sess, err := tx.First(tableSessions, indexID, Query{Value: query.Session, EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()})
+		sess, err := firstWithTxn(tx, tableSessions, indexID, query.Session, nil)
 		if err != nil {
 			return fmt.Errorf("invalid session: %v", err)
 		}
