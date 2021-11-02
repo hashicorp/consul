@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/proto/pbnamespace"
+
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -303,21 +305,42 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
 
 	// Get the table index.
 	idx := sessionMaxIndex(tx, entMeta)
 
-	// Query all of the active sessions.
-	sessions, err := getWithTxn(tx, tableSessions, indexID+"_prefix", "", entMeta)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
-	}
-	ws.Add(sessions.WatchCh())
+	ns := entMeta.NamespaceOrDefault()
+	var metas []structs.EnterpriseMeta
+	if ns != pbnamespace.WildcardName {
+		metas = []structs.EnterpriseMeta{*entMeta}
+	} else {
+		var err error
+		_, nsRaw, err := namespaceListTxn(tx, nil, entMeta.PartitionOrDefault())
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to lookup metas: %v", err)
+		}
 
-	// Go over the sessions and create a slice of them.
+		for _, ns := range nsRaw {
+			e := entMeta
+			e.Namespace = ns.Name
+			metas = append(metas, *e)
+		}
+	}
 	var result structs.Sessions
-	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		result = append(result, session.(*structs.Session))
+	for _, m := range metas {
+		// Query all of the active sessions.
+		sessions, err := getWithTxn(tx, tableSessions, indexID+"_prefix", "", &m)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed session lookup: %s", err)
+		}
+		ws.Add(sessions.WatchCh())
+		// Go over the sessions and create a slice of them.
+		for session := sessions.Next(); session != nil; session = sessions.Next() {
+			result = append(result, session.(*structs.Session))
+		}
 	}
 	return idx, result, nil
 }
