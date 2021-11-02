@@ -18,22 +18,6 @@ const (
 	indexNodeCheck = "node_check"
 )
 
-func indexFromSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*structs.Session)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
-	}
-
-	v := strings.ToLower(e.ID)
-	if v == "" {
-		return nil, errMissingValueForIndex
-	}
-
-	var b indexBuilder
-	b.String(v)
-	return b.Bytes(), nil
-}
-
 // sessionsTableSchema returns a new table schema used for storing session
 // information.
 func sessionsTableSchema() *memdb.TableSchema {
@@ -315,6 +299,29 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 	return idx, nil, nil
 }
 
+// SessionList returns a slice containing all of the active sessions.
+func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := sessionMaxIndex(tx, entMeta)
+
+	// Query all of the active sessions.
+	sessions, err := getWithTxn(tx, tableSessions, indexID+"_prefix", "", entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
+	}
+	ws.Add(sessions.WatchCh())
+
+	// Go over the sessions and create a slice of them.
+	var result structs.Sessions
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
+		result = append(result, session.(*structs.Session))
+	}
+	return idx, result, nil
+}
+
 // NodeSessions returns a set of active sessions associated
 // with the given node ID. The returned index is the highest
 // index seen from the result set.
@@ -352,10 +359,7 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 // session deletion and handle session invalidation, etc.
 func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
-	sess, err := tx.First(tableSessions, indexID, Query{Value: sessionID, EnterpriseMeta: *entMeta})
+	sess, err := firstWithTxn(tx, tableSessions, indexID, sessionID, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed session lookup: %s", err)
 	}
