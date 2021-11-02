@@ -24,7 +24,7 @@ $syntax-dark-gray: #535f73;
   --syntax-yellow: rgb(var(--tone-yellow-500));
 }
 .CodeMirror {
-  max-width: 1150px;
+  //max-width: 1150px; //TODO: examining if this is what we want in review phase
   min-height: 300px;
   height: auto;
   /* adds some space at the bottom of the editor for when a horizonal-scroll has appeared */

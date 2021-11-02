@@ -37,9 +37,12 @@
         {{/if}}
     </label>
     <label class="type-text" data-test-rules>
-        <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
+
+{{!-- //TODO: learn how to pass components/dom elements as parameters in other components
+// I would like to pass  `<a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>` in title --}}
 {{#if (eq item.template 'service-identity')}}
         <CodeEditor
+          @title="Rules" //TODO: missing link
           @readonly={{true}}
           @name={{concat name "[Rules]"}}
           @syntax="hcl"
@@ -50,6 +53,7 @@
         /></CodeEditor>
 {{else if (eq item.template 'node-identity')}}
         <CodeEditor
+          @title="Rules" //TODO: missing link
           @readonly={{true}}
           @name={{concat name "[Rules]"}}
           @syntax="hcl"
@@ -59,6 +63,7 @@
         /></CodeEditor>
 {{else}}
         <CodeEditor
+          @title="Rules" //TODO: missing link
           @syntax="hcl"
           @class={{if item.error.Rules "error"}}
           @name={{concat name "[Rules]"}}

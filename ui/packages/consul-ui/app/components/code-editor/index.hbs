@@ -1,11 +1,20 @@
+<Toolbar>
+  <ToolbarActions>
+    <label class="title">{{title}}</label>
+    <div class="actions">
+      {{#if (and (not readonly) (not syntax))}}
+        <PowerSelect
+            @onChange={{action "change"}}
+            @selected={{mode}}
+            @searchEnabled={{false}}
+            @options={{modes}} as |mode|>
+          {{mode.name}}
+        </PowerSelect>
+      {{/if}}
+      <div class="toolbar-separator"></div>
+      <CopyButton @value={{value}} @name="value" />
+    </div>
+  </ToolbarActions>
+</Toolbar>
 <IvyCodemirror @value={{value}} @name={{name}} @class={{class}} @options={{options}} @valueUpdated={{action onkeyup}} />
 <pre><code>{{yield}}</code></pre>
-{{#if (and (not readonly) (not syntax))}}
-  <PowerSelect
-      @onChange={{action "change"}}
-      @selected={{mode}}
-      @searchEnabled={{false}}
-      @options={{modes}} as |mode|>
-    {{mode.name}}
-  </PowerSelect>
-{{/if}}

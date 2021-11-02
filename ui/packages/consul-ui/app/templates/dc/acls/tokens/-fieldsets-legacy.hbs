@@ -16,8 +16,12 @@
         </div>
 {{/if}}
         <label class="type-text">
-            <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-            <CodeEditor @class={{if item.error.Rules "error"}} @name="Rules" @syntax="hcl" @value={{item.Rules}} @onkeyup={{action "change" "Rules"}} />
+            {{!-- <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span> --}}
+            {{!-- //TODO: learn how to pass components/dom elements as parameters in other components
+            // I would like to pass  `<a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>` in title --}}
+            <CodeEditor
+            @title="Rules" //TODO: missing link
+            @class={{if item.error.Rules "error"}} @name="Rules" @syntax="hcl" @value={{item.Rules}} @onkeyup={{action "change" "Rules"}} />
         </label>
 {{#if create }}
         <label class="type-text">
