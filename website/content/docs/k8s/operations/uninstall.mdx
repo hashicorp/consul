@@ -12,7 +12,14 @@ You can uninstall Consul using Helm commands or the Consul K8s CLI.
 
 Run the `helm uninstall` **and** manually remove resources that Helm does not delete.
 
-1. First, run `helm uninstall`:
+
+1. *Optional*: Set your kubeConfig context to the `consul` namespace to avoid having to append `-n consul` to all of the subsequent commands if you've installed Consul in a dedciated namespace.
+
+    ```
+    kubectl config set-context --current --namespace=consul
+    ```
+
+1. Next run `helm uninstall <release-name>` to uninstall Consul using the release name you've installed Consul with:
 
    ```shell-session
    $ helm uninstall hashicorp
