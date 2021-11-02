@@ -855,6 +855,32 @@ func TestAgent_AddServiceWithH2PINGCheck(t *testing.T) {
 	requireCheckExists(t, a, "test-h2ping-check")
 }
 
+func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	check := []*structs.CheckType{
+		{
+			CheckID:       "test-h2cping-check",
+			Name:          "test-h2cping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+			H2PingUseTLS:  false,
+		},
+	}
+
+	nodeService := &structs.NodeService{
+		ID:      "test-h2cping-check-service",
+		Service: "test-h2cping-check-service",
+	}
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
+	if err != nil {
+		t.Fatalf("Error registering service: %v", err)
+	}
+	requireCheckExists(t, a, "test-h2cping-check")
+}
+
 func TestAgent_AddServiceNoExec(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

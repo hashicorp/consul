@@ -120,10 +120,11 @@ There are several different kinds of checks:
   `tls_skip_verify` field to `true` in the check definition.
   To check on a specific service instead of the whole gRPC server, add the service identifier after the `gRPC` check's endpoint in the following format `/:service_identifier`.
 
-- `H2ping + Interval` - These checks test an endpoint that uses http2 with TLS
-  by connecting to the endpoint and sending a ping frame. If the ping is successful
+- `H2ping + Interval` - These checks test an endpoint that uses http2
+  by connecting to the endpoint and sending a ping frame. TLS is assumed to be configured by default.
+  To disable TLS and use h2c, set `h2ping_use_tls` to `false`. If the ping is successful
   within a specified timeout, then the check is updated as passing.
-  The timeout defaults to 10 seconds, but is configurable using the `timeout` field. A valid
+  The timeout defaults to 10 seconds, but is configurable using the `timeout` field. If TLS is enabled a valid
   certificate is required, unless `tls_skip_verify` is set to `true`.
   The check will be run on the interval specified by the `interval` field.
 
@@ -164,7 +165,7 @@ A HTTP check:
     "tls_server_name": "",
     "tls_skip_verify": false,
     "method": "POST",
-    "header": {"Content-Type": ["application/json"]},
+    "header": { "Content-Type": ["application/json"] },
     "body": "{\"method\":\"health\"}",
     "interval": "10s",
     "timeout": "1s"
@@ -251,6 +252,7 @@ A h2ping check:
     "name": "h2ping",
     "h2ping": "localhost:22222",
     "interval": "10s",
+    "h2ping_use_tls": false
   }
 }
 ```
@@ -420,14 +422,14 @@ a health check may be configured to become passing/warning/critical only after a
 specified number of consecutive checks return passing/critical.
 The status will not transition states until the configured threshold is reached.
 
-* `success_before_passing` - Number of consecutive successful results required
-  before check status transitions to passing. Defaults to `0`.  Added in Consul 1.7.0.
-* `failures_before_warning` - Number of consecutive unsuccessful results required
+- `success_before_passing` - Number of consecutive successful results required
+  before check status transitions to passing. Defaults to `0`. Added in Consul 1.7.0.
+- `failures_before_warning` - Number of consecutive unsuccessful results required
   before check status transitions to warning. Defaults to the same value as that of
   `failures_before_critical` to maintain the expected behavior of not changing the
   status of serivce checks to `warning` before `critical` unless configured to do so.
   Values higher than `failures_before_critical` are invalid. Added in Consul 1.11.0.
-* `failures_before_critical` - Number of consecutive unsuccessful results required
+- `failures_before_critical` - Number of consecutive unsuccessful results required
   before check status transitions to critical. Defaults to `0`. Added in Consul 1.7.0.
 
 This feature is available for HTTP, TCP, gRPC, Docker & Monitor checks.
