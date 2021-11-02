@@ -1277,7 +1277,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
       For the Vault provider, this value is only used if the backend is not initialized at first.
 
-      This value is also applied on ca set-config command.
+      This value is also applied on the `ca set-config` command.
 
     - `private_key_type` ((#ca_private_key_type)) The type of key to generate
       for this CA. This is only used when the provider is generating a new key. If
