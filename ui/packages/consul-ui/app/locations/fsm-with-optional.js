@@ -241,13 +241,23 @@ export default class FSMWithOptionalLocation {
       console.log(`location.transitionTo: ${url.substr(10)}`);
       return true;
     }
+    const previousOptional = Object.entries(this.optionalParams());
     const transitionURL = this.getURLForTransition(url);
     if (this._previousURL === transitionURL) {
-      // probably an optional parameter change
+      // probably an optional parameter change as the Ember URLs are the same
+      // whereas the entire URL is different
       this.dispatch('push', url);
       return Promise.resolve();
       // this.setURL(url);
     } else {
+      const currentOptional = this.optionalParams();
+      if(previousOptional.some(([key, value]) => currentOptional[key] !== value)) {
+        // an optional parameter change and a normal param change as the Ember
+        // URLs are different and we know the optional params changed
+        // TODO: Consider changing the above previousURL === transitionURL to
+        // use the same 'check the optionalParams' approach
+        this.dispatch('push', url);
+      }
       // use ember to transition, which will eventually come around to use location.setURL
       return this.container.lookup('router:main').transitionTo(transitionURL);
     }
