@@ -44,6 +44,16 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 		expectedValue func(t *testing.T, v *VaultProvider)
 	}{
 		{
+			name:      "DefaultConfig",
+			rawConfig: map[string]interface{}{},
+			expectedValue: func(t *testing.T, v *VaultProvider) {
+				headers := v.client.Headers()
+				require.Equal(t, "", headers.Get(vaultconst.NamespaceHeaderName))
+				require.Equal(t, "pki-root/", v.config.RootPKIPath)
+				require.Equal(t, "pki-intermediate/", v.config.IntermediatePKIPath)
+			},
+		},
+		{
 			name:      "TestConfigWithNamespace",
 			rawConfig: map[string]interface{}{"namespace": "ns1"},
 			expectedValue: func(t *testing.T, v *VaultProvider) {
