@@ -52,5 +52,6 @@ func defaultCommonConfig() structs.CommonCAProviderConfig {
 		IntermediateCertTTL: 24 * 365 * time.Hour,
 		PrivateKeyType:      connect.DefaultPrivateKeyType,
 		PrivateKeyBits:      connect.DefaultPrivateKeyBits,
+		RootCertTTL:         10 * 24 * 365 * time.Hour,
 	}
 }

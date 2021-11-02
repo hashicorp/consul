@@ -494,6 +494,7 @@ func DefaultConfig() *Config {
 			Config: map[string]interface{}{
 				"LeafCertTTL":         structs.DefaultLeafCertTTL,
 				"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
+				"RootCertTTL":         structs.DefaultRootCertTTL,
 			},
 		},
 

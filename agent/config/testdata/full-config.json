@@ -200,6 +200,7 @@
   "connect": {
     "ca_provider": "consul",
     "ca_config": {
+      "root_cert_ttl": "96360h",
       "intermediate_cert_ttl": "8760h",
       "leaf_cert_ttl": "1h",
       "csr_max_per_second": 100,

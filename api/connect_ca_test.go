@@ -66,6 +66,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		IntermediateCertTTL: 365 * 24 * time.Hour,
 	}
 	expected.LeafCertTTL = 72 * time.Hour
+	expected.RootCertTTL = 10 * 365 * 24 * time.Hour
 
 	// This fails occasionally if server doesn't have time to bootstrap CA so
 	// retry
@@ -84,6 +85,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		// Change a config value and update
 		conf.Config["PrivateKey"] = ""
 		conf.Config["IntermediateCertTTL"] = 300 * 24 * time.Hour
+		conf.Config["RootCertTTL"] = 11 * 365 * 24 * time.Hour
 
 		// Pass through some state as if the provider stored it so we can make sure
 		// we can read it again.
@@ -95,6 +97,7 @@ func TestAPI_ConnectCAConfig_get_set(t *testing.T) {
 		updated, _, err := connect.CAGetConfig(nil)
 		r.Check(err)
 		expected.IntermediateCertTTL = 300 * 24 * time.Hour
+		expected.RootCertTTL = 11 * 365 * 24 * time.Hour
 		parsed, err = ParseConsulCAConfig(updated.Config)
 		r.Check(err)
 		require.Equal(r, expected, parsed)

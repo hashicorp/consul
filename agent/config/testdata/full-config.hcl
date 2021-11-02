@@ -200,6 +200,7 @@ connect {
     ca_config {
         intermediate_cert_ttl = "8760h"
         leaf_cert_ttl = "1h"
+        root_cert_ttl = "96360h"
         # hack float since json parses numbers as float and we have to
         # assert against the same thing
         csr_max_per_second = 100.0

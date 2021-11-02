@@ -3163,6 +3163,65 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "test connect vault provider configuration with root cert ttl",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`{
+				"connect": {
+					"enabled": true,
+					"ca_provider": "vault",
+					"ca_config": {
+						"ca_file": "/capath/ca.pem",
+						"ca_path": "/capath/",
+						"cert_file": "/certpath/cert.pem",
+						"key_file": "/certpath/key.pem",
+						"tls_server_name": "server.name",
+						"tls_skip_verify": true,
+						"token": "abc",
+						"root_pki_path": "consul-vault",
+						"root_cert_ttl": "96360h",
+						"intermediate_pki_path": "connect-intermediate"
+					}
+				}
+			}`},
+		hcl: []string{`
+			  connect {
+					enabled = true
+					ca_provider = "vault"
+					ca_config {
+						ca_file = "/capath/ca.pem"
+						ca_path = "/capath/"
+						cert_file = "/certpath/cert.pem"
+						key_file = "/certpath/key.pem"
+						tls_server_name = "server.name"
+						tls_skip_verify = true
+						root_pki_path = "consul-vault"
+						token = "abc"
+						intermediate_pki_path = "connect-intermediate"
+						root_cert_ttl = "96360h"
+					}
+				}
+			`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.ConnectEnabled = true
+			rt.ConnectCAProvider = "vault"
+			rt.ConnectCAConfig = map[string]interface{}{
+				"CAFile":              "/capath/ca.pem",
+				"CAPath":              "/capath/",
+				"CertFile":            "/certpath/cert.pem",
+				"KeyFile":             "/certpath/key.pem",
+				"TLSServerName":       "server.name",
+				"TLSSkipVerify":       true,
+				"Token":               "abc",
+				"RootPKIPath":         "consul-vault",
+				"RootCertTTL":         "96360h",
+				"IntermediatePKIPath": "connect-intermediate",
+			}
+		},
+	})
+	run(t, testCase{
 		desc: "Connect AWS CA provider configuration",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -5472,6 +5531,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		ConnectCAConfig: map[string]interface{}{
 			"IntermediateCertTTL": "8760h",
 			"LeafCertTTL":         "1h",
+			"RootCertTTL":         "96360h",
 			"CSRMaxPerSecond":     float64(100),
 			"CSRMaxConcurrent":    float64(2),
 		},
@@ -6651,7 +6711,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider: "consul",
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 				},
 			},
 		},
@@ -6667,7 +6728,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 				ClusterID: "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 					"cluster_id":          "adfe7697-09b4-413a-ac0a-fa81ed3a3001",
 				},
 			},
@@ -6690,7 +6752,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Provider: "vault",
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
-					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"IntermediateCertTTL": "8760h",  // 365 * 24h
+					"RootCertTTL":         "87600h", // 365 * 10 * 24h
 				},
 			},
 		},
@@ -6698,7 +6761,8 @@ func TestConnectCAConfiguration(t *testing.T) {
 			config: RuntimeConfig{
 				ConnectEnabled: true,
 				ConnectCAConfig: map[string]interface{}{
-					"foo": "bar",
+					"foo":         "bar",
+					"RootCertTTL": "8761h", // 365 * 24h + 1
 				},
 			},
 			expected: &structs.CAConfiguration{
@@ -6706,6 +6770,7 @@ func TestConnectCAConfiguration(t *testing.T) {
 				Config: map[string]interface{}{
 					"LeafCertTTL":         "72h",
 					"IntermediateCertTTL": "8760h", // 365 * 24h
+					"RootCertTTL":         "8761h", // 365 * 24h + 1
 					"foo":                 "bar",
 				},
 			},

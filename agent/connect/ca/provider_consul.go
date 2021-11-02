@@ -96,7 +96,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 		fmt.Sprintf("%s,%s", config.PrivateKey, config.RootCert),
 	}
 
-	// Check if there any entries with old ID schemes.
+	// Check if there are any entries with old ID schemes.
 	for _, oldID := range oldIDs {
 		_, providerState, err = c.Delegate.State().CAProviderState(oldID)
 		if err != nil {
@@ -194,7 +194,7 @@ func (c *ConsulProvider) GenerateRoot() error {
 			return fmt.Errorf("error computing next serial number: %v", err)
 		}
 
-		ca, err := c.generateCA(newState.PrivateKey, nextSerial)
+		ca, err := c.generateCA(newState.PrivateKey, nextSerial, c.config.RootCertTTL)
 		if err != nil {
 			return fmt.Errorf("error generating CA: %v", err)
 		}
@@ -616,7 +616,7 @@ func (c *ConsulProvider) incrementAndGetNextSerialNumber() (uint64, error) {
 }
 
 // generateCA makes a new root CA using the current private key
-func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error) {
+func (c *ConsulProvider) generateCA(privateKey string, sn uint64, rootCertTTL time.Duration) (string, error) {
 	stateStore := c.Delegate.State()
 	_, config, err := stateStore.CAConfig(nil)
 	if err != nil {
@@ -652,7 +652,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64) (string, error
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
-		NotAfter:       time.Now().AddDate(10, 0, 0),
+		NotAfter:       time.Now().Add(rootCertTTL),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: keyId,
 		SubjectKeyId:   keyId,
