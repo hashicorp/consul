@@ -2,7 +2,6 @@ package iptables
 
 import (
 	"errors"
-	"os"
 	"strconv"
 )
 
@@ -28,6 +27,9 @@ const (
 // Config is used to configure which traffic interception and redirection
 // rules should be applied with the iptables commands.
 type Config struct {
+	// ConsulDNSIP is the IP for Consul DNS to direct DNS queries to.
+	ConsulDNSIP string
+
 	// ProxyUserID is the user ID of the proxy process.
 	ProxyUserID string
 
@@ -104,15 +106,15 @@ func Setup(cfg Config) error {
 		// Redirects outbound TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener port.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
 
-		// Traffic in the DNSChain is directed to the Consul DNS Service IP.
-		// todo dns: only add L110-116 if a dns service IP is provided
-		ip := os.Getenv("CONSUL_CONSUL_DNS_SERVICE_HOST")
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", ip)
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", ip)
+		if cfg.ConsulDNSIP != "" {
+			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
 
-		// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
-		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
+			// For outbound TCP and UDP traffic going to port 53 (DNS), jump to the DNSChain.
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "--dport", "53", "-j", DNSChain)
+			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "53", "-j", DNSChain)
+		}
 
 		// For outbound TCP traffic jump from OUTPUT chain to PROXY_OUTPUT chain.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "-j", ProxyOutputChain)
