@@ -25,6 +25,8 @@ func prefixIndexForIDValue(arg interface{}) ([]byte, error) {
 	// DeletePrefix always uses a string, pass it along unmodified
 	case string:
 		return []byte(v), nil
+	case structs.EnterpriseMeta:
+		return nil, nil
 	case singleValueID:
 		var b indexBuilder
 		if v.IDValue() != "" {
