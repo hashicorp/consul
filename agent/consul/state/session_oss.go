@@ -139,7 +139,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	var result structs.Sessions
 
 	// Query all of the active sessions.
-	sessions, err := tx.Get(tableSessions, indexID+"_prefix", Query{Value: "", EnterpriseMeta: m})
+	sessions, err := tx.Get(tableSessions, indexID+"_prefix", Query{Value: ""})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
