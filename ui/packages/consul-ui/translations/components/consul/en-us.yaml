@@ -149,7 +149,7 @@ topology-metrics:
       footer: Read the documentation
     acls-disabled:
       header: Enable ACLs
-      body: This connect-native service may have dependencies, but Consul isn’t aware of them when ACLs are disabled. Enable ACLs to make this view more useful.
+      body: This connect-native service may have dependencies, but Consul isn't aware of them when ACLs are disabled. Enable ACLs to make this view more useful.
       footer: Read the documentation
   popover:
     l7:
