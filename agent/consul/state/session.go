@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	tableSessions = "sessions"
+	tableSessions         = "sessions"
+	SessionPartitionIndex = "session-partition"
 )
 
 // sessionsTableSchema returns a new table schema used for storing session
@@ -26,6 +27,12 @@ func sessionsTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer:      sessionIndexer(),
+			},
+			SessionPartitionIndex: {
+				Name:         SessionPartitionIndex,
+				AllowMissing: false,
+				Unique:       true,
+				Indexer:      sessionIndexerPartition(),
 			},
 			indexNode: {
 				Name:         indexNode,
