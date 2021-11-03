@@ -38,42 +38,48 @@
     </label>
     <label class="type-text" data-test-rules>
 
-{{!-- //TODO: learn how to pass components/dom elements as parameters in other components
-// I would like to pass  `<a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>` in title --}}
-{{#if (eq item.template 'service-identity')}}
-        <CodeEditor
-          @title="Rules" //TODO: missing link
-          @readonly={{true}}
-          @name={{concat name "[Rules]"}}
-          @syntax="hcl"
-          @oninput={{action "change" (concat name "[Rules]")}}
-        ><Consul::ServiceIdentity::Template
-          @nspace={{nspace}}
-          @name={{item.Name}}
-        /></CodeEditor>
-{{else if (eq item.template 'node-identity')}}
-        <CodeEditor
-          @title="Rules" //TODO: missing link
-          @readonly={{true}}
-          @name={{concat name "[Rules]"}}
-          @syntax="hcl"
-          @oninput={{action "change" (concat name "[Rules]")}}
-        ><Consul::NodeIdentity::Template
-          @name={{item.Name}}
-        /></CodeEditor>
-{{else}}
-        <CodeEditor
-          @title="Rules" //TODO: missing link
-          @syntax="hcl"
-          @class={{if item.error.Rules "error"}}
-          @name={{concat name "[Rules]"}}
-          @value={{item.Rules}}
-          @onkeyup={{action "change" (concat name "[Rules]")}}
-        />
-        {{#if item.error.Rules}}
-          <strong>{{item.error.Rules.validation}}</strong>
-        {{/if}}
-{{/if}}
+{{#let (hash
+          text="(HCL Format)"
+          href="/guides/acl.html#rule-specification"
+          rel="help noopener noreferrer"
+          target="_blank"
+        ) as |helplink| }}
+
+  {{#if (eq item.template 'service-identity')}}
+          <CodeEditor
+            @toolbar={{ hash title="Rules" helplink=helplink }}
+            @readonly={{true}}
+            @name={{concat name "[Rules]"}}
+            @syntax="hcl"
+            @oninput={{action "change" (concat name "[Rules]")}}
+          ><Consul::ServiceIdentity::Template
+            @nspace={{nspace}}
+            @name={{item.Name}}
+          /></CodeEditor>
+  {{else if (eq item.template 'node-identity')}}
+          <CodeEditor
+            @toolbar={{ hash title="Rules" helplink=helplink }}
+            @readonly={{true}}
+            @name={{concat name "[Rules]"}}
+            @syntax="hcl"
+            @oninput={{action "change" (concat name "[Rules]")}}
+          ><Consul::NodeIdentity::Template
+            @name={{item.Name}}
+          /></CodeEditor>
+  {{else}}
+          <CodeEditor
+            @toolbar={{ hash title="Rules" helplink=helplink }}
+            @syntax="hcl"
+            @class={{if item.error.Rules "error"}}
+            @name={{concat name "[Rules]"}}
+            @value={{item.Rules}}
+            @onkeyup={{action "change" (concat name "[Rules]")}}
+          />
+          {{#if item.error.Rules}}
+            <strong>{{item.error.Rules.validation}}</strong>
+          {{/if}}
+  {{/if}}
+{{/let}}
     </label>
 {{#if (eq item.template 'node-identity')}}
 
