@@ -95,10 +95,13 @@ The configuration options are listed below.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
   a PKI secrets engine for the root certificate. If the path does not
-  exist, Consul will mount a new PKI secrets engine at the specified path with
+  exist, Consul will mount a new PKI secrets engine at the specified path with the
+  `RootCertTTL` value as the root certificate's TTL. If the `RootCertTTL` is not set,
   a [`max_lease_ttl`](https://www.vaultproject.io/api/system/mounts#max_lease_ttl)
-  of 8760 hours, or 1 year. This TTL value specifies the expiry period of the
-  root certificate and is currently not configurable.
+  of 87600 hours, or 10 years is applied by default as of Consul 1.11 and later.
+
+  Prior to Consul 1.11, the root certificate TTL was set to 8760 hour, or 1 year, and
+  was not configurable.
 
 - `IntermediatePKIPath` / `intermediate_pki_path` (`string: <required>`) -
   The path to a PKI secrets engine for the generated intermediate certificate.
