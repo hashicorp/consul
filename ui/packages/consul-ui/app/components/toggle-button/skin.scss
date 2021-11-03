@@ -1,12 +1,12 @@
 %toggle-button {
-  border-radius: $decor-radius-100;
+  border-radius: var(--decor-radius-100);
   cursor: pointer;
 }
 %toggle-button-intent {
-  background-color: $gray-050;
+  background-color: rgb(var(--tone-gray-050));
 }
 %toggle-button-active {
-  background-color: $gray-100;
+  background-color: rgb(var(--tone-gray-100));
 }
 %toggle-button:hover,
 %toggle-button:focus {

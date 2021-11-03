@@ -8,7 +8,7 @@
 %anchor,
 %anchor-intent,
 %anchor-active {
-  color: $color-action;
+  color: rgb(var(--color-action));
 }
 %anchor-decoration:hover,
 %anchor-decoration:focus {
@@ -20,7 +20,7 @@
 %anchor {
   @extend %anchor-decoration;
   cursor: pointer;
-  background-color: $transparent;
+  background-color: var(--transparent);
 }
 %anchor:hover,
 %anchor:focus {

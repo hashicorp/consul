@@ -20,16 +20,10 @@ import (
 type ACLMode string
 
 const (
-	// ACLs are disabled by configuration
+	// ACLModeDisabled indicates the ACL system is disabled
 	ACLModeDisabled ACLMode = "0"
-	// ACLs are enabled
+	// ACLModeEnabled indicates the ACL system is enabled
 	ACLModeEnabled ACLMode = "1"
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
-	// ACLs are enabled and using legacy ACLs
-	ACLModeLegacy ACLMode = "2"
-	// DEPRECATED (ACL-Legacy-Compat) - only needed while legacy ACLs are supported
-	// ACLs are assumed enabled but not being advertised
-	ACLModeUnknown ACLMode = "3"
 )
 
 type ACLTokenIDType string
@@ -101,7 +95,6 @@ type ACLIdentity interface {
 	SecretToken() string
 	PolicyIDs() []string
 	RoleIDs() []string
-	EmbeddedPolicy() *ACLPolicy
 	ServiceIdentityList() []*ACLServiceIdentity
 	NodeIdentityList() []*ACLNodeIdentity
 	IsExpired(asOf time.Time) bool
@@ -417,48 +410,6 @@ func (t *ACLToken) IsLocal() bool {
 
 func (t *ACLToken) HasExpirationTime() bool {
 	return t.ExpirationTime != nil && !t.ExpirationTime.IsZero()
-}
-
-// TODO(ACL-Legacy-Compat): remove
-func (t *ACLToken) UsesNonLegacyFields() bool {
-	return len(t.Policies) > 0 ||
-		len(t.ServiceIdentities) > 0 ||
-		len(t.NodeIdentities) > 0 ||
-		len(t.Roles) > 0 ||
-		t.Type == "" ||
-		t.HasExpirationTime() ||
-		t.ExpirationTTL != 0 ||
-		t.AuthMethod != ""
-}
-
-func (t *ACLToken) EmbeddedPolicy() *ACLPolicy {
-	// DEPRECATED (ACL-Legacy-Compat)
-	//
-	// For legacy tokens with embedded rules this provides a way to map those
-	// rules to an ACLPolicy. This function can just return nil once legacy
-	// acl compatibility is no longer needed.
-	//
-	// Additionally for management tokens we must embed the policy rules
-	// as well
-	policy := &ACLPolicy{}
-	if t.Type == ACLTokenTypeManagement {
-		hasher := fnv.New128a()
-		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(ACLPolicyGlobalManagement)))
-		policy.Name = "legacy-management"
-		policy.Rules = ACLPolicyGlobalManagement
-		policy.Syntax = acl.SyntaxCurrent
-	} else if t.Rules != "" || t.Type == ACLTokenTypeClient {
-		hasher := fnv.New128a()
-		policy.ID = fmt.Sprintf("%x", hasher.Sum([]byte(t.Rules)))
-		policy.Name = fmt.Sprintf("legacy-policy-%s", policy.ID)
-		policy.Rules = t.Rules
-		policy.Syntax = acl.SyntaxLegacy
-	} else {
-		return nil
-	}
-
-	policy.SetHash(true)
-	return policy
 }
 
 func (t *ACLToken) EnterpriseMetadata() *EnterpriseMeta {
@@ -1802,10 +1753,6 @@ func (id *AgentMasterTokenIdentity) PolicyIDs() []string {
 }
 
 func (id *AgentMasterTokenIdentity) RoleIDs() []string {
-	return nil
-}
-
-func (id *AgentMasterTokenIdentity) EmbeddedPolicy() *ACLPolicy {
 	return nil
 }
 

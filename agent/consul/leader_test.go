@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -248,7 +249,7 @@ func TestLeader_ReapMember(t *testing.T) {
 	})
 
 	// Simulate a node reaping
-	mems := s1.LANMembers()
+	mems := s1.LANMembersInAgentPartition()
 	var c1mem serf.Member
 	for _, m := range mems {
 		if m.Name == c1.config.NodeName {
@@ -687,7 +688,7 @@ func TestLeader_LeftServer(t *testing.T) {
 	servers[0].Shutdown()
 
 	// Force remove the non-leader (transition to left state)
-	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false); err != nil {
+	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName, false, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1044,7 +1045,7 @@ func TestLeader_ChangeServerID(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		alive := 0
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			if m.Status == serf.StatusAlive {
 				alive++
 			}
@@ -1117,10 +1118,10 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 
 	// Shut down a server, freeing up its address/port
 	s3.Shutdown()
-	// wait for s1.LANMembers() to show s3 as StatusFailed or StatusLeft on
+	// wait for s1.LANMembersInAgentPartition() to show s3 as StatusFailed or StatusLeft on
 	retry.Run(t, func(r *retry.R) {
 		var gone bool
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			if m.Name == s3.config.NodeName && (m.Status == serf.StatusFailed || m.Status == serf.StatusLeft) {
 				gone = true
 			}
@@ -1148,7 +1149,7 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 	})
 
 	retry.Run(t, func(r *retry.R) {
-		for _, m := range s1.LANMembers() {
+		for _, m := range s1.LANMembersInAgentPartition() {
 			require.Equal(r, serf.StatusAlive, m.Status)
 		}
 	})
@@ -1257,9 +1258,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	joinWAN(t, s2, s1)
 	waitForLeaderEstablishment(t, s1)
 	waitForLeaderEstablishment(t, s2)
-
-	waitForNewACLs(t, s1)
-	waitForNewACLs(t, s2)
 	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
 
 	// Everybody has the management policy.
@@ -1296,9 +1294,6 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 	defer s2new.Shutdown()
 
 	waitForLeaderEstablishment(t, s2new)
-
-	// It should be able to transition without connectivity to the primary.
-	waitForNewACLs(t, s2new)
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
@@ -1507,7 +1502,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1562,7 +1557,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1737,7 +1732,7 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 		defer os.RemoveAll(dir1)
 		defer s1.Shutdown()
 
-		s1.updateSerfTags("ft_fs", "0")
+		updateSerfTags(s1, "ft_fs", "0")
 
 		waitForLeaderEstablishment(t, s1)
 
@@ -1773,6 +1768,14 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 			}
 		})
 	})
+}
+
+func updateSerfTags(s *Server, key, value string) {
+	libserf.UpdateTag(s.serfLAN, key, value)
+
+	if s.serfWAN != nil {
+		libserf.UpdateTag(s.serfWAN, key, value)
+	}
 }
 
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {

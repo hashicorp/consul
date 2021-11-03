@@ -4,8 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/consul/agent"
 )
 
 func TestJoinCommand_noTabs(t *testing.T) {
@@ -15,6 +16,7 @@ func TestJoinCommand_noTabs(t *testing.T) {
 	}
 }
 
+// TODO(partitions): split this test and verify it works in partitions
 func TestJoinCommandJoin_lan(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -38,8 +40,8 @@ func TestJoinCommandJoin_lan(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	if len(a1.LANMembers()) != 2 {
-		t.Fatalf("bad: %#v", a1.LANMembers())
+	if len(a1.LANMembersInAgentPartition()) != 2 {
+		t.Fatalf("bad: %#v", a1.LANMembersInAgentPartition())
 	}
 }
 

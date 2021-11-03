@@ -855,6 +855,32 @@ func TestAgent_AddServiceWithH2PINGCheck(t *testing.T) {
 	requireCheckExists(t, a, "test-h2ping-check")
 }
 
+func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	check := []*structs.CheckType{
+		{
+			CheckID:       "test-h2cping-check",
+			Name:          "test-h2cping-check",
+			H2PING:        "localhost:12345",
+			TLSSkipVerify: true,
+			Interval:      10 * time.Second,
+			H2PingUseTLS:  false,
+		},
+	}
+
+	nodeService := &structs.NodeService{
+		ID:      "test-h2cping-check-service",
+		Service: "test-h2cping-check-service",
+	}
+	err := a.addServiceFromSource(nodeService, check, false, "", ConfigSourceLocal)
+	if err != nil {
+		t.Fatalf("Error registering service: %v", err)
+	}
+	requireCheckExists(t, a, "test-h2cping-check")
+}
+
 func TestAgent_AddServiceNoExec(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4500,7 +4526,7 @@ services {
 	// Now connect to server
 	_, err := a1.JoinLAN([]string{
 		fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN),
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	t.Logf("joined client to server")
@@ -4531,6 +4557,8 @@ LOOP:
 // TODO(rb): implement something similar to this as a full containerized test suite with proper
 // isolation so requests can't "cheat" and bypass the mesh gateways
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}

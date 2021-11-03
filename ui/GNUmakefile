@@ -15,11 +15,16 @@ dist-docker: dist
 clean:
 	rm -rf ./dist
 
-# Build a distribution of the UI using the minimal amount of dependencies
+# Build a distribution of the UI
 dist: clean
 	cd packages/consul-ui && \
-		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE)
+
+# Install deps for the UI only
+deps: clean
+	cd packages/consul-ui && \
+		$(MAKE) deps
+
 
 # Build a distribution of the UI for Vercel previews.
 # The distribution must be copied into the ui/ subfolder

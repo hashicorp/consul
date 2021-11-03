@@ -1,0 +1,3 @@
+```release-note:bug
+api: fixed backwards compatibility issue with AgentService SocketPath field.
+```

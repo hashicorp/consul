@@ -19,7 +19,7 @@ export default function ConsulSubnav() {
 
         { text: 'Download', url: '/downloads' },
         {
-          text: 'Try Cloud',
+          text: 'Try HCP Consul',
           url:
             'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav_consul',
         },

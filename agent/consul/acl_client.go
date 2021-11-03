@@ -3,7 +3,6 @@ package consul
 import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -24,17 +23,9 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	Roles: 128,
 }
 
-func (c *Client) ACLDatacenter(legacy bool) string {
-	// For resolution running on clients, when not in
-	// legacy mode the servers within the current datacenter
-	// must be queried first to pick up local tokens. When
-	// in legacy mode the clients should directly query the
-	// ACL Datacenter. When no ACL datacenter has been set
-	// then we assume that the local DC is the ACL DC
-	if legacy && c.config.PrimaryDatacenter != "" {
-		return c.config.PrimaryDatacenter
-	}
-
+func (c *Client) ACLDatacenter() string {
+	// For resolution running on clients, servers within the current datacenter
+	// must be queried first to pick up local tokens.
 	return c.config.Datacenter
 }
 
@@ -67,6 +58,10 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 		return nil, err
 	}
 
+	if entMeta == nil {
+		entMeta = &structs.EnterpriseMeta{}
+	}
+
 	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
 	// in the case of unknown identity
 	if identity != nil {
@@ -79,9 +74,4 @@ func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.Enter
 	entMeta.FillAuthzContext(authzContext)
 
 	return authz, err
-}
-
-func (c *Client) updateSerfTags(key, value string) {
-	// Update the LAN serf
-	serf.UpdateTag(c.serf, key, value)
 }

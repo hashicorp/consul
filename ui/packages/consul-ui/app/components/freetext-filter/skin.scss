@@ -1,15 +1,15 @@
 .freetext-filter {
   & {
-    border: $decor-border-100;
-    border-radius: $decor-radius-100;
+    border: var(--decor-border-100);
+    border-radius: var(--decor-radius-100);
 
-    background-color: $white;
-    border-color: $gray-200;
-    color: $gray-400;
+    background-color: rgb(var(--white));
+    border-color: rgb(var(--tone-gray-200));
+    color: rgb(var(--tone-gray-400));
   }
   &:hover,
   &:hover * {
-    border-color: $gray-400;
+    border-color: rgb(var(--tone-gray-400));
   }
   & *,
   &_input::placeholder {
@@ -36,14 +36,14 @@
     @extend %with-search-mask;
   }
   .popover-menu {
-    background-color: $gray-050;
-    color: $gray-800;
+    background-color: rgb(var(--tone-gray-050));
+    color: rgb(var(--tone-gray-800));
   }
   .popover-menu {
     border-left: 1px solid;
     border-color: inherit;
   }
   .popover-menu > [type='checkbox']:checked + label button {
-    background-color: $gray-200;
+    background-color: rgb(var(--tone-gray-200));
   }
 }

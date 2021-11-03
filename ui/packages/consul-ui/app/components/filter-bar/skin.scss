@@ -1,14 +1,14 @@
 .filter-bar {
   & {
-    background-color: $gray-010;
-    border-bottom: $decor-border-100;
-    border-color: $gray-200;
+    background-color: rgb(var(--tone-gray-010));
+    border-bottom: var(--decor-border-100);
+    border-color: rgb(var(--tone-gray-200));
   }
   .filters,
   .sort {
     .popover-menu > [type='checkbox']:checked + label button {
-      color: $blue-500;
-      background-color: $gray-100;
+      color: rgb(var(--tone-blue-500));
+      background-color: rgb(var(--tone-gray-100));
     }
   }
 }

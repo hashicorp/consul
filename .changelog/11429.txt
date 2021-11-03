@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: refactor the agent delegate interface to be partition friendly
+```

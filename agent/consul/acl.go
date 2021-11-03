@@ -31,10 +31,6 @@ var ACLCounters = []prometheus.CounterDefinition{
 
 var ACLSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"acl", "resolveTokenLegacy"},
-		Help: "This measures the time it takes to resolve an ACL token using the legacy ACL system.",
-	},
-	{
 		Name: []string{"acl", "ResolveToken"},
 		Help: "This measures the time it takes to resolve an ACL token.",
 	},
@@ -54,14 +50,6 @@ const (
 	// are not allowed to be displayed.
 	redactedToken = "<hidden>"
 
-	// aclUpgradeBatchSize controls how many tokens we look at during each round of upgrading. Individual raft logs
-	// will be further capped using the aclBatchUpsertSize. This limit just prevents us from creating a single slice
-	// with all tokens in it.
-	aclUpgradeBatchSize = 128
-
-	// aclUpgradeRateLimit is the number of batch upgrade requests per second allowed.
-	aclUpgradeRateLimit rate.Limit = 1.0
-
 	// aclTokenReapingRateLimit is the number of batch token reaping requests per second allowed.
 	aclTokenReapingRateLimit rate.Limit = 1.0
 
@@ -76,20 +64,6 @@ const (
 	// aclBatchUpsertSize is the target size in bytes we want to submit for a batch upsert request. We estimate the size at runtime
 	// due to the data being more variable in its size.
 	aclBatchUpsertSize = 256 * 1024
-
-	// DEPRECATED (ACL-Legacy-Compat) aclModeCheck* are all only for legacy usage
-	// aclModeCheckMinInterval is the minimum amount of time between checking if the
-	// agent should be using the new or legacy ACL system. All the places it is
-	// currently used will backoff as it detects that it is remaining in legacy mode.
-	// However the initial min value is kept small so that new cluster creation
-	// can enter into new ACL mode quickly.
-	// TODO(ACL-Legacy-Compat): remove
-	aclModeCheckMinInterval = 50 * time.Millisecond
-
-	// aclModeCheckMaxInterval controls the maximum interval for how often the agent
-	// checks if it should be using the new or legacy ACL system.
-	// TODO(ACL-Legacy-Compat): remove
-	aclModeCheckMaxInterval = 30 * time.Second
 
 	// Maximum number of re-resolution requests to be made if the token is modified between
 	// resolving the token and resolving its policies that would remove one of its policies.
@@ -122,10 +96,6 @@ func (id *missingIdentity) RoleIDs() []string {
 	return nil
 }
 
-func (id *missingIdentity) EmbeddedPolicy() *structs.ACLPolicy {
-	return nil
-}
-
 func (id *missingIdentity) ServiceIdentityList() []*structs.ACLServiceIdentity {
 	return nil
 }
@@ -146,13 +116,6 @@ func (id *missingIdentity) EnterpriseMetadata() *structs.EnterpriseMeta {
 	return structs.DefaultEnterpriseMetaInDefaultPartition()
 }
 
-func minTTL(a time.Duration, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 type ACLRemoteError struct {
 	Err error
 }
@@ -171,7 +134,7 @@ func tokenSecretCacheID(token string) string {
 }
 
 type ACLResolverDelegate interface {
-	ACLDatacenter(legacy bool) string
+	ACLDatacenter() string
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
 	ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error)
 	ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error)
@@ -329,7 +292,10 @@ func agentMasterAuthorizer(nodeName string, entMeta *structs.EnterpriseMeta) (ac
 			},
 		},
 	}
-	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+
+	cfg := acl.Config{}
+	setEnterpriseConf(entMeta, &cfg)
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, &cfg)
 }
 
 func NewACLResolver(config *ACLResolverConfig) (*ACLResolver, error) {
@@ -387,7 +353,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	cacheID := tokenSecretCacheID(token)
 
 	req := structs.ACLTokenGetRequest{
-		Datacenter:  r.delegate.ACLDatacenter(false),
+		Datacenter:  r.delegate.ACLDatacenter(),
 		TokenID:     token,
 		TokenIDType: structs.ACLTokenSecret,
 		QueryOptions: structs.QueryOptions{
@@ -475,7 +441,7 @@ func (r *ACLResolver) resolveIdentityFromToken(token string) (structs.ACLIdentit
 
 func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdentity, policyIDs []string, cached map[string]*structs.PolicyCacheEntry) (map[string]*structs.ACLPolicy, error) {
 	req := structs.ACLPolicyBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
+		Datacenter: r.delegate.ACLDatacenter(),
 		PolicyIDs:  policyIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -530,7 +496,7 @@ func (r *ACLResolver) fetchAndCachePoliciesForIdentity(identity structs.ACLIdent
 
 func (r *ACLResolver) fetchAndCacheRolesForIdentity(identity structs.ACLIdentity, roleIDs []string, cached map[string]*structs.RoleCacheEntry) (map[string]*structs.ACLRole, error) {
 	req := structs.ACLRoleBatchGetRequest{
-		Datacenter: r.delegate.ACLDatacenter(false),
+		Datacenter: r.delegate.ACLDatacenter(),
 		RoleIDs:    roleIDs,
 		QueryOptions: structs.QueryOptions{
 			Token:      identity.SecretToken(),
@@ -638,11 +604,6 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 	)
 
 	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
-		policy := identity.EmbeddedPolicy()
-		if policy != nil {
-			return []*structs.ACLPolicy{policy}, nil
-		}
-
 		// In this case the default policy will be all that is in effect.
 		return nil, nil
 	}
@@ -1132,8 +1093,13 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 
 	// Build the Authorizer
 	var chain []acl.Authorizer
+	var conf acl.Config
+	if r.aclConf != nil {
+		conf = *r.aclConf
+	}
+	setEnterpriseConf(identity.EnterpriseMetadata(), &conf)
 
-	authz, err := policies.Compile(r.cache, r.aclConf)
+	authz, err := policies.Compile(r.cache, &conf)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1936,4 +1902,10 @@ func filterACL(r *ACLResolver, token string, subj interface{}) error {
 	}
 	filterACLWithAuthorizer(r.logger, authorizer, subj)
 	return nil
+}
+
+type partitionInfoNoop struct{}
+
+func (p *partitionInfoNoop) ExportsForPartition(partition string) acl.PartitionExports {
+	return acl.PartitionExports{}
 }

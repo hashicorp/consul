@@ -136,7 +136,7 @@ func NewDNSServer(a *Agent) (*DNSServer, error) {
 		domain:                domain,
 		altDomain:             altDomain,
 		logger:                a.logger.Named(logging.DNS),
-		defaultEnterpriseMeta: *a.agentEnterpriseMeta(),
+		defaultEnterpriseMeta: *a.AgentEnterpriseMeta(),
 	}
 	cfg, err := GetDNSConfig(a.config)
 	if err != nil {
@@ -348,6 +348,20 @@ func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.
 	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
+// getResponseDomain returns alt-domain if it is configured and request is made with alt-domain,
+// respects DNS case insensitivity
+func (d *DNSServer) getResponseDomain(questionName string) string {
+	labels := dns.SplitDomainName(questionName)
+	domain := d.domain
+	for i := len(labels) - 1; i >= 0; i-- {
+		currentSuffix := strings.Join(labels[i:], ".") + "."
+		if strings.EqualFold(currentSuffix, d.domain) || strings.EqualFold(currentSuffix, d.altDomain) {
+			domain = currentSuffix
+		}
+	}
+	return domain
+}
+
 // handlePtr is used to handle "reverse" DNS queries
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
@@ -373,7 +387,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
-		d.addSOA(cfg, m)
+		d.addSOA(cfg, m, q.Name)
 	}
 
 	datacenter := d.agent.config.Datacenter
@@ -485,14 +499,14 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
-		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
-		m.Answer = append(m.Answer, d.soa(cfg))
+		ns, glue := d.nameservers(req.Question[0].Name, cfg, maxRecursionLevelDefault)
+		m.Answer = append(m.Answer, d.soa(cfg, q.Name))
 		m.Ns = append(m.Ns, ns...)
 		m.Extra = append(m.Extra, glue...)
 		m.SetRcode(req, dns.RcodeSuccess)
 
 	case dns.TypeNS:
-		ns, glue := d.nameservers(cfg, maxRecursionLevelDefault)
+		ns, glue := d.nameservers(req.Question[0].Name, cfg, maxRecursionLevelDefault)
 		m.Answer = ns
 		m.Extra = glue
 		m.SetRcode(req, dns.RcodeSuccess)
@@ -504,7 +518,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		err = d.dispatch(resp.RemoteAddr(), req, m, maxRecursionLevelDefault)
 		rCode := rCodeFromError(err)
 		if rCode == dns.RcodeNameError || errors.Is(err, errNoData) {
-			d.addSOA(cfg, m)
+			d.addSOA(cfg, m, q.Name)
 		}
 		m.SetRcode(req, rCode)
 	}
@@ -518,18 +532,23 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 }
 
-func (d *DNSServer) soa(cfg *dnsConfig) *dns.SOA {
+func (d *DNSServer) soa(cfg *dnsConfig, questionName string) *dns.SOA {
+	domain := d.domain
+	if d.altDomain != "" && strings.HasSuffix(questionName, "."+d.altDomain) {
+		domain = d.altDomain
+	}
+
 	return &dns.SOA{
 		Hdr: dns.RR_Header{
-			Name:   d.domain,
+			Name:   domain,
 			Rrtype: dns.TypeSOA,
 			Class:  dns.ClassINET,
 			// Has to be consistent with MinTTL to avoid invalidation
 			Ttl: cfg.SOAConfig.Minttl,
 		},
-		Ns:      "ns." + d.domain,
+		Ns:      "ns." + domain,
 		Serial:  uint32(time.Now().Unix()),
-		Mbox:    "hostmaster." + d.domain,
+		Mbox:    "hostmaster." + domain,
 		Refresh: cfg.SOAConfig.Refresh,
 		Retry:   cfg.SOAConfig.Retry,
 		Expire:  cfg.SOAConfig.Expire,
@@ -538,14 +557,14 @@ func (d *DNSServer) soa(cfg *dnsConfig) *dns.SOA {
 }
 
 // addSOA is used to add an SOA record to a message for the given domain
-func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg) {
-	msg.Ns = append(msg.Ns, d.soa(cfg))
+func (d *DNSServer) addSOA(cfg *dnsConfig, msg *dns.Msg, questionName string) {
+	msg.Ns = append(msg.Ns, d.soa(cfg, questionName))
 }
 
 // nameservers returns the names and ip addresses of up to three random servers
 // in the current cluster which serve as authoritative name servers for zone.
 
-func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
+func (d *DNSServer) nameservers(questionName string, cfg *dnsConfig, maxRecursionLevel int) (ns []dns.RR, extra []dns.RR) {
 	out, err := d.lookupServiceNodes(cfg, serviceLookup{
 		Datacenter:     d.agent.config.Datacenter,
 		Service:        structs.ConsulServiceName,
@@ -573,14 +592,14 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
-
-		fqdn := name + ".node." + dc + "." + d.domain
+		respDomain := d.getResponseDomain(questionName)
+		fqdn := name + ".node." + dc + "." + respDomain
 		fqdn = dns.Fqdn(strings.ToLower(fqdn))
 
 		// NS record
 		nsrr := &dns.NS{
 			Hdr: dns.RR_Header{
-				Name:   d.domain,
+				Name:   respDomain,
 				Rrtype: dns.TypeNS,
 				Class:  dns.ClassINET,
 				Ttl:    uint32(cfg.NodeTTL / time.Second),
@@ -598,6 +617,12 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 	}
 
 	return
+}
+
+func (d *DNSServer) invalidQuery(req, resp *dns.Msg, cfg *dnsConfig, qName string) {
+	d.logger.Warn("QName invalid", "qname", qName)
+	d.addSOA(cfg, resp, qName)
+	resp.SetRcode(req, dns.RcodeNameError)
 }
 
 func (d *DNSServer) parseDatacenter(labels []string, datacenter *string) bool {
@@ -650,6 +675,9 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 
 	// have to deref to clone it so we don't modify (start from the agent's defaults)
 	var entMeta = d.defaultEnterpriseMeta
+
+	// Choose correct response domain
+	respDomain := d.getResponseDomain(req.Question[0].Name)
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
@@ -822,7 +850,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			//check if the query type is  A for IPv4 or ANY
 			aRecord := &dns.A{
 				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
+					Name:   qName + respDomain,
 					Rrtype: dns.TypeA,
 					Class:  dns.ClassINET,
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
@@ -843,7 +871,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			//check if the query type is  AAAA for IPv6 or ANY
 			aaaaRecord := &dns.AAAA{
 				Hdr: dns.RR_Header{
-					Name:   qName + d.domain,
+					Name:   qName + respDomain,
 					Rrtype: dns.TypeAAAA,
 					Class:  dns.ClassINET,
 					Ttl:    uint32(cfg.NodeTTL / time.Second),
@@ -1524,13 +1552,14 @@ func findWeight(node structs.CheckServiceNode) int {
 	}
 }
 
-func (d *DNSServer) encodeIPAsFqdn(dc string, ip net.IP) string {
+func (d *DNSServer) encodeIPAsFqdn(questionName string, dc string, ip net.IP) string {
 	ipv4 := ip.To4()
+	respDomain := d.getResponseDomain(questionName)
 	if ipv4 != nil {
 		ipStr := hex.EncodeToString(ip)
-		return fmt.Sprintf("%s.addr.%s.%s", ipStr[len(ipStr)-(net.IPv4len*2):], dc, d.domain)
+		return fmt.Sprintf("%s.addr.%s.%s", ipStr[len(ipStr)-(net.IPv4len*2):], dc, respDomain)
 	} else {
-		return fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(ip), dc, d.domain)
+		return fmt.Sprintf("%s.addr.%s.%s", hex.EncodeToString(ip), dc, respDomain)
 	}
 }
 
@@ -1612,13 +1641,14 @@ func (d *DNSServer) makeRecordFromNode(node *structs.Node, qType uint16, qName s
 // Otherwise it will return a IN A record
 func (d *DNSServer) makeRecordFromServiceNode(dc string, serviceNode structs.CheckServiceNode, addr net.IP, req *dns.Msg, ttl time.Duration) ([]dns.RR, []dns.RR) {
 	q := req.Question[0]
+	respDomain := d.getResponseDomain(q.Name)
+
 	ipRecord := makeARecord(q.Qtype, addr, ttl)
 	if ipRecord == nil {
 		return nil, nil
 	}
-
 	if q.Qtype == dns.TypeSRV {
-		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, d.domain)
+		nodeFQDN := fmt.Sprintf("%s.node.%s.%s", serviceNode.Node.Node, dc, respDomain)
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
@@ -1653,7 +1683,7 @@ func (d *DNSServer) makeRecordFromIP(dc string, addr net.IP, serviceNode structs
 	}
 
 	if q.Qtype == dns.TypeSRV {
-		ipFQDN := d.encodeIPAsFqdn(dc, addr)
+		ipFQDN := d.encodeIPAsFqdn(q.Name, dc, addr)
 		answers := []dns.RR{
 			&dns.SRV{
 				Hdr: dns.RR_Header{
@@ -1822,11 +1852,12 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 
 		answers, extra := d.nodeServiceRecords(dc, node, req, ttl, cfg, maxRecursionLevel)
 
+		respDomain := d.getResponseDomain(req.Question[0].Name)
 		resp.Answer = append(resp.Answer, answers...)
 		resp.Extra = append(resp.Extra, extra...)
 
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, respDomain), node.Node, ttl)...)
 		}
 	}
 }

@@ -53,17 +53,11 @@ ${
     fake.seed(index);
 
 
-    // Randomly make permissive intentions
-    const defaultAllow = fake.random.boolean();
-    const wildcardIntention = defaultAllow ? false : fake.random.boolean();
-
     return `
 {
   "Protocol": "${serviceProto}",
   "FilteredByACLs": ${fake.random.boolean()},
   "TransparentProxy": ${fake.random.boolean()},
-  "DefaultAllow": ${defaultAllow},
-  "WildcardIntention": ${wildcardIntention},
   "Upstreams": [
     ${
       upstreams.map((item, i) => {

@@ -9,27 +9,12 @@ readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
-OLD_XDSV2_AWARE_CONSUL_VERSION="${OLD_XDSV2_AWARE_CONSUL_VERSION:-"${HASHICORP_DOCKER_PROXY}/library/consul:1.9.8"}"
-export OLD_XDSV2_AWARE_CONSUL_VERSION
-
-# TEST_V2_XDS=1 causes it to do just the 'consul connect envoy' part using
-# the consul version in $OLD_XDSV2_AWARE_CONSUL_VERSION
-TEST_V2_XDS=${TEST_V2_XDS:-}
-export TEST_V2_XDS
-
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.19.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.20.0"}
 export ENVOY_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
-fi
-
-if [[ -n "$TEST_V2_XDS" ]] ; then
-    if [[ ! "${ENVOY_VERSION}" =~ ^1\.1[456]\. ]]; then
-        echo "Envoy version ${ENVOY_VERSION} is not compatible with Consul 1.9.8 so we cannot test the xDS v2 fallback code"
-        exit 1
-    fi
 fi
 
 source helpers.bash
@@ -212,7 +197,10 @@ function verify {
 
   echo "Running ${DC} verification step for ${CASE_DIR}..."
 
+  # need to tell the PID 1 inside of the container that it won't be actual PID
+  # 1 because we're using --pid=host so we use TINI_SUBREAPER
   if docker run --name envoy_verify-${DC}_1 -t \
+    -e TINI_SUBREAPER=1 \
     -e ENVOY_VERSION \
     $WORKDIR_SNIPPET \
     --pid=host \

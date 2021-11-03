@@ -7,9 +7,8 @@ import { get } from '@ember/object';
 // will give us all the intentions that have the `ns` as either the SourceNS or
 // the DestinationNS.
 // We currently list intentions by the * wildcard namespace for back compat reasons
-// FIXME: Is now a good time to change this behaviour ^ ?
-
-// TODO: Update to use this.formatDatacenter()
+// TODO: Change the above so that we only list intentions with
+// Source/Destination in the currently selected nspace
 export default class IntentionAdapter extends Adapter {
   requestForQuery(request, { dc, ns, partition, filter, index, uri }) {
     return request`
@@ -46,8 +45,6 @@ export default class IntentionAdapter extends Adapter {
       DestinationName,
     ] = id.split(':').map(decodeURIComponent);
 
-    // FIXME: Service and Namespace are encoded into the URL here
-    // guessing we need to do the same thing for Partitions
     return request`
       GET /v1/connect/intentions/exact?${{
         source: `${SourcePartition}/${SourceNS}/${SourceName}`,
@@ -82,8 +79,6 @@ export default class IntentionAdapter extends Adapter {
         body.Permissions = serialized.Permissions;
       }
     }
-    // FIXME: Service and Namespace are encoded into the URL here
-    // guessing we need to do the same thing for Partitions
     return request`
       PUT /v1/connect/intentions/exact?${{
         source: `${data.SourcePartition}/${data.SourceNS}/${data.SourceName}`,
@@ -99,14 +94,11 @@ export default class IntentionAdapter extends Adapter {
     // you can no longer save Destinations
     delete serialized.DestinationName;
     delete serialized.DestinationNS;
-    // FIXME: Does the above comment stand for partitions also?
     delete serialized.DestinationPartition;
     return this.requestForCreateRecord(...arguments);
   }
 
   requestForDeleteRecord(request, serialized, data) {
-    // FIXME: Service and Namespace are encoded into the URL here
-    // guessing we need to do the same thing for Partitions
     return request`
       DELETE /v1/connect/intentions/exact?${{
         source: `${data.SourcePartition}/${data.SourceNS}/${data.SourceName}`,

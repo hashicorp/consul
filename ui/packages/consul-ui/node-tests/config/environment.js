@@ -22,6 +22,7 @@ test(
           SSOEnabled: false,
           PartitionsEnabled: false,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       },
       {
@@ -36,6 +37,7 @@ test(
           SSOEnabled: false,
           PartitionsEnabled: false,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       },
       {
@@ -50,6 +52,7 @@ test(
           SSOEnabled: true,
           PartitionsEnabled: false,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       },
       {
@@ -61,6 +64,7 @@ test(
           SSOEnabled: true,
           PartitionsEnabled: true,
           LocalDatacenter: 'dc1',
+          PrimaryDatacenter: 'dc1',
         }
       }
     ].forEach(

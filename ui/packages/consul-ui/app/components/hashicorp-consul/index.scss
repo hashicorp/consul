@@ -1,4 +1,4 @@
-.hashicorp-consul {
+%hashicorp-consul {
   [role='banner'] nav .dcs {
     @extend %main-nav-vertical-hoisted;
     left: 100px;
@@ -7,7 +7,7 @@
     display: none;
   }
   [role='banner'] a svg {
-    fill: var(--brand-600);
+    fill: rgb(var(--brand-600));
   }
   .docs-link a::after {
     @extend %with-docs-mask, %as-pseudo;
@@ -20,10 +20,13 @@
   }
   .acls-separator span {
     @extend %led-icon;
-    color: $red-500;
+    color: rgb(var(--tone-red-500));
     display: inline-block;
     position: relative;
     top: 2px;
     margin-left: 2px;
   }
+}
+.hashicorp-consul {
+  @extend %hashicorp-consul;
 }

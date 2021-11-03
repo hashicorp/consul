@@ -170,7 +170,11 @@ func (v *VaultProvider) GenerateRoot() error {
 			Type:        "pki",
 			Description: "root CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: "8760h",
+				// the max lease ttl denotes the maximum ttl that secrets are created from the engine
+				// the default lease ttl is the kind of ttl that will *reliably* set the ttl to v.config.RootCertTTL
+				// https://www.vaultproject.io/docs/secrets/pki#configure-a-ca-certificate
+				MaxLeaseTTL:     v.config.RootCertTTL.String(),
+				DefaultLeaseTTL: v.config.RootCertTTL.String(),
 			},
 		})
 

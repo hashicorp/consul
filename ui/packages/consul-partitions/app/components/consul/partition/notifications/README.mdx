@@ -1,0 +1,46 @@
+# Consul::Partition::Notifications
+
+A Notification component specifically for Partitions (at some point will be replaced with just using `ember-intl`/`t`.
+
+```hbs preview-template
+  <figure>
+    <figcaption>Provide a widget to change the <code>@type</code></figcaption>
+
+    <select
+      {{on 'change' (action (mut this.type) value="target.value")}}
+    >
+      <option>create</option>
+      <option>update</option>
+      <option>delete</option>
+    </select>
+  </figure>
+  <figure>
+    <figcaption>Provide a widget to change the <code>@status</code></figcaption>
+
+    <select
+      {{on 'change' (action (mut this.success) value="target.value")}}
+    >
+      <option>success</option>
+      <option>error</option>
+    </select>
+  </figure>
+  <figure>
+    <figcaption>Show the notification text</figcaption>
+    <p>
+      <Consul::Partition::Notifications
+        @type={{or this.type 'create'}}
+        @status={{or this.success 'success'}}
+        @error={{undefined}}
+      />
+    </p>
+  </figure>
+
+```
+
+
+
+## See
+
+- [Template Source Code](./index.hbs)
+
+---

@@ -125,6 +125,47 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 	require.Equal(updated, config)
 }
 
+func TestStore_ConfigEntry_DeleteCAS(t *testing.T) {
+	require := require.New(t)
+	s := testConfigStateStore(t)
+
+	entry := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: "global",
+		Config: map[string]interface{}{
+			"DestinationServiceName": "foo",
+		},
+	}
+
+	// Attempt to delete the entry before it exists.
+	ok, err := s.DeleteConfigEntryCAS(1, 0, entry)
+	require.NoError(err)
+	require.False(ok)
+
+	// Create the entry.
+	require.NoError(s.EnsureConfigEntry(1, entry))
+
+	// Attempt to delete with an invalid index.
+	ok, err = s.DeleteConfigEntryCAS(2, 99, entry)
+	require.NoError(err)
+	require.False(ok)
+
+	// Entry should not be deleted.
+	_, config, err := s.ConfigEntry(nil, entry.Kind, entry.Name, nil)
+	require.NoError(err)
+	require.NotNil(config)
+
+	// Attempt to delete with a valid index.
+	ok, err = s.DeleteConfigEntryCAS(2, 1, entry)
+	require.NoError(err)
+	require.True(ok)
+
+	// Entry should be deleted.
+	_, config, err = s.ConfigEntry(nil, entry.Kind, entry.Name, nil)
+	require.NoError(err)
+	require.Nil(config)
+}
+
 func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
 	// This test uses ServiceIntentions because they are the only
 	// kind that implements UpdateOver() at this time.

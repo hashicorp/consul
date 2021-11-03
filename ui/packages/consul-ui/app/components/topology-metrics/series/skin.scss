@@ -8,7 +8,7 @@
     font-size: 0.875em;
     line-height: 1.5em;
     font-weight: normal;
-    border: 1px solid $gray-300;
+    border: 1px solid rgb(var(--tone-gray-300));
     background: #fff;
     border-radius: 2px;
     box-sizing: border-box;
@@ -19,7 +19,7 @@
       font-weight: bold;
       font-size: 14px;
       color: #000;
-      border-bottom: 1px solid $gray-200;
+      border-bottom: 1px solid rgb(var(--tone-gray-200));
       margin-bottom: 4px;
       text-align: center;
     }
@@ -31,7 +31,7 @@
     }
 
     .sparkline-tt-sum {
-      border-top: 1px solid $gray-200;
+      border-top: 1px solid rgb(var(--tone-gray-200));
       margin-top: 4px;
       padding: 8px 10px 0 10px;
     }
@@ -58,7 +58,7 @@
     height: 12px;
     left: 15px;
     bottom: -7px;
-    border: 1px solid $gray-300;
+    border: 1px solid rgb(var(--tone-gray-300));
     border-top: 0;
     border-left: 0;
     background: #fff;
@@ -75,7 +75,7 @@
   }
 
   h3 {
-    color: $gray-900;
+    color: rgb(var(--tone-gray-900));
     font-size: 16px;
   }
 
@@ -84,16 +84,16 @@
       font-weight: 600;
     }
     dd {
-      color: $gray-500;
+      color: rgb(var(--tone-gray-500));
     }
   }
 }
 
 .sparkline-key-link {
-  color: $gray-500;
+  color: rgb(var(--tone-gray-500));
 }
 .sparkline-key-link:hover {
-  color: $blue-500;
+  color: rgb(var(--tone-blue-500));
 }
 #metrics-container:hover .sparkline-key-link::before {
   @extend %with-info-circle-fill-mask, %as-pseudo;

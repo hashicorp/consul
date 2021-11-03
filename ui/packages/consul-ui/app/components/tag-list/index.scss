@@ -8,7 +8,7 @@ td.tags {
 %tag-list dt::before {
   @extend %with-tag-mask, %as-pseudo;
   color: inherit;
-  color: var(--gray-500);
+  color: rgb(var(--tone-gray-500));
 }
 %tag-list dd {
   @extend %csv-list;

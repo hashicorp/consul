@@ -14,8 +14,6 @@ export default class Topology extends Model {
   @attr('string') Protocol;
   @attr('boolean') FilteredByACLs;
   @attr('boolean') TransparentProxy;
-  @attr('boolean') DefaultAllow;
-  @attr('boolean') WildcardIntention;
   @attr() Upstreams; // Service[]
   @attr() Downstreams; // Service[],
   @attr() meta; // {}
@@ -33,14 +31,19 @@ export default class Topology extends Model {
     return undefinedDownstream;
   }
 
-  @computed('FilteredByACL', 'DefaultAllow', 'WildcardIntention', 'notDefinedIntention')
-  get collapsible() {
-    if (this.DefaultAllow && this.FilteredByACLs && this.notDefinedIntention) {
-      return true;
-    } else if (this.WildcardIntention && this.FilteredByACLs && this.notDefinedIntention) {
-      return true;
-    }
+  @computed('Downstreams', 'Upstreams')
+  // A service has a wildcard intention if `Allowed == true`  and `HasExact = false`
+  // The Permissive Intention notice appears if at least one upstream or downstream has
+  // a wildcard intention
+  get wildcardIntention() {
+    const downstreamWildcard =
+      this.Downstreams.filter(item => !item.Intention.HasExact && item.Intention.Allowed).length !==
+      0;
 
-    return false;
+    const upstreamWildcard =
+      this.Upstreams.filter(item => !item.Intention.HasExact && item.Intention.Allowed).length !==
+      0;
+
+    return downstreamWildcard || upstreamWildcard;
   }
 }

@@ -382,7 +382,7 @@ func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
 	// Try to join.
 	joinWAN(t, s2, s1)
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc2")
+	testrpc.WaitForLeader(t, s1.RPC, "dc2", testrpc.WithToken("root"))
 
 	// Create the ACL token.
 	opWriteToken, err := upsertTestTokenWithPolicyRules(client, "root", "dc1", `operator = "write"`)

@@ -9,7 +9,7 @@
     {{did-update this.setHeight 'downstream-lines' @topology.Downstreams}}
   >
     <div>
-      <p>{{@dc}}</p>
+      <p>{{@dc.Name}}</p>
       <span>
         <Tooltip>
           Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
@@ -19,7 +19,7 @@
   {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
       @nspace={{@nspace}}
-      @dc={{@dc}}
+      @dc={{@dc.Name}}
       @service={{@service.Service}}
       @item={{item}}
       @hasMetricsProvider={{@hasMetricsProvider}}
@@ -50,7 +50,7 @@
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
         @partition={{or service.Service.Partition 'default'}}
-        @dc={{@dc}}
+        @dc={{@dc.Name}}
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
@@ -59,7 +59,7 @@
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
         @partition={{or service.Service.Partition 'default'}}
-        @dc={{@dc}}
+        @dc={{@dc.Name}}
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
@@ -69,9 +69,9 @@
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
-      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer" data-test-metrics-anchor>Open metrics Dashboard</a>
+      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer" data-test-metrics-anchor>Open dashboard</a>
     {{else}}
-      <a class="config-link" href="{{env 'CONSUL_DOCS_URL'}}/connect/observability/ui-visualization" target="_blank" rel="noopener noreferrer">Configure metrics dashboard</a>
+      <a class="config-link" href="{{env 'CONSUL_DOCS_URL'}}/connect/observability/ui-visualization" target="_blank" rel="noopener noreferrer">Configure dashboard</a>
     {{/if}}
     </div>
   </div>
@@ -99,7 +99,7 @@
     {{/if}}
     {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        @dc={{@dc}}
+        @dc={{@dc.Name}}
         @item={{item}}
         @service={{@service.Service}}
       >

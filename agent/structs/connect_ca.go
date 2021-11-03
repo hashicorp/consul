@@ -12,7 +12,8 @@ import (
 
 const (
 	DefaultLeafCertTTL         = "72h"
-	DefaultIntermediateCertTTL = "8760h" // 365 * 24h
+	DefaultIntermediateCertTTL = "8760h"  // ~ 1 year = 365 * 24h
+	DefaultRootCertTTL         = "87600h" // ~ 10 years = 365 * 24h * 10
 )
 
 // IndexedCARoots is the list of currently trusted CA Roots.
@@ -326,6 +327,7 @@ func (c *CAConfiguration) GetCommonConfig() (*CommonCAProviderConfig, error) {
 type CommonCAProviderConfig struct {
 	LeafCertTTL         time.Duration
 	IntermediateCertTTL time.Duration
+	RootCertTTL         time.Duration
 
 	SkipValidate bool
 
@@ -378,6 +380,12 @@ var IntermediateCertRenewInterval = time.Hour
 func (c CommonCAProviderConfig) Validate() error {
 	if c.SkipValidate {
 		return nil
+	}
+
+	// it's sufficient to check that the root cert ttl >= intermediate cert ttl
+	// since intermediate cert ttl >= 3* leaf cert ttl; so root cert ttl >= 3 * leaf cert ttl > leaf cert ttl
+	if c.RootCertTTL < c.IntermediateCertTTL {
+		return fmt.Errorf("root cert TTL is set and is not greater than intermediate cert ttl. root cert ttl: %s, intermediate cert ttl: %s", c.RootCertTTL, c.IntermediateCertTTL)
 	}
 
 	if c.LeafCertTTL < MinLeafCertTTL {

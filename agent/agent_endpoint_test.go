@@ -92,12 +92,15 @@ func TestAgent_Services(t *testing.T) {
 	require.NoError(t, a.State.AddService(srv1, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	val := obj.(map[string]*api.AgentService)
-	assert.Lenf(t, val, 1, "bad services: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
+	require.NoError(t, err)
+	assert.Lenf(t, val, 1, "bad services: %v", val)
 	assert.Equal(t, 5000, val["mysql"].Port)
 	assert.Equal(t, srv1.Meta, val["mysql"].Meta)
 }
@@ -136,15 +139,25 @@ func TestAgent_ServicesFiltered(t *testing.T) {
 	require.NoError(t, a.State.AddService(srv2, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("foo in Meta"), nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
 	require.NoError(t, err)
-	val := obj.(map[string]*api.AgentService)
 	require.Len(t, val, 2)
 
 	req, _ = http.NewRequest("GET", "/v1/agent/services?filter="+url.QueryEscape("kv in Tags"), nil)
-	obj, err = a.srv.AgentServices(nil, req)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	require.Equal(t, http.StatusOK, resp.Code)
+	decoder = json.NewDecoder(resp.Body)
+	val = make(map[string]*api.AgentService)
+	err = decoder.Decode(&val)
 	require.NoError(t, err)
-	val = obj.(map[string]*api.AgentService)
 	require.Len(t, val, 1)
 }
 
@@ -175,9 +188,13 @@ func TestAgent_Services_ExternalConnectProxy(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
-	assert.Nil(err)
-	val := obj.(map[string]*api.AgentService)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
+	require.NoError(t, err)
+
 	assert.Len(val, 1)
 	actual := val["db-proxy"]
 	assert.Equal(api.ServiceKindConnectProxy, actual.Kind)
@@ -217,9 +234,13 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(nil, req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	decoder := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := decoder.Decode(&val)
 	require.NoError(err)
-	val := obj.(map[string]*api.AgentService)
+
 	assert.Len(val, 1)
 	actual := val["db-sidecar-proxy"]
 	require.NotNil(actual)
@@ -232,10 +253,8 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 	// but this test serves as a regression test incase we change the endpoint to
 	// return the internal struct later and accidentally expose some "internal"
 	// state.
-	output, err := json.Marshal(obj)
-	require.NoError(err)
-	assert.NotContains(string(output), "LocallyRegisteredAsSidecar")
-	assert.NotContains(string(output), "locally_registered_as_sidecar")
+	assert.NotContains(resp.Body.String(), "LocallyRegisteredAsSidecar")
+	assert.NotContains(resp.Body.String(), "locally_registered_as_sidecar")
 }
 
 // This tests that a mesh gateway service is returned as expected.
@@ -1891,12 +1910,12 @@ func TestAgent_Join(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if len(a1.LANMembers()) != 2 {
+	if len(a1.LANMembersInAgentPartition()) != 2 {
 		t.Fatalf("should have 2 members")
 	}
 
 	retry.Run(t, func(r *retry.R) {
-		if got, want := len(a2.LANMembers()), 2; got != want {
+		if got, want := len(a2.LANMembersInAgentPartition()), 2; got != want {
 			r.Fatalf("got %d LAN members want %d", got, want)
 		}
 	})
@@ -2002,7 +2021,7 @@ func TestAgent_JoinLANNotify(t *testing.T) {
 	a1.joinLANNotifier = notif
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2030,7 +2049,7 @@ func TestAgent_Leave(t *testing.T) {
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2045,7 +2064,7 @@ func TestAgent_Leave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -2101,7 +2120,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2110,7 +2129,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 	a2.Shutdown()
 	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusFailed; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -2126,7 +2145,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
 			r.Fatalf("got status %q want %q", got, want)
 		}
@@ -2210,7 +2229,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 
 	// Join first
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
-	_, err := a1.JoinLAN([]string{addr})
+	_, err := a1.JoinLAN([]string{addr}, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2219,7 +2238,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 	a2.Shutdown()
 	// Wait for agent being marked as failed, so we wait for full shutdown of Agent
 	retry.Run(t, func(r *retry.R) {
-		m := a1.LANMembers()
+		m := a1.LANMembersInAgentPartition()
 		for _, member := range m {
 			if member.Name == a2.Config.NodeName {
 				if member.Status != serf.StatusFailed {
@@ -2239,7 +2258,7 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 	retry.Run(t, func(r *retry.R) {
-		m := len(a1.LANMembers())
+		m := len(a1.LANMembersInAgentPartition())
 		if m != 1 {
 			r.Fatalf("want one member, got %v", m)
 		}
@@ -4685,7 +4704,7 @@ func TestAgent_NodeMaintenance_BadRequest(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Fails when no enable flag provided
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/maintenance", nil)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -4706,7 +4725,7 @@ func TestAgent_NodeMaintenance_Enable(t *testing.T) {
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Force the node into maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken&token=mytoken", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=true&reason=broken&token=mytoken", nil)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -4746,7 +4765,7 @@ func TestAgent_NodeMaintenance_Disable(t *testing.T) {
 	a.EnableNodeMaintenance("", "")
 
 	// Leave maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=false", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=false", nil)
 	resp := httptest.NewRecorder()
 	if _, err := a.srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -4772,14 +4791,14 @@ func TestAgent_NodeMaintenance_ACLDeny(t *testing.T) {
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	t.Run("no token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=true&reason=broken", nil)
 		if _, err := a.srv.AgentNodeMaintenance(nil, req); !acl.IsErrPermissionDenied(err) {
 			t.Fatalf("err: %v", err)
 		}
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true&reason=broken&token=root", nil)
+		req, _ := http.NewRequest("PUT", "/v1/agent/maintenance?enable=true&reason=broken&token=root", nil)
 		if _, err := a.srv.AgentNodeMaintenance(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -5157,8 +5176,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 			require.NoError(t, err)
 
 			resp := httptest.NewRecorder()
-			_, err = a.srv.AgentToken(resp, req)
-			require.NoError(t, err)
+			a.srv.h.ServeHTTP(resp, req)
 
 			require.Equal(t, http.StatusOK, resp.Code)
 			require.Equal(t, token.SecretID, tt.tokenGetFn(a.tokens))
@@ -5227,21 +5245,23 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
-		expectedErr error
+		expectedErr string
 	}{
 		{
 			name:        "bad token name",
 			method:      "PUT",
 			url:         "nope?token=root",
 			body:        body("X"),
-			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
+			code:        http.StatusNotFound,
+			expectedErr: `Token "nope" is unknown`,
 		},
 		{
-			name:   "bad JSON",
-			method: "PUT",
-			url:    "acl_token?token=root",
-			body:   badJSON(),
-			code:   http.StatusBadRequest,
+			name:        "bad JSON",
+			method:      "PUT",
+			url:         "acl_token?token=root",
+			body:        badJSON(),
+			code:        http.StatusBadRequest,
+			expectedErr: `Bad request: Request decode failed: json: cannot unmarshal bool into Go value of type api.AgentToken`,
 		},
 		{
 			name:      "set user legacy",
@@ -5397,13 +5417,12 @@ func TestAgent_Token(t *testing.T) {
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
 
-			_, err := a.srv.AgentToken(resp, req)
-			if tt.expectedErr != nil {
-				require.Equal(t, tt.expectedErr, err)
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, tt.code, resp.Code)
+			if tt.expectedErr != "" {
+				require.Contains(t, resp.Body.String(), tt.expectedErr)
 				return
 			}
-			require.NoError(t, err)
-			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
 			require.Equal(t, tt.effective.agent, a.tokens.AgentToken())
 			require.Equal(t, tt.effective.master, a.tokens.AgentMasterToken())
@@ -5432,8 +5451,10 @@ func TestAgent_Token(t *testing.T) {
 	t.Run("permission denied", func(t *testing.T) {
 		resetTokens(tokens{})
 		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", body("X"))
-		_, err := a.srv.AgentToken(nil, req)
-		require.True(t, acl.IsErrPermissionDenied(err))
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusForbidden, resp.Code)
 		require.Equal(t, "", a.tokens.UserToken())
 	})
 }

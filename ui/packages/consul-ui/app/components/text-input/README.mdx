@@ -1,0 +1,46 @@
+# TextInput
+
+Form component to be used for entering text values, both short form and long
+form. Currently an inline component but as and when we get chance this will be
+changed to also accept slots for specifying specific parts of the component.
+
+```hbs preview-template
+  <TextInput
+    @name="single"
+    @label="Single Line Text Input"
+    @item={{hash
+      single=""
+    }}
+    @placeholder="Placeholder: Enter some single line text here"
+    @help="Help me if you can, I'm feeling down"
+  />
+  <hr />
+  <TextInput
+    @expanded={{true}}
+    @name="Description"
+    @label="Multiline Input"
+    @item={{hash
+      Description="Long form text"
+    }}
+  />
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `Object` |  | An object whose properties are to be edited |
+| `name` | `String` | '' | An identifier for the property to be edited on the `item` |
+| `label` | `String` | `@name` | A label to use to label the text input element |
+| `placeholder` | `String` | | Equivalent to the HTML `placeholder=""` attribute |
+| `help` | `String` | | Provide some help text for the input (consider using `@validations` instead) |
+| `expanded` | `Boolean` | `false` | Whether to use an expanded textarea or just a normal single line input |
+| `validations` | `Object` |  | A `validations` object to be passed to the underlying `validate` modifier |
+| `chart` | `Object` | | A StateChart object (implementing `state` and `dispatch` to be passed to the underlying `validate` modifier  |
+
+## See
+
+- [Validate Modifier](../modifiers/validate.mdx)
+- [Template Source Code](./index.hbs)
+
+---

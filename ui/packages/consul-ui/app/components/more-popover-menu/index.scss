@@ -14,15 +14,15 @@
   padding: 7px;
 }
 %more-popover-menu-trigger > * {
-  background-color: $transparent;
-  border-radius: $decor-radius-100;
+  background-color: var(--transparent);
+  border-radius: var(--decor-radius-100);
   width: 30px;
   height: 30px;
   font-size: 0;
 }
 %more-popover-menu-trigger > *::after {
   @extend %with-more-horizontal-mask, %as-pseudo;
-  background-color: $gray-900;
+  background-color: rgb(var(--tone-gray-900));
   width: 16px;
   height: 16px;
   position: absolute;
@@ -32,9 +32,9 @@
   margin-left: -8px;
 }
 %more-popover-menu-trigger > *:active {
-  background-color: $gray-100;
+  background-color: rgb(var(--tone-gray-100));
 }
 %more-popover-menu-trigger > *:hover,
 %more-popover-menu-trigger > *:focus {
-  background-color: $gray-050;
+  background-color: rgb(var(--tone-gray-050));
 }

@@ -1,4 +1,5 @@
 import Adapter from './application';
+import { SLUG_KEY } from 'consul-ui/models/partition';
 
 // Blocking query support for partitions is currently disabled
 export default class PartitionAdapter extends Adapter {
@@ -23,5 +24,38 @@ export default class PartitionAdapter extends Adapter {
     `;
     await respond((headers, body) => delete headers['x-consul-index']);
     return respond;
+  }
+
+  async requestForCreateRecord(request, serialized, data) {
+    return request`
+      PUT /v1/partition/${data[SLUG_KEY]}?${{
+      dc: data.Datacenter,
+    }}
+
+      ${{
+        Name: serialized.Name,
+        Description: serialized.Description,
+      }}
+    `;
+  }
+
+  async requestForUpdateRecord(request, serialized, data) {
+    return request`
+      PUT /v1/partition/${data[SLUG_KEY]}?${{
+      dc: data.Datacenter,
+    }}
+
+      ${{
+        Description: serialized.Description,
+      }}
+    `;
+  }
+
+  async requestForDeleteRecord(request, serialized, data) {
+    return request`
+      DELETE /v1/partition/${data[SLUG_KEY]}?${{
+      dc: data.Datacenter,
+    }}
+    `;
   }
 }

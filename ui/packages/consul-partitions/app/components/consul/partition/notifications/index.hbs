@@ -1,0 +1,24 @@
+{{#if (eq @type 'create')}}
+  {{#if (eq @status 'success') }}
+    Your partition has been added.
+  {{else}}
+    There was an error adding your partition.
+  {{/if}}
+{{else if (eq @type 'update') }}
+  {{#if (eq @status 'success') }}
+    Your partition has been saved.
+  {{else}}
+    There was an error saving your partition.
+  {{/if}}
+{{ else if (eq @type 'delete')}}
+  {{#if (eq @status 'success') }}
+    Your partition has been marked for deletion.
+  {{else}}
+    There was an error deleting your partition.
+  {{/if}}
+{{/if}}
+{{#let @error.errors.firstObject as |error|}}
+  {{#if error.detail }}
+    <br />{{concat '(' (if error.status (concat error.status ': ')) error.detail ')'}}
+  {{/if}}
+{{/let}}

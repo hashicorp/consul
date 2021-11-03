@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -200,10 +199,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						ConnectTimeout: 22 * time.Second,
 					},
 				}
-				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
-				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil, entries...)
+				fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				bazChain := discoverychain.TestCompileConfigEntries(t, "baz", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
+				quxChain := discoverychain.TestCompileConfigEntries(t, "qux", "default", "default", "dc1", connect.TestClusterID+".consul", nil, entries...)
 
 				snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
 					"foo": fooChain,
@@ -329,7 +328,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	latestEnvoyVersion_v2 := proxysupport.EnvoyVersionsV2[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -369,36 +367,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						}
 
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
-					})
-
-					t.Run("v2-compat", func(t *testing.T) {
-						if !stringslice.Contains(proxysupport.EnvoyVersionsV2, envoyVersion) {
-							t.Skip()
-						}
-						respV2, err := convertDiscoveryResponseToV2(r)
-						require.NoError(t, err)
-
-						gotJSON := protoToJSON(t, respV2)
-
-						gName := tt.name
-						if tt.overrideGoldenName != "" {
-							gName = tt.overrideGoldenName
-						}
-
-						gName += ".v2compat"
-
-						// It's easy to miss a new type that encodes a version from just
-						// looking at the golden files so lets make it an error here. If
-						// there are ever false positives we can maybe include an allow list
-						// here as it seems safer to assume something was missed than to
-						// assume we'll notice the golden file being wrong. Note the first
-						// one matches both resourceApiVersion and transportApiVersion. I
-						// left it as a suffix in case there are other field names that
-						// follow that convention now or in the future.
-						require.NotContains(t, gotJSON, `ApiVersion": "V3"`)
-						require.NotContains(t, gotJSON, `type.googleapis.com/envoy.api.v3`)
-
-						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
 			}
@@ -801,11 +769,11 @@ func setupIngressWithTwoHTTPServices(t *testing.T, o ingressSDSOpts) func(snap *
 		webChain := discoverychain.TestCompileConfigEntries(t, "web",
 			o.entMetas["web"].NamespaceOrDefault(),
 			o.entMetas["web"].PartitionOrDefault(), "dc1",
-			connect.TestClusterID+".consul", "dc1", nil, entries...)
+			connect.TestClusterID+".consul", nil, entries...)
 		fooChain := discoverychain.TestCompileConfigEntries(t, "foo",
 			o.entMetas["foo"].NamespaceOrDefault(),
 			o.entMetas["web"].PartitionOrDefault(), "dc1",
-			connect.TestClusterID+".consul", "dc1", nil, entries...)
+			connect.TestClusterID+".consul", nil, entries...)
 
 		snap.IngressGateway.DiscoveryChain[webUpstream.Identifier()] = webChain
 		snap.IngressGateway.DiscoveryChain[fooUpstream.Identifier()] = fooChain

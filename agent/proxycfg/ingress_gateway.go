@@ -196,10 +196,31 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 	return nil
 }
 
+// connectTLSServingEnabled returns true if Connect TLS is enabled at either
+// gateway level or for at least one of the specific listeners.
+func connectTLSServingEnabled(snap *ConfigSnapshot) bool {
+	if snap.IngressGateway.TLSConfig.Enabled {
+		return true
+	}
+
+	for _, l := range snap.IngressGateway.Listeners {
+		if l.TLS != nil && l.TLS.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *handlerIngressGateway) generateIngressDNSSANs(snap *ConfigSnapshot) []string {
-	// Update our leaf cert watch with wildcard entries for our DNS domains as well as any
-	// configured custom hostnames from the service.
-	if !snap.IngressGateway.TLSConfig.Enabled {
+	// Update our leaf cert watch with wildcard entries for our DNS domains as
+	// well as any configured custom hostnames from the service. Note that in the
+	// case that only a subset of listeners are TLS-enabled, we still load DNS
+	// SANs for all upstreams. We could limit it to only those that are reachable
+	// from the enabled listeners but that adds a lot of complication and they are
+	// already wildcards anyway. It's simpler to have one certificate for the
+	// whole proxy that works for any possible upstream we might need than try to
+	// be more selective when we are already using wildcard DNS names!
+	if !connectTLSServingEnabled(snap) {
 		return nil
 	}
 

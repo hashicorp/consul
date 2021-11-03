@@ -22,10 +22,7 @@
       <li
         data-test-list-row
         onclick={{action 'click'}} style={{{cell.style}}}
-        class={{if
-              (compute (action (or linkable (noop)) cell.item))
-              'linkable'
-        }}
+        class={{if (not linkable) 'linkable' (if (is linkable item=cell.item) 'linkable')}}
       >
         <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
         <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
@@ -49,10 +46,7 @@
       <li
         data-test-list-row
         onclick={{action 'click'}}
-        class={{if
-          (compute (action (or linkable (noop)) item))
-          'linkable'
-        }}
+        class={{if (not linkable) 'linkable' (if (is linkable item=cell.item) 'linkable')}}
       >
         <YieldSlot @name="header"><div class="header">{{yield item index}}</div></YieldSlot>
         <YieldSlot @name="details"><div class="detail">{{yield item index}}</div></YieldSlot>

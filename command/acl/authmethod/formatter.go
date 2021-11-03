@@ -80,7 +80,7 @@ func (f *prettyFormatter) FormatAuthMethod(method *api.ACLAuthMethod) (string, e
 	if err != nil {
 		return "", fmt.Errorf("Error formatting auth method configuration: %s", err)
 	}
-	buffer.WriteString(string(output))
+	buffer.Write(output)
 
 	return buffer.String(), nil
 }

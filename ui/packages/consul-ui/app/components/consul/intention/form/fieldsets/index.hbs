@@ -51,7 +51,7 @@
         {{/if}}
         </label>
   {{/if}}
-  {{#if (can 'choose partitions')}}
+  {{#if (can 'choose partitions' dc=@dc)}}
         <label data-test-source-partition class="type-select{{if item.error.SourcePartition ' has-error'}}">
           <span>Source Partition</span>
           <PowerSelectWithCreate
@@ -123,7 +123,7 @@
         {{/if}}
         </label>
   {{/if}}
-  {{#if (can 'choose partitions')}}
+  {{#if (can 'choose partitions' dc=@dc)}}
         <label data-test-destination-partition class="type-select{{if item.error.DestinationPartition ' has-error'}}">
           <span>Destination Partition</span>
           <PowerSelectWithCreate

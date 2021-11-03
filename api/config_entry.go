@@ -22,6 +22,7 @@ const (
 	TerminatingGateway string = "terminating-gateway"
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
+	PartitionExports   string = "partition-exports"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -276,6 +277,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
 	case MeshConfig:
 		return &MeshConfigEntry{}, nil
+	case PartitionExports:
+		return &PartitionExportsConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -377,12 +380,14 @@ func (conf *ConfigEntries) Get(kind string, name string, q *QueryOptions) (Confi
 
 	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -402,12 +407,14 @@ func (conf *ConfigEntries) List(kind string, q *QueryOptions) ([]ConfigEntry, *Q
 
 	r := conf.c.newRequest("GET", fmt.Sprintf("/v1/config/%s", kind))
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -441,11 +448,14 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 		r.params.Set(param, value)
 	}
 	r.obj = entry
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
+	rtt, resp, err := conf.c.doRequest(r)
 	if err != nil {
 		return false, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, resp.Body); err != nil {
@@ -458,17 +468,45 @@ func (conf *ConfigEntries) set(entry ConfigEntry, params map[string]string, w *W
 }
 
 func (conf *ConfigEntries) Delete(kind string, name string, w *WriteOptions) (*WriteMeta, error) {
+	_, wm, err := conf.delete(kind, name, nil, w)
+	return wm, err
+}
+
+// DeleteCAS performs a Check-And-Set deletion of the given config entry, and
+// returns true if it was successful. If the provided index no longer matches
+// the entry's ModifyIndex (i.e. it was modified by another process) then the
+// operation will fail and return false.
+func (conf *ConfigEntries) DeleteCAS(kind, name string, index uint64, w *WriteOptions) (bool, *WriteMeta, error) {
+	return conf.delete(kind, name, map[string]string{"cas": strconv.FormatUint(index, 10)}, w)
+}
+
+func (conf *ConfigEntries) delete(kind, name string, params map[string]string, w *WriteOptions) (bool, *WriteMeta, error) {
 	if kind == "" || name == "" {
-		return nil, fmt.Errorf("Both kind and name parameters must not be empty")
+		return false, nil, fmt.Errorf("Both kind and name parameters must not be empty")
 	}
 
 	r := conf.c.newRequest("DELETE", fmt.Sprintf("/v1/config/%s/%s", kind, name))
 	r.setWriteOptions(w)
-	rtt, resp, err := requireOK(conf.c.doRequest(r))
-	if err != nil {
-		return nil, err
+	for param, value := range params {
+		r.params.Set(param, value)
 	}
-	closeResponseBody(resp)
+
+	rtt, resp, err := conf.c.doRequest(r)
+	if err != nil {
+		return false, nil, err
+	}
+	defer closeResponseBody(resp)
+
+	if err := requireOK(resp); err != nil {
+		return false, nil, err
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, nil, fmt.Errorf("Failed to read response: %v", err)
+	}
+
+	res := strings.Contains(buf.String(), "true")
 	wm := &WriteMeta{RequestTime: rtt}
-	return wm, nil
+	return res, wm, nil
 }

@@ -18,7 +18,7 @@ a server running inside or outside of Kubernetes.
 You can install Consul on Kubernetes using the following methods:
 
 1. [Helm chart install](#helm-chart-installation)
-1. [Consul K8s CLI install <sup>ALPHA</sup>.](#consul-k8s-cli-installation)
+1. [Consul K8s CLI install <sup>BETA</sup>.](#consul-k8s-cli-installation)
 
 Refer to the [architecture](/docs/k8s/installation/install#architecture) section to learn more about the general architecture of Consul on Kubernetes.
 For a hands-on experience with Consul as a service mesh
@@ -54,7 +54,7 @@ manual configuration.
 
 ### Prerequisites
 
-The Consul Helm only supports Helm 3. Install the latest version of the Helm CLI here:
+The Consul Helm only supports Helm 3.2+. Install the latest version of the Helm CLI here:
 [Installing Helm](https://helm.sh/docs/intro/install/).
 
 ### Installing Consul
@@ -71,13 +71,26 @@ The Consul Helm only supports Helm 3. Install the latest version of the Helm CLI
    ```shell-session
    $ helm search repo hashicorp/consul
    NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-   hashicorp/consul	0.32.0       	1.10.0      Official HashiCorp Consul Chart
+   hashicorp/consul	0.35.0       	1.10.3      Official HashiCorp Consul Chart
    ```
 
-1. Issue the following command to install Consul with the default configuration using Helm 3:
+1. Prior to installing via Helm, ensure that the `consul` Kubernetes namespace does not exist, as installing on a dedicated namespace
+   is recommended.  
+
+    ```shell-session
+    $ kubectl get namespace
+    NAME              STATUS   AGE
+    default           Active   18h
+    kube-node-lease   Active   18h
+    kube-public       Active   18h
+    kube-system       Active   18h
+    ```
+
+1. Issue the following command to install Consul with the default configuration using Helm. You could also install Consul on a dedicated 
+   namespace of your choosing by modifying the value of the `-n` flag for the Helm install.
 
    ```shell-session
-   $ helm install consul hashicorp/consul --set global.name=consul
+   $ helm install consul hashicorp/consul --set global.name=consul --create-namespace -n consul
    NAME: consul
    ...
    ```
@@ -99,11 +112,11 @@ use the following config file:
 
 ```yaml
 global:
-name: consul
+  name: consul
 connectInject:
-enabled: true
+  enabled: true
 controller:
-enabled: true
+  enabled: true
 ```
 
 </CodeBlockConfig>
@@ -291,75 +304,6 @@ spec:
 ```
 
 </CodeBlockConfig>
-
-## Architecture
-
-Consul runs on Kubernetes with the same
-[architecture](/docs/internals/architecture)
-as other platforms. There are some benefits Kubernetes can provide
-that eases operating a Consul cluster and we document those below. The standard
-[production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) is still an
-important read even if running Consul within Kubernetes.
-
-Each section below will outline the different components of running Consul
-on Kubernetes and an overview of the resources that are used within the
-Kubernetes cluster.
-
-### Server Agents
-
-The server agents are run as a **StatefulSet**, using persistent volume
-claims to store the server state. This also ensures that the
-[node ID](/docs/agent/options#_node_id) is persisted so that servers
-can be rescheduled onto new IP addresses without causing issues. The server agents
-are configured with
-[anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
-rules so that they are placed on different nodes. A readiness probe is
-configured that marks the pod as ready only when it has established a leader.
-
-A **Service** is registered to represent the servers and expose the various
-ports. The DNS address of this service is used to join the servers to each
-other without requiring any other access to the Kubernetes cluster. The
-service is configured to publish non-ready endpoints so that it can be used
-for joining during bootstrap and upgrades.
-
-Additionally, a **PodDisruptionBudget** is configured so the Consul server
-cluster maintains quorum during voluntary operational events. The maximum
-unavailable is `(n/2)-1` where `n` is the number of server agents.
-
--> **Note:** Kubernetes and Helm do not delete Persistent Volumes or Persistent
-Volume Claims when a
-[StatefulSet is deleted](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage),
-so this must done manually when removing servers.
-
-### Client Agents
-
-The client agents are run as a **DaemonSet**. This places one agent
-(within its own pod) on each Kubernetes node.
-The clients expose the Consul HTTP API via a static port (8500)
-bound to the host port. This enables all other pods on the node to connect
-to the node-local agent using the host IP that can be retrieved via the
-Kubernetes downward API. See
-[accessing the Consul HTTP API](/docs/k8s/installation/install#accessing-the-consul-http-api)
-for an example.
-
-We do not use a **NodePort** Kubernetes service because requests to node ports get randomly routed
-to any pod in the service and we need to be able to route directly to the Consul
-client running on our node.
-
--> **Note:** There is no way to bind to a local-only
-host port. Therefore, any other node can connect to the agent. This should be
-considered for security. For a properly production-secured agent with TLS
-and ACLs, this is safe.
-
-We run Consul clients as a **DaemonSet** instead of running a client in each
-application pod as a sidecar because this would turn
-a pod into a "node" in Consul and also causes an explosion of resource usage
-since every pod needs a Consul agent. Service registration should be handled via the
-catalog syncing feature with Services rather than pods.
-
--> **Note:** Due to a limitation of anti-affinity rules with DaemonSets,
-a client-mode agent runs alongside server-mode agents in Kubernetes. This
-duplication wastes some resources, but otherwise functions perfectly fine.
 
 ## Next Steps
 

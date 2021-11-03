@@ -724,6 +724,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			"csr_max_concurrent": "CSRMaxConcurrent",
 			"private_key_type":   "PrivateKeyType",
 			"private_key_bits":   "PrivateKeyBits",
+			"root_cert_ttl":      "RootCertTTL",
 		})
 	}
 
@@ -940,6 +941,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			StatsiteAddr:                       stringVal(c.Telemetry.StatsiteAddr),
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+				Name:       stringVal(c.Telemetry.MetricsPrefix),
 			},
 		},
 
@@ -1541,6 +1543,13 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		return nil
 	}
 
+	var H2PingUseTLSVal bool
+	if stringVal(v.H2PING) != "" {
+		H2PingUseTLSVal = boolValWithDefault(v.H2PingUseTLS, true)
+	} else {
+		H2PingUseTLSVal = boolVal(v.H2PingUseTLS)
+	}
+
 	id := types.CheckID(stringVal(v.ID))
 
 	return &structs.CheckDefinition{
@@ -1571,6 +1580,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
 		FailuresBeforeWarning:          intValWithDefault(v.FailuresBeforeWarning, intVal(v.FailuresBeforeCritical)),
 		H2PING:                         stringVal(v.H2PING),
+		H2PingUseTLS:                   H2PingUseTLSVal,
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
 		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),

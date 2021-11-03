@@ -32,7 +32,10 @@ func (b autoConfigBackend) GetCARoots() (*structs.IndexedCARoots, error) {
 // DatacenterJoinAddresses will return all the strings suitable for usage in
 // retry join operations to connect to the the LAN or LAN segment gossip pool.
 func (b autoConfigBackend) DatacenterJoinAddresses(segment string) ([]string, error) {
-	members, err := b.Server.LANSegmentMembers(segment)
+	members, err := b.Server.LANMembers(LANMemberFilter{
+		Segment:   segment,
+		Partition: "", // TODO(partitions): figure out what goes here
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve members for segment %s - %w", segment, err)
 	}

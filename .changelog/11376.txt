@@ -1,0 +1,3 @@
+```release-note:enhancement
+raft: Consul leaders will attempt to transfer leadership to another server as part of gracefully leaving the cluster.
+```

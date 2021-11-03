@@ -19,7 +19,7 @@
   transition-property: stroke;
 
   fill: none;
-  stroke: $gray-400;
+  stroke: rgb(var(--tone-gray-400));
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -30,15 +30,15 @@
 }
 %chain-node,
 %chain-node a {
-  color: $gray-900 !important;
+  color: rgb(var(--tone-gray-900)) !important;
 }
 %discovery-chain-edge-active {
-  stroke: $gray-900;
+  stroke: rgb(var(--tone-gray-900));
 }
 %chain-group {
-  border-radius: $decor-radius-100;
-  border: 1px solid $gray-200;
-  background-color: $gray-100;
+  border-radius: var(--decor-radius-100);
+  border: 1px solid rgb(var(--tone-gray-200));
+  background-color: rgb(var(--tone-gray-100));
 
   pointer-events: none;
 }
@@ -63,8 +63,8 @@
 }
 %chain-node-active {
   opacity: 1;
-  background-color: $white;
-  border-color: $gray-500;
+  background-color: rgb(var(--white));
+  border-color: rgb(var(--tone-gray-500));
 }
 /* TODO: More text truncation, centralize */
 %route-card header:not(.short) dd {
@@ -99,13 +99,13 @@
 /**/
 %with-chain-outlet::before {
   @extend %as-pseudo;
-  background-color: $white;
+  background-color: rgb(var(--white));
 
-  border-radius: $decor-radius-full;
-  border: 2px solid $gray-400;
+  border-radius: var(--decor-radius-full);
+  border: 2px solid rgb(var(--tone-gray-400));
 }
 %discovery-chain circle {
   stroke-width: 2;
-  stroke: $gray-400;
-  fill: $white;
+  stroke: rgb(var(--tone-gray-400));
+  fill: rgb(var(--white));
 }

@@ -1,0 +1,248 @@
+name: build
+
+on:
+  push:
+    # Sequence of patterns matched against refs/heads
+    branches: [ crt-release-migration-1.11.x ]
+
+env:
+  PKG_NAME: consul
+
+jobs:
+  get-product-version:
+    runs-on: ubuntu-latest
+    outputs:
+      product-version: ${{ steps.get-product-version.outputs.product-version }}
+      pre-version: ${{ steps.get-product-version.outputs.pre-version }}
+      pkg-version: ${{ steps.get-product-version.outputs.pkg-version }}
+      shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: get product version
+        id: get-product-version
+        run: |
+          IFS="-"; OUTPUT=$(build-support/scripts/version.sh -r);
+          read -a V <<< "$OUTPUT"; unset IFS;
+
+          VERSION=${V[0]}
+          PREREL_VERSION=${V[1]}
+
+          echo "::set-output name=product-version::${VERSION}-${PREREL_VERSION}"
+          echo "::set-output name=pre-version::${PREREL_VERSION}"
+          echo "::set-output name=pkg-version::${VERSION}"
+
+      - name: Set shared -ldflags
+        id: shared-ldflags
+        run: echo "::set-output name=shared-ldflags::-X github.com/hashicorp/consul/version.GitCommit=${GITHUB_SHA::8} -X github.com/hashicorp/consul/version.GitDescribe=${{ steps.get-product-version.outputs.product-version }}"
+
+  generate-metadata-file:
+    needs: get-product-version
+    runs-on: ubuntu-latest
+    outputs:
+      filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
+    steps:
+      - name: 'Checkout directory'
+        uses: actions/checkout@v2
+      - name: Generate metadata file
+        id: generate-metadata-file
+        uses: hashicorp/actions-generate-metadata@main
+        with:
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          product: ${{ env.PKG_NAME }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: metadata.json
+          path: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+  build:
+    needs: get-product-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - {go: "1.17", goos: "linux", goarch: "386"}
+          - {go: "1.17", goos: "linux", goarch: "amd64"}
+          - {go: "1.17", goos: "linux", goarch: "arm"}
+          - {go: "1.17", goos: "linux", goarch: "arm64"}
+          - {go: "1.17", goos: "freebsd", goarch: "386"}
+          - {go: "1.17", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.17", goos: "windows", goarch: "386"}
+          - {go: "1.17", goos: "windows", goarch: "amd64"}
+          - {go: "1.17", goos: "solaris", goarch: "amd64"}
+      fail-fast: true
+
+    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+          GOLDFLAGS: "${{needs.get-product-version.outputs.shared-ldflags}}"
+        run: |
+          mkdir dist out
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+      - name: Package
+        if: ${{ matrix.goos == 'linux' }}
+        uses: hashicorp/actions-packaging-linux@v1
+        with:
+          name: ${{ github.event.repository.name }}
+          description: "Consul is a distributed, highly available, and data center aware solution to connect and configure applications across dynamic, distributed infrastructure. "
+          arch: ${{ matrix.goarch }}
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          maintainer: "HashiCorp"
+          homepage: "https://github.com/hashicorp/consul"
+          license: "MPL-2.0"
+          binary: "dist/${{ env.PKG_NAME }}"
+          deb_depends: "openssl"
+          rpm_depends: "openssl"
+          config_dir: ".release/linux/package"
+          preinstall: ".release/linux/preinstall"
+          postinstall: ".release/linux/postinstall"
+          postremove: ".release/linux/postremove"
+
+      - name: Set Package Names
+        if: ${{ matrix.goos == 'linux' }}
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.goos == 'linux' }}
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.goos == 'linux' }}
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+
+  build-darwin:
+    needs: get-product-version
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        goos: [ darwin ]
+        goarch: [ "amd64" ]
+        go: [ "1.17" ]
+      fail-fast: true
+
+    name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install project dependencies
+        run: |
+          go install github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs@38087fe
+          go install github.com/hashicorp/go-bindata/go-bindata@bf7910a
+
+      - name: Setup with node and yarn
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'yarn'
+          cache-dependency-path: 'ui/yarn.lock'
+
+      - name: Build UI
+        run: |
+          CONSUL_VERSION=${{ needs.get-product-version.outputs.product-version }}
+          CONSUL_BINARY_TYPE=${CONSUL_BINARY_TYPE}
+          CONSUL_COPYRIGHT_YEAR=$(git show -s --format=%cd --date=format:%Y HEAD)
+          echo "consul_version is ${CONSUL_VERSION}"
+          echo "consul binary type is ${CONSUL_BINARY_TYPE}"
+          echo "consul copyright year is ${CONSUL_COPYRIGHT_YEAR}"
+          cd ui && make && cd ..
+          mkdir pkg
+          mv ui/packages/consul-ui/dist pkg/web_ui
+
+      - name: Build static-assets
+        run: make static-assets
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
+        run: |
+          mkdir dist out
+          go build -ldflags="$GOLDFLAGS" -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+  build-docker:
+    name: Docker ${{ matrix.arch }} build
+    needs:
+      - get-product-version
+      - build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["arm", "arm64", "386", "amd64"]
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Docker Build (Action)
+        uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: default
+          arch: ${{matrix.arch}}
+          tags: |
+            docker.io/hashicorp/${{env.repo}}:${{env.version}}
+            ecr.public.aws/hashicorp/${{env.repo}}:${{env.version}}

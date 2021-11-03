@@ -99,6 +99,7 @@
             "GRPC": "",
             "GRPCUseTLS": false,
             "H2PING": "",
+            "H2PingUseTLS": false,
             "HTTP": "",
             "Header": {},
             "ID": "",
@@ -303,6 +304,7 @@
                 "GRPC": "",
                 "GRPCUseTLS": false,
                 "H2PING": "",
+                "H2PingUseTLS": false,
                 "HTTP": "",
                 "Header": {},
                 "Interval": "0s",
@@ -379,6 +381,7 @@
             "CounterDefinitions": [],
             "Expiration": "0s",
             "GaugeDefinitions": [],
+            "Name": "",
             "Registerer": null,
             "SummaryDefinitions": []
         },

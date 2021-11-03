@@ -45,7 +45,6 @@ func TestACL_Disabled_Response(t *testing.T) {
 		{"ACLBootstrap", a.srv.ACLBootstrap},
 		{"ACLReplicationStatus", a.srv.ACLReplicationStatus},
 		{"AgentToken", a.srv.AgentToken}, // See TestAgent_Token
-		{"ACLRulesTranslate", a.srv.ACLRulesTranslate},
 		{"ACLPolicyList", a.srv.ACLPolicyList},
 		{"ACLPolicyCRUD", a.srv.ACLPolicyCRUD},
 		{"ACLPolicyCreate", a.srv.ACLPolicyCreate},

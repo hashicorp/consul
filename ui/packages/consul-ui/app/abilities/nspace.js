@@ -7,6 +7,10 @@ export default class NspaceAbility extends BaseAbility {
   resource = 'operator';
   segmented = false;
 
+  get isLinkable() {
+    return !this.item.DeletedAt;
+  }
+
   get canManage() {
     return this.canCreate;
   }
