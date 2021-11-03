@@ -34,6 +34,14 @@
   display: none;
 }
 
+%code-editor .ember-basic-dropdown-trigger {
+  background-color: var(--tone-gray-900);
+  color: var(--black);
+  border-radius: 2px;
+  border: 1px solid;
+  border-color: var(--tone-gray-700);
+}
+
 //HACK: component level styling doesn't work, I must be doing something wrong, placing this here temporarily before refactoring
 //variables/styles "stolen" from Vault, needs refactoring too
 //ideally styles go at component level and separated in scope between layout and skin
