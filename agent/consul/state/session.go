@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	tableSessions         = "sessions"
-	SessionPartitionIndex = "session-partition"
+	tableSessions = "sessions"
 )
 
 func indexFromSession(raw interface{}) ([]byte, error) {
