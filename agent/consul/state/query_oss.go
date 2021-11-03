@@ -18,6 +18,9 @@ func prefixIndexFromQuery(arg interface{}) ([]byte, error) {
 	case structs.EnterpriseMeta:
 		return nil, nil
 	case Query:
+		if v.Value == "" {
+			return nil, nil
+		}
 		b.String(strings.ToLower(v.Value))
 		return b.Bytes(), nil
 	}

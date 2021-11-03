@@ -12,9 +12,11 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func sessionIndexer() *memdb.UUIDFieldIndex {
-	return &memdb.UUIDFieldIndex{
-		Field: "ID",
+func sessionIndexer() indexerSingleWithPrefix {
+	return indexerSingleWithPrefix{
+		readIndex:   readIndex(indexFromQuery),
+		writeIndex:  writeIndex(indexFromSession),
+		prefixIndex: prefixIndex(prefixIndexFromQuery),
 	}
 }
 
@@ -137,7 +139,7 @@ func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	var result structs.Sessions
 
 	// Query all of the active sessions.
-	sessions, err := tx.Get(tableSessions, indexID+"_prefix", "")
+	sessions, err := tx.Get(tableSessions, indexID+"_prefix", Query{})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
