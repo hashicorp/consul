@@ -300,11 +300,7 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 	idx := sessionMaxIndex(tx, entMeta)
 
 	// Look up the session by its ID
-	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
-	}
-	watchCh, session, err := tx.FirstWatch(tableSessions, indexID, Query{Value: sessionID, EnterpriseMeta: *entMeta})
-
+	watchCh, session, err := firstWatchWithTxn(tx, tableSessions, indexID, sessionID, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}

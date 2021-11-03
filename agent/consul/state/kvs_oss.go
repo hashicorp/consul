@@ -16,24 +16,24 @@ func kvsIndexer() indexerSingleWithPrefix {
 	return indexerSingleWithPrefix{
 		readIndex:   readIndex(indexFromIDValue),
 		writeIndex:  writeIndex(indexFromIDValue),
-		prefixIndex: prefixIndex(prefixIndexForKVEntry),
+		prefixIndex: prefixIndex(prefixIndexForIDValue),
 	}
 }
 
-func prefixIndexForKVEntry(arg interface{}) ([]byte, error) {
-	var b indexBuilder
+func prefixIndexForIDValue(arg interface{}) ([]byte, error) {
 	switch v := arg.(type) {
 	// DeletePrefix always uses a string, pass it along unmodified
 	case string:
 		return []byte(v), nil
-	case structs.EnterpriseMeta:
-		return nil, nil
 	case singleValueID:
-		// Omit null terminator, because we want to prefix match keys
-		(*bytes.Buffer)(&b).WriteString(v.IDValue())
-		return b.Bytes(), nil
+		var b indexBuilder
+		if v.IDValue() != "" {
+			// Omit null terminator, because we want to prefix match keys
+			b.String(v.IDValue())
+		}
+		prefix := bytes.Trim(b.Bytes(), "\x00")
+		return prefix, nil
 	}
-
 	return nil, fmt.Errorf("unexpected type %T for singleValueID prefix index", arg)
 }
 
