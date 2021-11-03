@@ -40,49 +40,30 @@
   border-radius: 2px;
   border: 1px solid;
   border-color: var(--tone-gray-700);
+  margin: 0 8px;
+  width: 120px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
 }
 
-//HACK: component level styling doesn't work, I must be doing something wrong, placing this here temporarily before refactoring
-//variables/styles "stolen" from Vault, needs refactoring too
-//ideally styles go at component level and separated in scope between layout and skin
-////////////////
-$ui-gray-010: #fbfbfc;
-$ui-gray-100: #ebeef2;
-$ui-gray-200: #dce0e6;
-$ui-gray-300: #bac1cc;
-$ui-gray-500: #6f7682;
-$black: #000;
-$grey: $ui-gray-500;
-$light-border: 1px solid $ui-gray-200;
-
-$blue-500: #1563ff;
-$blue: $blue-500;
-
-$size-8: (12/14) + 0rem; // ~.857rem
-$size-10: 0.5rem;
-
-$speed: 150ms;
-
-$spacing-xxs: 4px;
-$spacing-xs: 8px;
-
-$base-border: 1px solid $ui-gray-300;
-
 .toolbar {
-  background-color: $ui-gray-010;
-  border: 1px solid $ui-gray-100;
-  border-bottom-color: $ui-gray-300;
-  border-top-color: $ui-gray-300;
+  background-color: rgb(var(--tone-gray-050));
+  border: 1px solid rgb(var(--tone-gray-100));
+  border-bottom-color: rgb(var(--tone-gray-600));
+  border-top-color: rgb(var(--tone-gray-400));
   position: relative;
+  margin-top: 4px;
 
   &::after {
-    background: linear-gradient(to right, $ui-gray-010, rgba($ui-gray-010, 0));
+    background: linear-gradient(to right, rgb(var(--tone-gray-600)), rgba(var(--tone-gray-600), 0));
     bottom: 0;
     content: '';
     position: absolute;
     right: 0;
     top: 0;
-    width: $spacing-xxs;
+    width: 4px;
     z-index: 2;
   }
 
@@ -93,8 +74,8 @@ $base-border: 1px solid $ui-gray-300;
 }
 
 .toolbar-label {
-  padding: $spacing-xs;
-  color: $grey;
+  padding: 8px;
+  color: rgb(var(--tone-gray-800));
 }
 
 .toolbar-scroller {
@@ -105,18 +86,14 @@ $base-border: 1px solid $ui-gray-300;
   overflow-x: auto;
   width: 100%;
 
-  // @include from($mobile) {
-  //   padding: 0 $spacing-xxs;
-  // }
-
   &::-webkit-scrollbar {
-    border-bottom: $base-border;
-    height: $spacing-xxs;
+    border-bottom: 1px solid rgb(var(--tone-gray-400));
+    height: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: $ui-gray-300;
-    border-radius: $spacing-xxs;
+    background: rgb(var(--tone-gray-400));
+    border-radius: 4px;
   }
 }
 
@@ -129,46 +106,33 @@ $base-border: 1px solid $ui-gray-300;
   justify-content: space-between;
 
   .title {
-    color: #1f2124;
+    color: rgb(var(--tone-gray-900));
     display: inline-block;
     font-size: 14px;
     font-weight: 700;
-    padding: 0 4px;
+    padding: 0 8px;
   }
   .actions {
     display: flex;
     flex-direction: row;
     margin: 0 10px;
     align-items: center;
+
+    .copy-button {
+      margin-left: 10px;
+    }
   }
 }
 
-.toolbar-filters + .toolbar-actions {
-  // @include until($mobile) {
-  //   border-left: $base-border;
-  //   margin-left: $spacing-xs;
-  //   padding-left: $spacing-xs;
-  // }
-}
-
-.toolbar-actions {
-  // @include from($mobile) {
-  //   justify-content: flex-end;
-  // }
-}
-
 .toolbar-link {
-  // @extend .button;
-  // @extend .is-ghost;
-  // @extend .has-icon-right;
   border: 0;
-  color: $black;
-  transition: background-color $speed;
+  color: var(--black);
+  transition: background-color 150ms;
 
   &:hover {
-    background-color: $ui-gray-100;
+    background-color: rgb(var(--tone-gray-050));
     border: 0;
-    color: $blue;
+    color: rgb(var(--tone-blue-500));
   }
 
   &:active {
@@ -177,13 +141,13 @@ $base-border: 1px solid $ui-gray-300;
 
   &.popup-menu-trigger {
     height: 2.5rem;
-    padding: $size-10 $size-8;
+    padding: 0.5rem 0.857rem;
   }
 }
 
 .toolbar-separator {
-  border-right: $light-border;
+  border-right: 1px solid rgb(var(--tone-gray-300));
   height: 32px;
-  margin: 0 $spacing-xs;
+  margin: 0 4px;
   width: 0;
 }
