@@ -12,11 +12,18 @@ You can uninstall Consul using Helm commands or the Consul K8s CLI.
 
 Run the `helm uninstall` **and** manually remove resources that Helm does not delete.
 
-1. First, run `helm uninstall`:
+
+1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the `consul` namespace. Otherwise, subsequent commands will need to include `-n consul`. 
+
+    ```
+    kubectl config set-context --current --namespace=consul
+    ```
+
+1. Run the `helm uninstall <release-name>` command and specify the release name you've installed Consul with, e.g.,:
 
    ```shell-session
-   $ helm uninstall hashicorp
-   release "hashicorp" uninstalled
+   $ helm uninstall consul
+   release "consul" uninstalled
    ```
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
