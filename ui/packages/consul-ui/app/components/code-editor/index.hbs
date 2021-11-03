@@ -1,20 +1,25 @@
+{{#if toolbar}}
 <Toolbar>
-  <ToolbarActions>
-    <label class="title">{{title}}</label>
-    <div class="actions">
-      {{#if (and (not readonly) (not syntax))}}
-        <PowerSelect
-            @onChange={{action "change"}}
-            @selected={{mode}}
-            @searchEnabled={{false}}
-            @options={{modes}} as |mode|>
-          {{mode.name}}
-        </PowerSelect>
-      {{/if}}
-      <div class="toolbar-separator"></div>
-      <CopyButton @value={{value}} @name="value" />
-    </div>
-  </ToolbarActions>
+  <label class="title">
+    {{toolbar.title}}
+    {{#if toolbar.helplink}}
+      <a href="{{env 'CONSUL_DOCS_URL'}}{{toolbar.helplink.href}}" rel={{toolbar.helplink.rel}} target={{toolbar.helplink.target}}>{{toolbar.helplink.text}}</a>
+    {{/if}}
+  </label>
+  <div class="actions">
+    {{#if (and (not readonly) (not syntax))}}
+      <PowerSelect
+          @onChange={{action "change"}}
+          @selected={{mode}}
+          @searchEnabled={{false}}
+          @options={{modes}} as |mode|>
+        {{mode.name}}
+      </PowerSelect>
+    {{/if}}
+    <div class="toolbar-separator"></div>
+    <CopyButton @value={{value}} @name="value" />
+  </div>
 </Toolbar>
+{{/if}}
 <IvyCodemirror @value={{value}} @name={{name}} @class={{class}} @options={{options}} @valueUpdated={{action onkeyup}} />
 <pre><code>{{yield}}</code></pre>
