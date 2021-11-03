@@ -46,12 +46,6 @@ func sessionsTableSchema() *memdb.TableSchema {
 				Unique:       true,
 				Indexer:      sessionIndexer(),
 			},
-			SessionPartitionIndex: {
-				Name:         SessionPartitionIndex,
-				AllowMissing: false,
-				Unique:       true,
-				Indexer:      sessionIndexerPartition(),
-			},
 			indexNode: {
 				Name:         indexNode,
 				AllowMissing: false,
