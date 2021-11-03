@@ -38,6 +38,8 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 }
 
 func TestVaultCAProvider_Configure(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
 	testcases := []struct {
 		name          string
 		rawConfig     map[string]interface{}
