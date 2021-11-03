@@ -300,7 +300,11 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 	idx := sessionMaxIndex(tx, entMeta)
 
 	// Look up the session by its ID
-	watchCh, session, err := firstWatchWithTxn(tx, tableSessions, indexID, sessionID, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	watchCh, session, err := tx.FirstWatch(tableSessions, indexID, Query{Value: sessionID, EnterpriseMeta: *entMeta})
+
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
@@ -349,7 +353,10 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 // session deletion and handle session invalidation, etc.
 func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
-	sess, err := firstWithTxn(tx, tableSessions, indexID, sessionID, entMeta)
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+	}
+	sess, err := tx.First(tableSessions, indexID, Query{Value: sessionID, EnterpriseMeta: *entMeta})
 	if err != nil {
 		return fmt.Errorf("failed session lookup: %s", err)
 	}
