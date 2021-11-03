@@ -24,26 +24,26 @@ ACL rules describe the level of access to resources. A rule is composed of a res
 }
 ```
 
-### Segments
+### Resource Labels
  
-Many resources take an additional value that limits the scope of the rule to a resource _segment_. A resource segment can be the name of a specific set of resources, such as nodes configured with the same `name` value. 
+Many resources take an additional value that limits the scope of the rule to resources with the same label. A resource label can be the name of a specific set of resources, such as nodes configured with the same `name` value. 
 
-The following syntax describes how to include a resource segment in the rule:
+The following syntax describes how to include a resource label in the rule:
 
 ```hcl
-<resource> "<segment>" {
+<resource> "<label>" {
   policy = "<policy disposition>"
 }
 ``` 
 
-Segmentation provides operators with more granular control over access to the resouce. Some resources, however, do not take a segment value. The following resource areas _can not_ be segmented:
+Labels provide operators with more granular control over access to the resouce, but the following resource types do not take a label:
  
 * `acl`  
 * `keyring` 
 * `mesh`
 * `operator` 
 
-Use the following syntax to create rules for non-segmented resources: 
+Use the following syntax to create rules for these resources: 
 
 ```hcl
 <resource> = "<policy disposition>"
@@ -57,20 +57,20 @@ Use the `policy` keyword and one of the following access levels to set a policy 
 - `write`: Allows the resource to be read and modified.
 - `deny`: Denies access to the resource.
 
-You can also use a special `list` access level to allows access to all keys under a segment in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
+The special `list` access level provices access to all keys with the specified resource label in the Consul KV. The `list` access level can only be used with the `key_prefix` resource. The [`acl.enable_key_list_policy`](/docs/agent/options#acl_enable_key_list_policy) setting must be set to `true`.
 
 ### Matching and Prefix Values
 
-You can define rules for resource segments based on exact matches or by using resource prefixes to match several resource segments beginning with the same value. Matching segments on exact values is described in the [Segments](#segments) section.  
+You can define rules for labeled resources based on exact matches or by using resource prefixes to match several resource labels beginning with the same value. Matching resource labels on exact values is described in the [Resource Labels](#resource-labels) section.  
 
-The following example rule is an exact match that denies access to `web-prod` service segments:
+The following example rule is an exact match that denies access to services labeled `web-prod`:
 
 ```hcl
 service "web-prod" {
   policy = "deny"
 }
 ```
-You can append the resource with `_prefix` to match all resource segments beginning with the same value. The following example rule allows `write` access to all service segments that begin with "web":
+You can append the resource with `_prefix` to match all resource labels beginning with the same value. The following example rule allows `write` access to all services with labels that begin with "web":
 
 ```hcl
 service_prefix "web" {
@@ -78,7 +78,7 @@ service_prefix "web" {
 }
 ```
 
-Prefix-based resource segments can also contain an empty string, which configures the rule to apply to all resources of the declared type. The following example rule allows `read` access to all `service` resources:
+Prefix-based resource labels can also contain an empty string, which configures the rule to apply to all resources of the declared type. The following example rule allows `read` access to all `service` resources:
 
 ```hcl
 service_prefix "" {
@@ -88,7 +88,7 @@ service_prefix "" {
 
 When using prefix-based rules, the most specific prefix match determines the action. In a real-world scenario, a combination of rules would be combined to create a flexible policy. Each team or business unit would use tokesn based on polcies that enforce several rules, for example: 
 
-* A rule that denies access to a specific resource segment
+* A rule that denies access to a specific resource label
 * A prefix-based rule that allows write access to a class of resources 
 * An empty prefix that grants read-only access to all resource within the declared class 
 
@@ -202,7 +202,7 @@ This will grant the rules provided to the [bearer of that token](/api#authentica
 
 The following table provides an overview of the resources you can use to create ACL rules.
 
-| Resource                      | Description                                                                                                                                              | Segments |
+| Resource                      | Description                                                                                                                                              | Labels |
 |-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
 | `acl`                         | Controls access to ACL operations in the [ACL API](/api/acl/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                        | No       |
 | `admin_partition`<br/>`admin_partition_prefix` | <EnterpriseAlert inline /> Controls access to one or more admin partitions. <br/>See [Admin Partition Rules](#admin-partition-rules) for details. | Yes      |
@@ -210,7 +210,7 @@ The following table provides an overview of the resources you can use to create 
 | `event`<br/>`event_prefix`    | Controls access to event operations in the [Event API](/api/event), such as firing and listing events. <br/>See [Event Rules](#event-rules) for details. | Yes      |
 | `key`<br/>`key_prefix` &nbsp; | Controls access to key/value store operations in the [KV API](/api/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul).  <br/>See [Key/Value Rules](#key-value-rules) for details. | Yes      |
 | `keyring` &nbsp; &nbsp; &nbsp; | Controls access to keyring operations in the [Keyring API](/api/keyring). <br/>See [Keyring Rules](#keyring-rules) for details. | No      |
-| `mesh` &nbsp; &nbsp; &nbsp; | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. See [Mesh Rules](#mesh-rulres) for details.  | No      |
+| `mesh` &nbsp; &nbsp; &nbsp; | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. See [Mesh Rules](#mesh-rules) for details.  | No      |
 | `namespace`<br/>`namespace_prefix` | <EnterpriseAlert inline /> Controls access to one or more namespaces. <br/>See [Namespace Rules](#namespace-rules) for details. | Yes      |
 | `node`<br/>`node_prefix` &nbsp; | Controls access to node-level registration and read access to the [Catalog API](/api/catalog). <br/>See [Node Rules](#node-rules) for details. | Yes      |
 | `operator` &nbsp; &nbsp; &nbsp; | Controls access to cluster-level operations available in the [Operator API](/api/operator) excluding keyring API endpoints. <br/>See [Operator Rules](#operator-rules) for details. | No      |
@@ -226,7 +226,7 @@ The `acl` resource controls access to ACL operations in the [ACL API](/api/acl/a
 
 The `acl = "write"` rule is also required to create snapshots. This is because all token secrets are contained within the snapshot.
 
-Rules for ACL resources are non-segmented. 
+Rules for ACL resources do not use labels. 
 
 In the following example, `write` access to the ACL API. The rule enables the operator to read or write ACLs, as well as discover the secret ID of any token. 
 
@@ -307,7 +307,7 @@ event "deploy" {
 }
 ```
 
-Event rules are segmented by the event name they apply to. In the example above, the rules allow
+Event rules are labeled with the event name they apply to. In the example above, the rules allow
 read-only access to any event, and firing of the "deploy" event.
 
 The [`consul exec`](/commands/exec) command uses events with the "\_rexec" prefix during
@@ -332,7 +332,7 @@ key "bar" {
 }
 ```
 
-Key rules are segmented by the key name they apply to. In the example above, the rules allow read-only access
+Key rules are labeled with the key name they apply to. In the example above, the rules allow read-only access
 to any key name with the empty prefix rule, allow read-write access to the "foo" key, and deny access to the "bar" key.
 
 #### List Policy for Keys
@@ -396,10 +396,13 @@ dispositions. In the example above, the keyring may be read and updated.
 
 ### Mesh Rules
 
-The `mesh` resource controls access to ingress gateways, terminating gateways, and mesh configuration entries. 
+The `mesh` resource controls access to ingress gateways, terminating gateways, and mesh configuration entries. The following rule grants read and write access:
 
-See [Admin Partition Rules](#admin-partition-rules) for an example rule that uses the `mesh` resource. 
- 
+```hcl
+mesh = "write"
+```
+
+See [Admin Partition Rules](#admin-partition-rules) for another example rule that uses the `mesh` resource.  
 
 ### Namespace Rules <EnterpriseAlert inline />
 
@@ -421,13 +424,15 @@ namespace_prefix "" {
   node_prefix "" {
     policy = "read"
   }
+  # grants permission to create and edit all namespace
+   policy = "write"  
 }
 
 namespace "foo" {
   # grants permission to manage ACLs only for the foo namespace
   acl = "write"
 
-  # grants permission to rename the foo namespace
+  # grants permission to create and edit the foo namespace
   policy = "write"
 
   # grants write permissions to the KV for namespace foo
@@ -475,11 +480,16 @@ specific namespace are prevented from accessing resources in another namespace.
 
 ### Node Rules
 
-The `node` and `node_prefix` resources controls node-level registration and read access to the [Catalog API](/api/catalog),
-service discovery with the [Health API](/api/health), and filters results in [Agent API](/api/agent)
-operations like fetching the list of cluster members.
+The `node` and `node_prefix` resources control access to the following API behaviors:
 
-Node rules look like this:
+* node-level registration and read access to the [Catalog API](/api/catalog)
+* service discovery with the [Health API](/api/health) 
+* filtering results in [Agent API](/api/agent) operations, such as fetching the list of cluster members.
+
+You can use resource labels to scope the rule to a specific resource or set of resources.
+
+The following example rule uses an empty prefix label, which provides read-only access to all nodes. 
+The rule also provides read-write access to the `app` node and denies all access to the `admin` node:
 
 ```hcl
 node_prefix "" {
@@ -493,41 +503,30 @@ node "admin" {
 }
 ```
 
-Node rules are segmented by the node name they apply to. In the example above, the rules allow read-only access to any node name with the empty prefix, allow
-read-write access to the "app" node, and deny all access to the "admin" node.
+#### Registering and Querying Node Information
 
-Agents need to be configured with an [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent)
-with at least "write" privileges to their own node name in order to register their information with
-the catalog, such as node metadata and tagged addresses. If this is configured incorrectly, the agent
-will print an error to the console when it tries to sync its state with the catalog.
+Agents must be configured with `write` or `read` privileges for their own node name so that the agent can register their node metadata, tagged addresses, and other information in the catalog. 
+If configured incorrectly, the agent will print an error to the console when it tries to sync its state with the catalog.
+Configure `write` or `read` access in the [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) parameter.  
 
-Consul's DNS interface is also affected by restrictions on node rules. If the
-[`acl.token.default`](/docs/agent/options#acl_tokens_default) used by the agent does not have "read" access to a
-given node, then the DNS interface will return no records when queried for it.
+The [`acl.token.default`](/docs/agent/options#acl_tokens_default) used by the agent should have `read` access to a given node so that the DNS interface can be queried.
 
-When reading from the catalog or retrieving information from the health endpoints, node rules are
-used to filter the results of the query. This allows for configurations where a token has access
-to a given service name, but only on an allowed subset of node names.
+Node rules are used to filter query results when reading from the catalog or retrieving information from the health endpoints. This allows for configurations where a token has access to a given service name, but only on an allowed subset of node names.
 
-Node rules come into play when using the [Agent API](/api/agent) to register node-level
-checks. The agent will check tokens locally as a check is registered, and Consul also performs
-periodic [anti-entropy](/docs/internals/anti-entropy) syncs, which may require an
-ACL token to complete. To accommodate this, Consul provides two methods of configuring ACL tokens
-to use for registration events:
+Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/docs/internals/anti-entropy) syncs.
+These actions may required an ACL token to complete. Use the following methods to configure ACL tokens for registration events:
 
-1. Using the [acl.tokens.default](/docs/agent/options#acl_tokens_default) configuration
-   directive. This allows a single token to be configured globally and used
-   during all check registration operations.
-2. Providing an ACL token with service and check definitions at
-   registration time. This allows for greater flexibility and enables the use
-   of multiple tokens on the same agent. Examples of what this looks like are
-   available for both [services](/docs/agent/services) and
-   [checks](/docs/agent/checks). Tokens may also be passed to the
-   [HTTP API](/api) for operations that require them.
+* Configure a global token in the [acl.tokens.default](/docs/agent/options#acl_tokens_default) parameter. 
+This allows a single token to be used during all check registration operations.
+* Provide an ACL token with service and check definitions at registration time. 
+This allows for greater flexibility and enables the use of multiple tokens on the same agent. 
+Refer to the [services](/docs/agent/services) and [checks](/docs/agent/checks) documentation for examples.
+Tokens may also be passed to the [HTTP API](/api) for operations that require them.
 
-In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
-[`enable_script_checks`](/docs/agent/options#_enable_script_checks) set to `true` in order to enable
-script checks.
+
+-> **Script checks are required for Consul 0.9.0 and later**. In addition to ACLs, the agent must be configured with
+[`enable_script_checks`](/docs/agent/options#_enable_script_checks) set to `true` to enable
+script checks in Consul 0.9.0 and later0.
 
 ### Operator Rules
 
@@ -547,10 +546,9 @@ diagnostic purposes but not make any changes.
 ### Prepared Query Rules
 
 The `query` and `query_prefix` resources control access to create, update, and delete prepared queries in the
-[Prepared Query API](/api/query). Executing queries is subject to `node`/`node_prefix` and `service`/`service_prefix`
-policies, as will be explained below.
-
-Query rules look like this:
+[Prepared Query API](/api/query). Specify the resource label in query rules to determine the scope of the rule. 
+The resource label in the following example is empty. As a result, the rules allow read-only access to query resources with any name. 
+The rules also grant read-write access to the query named `foo`, which allows control of the query namespace to be delegated based on ACLs:
 
 ```hcl
 query_prefix "" {
@@ -561,9 +559,8 @@ query "foo" {
 }
 ```
 
-Query rules are segmented by the query name they apply to. In the example above, the rules allow read-only
-access to any query name with the empty prefix, and allow read-write access to the query named "foo".
-This allows control of the query namespace to be delegated based on ACLs.
+Executing queries is subject to `node`/`node_prefix` and `service`/`service_prefix`
+policies.
 
 There are a few variations when using ACLs with prepared queries, each of which uses ACLs in one of two
 ways: open, protected by unguessable IDs or closed, managed by ACL policies. These variations are covered
@@ -618,8 +615,8 @@ Capturing ACL Tokens is analogous to
 `SECURITY DEFINER` attribute which can be set on functions, and using the client's ACL
 Token is similar to the complementary `SECURITY INVOKER` attribute.
 
-Prepared queries were originally introduced in Consul 0.6.0, and ACL behavior remained
-unchanged through version 0.6.3, but was then changed to allow better management of the
+Prepared queries were originally introduced in Consul 0.6.0. The ACL behavior remained
+unchanged through version 0.6.3, but versions after 0.6.3 included changes that improve management of the
 prepared query namespace.
 
 These differences are outlined in the table below:
@@ -635,10 +632,10 @@ These differences are outlined in the table below:
 
 ### Service Rules
 
-The `service` and `service_prefix` resources control service-level registration and read access to the [Catalog API](/api/catalog)
-and service discovery with the [Health API](/api/health).
-
-Service rules look like this:
+The `service` and `service_prefix` resources control service-level registration and read access to the [Catalog API](/api/catalog) and service discovery with the [Health API](/api/health). 
+Specify the resource label in service rules to set the scope of the rule. 
+The resource label in the following example is empty. As a result, the rules allow read-only access to any service name with the empty prefix. 
+The rules also allow read-write access to the `app` service and deny all access to the `admin` service:
 
 ```hcl
 service_prefix "" {
@@ -652,12 +649,8 @@ service "admin" {
 }
 ```
 
-Service rules are segmented by the service name they apply to. In the example above, the rules allow read-only
-access to any service name with the empty prefix, allow read-write access to the "app" service, and deny all
-access to the "admin" service.
-
 Consul's DNS interface is affected by restrictions on service rules. If the
-[`acl.tokens.default`](/docs/agent/options#acl_tokens_default) used by the agent does not have "read" access to a
+[`acl.tokens.default`](/docs/agent/options#acl_tokens_default) used by the agent does not have `read` access to a
 given service, then the DNS interface will return no records when queried for it.
 
 When reading from the catalog or retrieving information from the health endpoints, service rules are
@@ -706,7 +699,9 @@ for more information about managing intentions access with service rules.
 
 The `session` and `session_prefix` resources controls access to [Session API](/api/session) operations.
 
-Session rules look like this:
+Specify the resource label in session rules to set the scope of the rule. 
+The resource label in the following example is empty. As a result, the rules allow read-only access to all sessions. 
+The rules also allow creating sessions on the node named `app` and deny all access to any sessions on the `admin` node:
 
 ```hcl
 session_prefix "" {
@@ -719,7 +714,3 @@ session "admin" {
   policy = "deny"
 }
 ```
-
-Session rules are segmented by the node name they apply to. In the example above, the rules allow read-only
-access to sessions on node name with the empty prefix, allow creating sessions on the node named "app",
-and deny all access to any sessions on the "admin" node.
