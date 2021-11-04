@@ -848,21 +848,29 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ID:      "mysql",
 		Service: "mysql",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+
+	serviceReq := AddServiceRequest{
+		Service: service,
+		chkTypes: nil,
+		persist: false,
+		token: "",
+		Source: ConfigSourceLocal,
+	}
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "mysql2",
 		Service: "mysql2",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service= &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql3",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -944,22 +952,12 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 			t.Helper()
 			req, _ := http.NewRequest("GET", url+"?format=text", nil)
 			resp := httptest.NewRecorder()
-			data, err := a.srv.AgentHealthServiceByID(resp, req)
-			codeWithPayload, ok := err.(CodeWithPayloadError)
-			if !ok {
-				t.Fatalf("Err: %v", err)
-			}
-			if got, want := codeWithPayload.StatusCode, expectedCode; got != want {
-				t.Fatalf("returned bad status: expected %d, but had: %d in %#v", expectedCode, codeWithPayload.StatusCode, codeWithPayload)
-			}
-			body, ok := data.(string)
-			if !ok {
-				t.Fatalf("Cannot get result as string in := %#v", data)
+			a.srv.h.ServeHTTP(resp, req)
+			body := resp.Body.String()
+			if got, want := resp.Code, expectedCode; got != want {
+				t.Fatalf("returned bad status: expected %d, but had: %d", expectedCode, resp.Code)
 			}
 			if got, want := body, expected; got != want {
-				t.Fatalf("got body %q want %q", got, want)
-			}
-			if got, want := codeWithPayload.Reason, expected; got != want {
 				t.Fatalf("got body %q want %q", got, want)
 			}
 		})
@@ -995,6 +993,7 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 	t.Run("critical checks", func(t *testing.T) {
 		eval(t, "/v1/agent/health/service/id/mysql3", http.StatusServiceUnavailable, "critical")
 	})
+	// TODO: Look into why the http response body is formatted with quotes while previous do not have quotes.
 	t.Run("unknown serviceid", func(t *testing.T) {
 		eval(t, "/v1/agent/health/service/id/mysql1", http.StatusNotFound, fmt.Sprintf("ServiceId %s not found", structs.ServiceIDString("mysql1", nil)))
 	})
