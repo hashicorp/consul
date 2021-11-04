@@ -24,6 +24,20 @@ filter field in QUnit's HTML test runner to run a subset of tests (see below).
 If you have started the tests with a filter, you don't have to quit everything
 and start again in order to filter by something different.
 
+## Browser support
+
+Please check our current browser support when adding features or fixing bugs.
+
+At the time of writing we use a rough ~2 years back support matrix for our
+browser support. As most of our targetted browsers are 'evergreen' and
+auto-update this feels like it strikes a balance between the folks that are
+likely to be using the Consul UI and the desire to maintain a modern
+codebase/feature set. This is a balance that should always be revisited and is
+not set in stone. i.e. if you need to use something check-in with the team
+first, it might be the time to bump again.
+
+Please see [../config/targets.js](../config/targets.js) for our current support.
+
 ### Running a single or a range of tests
 
 Please use the same `make test-oss-view` command to get the tests up and

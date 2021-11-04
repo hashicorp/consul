@@ -9,5 +9,5 @@
 // came in Safari 9.1. Safari's async/await support came in Safari 10, so thats
 // the earliest Safari we cover in reality here.
 module.exports = {
-  browsers: ['Chrome 55', 'Firefox 53', 'Safari 13', 'Edge 15'],
+  browsers: ['Chrome 79', 'Firefox 72', 'Safari 13', 'Edge 79'],
 };
