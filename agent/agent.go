@@ -1775,10 +1775,14 @@ type persistedService struct {
 	LocallyRegisteredAsSidecar bool `json:",omitempty"`
 }
 
+func (a *Agent) makeServiceFilePath(svcID structs.ServiceID) string {
+	return filepath.Join(a.config.DataDir, servicesDir, svcID.StringHashSHA256())
+}
+
 // persistService saves a service definition to a JSON file in the data dir
 func (a *Agent) persistService(service *structs.NodeService, source configSource) error {
 	svcID := service.CompoundServiceID()
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, svcID.StringHash())
+	svcPath := a.makeServiceFilePath(svcID)
 
 	wrapped := persistedService{
 		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
@@ -1796,7 +1800,7 @@ func (a *Agent) persistService(service *structs.NodeService, source configSource
 
 // purgeService removes a persisted service definition file from the data dir
 func (a *Agent) purgeService(serviceID structs.ServiceID) error {
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, serviceID.StringHash())
+	svcPath := a.makeServiceFilePath(serviceID)
 	if _, err := os.Stat(svcPath); err == nil {
 		return os.Remove(svcPath)
 	}
@@ -1806,7 +1810,7 @@ func (a *Agent) purgeService(serviceID structs.ServiceID) error {
 // persistCheck saves a check definition to the local agent's state directory
 func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckType, source configSource) error {
 	cid := check.CompoundCheckID()
-	checkPath := filepath.Join(a.config.DataDir, checksDir, cid.StringHash())
+	checkPath := filepath.Join(a.config.DataDir, checksDir, cid.StringHashSHA256())
 
 	// Create the persisted check
 	wrapped := persistedCheck{
@@ -1826,7 +1830,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *structs.CheckT
 
 // purgeCheck removes a persisted check definition file from the data dir
 func (a *Agent) purgeCheck(checkID structs.CheckID) error {
-	checkPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHash())
+	checkPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHashSHA256())
 	if _, err := os.Stat(checkPath); err == nil {
 		return os.Remove(checkPath)
 	}
@@ -1840,6 +1844,10 @@ type persistedServiceConfig struct {
 	ServiceID string
 	Defaults  *structs.ServiceConfigResponse
 	structs.EnterpriseMeta
+}
+
+func (a *Agent) makeServiceConfigFilePath(serviceID structs.ServiceID) string {
+	return filepath.Join(a.config.DataDir, serviceConfigDir, serviceID.StringHashSHA256())
 }
 
 func (a *Agent) persistServiceConfig(serviceID structs.ServiceID, defaults *structs.ServiceConfigResponse) error {
@@ -1856,7 +1864,7 @@ func (a *Agent) persistServiceConfig(serviceID structs.ServiceID, defaults *stru
 	}
 
 	dir := filepath.Join(a.config.DataDir, serviceConfigDir)
-	configPath := filepath.Join(dir, serviceID.StringHash())
+	configPath := a.makeServiceConfigFilePath(serviceID)
 
 	// Create the config dir if it doesn't exist
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -1867,7 +1875,7 @@ func (a *Agent) persistServiceConfig(serviceID structs.ServiceID, defaults *stru
 }
 
 func (a *Agent) purgeServiceConfig(serviceID structs.ServiceID) error {
-	configPath := filepath.Join(a.config.DataDir, serviceConfigDir, serviceID.StringHash())
+	configPath := a.makeServiceConfigFilePath(serviceID)
 	if _, err := os.Stat(configPath); err == nil {
 		return os.Remove(configPath)
 	}
@@ -1914,7 +1922,18 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 			)
 			continue
 		}
-		out[structs.NewServiceID(p.ServiceID, &p.EnterpriseMeta)] = p.Defaults
+
+		serviceID := structs.NewServiceID(p.ServiceID, &p.EnterpriseMeta)
+
+		// Rename files that used the old md5 hash to the new sha256 name; only needed when upgrading from 1.10 and before.
+		newPath := a.makeServiceConfigFilePath(serviceID)
+		if file != newPath {
+			if err := os.Rename(file, newPath); err != nil {
+				a.logger.Error("Failed renaming service config file from %s to %s", file, newPath, err)
+			}
+		}
+
+		out[serviceID] = p.Defaults
 	}
 
 	return out, nil
@@ -2983,7 +3002,7 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 	}
 
 	// Write the state to the file
-	file := filepath.Join(dir, check.CheckID.StringHash())
+	file := filepath.Join(dir, check.CheckID.StringHashSHA256())
 
 	// Create temp file in same dir, to make more likely atomic
 	tempFile := file + ".tmp"
@@ -3003,13 +3022,26 @@ func (a *Agent) persistCheckState(check *checks.CheckTTL, status, output string)
 func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	cid := check.CompoundCheckID()
 	// Try to read the persisted state for this check
-	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHash())
+	file := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashSHA256())
 	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
+			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
+			buf, err = ioutil.ReadFile(oldFile)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				} else {
+					return fmt.Errorf("failed reading file %q: %s", file, err)
+				}
+			}
+			if err := os.Rename(oldFile, file); err != nil {
+				a.logger.Error("Failed renaming service file from %s to %s", oldFile, file, err)
+			}
+		} else {
+			return fmt.Errorf("failed reading file %q: %s", file, err)
 		}
-		return fmt.Errorf("failed reading file %q: %s", file, err)
 	}
 
 	// Decode the state data
@@ -3033,7 +3065,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 
 // purgeCheckState is used to purge the state of a check from the data dir
 func (a *Agent) purgeCheckState(checkID structs.CheckID) error {
-	file := filepath.Join(a.config.DataDir, checkStateDir, checkID.StringHash())
+	file := filepath.Join(a.config.DataDir, checkStateDir, checkID.StringHashSHA256())
 	err := os.Remove(file)
 	if os.IsNotExist(err) {
 		return nil
@@ -3232,6 +3264,14 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			}
 		}
 
+		// Rename files that used the old md5 hash to the new sha256 name; only needed when upgrading from 1.10 and before.
+		newPath := a.makeServiceFilePath(p.Service.CompoundServiceID())
+		if file != newPath {
+			if err := os.Rename(file, newPath); err != nil {
+				a.logger.Error("Failed renaming service file from %s to %s", file, newPath, err)
+			}
+		}
+
 		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
 		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
 
@@ -3361,6 +3401,14 @@ func (a *Agent) loadChecks(conf *config.RuntimeConfig, snap map[structs.CheckID]
 			continue
 		}
 		checkID := p.Check.CompoundCheckID()
+
+		// Rename files that used the old md5 hash to the new sha256 name; only needed when upgrading from 1.10 and before.
+		newPath := filepath.Join(a.config.DataDir, checksDir, checkID.StringHashSHA256())
+		if file != newPath {
+			if err := os.Rename(file, newPath); err != nil {
+				a.logger.Error("Failed renaming service file from %s to %s", file, newPath, err)
+			}
+		}
 
 		source, ok := ConfigSourceFromName(p.Source)
 		if !ok {
