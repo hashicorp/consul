@@ -53,8 +53,8 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 
 	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
 	resp := httptest.NewRecorder()
-	_, err := srv.ACLPolicyCreate(resp, req)
-	require.NoError(t, err)
+	srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	tokenReq := &structs.ACLToken{
 		Description: "agent-read-token-for-test",
@@ -63,10 +63,12 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 
 	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
 	resp = httptest.NewRecorder()
-	tokInf, err := srv.ACLTokenCreate(resp, req)
+	srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+	svcToken := &structs.ACLToken{}
+	dec := json.NewDecoder(resp.Body)
+	err := dec.Decode(svcToken)
 	require.NoError(t, err)
-	svcToken, ok := tokInf.(*structs.ACLToken)
-	require.True(t, ok)
 	return svcToken.SecretID
 }
 
@@ -283,13 +285,21 @@ func TestAgent_Services_MeshGateway(t *testing.T) {
 	a.State.AddService(srv1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	dec := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := dec.Decode(&val)
 	require.NoError(t, err)
-	val := obj.(map[string]*api.AgentService)
+
 	require.Len(t, val, 1)
 	actual := val["mg-dc1-01"]
 	require.NotNil(t, actual)
 	require.Equal(t, api.ServiceKindMeshGateway, actual.Kind)
+	// Proxy.ToAPI() creates an empty Upstream list instead of keeping nil so do the same with actual.
+	if actual.Proxy.Upstreams == nil {
+		actual.Proxy.Upstreams = make([]api.Upstream, 0)
+	}
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 }
 
