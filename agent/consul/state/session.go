@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	tableSessions = "sessions"
+	tableSessions      = "sessions"
+	tableSessionChecks = "session_checks"
+	indexNodeCheck     = "node_check"
 )
 
 func indexFromSession(raw interface{}) ([]byte, error) {
@@ -63,7 +65,10 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer:      idCheckIndexer(),
+				Indexer: indexerSingle{
+					readIndex:  indexFromNodeCheckIDSession,
+					writeIndex: indexFromNodeCheckIDSession,
+				},
 			},
 			indexNodeCheck: {
 				Name:         indexNodeCheck,
@@ -81,28 +86,11 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 	}
 }
 
-// indexNodeFromSession creates an index key from *structs.Session
-func indexNodeFromSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*structs.Session)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
-	}
-
-	v := strings.ToLower(e.Node)
-	if v == "" {
-		return nil, errMissingValueForIndex
-	}
-	var b indexBuilder
-
-	b.String(v)
-	return b.Bytes(), nil
-}
-
-// indexFromNodeCheckIDSession creates an index key from  sessionCheck
+// indexFromIDValue creates an index key from any struct that implements singleValueID
 func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 	e, ok := raw.(*sessionCheck)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement sessionCheck", raw)
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
 	}
 
 	var b indexBuilder
@@ -119,23 +107,6 @@ func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 	b.String(v)
 
 	v = strings.ToLower(e.Session)
-	if v == "" {
-		return nil, errMissingValueForIndex
-	}
-	b.String(v)
-
-	return b.Bytes(), nil
-}
-
-// indexSessionCheckFromSession creates an index key from  sessionCheck
-func indexSessionCheckFromSession(raw interface{}) ([]byte, error) {
-	e, ok := raw.(*sessionCheck)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement *sessionCheck", raw)
-	}
-
-	var b indexBuilder
-	v := strings.ToLower(e.Session)
 	if v == "" {
 		return nil, errMissingValueForIndex
 	}
@@ -424,7 +395,7 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	// Delete any check mappings.
-	mappings, err := tx.Get(tableSessionChecks, indexSession, Query{Value: sessionID, EnterpriseMeta: *entMeta})
+	mappings, err := tx.Get(tableSessionChecks, indexSession, sessionID)
 	if err != nil {
 		return fmt.Errorf("failed session checks lookup: %s", err)
 	}
