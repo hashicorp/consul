@@ -329,13 +329,21 @@ func TestAgent_Services_TerminatingGateway(t *testing.T) {
 	require.NoError(t, a.State.AddService(srv1, ""))
 
 	req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
-	obj, err := a.srv.AgentServices(httptest.NewRecorder(), req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	dec := json.NewDecoder(resp.Body)
+	var val map[string]*api.AgentService
+	err := dec.Decode(&val)
 	require.NoError(t, err)
-	val := obj.(map[string]*api.AgentService)
+
 	require.Len(t, val, 1)
 	actual := val["tg-dc1-01"]
 	require.NotNil(t, actual)
 	require.Equal(t, api.ServiceKindTerminatingGateway, actual.Kind)
+	// Proxy.ToAPI() creates an empty Upstream list instead of keeping nil so do the same with actual.
+	if actual.Proxy.Upstreams == nil {
+		actual.Proxy.Upstreams = make([]api.Upstream, 0)
+	}
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
 }
 
@@ -367,17 +375,20 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	}
 
 	t.Run("no token", func(t *testing.T) {
-		require := require.New(t)
+		req, _ := http.NewRequest("GET", "/v1/agent/services", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		var val map[string]*api.AgentService
+		err := dec.Decode(&val)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 
-		req := httptest.NewRequest("GET", "/v1/agent/services", nil)
-		rsp := httptest.NewRecorder()
-
-		obj, err := a.srv.AgentServices(rsp, req)
-		require.NoError(err)
-
-		val := obj.(map[string]*api.AgentService)
-		require.Empty(val)
-		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		if len(val) != 0 {
+			t.Fatalf("bad: %v", val)
+		}
+		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("limited token", func(t *testing.T) {
@@ -401,17 +412,19 @@ func TestAgent_Services_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		require := require.New(t)
+		req, _ := http.NewRequest("GET", "/v1/agent/services?token=root", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		dec := json.NewDecoder(resp.Body)
+		var val map[string]*api.AgentService
+		err := dec.Decode(&val)
+		if err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 
-		req := httptest.NewRequest("GET", "/v1/agent/services?token=root", nil)
-		rsp := httptest.NewRecorder()
-
-		obj, err := a.srv.AgentServices(rsp, req)
-		require.NoError(err)
-
-		val := obj.(map[string]*api.AgentService)
-		require.Len(val, 2)
-		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		if len(val) != 1 {
+			t.Fatalf("bad: %v", val)
+		}
 	})
 }
 
@@ -562,8 +575,7 @@ func TestAgent_Service(t *testing.T) {
 				// don't alter it and affect later test cases.
 				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(updatedProxy))
 				resp := httptest.NewRecorder()
-				_, err := a.srv.AgentRegisterService(resp, req)
-				require.NoError(t, err)
+				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 			},
 			wantWait: 100 * time.Millisecond,
@@ -596,8 +608,7 @@ func TestAgent_Service(t *testing.T) {
 				// Re-register with _same_ proxy config
 				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(sidecarProxy))
 				resp := httptest.NewRecorder()
-				_, err := a.srv.AgentRegisterService(resp, req)
-				require.NoError(t, err)
+				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, 200, resp.Code, "body: %s", resp.Body.String())
 			},
 			wantWait: 200 * time.Millisecond,
@@ -689,8 +700,7 @@ func TestAgent_Service(t *testing.T) {
 			{
 				req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(sidecarProxy))
 				resp := httptest.NewRecorder()
-				_, err := a.srv.AgentRegisterService(resp, req)
-				require.NoError(err)
+				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(200, resp.Code, "body: %s", resp.Body.String())
 			}
 
@@ -708,14 +718,11 @@ func TestAgent_Service(t *testing.T) {
 				go tt.updateFunc()
 			}
 			start := time.Now()
-			obj, err := a.srv.AgentService(resp, req)
+			a.srv.h.ServeHTTP(resp, req)
 			elapsed := time.Since(start)
 
 			if tt.wantErr != "" {
-				require.Error(err)
-				require.Contains(strings.ToLower(err.Error()), strings.ToLower(tt.wantErr))
-			} else {
-				require.NoError(err)
+				require.Contains(strings.ToLower(resp.Body.String()), strings.ToLower(tt.wantErr))
 			}
 			if tt.wantCode != 0 {
 				require.Equal(tt.wantCode, resp.Code, "body: %s", resp.Body.String())
@@ -729,12 +736,13 @@ func TestAgent_Service(t *testing.T) {
 			}
 
 			if tt.wantResp != nil {
-				assert.Equal(tt.wantResp, obj)
+				dec := json.NewDecoder(resp.Body)
+				val := &api.AgentService{}
+				err := dec.Decode(&val)
+				require.NoError(err)
+
+				assert.Equal(tt.wantResp, val)
 				assert.Equal(tt.wantResp.ContentHash, resp.Header().Get("X-Consul-ContentHash"))
-			} else {
-				// Janky but Equal doesn't help here because nil !=
-				// *api.AgentService((*api.AgentService)(nil))
-				assert.Nil(obj)
 			}
 		})
 	}
@@ -761,25 +769,29 @@ func TestAgent_Checks(t *testing.T) {
 	a.State.AddCheck(chk1, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
-	obj, err := a.srv.AgentChecks(nil, req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	dec := json.NewDecoder(resp.Body)
+	var val map[types.CheckID]*structs.HealthCheck
+	err := dec.Decode(&val)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
-	val := obj.(map[types.CheckID]*structs.HealthCheck)
+
 	if len(val) != 1 {
-		t.Fatalf("bad checks: %v", obj)
+		t.Fatalf("bad checks: %v", val)
 	}
 	if val["mysql"].Status != api.HealthPassing {
-		t.Fatalf("bad check: %v", obj)
+		t.Fatalf("bad check: %v", val)
 	}
 	if val["mysql"].Node != chk1.Node {
-		t.Fatalf("bad check: %v", obj)
+		t.Fatalf("bad check: %v", val)
 	}
 	if val["mysql"].Interval != chk1.Interval {
-		t.Fatalf("bad check: %v", obj)
+		t.Fatalf("bad check: %v", val)
 	}
 	if val["mysql"].Timeout != chk1.Timeout {
-		t.Fatalf("bad check: %v", obj)
+		t.Fatalf("bad check: %v", val)
 	}
 }
 
@@ -810,9 +822,13 @@ func TestAgent_ChecksWithFilter(t *testing.T) {
 	a.State.AddCheck(chk2, "")
 
 	req, _ := http.NewRequest("GET", "/v1/agent/checks?filter="+url.QueryEscape("Name == `redis`"), nil)
-	obj, err := a.srv.AgentChecks(nil, req)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	dec := json.NewDecoder(resp.Body)
+	var val map[types.CheckID]*structs.HealthCheck
+	err := dec.Decode(&val)
 	require.NoError(t, err)
-	val := obj.(map[types.CheckID]*structs.HealthCheck)
+
 	require.Len(t, val, 1)
 	_, ok := val["redis"]
 	require.True(t, ok)
