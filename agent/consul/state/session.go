@@ -80,17 +80,20 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				Name:         indexSession,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer:      sessionCheckIndexer(),
+				Indexer: indexerSingle{
+					readIndex:  indexFromString,
+					writeIndex: indexSessionCheckFromSession,
+				},
 			},
 		},
 	}
 }
 
-// indexFromIDValue creates an index key from any struct that implements singleValueID
+// indexFromNodeCheckIDSession creates an index key from  sessionCheck
 func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 	e, ok := raw.(*sessionCheck)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+		return nil, fmt.Errorf("unexpected type %T, does not implement sessionCheck", raw)
 	}
 
 	var b indexBuilder
@@ -107,6 +110,23 @@ func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 	b.String(v)
 
 	v = strings.ToLower(e.Session)
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	b.String(v)
+
+	return b.Bytes(), nil
+}
+
+// indexSessionCheckFromSession creates an index key from  sessionCheck
+func indexSessionCheckFromSession(raw interface{}) ([]byte, error) {
+	e, ok := raw.(*sessionCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+	}
+
+	var b indexBuilder
+	v := strings.ToLower(e.Session)
 	if v == "" {
 		return nil, errMissingValueForIndex
 	}
