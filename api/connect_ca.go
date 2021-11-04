@@ -38,6 +38,7 @@ type CAConfig struct {
 // CommonCAProviderConfig is the common options available to all CA providers.
 type CommonCAProviderConfig struct {
 	LeafCertTTL      time.Duration
+	RootCertTTL      time.Duration
 	SkipValidate     bool
 	CSRMaxPerSecond  float32
 	CSRMaxConcurrent int

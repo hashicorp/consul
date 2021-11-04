@@ -65,7 +65,7 @@ func (s *HTTPHandlers) ConnectCAConfiguration(resp http.ResponseWriter, req *htt
 	}
 }
 
-// GEt /v1/connect/ca/configuration
+// GET /v1/connect/ca/configuration
 func (s *HTTPHandlers) ConnectCAConfigurationGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 	var args structs.DCSpecificRequest

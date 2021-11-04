@@ -89,28 +89,51 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 
 	SkipIfVaultNotPresent(t)
 
-	provider, testVault := testVaultProvider(t)
-	defer testVault.Stop()
-	client := testVault.client
+	providerWDefaultRootCertTtl, testvault1 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+		"LeafCertTTL": "1h",
+	})
+	defer testvault1.Stop()
+	client1 := testvault1.client
+
+	providerCustomRootCertTtl, testvault2 := testVaultProviderWithConfig(t, true, map[string]interface{}{
+		"LeafCertTTL": "1h",
+		"RootCertTTL": "8761h",
+	})
+	defer testvault2.Stop()
+	client2 := testvault2.client
 
 	require := require.New(t)
 
 	cases := []struct {
-		certFunc    func() (string, error)
-		backendPath string
+		certFunc            func() (string, error)
+		backendPath         string
+		rootCaCreation      bool
+		provider            *VaultProvider
+		client              *vaultapi.Client
+		expectedRootCertTTL string
 	}{
 		{
-			certFunc:    provider.ActiveRoot,
-			backendPath: "pki-root/",
+			certFunc:            providerWDefaultRootCertTtl.ActiveRoot,
+			backendPath:         "pki-root/",
+			rootCaCreation:      true,
+			client:              client1,
+			provider:            providerWDefaultRootCertTtl,
+			expectedRootCertTTL: structs.DefaultRootCertTTL,
 		},
 		{
-			certFunc:    provider.ActiveIntermediate,
-			backendPath: "pki-intermediate/",
+			certFunc:            providerCustomRootCertTtl.ActiveIntermediate,
+			backendPath:         "pki-intermediate/",
+			rootCaCreation:      false,
+			provider:            providerCustomRootCertTtl,
+			client:              client2,
+			expectedRootCertTTL: "8761h",
 		},
 	}
 
 	// Verify the root and intermediate certs match the ones in the vault backends
 	for _, tc := range cases {
+		provider := tc.provider
+		client := tc.client
 		cert, err := tc.certFunc()
 		require.NoError(err)
 		req := client.NewRequest("GET", "/v1/"+tc.backendPath+"ca/pem")
@@ -126,6 +149,15 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 		require.True(parsed.IsCA)
 		require.Len(parsed.URIs, 1)
 		require.Equal(fmt.Sprintf("spiffe://%s.consul", provider.clusterID), parsed.URIs[0].String())
+
+		// test that the root cert ttl as applied
+		if tc.rootCaCreation {
+			rootCertTTL, err := time.ParseDuration(tc.expectedRootCertTTL)
+			require.NoError(err)
+			expectedNotAfter := time.Now().Add(rootCertTTL).UTC()
+
+			require.WithinDuration(expectedNotAfter, parsed.NotAfter, 10*time.Minute, "expected parsed cert ttl to be the same as the value configured")
+		}
 	}
 }
 

@@ -1318,10 +1318,15 @@ Use these links to navigate to a particular top-level stanza.
     which can lead to hangs. In these environments it is recommend to use "Ignore" instead.
     This setting can be safely disabled by setting to "Ignore".
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only specific namespaces. 
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string`) - Selector for restricting the webhook to only specific namespaces. 
     Use with `connectInject.default: true` to automatically inject all pods in namespaces that match the selector. This should be set to a multiline string.
     See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-namespaceselector
     for more details.
+
+    By default, we exclude the kube-system namespace since usually users won't
+    want those pods injected and also the local-path-storage namespace so that
+    Kind (Kubernetes In Docker) can provision Pods used to create PVCs.
+    Note that this exclusion is only supported in Kubernetes v1.21.1+.
 
     Example:
 
