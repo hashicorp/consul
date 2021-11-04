@@ -35,11 +35,11 @@
 }
 
 %code-editor .ember-basic-dropdown-trigger {
-  background-color: var(--tone-gray-900);
-  color: var(--black);
+  background-color: rgb(var(--tone-gray-100));
+  color: rgb(var(--tone-gray-999));
   border-radius: 2px;
   border: 1px solid;
-  border-color: var(--tone-gray-700);
+  border-color: rgb(var(--tone-gray-700));
   margin: 0 8px;
   width: 120px;
   height: 32px;
@@ -126,7 +126,7 @@
 
 .toolbar-link {
   border: 0;
-  color: var(--black);
+  color: rgb(var(--tone-gray-000));
   transition: background-color 150ms;
 
   &:hover {
