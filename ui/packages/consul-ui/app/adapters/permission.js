@@ -37,11 +37,20 @@ export default class PermissionAdapter extends Adapter {
         // instead. Decided this is the best place for it as its almost hidden
         // from the rest of the app so from an app eng point of view it almost
         // feels like it does happen on the backend.
+        // Same goes ^ for partitions
         const nspacesEnabled = this.env.var('CONSUL_NSPACES_ENABLED');
-        if(nspacesEnabled) {
+        const partitionsEnabled = this.env.var('CONSUL_PARTITIONS_ENABLED');
+        if(nspacesEnabled || partitionsEnabled) {
           const token = await this.settings.findBySlug('token');
-          if(typeof serialized.ns === 'undefined' || serialized.ns.length === 0) {
-            serialized.ns = token.Namespace;
+          if(nspacesEnabled) {
+            if(typeof serialized.ns === 'undefined' || serialized.ns.length === 0) {
+              serialized.ns = token.Namespace;
+            }
+          }
+          if(partitionsEnabled) {
+            if(typeof serialized.partition === 'undefined' || serialized.partition.length === 0) {
+              serialized.partition = token.Partition;
+            }
           }
         }
         return adapter.requestForAuthorize(request, serialized);
