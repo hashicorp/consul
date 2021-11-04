@@ -37,49 +37,55 @@
         {{/if}}
     </label>
     <label class="type-text" data-test-rules>
-
-{{#let (hash
-          text="(HCL Format)"
-          href="/guides/acl.html#rule-specification"
-          rel="help noopener noreferrer"
-          target="_blank"
-        ) as |helplink| }}
-
-  {{#if (eq item.template 'service-identity')}}
-          <CodeEditor
-            @toolbar={{ hash title="Rules" helplink=helplink }}
-            @readonly={{true}}
-            @name={{concat name "[Rules]"}}
-            @syntax="hcl"
-            @oninput={{action "change" (concat name "[Rules]")}}
-          ><Consul::ServiceIdentity::Template
-            @nspace={{nspace}}
-            @name={{item.Name}}
-          /></CodeEditor>
-  {{else if (eq item.template 'node-identity')}}
-          <CodeEditor
-            @toolbar={{ hash title="Rules" helplink=helplink }}
-            @readonly={{true}}
-            @name={{concat name "[Rules]"}}
-            @syntax="hcl"
-            @oninput={{action "change" (concat name "[Rules]")}}
-          ><Consul::NodeIdentity::Template
-            @name={{item.Name}}
-          /></CodeEditor>
-  {{else}}
-          <CodeEditor
-            @toolbar={{ hash title="Rules" helplink=helplink }}
-            @syntax="hcl"
-            @class={{if item.error.Rules "error"}}
-            @name={{concat name "[Rules]"}}
-            @value={{item.Rules}}
-            @onkeyup={{action "change" (concat name "[Rules]")}}
-          />
-          {{#if item.error.Rules}}
-            <strong>{{item.error.Rules.validation}}</strong>
-          {{/if}}
-  {{/if}}
-{{/let}}
+{{#if (eq item.template 'service-identity')}}
+        <CodeEditor
+          @readonly={{true}}
+          @name={{concat name "[Rules]"}}
+          @syntax="hcl"
+          @oninput={{action "change" (concat name "[Rules]")}}
+        >
+          <:title>
+            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+          </:title>
+          <:default>
+            <Consul::ServiceIdentity::Template
+              @nspace={{nspace}}
+              @name={{item.Name}}
+            />
+          </:default>
+        </CodeEditor>
+{{else if (eq item.template 'node-identity')}}
+        <CodeEditor
+          @readonly={{true}}
+          @name={{concat name "[Rules]"}}
+          @syntax="hcl"
+          @oninput={{action "change" (concat name "[Rules]")}}
+        >
+          <:title>
+            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+          </:title>
+          <:default>
+            <Consul::NodeIdentity::Template
+              @name={{item.Name}}
+            />
+          </:default>
+        </CodeEditor>
+{{else}}
+        <CodeEditor
+          @syntax="hcl"
+          @class={{if item.error.Rules "error"}}
+          @name={{concat name "[Rules]"}}
+          @value={{item.Rules}}
+          @onkeyup={{action "change" (concat name "[Rules]")}}
+        >
+          <:title>
+            Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+          </:title>
+        </CodeEditor>
+        {{#if item.error.Rules}}
+          <strong>{{item.error.Rules.validation}}</strong>
+        {{/if}}
+{{/if}}
     </label>
 {{#if (eq item.template 'node-identity')}}
 

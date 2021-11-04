@@ -42,12 +42,13 @@
             <label for="" class="type-text{{if api.data.error.Value ' has-error'}}">
 {{#if json}}
                 <CodeEditor
-                  @toolbar={{ hash title="Value" }}
                   @name="value"
                   @readonly={{or disabld api.disabled}}
                   @value={{atob api.data.Value}}
                   @onkeyup={{action api.change "value"}}
-                />
+                >
+                  <:title>Value</:title>
+                </CodeEditor>
 {{else}}
                 <span>Value</span>
                 <textarea

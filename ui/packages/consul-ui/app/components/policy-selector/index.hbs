@@ -114,38 +114,47 @@
           </dl>
 {{/if}}
           <label class="type-text">
-{{#let (hash
-          text="(HCL Format)"
-          href="/guides/acl.html#rule-specification"
-          rel="help noopener noreferrer"
-          target="_blank"
-        ) as |helplink| }}
-  {{#if (eq item.template 'service-identity')}}
-              <CodeEditor
-                @toolbar={{ hash title="Rules" helplink=helplink }}
-                @syntax="hcl"
-                @readonly={{true}}
-              ><Consul::ServiceIdentity::Template
-                @nspace={{nspace}}
-                @name={{item.Name}}
-              /></CodeEditor>
-  {{else if (eq item.template 'node-identity')}}
-              <CodeEditor
-                @toolbar={{ hash title="Rules" helplink=helplink }}
-                @syntax="hcl"
-                @readonly={{true}}
-              ><Consul::NodeIdentity::Template
-                @name={{item.Name}}
-              /></CodeEditor>
-  {{else}}
-              <CodeEditor
-                @toolbar={{ hash title="Rules" helplink=helplink }}
-                @syntax="hcl"
-                @readonly={{true}}
-                @value={{or loadedItem.Rules item.Rules}}
-              />
-  {{/if}}
-{{/let}}
+{{#if (eq item.template 'service-identity')}}
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+            >
+              <:title>
+                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+              </:title>
+              <:default>
+                <Consul::ServiceIdentity::Template
+                  @nspace={{nspace}}
+                  @name={{item.Name}}
+                />
+              </:default>
+            </CodeEditor>
+{{else if (eq item.template 'node-identity')}}
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+            >
+              <:title>
+                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+              </:title>
+              <:default>
+                <Consul::NodeIdentity::Template
+                  @name={{item.Name}}
+                />
+              </:default>
+            </CodeEditor>
+{{else}}
+            <CodeEditor
+              @toolbar={{ hash title="Rules" helplink=helplink }}
+              @syntax="hcl"
+              @readonly={{true}}
+              @value={{or loadedItem.Rules item.Rules}}
+            >
+              <:title>
+                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+              </:title>
+            </CodeEditor>
+{{/if}}
           </label>
 {{#if (not disabled)}}
           <div>

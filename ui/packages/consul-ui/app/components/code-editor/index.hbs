@@ -1,9 +1,7 @@
-{{#if toolbar}}
 <Toolbar>
   <label class="title">
-    {{toolbar.title}}
-    {{#if toolbar.helplink}}
-      <a href="{{env 'CONSUL_DOCS_URL'}}{{toolbar.helplink.href}}" rel={{toolbar.helplink.rel}} target={{toolbar.helplink.target}}>{{toolbar.helplink.text}}</a>
+    {{#if (has-block "title")}}
+      {{yield to="title"}}
     {{/if}}
   </label>
   <div class="actions">
@@ -20,6 +18,5 @@
     <CopyButton @value={{value}} @name="value" />
   </div>
 </Toolbar>
-{{/if}}
 <IvyCodemirror @value={{value}} @name={{name}} @class={{class}} @options={{options}} @valueUpdated={{action onkeyup}} />
-<pre><code>{{yield}}</code></pre>
+<pre><code>{{#if (has-block "default")}}{{yield to="default"}}{{else}}{{value}}{{/if}}</code></pre>
