@@ -1270,6 +1270,7 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 		serfConf.MemberlistConfig.BindPort = s.Bind.Port
 		serfConf.MemberlistConfig.AdvertiseAddr = s.Advertise.IP.String()
 		serfConf.MemberlistConfig.AdvertisePort = s.Advertise.Port
+		serfConf.MemberlistConfig.CIDRsAllowed = config.SerfAllowedCIDRsLAN
 
 		if config.ReconnectTimeoutLAN != 0 {
 			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
@@ -1563,6 +1564,17 @@ func (a *Agent) AgentLocalMember() serf.Member {
 // agent's partition.
 func (a *Agent) LANMembersInAgentPartition() []serf.Member {
 	return a.delegate.LANMembersInAgentPartition()
+}
+
+// LANMembers returns the LAN members for one of:
+//
+// - the requested partition
+// - the requested segment
+// - all segments
+//
+// This is limited to segments and partitions that the node is a member of.
+func (a *Agent) LANMembers(f consul.LANMemberFilter) ([]serf.Member, error) {
+	return a.delegate.LANMembers(f)
 }
 
 // WANMembers is used to retrieve the WAN members
