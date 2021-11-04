@@ -362,8 +362,8 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	svcID := svc.CompoundServiceID()
 
-	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHash())
-	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHash())
+	svcFile := filepath.Join(a.Config.DataDir, servicesDir, svcID.StringHashSHA256())
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHashSHA256())
 
 	// Service is not persisted unless requested, but we always persist service configs.
 	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceRemote))
@@ -589,8 +589,8 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 		require.Equal(r, expectState, current)
 	})
 
-	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHash(svcID))
-	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHash(svcID))
+	svcFile := filepath.Join(a.Config.DataDir, servicesDir, stringHashSHA256(svcID))
+	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, stringHashSHA256(svcID))
 
 	// Service is never persisted, but we always persist service configs.
 	requireFileIsAbsent(t, svcFile)
