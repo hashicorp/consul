@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	tableSessions = "sessions"
+	tableSessions      = "sessions"
+	tableSessionChecks = "session_checks"
+	indexNodeCheck     = "node_check"
 )
 
 func indexFromSession(raw interface{}) ([]byte, error) {
@@ -57,33 +59,25 @@ func sessionsTableSchema() *memdb.TableSchema {
 // checks.
 func sessionChecksTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "session_checks",
+		Name: tableSessionChecks,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&CheckIDIndex{},
-						&memdb.UUIDFieldIndex{
-							Field: "Session",
-						},
-					},
+				Indexer: indexerSingle{
+					readIndex:  indexFromNodeCheckIDSession,
+					writeIndex: indexFromNodeCheckIDSession,
 				},
 			},
-			"node_check": {
-				Name:         "node_check",
+			indexNodeCheck: {
+				Name:         indexNodeCheck,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer:      nodeChecksIndexer(),
 			},
-			"session": {
-				Name:         "session",
+			indexSession: {
+				Name:         indexSession,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
@@ -92,6 +86,35 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
+}
+
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
+	e, ok := raw.(*sessionCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+	}
+
+	var b indexBuilder
+	v := strings.ToLower(e.Node)
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	b.String(v)
+
+	v = strings.ToLower(string(e.CheckID.ID))
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	b.String(v)
+
+	v = strings.ToLower(e.Session)
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	b.String(v)
+
+	return b.Bytes(), nil
 }
 
 type CheckIDIndex struct {
@@ -372,7 +395,7 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 	}
 
 	// Delete any check mappings.
-	mappings, err := tx.Get("session_checks", "session", sessionID)
+	mappings, err := tx.Get(tableSessionChecks, indexSession, sessionID)
 	if err != nil {
 		return fmt.Errorf("failed session checks lookup: %s", err)
 	}
@@ -384,7 +407,7 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 
 		// Do the delete in a separate loop so we don't trash the iterator.
 		for _, obj := range objs {
-			if err := tx.Delete("session_checks", obj); err != nil {
+			if err := tx.Delete(tableSessionChecks, obj); err != nil {
 				return fmt.Errorf("failed deleting session check: %s", err)
 			}
 		}

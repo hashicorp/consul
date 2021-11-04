@@ -64,7 +64,7 @@ func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateM
 			CheckID: structs.CheckID{ID: checkID},
 			Session: session.ID,
 		}
-		if err := tx.Insert("session_checks", mapping); err != nil {
+		if err := tx.Insert(tableSessionChecks, mapping); err != nil {
 			return fmt.Errorf("failed inserting session check mapping: %s", err)
 		}
 	}
