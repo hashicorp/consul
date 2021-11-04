@@ -2453,9 +2453,6 @@ func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
 		t.Fatalf("err: %s", err)
 	}
 
-	//requireFileIsAbsent(t, file)
-	//requireFileIsPresent(t, file)
-
 	// Ensure the service was restored
 	result := requireServiceExists(t, a, "redis")
 	require.Equal(t, svc, result)
