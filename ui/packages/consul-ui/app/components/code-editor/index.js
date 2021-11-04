@@ -16,7 +16,6 @@ export default Component.extend({
   classNames: ['code-editor'],
   readonly: false,
   syntax: '',
-  toolbar: null,
   // TODO: Change this to oninput to be consistent? We'll have to do it throughout the templates
   onkeyup: function() {},
   oninput: function() {},
