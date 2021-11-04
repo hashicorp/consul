@@ -13,9 +13,13 @@ import (
 	"time"
 
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/memberlist"
+
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/memberlist"
+
+	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -27,8 +31,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
-	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -614,6 +616,9 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 // This is a mirror of a similar test in agent/agent_test.go
 func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
+	// if this test is failing because of expired certificates
+	// use the procedure in test/CA-GENERATION.md
+
 	t.Parallel()
 
 	gwPort := freeport.MustTake(1)
