@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
@@ -61,7 +62,7 @@ func (f *StatsFetcher) fetch(server *autopilot.Server, replyCh chan *autopilot.S
 		return
 	}
 
-	err = f.pool.RPC(f.datacenter, server.Name, addr, "Status.RaftStats", &args, &reply)
+	err = f.pool.RPC(f.datacenter, server.Name, addr, "Status.RaftStats", &args, &reply, time.Time{})
 	if err != nil {
 		f.logger.Warn("error getting server health from server",
 			"server", server.Name,

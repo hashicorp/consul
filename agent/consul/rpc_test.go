@@ -1263,6 +1263,10 @@ func (r isReadRequest) HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime
 	return false
 }
 
+func (r isReadRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return time.Duration(-1)
+}
+
 func TestRPC_AuthorizeRaftRPC(t *testing.T) {
 	caPEM, caPK, err := tlsutil.GenerateCA(tlsutil.CAOpts{Days: 5, Domain: "consul"})
 	require.NoError(t, err)

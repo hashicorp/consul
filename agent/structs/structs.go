@@ -201,6 +201,7 @@ type RPCInfo interface {
 	TokenSecret() string
 	SetTokenSecret(string)
 	HasTimedOut(since time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool
+	Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration
 }
 
 // QueryOptions is used to specify various flags for read queries
@@ -299,7 +300,7 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 	q.Token = s
 }
 
-func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
 			q.MaxQueryTime = maxQueryTime
@@ -308,9 +309,13 @@ func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime,
 		}
 		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
 
-		return time.Since(start) > (q.MaxQueryTime + rpcHoldTimeout)
+		return q.MaxQueryTime + rpcHoldTimeout
 	}
-	return time.Since(start) > rpcHoldTimeout
+	return rpcHoldTimeout
+}
+
+func (q QueryOptions) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
+	return time.Since(start) > q.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
 }
 
 type WriteRequest struct {
@@ -337,7 +342,11 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 }
 
 func (w WriteRequest) HasTimedOut(start time.Time, rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) bool {
-	return time.Since(start) > rpcHoldTimeout
+	return time.Since(start) > w.Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime)
+}
+
+func (w WriteRequest) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	return rpcHoldTimeout
 }
 
 type QueryBackend int

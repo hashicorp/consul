@@ -267,8 +267,18 @@ TRY:
 		return structs.ErrRPCRateExceeded
 	}
 
+	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
+	info, _ := args.(structs.RPCInfo)
+
+	var deadline time.Time
+	if info != nil {
+		deadline = firstCheck.Add(info.Timeout(c.config.RPCHoldTimeout, c.config.MaxQueryTime, c.config.DefaultQueryTime))
+	} else {
+		deadline = time.Time{}
+	}
+
 	// Make the request.
-	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply)
+	rpcErr := c.connPool.RPC(c.config.Datacenter, server.ShortName, server.Addr, method, args, reply, deadline)
 	if rpcErr == nil {
 		return nil
 	}
@@ -282,8 +292,6 @@ TRY:
 	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	manager.NotifyFailedServer(server)
 
-	// Use the zero value for RPCInfo if the request doesn't implement RPCInfo
-	info, _ := args.(structs.RPCInfo)
 	if retry := canRetry(info, rpcErr, firstCheck, c.config); !retry {
 		return rpcErr
 	}

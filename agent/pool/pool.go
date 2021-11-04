@@ -538,6 +538,7 @@ func (p *ConnPool) RPC(
 	method string,
 	args interface{},
 	reply interface{},
+	deadline time.Time,
 ) error {
 	if nodeName == "" {
 		return fmt.Errorf("pool: ConnPool.RPC requires a node name")
@@ -550,7 +551,7 @@ func (p *ConnPool) RPC(
 	if method == "AutoEncrypt.Sign" || method == "AutoConfig.InitialConfiguration" {
 		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, nodeName, addr, method, args, reply)
+		return p.rpc(dc, nodeName, addr, method, args, reply, deadline)
 	}
 }
 
@@ -580,13 +581,19 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}, deadline time.Time) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
 	conn, sc, err := p.getClient(dc, nodeName, addr)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %w", err)
+	}
+
+	if !deadline.IsZero() {
+		if err = sc.stream.SetDeadline(deadline); err != nil {
+			return fmt.Errorf("rpc error setting client deadline: %w", err)
+		}
 	}
 
 	// Make the RPC call
@@ -605,7 +612,11 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		p.releaseConn(conn)
 		return fmt.Errorf("rpc error making call: %w", err)
 	}
-
+	if !deadline.IsZero() {
+		if err = sc.stream.SetDeadline(time.Time{}); err != nil {
+			return fmt.Errorf("rpc error resetting client deadline: %w", err)
+		}
+	}
 	// Done with the connection
 	conn.returnClient(sc)
 	p.releaseConn(conn)
@@ -616,7 +627,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 // returns true if healthy, false if an error occurred
 func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out)
+	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out, time.Time{})
 	return err == nil, err
 }
 
