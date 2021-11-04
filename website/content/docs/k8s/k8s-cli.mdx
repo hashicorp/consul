@@ -12,20 +12,23 @@ This topic describes the commands, subcommands, and available options for using 
 
 ~> Consul K8s CLI is is currently availabe as a beta release and is not recommended for production environments.
 
-## Download and Build the Binary
+## Install the Consul K8s CLI
 
-1. Clone the [consul-k8s](https://github.com/hashicorp/consul-k8s/tree/main/cli) project.
-1. Navigate to the `consul-k8s/cli` directory and issue the following command to build the tool:
+1. First install the HashiCorp tap, a repository of all our Homebrew packages.
+    ```shell-session
+    brew tap hashicorp/tap
+    ```
+    
+1. Next, install the Consul K8s CLI with `hashicorp/tap/consul` formulae. 
+    ```shell-session
+    brew install hashicorp/tap/consul-k8s
+    ```
 
-   ```shell-session
-   go build -o bin/consul-k8s
-   ```
+1. If you have already provisioned a Kubernetes cluster and have already configured access to the cluster via a `kubeconfig` file, you are ready to install Consul K8s. Issue the `install` subcommand to install Consul on Kubernetes:
 
-1. (Optional) Move the binary to you `$PATH` for ease of use, e.g.:
-
-   ```shell-session
-   mv bin/consul-k8s /usr/local/bin/consul-k8s
-   ```
+    ```shell-session
+    consul-k8s install <OPTIONS>
+    ```
 
 1. (Optional) Issue the `consul-k8s version` command to verify the installation:
 
