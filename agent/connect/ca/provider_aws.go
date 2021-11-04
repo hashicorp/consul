@@ -33,9 +33,6 @@ const (
 	// leaf cert.
 	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
 
-	// RootTTL is the validity duration for root certs we create.
-	AWSRootTTL = 5 * 365 * 24 * time.Hour
-
 	// IntermediateTTL is the validity duration for the intermediate certs we
 	// create.
 	AWSIntermediateTTL = 1 * 365 * 24 * time.Hour
@@ -211,7 +208,7 @@ func (a *AWSProvider) ensureCA() error {
 	}
 
 	// Self-sign it as a root
-	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, AWSRootTTL)
+	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, a.config.RootCertTTL)
 	if err != nil {
 		return err
 	}
