@@ -36,7 +36,7 @@
           <strong>{{item.error.Name.validation}}</strong>
         {{/if}}
     </label>
-    <label class="type-text" data-test-rules>
+    <label for="" class="type-text" data-test-rules>
 {{#if (eq item.template 'service-identity')}}
         <CodeEditor
           @readonly={{true}}
@@ -44,15 +44,15 @@
           @syntax="hcl"
           @oninput={{action "change" (concat name "[Rules]")}}
         >
-          <:title>
+          <:label>
             Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-          </:title>
-          <:default>
+          </:label>
+          <:content>
             <Consul::ServiceIdentity::Template
               @nspace={{nspace}}
               @name={{item.Name}}
             />
-          </:default>
+          </:content>
         </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
         <CodeEditor
@@ -61,14 +61,14 @@
           @syntax="hcl"
           @oninput={{action "change" (concat name "[Rules]")}}
         >
-          <:title>
+          <:label>
             Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-          </:title>
-          <:default>
+          </:label>
+          <:content>
             <Consul::NodeIdentity::Template
               @name={{item.Name}}
             />
-          </:default>
+          </:content>
         </CodeEditor>
 {{else}}
         <CodeEditor
@@ -78,9 +78,9 @@
           @value={{item.Rules}}
           @onkeyup={{action "change" (concat name "[Rules]")}}
         >
-          <:title>
+          <:label>
             Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-          </:title>
+          </:label>
         </CodeEditor>
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>

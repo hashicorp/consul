@@ -119,40 +119,39 @@
               @syntax="hcl"
               @readonly={{true}}
             >
-              <:title>
+              <:label>
                 Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-              </:title>
-              <:default>
+              </:label>
+              <:content>
                 <Consul::ServiceIdentity::Template
                   @nspace={{nspace}}
                   @name={{item.Name}}
                 />
-              </:default>
+              </:content>
             </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
             <CodeEditor
               @syntax="hcl"
               @readonly={{true}}
             >
-              <:title>
+              <:label>
                 Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-              </:title>
-              <:default>
+              </:label>
+              <:content>
                 <Consul::NodeIdentity::Template
                   @name={{item.Name}}
                 />
-              </:default>
+              </:content>
             </CodeEditor>
 {{else}}
             <CodeEditor
-              @toolbar={{ hash title="Rules" helplink=helplink }}
               @syntax="hcl"
               @readonly={{true}}
               @value={{or loadedItem.Rules item.Rules}}
             >
-              <:title>
+              <:label>
                 Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
-              </:title>
+              </:label>
             </CodeEditor>
 {{/if}}
           </label>
