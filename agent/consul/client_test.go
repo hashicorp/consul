@@ -854,3 +854,64 @@ func TestClient_ShortReconnectTimeout(t *testing.T) {
 		50*time.Millisecond,
 		"The client node was not reaped within the alotted time")
 }
+
+type waiter struct {
+	duration time.Duration
+}
+
+func (w *waiter) Wait(struct{}, *struct{}) error {
+	time.Sleep(w.duration)
+	return nil
+}
+
+func TestClient_RPC_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	timeout := 10 * time.Millisecond
+
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.RPCHoldTimeout = timeout
+	})
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	joinLAN(t, c1, s1)
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+	})
+
+	if err := s1.RegisterEndpoint("Wait", &waiter{duration: timeout}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Requests with QueryOptions have a default timeout of RPCHoldTimeout.
+	var out struct{}
+	err := c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{}, &out)
+	if err == nil || err.Error() != "rpc error making call: i/o deadline reached" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Blocking requests have a longer timeout.
+	out = struct{}{}
+	err = c1.RPC("Wait.Wait", &structs.NodeSpecificRequest{
+		QueryOptions: structs.QueryOptions{
+			MinQueryIndex: 1,
+		},
+	}, &out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
