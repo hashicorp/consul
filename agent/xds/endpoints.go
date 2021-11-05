@@ -123,13 +123,61 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			continue
 		}
 
-		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[key.String()]
-		if !ok {
-			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[key.String()]
-			if !ok { // not possible
-				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
-				continue
+		endpoints := cfgSnap.MeshGateway.GatewayGroups[key.String()].ShallowClone()
+
+		// Merge in gateways from the federation state, handling duplicates by picking
+		// the one with the greatest ModifyIndex.
+		//
+		// Mesh gateways in remote DCs are discovered in two ways:
+		//
+		//	1. Via an Internal.ServiceDump RPC in the remote DC (GatewayGroups).
+		//	2. In the federation state that is replicated from the primary DC (FedStateGateways).
+		//
+		// Previously, GatewayGroups was always given presedence over FedStateGateways
+		// but this is problematic when using mesh gateways for WAN federation.
+		//
+		// Consider the following example:
+		//
+		//	- Primary and Secondary DCs are WAN Federated via local mesh gateways.
+		//
+		//	- Secondary DC's mesh gateway is running on an ephemeral compute instance
+		//	  and is abruptly terminated and rescheduled with a *new IP address*.
+		//
+		//	- Primary DC's mesh gateway is no longer able to connect to the Secondary
+		//	  DC as its proxy is configured with the old IP address. Therefore any RPC
+		//	  from the Primary to the Secondary DC will fail (including the one to
+		//	  discover the gateway's new IP address).
+		//
+		//	- Secondary DC performs its regular anti-entropy of federation state data
+		//	  to the Primary DC (this succeeds as there is still connectivity in this
+		//	  direction).
+		//
+		//	- At this point the Primary DC's mesh gateway should observe the new IP
+		//	  address and reconfigure its proxy, however as we always prioritised
+		//	  GatewayGroups this didn't happen and the connection remained severed.
+		fedStateEndpoints := cfgSnap.MeshGateway.FedStateGateways[key.String()]
+		for _, fse := range fedStateEndpoints {
+			idx := -1
+
+			for i, e := range endpoints {
+				if e.Service.Service == fse.Service.Service && e.Node.ID == fse.Node.ID {
+					idx = i
+					break
+				}
 			}
+
+			if idx == -1 {
+				endpoints = append(endpoints, fse)
+			} else {
+				if endpoints[idx].Service.RaftIndex.ModifyIndex < fse.Service.RaftIndex.ModifyIndex {
+					endpoints[idx] = fse
+				}
+			}
+		}
+
+		if len(endpoints) == 0 {
+			s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
+			continue
 		}
 
 		{ // standard connect

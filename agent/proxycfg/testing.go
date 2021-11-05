@@ -1506,6 +1506,47 @@ func TestConfigSnapshotMeshGatewayUsingFederationStates(t testing.T) *ConfigSnap
 	return testConfigSnapshotMeshGateway(t, true, true)
 }
 
+func TestConfigSnapshotMeshGatewayNewerInformationInFederationStates(t testing.T) *ConfigSnapshot {
+	snap := TestConfigSnapshotMeshGateway(t)
+
+	csn1 := snap.MeshGateway.GatewayGroups["dc2"][0]
+	csn2 := snap.MeshGateway.GatewayGroups["dc2"][1]
+
+	// Create a duplicate entry in FedStateGateways, with a higher ModifyIndex, to
+	// verify that its IP is chosen over the one in GatewayGroups (198.18.1.1).
+	svc1 := structs.TestNodeServiceMeshGatewayWithAddrs(t,
+		"10.0.1.3", 8443,
+		structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
+		structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
+	)
+	svc1.RaftIndex.ModifyIndex = csn1.Service.ModifyIndex + 1
+
+	// Create another duplicate entry, this time without increasing its ModifyIndex,
+	// to verify that the IP in GatewayGroups (198.18.1.2) is chosen.
+	svc2 := structs.TestNodeServiceMeshGatewayWithAddrs(t,
+		"10.0.1.4", 8443,
+		structs.ServiceAddress{Address: "10.0.1.4", Port: 8443},
+		structs.ServiceAddress{Address: "198.18.1.4", Port: 443},
+	)
+
+	snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
+		"dc2": {
+			{
+				Node:    csn1.Node,
+				Service: svc1,
+				Checks:  csn1.Checks,
+			},
+			{
+				Node:    csn2.Node,
+				Service: svc2,
+				Checks:  csn2.Checks,
+			},
+		},
+	}
+
+	return snap
+}
+
 func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotMeshGateway(t, false, false)
 }
