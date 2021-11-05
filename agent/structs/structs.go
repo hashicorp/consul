@@ -2335,6 +2335,7 @@ type Session struct {
 type ServiceCheck struct {
 	ID        string
 	Namespace string
+	Partition string
 }
 
 // IDValue implements the state.singleValueID interface for indexing.
