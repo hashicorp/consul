@@ -20,7 +20,7 @@ import (
 // the agent gets configured, it can go through the normal RPC means of selecting a available
 // server automatically.
 type DirectRPC interface {
-	RPC(dc string, node string, addr net.Addr, method string, args interface{}, reply interface{}) error
+	RPC(dc string, node string, addr net.Addr, method string, args interface{}, reply interface{}, deadline time.Time) error
 }
 
 // Cache is an interface to represent the methods of the

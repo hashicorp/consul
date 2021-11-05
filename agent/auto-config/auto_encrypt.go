@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -56,7 +57,7 @@ func (ac *AutoConfig) autoEncryptInitialCertsOnce(ctx context.Context, csr, key 
 			}
 
 			ac.logger.Debug("making AutoEncrypt.Sign RPC", "addr", addr.String())
-			err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoEncrypt.Sign", &request, &resp)
+			err = ac.acConfig.DirectRPC.RPC(ac.config.Datacenter, ac.config.NodeName, &addr, "AutoEncrypt.Sign", &request, &resp, time.Time{})
 			if err != nil {
 				ac.logger.Error("AutoEncrypt.Sign RPC failed", "addr", addr.String(), "error", err)
 				continue

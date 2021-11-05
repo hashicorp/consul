@@ -257,7 +257,15 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 		JWT:        "blarg",
 	}
 
-	mcfg.directRPC.On("RPC", "dc1", "autoconf", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}, "AutoConfig.InitialConfiguration", &expectedRequest, mock.Anything).Return(fmt.Errorf("injected error")).Times(0).Maybe()
+	mcfg.directRPC.On(
+		"RPC",
+		"dc1",
+		"autoconf",
+		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300},
+		"AutoConfig.InitialConfiguration",
+		&expectedRequest,
+		mock.Anything,
+		time.Time{}).Return(fmt.Errorf("injected error")).Times(0).Maybe()
 	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(0).Maybe()
 
 	ac, err := New(mcfg.Config)
@@ -386,7 +394,8 @@ func TestInitialConfiguration_success(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(nil).Run(populateResponse)
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(nil).Run(populateResponse)
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -471,7 +480,8 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 1), Port: 8300},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(fmt.Errorf("injected failure")).Times(0)
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -479,7 +489,8 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 2), Port: 8398},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(fmt.Errorf("injected failure")).Times(0)
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -487,7 +498,8 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 0, 3), Port: 8399},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Times(0)
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(fmt.Errorf("injected failure")).Times(0)
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -495,7 +507,8 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(fmt.Errorf("injected failure")).Once()
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(fmt.Errorf("injected failure")).Once()
 	mcfg.directRPC.On(
 		"RPC",
 		"dc1",
@@ -503,7 +516,8 @@ func TestInitialConfiguration_retries(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 1234},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(nil).Run(populateResponse).Once()
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(nil).Run(populateResponse).Once()
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
@@ -789,7 +803,8 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 			&net.TCPAddr{IP: net.IPv4(198, 18, 0, 1), Port: 8300},
 			"AutoConfig.InitialConfiguration",
 			&expectedRequest,
-			&pbautoconf.AutoConfigResponse{}).Return(nil).Run(populateResponse).Once()
+			&pbautoconf.AutoConfigResponse{},
+			time.Time{}).Return(nil).Run(populateResponse).Once()
 	} else {
 		expectedRequest := structs.CASignRequest{
 			WriteRequest: structs.WriteRequest{Token: originalToken},
@@ -809,7 +824,8 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 			&net.TCPAddr{IP: net.IPv4(198, 18, 0, 1), Port: 8300},
 			"AutoEncrypt.Sign",
 			&expectedRequest,
-			&structs.SignedResponse{}).Return(nil).Run(populateResponse)
+			&structs.SignedResponse{},
+			time.Time{}).Return(nil).Run(populateResponse)
 	}
 
 	ac, err := New(mcfg.Config)
@@ -1083,7 +1099,8 @@ func TestFallback(t *testing.T) {
 		&net.TCPAddr{IP: net.IPv4(198, 18, 23, 2), Port: 8300},
 		"AutoConfig.InitialConfiguration",
 		&expectedRequest,
-		&pbautoconf.AutoConfigResponse{}).Return(nil).Run(populateResponse).Once()
+		&pbautoconf.AutoConfigResponse{},
+		time.Time{}).Return(nil).Run(populateResponse).Once()
 
 	// this gets called when InitialConfiguration is invoked to record the token from the
 	// auto-config response which is how the Fallback for auto-config works
