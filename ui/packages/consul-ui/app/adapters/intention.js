@@ -6,6 +6,9 @@ import { get } from '@ember/object';
 // Listing of intentions still requires the `ns` query string parameter which
 // will give us all the intentions that have the `ns` as either the SourceNS or
 // the DestinationNS.
+
+// TODO: Investigate the above to see if we should only list intentions with
+// Source/Destination in the currently selected nspace or leave as is.
 export default class IntentionAdapter extends Adapter {
   requestForQuery(request, { dc, ns, partition, filter, index, uri }) {
     return request`
@@ -19,7 +22,7 @@ export default class IntentionAdapter extends Adapter {
 
       ${{
         partition,
-        ns,
+        ns: '*',
         index,
         filter,
       }}
