@@ -2516,12 +2516,9 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
 	resp := httptest.NewRecorder()
-	if _, err := a.srv.AgentRegisterCheck(resp, req); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if resp.Code != 400 {
-		t.Fatalf("accepted bad status")
-	}
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equalf(t, http.StatusBadRequest, resp.Code, "resp: %v", resp.Body.String())
+	require.Contains(t, resp.Body.String(), "Bad check status")
 }
 
 func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
