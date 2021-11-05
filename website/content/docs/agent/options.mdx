@@ -1271,9 +1271,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       Defaults to 10 years as `87600h`. This value, if provided, needs to be higher than the
       intermediate certificate TTL.
 
-      This setting currently applies only to the consul connect and Vault CA providers. It is
-      ignored for the AWS acm pca provider. The value for root certificates issued by the AWS
-      CA provider is 5 years and not configurable at this time.
+      This setting applies to all Consul CA providers.
 
       For the Vault provider, this value is only used if the backend is not initialized at first.
 

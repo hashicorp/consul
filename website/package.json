@@ -33,7 +33,7 @@
     "@hashicorp/react-search": "^6.1.1",
     "@hashicorp/react-section-header": "^5.0.4",
     "@hashicorp/react-stepped-feature-list": "^4.0.3",
-    "@hashicorp/react-subnav": "^9.0.1",
+    "@hashicorp/react-subnav": "^9.1.4",
     "@hashicorp/react-tabs": "^7.0.1",
     "@hashicorp/react-text-split": "^4.0.0",
     "@hashicorp/react-text-split-with-code": "^3.3.8",

@@ -82,12 +82,14 @@
   </svg>
 {{/if}}
 
+{{#let (not (can 'update intention for service' item=@service.Service)) as |disabled|}}
 {{#each @items as |item|}}
   {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
     <TopologyMetrics::Popover
       @type={{if item.Intention.HasPermissions 'l7' 'deny'}}
       @position={{find-by 'id' (concat this.guid item.Namespace item.Name) this.iconPositions}}
       @item={{item}}
+      @disabled={{disabled}}
       @oncreate={{action @oncreate item @service}}
     />
   {{else if (and item.Intention.Allowed (not item.TransparentProxy) (eq item.Source 'specific-intention'))}}
@@ -96,8 +98,10 @@
       @service={{@service}}
       @position={{find-by 'id' (concat this.guid item.Namespace item.Name) this.iconPositions}}
       @item={{item}}
+      @disabled={{disabled}}
       @oncreate={{action @oncreate item @service}}
     />
   {{/if}}
 {{/each}}
+{{/let}}
 

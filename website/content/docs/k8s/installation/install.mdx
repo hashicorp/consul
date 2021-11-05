@@ -124,7 +124,7 @@ controller:
 Once you've created your `config.yaml` file, run `helm install` with the `-f` flag:
 
 ```shell-session
-$ helm install consul hashicorp/consul -f config.yaml
+$ helm install consul hashicorp/consul --create-namespace -n consul -f config.yaml
 NAME: consul
 ...
 ```

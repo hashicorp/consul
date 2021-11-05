@@ -1,14 +1,17 @@
 <Route
   @name={{routeName}}
 as |route|>
+{{#let (not (can "write intention for service" item=item.Service)) as |readOnly|}}
   <Consul::Intention::Form
     @nspace={{'*'}}
     @dc={{route.params.dc}}
     @partition={{route.params.partition}}
     @src={{route.params.intention_id}}
+    @readonly={{readOnly}}
     @autofill={{hash
       DestinationName=route.params.name
     }}
     @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
   />
+{{/let}}
 </Route>

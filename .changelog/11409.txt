@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Ensure we check intention permissions for specific services when deciding
+whether to show action buttons for per service intention actions
+```

@@ -22,7 +22,8 @@ as |route|>
     <BlockSlot @name="loaded">
 {{#let
   loader.data
-as |item|}}
+  (not (can "write intention" item=item))
+as |item readOnly|}}
   <AppView>
       <BlockSlot @name="breadcrumbs">
           <ol>
@@ -31,7 +32,7 @@ as |item|}}
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>
-  {{#if (can "write intention" item=item)}}
+  {{#if (not readOnly)}}
     {{#if item.ID}}
             <route.Title @title="Edit Intention" />
     {{else}}
@@ -44,6 +45,7 @@ as |item|}}
       </BlockSlot>
       <BlockSlot @name="content">
         <Consul::Intention::Form
+          @readonly={{readOnly}}
           @item={{item}}
           @dc={{route.model.dc}}
           @nspace={{route.params.nspace}}
