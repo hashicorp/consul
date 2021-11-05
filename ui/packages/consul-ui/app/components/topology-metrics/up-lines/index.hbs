@@ -83,7 +83,7 @@
   </svg>
 {{/if}}
 {{#each @items as |item|}}
-  {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
+  {{#if (and (not-eq item.Datacenter '') (or (not item.Intention.Allowed) item.Intention.HasPermissions))}}
     <TopologyMetrics::Popover
       @type={{if item.Intention.HasPermissions 'l7' 'deny'}}
       @position={{find-by 'id' (concat this.guid item.Namespace item.Name) this.iconPositions}}

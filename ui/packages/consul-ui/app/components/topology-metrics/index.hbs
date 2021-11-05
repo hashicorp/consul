@@ -2,12 +2,13 @@
   {{on-resize this.calculate}}
   class="topology-container consul-topology-metrics"
 >
-{{#if (gt @topology.Downstreams.length 0)}}
+{{#if (gt this.downstreams.length 0)}}
   <div
     id="downstream-container"
     {{did-insert this.setHeight 'downstream-lines'}}
-    {{did-update this.setHeight 'downstream-lines' @topology.Downstreams}}
+    {{did-update this.setHeight 'downstream-lines' this.downstreams}}
   >
+  {{#if (not this.emptyColumn)}}
     <div>
       <p>{{@dc.Name}}</p>
       <span>
@@ -16,7 +17,8 @@
         </Tooltip>
       </span>
     </div>
-  {{#each @topology.Downstreams as |item|}}
+  {{/if}}
+  {{#each this.downstreams as |item|}}
     <TopologyMetrics::Card
       @nspace={{@nspace}}
       @dc={{@dc.Name}}
@@ -82,7 +84,7 @@
       @view={{this.downView}}
       @center={{this.centerDimensions}}
       @lines={{this.downLines}}
-      @items={{@topology.Downstreams}}
+      @items={{this.downstreams}}
       @oncreate={{action @oncreate}}
     />
   </div>

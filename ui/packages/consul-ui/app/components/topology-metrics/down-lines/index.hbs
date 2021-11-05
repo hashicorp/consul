@@ -84,7 +84,7 @@
 
 {{#let (not (can 'update intention for service' item=@service.Service)) as |disabled|}}
 {{#each @items as |item|}}
-  {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
+  {{#if (and (not-eq item.Datacenter '') (or (not item.Intention.Allowed) item.Intention.HasPermissions))}}
     <TopologyMetrics::Popover
       @type={{if item.Intention.HasPermissions 'l7' 'deny'}}
       @position={{find-by 'id' (concat this.guid item.Namespace item.Name) this.iconPositions}}
@@ -92,7 +92,7 @@
       @disabled={{disabled}}
       @oncreate={{action @oncreate item @service}}
     />
-  {{else if (and item.Intention.Allowed (not item.TransparentProxy) (eq item.Source 'specific-intention'))}}
+  {{else if (and (not-eq item.Datacenter '') item.Intention.Allowed (not item.TransparentProxy) (eq item.Source 'specific-intention'))}}
     <TopologyMetrics::Popover
       @type='not-defined'
       @service={{@service}}
