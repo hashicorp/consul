@@ -23,7 +23,7 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	indexedRoots := &structs.IndexedCARoots{}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config)
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.

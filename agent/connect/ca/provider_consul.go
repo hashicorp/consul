@@ -76,7 +76,7 @@ func (c *ConsulProvider) Configure(cfg ProviderConfig) error {
 	c.id = hexStringHash(fmt.Sprintf("%s,%s,%s,%d,%v", config.PrivateKey, config.RootCert, config.PrivateKeyType, config.PrivateKeyBits, cfg.IsPrimary))
 	c.clusterID = cfg.ClusterID
 	c.isPrimary = cfg.IsPrimary
-	c.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: c.clusterID})
+	c.spiffeID = connect.SpiffeIDSigningForCluster(c.clusterID)
 
 	// Passthrough test state for state handling tests. See testState doc.
 	c.parseTestState(cfg.RawConfig, cfg.State)
@@ -629,7 +629,7 @@ func (c *ConsulProvider) generateCA(privateKey string, sn uint64, rootCertTTL ti
 	}
 
 	// The URI (SPIFFE compatible) for the cert
-	id := connect.SpiffeIDSigningForCluster(config)
+	id := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	keyId, err := connect.KeyId(privKey.Public())
 	if err != nil {
 		return "", err

@@ -800,7 +800,7 @@ func (s *Store) serviceDiscoveryChainTxn(
 	}
 
 	// Build TrustDomain based on the ClusterID stored.
-	signingID := connect.SpiffeIDSigningForCluster(config)
+	signingID := connect.SpiffeIDSigningForCluster(config.ClusterID)
 	if signingID == nil {
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
