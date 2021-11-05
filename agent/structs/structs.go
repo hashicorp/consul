@@ -301,13 +301,15 @@ func (q *QueryOptions) SetTokenSecret(s string) {
 }
 
 func (q QueryOptions) Timeout(rpcHoldTimeout, maxQueryTime, defaultQueryTime time.Duration) time.Duration {
+	// Match logic in Server.blockingQuery.
 	if q.MinQueryIndex > 0 {
 		if q.MaxQueryTime > maxQueryTime {
 			q.MaxQueryTime = maxQueryTime
 		} else if q.MaxQueryTime <= 0 {
 			q.MaxQueryTime = defaultQueryTime
 		}
-		q.MaxQueryTime += lib.RandomStagger(q.MaxQueryTime / JitterFraction)
+		// Timeout after maximum jitter has elapsed.
+		q.MaxQueryTime += q.MaxQueryTime / JitterFraction
 
 		return q.MaxQueryTime + rpcHoldTimeout
 	}
