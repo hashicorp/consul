@@ -2791,7 +2791,8 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 
 // checkSessionsTxn returns the IDs of all sessions associated with a health check
 func checkSessionsTxn(tx ReadTxn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
-	mappings, err := getCompoundWithTxn(tx, tableSessionChecks, indexNodeCheck, &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
+	mappings, err := tx.Get(tableSessionChecks, indexNodeCheck, MultiQuery{Value: []string{hc.Node, string(hc.CheckID)},
+		EnterpriseMeta: hc.EnterpriseMeta})
 	if err != nil {
 		return nil, fmt.Errorf("failed session checks lookup: %s", err)
 	}
