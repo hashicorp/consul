@@ -27,8 +27,10 @@ mesh](https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy?utm_sourc
 
 ## Consul K8s CLI Installation
 
-You can install Consul on Kubernetes using the Consul K8s CLI tool.
-The tool is currently availabe as an alpha release and is not recommended for production environments.
+The recommended way to install Consul on Kubernetes for single cluster use cases is via the [Consul K8S CLI](/docs/k8s/k8s-cli). 
+You can install Consul on Kubernetes using the Consul K8s CLI tool after installing the CLI and running it against a Kubernetes cluster. 
+Ensure that `kubectl` is already configured to authenticate to the Kubernetes cluster using a valid `kubeconfig` file. 
+The Consul K8s CLI is currently available as an beta release and is not recommended for production environments.
 
 1. First, install the HashiCorp tap, a repository of all our Homebrew packages.
    ```shell-session
@@ -75,10 +77,9 @@ The tool is currently availabe as an alpha release and is not recommended for pr
 
 ## Helm Chart Installation
 
-The recommended way to run Consul on Kubernetes is via the
-[Helm chart](/docs/k8s/helm). This will install and configure
-all the necessary components to run Consul. The configuration enables you
-to run a server cluster, a client cluster, or both.
+For multi-cluster installs that involve cross-partition of cross datacenter communication, installing via the Consul on Kubernetes 
+Helm chart is the recommended process. This will install and configure all the necessary components to run Consul. The configuration 
+enables you to run a server cluster, a client cluster, or both.
 
 Step-by-step tutorials for how to deploy Consul to Kubernetes, please see
 our [Deploy to Kubernetes](https://learn.hashicorp.com/collections/consul/kubernetes-deploy)
