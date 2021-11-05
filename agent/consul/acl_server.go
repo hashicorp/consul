@@ -82,13 +82,13 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 	return !structs.ACLIDReserved(id), nil
 }
 
-func (s *Server) InACLDatacenter() bool {
+func (s *Server) InPrimaryDatacenter() bool {
 	return s.config.PrimaryDatacenter == "" || s.config.Datacenter == s.config.PrimaryDatacenter
 }
 
 func (s *Server) LocalTokensEnabled() bool {
 	// in ACL datacenter so local tokens are always enabled
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		return true
 	}
 
@@ -117,7 +117,7 @@ func (s *Server) ACLDatacenter() string {
 func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// only allow remote RPC resolution when token replication is off and
 	// when not in the ACL datacenter
-	if !s.InACLDatacenter() && !s.config.ACLTokenReplication {
+	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return false, nil, nil
 	}
 
@@ -128,7 +128,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, aclToken, nil
 	}
 
-	return s.InACLDatacenter() || index > 0, nil, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
 }
 
 func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy, error) {
@@ -142,7 +142,7 @@ func (s *Server) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InACLDatacenter() || index > 0, policy, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
 }
 
 func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
@@ -156,7 +156,7 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 	// If the max index of the roles table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InACLDatacenter() || index > 0, role, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
 }
 
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {

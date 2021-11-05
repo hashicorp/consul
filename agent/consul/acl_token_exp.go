@@ -22,7 +22,7 @@ func (s *Server) reapExpiredTokens(ctx context.Context) error {
 				s.logger.Error("error reaping expired local ACL tokens", "error", err)
 			}
 		}
-		if s.InACLDatacenter() {
+		if s.InPrimaryDatacenter() {
 			if _, err := s.reapExpiredGlobalACLTokens(); err != nil {
 				s.logger.Error("error reaping expired global ACL tokens", "error", err)
 			}
@@ -37,7 +37,7 @@ func (s *Server) startACLTokenReaping(ctx context.Context) {
 	// We can only check the config settings here that cannot change without a
 	// restart, so we omit the check for a non-empty replication token as that
 	// can be changed at runtime.
-	if !s.InACLDatacenter() && !s.config.ACLTokenReplication {
+	if !s.InPrimaryDatacenter() && !s.config.ACLTokenReplication {
 		return
 	}
 

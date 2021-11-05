@@ -375,7 +375,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	s.aclAuthMethodValidators.Purge()
 
 	// Remove any token affected by CVE-2019-8336
-	if !s.InACLDatacenter() {
+	if !s.InPrimaryDatacenter() {
 		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
@@ -389,7 +389,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 	}
 
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
 		// TODO(partitions): initialize acls in all of the partitions?
@@ -623,7 +623,7 @@ func (s *Server) stopACLUpgrade() {
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		return
 	}
 
