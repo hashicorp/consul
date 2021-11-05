@@ -213,7 +213,8 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	}
 	if config == nil {
 		config = c.serverConf.CAConfig
-		if config.ClusterID == "" {
+
+		if c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter && config.ClusterID == "" {
 			id, err := uuid.GenerateUUID()
 			if err != nil {
 				return nil, err
