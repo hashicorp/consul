@@ -1,3 +1,5 @@
+SetGauge
+
 # Consul [![CircleCI](https://circleci.com/gh/hashicorp/consul/tree/main.svg?style=svg)](https://circleci.com/gh/hashicorp/consul/tree/main) [![Discuss](https://img.shields.io/badge/discuss-consul-ca2171.svg?style=flat)](https://discuss.hashicorp.com/c/consul)
 
 * Website: https://www.consul.io
