@@ -228,6 +228,7 @@ The options below are all specified on the command-line.
   Like [`enable_script_checks`](#_enable_script_checks), but only enable them when
   they are defined in the local configuration files. Script checks defined in HTTP
   API registrations will still not be allowed.
+  
 
 - `-encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
   of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
@@ -1468,10 +1469,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `enable_script_checks` Equivalent to the [`-enable-script-checks` command-line flag](#_enable_script_checks).
 
-  ~> **Security Warning:** Enabling script checks in some configurations may
-  introduce a remote execution vulnerability which is known to be targeted by
-  malware. We strongly recommend `enable_local_script_checks` instead. See [this
-  blog post](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
+  ACLs must be enabled for agents and the `enable_script_checks` option must be set to `true` to enable script checks in Consul 0.9.0 and later. See [Registering and Querying Node Information](/docs/security/acl/acl-rules#registering-and-querying-node-information) for related information.
+
+  ~> **Security Warning:** Enabling script checks in some configurations may introduce a known remote execution vulnerability targeted by malware. We strongly recommend `enable_local_script_checks` instead. Refer to the following article for additional guidance: [_Protecting Consul from RCE Risk in Specific Configurations_](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations)
   for more details.
 
 - `enable_local_script_checks` Equivalent to the [`-enable-local-script-checks` command-line flag](#_enable_local_script_checks).

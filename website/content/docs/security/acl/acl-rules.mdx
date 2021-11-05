@@ -505,9 +505,9 @@ node "admin" {
 
 #### Registering and Querying Node Information
 
-Agents must be configured with `write` or `read` privileges for their own node name so that the agent can register their node metadata, tagged addresses, and other information in the catalog. 
+Agents must be configured with `write` privileges for their own node name so that the agent can register their node metadata, tagged addresses, and other information in the catalog. 
 If configured incorrectly, the agent will print an error to the console when it tries to sync its state with the catalog.
-Configure `write` or `read` access in the [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) parameter.  
+Configure `write` access in the [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) parameter.  
 
 The [`acl.token.default`](/docs/agent/options#acl_tokens_default) used by the agent should have `read` access to a given node so that the DNS interface can be queried.
 
@@ -522,11 +522,6 @@ This allows a single token to be used during all check registration operations.
 This allows for greater flexibility and enables the use of multiple tokens on the same agent. 
 Refer to the [services](/docs/agent/services) and [checks](/docs/agent/checks) documentation for examples.
 Tokens may also be passed to the [HTTP API](/api) for operations that require them.
-
-
--> **Script checks are required for Consul 0.9.0 and later**. In addition to ACLs, the agent must be configured with
-[`enable_script_checks`](/docs/agent/options#_enable_script_checks) set to `true` to enable
-script checks in Consul 0.9.0 and later0.
 
 ### Operator Rules
 
