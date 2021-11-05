@@ -24,21 +24,7 @@ func sessionIndexer() indexerSingleWithPrefix {
 func nodeSessionsIndexer() indexerSingle {
 	return indexerSingle{
 		readIndex:  readIndex(indexFromIDValueLowerCase),
-		writeIndex: writeIndex(indexNodeFromSession),
-	}
-}
-
-func idCheckIndexer() indexerSingle {
-	return indexerSingle{
-		readIndex:  indexFromNodeCheckIDSession,
-		writeIndex: indexFromNodeCheckIDSession,
-	}
-}
-
-func sessionCheckIndexer() indexerSingle {
-	return indexerSingle{
-		readIndex:  indexFromQuery,
-		writeIndex: indexSessionCheckFromSession,
+		writeIndex: writeIndex(indexFromNodeLowerCase),
 	}
 }
 
