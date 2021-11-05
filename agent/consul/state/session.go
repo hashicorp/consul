@@ -20,7 +20,7 @@ const (
 func indexFromSession(raw interface{}) ([]byte, error) {
 	e, ok := raw.(*structs.Session)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
 	}
 
 	v := strings.ToLower(e.ID)
@@ -89,6 +89,23 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 	}
 }
 
+// indexFromNodeLowerCase creates an index key from *structs.Session
+func indexFromNodeLowerCase(raw interface{}) ([]byte, error) {
+	e, ok := raw.(*structs.Session)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement *structs.Session", raw)
+	}
+
+	v := strings.ToLower(e.Node)
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+	var b indexBuilder
+
+	b.String(v)
+	return b.Bytes(), nil
+}
+
 // indexFromNodeCheckIDSession creates an index key from  sessionCheck
 func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 	e, ok := raw.(*sessionCheck)
@@ -122,7 +139,7 @@ func indexFromNodeCheckIDSession(raw interface{}) ([]byte, error) {
 func indexSessionCheckFromSession(raw interface{}) ([]byte, error) {
 	e, ok := raw.(*sessionCheck)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
+		return nil, fmt.Errorf("unexpected type %T, does not implement *sessionCheck", raw)
 	}
 
 	var b indexBuilder
