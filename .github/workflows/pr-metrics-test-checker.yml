@@ -1,0 +1,31 @@
+name: "Check for metrics tests"
+on:
+  pull_request:
+    types: [ opened, synchronize, labeled ]
+    # Runs on PRs to main and all release branches
+    branches:
+      #- main # todo --enable once polished
+      #- release/* # todo --enable once polished
+      - ffmmm/metrics-bots # todo -- only run this when pulled against main
+
+
+jobs:
+  metrics_test_check:
+    # todo -- add a way to bypass this check with the right labels: pr/skip-metric-test-check and pr/no-metrics-change
+    # if: "!contains(github.event.pull_request.labels.*.name, 'pr/no-changelog')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: "checkout repo"
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
+      - name: "Check for metrics modifications"
+        run: ./.github/scripts/metrics_checker.sh
+        shell: bash
+          # todo -- flow: check for metrics calls or "metric" in body of PR, if no metric_test, fail check, next step, if failed, posts comment
+          # todo -- flow cont'd: if not failed, look for "metric" in body of PR and fail if no metrics (could probably make this part of script)
+          # todo -- can probably put failure reason in as a comment
+
+    # todo -- next step, if there are tests missing, post a comment on the PR clarifying why
+
