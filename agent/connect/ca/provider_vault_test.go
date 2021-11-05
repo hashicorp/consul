@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
+	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -34,6 +35,46 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	require.Equal(config.KeyFile, tlsConfig.ClientKey)
 	require.Equal(config.TLSServerName, tlsConfig.TLSServerName)
 	require.Equal(config.TLSSkipVerify, tlsConfig.Insecure)
+}
+
+func TestVaultCAProvider_Configure(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+
+	testcases := []struct {
+		name          string
+		rawConfig     map[string]interface{}
+		expectedValue func(t *testing.T, v *VaultProvider)
+	}{
+		{
+			name:      "DefaultConfig",
+			rawConfig: map[string]interface{}{},
+			expectedValue: func(t *testing.T, v *VaultProvider) {
+				headers := v.client.Headers()
+				require.Equal(t, "", headers.Get(vaultconst.NamespaceHeaderName))
+				require.Equal(t, "pki-root/", v.config.RootPKIPath)
+				require.Equal(t, "pki-intermediate/", v.config.IntermediatePKIPath)
+			},
+		},
+		{
+			name:      "TestConfigWithNamespace",
+			rawConfig: map[string]interface{}{"namespace": "ns1"},
+			expectedValue: func(t *testing.T, v *VaultProvider) {
+
+				h := v.client.Headers()
+				require.Equal(t, "ns1", h.Get(vaultconst.NamespaceHeaderName))
+			},
+		},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			provider, _ := testVaultProviderWithConfig(t, true, testcase.rawConfig)
+
+			testcase.expectedValue(t, provider)
+		})
+	}
+
+	return
 }
 
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
