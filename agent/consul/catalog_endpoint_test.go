@@ -3437,7 +3437,7 @@ func TestVetRegisterWithACL(t *testing.T) {
 	}
 
 	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 node "node" {
   policy = "write"
 }
@@ -3482,7 +3482,7 @@ node "node" {
 	}
 
 	// Chain on a basic service policy.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 service "service" {
   policy = "write"
 }
@@ -3512,7 +3512,7 @@ service "service" {
 	}
 
 	// Chain on a policy that allows them to write to the other service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 service "other" {
   policy = "write"
 }
@@ -3586,7 +3586,7 @@ service "other" {
 	}
 
 	// Chain on a policy that forbids them to write to the other service.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 service "other" {
   policy = "deny"
 }
@@ -3616,7 +3616,7 @@ service "other" {
 	}
 
 	// Chain on a policy that forbids them to write to the node.
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 node "node" {
   policy = "deny"
 }
@@ -3663,7 +3663,7 @@ func TestVetDeregisterWithACL(t *testing.T) {
 	}
 
 	// Create a basic node policy.
-	policy, err := acl.NewPolicyFromSource("", 0, `
+	policy, err := acl.NewPolicyFromSource(`
 node "node" {
   policy = "write"
 }
@@ -3676,7 +3676,7 @@ node "node" {
 		t.Fatalf("err: %v", err)
 	}
 
-	policy, err = acl.NewPolicyFromSource("", 0, `
+	policy, err = acl.NewPolicyFromSource(`
 	service "my-service" {
 	  policy = "write"
 	}

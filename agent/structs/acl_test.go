@@ -418,21 +418,19 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 		policies, err := testPolicies.resolveWithCache(cache, nil)
 		require.NoError(t, err)
 		require.Len(t, policies, 4)
-		for i := range testPolicies {
-			require.Equal(t, testPolicies[i].ID, policies[i].ID)
-			require.Equal(t, testPolicies[i].ModifyIndex, policies[i].Revision)
-		}
+		require.Len(t, policies[0].NodePrefixes, 1)
+		require.Len(t, policies[1].AgentPrefixes, 1)
+		require.Len(t, policies[2].KeyPrefixes, 1)
+		require.Len(t, policies[3].ServicePrefixes, 1)
 	})
 
 	t.Run("Check Cache", func(t *testing.T) {
 		for i := range testPolicies {
 			entry := cache.GetParsedPolicy(fmt.Sprintf("%x", testPolicies[i].Hash))
 			require.NotNil(t, entry)
-			require.Equal(t, testPolicies[i].ID, entry.Policy.ID)
-			require.Equal(t, testPolicies[i].ModifyIndex, entry.Policy.Revision)
 
 			// set this to detect using from the cache next time
-			entry.Policy.Revision = 9999
+			testPolicies[i].Rules = "invalid"
 		}
 	})
 
@@ -440,10 +438,10 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 		policies, err := testPolicies.resolveWithCache(cache, nil)
 		require.NoError(t, err)
 		require.Len(t, policies, 4)
-		for i := range testPolicies {
-			require.Equal(t, testPolicies[i].ID, policies[i].ID)
-			require.Equal(t, uint64(9999), policies[i].Revision)
-		}
+		require.Len(t, policies[0].NodePrefixes, 1)
+		require.Len(t, policies[1].AgentPrefixes, 1)
+		require.Len(t, policies[2].KeyPrefixes, 1)
+		require.Len(t, policies[3].ServicePrefixes, 1)
 	})
 }
 
