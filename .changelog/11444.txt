@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: for various /v1/agent endpoints parse the partition parameter on the request
+```

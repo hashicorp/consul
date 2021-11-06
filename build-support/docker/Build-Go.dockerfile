@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.16.7
+ARG GOLANG_VERSION=1.17.2
 FROM golang:${GOLANG_VERSION}
 
 ARG GOTOOLS="github.com/elazarl/go-bindata-assetfs/... \

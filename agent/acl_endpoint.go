@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -72,37 +71,6 @@ func (s *HTTPHandlers) ACLReplicationStatus(resp http.ResponseWriter, req *http.
 		return nil, err
 	}
 	return out, nil
-}
-
-func (s *HTTPHandlers) ACLRulesTranslate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if s.checkACLDisabled(resp, req) {
-		return nil, nil
-	}
-
-	var token string
-	s.parseToken(req, &token)
-	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	// Should this require lesser permissions? Really the only reason to require authorization at all is
-	// to prevent external entities from DoS Consul with repeated rule translation requests
-	if authz.ACLRead(nil) != acl.Allow {
-		return nil, acl.ErrPermissionDenied
-	}
-
-	policyBytes, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, BadRequestError{Reason: fmt.Sprintf("Failed to read body: %v", err)}
-	}
-
-	translated, err := acl.TranslateLegacyRules(policyBytes)
-	if err != nil {
-		return nil, BadRequestError{Reason: err.Error()}
-	}
-
-	resp.Write(translated)
-	return nil, nil
 }
 
 func (s *HTTPHandlers) ACLPolicyList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

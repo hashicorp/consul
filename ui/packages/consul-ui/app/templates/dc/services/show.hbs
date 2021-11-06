@@ -1,7 +1,6 @@
 <Route
   @name={{routeName}}
 as |route|>
-
     <DataLoader
       @src={{uri '/${partition}/${nspace}/${dc}/service-instances/for-service/${name}'
         (hash
@@ -69,7 +68,7 @@ as |items item dc|}}
         {{! and use this to set MeshEnabled on the Datacenter }}
         {{! if once chain is set, i.e. we've checked this dc we remove the DataSource }}
         {{! which will mark it for closure, which possibly could be reopened if }}
-        {{! the user clicks the routing/disco-chain  tab}}
+        {{! the user clicks the routing/disco-chain tab}}
         {{#if (not chain)}}
           <DataSource
             @src={{uri '/${partition}/${nspace}/${dc}/discovery-chain/${name}'
@@ -83,6 +82,7 @@ as |items item dc|}}
             @onchange={{action (mut chain) value="data"}}
           />
         {{/if}}
+        {{did-insert (set this 'chain' undefined) route.params.dc}}
       {{/if}}
   {{#let
   (hash
@@ -90,7 +90,7 @@ as |items item dc|}}
       services=(eq item.Service.Kind 'terminating-gateway')
       upstreams=(eq item.Service.Kind 'ingress-gateway')
       instances=true
-      intentions=(not-eq item.Service.Kind 'terminating-gateway')
+      intentions=(and (not-eq item.Service.Kind 'terminating-gateway') (can 'read intention for service' item=item.Service))
       routing=(and dc.MeshEnabled item.IsOrigin)
       tags=(not item.Service.Kind)
   )
@@ -164,7 +164,7 @@ as |items item dc|}}
                 rel="noopener noreferrer"
                 data-test-dashboard-anchor
               >
-                Open Dashboard
+                Open dashboard
               </a>
             {{/if}}
             </DataSource>
@@ -177,6 +177,7 @@ as |items item dc|}}
               @name={{routeName}}
               @model={{assign (hash
                 items=items
+                item=item
                 tabs=tabs
               ) route.model}}
             as |o|>

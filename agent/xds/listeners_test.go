@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -504,6 +503,59 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name: "ingress-with-tls-mixed-listeners",
+			// Use SDS helper even though we aren't testing SDS since it already sets
+			// up most things we need.
+			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				// Undo gateway-level SDS
+				snap.IngressGateway.TLSConfig.SDS = nil
+
+				// No Gateway-level built-in TLS
+				snap.IngressGateway.TLSConfig.Enabled = false
+
+				// One listener has built-in TLS, one doesn't
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "s1",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "http", Port: 9090}: {
+						{
+							DestinationName: "s2",
+							LocalBindPort:   9090,
+						},
+					},
+				}
+				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
+					{Protocol: "http", Port: 8080}: {
+						Port: 8080,
+						Services: []structs.IngressService{
+							{
+								Name: "s1",
+							},
+						},
+						TLS: &structs.GatewayTLSConfig{
+							// built-in TLS enabled
+							Enabled: true,
+						},
+					},
+					{Protocol: "http", Port: 9090}: {
+						Port: 9090,
+						Services: []structs.IngressService{
+							{
+								Name: "s2",
+							},
+						},
+						// No TLS enabled
+						TLS: nil,
+					},
+				}
+			},
+		},
+		{
 			name:   "ingress-with-sds-listener-gw-level",
 			create: proxycfg.TestConfigSnapshotIngressWithGatewaySDS,
 			setup:  nil,
@@ -757,7 +809,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.ConnectProxy.MeshConfigSet = true
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
-				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
@@ -794,7 +846,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -811,7 +863,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in transparent proxy mode
-				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(t, "google", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
 					"google.default.default.dc1": {
 						structs.CheckServiceNode{
@@ -832,7 +884,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				}
 
 				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
-				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(t, "no-endpoints", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 			},
 		},
 		{
@@ -841,9 +893,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Mode = structs.ProxyModeTransparent
 
-				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["mongo"] = discoverychain.TestCompileConfigEntries(t, "mongo", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
-				snap.ConnectProxy.DiscoveryChain["kafka"] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.DiscoveryChain["kafka"] = discoverychain.TestCompileConfigEntries(t, "kafka", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
 
 				kafka := structs.NewServiceName("kafka", structs.DefaultEnterpriseMetaInDefaultPartition())
 				mongo := structs.NewServiceName("mongo", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -889,7 +941,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	latestEnvoyVersion_v2 := proxysupport.EnvoyVersionsV2[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -937,36 +988,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 						expectedJSON := goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON)
 						require.JSONEq(t, expectedJSON, gotJSON)
-					})
-
-					t.Run("v2-compat", func(t *testing.T) {
-						if !stringslice.Contains(proxysupport.EnvoyVersionsV2, envoyVersion) {
-							t.Skip()
-						}
-						respV2, err := convertDiscoveryResponseToV2(r)
-						require.NoError(t, err)
-
-						gotJSON := protoToJSON(t, respV2)
-
-						gName := tt.name
-						if tt.overrideGoldenName != "" {
-							gName = tt.overrideGoldenName
-						}
-
-						gName += ".v2compat"
-
-						// It's easy to miss a new type that encodes a version from just
-						// looking at the golden files so lets make it an error here. If
-						// there are ever false positives we can maybe include an allow list
-						// here as it seems safer to assume something was missed than to
-						// assume we'll notice the golden file being wrong. Note the first
-						// one matches both resourceApiVersion and transportApiVersion. I
-						// left it as a suffix in case there are other field names that
-						// follow that convention now or in the future.
-						require.NotContains(t, gotJSON, `ApiVersion": "V3"`)
-						require.NotContains(t, gotJSON, `type.googleapis.com/envoy.api.v3`)
-
-						require.JSONEq(t, goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
 			}
@@ -1119,7 +1140,7 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 		snap := proxycfg.TestConfigSnapshotIngressWithGatewaySDS(t)
 		// Override TLS configs
 		snap.IngressGateway.TLSConfig.SDS = tc.gwSDS
-		var key proxycfg.IngressListenerKey
+		var listenerCfg structs.IngressListener
 		for k, lisCfg := range snap.IngressGateway.Listeners {
 			if tc.lisSDS == nil {
 				lisCfg.TLS = nil
@@ -1130,12 +1151,11 @@ func TestResolveListenerSDSConfig(t *testing.T) {
 			}
 			// Override listener cfg in map
 			snap.IngressGateway.Listeners[k] = lisCfg
-			// Save the last key doesn't matter which as we set same listener config
-			// for all.
-			key = k
+			// Save the last cfg doesn't matter which as we set same for all.
+			listenerCfg = lisCfg
 		}
 
-		got, err := resolveListenerSDSConfig(snap, key)
+		got, err := resolveListenerSDSConfig(snap, listenerCfg)
 		if tc.wantErr != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tc.wantErr)

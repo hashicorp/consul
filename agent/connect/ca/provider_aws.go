@@ -33,9 +33,6 @@ const (
 	// leaf cert.
 	LeafTemplateARN = "arn:aws:acm-pca:::template/EndEntityCertificate/V1"
 
-	// RootTTL is the validity duration for root certs we create.
-	AWSRootTTL = 5 * 365 * 24 * time.Hour
-
 	// IntermediateTTL is the validity duration for the intermediate certs we
 	// create.
 	AWSIntermediateTTL = 1 * 365 * 24 * time.Hour
@@ -211,7 +208,7 @@ func (a *AWSProvider) ensureCA() error {
 	}
 
 	// Self-sign it as a root
-	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, AWSRootTTL)
+	certPEM, err := a.signCSR(csrPEM, RootTemplateARN, a.config.RootCertTTL)
 	if err != nil {
 		return err
 	}
@@ -359,15 +356,15 @@ func (a *AWSProvider) loadCACerts() error {
 
 	if a.isPrimary {
 		// Just use the cert as a root
-		a.rootPEM = *output.Certificate
+		a.rootPEM = EnsureTrailingNewline(*output.Certificate)
 	} else {
-		a.intermediatePEM = *output.Certificate
+		a.intermediatePEM = EnsureTrailingNewline(*output.Certificate)
 		// TODO(banks) support user-supplied CA being a Subordinate even in the
 		// primary DC. For now this assumes there is only one cert in the chain
 		if output.CertificateChain == nil {
 			return fmt.Errorf("Subordinate CA %s returned no chain", a.arn)
 		}
-		a.rootPEM = *output.CertificateChain
+		a.rootPEM = EnsureTrailingNewline(*output.CertificateChain)
 	}
 	return nil
 }
@@ -485,7 +482,7 @@ func (a *AWSProvider) signCSR(csrPEM string, templateARN string, ttl time.Durati
 			}
 
 			if certOutput.Certificate != nil {
-				return true, *certOutput.Certificate, nil
+				return true, EnsureTrailingNewline(*certOutput.Certificate), nil
 			}
 
 			return false, "", nil
@@ -540,9 +537,9 @@ func (a *AWSProvider) SetIntermediate(intermediatePEM string, rootPEM string) er
 		return err
 	}
 
-	// We succsefully initialized, keep track of the root and intermediate certs.
-	a.rootPEM = rootPEM
-	a.intermediatePEM = intermediatePEM
+	// We successfully initialized, keep track of the root and intermediate certs.
+	a.rootPEM = EnsureTrailingNewline(rootPEM)
+	a.intermediatePEM = EnsureTrailingNewline(intermediatePEM)
 
 	return nil
 }

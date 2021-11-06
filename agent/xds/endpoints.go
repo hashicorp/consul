@@ -51,7 +51,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		es := s.endpointsFromDiscoveryChain(
 			id,
 			chain,
-			cfgSnap.Datacenter,
+			cfgSnap.Locality,
 			cfgSnap.ConnectProxy.UpstreamConfig[id],
 			cfgSnap.ConnectProxy.WatchedUpstreamEndpoints[id],
 			cfgSnap.ConnectProxy.WatchedGatewayEndpoints[id],
@@ -79,7 +79,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				cfgSnap.Datacenter,
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
@@ -110,55 +110,61 @@ func (s *ResourceGenerator) endpointsFromSnapshotTerminatingGateway(cfgSnap *pro
 }
 
 func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	datacenters := cfgSnap.MeshGateway.Datacenters()
-	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
+	keys := cfgSnap.MeshGateway.GatewayKeys()
+	resources := make([]proto.Message, 0, len(keys)+len(cfgSnap.MeshGateway.ServiceGroups))
 
-	// generate the endpoints for the gateways in the remote datacenters
-	for _, dc := range datacenters {
-		// Skip creating endpoints for mesh gateways in local DC and gateways in remote DCs with a hostname as their address
-		// EDS cannot resolve hostnames so we provide them through CDS instead
-		if dc == cfgSnap.Datacenter || len(cfgSnap.MeshGateway.HostnameDatacenters[dc]) > 0 {
+	for _, key := range keys {
+		if key.Matches(cfgSnap.Datacenter, cfgSnap.ProxyID.PartitionOrDefault()) {
+			continue // skip local
+		}
+		// Also skip gateways with a hostname as their address. EDS cannot resolve hostnames,
+		// so we provide them through CDS instead.
+		if len(cfgSnap.MeshGateway.HostnameDatacenters[key.String()]) > 0 {
 			continue
 		}
 
-		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
+		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[key.String()]
 		if !ok {
-			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[dc]
+			endpoints, ok = cfgSnap.MeshGateway.FedStateGateways[key.String()]
 			if !ok { // not possible
-				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", dc)
+				s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", key)
 				continue
 			}
 		}
 
 		{ // standard connect
-			clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
+			clusterName := connect.GatewaySNI(key.Datacenter, key.Partition, cfgSnap.Roots.TrustDomain)
 
 			la := makeLoadAssignment(
 				clusterName,
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				cfgSnap.Datacenter,
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
 
-		if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-			clusterName := cfgSnap.ServerSNIFn(dc, "")
+		if cfgSnap.ProxyID.InDefaultPartition() &&
+			cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+			cfgSnap.ServerSNIFn != nil {
 
+			clusterName := cfgSnap.ServerSNIFn(key.Datacenter, "")
 			la := makeLoadAssignment(
 				clusterName,
 				[]loadAssignmentEndpointGroup{
 					{Endpoints: endpoints},
 				},
-				cfgSnap.Datacenter,
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
 	}
 
 	// generate endpoints for our servers if WAN federation is enabled
-	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
+	if cfgSnap.ProxyID.InDefaultPartition() &&
+		cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" &&
+		cfgSnap.ServerSNIFn != nil {
 		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
@@ -250,7 +256,7 @@ func (s *ResourceGenerator) endpointsFromServicesAndResolvers(
 			la := makeLoadAssignment(
 				clusterName,
 				groups,
-				cfgSnap.Datacenter,
+				cfgSnap.Locality,
 			)
 			resources = append(resources, la)
 		}
@@ -275,7 +281,7 @@ func (s *ResourceGenerator) endpointsFromSnapshotIngressGateway(cfgSnap *proxycf
 			es := s.endpointsFromDiscoveryChain(
 				id,
 				cfgSnap.IngressGateway.DiscoveryChain[id],
-				cfgSnap.Datacenter,
+				proxycfg.GatewayKey{Datacenter: cfgSnap.Datacenter, Partition: u.DestinationPartition},
 				&u,
 				cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id],
 				cfgSnap.IngressGateway.WatchedGatewayEndpoints[id],
@@ -311,9 +317,10 @@ func makePipeEndpoint(path string) *envoy_endpoint_v3.LbEndpoint {
 func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 	id string,
 	chain *structs.CompiledDiscoveryChain,
-	datacenter string,
+	gatewayKey proxycfg.GatewayKey,
 	upstream *structs.Upstream,
-	upstreamEndpoints, gatewayEndpoints map[string]structs.CheckServiceNodes,
+	upstreamEndpoints map[string]structs.CheckServiceNodes,
+	gatewayEndpoints map[string]structs.CheckServiceNodes,
 ) []proto.Message {
 	var resources []proto.Message
 
@@ -387,7 +394,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 			upstreamEndpoints,
 			gatewayEndpoints,
 			targetID,
-			datacenter,
+			gatewayKey,
 		)
 		if !valid {
 			continue // skip the cluster if we're still populating the snapshot
@@ -406,7 +413,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 					upstreamEndpoints,
 					gatewayEndpoints,
 					failTargetID,
-					datacenter,
+					gatewayKey,
 				)
 				if !valid {
 					continue // skip the failover target if we're still populating the snapshot
@@ -420,7 +427,7 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 		la := makeLoadAssignment(
 			clusterName,
 			endpointGroups,
-			datacenter,
+			gatewayKey,
 		)
 		resources = append(resources, la)
 	}
@@ -434,7 +441,7 @@ type loadAssignmentEndpointGroup struct {
 	OverrideHealth envoy_core_v3.HealthStatus
 }
 
-func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localDatacenter string) *envoy_endpoint_v3.ClusterLoadAssignment {
+func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localKey proxycfg.GatewayKey) *envoy_endpoint_v3.ClusterLoadAssignment {
 	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: clusterName,
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
@@ -454,7 +461,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 
 		for _, ep := range endpoints {
 			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
-			addr, port := ep.BestAddress(localDatacenter != ep.Node.Datacenter)
+			addr, port := ep.BestAddress(!localKey.Matches(ep.Node.Datacenter, ep.Node.PartitionOrDefault()))
 			healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
 
 			if endpointGroup.OverrideHealth != envoy_core_v3.HealthStatus_UNKNOWN {
@@ -486,7 +493,7 @@ func makeLoadAssignmentEndpointGroup(
 	targetHealth map[string]structs.CheckServiceNodes,
 	gatewayHealth map[string]structs.CheckServiceNodes,
 	targetID string,
-	currentDatacenter string,
+	localKey proxycfg.GatewayKey,
 ) (loadAssignmentEndpointGroup, bool) {
 	realEndpoints, ok := targetHealth[targetID]
 	if !ok {
@@ -495,15 +502,19 @@ func makeLoadAssignmentEndpointGroup(
 	}
 	target := targets[targetID]
 
-	var gatewayDatacenter string
+	var gatewayKey proxycfg.GatewayKey
+
 	switch target.MeshGateway.Mode {
 	case structs.MeshGatewayModeRemote:
-		gatewayDatacenter = target.Datacenter
+		gatewayKey.Datacenter = target.Datacenter
+		gatewayKey.Partition = target.Partition
+
 	case structs.MeshGatewayModeLocal:
-		gatewayDatacenter = currentDatacenter
+		gatewayKey = localKey
 	}
 
-	if gatewayDatacenter == "" {
+	if gatewayKey.IsEmpty() || (structs.EqualPartitions(localKey.Partition, target.Partition) && localKey.Datacenter == target.Datacenter) {
+		// Gateways are not needed if the request isn't for a remote DC or partition.
 		return loadAssignmentEndpointGroup{
 			Endpoints:   realEndpoints,
 			OnlyPassing: target.Subset.OnlyPassing,
@@ -511,7 +522,7 @@ func makeLoadAssignmentEndpointGroup(
 	}
 
 	// If using a mesh gateway we need to pull those endpoints instead.
-	gatewayEndpoints, ok := gatewayHealth[gatewayDatacenter]
+	gatewayEndpoints, ok := gatewayHealth[gatewayKey.String()]
 	if !ok {
 		// skip the cluster if we're still populating the snapshot
 		return loadAssignmentEndpointGroup{}, false

@@ -34,6 +34,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 		CSRMaxConcurrent:    55,
 		PrivateKeyType:      "rsa",
 		PrivateKeyBits:      4096,
+		RootCertTTL:         10 * 24 * 365 * time.Hour,
 	}
 
 	cases := map[string]testcase{

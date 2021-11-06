@@ -135,6 +135,7 @@ export default class RoutletService extends Service {
     const outlet = outlets.get(keys[key]);
     if (typeof outlet !== 'undefined') {
       route._model = outlet.model;
+      outlet.route = route;
       // TODO: Try to avoid the double computation bug
       schedule('afterRender', () => {
         outlet.routeName = route.args.name;

@@ -10,28 +10,33 @@ description: >-
 Consul K8s CLI is a tool for quickly installing and interacting with Consul on Kubernetes.
 This topic describes the commands, subcommands, and available options for using Consul K8s CLI.
 
-~> Consul K8s CLI is is currently availabe as an alpha release and is not recommended for production environments.
+~> Consul K8s CLI is is currently availabe as a beta release and is not recommended for production environments.
 
-## Download and Build the Binary
+## Install the Consul K8s CLI
 
-1. Clone the [consul-k8s](https://github.com/hashicorp/consul-k8s/tree/cli-install/cli) project.
-1. Navigate to the `consul-k8s/cli` directory and issue the following command to build the tool:
+The [Homebrew](https://brew.sh) package manager is required to complete the following installation instructions.
 
-   ```shell-session
-   go build -o bin/consul-k8s
-   ```
+1. Install the HashiCorp `tap`, which is a repository of all Homebrew packages for HashiCorp:
+    ```shell-session
+    brew tap hashicorp/tap
+    ```
+    
+1. Install the Consul K8s CLI with `hashicorp/tap/consul` formula. 
+    ```shell-session
+    brew install hashicorp/tap/consul-k8s
+    ```
 
-1. (Optional) Move the binary to you `$PATH` for ease of use, e.g.:
+1. If you have already provisioned a Kubernetes cluster and have already configured access to the cluster via a `kubeconfig` file, you are ready to install Consul K8s. Issue the `install` subcommand to install Consul on Kubernetes:
 
-   ```shell-session
-   mv bin/consul-k8s /usr/local/bin/consul-k8s
-   ```
+    ```shell-session
+    consul-k8s install <OPTIONS>
+    ```
 
 1. (Optional) Issue the `consul-k8s version` command to verify the installation:
 
    ```shell-session
    consul-k8s version
-   consul-k8s 0.34.1-dev
+   consul-k8s 0.36.0
    ```
 
 ## Usage
@@ -63,22 +68,34 @@ The following options are available.
 | `-config-file`                                                                                                                                | String value that specifies the path to a file containing custom installation configurations, e.g., Consul Helm chart values file. <br/> You can use the `-config-file` flag multiple times to specify multiple files.                                                                                                                                                                            | none                                    | Optional |
 | `-namespace`                                                                                                                                  | String value that specifies the namespace of the Consul installation.                                                                                                                                                                                                                                                                                                                             | `consul`                                | Optional |
 | `-preset`                                                                                                                                     | String value that installs Consul based on a preset configuration. You can specify the following values: <br/> `demo`: Installs a single replica server with sidecar injection enabled; useful for testing service mesh functionality. <br/> `secure`: Installs a single replica server with sidecar injection, ACLs, and TLS enabled; useful for testing service mesh functionality.             | Configuration of the Consul Helm chart. | Optional |
-| `-set`                                                                                                                                        | String value that enables you to set a customizeable value. <br/> You can use the `-set` flag multiple times to set multiple values. <br/> Consul Helm chart values are supported.                                                                                                                                                                                                                | none                                    | Optional |
-| `-set-file`                                                                                                                                   | String value that specifies the name of a file. The contents of the file will be used to set a customizeable value. <br/> You can use the `-set-file` flag multiple times to specify multiple files. <br/> Consul Helm chart values are supported.                                                                                                                                                | none                                    | Optional |
-| `-set-string`                                                                                                                                 | String value that enables you to set a customizeable string value. <br/> You can use the `-set-string` flag multiple times to specify multiple strings. <br/> Consul Helm chart values are supported.                                                                                                                                                                                             | none                                    | Optional |
+| `-set`                                                                                                                                        | String value that enables you to set a customizeable value. This flag is comparable to the `helm install --set` flag. <br/> You can use the `-set` flag multiple times to set multiple values. <br/> Consul Helm chart values are supported.                                                                                                                                                                                                                | none                                    | Optional |
+| `-set-file`                                                                                                                                   | String value that specifies the name of an arbitrary config file. This flag is comparable to the `helm install --set-file` <br/> flag. The contents of the file will be used to set a customizeable value. You can use the `-set-file` flag multiple times to specify multiple files. <br/> Consul Helm chart values are supported.                                                                                                                                                | none                                    | Optional |
+| `-set-string`                                                                                                                                 | String value that enables you to set a customizeable string value. This flag is comparable to the `helm install --set-string` <br/> flag. You can use the `-set-string` flag multiple times to specify multiple strings. <br/> Consul Helm chart values are supported.                                                                                                                                                                                             | none                                    | Optional |
 | `-timeout`                                                                                                                                    | Specifies how long to wait for the installation process to complete before timing out. The value is specified with an integer and string value indicating a unit of time. <br/> The following units are supported: <br/> `ms` (milliseconds)<br/>`s` (seconds)<br/>`m` (minutes) <br/>In the following example, installation will timeout after one minute:<br/> `consul-k8s install -timeout 1m` | Optional                                | `10m`    |
 | `-wait`                                                                                                                                       | Boolean value that determines if Consul should wait for resources in the installation to be ready before exiting the command.                                                                                                                                                                                                                                                                     | Optional                                | `true`   |
+| `-verbose`, `-v`                                                                                                                              | Boolean value that specifies whether to output verbose logs from the install command with the status of resources being installed.                                                                                                                                                                                                                                                                     | Optional                                | `false`  |
 | `--help`                                                                                                                                      | Prints usage information for this option.                                                                                                                                                                                                                                                                                                                                                         | none                                    | Optional |
 
 See [Global Options](#global-options) for additional commands that you can use when installing Consul on Kubernetes.
 
-#### Example Command
+#### Example Commands
 
 The following example command installs Consul according in the `myNS` namespace according to the `secure` preset.
 
 ```shell-session
 consul-k8s install -preset=secure -namespace=myNS
 ```
+
+The following example commands install Consul on Kubernetes using custom values, files, or strings that are set via flags. The underlying Consul-on-Kubernetes Helm chart uses the flags to customize the installation. The flags are comparable to the `helm install` [flags](https://helm.sh/docs/helm/helm_install/#helm-install).  
+
+ ```shell-session
+ consul-k8s install -set key=value
+ consul-k8s install -set key1=value1 -set key2=value2
+ consul-k8s install -set-file config1=value1.conf
+ consul-k8s install -set-file config1=value1.conf -set-file config2=value2.conf
+ consul-k8s install -set-string key=value-bool
+ consul-k8s install -set key1=value1 -set key2=value2
+ ```
 
 ### `uninstall`
 

@@ -46,7 +46,7 @@ buffer_period {
 
 The `consul` block is used to configure Consul-Terraform-Sync connection with a Consul agent to perform queries to the Consul Catalog and Consul KV pertaining to task execution.
 
--> **Note:** Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/docs/agent/options) must be configured for the local Consul with the [cert_file](/docs/agent/options#cert_file) and [key_file](/docs/agent/options#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false`.
+-> **Note:** Use HTTP/2 to improve Consul-Terraform-Sync performance when communicating with the local Consul process. [TLS/HTTPS](/docs/agent/options) must be configured for the local Consul with the [cert_file](/docs/agent/options#cert_file) and [key_file](/docs/agent/options#key_file) parameters set. For the Consul-Terraform-Sync configuration, set `tls.enabled = true` and set the `address` parameter to the HTTPS URL, e.g., `address = example.consul.com:8501`. If using self-signed certificates for Consul, you will also need to set `tls.verify = false` or add the certificate to `ca_cert` or `ca_path`.
 
 To read more on suggestions for configuring the Consul agent, see [run an agent](/docs/nia/installation/requirements#run-an-agent).
 
@@ -66,13 +66,14 @@ consul {
   - `username` - (string)
   - `password` - (string)
 - `tls` - Configure TLS to use a secure client connection with Consul. Using HTTP/2 can solve issues related to hitting Consul's maximum connection limits, as well as improve efficiency when processing many blocking queries. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/docs/agent/options#verify_incoming).
-  - `enabled` - (bool) Enable TLS. Specifying any option for TLS will also enable it.
-  - `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global CA chain to make sure the given certificates are valid. If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification. However, please understand this is a potential security vulnerability.
-  - `key` - (string) The client key file to use for talking to Consul over TLS. The key can also be provided through the `CONSUL_CLIENT_KEY` environment variable.
-  - `ca_cert` - (string) The CA file to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CACERT` environment variable.
-  - `ca_path` - (string) The path to a directory of CA certs to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CAPATH` environment variable.
-  - `cert` - (string) The client cert file to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CLIENT_CERT` environment variable.
-  - `server_name` - (string) The server name to use as the SNI host when connecting via TLS. Can also be provided through the `CONSUL_TLS_SERVER_NAME` environment variable.
+  - `enabled` - (bool) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
+  - `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global certificate authority (CA) chain to make sure the certificates returned by Consul are valid. 
+    - If Consul is using a self-signed certificate that you have not added to the global CA chain, you can set this certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to false. However, disabling verification is a potential security vulnerability.
+  - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the connection to Consul over TLS. Can also be provided through the `CONSUL_CACERT` environment variable.
+  - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the connection to Consul over TLS. Can also be provided through the `CONSUL_CAPATH` environment variable.
+  - `cert` - (string) The path to a PEM-encoded client certificate file provided to Consul over TLS in order for Consul to verify the authenticity of the connection from CTS. Required if Consul has `verify_incoming` set to true. Can also be provided through the `CONSUL_CLIENT_CERT` environment variable.
+  - `key` - (string) The path to the PEM-encoded private key file used with the client certificate configured by `cert`. Required if Consul has `verify_incoming` set to true. Can also be provided through the `CONSUL_CLIENT_KEY` environment variable.
+  - `server_name` - (string) The server name to use as the Server Name Indication (SNI) for Consul when connecting via TLS. Can also be provided through the `CONSUL_TLS_SERVER_NAME` environment variable.
 - `token` - (string) The ACL token to use for client communication with the local Consul agent. The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables. More information on the required privileges required by Consul-Terraform-Sync are available in the [Secure Consul-Terraform-Sync for Production](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-secure?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS#configure-acl-privileges-for-consul-terraform-sync) tutorial
 - `transport` - Transport configures the low-level network connection details.
   - `dial_keep_alive` - (string: "30s") The amount of time for keep-alives.
@@ -432,13 +433,13 @@ driver "terraform-cloud" {
 - `required_providers` - (obj: required) Declare each Terraform provider used across all tasks. This can be configured the same as how you would configure [Terraform `terraform.required_providers`](https://www.terraform.io/docs/configuration/provider-requirements.html#requiring-providers) field to specify the source and version for each provider. Consul-Terraform-Sync will process these requirements when preparing each task that uses the provider.
 - `tls` - Configure TLS to allow HTTPS connections to [Terraform Enterprise](https://www.terraform.io/docs/enterprise/install/installer.html#tls-key-amp-cert).
   - `enabled` - (bool) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
-  - `ca_cert` - (string) The CA file to use for communicating with Terraform Enterprise over TLS.
-  - `ca_path` - (string) The path to a directory of CA certificates to use for communicating with Terraform Enterprise over TLS.
-  - `cert` - (string) The client certificate file to use for communicating with Terraform Enterprise over TLS.
-  - `key` - (string) The client key file to use for communicating with Terraform Enterprise over TLS.
-  - `server_name` - (string) The server name to use as the SNI host when connecting via TLS.
-  - `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global CA chain to make sure the given certificates are valid.
-    - If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification to ignore any certificate warnings. However, please understand this is a potential security vulnerability.
+  - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the connection to Terraform Enterprise over TLS.
+  - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the connection to Terraform Enterprise over TLS.
+  - `cert` - (string) The path to a PEM-encoded client certificate file provided to Terraform Enterprise over TLS in order for Terraform Enterprise to verify the authenticity of the connection from CTS.
+  - `key` - (string) The path to the PEM-encoded private key file used with the client certificate configured by `cert` for communicating with Terraform Enterprise over TLS.
+  - `server_name` - (string) The server name to use as the Server Name Indication (SNI) for Terraform Enterprise when connecting via TLS.
+  - `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global certificate authority (CA) chain to make sure the certificates returned by Terraform Enterprise are valid.
+    - If Terraform Enterprise is using a self-signed certificate that you have not added to the global CA chain, you can set this certificate with `ca_cert` or `ca_path`. Alternatively, you can disable SSL verification by setting `verify` to false. However, disabling verification is a potential security vulnerability.
       ```hcl
       tls {
         verify = false

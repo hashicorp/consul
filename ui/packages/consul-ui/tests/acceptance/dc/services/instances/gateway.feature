@@ -2,11 +2,11 @@
 Feature: dc / services / instances / gateway: Show Gateway Service Instance
   Scenario: A Gateway Service instance
     Given 1 datacenter model with the value "dc1"
-    Given 1 proxy model from yaml	
-    ---	
-    - ServiceProxy:	
-        DestinationServiceName: service-1	
-        DestinationServiceID: ~	
+    Given 1 proxy model from yaml
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-1
+        DestinationServiceID: ~
     ---
     And 1 instance model from yaml
     ---
@@ -36,7 +36,7 @@ Feature: dc / services / instances / gateway: Show Gateway Service Instance
     When I click addresses on the tabs
     And I see addressesIsSelected on the tabs
     And I see 2 of the addresses object
-    And I see address on the addresses like yaml
+    And I see address on the addresses vertically like yaml
     ---
     - 127.0.0.1:8080
     - 92.68.0.0:8081

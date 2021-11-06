@@ -2,12 +2,13 @@
   {{on-resize this.calculate}}
   class="topology-container consul-topology-metrics"
 >
-{{#if (gt @topology.Downstreams.length 0)}}
+{{#if (gt this.downstreams.length 0)}}
   <div
     id="downstream-container"
     {{did-insert this.setHeight 'downstream-lines'}}
-    {{did-update this.setHeight 'downstream-lines' @topology.Downstreams}}
+    {{did-update this.setHeight 'downstream-lines' this.downstreams}}
   >
+  {{#if (not this.emptyColumn)}}
     <div>
       <p>{{@dc.Name}}</p>
       <span>
@@ -16,7 +17,8 @@
         </Tooltip>
       </span>
     </div>
-  {{#each @topology.Downstreams as |item|}}
+  {{/if}}
+  {{#each this.downstreams as |item|}}
     <TopologyMetrics::Card
       @nspace={{@nspace}}
       @dc={{@dc.Name}}
@@ -69,9 +71,9 @@
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
-      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer" data-test-metrics-anchor>Open metrics Dashboard</a>
+      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer" data-test-metrics-anchor>Open dashboard</a>
     {{else}}
-      <a class="config-link" href="{{env 'CONSUL_DOCS_URL'}}/connect/observability/ui-visualization" target="_blank" rel="noopener noreferrer">Configure metrics dashboard</a>
+      <a class="config-link" href="{{env 'CONSUL_DOCS_URL'}}/connect/observability/ui-visualization" target="_blank" rel="noopener noreferrer">Configure dashboard</a>
     {{/if}}
     </div>
   </div>
@@ -82,7 +84,7 @@
       @view={{this.downView}}
       @center={{this.centerDimensions}}
       @lines={{this.downLines}}
-      @items={{@topology.Downstreams}}
+      @items={{this.downstreams}}
       @oncreate={{action @oncreate}}
     />
   </div>

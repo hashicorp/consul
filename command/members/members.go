@@ -8,11 +8,13 @@ import (
 	"sort"
 	"strings"
 
-	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
+
+	"github.com/hashicorp/consul/agent/structs"
+	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/flags"
 )
 
 // cmd is a Command implementation that queries a running
@@ -52,6 +54,7 @@ func (c *cmd) init() {
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
+	flags.Merge(c.flags, c.http.PartitionFlag())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -88,11 +91,17 @@ func (c *cmd) Run(args []string) int {
 	n := len(members)
 	for i := 0; i < n; i++ {
 		member := members[i]
-		if member.Tags["segment"] == "" {
-			member.Tags["segment"] = "<default>"
+		if member.Tags[consulapi.MemberTagKeyPartition] == "" {
+			member.Tags[consulapi.MemberTagKeyPartition] = "default"
 		}
-		if c.segment == consulapi.AllSegments && member.Tags["role"] == "consul" {
-			member.Tags["segment"] = "<all>"
+		if structs.IsDefaultPartition(member.Tags[consulapi.MemberTagKeyPartition]) {
+			if c.segment == consulapi.AllSegments && member.Tags[consulapi.MemberTagKeyRole] == consulapi.MemberTagValueRoleServer {
+				member.Tags[consulapi.MemberTagKeySegment] = "<all>"
+			} else if member.Tags[consulapi.MemberTagKeySegment] == "" {
+				member.Tags[consulapi.MemberTagKeySegment] = "<default>"
+			}
+		} else {
+			member.Tags[consulapi.MemberTagKeySegment] = ""
 		}
 		statusString := serf.MemberStatus(member.Status).String()
 		if !statusRe.MatchString(statusString) {
@@ -109,7 +118,7 @@ func (c *cmd) Run(args []string) int {
 		return 2
 	}
 
-	sort.Sort(ByMemberNameAndSegment(members))
+	sort.Sort(ByMemberNamePartitionAndSegment(members))
 
 	// Generate the output
 	var result []string
@@ -126,29 +135,69 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-// so we can sort members by name
-type ByMemberNameAndSegment []*consulapi.AgentMember
+// ByMemberNamePartitionAndSegment sorts members by name with a stable sort.
+//
+// 1. servers go at the top
+// 2. members of the default partition go next (including segments)
+// 3. members of partitions follow
+type ByMemberNamePartitionAndSegment []*consulapi.AgentMember
 
-func (m ByMemberNameAndSegment) Len() int      { return len(m) }
-func (m ByMemberNameAndSegment) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
-func (m ByMemberNameAndSegment) Less(i, j int) bool {
+func (m ByMemberNamePartitionAndSegment) Len() int      { return len(m) }
+func (m ByMemberNamePartitionAndSegment) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m ByMemberNamePartitionAndSegment) Less(i, j int) bool {
+	tags_i := parseTags(m[i].Tags)
+	tags_j := parseTags(m[j].Tags)
+
+	// put role=consul first
 	switch {
-	case m[i].Tags["segment"] < m[j].Tags["segment"]:
+	case tags_i.role == consulapi.MemberTagValueRoleServer && tags_j.role != consulapi.MemberTagValueRoleServer:
 		return true
-	case m[i].Tags["segment"] > m[j].Tags["segment"]:
+	case tags_i.role != consulapi.MemberTagValueRoleServer && tags_j.role == consulapi.MemberTagValueRoleServer:
 		return false
-	default:
-		return m[i].Name < m[j].Name
 	}
+
+	// then the default partitions
+	switch {
+	case isDefault(tags_i.partition) && !isDefault(tags_j.partition):
+		return true
+	case !isDefault(tags_i.partition) && isDefault(tags_j.partition):
+		return false
+	}
+
+	// then by segments within the default
+	switch {
+	case tags_i.segment < tags_j.segment:
+		return true
+	case tags_i.segment > tags_j.segment:
+		return false
+	}
+
+	// then by partitions
+	switch {
+	case tags_i.partition < tags_j.partition:
+		return true
+	case tags_i.partition > tags_j.partition:
+		return false
+	}
+
+	// finally by name
+	return m[i].Name < m[j].Name
+}
+
+func isDefault(s string) bool {
+	// NOTE: we can't use structs.IsDefaultPartition since that discards the input
+	return s == "" || s == "default"
 }
 
 // standardOutput is used to dump the most useful information about nodes
 // in a more human-friendly format
 func (c *cmd) standardOutput(members []*consulapi.AgentMember) []string {
 	result := make([]string, 0, len(members))
-	header := "Node\x1fAddress\x1fStatus\x1fType\x1fBuild\x1fProtocol\x1fDC\x1fSegment"
+	header := "Node\x1fAddress\x1fStatus\x1fType\x1fBuild\x1fProtocol\x1fDC\x1fPartition\x1fSegment"
 	result = append(result, header)
 	for _, member := range members {
+		tags := parseTags(member.Tags)
+
 		addr := net.TCPAddr{IP: net.ParseIP(member.Addr), Port: int(member.Port)}
 		protocol := member.Tags["vsn"]
 		build := member.Tags["build"]
@@ -157,26 +206,42 @@ func (c *cmd) standardOutput(members []*consulapi.AgentMember) []string {
 		} else if idx := strings.Index(build, ":"); idx != -1 {
 			build = build[:idx]
 		}
-		dc := member.Tags["dc"]
-		segment := member.Tags["segment"]
 
 		statusString := serf.MemberStatus(member.Status).String()
-		switch member.Tags["role"] {
-		case "node":
-			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fclient\x1f%s\x1f%s\x1f%s\x1f%s",
-				member.Name, addr.String(), statusString, build, protocol, dc, segment)
+		switch tags.role {
+		case consulapi.MemberTagValueRoleClient:
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fclient\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s",
+				member.Name, addr.String(), statusString, build, protocol, tags.datacenter, tags.partition, tags.segment)
 			result = append(result, line)
-		case "consul":
-			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fserver\x1f%s\x1f%s\x1f%s\x1f%s",
-				member.Name, addr.String(), statusString, build, protocol, dc, segment)
+
+		case consulapi.MemberTagValueRoleServer:
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1fserver\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s",
+				member.Name, addr.String(), statusString, build, protocol, tags.datacenter, tags.partition, tags.segment)
 			result = append(result, line)
+
 		default:
-			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1funknown\x1f\x1f\x1f\x1f",
+			line := fmt.Sprintf("%s\x1f%s\x1f%s\x1funknown\x1f\x1f\x1f\x1f\x1f",
 				member.Name, addr.String(), statusString)
 			result = append(result, line)
 		}
 	}
 	return result
+}
+
+type decodedTags struct {
+	role       string
+	segment    string
+	partition  string
+	datacenter string
+}
+
+func parseTags(tags map[string]string) decodedTags {
+	return decodedTags{
+		role:       tags[consulapi.MemberTagKeyRole],
+		segment:    tags[consulapi.MemberTagKeySegment],
+		partition:  tags[consulapi.MemberTagKeyPartition],
+		datacenter: tags[consulapi.MemberTagKeyDatacenter],
+	}
 }
 
 // detailedOutput is used to dump all known information about nodes in

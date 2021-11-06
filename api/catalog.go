@@ -124,11 +124,14 @@ func (c *Catalog) Register(reg *CatalogRegistration, q *WriteOptions) (*WriteMet
 	r := c.c.newRequest("PUT", "/v1/catalog/register")
 	r.setWriteOptions(q)
 	r.obj = reg
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -140,11 +143,14 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 	r := c.c.newRequest("PUT", "/v1/catalog/deregister")
 	r.setWriteOptions(q)
 	r.obj = dereg
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	closeResponseBody(resp)
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	wm := &WriteMeta{}
 	wm.RequestTime = rtt
@@ -155,11 +161,14 @@ func (c *Catalog) Deregister(dereg *CatalogDeregistration, q *WriteOptions) (*Wr
 // Datacenters is used to query for all the known datacenters
 func (c *Catalog) Datacenters() ([]string, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/datacenters")
-	_, resp, err := requireOK(c.c.doRequest(r))
+	_, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
 
 	var out []string
 	if err := decodeBody(resp, &out); err != nil {
@@ -172,11 +181,14 @@ func (c *Catalog) Datacenters() ([]string, error) {
 func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/nodes")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -193,11 +205,14 @@ func (c *Catalog) Nodes(q *QueryOptions) ([]*Node, *QueryMeta, error) {
 func (c *Catalog) Services(q *QueryOptions) (map[string][]string, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/services")
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -250,11 +265,14 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 			r.params.Add("tag", tag)
 		}
 	}
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -271,11 +289,14 @@ func (c *Catalog) service(service string, tags []string, q *QueryOptions, connec
 func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/node/"+node)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -295,11 +316,14 @@ func (c *Catalog) Node(node string, q *QueryOptions) (*CatalogNode, *QueryMeta, 
 func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeServiceList, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/node-services/"+node)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -316,11 +340,14 @@ func (c *Catalog) NodeServiceList(node string, q *QueryOptions) (*CatalogNodeSer
 func (c *Catalog) GatewayServices(gateway string, q *QueryOptions) ([]*GatewayService, *QueryMeta, error) {
 	r := c.c.newRequest("GET", "/v1/catalog/gateway-services/"+gateway)
 	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
+	rtt, resp, err := c.c.doRequest(r)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

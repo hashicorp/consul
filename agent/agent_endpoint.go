@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
@@ -55,7 +56,11 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -100,7 +105,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Config:      config,
 		DebugConfig: s.agent.config.Sanitized(),
 		Coord:       cs[s.agent.config.SegmentName],
-		Member:      s.agent.LocalMember(),
+		Member:      s.agent.AgentLocalMember(),
 		Stats:       s.agent.Stats(),
 		Meta:        s.agent.State.Metadata(),
 		XDS:         xds,
@@ -141,7 +146,11 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
@@ -169,10 +178,14 @@ func (s *HTTPHandlers) AgentMetricsStream(resp http.ResponseWriter, req *http.Re
 	var token string
 	s.parseToken(req, &token)
 	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, nil, nil)
-	switch {
-	case err != nil:
+	if err != nil {
 		return nil, err
-	case authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow:
+	}
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -221,7 +234,11 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -289,6 +306,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -354,6 +372,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -430,6 +449,7 @@ func (s *HTTPHandlers) AgentChecks(resp http.ResponseWriter, req *http.Request) 
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -498,18 +518,31 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	// TODO(partitions): likely partitions+segment integration will take care of this
+	// Get the request partition and default to that of the agent.
+	entMeta := s.agent.AgentEnterpriseMeta()
+	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
+		return nil, err
+	}
 
 	var members []serf.Member
 	if wan {
 		members = s.agent.WANMembers()
 	} else {
-		var err error
-		if segment == api.AllSegments {
-			members, err = s.agent.delegate.LANMembersAllSegments()
-		} else {
-			members, err = s.agent.delegate.LANSegmentMembers(segment)
+		filter := consul.LANMemberFilter{
+			Partition: entMeta.PartitionOrDefault(),
 		}
+		if segment == api.AllSegments {
+			// Older 'consul members' calls will default to adding segment=_all
+			// so we only choose to use that request argument in the case where
+			// the partition is also the default and ignore it the rest of the time.
+			if structs.IsDefaultPartition(filter.Partition) {
+				filter.AllSegments = true
+			}
+		} else {
+			filter.Segment = segment
+		}
+		var err error
+		members, err = s.agent.delegate.LANMembers(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -528,8 +561,18 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
+	}
+
+	// Get the request partition and default to that of the agent.
+	entMeta := s.agent.AgentEnterpriseMeta()
+	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
+		return nil, err
 	}
 
 	// Check if the WAN is being queried
@@ -548,7 +591,7 @@ func (s *HTTPHandlers) AgentJoin(resp http.ResponseWriter, req *http.Request) (i
 		}
 		_, err = s.agent.JoinWAN([]string{addr})
 	} else {
-		_, err = s.agent.JoinLAN([]string{addr})
+		_, err = s.agent.JoinLAN([]string{addr}, entMeta)
 	}
 	return nil, err
 }
@@ -561,7 +604,11 @@ func (s *HTTPHandlers) AgentLeave(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -584,11 +631,17 @@ func (s *HTTPHandlers) AgentForceLeave(resp http.ResponseWriter, req *http.Reque
 		return nil, acl.ErrPermissionDenied
 	}
 
-	//Check the value of the prune query
+	// Get the request partition and default to that of the agent.
+	entMeta := s.agent.AgentEnterpriseMeta()
+	if err := s.parseEntMetaPartition(req, entMeta); err != nil {
+		return nil, err
+	}
+
+	// Check the value of the prune query
 	_, prune := req.URL.Query()["prune"]
 
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	return nil, s.agent.ForceLeave(addr, prune)
+	return nil, s.agent.ForceLeave(addr, prune, entMeta)
 }
 
 // syncChanges is a helper function which wraps a blocking call to sync
@@ -604,6 +657,7 @@ func (s *HTTPHandlers) AgentRegisterCheck(resp http.ResponseWriter, req *http.Re
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	var args structs.CheckDefinition
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
@@ -680,6 +734,7 @@ func (s *HTTPHandlers) AgentDeregisterCheck(resp http.ResponseWriter, req *http.
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &checkID.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -772,6 +827,7 @@ func (s *HTTPHandlers) agentCheckUpdate(resp http.ResponseWriter, req *http.Requ
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &cid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -847,6 +903,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		return nil, &BadRequestError{Reason: "Missing serviceID"}
 	}
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -905,6 +962,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, &BadRequestError{Reason: "Missing service Name"}
 	}
 
+	// TODO(partitions): should this default to the agent's partition?
 	var entMeta structs.EnterpriseMeta
 	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
 		return nil, err
@@ -968,6 +1026,7 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	var args structs.ServiceDefinition
 	// Fixup the type decode of TTL or Interval if a check if provided.
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1134,6 +1193,7 @@ func (s *HTTPHandlers) AgentDeregisterService(resp http.ResponseWriter, req *htt
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &sid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1191,6 +1251,7 @@ func (s *HTTPHandlers) AgentServiceMaintenance(resp http.ResponseWriter, req *ht
 	var token string
 	s.parseToken(req, &token)
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &sid.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1250,7 +1311,7 @@ func (s *HTTPHandlers) AgentNodeMaintenance(resp http.ResponseWriter, req *http.
 	}
 
 	var authzContext acl.AuthorizerContext
-	s.agent.agentEnterpriseMeta().FillAuthzContext(&authzContext)
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
 	if authz.NodeWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
@@ -1272,7 +1333,11 @@ func (s *HTTPHandlers) AgentMonitor(resp http.ResponseWriter, req *http.Request)
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentRead(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentRead(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1351,7 +1416,11 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	if err != nil {
 		return nil, err
 	}
-	if authz.AgentWrite(s.agent.config.NodeName, nil) != acl.Allow {
+
+	// Authorize using the agent's own enterprise meta, not the token.
+	var authzContext acl.AuthorizerContext
+	s.agent.AgentEnterpriseMeta().FillAuthzContext(&authzContext)
+	if authz.AgentWrite(s.agent.config.NodeName, &authzContext) != acl.Allow {
 		return nil, acl.ErrPermissionDenied
 	}
 
@@ -1359,9 +1428,7 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 	// fields to this later if needed.
 	var args api.AgentToken
 	if err := decodeBody(req.Body, &args); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 	}
 
 	// Figure out the target token.
@@ -1443,6 +1510,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 	}
 	var qOpts structs.QueryOptions
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -1490,6 +1558,7 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 
 	var authReq structs.ConnectAuthorizeRequest
 
+	// TODO(partitions): should this default to the agent's partition?
 	if err := s.parseEntMetaNoWildcard(req, &authReq.EnterpriseMeta); err != nil {
 		return nil, err
 	}

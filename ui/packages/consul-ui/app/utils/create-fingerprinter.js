@@ -2,10 +2,11 @@ import { get } from '@ember/object';
 
 export default function(foreignKey, nspaceKey, partitionKey, hash = JSON.stringify) {
   return function(primaryKey, slugKey, foreignKeyValue, nspaceValue, partitionValue) {
-    if (foreignKeyValue == null || foreignKeyValue.length < 1) {
-      throw new Error('Unable to create fingerprint, missing foreignKey value');
-    }
     return function(item) {
+      foreignKeyValue = foreignKeyValue == null ? item[foreignKey] : foreignKeyValue;
+      if (foreignKeyValue == null) {
+        throw new Error('Unable to create fingerprint, missing foreignKey value');
+      }
       const slugKeys = slugKey.split(',');
       const slugValues = slugKeys.map(function(slugKey) {
         if (get(item, slugKey) == null || get(item, slugKey).length < 1) {

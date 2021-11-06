@@ -75,6 +75,14 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	}
 
 	client.SetToken(config.Token)
+
+	// We don't want to set the namespace if it's empty to prevent potential
+	// unknown behavior (what does Vault do with an empty namespace). The Vault
+	// client also makes sure the inputs are not empty strings so let's do the
+	// same.
+	if config.Namespace != "" {
+		client.SetNamespace(config.Namespace)
+	}
 	v.config = config
 	v.client = client
 	v.isPrimary = cfg.IsPrimary
@@ -170,7 +178,11 @@ func (v *VaultProvider) GenerateRoot() error {
 			Type:        "pki",
 			Description: "root CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: "8760h",
+				// the max lease ttl denotes the maximum ttl that secrets are created from the engine
+				// the default lease ttl is the kind of ttl that will *reliably* set the ttl to v.config.RootCertTTL
+				// https://www.vaultproject.io/docs/secrets/pki#configure-a-ca-certificate
+				MaxLeaseTTL:     v.config.RootCertTTL.String(),
+				DefaultLeaseTTL: v.config.RootCertTTL.String(),
 			},
 		})
 

@@ -344,6 +344,8 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConfigReplication()
 
+	s.stopACLReplication()
+
 	s.stopConnectLeader()
 
 	s.stopACLTokenReaping()
@@ -373,7 +375,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 	s.aclAuthMethodValidators.Purge()
 
 	// Remove any token affected by CVE-2019-8336
-	if !s.InACLDatacenter() {
+	if !s.InPrimaryDatacenter() {
 		_, token, err := s.fsm.State().ACLTokenGetBySecret(nil, redactedToken, nil)
 		if err == nil && token != nil {
 			req := structs.ACLTokenBatchDeleteRequest{
@@ -387,7 +389,7 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 	}
 
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		s.logger.Info("initializing acls")
 
 		// TODO(partitions): initialize acls in all of the partitions?
@@ -450,11 +452,8 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 							ID: structs.ACLPolicyGlobalManagementID,
 						},
 					},
-					CreateTime: time.Now(),
-					Local:      false,
-
-					// DEPRECATED (ACL-Legacy-Compat) - only needed for compatibility
-					Type:           structs.ACLTokenTypeManagement,
+					CreateTime:     time.Now(),
+					Local:          false,
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				}
 
@@ -499,35 +498,24 @@ func (s *Server) initializeACLs(ctx context.Context) error {
 		}
 		// Ignoring expiration times to avoid an insertion collision.
 		if token == nil {
-			// DEPRECATED (ACL-Legacy-Compat) - Don't need to query for previous "anonymous" token
-			// check for legacy token that needs an upgrade
-			_, legacyToken, err := state.ACLTokenGetBySecret(nil, anonymousToken, nil)
+			token = &structs.ACLToken{
+				AccessorID:     structs.ACLTokenAnonymousID,
+				SecretID:       anonymousToken,
+				Description:    "Anonymous Token",
+				CreateTime:     time.Now(),
+				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			}
+			token.SetHash(true)
+
+			req := structs.ACLTokenBatchSetRequest{
+				Tokens: structs.ACLTokens{token},
+				CAS:    false,
+			}
+			_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
 			if err != nil {
-				return fmt.Errorf("failed to get anonymous token: %v", err)
+				return fmt.Errorf("failed to create anonymous token: %v", err)
 			}
-			// Ignoring expiration times to avoid an insertion collision.
-
-			// the token upgrade routine will take care of upgrading the token if a legacy version exists
-			if legacyToken == nil {
-				token = &structs.ACLToken{
-					AccessorID:     structs.ACLTokenAnonymousID,
-					SecretID:       anonymousToken,
-					Description:    "Anonymous Token",
-					CreateTime:     time.Now(),
-					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-				}
-				token.SetHash(true)
-
-				req := structs.ACLTokenBatchSetRequest{
-					Tokens: structs.ACLTokens{token},
-					CAS:    false,
-				}
-				_, err := s.raftApply(structs.ACLTokenSetRequestType, &req)
-				if err != nil {
-					return fmt.Errorf("failed to create anonymous token: %v", err)
-				}
-				s.logger.Info("Created ACL anonymous token from configuration")
-			}
+			s.logger.Info("Created ACL anonymous token from configuration")
 		}
 		// launch the upgrade go routine to generate accessors for everything
 		s.startACLUpgrade(ctx)
@@ -597,7 +585,7 @@ func (s *Server) legacyACLTokenUpgrade(ctx context.Context) error {
 				len(newToken.ServiceIdentities) == 0 &&
 				len(newToken.NodeIdentities) == 0 &&
 				len(newToken.Roles) == 0 &&
-				newToken.Type == structs.ACLTokenTypeManagement {
+				newToken.Type == "management" {
 				newToken.Policies = append(newToken.Policies, structs.ACLTokenPolicyLink{ID: structs.ACLPolicyGlobalManagementID})
 			}
 
@@ -635,7 +623,7 @@ func (s *Server) stopACLUpgrade() {
 }
 
 func (s *Server) startACLReplication(ctx context.Context) {
-	if s.InACLDatacenter() {
+	if s.InPrimaryDatacenter() {
 		return
 	}
 

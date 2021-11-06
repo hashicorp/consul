@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -210,7 +209,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 			got := makeLoadAssignment(
 				tt.clusterName,
 				tt.endpoints,
-				"dc1",
+				proxycfg.GatewayKey{Datacenter: "dc1"},
 			)
 			require.Equal(t, tt.want, got)
 		})
@@ -567,7 +566,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 	}
 
 	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
-	latestEnvoyVersion_v2 := proxysupport.EnvoyVersionsV2[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -608,25 +606,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 						}
 
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("endpoints", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
-					})
-
-					t.Run("v2-compat", func(t *testing.T) {
-						if !stringslice.Contains(proxysupport.EnvoyVersionsV2, envoyVersion) {
-							t.Skip()
-						}
-						respV2, err := convertDiscoveryResponseToV2(r)
-						require.NoError(t, err)
-
-						gotJSON := protoToJSON(t, respV2)
-
-						gName := tt.name
-						if tt.overrideGoldenName != "" {
-							gName = tt.overrideGoldenName
-						}
-
-						gName += ".v2compat"
-
-						require.JSONEq(t, goldenEnvoy(t, filepath.Join("endpoints", gName), envoyVersion, latestEnvoyVersion_v2, gotJSON), gotJSON)
 					})
 				})
 			}

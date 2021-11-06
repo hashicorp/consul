@@ -143,6 +143,14 @@ topology-metrics:
       footer:
         name: Edit intentions
         URL: dc.services.show.intentions
+    no-dependencies:
+      header: No dependencies
+      body: The service you are viewing currently has no dependencies. You will only see metrics for the current service until dependencies are added.
+      footer: Read the documentation
+    acls-disabled:
+      header: Enable ACLs
+      body: This connect-native service may have dependencies, but Consul isn't aware of them when ACLs are disabled. Enable ACLs to make this view more useful.
+      footer: Read the documentation
   popover:
     l7:
       header: Layer 7 permissions

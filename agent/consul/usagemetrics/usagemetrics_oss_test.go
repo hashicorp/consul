@@ -177,6 +177,14 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "partition-exports"},
+					},
+				},
 			},
 			getMembersFunc: func() []serf.Member { return []serf.Member{} },
 		},
@@ -352,6 +360,14 @@ func TestUsageReporter_emitNodeUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "partition-exports"},
 					},
 				},
 			},
@@ -557,6 +573,14 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "partition-exports"},
 					},
 				},
 			},
@@ -778,6 +802,14 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "partition-exports"},
+					},
+				},
 			},
 		},
 	}
@@ -974,6 +1006,14 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 						{Name: "kind", Value: "terminating-gateway"},
 					},
 				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "partition-exports"},
+					},
+				},
 			},
 			getMembersFunc: func() []serf.Member { return []serf.Member{} },
 		},
@@ -1158,6 +1198,14 @@ func TestUsageReporter_emitKVUsage_OSS(t *testing.T) {
 					Labels: []metrics.Label{
 						{Name: "datacenter", Value: "dc1"},
 						{Name: "kind", Value: "terminating-gateway"},
+					},
+				},
+				"consul.usage.test.consul.state.config_entries;datacenter=dc1;kind=partition-exports": {
+					Name:  "consul.usage.test.consul.state.config_entries",
+					Value: 0,
+					Labels: []metrics.Label{
+						{Name: "datacenter", Value: "dc1"},
+						{Name: "kind", Value: "partition-exports"},
 					},
 				},
 			},

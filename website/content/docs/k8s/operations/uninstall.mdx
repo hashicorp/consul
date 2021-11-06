@@ -8,15 +8,39 @@ description: Uninstall Consul on Kubernetes
 
 You can uninstall Consul using Helm commands or the Consul K8s CLI.
 
+## Consul K8s CLI
+
+Issue the `consul-k8s uninstall` command to remove Consul on Kubernetes. You can specify the installation name, namespace, and data retention behavior using the applicable options. By default, the uninstallation preserves the secrets and PVCs that are provisioned by Consul on Kubernetes. 
+
+```shell-session
+$ consul-k8s uninstall <OPTIONS>
+```
+
+
+In the following example, Consul will be uninstalled and the data removed without prompting you to verify the operations:
+
+```shell-session
+$ consul-k8s uninstall -auto-approve=true -wipe-data=true
+```
+
+Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli#uninstall) topic for details.
+
 ## Helm commands
 
 Run the `helm uninstall` **and** manually remove resources that Helm does not delete.
 
-1. First, run `helm uninstall`:
+
+1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the `consul` namespace. Otherwise, subsequent commands will need to include `-n consul`. 
+
+    ```
+    kubectl config set-context --current --namespace=consul
+    ```
+
+1. Run the `helm uninstall <release-name>` command and specify the release name you've installed Consul with, e.g.,:
 
    ```shell-session
-   $ helm uninstall hashicorp
-   release "hashicorp" uninstalled
+   $ helm uninstall consul
+   release "consul" uninstalled
    ```
 
 1. After deleting the Helm release, you need to delete the `PersistentVolumeClaim`'s
@@ -78,20 +102,3 @@ Run the `helm uninstall` **and** manually remove resources that Helm does not de
    $ kubectl delete serviceaccount consul-tls-init
    serviceaccount "consul-tls-init" deleted
    ```
-
-## Consul K8s CLI
-
-Issue the `consul-k8s uninstall` command to remove Consul on Kubernetes. You can specify the installation name, namespace, and data retention behavior using the applicable options. By default, the uninstallation preserves the secrets and PVCs that are provisioned by Consul on Kubernetes. 
-
-```shell-session
-$ consul-k8s uninstall <OPTIONS>
-```
-
-
-In the following example, Consul will be uninstalled and the data removed without prompting you to verify the operations:
-
-```shell-session
-$ consul-k8s uninstall -auto-approve=true -wipe-data=true
-```
-
-Refer to the [Consul K8s CLI reference](/docs/k8s/k8s-cli#uninstall) topic for details.

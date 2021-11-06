@@ -59,7 +59,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 	roots, leaf := TestCerts(t)
 
 	dbDefaultChain := func() *structs.CompiledDiscoveryChain {
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", "dc1", func(req *discoverychain.CompileRequest) {
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", func(req *discoverychain.CompileRequest) {
 			// This is because structs.TestUpstreams uses an opaque config
 			// to override connect timeouts.
 			req.OverrideConnectTimeout = 1 * time.Second
@@ -69,7 +69,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 		})
 	}
 	dbSplitChain := func() *structs.CompiledDiscoveryChain {
-		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", "dc1", func(req *discoverychain.CompileRequest) {
+		return discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", "trustdomain.consul", func(req *discoverychain.CompileRequest) {
 			// This is because structs.TestUpstreams uses an opaque config
 			// to override connect timeouts.
 			req.OverrideConnectTimeout = 1 * time.Second
@@ -239,6 +239,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
+				Locality:   GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
 			},
 		},
 		{
@@ -296,6 +297,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
+				Locality:   GatewayKey{Datacenter: "dc1", Partition: structs.PartitionOrDefault("")},
 			},
 		},
 	}

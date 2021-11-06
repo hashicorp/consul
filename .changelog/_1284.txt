@@ -1,0 +1,3 @@
+```release-note:bug
+state: **(Enterprise Only)** ensure partition delete triggers namespace deletes
+```

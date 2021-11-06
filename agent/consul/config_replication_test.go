@@ -237,7 +237,7 @@ func TestReplication_ConfigEntries(t *testing.T) {
 			Entry:      entry,
 		}
 
-		var out struct{}
+		var out structs.ConfigEntryDeleteResponse
 		require.NoError(t, s1.RPC("ConfigEntry.Delete", &arg, &out))
 	}
 

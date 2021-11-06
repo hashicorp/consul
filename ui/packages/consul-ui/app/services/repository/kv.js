@@ -33,7 +33,6 @@ export default class KvService extends RepositoryService {
       // TODO: This very much shouldn't be here,
       // needs to eventually use ember-datas generateId thing
       // in the meantime at least our fingerprinter
-      // FIXME: Default/token partition
       const uid = JSON.stringify([params.partition, params.ns, params.dc, params.id]);
       item = this.store.peekRecord(this.getModelName(), uid);
       if (!item) {

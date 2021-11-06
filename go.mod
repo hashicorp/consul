@@ -12,7 +12,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.3 // indirect
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.9
+	github.com/armon/go-metrics v0.3.10
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go v1.25.41
 	github.com/coredns/coredns v1.1.2
@@ -30,8 +30,8 @@ require (
 	github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22
 	github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/hashicorp/consul/api v1.8.0
-	github.com/hashicorp/consul/sdk v0.7.0
+	github.com/hashicorp/consul/api v1.11.0
+	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
@@ -53,11 +53,12 @@ require (
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/memberlist v0.2.4
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
-	github.com/hashicorp/raft v1.3.1
+	github.com/hashicorp/raft v1.3.2
 	github.com/hashicorp/raft-autopilot v0.1.5
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.9.6-0.20210609195804-2b5dd0cd2de9
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
+	github.com/hashicorp/vault/sdk v0.1.14-0.20200519221838-e0cfd64bc267
 	github.com/hashicorp/yamux v0.0.0-20210826001029-26ff87cf9493
 	github.com/imdario/mergo v0.3.6
 	github.com/joyent/triton-go v1.7.1-0.20200416154420-6801d15b779f // indirect

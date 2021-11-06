@@ -213,6 +213,9 @@ The options below are all specified on the command-line.
   DNS queries in an alternate domain, in addition to the primary domain. If unset,
   no alternate domain is used.
 
+  In Consul 1.10.4 and later, Consul DNS responses will use the same domain as in the query (`-domain` or `-alt-domain`) where applicable.
+  PTR query responses will always use `-domain`, since the desired domain cannot be included in the query.
+
 - `-enable-script-checks` ((#\_enable_script_checks)) This controls whether
   [health checks that execute scripts](/docs/agent/checks) are enabled on this
   agent, and defaults to `false` so operators must opt-in to allowing these. This
@@ -824,6 +827,8 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
   `reconnect_timeout` setting when determining when this node may be removed from the cluster.
 
+- `alt_domain` Equivalent to the [`-alt-domain` command-line flag](#_alt_domain)
+
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
   This is an IP address, not to be confused with [`ports.serf_lan`](#serf_lan_port).
 
@@ -1261,6 +1266,16 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
       the cluster. When a root certificate has been inactive (rotated out)
       for more than twice the _current_ `leaf_cert_ttl`, it will be removed
       from the trusted list.
+
+    - `root_cert_ttl` ((#ca_root_cert_ttl)) The time to live (TTL) for a root certificate.
+      Defaults to 10 years as `87600h`. This value, if provided, needs to be higher than the
+      intermediate certificate TTL.
+
+      This setting applies to all Consul CA providers.
+
+      For the Vault provider, this value is only used if the backend is not initialized at first.
+
+      This value is also applied on the `ca set-config` command.
 
     - `private_key_type` ((#ca_private_key_type)) The type of key to generate
       for this CA. This is only used when the provider is generating a new key. If
@@ -2174,9 +2189,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
       The placeholders available are:
 
-      - `{{Service.Name}}` - Replaced with the current service's name.
-      - `{{Service.Namespace}}` - Replaced with the current service's namespace or empty if namespaces are not enabled.
-      - `{{Datacenter}}` - Replaced with the current service's datacenter.
+      - `${Service.Name}` or `{{Service.Name}}` - Replaced with the current service's name.
+      - `${Service.Namespace}` or `{{Service.Namespace}}` - Replaced with the current
+        service's namespace or empty if namespaces are not enabled.
+      - `${Datacenter}` or `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
   Equivalent to the [`-ui-dir`](#_ui_dir) command-line
@@ -2251,12 +2267,18 @@ signed by the CA can be used to gain full access to Consul.
   considered less secure; avoid using these if possible.
 
 - `tls_cipher_suites` Added in Consul 0.8.2, this specifies the list of
-  supported ciphersuites as a comma-separated-list. The list of all supported
-  ciphersuites is available through
+  supported ciphersuites as a comma-separated-list. Applicable to TLS 1.2 and below only.
+  The list of all supported ciphersuites is available through
   [this search](https://github.com/hashicorp/consul/search?q=cipherMap+%3A%3D+map&unscoped_q=cipherMap+%3A%3D+map).
+
+  ~> **Note:** The ordering of cipher suites will not be guaranteed from Consul 1.11 onwards. See this
+  [post](https://go.dev/blog/tls-cipher-suites) for details.
 
 - `tls_prefer_server_cipher_suites` Added in Consul 0.8.2, this
   will cause Consul to prefer the server's ciphersuite over the client ciphersuites.
+
+  ~> **Note:** This config will be deprecated in Consul 1.11. See this
+  [post](https://go.dev/blog/tls-cipher-suites) for details.
 
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client
@@ -2269,11 +2291,14 @@ signed by the CA can be used to gain full access to Consul.
   endpoint was created by the CA that the consul client was setup with. If the
   UI is served, the same checks are performed.
 
-- `verify_incoming_rpc` - If set to true, Consul
-  requires that all incoming RPC connections make use of TLS and that the client
+- `verify_incoming_rpc` - When set to true, Consul
+  requires that all incoming RPC connections use TLS and that the client
   provides a certificate signed by a Certificate Authority from the [`ca_file`](#ca_file)
   or [`ca_path`](#ca_path). By default, this is false, and Consul will not enforce
   the use of TLS or verify a client's authenticity.
+
+  ~> **Security Note:** `verify_incoming_rpc` _must_ be set to true to prevent anyone
+  with access to the RPC port from gaining full access to the Consul cluster.
 
 - `verify_incoming_https` - If set to true,
   Consul requires that all incoming HTTPS connections make use of TLS and that the
@@ -2296,14 +2321,12 @@ signed by the CA can be used to gain full access to Consul.
   server unencrypted is to also enable `verify_incoming` which requires client
   certificates too.
 
-- `verify_server_hostname` - If set to true,
-  Consul verifies for all outgoing TLS connections that the TLS certificate
-  presented by the servers matches `server.<datacenter>.<domain>`
-  hostname. By default, this is false, and Consul does not verify the hostname
-  of the certificate, only that it is signed by a trusted CA. This setting is
-  _critical_ to prevent a compromised client from being restarted as a server
-  and having all cluster state _including all ACL tokens and Connect CA root keys_
-  replicated to it. This is new in 0.5.1.
+- `verify_server_hostname` - When set to true, Consul verifies the TLS certificate
+  presented by the servers match the hostname `server.<datacenter>.<domain>`.
+  By default this is false, and Consul does not verify the hostname
+  of the certificate, only that it is signed by a trusted CA. This setting _must_ be enabled
+  to prevent a compromised client from gaining full read and write access to all
+  cluster data _including all ACL tokens and Connect CA root keys_. This is new in 0.5.1.
 
   ~> **Security Note:** From versions 0.5.1 to 1.4.0, due to a bug, setting
   this flag alone _does not_ imply `verify_outgoing` and leaves client to server

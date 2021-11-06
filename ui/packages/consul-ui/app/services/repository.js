@@ -79,9 +79,12 @@ export default class RepositoryService extends Service {
         throw e;
       }
     }
-    const item = await cb();
+    const item = await cb(params.resources);
     // add the `Resource` information to the record/model so we can inspect
     // them in other places like templates etc
+    // TODO: We mostly use this to authorize single items but we do
+    // occasionally get an array back here e.g. service-instances, so we
+    // should make this fact more obvious
     if (get(item, 'Resources')) {
       set(item, 'Resources', params.resources);
     }
@@ -122,6 +125,10 @@ export default class RepositoryService extends Service {
 
   peekOne(id) {
     return this.store.peekRecord(this.getModelName(), id);
+  }
+
+  peekAll() {
+    return this.store.peekAll(this.getModelName());
   }
 
   cached(params) {

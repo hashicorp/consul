@@ -33,8 +33,23 @@ You will need the following things properly installed on your computer.
 
 * `git clone https://github.com/hashicorp/consul.git` this repository
 * `cd ui/packages/consul-ui`
-* `make start` or `yarn && yarn start`
 
+then:
+
+**To run the UI**
+
+From within `ui/packages/consul-ui` directory run:
+
+* `make start`
+
+**To run tests**
+
+From within `ui/packages/consul-ui` directory run:
+
+* `make test-oss-view` which will run the tests in Chrome
+
+(see below and/or the [testing section of the engineering docs](./docs/testing.mdx) for
+further detail)
 
 ## Yarn Commands
 
@@ -104,8 +119,10 @@ Examples:
 ### Contributing/Engineering Documentation
 
 We have an in-app (only during development) component storybook and
-documentation site which can be visited using the [Eng Docs](http://localhost:4200/ui/docs)
-link in the top navigation of the UI.
+documentation site which can be visited using the [Eng
+Docs](http://localhost:4200/ui/docs) link in the top navigation of the UI.
+Alternatively all of these docs are also readable via GitHub's UI, so folks can
+use whatever works best for them.
 
 ### Browser 'Debug Utility' Functions and 'Environment' Variables
 
@@ -119,10 +136,14 @@ Many classes used in the UI can be generated with ember generators, try `ember h
 
 ### Running Tests
 
-Tests use the mock api (see ./mock-api for details)
+Tests use the mock api (see ./mock-api for details), the mock-api runs
+automatically during testing, you don't need to run anything separately from
+the below commands in order for the tests to use the mock-api.
 
 * `make test` or `yarn run test`
 * `make test-view` or `yarn run test:view` to view the tests running in Chrome
+
+For more guidance on running tests, see the [testing section of the engineering docs](./docs/testing.mdx).
 
 OSS only tests can also be run using:
 
@@ -143,6 +164,9 @@ See `.eslintrc.js` and `.eslintignore` for specific configuration.
 Static files are built into ./dist
 
 #### Running Tests in Parallel
+
+You probably don't need to understand this if you are simply running some
+tests locally.
 
 Alternatively, `ember-exam` can be used to split the tests across multiple browser instances for faster results. Most options are the same as `ember test`. To see a full list of options, run `ember exam --help`.
 

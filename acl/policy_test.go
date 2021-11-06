@@ -771,7 +771,7 @@ func TestPolicySourceParse(t *testing.T) {
 			require.True(t, tc.Rules != "" || tc.RulesJSON != "")
 			if tc.Rules != "" {
 				t.Run("hcl", func(t *testing.T) {
-					actual, err := NewPolicyFromSource("", 0, tc.Rules, tc.Syntax, nil, nil)
+					actual, err := NewPolicyFromSource(tc.Rules, tc.Syntax, nil, nil)
 					if tc.Err != "" {
 						errStartsWith(t, err, tc.Err)
 					} else {
@@ -781,7 +781,7 @@ func TestPolicySourceParse(t *testing.T) {
 			}
 			if tc.RulesJSON != "" {
 				t.Run("json", func(t *testing.T) {
-					actual, err := NewPolicyFromSource("", 0, tc.RulesJSON, tc.Syntax, nil, nil)
+					actual, err := NewPolicyFromSource(tc.RulesJSON, tc.Syntax, nil, nil)
 					if tc.Err != "" {
 						errStartsWith(t, err, tc.Err)
 					} else {

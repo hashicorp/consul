@@ -3,6 +3,7 @@ package structs
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -1544,6 +1545,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
+	H2PingUseTLS                   bool                `json:",omitempty"`
 	Interval                       time.Duration       `json:",omitempty"`
 	OutputMaxSize                  uint                `json:",omitempty"`
 	Timeout                        time.Duration       `json:",omitempty"`
@@ -1691,6 +1693,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		TCP:                            c.Definition.TCP,
 		H2PING:                         c.Definition.H2PING,
+		H2PingUseTLS:                   c.Definition.H2PingUseTLS,
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
 		Shell:                          c.Definition.Shell,
@@ -1874,10 +1877,20 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 	return cid
 }
 
-// StringHash is used mainly to populate part of the filename of a check
-// definition persisted on the local agent
-func (cid CheckID) StringHash() string {
+// StringHashMD5 is used mainly to populate part of the filename of a check
+// definition persisted on the local agent (deprecated in favor of StringHashSHA256)
+// Kept around for backwards compatibility
+func (cid CheckID) StringHashMD5() string {
 	hasher := md5.New()
+	hasher.Write([]byte(cid.ID))
+	cid.EnterpriseMeta.addToHash(hasher, true)
+	return fmt.Sprintf("%x", hasher.Sum(nil))
+}
+
+// StringHashSHA256 is used mainly to populate part of the filename of a check
+// definition persisted on the local agent
+func (cid CheckID) StringHashSHA256() string {
+	hasher := sha256.New()
 	hasher.Write([]byte(cid.ID))
 	cid.EnterpriseMeta.addToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
@@ -1904,10 +1917,10 @@ func (sid ServiceID) Matches(other ServiceID) bool {
 	return sid.ID == other.ID && sid.EnterpriseMeta.Matches(&other.EnterpriseMeta)
 }
 
-// StringHash is used mainly to populate part of the filename of a service
+// StringHashSHA256 is used mainly to populate part of the filename of a service
 // definition persisted on the local agent
-func (sid ServiceID) StringHash() string {
-	hasher := md5.New()
+func (sid ServiceID) StringHashSHA256() string {
+	hasher := sha256.New()
 	hasher.Write([]byte(sid.ID))
 	sid.EnterpriseMeta.addToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))

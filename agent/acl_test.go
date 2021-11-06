@@ -128,25 +128,21 @@ func (a *TestACLAgent) GetLANCoordinate() (lib.CoordinateSet, error) {
 func (a *TestACLAgent) Leave() error {
 	return fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) LANMembers() []serf.Member {
+func (a *TestACLAgent) LANMembersInAgentPartition() []serf.Member {
 	return nil
 }
-func (a *TestACLAgent) LANMembersAllSegments() ([]serf.Member, error) {
+func (a *TestACLAgent) LANMembers(f consul.LANMemberFilter) ([]serf.Member, error) {
 	return nil, fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) LANSegmentMembers(segment string) ([]serf.Member, error) {
-	return nil, fmt.Errorf("Unimplemented")
-}
-func (a *TestACLAgent) LocalMember() serf.Member {
+func (a *TestACLAgent) AgentLocalMember() serf.Member {
 	return serf.Member{}
 }
-func (a *TestACLAgent) JoinLAN(addrs []string) (n int, err error) {
+func (a *TestACLAgent) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (n int, err error) {
 	return 0, fmt.Errorf("Unimplemented")
 }
-func (a *TestACLAgent) RemoveFailedNode(node string, prune bool) error {
+func (a *TestACLAgent) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
 	return fmt.Errorf("Unimplemented")
 }
-
 func (a *TestACLAgent) RPC(method string, args interface{}, reply interface{}) error {
 	return fmt.Errorf("Unimplemented")
 }
@@ -241,7 +237,7 @@ func catalogPolicy(token string) (structs.ACLIdentity, acl.Authorizer, error) {
 		return nil, nil, acl.ErrNotFound
 	}
 
-	policy, err := acl.NewPolicyFromSource("", 0, tok.rules, acl.SyntaxCurrent, nil, nil)
+	policy, err := acl.NewPolicyFromSource(tok.rules, acl.SyntaxCurrent, nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}

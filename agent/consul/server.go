@@ -17,6 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
@@ -92,6 +94,8 @@ const (
 	// from Serf with the Catalog. If this is exhausted we will drop updates,
 	// and wait for a periodic reconcile.
 	reconcileChSize = 256
+
+	LeaderTransferMinVersion = "1.6.0"
 )
 
 const (
@@ -385,6 +389,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, err
 	}
 
+	initLeaderMetrics()
+
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
@@ -423,7 +429,8 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	// Initialize the stats fetcher that autopilot will use.
 	s.statsFetcher = NewStatsFetcher(logger, s.connPool, s.config.Datacenter)
 
-	s.aclConfig = newACLConfig(logger)
+	partitionInfo := serverPartitionInfo(s)
+	s.aclConfig = newACLConfig(partitionInfo, logger)
 	aclConfig := ACLResolverConfig{
 		Config:      config.ACLResolverSettings,
 		Delegate:    s,
@@ -557,7 +564,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 			WithDatacenter(s.config.Datacenter).
 			WithReportingInterval(s.config.MetricsReportingInterval).
 			WithGetMembersFunc(func() []serf.Member {
-				members, err := s.LANMembersAllSegments()
+				members, err := s.lanPoolAllMembers()
 				if err != nil {
 					return []serf.Member{}
 				}
@@ -973,7 +980,23 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-// Leave is used to prepare for a graceful shutdown of the server
+func (s *Server) attemptLeadershipTransfer() (success bool) {
+	leadershipTransferVersion := version.Must(version.NewVersion(LeaderTransferMinVersion))
+
+	ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, leadershipTransferVersion)
+	if !ok {
+		return false
+	}
+
+	future := s.raft.LeadershipTransfer()
+	if err := future.Error(); err != nil {
+		s.logger.Error("failed to transfer leadership, removing the server", "error", err)
+		return false
+	}
+	return true
+}
+
+// Leave is used to prepare for a graceful shutdown.
 func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
@@ -992,8 +1015,13 @@ func (s *Server) Leave() error {
 	// removed for some reasonable period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
-			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
+		if s.attemptLeadershipTransfer() {
+			isLeader = false
+		} else {
+			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
+			if err := future.Error(); err != nil {
+				s.logger.Error("failed to remove ourself as raft peer", "error", err)
+			}
 		}
 	}
 
@@ -1072,10 +1100,10 @@ func (s *Server) Leave() error {
 	return nil
 }
 
-// JoinLAN is used to have Consul join the inner-DC pool
-// The target address should be another node inside the DC
-// listening on the Serf LAN address
-func (s *Server) JoinLAN(addrs []string) (int, error) {
+// JoinLAN is used to have Consul join the inner-DC pool The target address
+// should be another node inside the DC listening on the Serf LAN address
+func (s *Server) JoinLAN(addrs []string, entMeta *structs.EnterpriseMeta) (int, error) {
+	// TODO(partitions): handle the different partitions
 	return s.serfLAN.Join(addrs, true)
 }
 
@@ -1124,13 +1152,13 @@ func (s *Server) PrimaryGatewayFallbackAddresses() []string {
 	return s.gatewayLocator.PrimaryGatewayFallbackAddresses()
 }
 
-// LocalMember is used to return the local node
-func (s *Server) LocalMember() serf.Member {
+// AgentLocalMember is used to retrieve the LAN member for the local node.
+func (s *Server) AgentLocalMember() serf.Member {
 	return s.serfLAN.LocalMember()
 }
 
-// LANMembers is used to return the members of the LAN cluster
-func (s *Server) LANMembers() []serf.Member {
+// LANMembersInAgentPartition is used to return the members of the LAN cluster
+func (s *Server) LANMembersInAgentPartition() []serf.Member {
 	return s.serfLAN.Members()
 }
 
@@ -1142,8 +1170,9 @@ func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
 
-// RemoveFailedNode is used to remove a failed node from the cluster
-func (s *Server) RemoveFailedNode(node string, prune bool) error {
+// RemoveFailedNode is used to remove a failed node from the cluster.
+func (s *Server) RemoveFailedNode(node string, prune bool, entMeta *structs.EnterpriseMeta) error {
+	// TODO(partitions): handle the different partitions
 	var removeFn func(*serf.Serf, string) error
 	if prune {
 		removeFn = (*serf.Serf).RemoveFailedNodePrune
