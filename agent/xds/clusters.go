@@ -380,38 +380,27 @@ func (s *ResourceGenerator) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigS
 func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var clusters []proto.Message
 	createdClusters := make(map[string]bool)
-	for _, upstreams := range cfgSnap.IngressGateway.Upstreams {
-		for _, u := range upstreams {
-			id := u.Identifier()
+	for _, upstream := range cfgSnap.IngressGateway.ValidUpstreams() {
+		id := upstream.Identifier()
 
-			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
-			// reference the same upstream, so we don't need to create duplicate clusters in that case.
-			if createdClusters[id] {
-				continue
-			}
-
-			chain, ok := cfgSnap.IngressGateway.DiscoveryChain[id]
-			if !ok {
-				// this should not happen
-				return nil, fmt.Errorf("no discovery chain for upstream %q", id)
-			}
-
-			chainEndpoints, ok := cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id]
-			if !ok {
-				// this should not happen
-				return nil, fmt.Errorf("no endpoint map for upstream %q", id)
-			}
-
-			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, &u, chain, chainEndpoints, cfgSnap)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, c := range upstreamClusters {
-				clusters = append(clusters, c)
-			}
-			createdClusters[id] = true
+		// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+		// reference the same upstream, so we don't need to create duplicate clusters in that case.
+		if createdClusters[id] {
+			continue
 		}
+
+		chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+		chainEndpoints := cfgSnap.IngressGateway.WatchedUpstreamEndpoints[id]
+
+		upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(id, &upstream, chain, chainEndpoints, cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, c := range upstreamClusters {
+			clusters = append(clusters, c)
+		}
+		createdClusters[id] = true
 	}
 	return clusters, nil
 }

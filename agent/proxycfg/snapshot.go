@@ -379,6 +379,29 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 		len(c.WatchedUpstreamEndpoints) == 0
 }
 
+// ValidUpstreams returns the list of upstreams that have enough data to be used.
+func (c *configSnapshotIngressGateway) ValidUpstreams() structs.Upstreams {
+	out := make(structs.Upstreams, 0, len(c.Upstreams))
+	for _, upstreams := range c.Upstreams {
+		for _, u := range upstreams {
+			id := u.Identifier()
+
+			// Skip the Upstream if the discovery did not return data.
+			if chain := c.DiscoveryChain[id]; chain == nil {
+				continue
+			}
+
+			// Skip the Upstream if it does not have backing endpoints.
+			if _, ok := c.WatchedUpstreamEndpoints[id]; !ok {
+				continue
+			}
+
+			out = append(out, u)
+		}
+	}
+	return out
+}
+
 type IngressListenerKey struct {
 	Protocol string
 	Port     int
