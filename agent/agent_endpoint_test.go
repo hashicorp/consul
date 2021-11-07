@@ -964,19 +964,17 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		t.Run("format=json", func(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
-			dataRaw, err := a.srv.AgentHealthServiceByID(resp, req)
-			codeWithPayload, ok := err.(CodeWithPayloadError)
-			if !ok {
-				t.Fatalf("Err: %v", err)
+			a.srv.h.ServeHTTP(resp, req)
+			//dataRaw, err := a.srv.AgentHealthServiceByID(resp, req)
+			if got, want := resp.Code, expectedCode; got != want {
+				t.Fatalf("returned bad status: expected %d, but had: %d", expectedCode, resp.Code)
 			}
-			if got, want := codeWithPayload.StatusCode, expectedCode; got != want {
-				t.Fatalf("returned bad status: expected %d, but had: %d in %#v", expectedCode, codeWithPayload.StatusCode, codeWithPayload)
+			dec := json.NewDecoder(resp.Body)
+			data := &api.AgentServiceChecksInfo{}
+			if err := dec.Decode(data); err != nil {
+				t.Fatalf("Cannot convert result from JSON: %v", err)
 			}
-			data, ok := dataRaw.(*api.AgentServiceChecksInfo)
-			if !ok {
-				t.Fatalf("Cannot connvert result to JSON: %#v", dataRaw)
-			}
-			if codeWithPayload.StatusCode != http.StatusNotFound {
+			if resp.Code != http.StatusNotFound {
 				if data != nil && data.AggregatedStatus != expected {
 					t.Fatalf("got body %v want %v", data, expected)
 				}
@@ -1045,42 +1043,49 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ID:      "mysql1",
 		Service: "mysql-pool-r",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	serviceReq := AddServiceRequest{
+		Service: service,
+		chkTypes: nil,
+		persist: false,
+		token: "",
+		Source: ConfigSourceLocal,
+	}
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "mysql2",
 		Service: "mysql-pool-r",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql-pool-rw",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "mysql4",
 		Service: "mysql-pool-rw",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "httpd1",
 		Service: "httpd",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "httpd2",
 		Service: "httpd",
 	}
-	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.AddService(serviceReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1194,18 +1199,11 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 			t.Helper()
 			req, _ := http.NewRequest("GET", url+"?format=text", nil)
 			resp := httptest.NewRecorder()
-			data, err := a.srv.AgentHealthServiceByName(resp, req)
-			codeWithPayload, ok := err.(CodeWithPayloadError)
-			if !ok {
-				t.Fatalf("Err: %v", err)
-			}
-			if got, want := codeWithPayload.StatusCode, expectedCode; got != want {
+			a.srv.h.ServeHTTP(resp ,req)
+			if got, want := resp.Code, expectedCode; got != want {
 				t.Fatalf("returned bad status: %d. Body: %q", resp.Code, resp.Body.String())
 			}
-			if got, want := codeWithPayload.Reason, expected; got != want {
-				t.Fatalf("got reason %q want %q", got, want)
-			}
-			if got, want := data, expected; got != want {
+			if got, want := resp.Body.String(), expected; got != want {
 				t.Fatalf("got body %q want %q", got, want)
 			}
 		})
@@ -1213,21 +1211,26 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 			t.Helper()
 			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
-			dataRaw, err := a.srv.AgentHealthServiceByName(resp, req)
-			codeWithPayload, ok := err.(CodeWithPayloadError)
-			if !ok {
-				t.Fatalf("Err: %v", err)
+			a.srv.h.ServeHTTP(resp ,req)
+			dec := json.NewDecoder(resp.Body)
+			data := make([]*api.AgentServiceChecksInfo, 0)
+			if err := dec.Decode(&data); err != nil {
+				t.Fatalf("Cannot convert result from JSON: %v", err)
 			}
-			data, ok := dataRaw.([]api.AgentServiceChecksInfo)
-			if !ok {
-				t.Fatalf("Cannot connvert result to JSON")
-			}
-			if got, want := codeWithPayload.StatusCode, expectedCode; got != want {
+			if got, want := resp.Code, expectedCode; got != want {
 				t.Fatalf("returned bad code: %d. Body: %#v", resp.Code, data)
 			}
 			if resp.Code != http.StatusNotFound {
-				if codeWithPayload.Reason != expected {
-					t.Fatalf("got wrong status %#v want %#v", codeWithPayload, expected)
+				matched := false
+				for _, d := range data {
+					if d.AggregatedStatus == expected {
+						matched = true
+						break
+					}
+				}
+
+				if !matched {
+					t.Fatalf("got wrong status, wanted %#v", expected)
 				}
 			}
 		})
