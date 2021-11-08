@@ -41,6 +41,7 @@
                   @href={{href-to '.' params=(hash
                     dc=item.Name
                     partition=undefined
+                    nspace=(if (gt @nspace.length 0) @nspace undefined)
                   )}}
                 >
                   <BlockSlot @name="label">
