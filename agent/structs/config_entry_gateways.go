@@ -266,10 +266,7 @@ func (e *IngressGatewayConfigEntry) Validate() error {
 
 		declaredHosts := make(map[string]bool)
 		serviceNames := make(map[ServiceID]struct{})
-		for i, s := range listener.Services {
-			if err := validateInnerEnterpriseMeta(&s.EnterpriseMeta, &e.EnterpriseMeta); err != nil {
-				return fmt.Errorf("services[%d]: %w", i, err)
-			}
+		for _, s := range listener.Services {
 			sn := NewServiceName(s.Name, &s.EnterpriseMeta)
 			if err := s.RequestHeaders.Validate(listener.Protocol); err != nil {
 				return fmt.Errorf("request headers %s (service %q on listener on port %d)", err, sn.String(), listener.Port)
