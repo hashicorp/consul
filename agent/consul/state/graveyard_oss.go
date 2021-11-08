@@ -30,7 +30,7 @@ func (g *Graveyard) insertTombstoneWithTxn(tx WriteTxn, _ string, stone *Tombsto
 // given context, using a prefix match.
 func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, _ *structs.EnterpriseMeta) (uint64, error) {
 	var lindex uint64
-	q := Query{Value: prefix}
+	q := Query{Value: prefix, EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition()}
 	stones, err := tx.Get(tableTombstones, indexID+"_prefix", q)
 	if err != nil {
 		return 0, fmt.Errorf("failed querying tombstones: %s", err)

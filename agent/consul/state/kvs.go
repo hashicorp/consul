@@ -39,8 +39,8 @@ func kvsTableSchema() *memdb.TableSchema {
 	}
 }
 
-// indexFromKVEntry creates an index key from any struct that implements singleValueID
-func indexFromKVEntry(raw interface{}) ([]byte, error) {
+// indexFromIDValue creates an index key from any struct that implements singleValueID
+func indexFromIDValue(raw interface{}) ([]byte, error) {
 	e, ok := raw.(singleValueID)
 	if !ok {
 		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
@@ -431,7 +431,7 @@ func kvsLockTxn(tx WriteTxn, idx uint64, entry *structs.DirEntry) (bool, error) 
 	}
 
 	// Verify that the session exists.
-	sess, err := firstWithTxn(tx, "sessions", "id", entry.Session, &entry.EnterpriseMeta)
+	sess, err := tx.First(tableSessions, indexID, Query{Value: entry.Session, EnterpriseMeta: entry.EnterpriseMeta})
 	if err != nil {
 		return false, fmt.Errorf("failed session lookup: %s", err)
 	}

@@ -148,6 +148,7 @@ type singleValueID interface {
 var _ singleValueID = (*structs.DirEntry)(nil)
 var _ singleValueID = (*Tombstone)(nil)
 var _ singleValueID = (*Query)(nil)
+var _ singleValueID = (*structs.Session)(nil)
 
 func (b *indexBuilder) Bool(v bool) {
 	b.Raw([]byte{intFromBool(v)})

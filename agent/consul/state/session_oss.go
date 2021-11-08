@@ -1,3 +1,4 @@
+//go:build !consulent
 // +build !consulent
 
 package state
@@ -11,9 +12,11 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func sessionIndexer() *memdb.UUIDFieldIndex {
-	return &memdb.UUIDFieldIndex{
-		Field: "ID",
+func sessionIndexer() indexerSingleWithPrefix {
+	return indexerSingleWithPrefix{
+		readIndex:   readIndex(indexFromQuery),
+		writeIndex:  writeIndex(indexFromSession),
+		prefixIndex: prefixIndex(prefixIndexFromQuery),
 	}
 }
 
@@ -37,7 +40,7 @@ func nodeChecksIndexer() *memdb.CompoundIndex {
 }
 
 func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64) error {
-	if err := tx.Delete("sessions", session); err != nil {
+	if err := tx.Delete(tableSessions, session); err != nil {
 		return fmt.Errorf("failed deleting session: %s", err)
 	}
 
@@ -50,7 +53,7 @@ func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64)
 }
 
 func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateMax bool, _ bool) error {
-	if err := tx.Insert("sessions", session); err != nil {
+	if err := tx.Insert(tableSessions, session); err != nil {
 		return err
 	}
 
@@ -88,7 +91,7 @@ func allNodeSessionsTxn(tx ReadTxn, node string) (structs.Sessions, error) {
 func nodeSessionsTxn(tx ReadTxn,
 	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
 
-	sessions, err := tx.Get("sessions", "node", node)
+	sessions, err := tx.Get(tableSessions, indexNode, node)
 	if err != nil {
 		return nil, fmt.Errorf("failed session lookup: %s", err)
 	}
@@ -123,4 +126,28 @@ func validateSessionChecksTxn(tx ReadTxn, session *structs.Session) error {
 		}
 	}
 	return nil
+}
+
+// SessionList returns a slice containing all of the active sessions.
+func (s *Store) SessionList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Sessions, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := sessionMaxIndex(tx, entMeta)
+
+	var result structs.Sessions
+
+	// Query all of the active sessions.
+	sessions, err := tx.Get(tableSessions, indexID+"_prefix", Query{})
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
+	}
+	ws.Add(sessions.WatchCh())
+	// Go over the sessions and create a slice of them.
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
+		result = append(result, session.(*structs.Session))
+	}
+
+	return idx, result, nil
 }
