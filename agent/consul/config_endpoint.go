@@ -54,6 +54,11 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
+	err := gateWriteToSecondary(args.Datacenter, c.srv.config.Datacenter, c.srv.config.PrimaryDatacenter, args.Entry.GetKind())
+	if err != nil {
+		return err
+	}
+
 	// Ensure that all config entry writes go to the primary datacenter. These will then
 	// be replicated to all the other datacenters.
 	args.Datacenter = c.srv.config.PrimaryDatacenter
@@ -584,6 +589,29 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			*reply = thisReply
 			return nil
 		})
+}
+
+func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {
+	// Partition exports are gated from interactions from secondary DCs
+	// because non-default partitions cannot be created in secondaries
+	// and services cannot be exported to another datacenter.
+	if kind != structs.PartitionExports {
+		return nil
+	}
+
+	if primaryDC == "" {
+		primaryDC = localDC
+	}
+
+	switch {
+	case targetDC == "" && localDC != primaryDC:
+		return fmt.Errorf("partition-exports writes in secondary datacenters must target the primary datacenter explicitly.")
+
+	case targetDC != "" && targetDC != primaryDC:
+		return fmt.Errorf("partition-exports writes must not target secondary datacenters.")
+
+	}
+	return nil
 }
 
 // preflightCheck is meant to have kind-specific system validation outside of
