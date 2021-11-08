@@ -296,8 +296,7 @@ func (s *Store) SessionGet(ws memdb.WatchSet,
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Get the table index.
-	idx := sessionMaxIndex(tx, entMeta)
+	idx := maxIndexTxnSessions(tx, entMeta)
 
 	// Look up the session by its ID
 	if entMeta == nil {
@@ -324,7 +323,7 @@ func (s *Store) NodeSessions(ws memdb.WatchSet, nodeID string, entMeta *structs.
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := sessionMaxIndex(tx, entMeta)
+	idx := maxIndexTxnSessions(tx, entMeta)
 
 	// Get all of the sessions which belong to the node
 	result, err := nodeSessionsTxn(tx, ws, nodeID, entMeta)
