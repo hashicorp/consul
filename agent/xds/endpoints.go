@@ -166,12 +166,13 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 				}
 			}
 
-			if idx == -1 {
+			switch {
+			case idx == -1:
+				// Definition is only present in the federation state, add it wholesale.
 				endpoints = append(endpoints, fse)
-			} else {
-				if endpoints[idx].Service.RaftIndex.ModifyIndex < fse.Service.RaftIndex.ModifyIndex {
-					endpoints[idx] = fse
-				}
+			case endpoints[idx].Service.RaftIndex.ModifyIndex < fse.Service.RaftIndex.ModifyIndex:
+				// Definition in the federation state is fresher, prefer it over the other.
+				endpoints[idx] = fse
 			}
 		}
 
