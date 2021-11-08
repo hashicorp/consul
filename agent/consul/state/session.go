@@ -65,10 +65,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  indexFromNodeCheckIDSession,
-					writeIndex: indexFromNodeCheckIDSession,
-				},
+				Indexer:      idCheckIndexer(),
 			},
 			indexNodeCheck: {
 				Name:         indexNodeCheck,
@@ -80,10 +77,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				Name:         indexSession,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: indexerSingle{
-					readIndex:  indexFromString,
-					writeIndex: indexSessionCheckFromSession,
-				},
+				Indexer:      sessionCheckIndexer(),
 			},
 		},
 	}
@@ -432,7 +426,7 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
 	}
 	// Delete any check mappings.
-	mappings, err := tx.Get(tableSessionChecks, indexSession, sessionID)
+	mappings, err := tx.Get(tableSessionChecks, indexSession, Query{Value: sessionID, EnterpriseMeta: *entMeta})
 	if err != nil {
 		return fmt.Errorf("failed session checks lookup: %s", err)
 	}
