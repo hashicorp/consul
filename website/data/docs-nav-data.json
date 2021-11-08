@@ -459,10 +459,6 @@
             "path": "k8s/connect/ingress-controllers"
           },
           {
-            "title": "Ambassador Edge Stack Integration",
-            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
-          },
-          {
             "title": "Configuring a Connect CA Provider",
             "path": "k8s/connect/connect-ca-provider"
           },
@@ -952,10 +948,6 @@
       {
         "title": "Vault Integration",
         "href": "/docs/connect/ca/vault"
-      },
-      {
-        "title": "Ambassador Integration",
-        "href": "/docs/k8s/connect/ambassador"
       },
       {
         "title": "Proxy Integration",
