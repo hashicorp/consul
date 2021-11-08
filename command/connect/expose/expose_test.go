@@ -55,6 +55,7 @@ func TestConnectExpose(t *testing.T) {
 					{
 						Name:      "foo",
 						Namespace: ns,
+						Partition: ap,
 					},
 				},
 			},
@@ -95,6 +96,7 @@ func TestConnectExpose(t *testing.T) {
 				{
 					Name:      "foo",
 					Namespace: ns,
+					Partition: ap,
 				},
 			},
 		})
