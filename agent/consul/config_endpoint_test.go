@@ -2151,6 +2151,14 @@ func Test_gateWriteToSecondary(t *testing.T) {
 			},
 			wantErr: "must target the primary datacenter explicitly",
 		},
+		{
+			name: "empty local DC",
+			args: args{
+				localDC: "",
+				kind:    structs.PartitionExports,
+			},
+			wantErr: "unknown local datacenter",
+		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {

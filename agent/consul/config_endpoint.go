@@ -598,6 +598,10 @@ func gateWriteToSecondary(targetDC, localDC, primaryDC, kind string) error {
 	if kind != structs.PartitionExports {
 		return nil
 	}
+	if localDC == "" {
+		// This should not happen because the datacenter is defaulted in DefaultConfig.
+		return fmt.Errorf("unknown local datacenter")
+	}
 
 	if primaryDC == "" {
 		primaryDC = localDC
