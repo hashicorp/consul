@@ -16,19 +16,23 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	if err != nil {
 		return nil, err
 	}
+	if config == nil {
+		return nil, fmt.Errorf("CA has not finished initializing")
+	}
 
 	indexedRoots := &structs.IndexedCARoots{}
 
-	if config != nil {
-		// Build TrustDomain based on the ClusterID stored.
-		signingID := connect.SpiffeIDSigningForCluster(config)
-		if signingID == nil {
-			// If CA is bootstrapped at all then this should never happen but be
-			// defensive.
-			return nil, fmt.Errorf("no cluster trust domain setup")
-		}
+	// Build TrustDomain based on the ClusterID stored.
+	signingID := connect.SpiffeIDSigningForCluster(config)
+	if signingID == nil {
+		// If CA is bootstrapped at all then this should never happen but be
+		// defensive.
+		return nil, fmt.Errorf("no cluster trust domain setup")
+	}
 
-		indexedRoots.TrustDomain = signingID.Host()
+	indexedRoots.TrustDomain = signingID.Host()
+	if indexedRoots.TrustDomain == "" {
+		return nil, fmt.Errorf("CA has not finished initializing")
 	}
 
 	indexedRoots.Index, indexedRoots.Roots = index, roots
