@@ -324,7 +324,7 @@ func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entM
 	now := time.Now()
 
 	// Get an iterator over all of the keys with the given session.
-	entries, err := tx.Get("kvs", "session", sessionID)
+	entries, err := tx.Get(tableKVs, indexSession, sessionID)
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}

@@ -49,6 +49,9 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		tableCoordinates:     testIndexerTableCoordinates,
 		tableMeshTopology:    testIndexerTableMeshTopology,
 		tableGatewayServices: testIndexerTableGatewayServices,
+		// KV
+		tableKVs:        testIndexerTableKVs,
+		tableTombstones: testIndexerTableTombstones,
 		// config
 		tableConfigEntries: testIndexerTableConfigEntries,
 	}
