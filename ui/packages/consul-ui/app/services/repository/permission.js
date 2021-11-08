@@ -148,6 +148,16 @@ export default class PermissionService extends RepositoryService {
   async findAll(params) {
     params.resources = REQUIRED_PERMISSIONS;
     this.permissions = await this.findByPermissions(params);
+    /**/
+    // Temporarily revert to pre-1.10 UI functionality by overwriting frontend
+    // permissions. These are used to hide certain UI elements, but they are
+    // still enforced on the backend.
+    this.permissions.forEach(item => {
+      if(['key', 'node', 'service', 'intentions', 'session'].includes(item.Resource)) {
+        item.Allow = true;
+      }
+    })
+    /**/
     return this.permissions;
   }
 }
