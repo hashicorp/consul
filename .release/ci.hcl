@@ -12,8 +12,8 @@ project "consul" {
     release_branches = [
       "main",
       "release/1.8.x",
-      "release/1.9.x",
-      "release/1.10.x",
+      #"release/1.9.x",
+      #"release/1.10.x",
       # "release/1.11.x"
     ]
   }
@@ -97,8 +97,20 @@ event "sign" {
   }
 }
 
-event "verify" {
+event "sign-linux-rpms" {
   depends = ["sign"]
+  action "sign-linux-rpms" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "sign-linux-rpms"
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+event "verify" {
+  depends = ["sign-linux-rpms"]
   action "verify" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
