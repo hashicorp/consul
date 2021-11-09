@@ -244,6 +244,14 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "mesh-gateway-newer-information-in-federation-states",
+			create: proxycfg.TestConfigSnapshotMeshGatewayNewerInformationInFederationStates,
+		},
+		{
+			name:   "mesh-gateway-older-information-in-federation-states",
+			create: proxycfg.TestConfigSnapshotMeshGatewayOlderInformationInFederationStates,
+		},
+		{
 			name:   "mesh-gateway-no-services",
 			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
 		},

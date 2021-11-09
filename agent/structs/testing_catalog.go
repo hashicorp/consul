@@ -120,6 +120,9 @@ func TestNodeServiceMeshGatewayWithAddrs(t testing.T, address string, port int, 
 			TaggedAddressLAN: lanAddr,
 			TaggedAddressWAN: wanAddr,
 		},
+		RaftIndex: RaftIndex{
+			ModifyIndex: 1,
+		},
 	}
 }
 
