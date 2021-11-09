@@ -666,7 +666,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					"default",
 					"dc1",
 					connect.TestClusterID+".consul",
-					"dc1",
 					nil,
 				)
 				snap.IngressGateway.DiscoveryChain["secure"] = secureChain
@@ -678,7 +677,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					"default",
 					"dc1",
 					connect.TestClusterID+".consul",
-					"dc1",
 					nil,
 				)
 				snap.IngressGateway.DiscoveryChain["insecure"] = insecureChain
