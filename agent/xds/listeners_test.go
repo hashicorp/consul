@@ -260,6 +260,23 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-upstream-defaults",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				for _, v := range snap.ConnectProxy.UpstreamConfig {
+					// Prepared queries do not get centrally configured upstream defaults merged into them.
+					if v.DestinationType == structs.UpstreamDestTypePreparedQuery {
+						continue
+					}
+					// Represent upstream config as if it came from centrally configured upstream defaults.
+					// The name/namespace must not make it onto the cluster name attached to the outbound listener.
+					v.CentrallyConfigured = true
+					v.DestinationNamespace = structs.WildcardSpecifier
+					v.DestinationName = structs.WildcardSpecifier
+				}
+			},
+		},
+		{
 			name:   "expose-paths-local-app-paths",
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 		},
@@ -567,7 +584,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
 					{Protocol: "tcp", Port: 8080}: {
 						{
-							DestinationName: "foo",
+							DestinationName: "db",
 							LocalBindPort:   8080,
 						},
 					},
@@ -640,6 +657,30 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					},
 				}
+
+				// Every ingress upstream has an associated discovery chain in the snapshot
+				secureChain := discoverychain.TestCompileConfigEntries(
+					t,
+					"secure",
+					"default",
+					"default",
+					"dc1",
+					connect.TestClusterID+".consul",
+					nil,
+				)
+				snap.IngressGateway.DiscoveryChain["secure"] = secureChain
+
+				insecureChain := discoverychain.TestCompileConfigEntries(
+					t,
+					"insecure",
+					"default",
+					"default",
+					"dc1",
+					connect.TestClusterID+".consul",
+					nil,
+				)
+				snap.IngressGateway.DiscoveryChain["insecure"] = insecureChain
+
 				snap.IngressGateway.Listeners = map[proxycfg.IngressListenerKey]structs.IngressListener{
 					{Protocol: "tcp", Port: 8080}: {
 						Port: 8080,
