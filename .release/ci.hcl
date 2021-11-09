@@ -111,7 +111,7 @@ event "sign-linux-rpms" {
 }
 
 event "verify" {
-  depends = ["sign"]
+  depends = ["sign-linux-rpms"]
   action "verify" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
