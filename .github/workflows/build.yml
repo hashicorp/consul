@@ -5,7 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
     # Provide the release branch
-      - crt_release/1.10.x
+      - release/1.10.x
 
 env:
   PKG_NAME: consul
@@ -63,15 +63,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.17", goos: "linux", goarch: "386"}
-          - {go: "1.17", goos: "linux", goarch: "amd64"}
-          - {go: "1.17", goos: "linux", goarch: "arm"}
-          - {go: "1.17", goos: "linux", goarch: "arm64"}
-          - {go: "1.17", goos: "freebsd", goarch: "386"}
-          - {go: "1.17", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.17", goos: "windows", goarch: "386"}
-          - {go: "1.17", goos: "windows", goarch: "amd64"}
-          - {go: "1.17", goos: "solaris", goarch: "amd64"}
+          - {go: "1.16", goos: "linux", goarch: "386"}
+          - {go: "1.16", goos: "linux", goarch: "amd64"}
+          - {go: "1.16", goos: "linux", goarch: "arm"}
+          - {go: "1.16", goos: "linux", goarch: "arm64"}
+          - {go: "1.16", goos: "freebsd", goarch: "386"}
+          - {go: "1.16", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.16", goos: "windows", goarch: "386"}
+          - {go: "1.16", goos: "windows", goarch: "amd64"}
+          - {go: "1.16", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -118,6 +118,7 @@ jobs:
           GOLDFLAGS: "${{needs.get-product-version.outputs.shared-ldflags}}"
         run: |
           mkdir dist out
+          [ "${{ matrix.goarch }}" == "arm" ] && export GOARM=5
           go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
@@ -170,7 +171,7 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64" ]
-        go: [ "1.17" ]
+        go: [ "1.16" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -216,6 +217,7 @@ jobs:
           GOLDFLAGS: "${{ needs.get-product-version.outputs.shared-ldflags }}"
         run: |
           mkdir dist out
+          [ "${{ matrix.goarch }}" == "arm" ] && export GOARM=5
           go build -ldflags="$GOLDFLAGS" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
