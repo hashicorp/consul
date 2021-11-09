@@ -1295,29 +1295,36 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 		ID:      "mysql1",
 		Service: "mysql",
 	}
-	require.NoError(t, a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal))
+	serviceReq := AddServiceRequest{
+		Service: service,
+		chkTypes: nil,
+		persist: false,
+		token: "",
+		Source: ConfigSourceLocal,
+	}
+	require.NoError(t, a.AddService(serviceReq))
 
-	service = &structs.NodeService{
+	serviceReq.Service = &structs.NodeService{
 		ID:      "foo1",
 		Service: "foo",
 	}
-	require.NoError(t, a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.AddService(serviceReq))
 
 	// no token
 	t.Run("no-token-health-by-id", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/agent/health/service/id/mysql1", nil)
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
-		_, err = a.srv.AgentHealthServiceByID(resp, req)
-		require.Equal(t, acl.ErrPermissionDenied, err)
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("no-token-health-by-name", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/v1/agent/health/service/name/mysql", nil)
 		require.NoError(t, err)
 		resp := httptest.NewRecorder()
-		_, err = a.srv.AgentHealthServiceByName(resp, req)
-		require.Equal(t, acl.ErrPermissionDenied, err)
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root-token-health-by-id", func(t *testing.T) {
@@ -1325,8 +1332,8 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
 		resp := httptest.NewRecorder()
-		_, err = a.srv.AgentHealthServiceByID(resp, req)
-		require.NotEqual(t, acl.ErrPermissionDenied, err)
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 
 	t.Run("root-token-health-by-name", func(t *testing.T) {
@@ -1334,8 +1341,8 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Add("X-Consul-Token", TestDefaultMasterToken)
 		resp := httptest.NewRecorder()
-		_, err = a.srv.AgentHealthServiceByName(resp, req)
-		require.NotEqual(t, acl.ErrPermissionDenied, err)
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -1369,17 +1376,20 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 	}
 
 	t.Run("no token", func(t *testing.T) {
-		require := require.New(t)
+		req, _ := http.NewRequest("GET", "/v1/agent/checks", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-		req := httptest.NewRequest("GET", "/v1/agent/checks", nil)
-		rsp := httptest.NewRecorder()
+		dec := json.NewDecoder(resp.Body)
+		val := make(map[types.CheckID]*structs.HealthCheck)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 
-		obj, err := a.srv.AgentChecks(rsp, req)
-		require.NoError(err)
-
-		val := obj.(map[types.CheckID]*structs.HealthCheck)
-		require.Empty(val)
-		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		if len(val) != 0 {
+			t.Fatalf("bad checks: %v", val)
+		}
+		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("limited token", func(t *testing.T) {
@@ -1406,17 +1416,18 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		require := require.New(t)
+		req, _ := http.NewRequest("GET", "/v1/agent/checks?token=root", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-		req := httptest.NewRequest("GET", "/v1/agent/checks?token=root", nil)
-		rsp := httptest.NewRecorder()
-
-		obj, err := a.srv.AgentChecks(rsp, req)
-		require.NoError(err)
-
-		val := obj.(map[types.CheckID]*structs.HealthCheck)
-		require.Len(val, 2)
-		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		dec := json.NewDecoder(resp.Body)
+		val := make(map[types.CheckID]*structs.HealthCheck)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		if len(val) != 1 {
+			t.Fatalf("bad checks: %v", val)
+		}
 	})
 }
 
@@ -1460,12 +1471,15 @@ func TestAgent_Self(t *testing.T) {
 
 			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-			obj, err := a.srv.AgentSelf(nil, req)
-			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
 
-			val := obj.(Self)
+			dec := json.NewDecoder(resp.Body)
+			val := &Self{}
+			require.NoError(t, dec.Decode(val))
+
 			require.Equal(t, a.Config.SerfPortLAN, int(val.Member.Port))
-			require.Equal(t, a.Config.SerfPortLAN, val.DebugConfig["SerfPortLAN"].(int))
+			require.Equal(t, a.Config.SerfPortLAN, int(val.DebugConfig["SerfPortLAN"].(float64)))
 
 			cs, err := a.GetLANCoordinate()
 			require.NoError(t, err)
