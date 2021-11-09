@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Filter the global intentions list by the currently selected parition rather
+than a wildcard
+```
