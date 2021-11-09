@@ -53,6 +53,11 @@ func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap 
 			id := u.Identifier()
 
 			chain := cfgSnap.IngressGateway.DiscoveryChain[id]
+			if chain == nil {
+				// Wait until a chain is present in the snapshot.
+				continue
+			}
+
 			cfg := s.getAndModifyUpstreamConfigForListener(id, &u, chain)
 
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain.

@@ -201,11 +201,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				DestinationPartition: sn.PartitionOrDefault(),
 			}
 
-			dc := u.Datacenter
-			if dc == "" {
-				dc = cfgSnap.Datacenter
-			}
-			filterName := fmt.Sprintf("%s.%s.%s.%s", u.DestinationName, u.DestinationNamespace, u.DestinationPartition, dc)
+			filterName := fmt.Sprintf("%s.%s.%s.%s", u.DestinationName, u.DestinationNamespace, u.DestinationPartition, cfgSnap.Datacenter)
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				clusterName: "passthrough~" + passthrough.SNI,
@@ -281,6 +277,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			// TODO (SNI partition) add partition for upstream SNI
 			clusterName: connect.UpstreamSNI(u, "", cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain),
 			filterName:  id,
+			routeName:   id,
 			protocol:    cfg.Protocol,
 		})
 		if err != nil {
