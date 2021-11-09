@@ -123,18 +123,16 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 			continue
 		}
 
-		endpoints := cfgSnap.MeshGateway.GatewayGroups[key.String()].ShallowClone()
-
-		// Merge in gateways from the federation state, handling duplicates by picking
-		// the one with the greatest ModifyIndex.
-		//
 		// Mesh gateways in remote DCs are discovered in two ways:
 		//
 		//	1. Via an Internal.ServiceDump RPC in the remote DC (GatewayGroups).
 		//	2. In the federation state that is replicated from the primary DC (FedStateGateways).
 		//
+		// We determine which set to use based on whichever contains the highest
+		// raft ModifyIndex (and is therefore most up-to-date).
+		//
 		// Previously, GatewayGroups was always given presedence over FedStateGateways
-		// but this is problematic when using mesh gateways for WAN federation.
+		// but this was problematic when using mesh gateways for WAN federation.
 		//
 		// Consider the following example:
 		//
@@ -155,25 +153,21 @@ func (s *ResourceGenerator) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.C
 		//	- At this point the Primary DC's mesh gateway should observe the new IP
 		//	  address and reconfigure its proxy, however as we always prioritised
 		//	  GatewayGroups this didn't happen and the connection remained severed.
-		fedStateEndpoints := cfgSnap.MeshGateway.FedStateGateways[key.String()]
-		for _, fse := range fedStateEndpoints {
-			idx := -1
-
-			for i, e := range endpoints {
-				if e.Service.Service == fse.Service.Service && e.Node.ID == fse.Node.ID {
-					idx = i
-					break
+		maxModifyIndex := func(vals structs.CheckServiceNodes) uint64 {
+			var max uint64
+			for _, v := range vals {
+				if i := v.Service.RaftIndex.ModifyIndex; i > max {
+					max = i
 				}
 			}
+			return max
+		}
 
-			switch {
-			case idx == -1:
-				// Definition is only present in the federation state, add it wholesale.
-				endpoints = append(endpoints, fse)
-			case endpoints[idx].Service.RaftIndex.ModifyIndex < fse.Service.RaftIndex.ModifyIndex:
-				// Definition in the federation state is fresher, prefer it over the other.
-				endpoints[idx] = fse
-			}
+		endpoints := cfgSnap.MeshGateway.GatewayGroups[key.String()]
+		fedStateEndpoints := cfgSnap.MeshGateway.FedStateGateways[key.String()]
+
+		if maxModifyIndex(fedStateEndpoints) > maxModifyIndex(endpoints) {
+			endpoints = fedStateEndpoints
 		}
 
 		if len(endpoints) == 0 {

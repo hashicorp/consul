@@ -64,18 +64,6 @@
               },
               "healthStatus": "HEALTHY",
               "loadBalancingWeight": 1
-            },
-            {
-              "endpoint": {
-                "address": {
-                  "socketAddress": {
-                    "address": "198.18.1.2",
-                    "portValue": 443
-                  }
-                }
-              },
-              "healthStatus": "HEALTHY",
-              "loadBalancingWeight": 1
             }
           ]
         }
