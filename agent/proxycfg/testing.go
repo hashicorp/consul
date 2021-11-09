@@ -1532,6 +1532,31 @@ func TestConfigSnapshotMeshGatewayNewerInformationInFederationStates(t testing.T
 	return snap
 }
 
+func TestConfigSnapshotMeshGatewayOlderInformationInFederationStates(t testing.T) *ConfigSnapshot {
+	snap := TestConfigSnapshotMeshGateway(t)
+
+	// Create a duplicate entry in FedStateGateways, with a low ModifyIndex, to
+	// verify that stale data in the federation state is ignored in favor of the
+	// fresher data in GatewayGroups.
+	svc := structs.TestNodeServiceMeshGatewayWithAddrs(t,
+		"10.0.1.3", 8443,
+		structs.ServiceAddress{Address: "10.0.1.3", Port: 8443},
+		structs.ServiceAddress{Address: "198.18.1.3", Port: 443},
+	)
+	svc.RaftIndex.ModifyIndex = 0
+
+	snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
+		"dc2": {
+			{
+				Node:    snap.MeshGateway.GatewayGroups["dc2"][0].Node,
+				Service: svc,
+			},
+		},
+	}
+
+	return snap
+}
+
 func TestConfigSnapshotMeshGatewayNoServices(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotMeshGateway(t, false, false)
 }
