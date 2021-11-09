@@ -261,6 +261,23 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-upstream-defaults",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				for _, v := range snap.ConnectProxy.UpstreamConfig {
+					// Prepared queries do not get centrally configured upstream defaults merged into them.
+					if v.DestinationType == structs.UpstreamDestTypePreparedQuery {
+						continue
+					}
+					// Represent upstream config as if it came from centrally configured upstream defaults.
+					// The name/namespace must not make it onto the cluster name attached to the outbound listener.
+					v.CentrallyConfigured = true
+					v.DestinationNamespace = structs.WildcardSpecifier
+					v.DestinationName = structs.WildcardSpecifier
+				}
+			},
+		},
+		{
 			name:   "expose-paths-local-app-paths",
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 		},
