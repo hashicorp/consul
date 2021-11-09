@@ -463,6 +463,10 @@
             "path": "k8s/connect/connect-ca-provider"
           },
           {
+            "title": "Ambassador Edge Stack Integration",
+            "href": "https://learn.hashicorp.com/tutorials/consul/load-balancing-ambassador"
+          },
+          {
             "title": "Health Checks",
             "path": "k8s/connect/health"
           },
