@@ -247,3 +247,47 @@ func TestLoad_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "but limits.http_max_conns_per_client: 16777217 needs at least 16777237")
 }
+
+func TestLoad_EmptyClientAddr(t *testing.T) {
+
+	type testCase struct {
+		name                   string
+		clientAddr             *string
+		expectedWarningMessage *string
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		opts := LoadOpts{
+			FlagValues: Config{
+				ClientAddr: tc.clientAddr,
+				DataDir:    pString("dir"),
+			},
+		}
+		patchLoadOptsShims(&opts)
+		result, err := Load(opts)
+		require.NoError(t, err)
+		if tc.expectedWarningMessage != nil {
+			require.Len(t, result.Warnings, 1)
+			require.Contains(t, result.Warnings[0], *tc.expectedWarningMessage)
+		}
+	}
+
+	var testCases = []testCase{
+		{
+			name:                   "empty string",
+			clientAddr:             pString(""),
+			expectedWarningMessage: pString("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections"),
+		},
+		{
+			name:                   "nil pointer",
+			clientAddr:             nil, // defaults to 127.0.0.1
+			expectedWarningMessage: nil, // expecting no warnings
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}

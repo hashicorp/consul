@@ -552,6 +552,9 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	// determine client addresses
 	clientAddrs := b.expandIPs("client_addr", c.ClientAddr)
+	if len(clientAddrs) == 0 {
+		b.warn("client_addr is empty, client services (DNS, HTTP, HTTPS, GRPC) will not be listening for connections")
+	}
 	dnsAddrs := b.makeAddrs(b.expandAddrs("addresses.dns", c.Addresses.DNS), clientAddrs, dnsPort)
 	httpAddrs := b.makeAddrs(b.expandAddrs("addresses.http", c.Addresses.HTTP), clientAddrs, httpPort)
 	httpsAddrs := b.makeAddrs(b.expandAddrs("addresses.https", c.Addresses.HTTPS), clientAddrs, httpsPort)
