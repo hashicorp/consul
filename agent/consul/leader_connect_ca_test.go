@@ -8,15 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 )
 
 // TODO(kyhavlov): replace with t.Deadline()
@@ -51,12 +49,8 @@ func (m *mockCAServerDelegate) IsLeader() bool {
 	return true
 }
 
-func (m *mockCAServerDelegate) CheckServers(datacenter string, fn func(*metadata.Server) bool) {
-	ver, _ := version.NewVersion("1.6.0")
-	fn(&metadata.Server{
-		Status: serf.StatusAlive,
-		Build:  *ver,
-	})
+func (m *mockCAServerDelegate) ServersSupportMultiDCConnectCA() error {
+	return nil
 }
 
 func (m *mockCAServerDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
