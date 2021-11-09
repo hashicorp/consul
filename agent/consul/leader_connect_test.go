@@ -1094,7 +1094,6 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 
 	// Wait for the secondary transition to happen and then verify the secondary DC
 	// has both roots present.
-	secondaryProvider, _ := getCAProviderWithLock(s2)
 	retry.Run(t, func(r *retry.R) {
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
@@ -1110,14 +1109,17 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		require.Equal(r, roots1[0].ID, roots2[0].ID)
 		require.Equal(r, roots1[0].RootCert, roots2[0].RootCert)
 
+		secondaryProvider, _ := getCAProviderWithLock(s2)
 		inter, err := secondaryProvider.ActiveIntermediate()
 		require.NoError(r, err)
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
-	_, caRoot := getCAProviderWithLock(s1)
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
+
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{

@@ -44,7 +44,7 @@ type caServerDelegate interface {
 	forwardDC(method, dc string, args interface{}, reply interface{}) error
 	generateCASignRequest(csr string) *structs.CASignRequest
 
-	checkServersProvider
+	ServersSupportMultiDCConnectCA() error
 }
 
 // CAManager is a wrapper around CA operations such as updating roots, an intermediate
@@ -127,6 +127,17 @@ func (c *caDelegateWithState) generateCASignRequest(csr string) *structs.CASignR
 	}
 }
 
+func (c *caDelegateWithState) ServersSupportMultiDCConnectCA() error {
+	versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.Server, c.Server.config.PrimaryDatacenter, minMultiDCConnectVersion)
+	if !primaryFound {
+		return fmt.Errorf("primary datacenter is unreachable")
+	}
+	if !versionOk {
+		return fmt.Errorf("all servers in the primary datacenter are not at the minimum version %v", minMultiDCConnectVersion)
+	}
+	return nil
+}
+
 func NewCAManager(delegate caServerDelegate, leaderRoutineManager *routine.Manager, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
 		delegate:             delegate,
@@ -202,7 +213,8 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 	}
 	if config == nil {
 		config = c.serverConf.CAConfig
-		if config.ClusterID == "" {
+
+		if c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter && config.ClusterID == "" {
 			id, err := uuid.GenerateUUID()
 			if err != nil {
 				return nil, err
@@ -408,18 +420,8 @@ func (c *CAManager) InitializeCA() (reterr error) {
 }
 
 func (c *CAManager) secondaryInitialize(provider ca.Provider, conf *structs.CAConfiguration) error {
-	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
-	versionOk, foundPrimary := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
-	if !foundPrimary {
-		c.logger.Warn("primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
-		// return nil because we will initialize the secondary CA later
-		return nil
-	} else if !versionOk {
-		// return nil because we will initialize the secondary CA later
-		c.logger.Warn("servers in the primary datacenter are not at least at the minimum version - deferring initialization of the secondary datacenter CA",
-			"min_version", minMultiDCConnectVersion.String(),
-		)
-		return nil
+	if err := c.delegate.ServersSupportMultiDCConnectCA(); err != nil {
+		return fmt.Errorf("initialization will be deferred: %w", err)
 	}
 
 	// Get the root CA to see if we need to refresh our intermediate.
@@ -1266,15 +1268,11 @@ func (c *CAManager) secondaryUpdateRoots(roots structs.IndexedCARoots) error {
 		return nil
 	}
 	if !c.secondaryIsCAConfigured() {
-		versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
-		if !primaryFound {
-			return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
+		if err := c.delegate.ServersSupportMultiDCConnectCA(); err != nil {
+			return fmt.Errorf("failed to initialize while updating primary roots: %w", err)
 		}
-
-		if versionOk {
-			if err := c.secondaryInitializeProvider(provider, roots); err != nil {
-				return fmt.Errorf("Failed to initialize secondary CA provider: %v", err)
-			}
+		if err := c.secondaryInitializeProvider(provider, roots); err != nil {
+			return fmt.Errorf("Failed to initialize secondary CA provider: %v", err)
 		}
 	}
 
