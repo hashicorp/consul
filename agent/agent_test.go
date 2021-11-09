@@ -2379,7 +2379,7 @@ func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
 		Port:            8000,
 		TaggedAddresses: map[string]structs.ServiceAddress{},
 		Weights:         &structs.Weights{Passing: 1, Warning: 1},
-		EnterpriseMeta:  *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
 	}
 
 	// Encode the NodeService directly. This is what previous versions
@@ -2401,7 +2401,7 @@ func testAgent_persistedService_compat_hash(t *testing.T, extraHCL string) {
 	wrapped := persistedServiceConfig{
 		ServiceID:      "redis",
 		Defaults:       &structs.ServiceConfigResponse{},
-		EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
 	encodedConfig, err := json.Marshal(wrapped)
