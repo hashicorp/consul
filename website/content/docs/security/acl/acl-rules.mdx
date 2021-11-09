@@ -239,7 +239,7 @@ acl = "write"
 The `admin_partition` and `admin_partition_prefix` resource controls access to one or more admin partitions.
 You can include any number of namespace rules inside the admin partition.
 
-In the following example, the agent has write access to the `ex-namespace` namespace, as well as namespaces prefixed with `ex-` in the `example` partition.
+In the following example, the agent has write access to the `ex-namespace` namespace, as well as namespaces prefixed with `exns-` in the `example` partition.
 The `mesh` resource is also scoped to the admin partition rule, which grants `write` access to mesh-level resources in the partition:
 
 ```hcl
