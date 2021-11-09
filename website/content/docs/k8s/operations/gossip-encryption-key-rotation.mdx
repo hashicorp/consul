@@ -67,8 +67,7 @@ The following instructions provides a step-by-step manual process for rotating [
 
 1. Use the new key as the gossip encryption key.
 
-    1. Once the new key has been added to the keychain, you can install it as the new gossip encryption key. In order to do so
-    run the following while remaining `kubectl exec`'d in the Consul Agent pod.
+    1. After the new key has been added to the keychain, you can install it as the new gossip encryption key. Run the following command in the Consul Agent pod using `kubectl exec`:
 
         ```shell-session
         consul keyring -use="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
