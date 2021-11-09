@@ -10,111 +10,130 @@ The following instructions provides a step-by-step manual process for rotating [
 
   **Note:** In case of federated Consul clusters, perform the following steps in the primary datacenter.
 
-1. Generate a new key:
+1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the consul namespace. Otherwise, subsequent commands will need to include -n consul.
 
-  ```shell-session
-  consul keygen
-  ```
-  This should generate a new key which can be used as the gossip encryption key. In this example, we will be using
-  `Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w=` as the replacement gossip encryption key.
+    ```shell-session
+    kubectl config set-context --current --namespace=consul
+    ```
+1. Generate a new key and store in safe place for retrieval in the future ([Vault KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv/kv-v2#usage) is a recommended option). 
 
-2. Add new key to consul keyring.
+    ```shell-session
+    consul keygen
+    ```
+  
+    This should generate a new key which can be used as the gossip encryption key. In this example, we will be using
+    `Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w=` as the replacement gossip encryption key.
 
-  `kubectl exec` into a Consul Agent pod (Server or Client) and add the new key to the Consul Keyring. This can be performed by running the following command:
+1. Add new key to consul keyring.
 
-  **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations. The bootstrap token can be found in the Kubernetes secret `consul-bootstrap-acl-token` of the primary datacenter.
+    `kubectl exec` into a Consul Agent pod (Server or Client) and add the new key to the Consul Keyring. This can be performed by running the following command:
 
-  ```shell-session
-  consul keyring -install="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
-  ==> Installing new gossip encryption key...
-  ```
-  Consul automatically propagates this encryption key across all Clients and Servers across the cluster and the federation if Consul federation is enabled.
+    ```shell-session
+    kubectl exec -it consul-server-0 -- /bin/sh
+    ```
 
-  List the keys in the keyring to verify the new key has been installed successfully.
+    **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations. The bootstrap token can be found in the Kubernetes secret `consul-bootstrap-acl-token` of the primary datacenter.
 
-  ```shell-session
-  consul keyring -list
-  ==> Gathering installed encryption keys...
+    ```shell-session
+    # Use ACL Token if ACLs are enabled
+    export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
+    # Install the new Gossip Encryption Key
+    consul keyring -install="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
+    ==> Installing new gossip encryption key...
+    ```
+    Consul automatically propagates this encryption key across all Clients and Servers across the cluster and the federation if Consul federation is enabled.
 
-  WAN:
-    CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [2/2]
-    Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [2/2]
+    List the keys in the keyring to verify the new key has been installed successfully.
 
-  dc1 (LAN):
-    CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
-    Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
+    ```shell-session
+    consul keyring -list
+    ==> Gathering installed encryption keys...
 
-  dc2 (LAN):
-    CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
-    Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
-  ```
+    WAN:
+      CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [2/2]
+      Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [2/2]
 
-3. Use the new key as the gossip encryption key.
+    dc1 (LAN):
+      CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
+      Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
 
-  Once the new key has been added to the keychain, you can install it as the new gossip encryption key. In order to do so
-  run the following while remaining `kubectl exec`'d in the Consul Agent pod.
+    dc2 (LAN):
+      CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
+      Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
+    ```
 
-  ```shell-session
-  consul keyring -use="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
-  ==> Changing primary gossip encryption key...
-  ```
+1. Use the new key as the gossip encryption key.
 
-  You can ensure that the key has been propagated to all agents by verifying the number of agents that recognize the key over the number of total agents in the datacenter. Listing them provides that information.
+    Once the new key has been added to the keychain, you can install it as the new gossip encryption key. In order to do so
+    run the following while remaining `kubectl exec`'d in the Consul Agent pod.
 
-  ```shell-session
-  consul keyring -list
-  ==> Gathering installed encryption keys...
+    ```shell-session
+    consul keyring -use="Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="
+    ==> Changing primary gossip encryption key...
+    ```
 
-  WAN:
-    CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [2/2]
-    Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [2/2]
+    You can ensure that the key has been propagated to all agents by verifying the number of agents that recognize the key over the number of total agents in the datacenter. Listing them provides that information.
 
-  dc1 (LAN):
-    CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
-    Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
+    ```shell-session
+    consul keyring -list
+    ==> Gathering installed encryption keys...
 
-  dc2 (LAN):
-    CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
-    Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
-  ```
+    WAN:
+      CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [2/2]
+      Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [2/2]
 
-4. Update the Kubernetes secrets with the latest gossip encryption key.
+    dc1 (LAN):
+      CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
+      Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
 
-  In order for subsequent `helm upgrades` commands to be successfully executed without unexpected behavior, it is important to update the gossip encryption Kubernetes Secret with
-  the value of the new gossip encryption key.
+    dc2 (LAN):
+      CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA= [4/4]
+      Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w= [4/4]
+    ```
 
-  The name of the secret which stores the value of the gossip encryption key can be found in the Helm values file:
-  ```yaml
-  global:
-    gossipEncryption:
-       secretName: consul-gossip-encryption-key
-       secretKey: key
-  ```
+1. Update the Kubernetes secrets with the latest gossip encryption key.
 
-  ```shell-session
-  kubectl patch secret consul-gossip-encryption-key -p '{"stringData":{"key": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
-  ```
+    In order for subsequent `helm upgrades` commands to be successfully executed without unexpected behavior, it is important to update the gossip encryption Kubernetes Secret with
+    the value of the new gossip encryption key.
 
-  **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. The name of the secret and key can be found in the values file of the secondary datacenter.
+    The name of the secret which stores the value of the gossip encryption key can be found in the Helm values file:
+    ```yaml
+    global:
+      gossipEncryption:
+         secretName: consul-gossip-encryption-key
+         secretKey: key
+    ```
 
-  ```yaml
-  global:
-     gossipEncryption:
-       secretName: consul-federation
-       secretKey: gossipEncryptionKey
-  ```
+    ```shell-session
+    kubectl patch secret consul-gossip-encryption-key -p '{"stringData":{"key": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
+    ```
 
-  ```shell-session
-  kubectl patch secret consul-federation -p '{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
-  ```
+    **Note:** In the case of federated Consul clusters, update the federation-secret value for the gossip encryption key. The name of the secret and key can be found in the values file of the secondary datacenter.
 
-5. Remove the old key once the new one has been installed successfully.
+    ```yaml
+    global:
+       gossipEncryption:
+         secretName: consul-federation
+         secretKey: gossipEncryptionKey
+    ```
 
-  `kubectl exec` into a Consul Agent pod (Server or Client) and add the new key to the Consul Keyring. This can be performed by running the following command:
+    ```shell-session
+    kubectl patch secret consul-federation -p '{"stringData":{"gossipEncryptionKey": "Wa6/XFAnYy0f9iqVH2iiG+yore3CqHSemUy4AIVTa/w="}}'
+    ```
 
-  **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations.
+1. Remove the old key once the new one has been installed successfully.
 
-  ```shell-session
-  consul keyring -remove="CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA="
-  ==> Removing gossip encryption key...
-  ```
+    `kubectl exec` into a Consul Agent pod (Server or Client) and add the new key to the Consul Keyring. This can be performed by running the following command:
+    ```shel-session
+    kubectl exec -it consul-server-0 -- /bin/sh
+    ```
+
+    **Note:** If ACLs are enabled, export the bootstrap token as the CONSUL_HTTP_TOKEN to perform all `consul keyring` operations.
+
+    ```shell-session
+    # Use ACL Token if ACLs are enabled
+    export CONSUL_HTTP_TOKEN=<INSERT BOOTSTRAP ACL TOKEN>
+    # Remove old Gossip Encryption Key
+    consul keyring -remove="CL6M+jKj3630CZLXI0IRVeyci1jgIAveiZKvdtTybbA="
+    ==> Removing gossip encryption key...
+    ```
