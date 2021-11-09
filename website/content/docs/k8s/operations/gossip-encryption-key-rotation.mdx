@@ -95,9 +95,7 @@ The following instructions provides a step-by-step manual process for rotating [
 
 1. Update the Kubernetes secrets with the latest gossip encryption key.
 
-    In order for subsequent `helm upgrades` commands to be successfully executed without unexpected behavior, it is important to update the gossip encryption Kubernetes Secret with
-    the value of the new gossip encryption key.
-
+    Update the gossip encryption Kubernetes Secret with the value of the new gossip encryption key to ensure that subsequent `helm upgrades` commands execute successfully.
     The name of the secret which stores the value of the gossip encryption key can be found in the Helm values file:
     ```yaml
     global:
