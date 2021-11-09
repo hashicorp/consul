@@ -106,6 +106,7 @@ func Setup(cfg Config) error {
 		// Redirects outbound TCP traffic hitting PROXY_REDIRECT chain to Envoy's outbound listener port.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputRedirectChain, "-p", "tcp", "-j", "REDIRECT", "--to-port", strconv.Itoa(cfg.ProxyOutboundPort))
 
+		// The DNS rules are applied before the rules that directs all TCP traffic, so that the traffic going to port 53 goes through this rule first.
 		if cfg.ConsulDNSIP != "" {
 			// Traffic in the DNSChain is directed to the Consul DNS Service IP.
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", DNSChain, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", cfg.ConsulDNSIP)
