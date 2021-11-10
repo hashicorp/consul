@@ -2189,10 +2189,9 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
       The placeholders available are:
 
-      - `${Service.Name}` or `{{Service.Name}}` - Replaced with the current service's name.
-      - `${Service.Namespace}` or `{{Service.Namespace}}` - Replaced with the current
-        service's namespace or empty if namespaces are not enabled.
-      - `${Datacenter}` or `{{Datacenter}}` - Replaced with the current service's datacenter.
+      - `{{Service.Name}}` - Replaced with the current service's name.
+      - `{{Service.Namespace}}` - Replaced with the current service's namespace or empty if namespaces are not enabled.
+      - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
   Equivalent to the [`-ui-dir`](#_ui_dir) command-line
