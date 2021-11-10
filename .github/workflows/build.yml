@@ -5,7 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
     # Provide the release branch
-      - release/1.10.4
+      - test_release/1.10.4
 
 env:
   PKG_NAME: consul
@@ -28,10 +28,16 @@ jobs:
 
           VERSION=${V[0]}
           PREREL_VERSION=${V[1]}
-
-          echo "::set-output name=product-version::${VERSION}-${PREREL_VERSION}"
-          echo "::set-output name=pre-version::${PREREL_VERSION}"
-          echo "::set-output name=pkg-version::${VERSION}"
+          echo ${PREREL_VERSION}
+          if [ -z ${PREREL_VERSION} ]
+          then
+             echo "::set-output name=product-version::${VERSION}"
+             echo "::set-output name=pkg-version::${VERSION}"
+          else 
+             echo "::set-output name=product-version::${VERSION}-${PREREL_VERSION}"
+             echo "::set-output name=pre-version::${PREREL_VERSION}"
+             echo "::set-output name=pkg-version::${VERSION}"
+          fi
 
       - name: Set shared -ldflags
         id: shared-ldflags
