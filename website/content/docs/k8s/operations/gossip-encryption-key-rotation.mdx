@@ -8,7 +8,7 @@ description: Rotate the Gossip Encryption Key on Kubernetes Cluster safely
 
 The following instructions provides a step-by-step manual process for rotating [gossip encryption](/docs/security/encryption#gossip-encryption) keys on Consul clusters that are deployed onto a Kubernetes cluster with Consul on Kubernetes.
 
-  **Note:** In case of federated Consul clusters, perform the following steps in the primary datacenter.
+The following steps should be performed in the primary datacenter if your Consul clusters are federated.
 
 1. (Optional) If Consul is installed in a dedicated namespace, set the kubeConfig context to the consul namespace. Otherwise, subsequent commands will need to include -n consul.
 
