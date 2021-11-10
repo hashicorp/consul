@@ -79,7 +79,7 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	if err != nil {
 		return nil, err
 	}
-	if config == nil {
+	if config == nil || config.ClusterID == "" {
 		return nil, fmt.Errorf("CA has not finished initializing")
 	}
 
@@ -94,9 +94,6 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	}
 
 	indexedRoots.TrustDomain = signingID.Host()
-	if indexedRoots.TrustDomain == "" {
-		return nil, fmt.Errorf("CA has not finished initializing")
-	}
 
 	indexedRoots.Index, indexedRoots.Roots = index, roots
 	if indexedRoots.Roots == nil {
