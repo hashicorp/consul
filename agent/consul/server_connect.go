@@ -29,11 +29,11 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 		// defensive.
 		return nil, fmt.Errorf("no cluster trust domain setup")
 	}
-
-	indexedRoots.TrustDomain = signingID.Host()
-	if indexedRoots.TrustDomain == "" {
+	if signingID.ClusterID == "" {
 		return nil, fmt.Errorf("CA has not finished initializing")
 	}
+
+	indexedRoots.TrustDomain = signingID.Host()
 
 	indexedRoots.Index, indexedRoots.Roots = index, roots
 	if indexedRoots.Roots == nil {
