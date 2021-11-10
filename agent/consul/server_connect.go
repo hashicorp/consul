@@ -16,7 +16,7 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 	if err != nil {
 		return nil, err
 	}
-	if config == nil {
+	if config == nil || config.ClusterID == "" {
 		return nil, fmt.Errorf("CA has not finished initializing")
 	}
 
@@ -28,9 +28,6 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 		// If CA is bootstrapped at all then this should never happen but be
 		// defensive.
 		return nil, fmt.Errorf("no cluster trust domain setup")
-	}
-	if signingID.ClusterID == "" {
-		return nil, fmt.Errorf("CA has not finished initializing")
 	}
 
 	indexedRoots.TrustDomain = signingID.Host()
