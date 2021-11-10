@@ -1926,17 +1926,21 @@ func TestAgent_Members(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
-	obj, err := a.srv.AgentMembers(nil, req)
-	if err != nil {
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec := json.NewDecoder(resp.Body)
+	val := make([]serf.Member, 0)
+	if err := dec.Decode(&val); err != nil {
 		t.Fatalf("Err: %v", err)
 	}
-	val := obj.([]serf.Member)
+
 	if len(val) == 0 {
-		t.Fatalf("bad members: %v", obj)
+		t.Fatalf("bad members: %v", val)
 	}
 
 	if int(val[0].Port) != a.Config.SerfPortLAN {
-		t.Fatalf("not lan: %v", obj)
+		t.Fatalf("not lan: %v", val)
 	}
 }
 
@@ -1951,17 +1955,21 @@ func TestAgent_Members_WAN(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	req, _ := http.NewRequest("GET", "/v1/agent/members?wan=true", nil)
-	obj, err := a.srv.AgentMembers(nil, req)
-	if err != nil {
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec := json.NewDecoder(resp.Body)
+	val := make([]serf.Member, 0)
+	if err := dec.Decode(&val); err != nil {
 		t.Fatalf("Err: %v", err)
 	}
-	val := obj.([]serf.Member)
+
 	if len(val) == 0 {
-		t.Fatalf("bad members: %v", obj)
+		t.Fatalf("bad members: %v", val)
 	}
 
 	if int(val[0].Port) != a.Config.SerfPortWAN {
-		t.Fatalf("not wan: %v", obj)
+		t.Fatalf("not wan: %v", val)
 	}
 }
 
@@ -1987,17 +1995,20 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("no token", func(t *testing.T) {
-		require := require.New(t)
+		req, _ := http.NewRequest("GET", "/v1/agent/members", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-		req := httptest.NewRequest("GET", "/v1/agent/members", nil)
-		rsp := httptest.NewRecorder()
+		dec := json.NewDecoder(resp.Body)
+		val := make([]serf.Member, 0)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
 
-		obj, err := a.srv.AgentMembers(rsp, req)
-		require.NoError(err)
-
-		val := obj.([]serf.Member)
-		require.Empty(val)
-		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		if len(val) != 0 {
+			t.Fatalf("bad members: %v", val)
+		}
+		require.Empty(t, resp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
 	})
 
 	t.Run("limited token", func(t *testing.T) {
@@ -2021,17 +2032,18 @@ func TestAgent_Members_ACLFilter(t *testing.T) {
 	})
 
 	t.Run("root token", func(t *testing.T) {
-		require := require.New(t)
+		req, _ := http.NewRequest("GET", "/v1/agent/members?token=root", nil)
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
 
-		req := httptest.NewRequest("GET", "/v1/agent/members?token=root", nil)
-		rsp := httptest.NewRecorder()
-
-		obj, err := a.srv.AgentMembers(rsp, req)
-		require.NoError(err)
-
-		val := obj.([]serf.Member)
-		require.Len(val, 2)
-		require.Empty(rsp.Header().Get("X-Consul-Results-Filtered-By-ACLs"))
+		dec := json.NewDecoder(resp.Body)
+		val := make([]serf.Member, 0)
+		if err := dec.Decode(&val); err != nil {
+			t.Fatalf("Err: %v", err)
+		}
+		if len(val) != 1 {
+			t.Fatalf("bad members: %v", val)
+		}
 	})
 }
 
@@ -2050,13 +2062,8 @@ func TestAgent_Join(t *testing.T) {
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
-	obj, err := a1.srv.AgentJoin(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("Err: %v", obj)
-	}
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
 
 	if len(a1.LANMembersInAgentPartition()) != 2 {
 		t.Fatalf("should have 2 members")
@@ -2084,13 +2091,8 @@ func TestAgent_Join_WAN(t *testing.T) {
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortWAN)
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?wan=true", addr), nil)
-	obj, err := a1.srv.AgentJoin(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("Err: %v", obj)
-	}
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
 
 	if len(a1.WANMembers()) != 2 {
 		t.Fatalf("should have 2 members")
@@ -2120,25 +2122,27 @@ func TestAgent_Join_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
-		if _, err := a1.srv.AgentJoin(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a1.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("agent master token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=towel", addr), nil)
-		_, err := a1.srv.AgentJoin(nil, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a1.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a1.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/join/%s?token=%s", addr, ro), nil)
-		if _, err := a1.srv.AgentJoin(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a1.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 }
 
@@ -2204,13 +2208,10 @@ func TestAgent_Leave(t *testing.T) {
 
 	// Graceful leave now
 	req, _ := http.NewRequest("PUT", "/v1/agent/leave", nil)
-	obj, err := a2.srv.AgentLeave(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("Err: %v", obj)
-	}
+	resp := httptest.NewRecorder()
+	a2.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
 	retry.Run(t, func(r *retry.R) {
 		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
@@ -2231,26 +2232,29 @@ func TestAgent_Leave_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/leave", nil)
-		if _, err := a.srv.AgentLeave(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/leave?token=%s", ro), nil)
-		if _, err := a.srv.AgentLeave(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	// this sub-test will change the state so that there is no leader.
 	// it must therefore be the last one in this list.
 	t.Run("agent master token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/leave?token=towel", nil)
-		if _, err := a.srv.AgentLeave(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
