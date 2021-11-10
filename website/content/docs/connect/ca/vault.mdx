@@ -14,10 +14,12 @@ The Vault CA provider uses the
 [Vault PKI secrets engine](https://www.vaultproject.io/docs/secrets/pki)
 to generate and sign certificates.
 
--> This page documents the specifics of the Vault CA provider.
+This page documents the specifics of the Vault CA provider.
 Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
+
+-> **NOTE**: A Learn [tutorial](https://learn.hashicorp.com/tutorials/consul/vault-pki-consul-connect-ca?in=consul/vault-secure) is available to help you configure Vault as Consul Connect service mesh Certification Authority.
 
 ## Requirements
 
@@ -79,7 +81,7 @@ connect {
 
 The configuration options are listed below.
 
--> **Note**: The first key is the value used in API calls, and the second key
+-> **NOTE**: The first key is the value used in API calls, and the second key
    (after the `/`) is used if you are adding the configuration to the agent's
    configuration file.
 
