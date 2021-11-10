@@ -48,6 +48,7 @@
     <div class="metrics-header">
       {{@service.Service.Service}}
     </div>
+  {{#if (not-eq @service.Service.Meta.external-source 'consul-api-gateway')}}
     {{#if @hasMetricsProvider}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
@@ -76,6 +77,7 @@
       <a class="config-link" href="{{env 'CONSUL_DOCS_URL'}}/connect/observability/ui-visualization" target="_blank" rel="noopener noreferrer">Configure dashboard</a>
     {{/if}}
     </div>
+  {{/if}}
   </div>
   <div id="downstream-lines">
     <TopologyMetrics::DownLines

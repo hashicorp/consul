@@ -112,7 +112,7 @@ as |items item dc|}}
               <h1>
                 <route.Title @title={{item.Service.Service}} />
               </h1>
-              <Consul::ExternalSource @item={{item.Service}} />
+              <Consul::ExternalSource @item={{item.Service}} @withInfo={{true}} />
               <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
           </BlockSlot>
           <BlockSlot @name="nav">

@@ -65,7 +65,7 @@ as |item index|>
         {{/if}}
         </td>
     </BlockSlot>
-{{#if (or (can "write intention" item=item) (can "view CRD intention" item=item))}}
+{{#if (and (or (can "write intention" item=item) (can "view CRD intention" item=item)) (not-eq item.Meta.external-source 'consul-api-gateway'))}}
     <BlockSlot @name="actions" as |index change checked|>
       <PopoverMenu
         @expanded={{if (eq checked index) true false}}

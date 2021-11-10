@@ -1,5 +1,6 @@
 brand:
   consul: Consul
+  consul-api-gateway: Consul API Gateway
   terraform: Terraform
   nomad: Nomad
   vault: Vault
