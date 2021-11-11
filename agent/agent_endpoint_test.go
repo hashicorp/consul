@@ -2651,12 +2651,12 @@ func TestAgent_RegisterCheckScriptsExecRemoteDisable(t *testing.T) {
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
 	res := httptest.NewRecorder()
-	_, err := a.srv.AgentRegisterCheck(res, req)
-	if err == nil {
-		t.Fatalf("expected error but got nil")
+	a.srv.h.ServeHTTP(res, req)
+	if http.StatusInternalServerError != res.Code {
+		t.Fatalf("expected 500 code error but got %v", res.Code)
 	}
-	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
-		t.Fatalf("expected script disabled error, got: %s", err)
+	if !strings.Contains(res.Body.String(), "Scripts are disabled on this agent") {
+		t.Fatalf("expected script disabled error, got: %s", res.Body.String())
 	}
 	checkID := structs.NewCheckID("test", nil)
 	require.Nil(t, a.State.Check(checkID), "check registered with exec disabled")
@@ -2678,12 +2678,10 @@ func TestAgent_RegisterCheck_Passing(t *testing.T) {
 		Status: api.HealthPassing,
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
-	obj, err := a.srv.AgentRegisterCheck(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expcted 200 but got %v", resp.Code)
 	}
 
 	// Ensure we have a check mapping
@@ -2720,8 +2718,9 @@ func TestAgent_RegisterCheck_BadStatus(t *testing.T) {
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(args))
 	resp := httptest.NewRecorder()
 	a.srv.h.ServeHTTP(resp, req)
-	require.Equalf(t, http.StatusBadRequest, resp.Code, "resp: %v", resp.Body.String())
-	require.Contains(t, resp.Body.String(), "Bad check status")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("accepted bad status")
+	}
 }
 
 func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
@@ -2754,8 +2753,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	// ensure the service is ready for registering a check for it.
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(svc))
 	resp := httptest.NewRecorder()
-	_, err := a.srv.AgentRegisterService(resp, req)
-	require.NoError(t, err)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	// create a policy that has write on service foo
 	policyReq := &structs.ACLPolicy{
@@ -2765,8 +2764,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
 	resp = httptest.NewRecorder()
-	_, err = a.srv.ACLPolicyCreate(resp, req)
-	require.NoError(t, err)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	// create a policy that has write on the node name of the agent
 	policyReq = &structs.ACLPolicy{
@@ -2776,8 +2775,8 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	req, _ = http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(policyReq))
 	resp = httptest.NewRecorder()
-	_, err = a.srv.ACLPolicyCreate(resp, req)
-	require.NoError(t, err)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	// create a token using the write-foo policy
 	tokenReq := &structs.ACLToken{
@@ -2791,10 +2790,14 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
 	resp = httptest.NewRecorder()
-	tokInf, err := a.srv.ACLTokenCreate(resp, req)
-	require.NoError(t, err)
-	svcToken, ok := tokInf.(*structs.ACLToken)
-	require.True(t, ok)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	dec := json.NewDecoder(resp.Body)
+	svcToken := &structs.ACLToken{}
+	if err := dec.Decode(svcToken); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	require.NotNil(t, svcToken)
 
 	// create a token using the write-node policy
@@ -2809,57 +2812,67 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 
 	req, _ = http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(tokenReq))
 	resp = httptest.NewRecorder()
-	tokInf, err = a.srv.ACLTokenCreate(resp, req)
-	require.NoError(t, err)
-	nodeToken, ok := tokInf.(*structs.ACLToken)
-	require.True(t, ok)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	dec = json.NewDecoder(resp.Body)
+	nodeToken := &structs.ACLToken{}
+	if err := dec.Decode(nodeToken); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	require.NotNil(t, nodeToken)
 
 	t.Run("no token - node check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(nodeCheck))
-			_, err := a.srv.AgentRegisterCheck(nil, req)
-			require.True(r, acl.IsErrPermissionDenied(err))
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusForbidden, resp.Code)
 		})
 	})
 
 	t.Run("svc token - node check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(nodeCheck))
-			_, err := a.srv.AgentRegisterCheck(nil, req)
-			require.True(r, acl.IsErrPermissionDenied(err))
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusForbidden, resp.Code)
 		})
 	})
 
 	t.Run("node token - node check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(nodeCheck))
-			_, err := a.srv.AgentRegisterCheck(nil, req)
-			require.NoError(r, err)
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusOK, resp.Code)
 		})
 	})
 
 	t.Run("no token - svc check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(svcCheck))
-			_, err := a.srv.AgentRegisterCheck(nil, req)
-			require.True(r, acl.IsErrPermissionDenied(err))
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusForbidden, resp.Code)
 		})
 	})
 
 	t.Run("node token - svc check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+nodeToken.SecretID, jsonReader(svcCheck))
-			_, err := a.srv.AgentRegisterCheck(nil, req)
-			require.True(r, acl.IsErrPermissionDenied(err))
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusForbidden, resp.Code)
 		})
 	})
 
 	t.Run("svc token - svc check", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token="+svcToken.SecretID, jsonReader(svcCheck))
-			_, err := a.srv.AgentRegisterCheck(nil, req)
-			require.NoError(r, err)
+			resp := httptest.NewRecorder()
+			a.srv.h.ServeHTTP(resp, req)
+			require.Equal(t, http.StatusOK, resp.Code)
 		})
 	})
 }
@@ -2880,12 +2893,10 @@ func TestAgent_DeregisterCheck(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
-	obj, err := a.srv.AgentDeregisterCheck(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expected 200 but got %v", resp.Code)
 	}
 
 	// Ensure we have a check mapping
@@ -2909,16 +2920,16 @@ func TestAgent_DeregisterCheckACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test", nil)
-		if _, err := a.srv.AgentDeregisterCheck(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/deregister/test?token=root", nil)
-		if _, err := a.srv.AgentDeregisterCheck(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
