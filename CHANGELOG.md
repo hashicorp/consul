@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 1.8.17 (November 11, 2021)
+
 IMPROVEMENTS:
 
 * ci: Artifact builds will now only run on merges to the release branches or to `main` [[GH-11417](https://github.com/hashicorp/consul/issues/11417)]
