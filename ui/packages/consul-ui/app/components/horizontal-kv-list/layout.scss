@@ -35,8 +35,11 @@
 }
 /**/
 %horizontal-kv-list-reversed dt,
-%horizontal-kv-list-visible-title + dd {
+%horizontal-kv-list dt + dd {
   margin-left: 4px;
+}
+%horizontal-kv-list-hidden-title + dd {
+  margin-left: 0 !important;
 }
 
 %horizontal-kv-list-reversed dt + dd {
