@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 1.9.11 (November 11, 2021)
+
 SECURITY:
 
 * agent: Use SHA256 instead of MD5 to generate persistence file names. [[GH-11491](https://github.com/hashicorp/consul/issues/11491)]
