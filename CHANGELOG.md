@@ -1,4 +1,4 @@
-## 1.10.4 (November 10, 2021)
+## 1.10.4 (November 11, 2021)
 
 SECURITY:
 
