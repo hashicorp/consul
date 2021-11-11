@@ -666,7 +666,7 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string, entMeta 
 	}
 
 	// Invalidate any sessions for this node.
-	toDelete, err := allNodeSessionsTxn(tx, nodeName)
+	toDelete, err := allNodeSessionsTxn(tx, nodeName, entMeta.PartitionOrDefault())
 	if err != nil {
 		return err
 	}
