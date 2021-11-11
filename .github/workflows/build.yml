@@ -5,7 +5,7 @@ on:
     # Sequence of patterns matched against refs/heads
     branches:
     # Provide the release branch
-      - release/1.10.4
+      - release/1.10.x
 
 env:
   PKG_NAME: consul
