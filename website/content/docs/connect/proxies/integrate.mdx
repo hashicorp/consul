@@ -197,7 +197,7 @@ If TLS is enabled on Consul, you will also need to add the following environment
 - [`CONSUL_CLIENT_CERT`](/commands#consul_client_cert)
 - [`CONSUL_CLIENT_KEY`](/commands#consul_client_key)
 
-The `CONSUL_CACERT`, `CONSUL_CLIENT_CERT` and `CONSUL_CLIENT_KEY` can also be provided as CLI flags. Please see the [Consul connect documentation](/commands/connect/proxy) page for more details.
+The `CONSUL_CACERT`, `CONSUL_CLIENT_CERT` and `CONSUL_CLIENT_KEY` can also be provided as CLI flags. Refer to the [`consul connect proxy` documentation](/commands/connect/proxy) for details.
 
 The proxy service ID comes from the user. See [`consul connect envoy`](/commands/connect/envoy#examples) for an example. You can use the `-proxy-id` flag to specify the ID of the proxy service you have already registered with the local agent.
 
