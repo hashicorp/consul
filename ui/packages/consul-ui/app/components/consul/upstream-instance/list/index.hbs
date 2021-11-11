@@ -38,7 +38,7 @@
         </dl>
 {{/if}}
 {{#if item.LocalBindSocketPath}}
-        <dl class="local-socket-path">
+        <dl class="local-bind-socket-path">
           <dt>
               Local bind socket path
           </dt>
@@ -50,8 +50,10 @@
             {{item.LocalBindSocketPath}}
           </dd>
         </dl>
-        <dl class="local-bind-mode">
-          <dt class>Mode</dt>
+        <dl class="local-bind-socket-mode">
+          <dt>
+            Mode
+          </dt>
           <dd>
             {{or item.LocalBindSocketMode '-'}}
           </dd>

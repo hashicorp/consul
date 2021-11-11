@@ -19,6 +19,7 @@
   flex-wrap: wrap;
 }
 %horizontal-kv-list-visible-title {
+  display: inline-flex;
   min-width: 18px;
 }
 %horizontal-kv-list-reversed:not(:first-of-type),

@@ -11,11 +11,11 @@
   dl.nspace dt::before {
     @extend %with-folder-outline-mask, %as-pseudo;
   }
-  dl.local-socket-path dt,
+  dl.local-bind-socket-path dt,
   dl.local-bind-address dt {
     @extend %horizontal-kv-list-hidden-title;
   }
-  dl.local-bind-mode dt {
+  dl.local-bind-socket-mode dt {
     @extend %horizontal-kv-list-visible-title;
     text-transform: lowercase;
     font-weight: var(--typo-weight-semibold);
