@@ -6,7 +6,7 @@ regex based, template engine. For example:
 
 ```hbs preview-template
 <figure>
-  {{render-template 'http://localhost/?service=${Service.Name}&datacenter=${Datacenter}'
+  {{render-template 'http://localhost/?service={{Service.Name}}&datacenter={{Datacenter}}'
     (hash
       Datacenter="dc1"
       Service=(hash
@@ -26,22 +26,15 @@ as a named argument to disable/turn that off. In which case, encode should be
 default and a knob provided to turn it off (at the time of writing our primary
 usecase is to encode).
 
-Should we ever need to support (or turn support off for) different interpolation
-separators, then and option could be added also.
-
-Currently supported separators are javascript style `${VariableName}`
-(preferred) and mustache style `{{VariableName}}` (deprecated but maintained for
-back compat reasons). If you ever need to use this internally (i.e. not a user
-facing template then please use the JS style).
+Currently supported separators are mustache style `{{VariableName}}`, although
+we would like to add Javascript style `${VariableName}` separators in the future
+and transition to default to those whilst remaining backwards compatible.
+Mustache style are a documentated user 'feature' for some Consul config, so we
+should be mindful of that.
 
 **Please note:** Our `uri` helper (that is used extensively in the UI) also uses
 some of the underlying functionality of `render-template` via our `encoder`
-service. Since we upgraded `render-template` to use JS style syntax, the `uri`
-helper is almost the same as `render-template` and could potentially be made
-into just a semantic alias of the `render-template` helper (and we could delete
-some repetitive code and take advantage of the more complete test coverage
-:ta-da:). (If this ever gets done, even if you see that it has been and a docs
-amendment was missed, please update these docs, ty!)
+service.
 
 ## Positional Arguments
 
