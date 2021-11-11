@@ -169,16 +169,41 @@ to read configurations for that service. If you use the Go [`api` package], then
 the environment variables will be read and the client configured for you
 automatically.
 
+Alternatively, you may also use the flags `-token` or `-token-file` to provide the Consul ACL token.
+
+
+<CodeTabs heading="Providing a Consul ACL Token" tabs={[ "Envoy", "Proxy" ]}>
+<CodeBlockConfig language="shell-session">
+
+```shell
+ consul connect envoy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig >
+
+```shell
+ $ consul connect proxy -sidecar-for "web" -token-file=/etc/consul.d/consul.token
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+
 If TLS is enabled on Consul, you will also need to add the following environment variables _prior_ to starting the proxy:
 
 - [`CONSUL_CACERT`](/commands#consul_cacert)
 - [`CONSUL_CLIENT_CERT`](/commands#consul_client_cert)
 - [`CONSUL_CLIENT_KEY`](/commands#consul_client_key)
 
+The `CONSUL_CACERT`, `CONSUL_CLIENT_CERT` and `CONSUL_CLIENT_KEY` can also be provided as CLI flags. Refer to the [`consul connect proxy` documentation](/commands/connect/proxy) for details.
+
 The proxy service ID comes from the user. See [`consul connect envoy`](/commands/connect/envoy#examples) for an example. You can use the `-proxy-id` flag to specify the ID of the proxy service you have already registered with the local agent.
 
 Alternatively, you can start the service using the `-sidecar-for=<service>` option. This option queries Consul for a proxy that is registered as a sidecar for the specified `<service>`. If exactly one service associated with the proxy is returned, the ID will be used to start the proxy. Your controller only needs to accept `-proxy-id` as an argument; the Consul CLI will resolve the
 ID for the name specified in `-sidecar-for` flag.
+
 
 
 [`/v1/agent/connect/ca/leaf/`]: /api/agent/connect#service-leaf-certificate
