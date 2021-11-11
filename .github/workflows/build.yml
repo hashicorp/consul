@@ -23,23 +23,6 @@ jobs:
       - name: get product version
         id: get-product-version
         run: |
-<<<<<<< Updated upstream
-          IFS="-"; OUTPUT=$(build-support/scripts/version.sh -r);
-          read -a V <<< "$OUTPUT"; unset IFS;
-
-          VERSION=${V[0]}
-          PREREL_VERSION=${V[1]}
-
-          if [ -z ${PREREL_VERSION} ]
-          then
-             echo "::set-output name=product-version::${VERSION}"
-             echo "::set-output name=pkg-version::${VERSION}"
-          else
-             echo "::set-output name=product-version::${VERSION}-${PREREL_VERSION}"
-             echo "::set-output name=pre-version::${PREREL_VERSION}"
-             echo "::set-output name=pkg-version::${VERSION}"
-          fi
-=======
           CONSUL_VERSION=$(build-support/scripts/version.sh -r)
 
           ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
@@ -53,8 +36,6 @@ jobs:
           echo "::set-output name=product-version::${CONSUL_VERSION}"
           echo "::set-output name=pre-version::${PREREL_VERSION}"
           echo "::set-output name=pkg-version::${VERSION}"
->>>>>>> Stashed changes
-
 
       - name: Set shared -ldflags
         id: shared-ldflags
