@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Update UI browser support to 'roughly ~2 years back'
+```
