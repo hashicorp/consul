@@ -2289,13 +2289,10 @@ func TestAgent_ForceLeave(t *testing.T) {
 
 	// Force leave now
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/%s", a2.Config.NodeName), nil)
-	obj, err := a1.srv.AgentForceLeave(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("Err: %v", obj)
-	}
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
 	retry.Run(t, func(r *retry.R) {
 		m := a1.LANMembersInAgentPartition()
 		if got, want := m[1].Status, serf.StatusLeft; got != want {
@@ -2333,24 +2330,24 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", uri, nil)
-		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("agent master token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", uri+"?token=towel", nil)
-		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("read-only token", func(t *testing.T) {
 		ro := createACLTokenWithAgentReadPolicy(t, a.srv)
 		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", ro), nil)
-		if _, err := a.srv.AgentForceLeave(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("operator write token", func(t *testing.T) {
@@ -2361,9 +2358,9 @@ func TestAgent_ForceLeave_ACLDeny(t *testing.T) {
 		opToken := testCreateToken(t, a, rules)
 
 		req, _ := http.NewRequest("PUT", fmt.Sprintf(uri+"?token=%s", opToken), nil)
-		if _, err := a.srv.AgentForceLeave(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -2402,13 +2399,9 @@ func TestAgent_ForceLeavePrune(t *testing.T) {
 
 	// Force leave now
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/agent/force-leave/%s?prune=true", a2.Config.NodeName), nil)
-	obj, err := a1.srv.AgentForceLeave(nil, req)
-	if err != nil {
-		t.Fatalf("Err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("Err: %v", obj)
-	}
+	resp := httptest.NewRecorder()
+	a1.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 	retry.Run(t, func(r *retry.R) {
 		m := len(a1.LANMembersInAgentPartition())
 		if m != 1 {
@@ -2500,13 +2493,9 @@ func TestAgent_RegisterCheck(t *testing.T) {
 		TTL:  15 * time.Second,
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
-	obj, err := a.srv.AgentRegisterCheck(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
-	}
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	// Ensure we have a check mapping
 	checkID := structs.NewCheckID("test", nil)
@@ -2577,9 +2566,7 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 		t.Run(tt.name+" as node check", func(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/register", jsonReader(tt.check))
 			resp := httptest.NewRecorder()
-			if _, err := a.srv.AgentRegisterCheck(resp, req); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			a.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
 				t.Fatalf("bad: %d", resp.Code)
 			}
@@ -2594,9 +2581,7 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 
 			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 			resp := httptest.NewRecorder()
-			if _, err := a.srv.AgentRegisterService(resp, req); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			a.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
 				t.Fatalf("bad: %d", resp.Code)
 			}
@@ -2611,9 +2596,7 @@ func TestAgent_RegisterCheck_Scripts(t *testing.T) {
 
 			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
 			resp := httptest.NewRecorder()
-			if _, err := a.srv.AgentRegisterService(resp, req); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+			a.srv.h.ServeHTTP(resp, req)
 			if resp.Code != http.StatusOK {
 				t.Fatalf("bad: %d", resp.Code)
 			}
@@ -2638,12 +2621,12 @@ func TestAgent_RegisterCheckScriptsExecDisable(t *testing.T) {
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/register?token=abc123", jsonReader(args))
 	res := httptest.NewRecorder()
-	_, err := a.srv.AgentRegisterCheck(res, req)
-	if err == nil {
-		t.Fatalf("expected error but got nil")
+	a.srv.h.ServeHTTP(res, req)
+	if http.StatusInternalServerError != res.Code {
+		t.Fatalf("expected 500 code error but got %v", res.Code)
 	}
-	if !strings.Contains(err.Error(), "Scripts are disabled on this agent") {
-		t.Fatalf("expected script disabled error, got: %s", err)
+	if !strings.Contains(res.Body.String(), "Scripts are disabled on this agent") {
+		t.Fatalf("expected script disabled error, got: %s", res.Body.String())
 	}
 	checkID := structs.NewCheckID("test", nil)
 	require.Nil(t, a.State.Check(checkID), "check registered with exec disabled")
