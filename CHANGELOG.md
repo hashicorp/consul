@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.17 (November 11, 2021)
 
 IMPROVEMENTS:
 
