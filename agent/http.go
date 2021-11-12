@@ -734,7 +734,7 @@ func setMeta(resp http.ResponseWriter, m structs.QueryMetaCompat) {
 	setKnownLeader(resp, m.GetKnownLeader())
 	setConsistency(resp, m.GetConsistencyLevel())
 	setQueryBackend(resp, m.GetBackend())
-	setFilteredByACLs(resp, m.GetFilteredByACLs())
+	setFilteredByACLs(resp, m.GetResultsFilteredByACLs())
 }
 
 func setQueryBackend(resp http.ResponseWriter, backend structs.QueryBackend) {

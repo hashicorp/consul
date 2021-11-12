@@ -2453,7 +2453,7 @@ func TestSnapshotRequestResponse_MsgpackEncodeDecode(t *testing.T) {
 				LastContact:      5 * time.Second,
 				KnownLeader:      true,
 				ConsistencyLevel: "default",
-				FilteredByACLs:   true,
+				ResultsFilteredByACLs:   true,
 			},
 		}
 		TestMsgpackEncodeDecode(t, in, true)

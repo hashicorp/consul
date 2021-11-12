@@ -307,10 +307,10 @@ func TestSetLastContact(t *testing.T) {
 func TestSetMeta(t *testing.T) {
 	t.Parallel()
 	meta := structs.QueryMeta{
-		Index:          1000,
-		KnownLeader:    true,
-		LastContact:    123456 * time.Microsecond,
-		FilteredByACLs: true,
+		Index:                 1000,
+		KnownLeader:           true,
+		LastContact:           123456 * time.Microsecond,
+		ResultsFilteredByACLs: true,
 	}
 	resp := httptest.NewRecorder()
 	setMeta(resp, &meta)
