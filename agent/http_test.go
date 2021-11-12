@@ -264,6 +264,22 @@ func TestSetKnownLeader(t *testing.T) {
 	}
 }
 
+func TestSetFilteredByACLs(t *testing.T) {
+	t.Parallel()
+	resp := httptest.NewRecorder()
+	setFilteredByACLs(resp, true)
+	header := resp.Header().Get("X-Consul-FilteredByACLs")
+	if header != "true" {
+		t.Fatalf("Bad: %v", header)
+	}
+	resp = httptest.NewRecorder()
+	setFilteredByACLs(resp, false)
+	header = resp.Header().Get("X-Consul-FilteredByACLs")
+	if header != "" {
+		t.Fatalf("Bad: %v", header)
+	}
+}
+
 func TestSetLastContact(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -291,23 +307,24 @@ func TestSetLastContact(t *testing.T) {
 func TestSetMeta(t *testing.T) {
 	t.Parallel()
 	meta := structs.QueryMeta{
-		Index:       1000,
-		KnownLeader: true,
-		LastContact: 123456 * time.Microsecond,
+		Index:          1000,
+		KnownLeader:    true,
+		LastContact:    123456 * time.Microsecond,
+		FilteredByACLs: true,
 	}
 	resp := httptest.NewRecorder()
 	setMeta(resp, &meta)
-	header := resp.Header().Get("X-Consul-Index")
-	if header != "1000" {
-		t.Fatalf("Bad: %v", header)
+
+	testCases := map[string]string{
+		"X-Consul-Index":          "1000",
+		"X-Consul-KnownLeader":    "true",
+		"X-Consul-LastContact":    "123",
+		"X-Consul-FilteredByACLs": "true",
 	}
-	header = resp.Header().Get("X-Consul-KnownLeader")
-	if header != "true" {
-		t.Fatalf("Bad: %v", header)
-	}
-	header = resp.Header().Get("X-Consul-LastContact")
-	if header != "123" {
-		t.Fatalf("Bad: %v", header)
+	for header, expectedValue := range testCases {
+		if v := resp.Header().Get(header); v != expectedValue {
+			t.Fatalf("expected %q for header %s got %q", expectedValue, header, v)
+		}
 	}
 }
 
