@@ -144,7 +144,20 @@ type delegate interface {
 	// This is limited to segments and partitions that the node is a member of.
 	LANMembers(f consul.LANMemberFilter) ([]serf.Member, error)
 
-	// GetLANCoordinate returns the coordinate of the node in the LAN gossip pool.
+	// GetLANCoordinate returns the coordinate of the node in the LAN gossip
+	// pool.
+	//
+	// - Clients return a single coordinate for the single gossip pool they are
+	//   in (default, segment, or partition).
+	//
+	// - Servers return one coordinate for their canonical gossip pool (i.e.
+	//   default partition/segment) and one per segment they are also ancillary
+	//   members of.
+	//
+	// NOTE: servers do not emit coordinates for partitioned gossip pools they
+	// are ancillary members of.
+	//
+	// NOTE: This assumes coordinates are enabled, so check that before calling.
 	GetLANCoordinate() (lib.CoordinateSet, error)
 
 	// JoinLAN is used to have Consul join the inner-DC pool The target address
@@ -1264,6 +1277,7 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 	var segments []consul.NetworkSegment
 
 	for _, s := range config.Segments {
+		// TODO: use consul.CloneSerfLANConfig(config.SerfLANConfig) here?
 		serfConf := consul.DefaultConfig().SerfLANConfig
 
 		serfConf.MemberlistConfig.BindAddr = s.Bind.IP.String()
@@ -1541,10 +1555,6 @@ func (a *Agent) RefreshPrimaryGatewayFallbackAddresses(addrs []string) error {
 // ForceLeave is used to remove a failed node from the cluster
 func (a *Agent) ForceLeave(node string, prune bool, entMeta *structs.EnterpriseMeta) (err error) {
 	a.logger.Info("Force leaving node", "node", node)
-	// TODO(partitions): merge IsMember into the RemoveFailedNode call.
-	if ok := a.IsMember(node); !ok {
-		return fmt.Errorf("agent: No node found with name '%s'", node)
-	}
 	err = a.delegate.RemoveFailedNode(node, prune, entMeta)
 	if err != nil {
 		a.logger.Warn("Failed to remove node",
@@ -1583,18 +1593,6 @@ func (a *Agent) WANMembers() []serf.Member {
 		return srv.WANMembers()
 	}
 	return nil
-}
-
-// IsMember is used to check if a node with the given nodeName
-// is a member
-func (a *Agent) IsMember(nodeName string) bool {
-	for _, m := range a.LANMembersInAgentPartition() {
-		if m.Name == nodeName {
-			return true
-		}
-	}
-
-	return false
 }
 
 // StartSync is called once Services and Checks are registered.

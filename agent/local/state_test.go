@@ -2042,6 +2042,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0

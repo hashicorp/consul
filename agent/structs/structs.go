@@ -2591,11 +2591,16 @@ type KeyringResponse struct {
 	WAN         bool
 	Datacenter  string
 	Segment     string
+	Partition   string            `json:",omitempty"`
 	Messages    map[string]string `json:",omitempty"`
 	Keys        map[string]int
 	PrimaryKeys map[string]int
 	NumNodes    int
 	Error       string `json:",omitempty"`
+}
+
+func (r *KeyringResponse) PartitionOrDefault() string {
+	return PartitionOrDefault(r.Partition)
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each
