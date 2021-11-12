@@ -2950,12 +2950,11 @@ func TestAgent_PassCheck(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/pass/test", nil)
-	obj, err := a.srv.AgentCheckPass(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expected 200 by got %v", resp.Code)
 	}
 
 	// Ensure we have a check mapping
@@ -2983,16 +2982,16 @@ func TestAgent_PassCheck_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/pass/test", nil)
-		if _, err := a.srv.AgentCheckPass(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/pass/test?token=root", nil)
-		if _, err := a.srv.AgentCheckPass(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -3013,12 +3012,11 @@ func TestAgent_WarnCheck(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/warn/test", nil)
-	obj, err := a.srv.AgentCheckWarn(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expected 200 by got %v", resp.Code)
 	}
 
 	// Ensure we have a check mapping
@@ -3046,16 +3044,16 @@ func TestAgent_WarnCheck_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/warn/test", nil)
-		if _, err := a.srv.AgentCheckWarn(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/warn/test?token=root", nil)
-		if _, err := a.srv.AgentCheckWarn(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -3076,12 +3074,11 @@ func TestAgent_FailCheck(t *testing.T) {
 	}
 
 	req, _ := http.NewRequest("PUT", "/v1/agent/check/fail/test", nil)
-	obj, err := a.srv.AgentCheckFail(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expected 200 by got %v", resp.Code)
 	}
 
 	// Ensure we have a check mapping
@@ -3109,16 +3106,16 @@ func TestAgent_FailCheck_ACLDeny(t *testing.T) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/fail/test", nil)
-		if _, err := a.srv.AgentCheckFail(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/fail/test?token=root", nil)
-		if _, err := a.srv.AgentCheckFail(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -3149,14 +3146,8 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		t.Run(c.Status, func(t *testing.T) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(c))
 			resp := httptest.NewRecorder()
-			obj, err := a.srv.AgentCheckUpdate(resp, req)
-			if err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if obj != nil {
-				t.Fatalf("bad: %v", obj)
-			}
-			if resp.Code != 200 {
+			a.srv.h.ServeHTTP(resp, req)
+			if resp.Code != http.StatusOK {
 				t.Fatalf("expected 200, got %d", resp.Code)
 			}
 
@@ -3174,14 +3165,8 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.AgentCheckUpdate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if obj != nil {
-			t.Fatalf("bad: %v", obj)
-		}
-		if resp.Code != 200 {
+		a.srv.h.ServeHTTP(resp, req)
+		if resp.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.Code)
 		}
 
@@ -3198,14 +3183,8 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		args := checkUpdate{Status: "itscomplicated"}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
 		resp := httptest.NewRecorder()
-		obj, err := a.srv.AgentCheckUpdate(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if obj != nil {
-			t.Fatalf("bad: %v", obj)
-		}
-		if resp.Code != 400 {
+		a.srv.h.ServeHTTP(resp, req)
+		if resp.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d", resp.Code)
 		}
 	})
@@ -3230,17 +3209,17 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 	t.Run("no token", func(t *testing.T) {
 		args := checkUpdate{api.HealthPassing, "hello-passing"}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test", jsonReader(args))
-		if _, err := a.srv.AgentCheckUpdate(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		args := checkUpdate{api.HealthPassing, "hello-passing"}
 		req, _ := http.NewRequest("PUT", "/v1/agent/check/update/test?token=root", jsonReader(args))
-		if _, err := a.srv.AgentCheckUpdate(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -3288,13 +3267,10 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 		},
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
-
-	obj, err := a.srv.AgentRegisterService(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if obj != nil {
-		t.Fatalf("bad: %v", obj)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	if http.StatusOK != resp.Code {
+		t.Fatalf("expected 200 but got %v", resp.Code)
 	}
 
 	// Ensure the service
@@ -3377,8 +3353,9 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 		},
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
-	_, err := a.srv.AgentRegisterService(nil, req)
-	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	args = &structs.ServiceDefinition{
 		Name: "test",
@@ -3401,8 +3378,9 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 		},
 	}
 	req, _ = http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
-	_, err = a.srv.AgentRegisterService(nil, req)
-	require.NoError(t, err)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Equal(t, 3, len(checks))
@@ -3457,8 +3435,9 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 		},
 	}
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?replace-existing-checks", jsonReader(args))
-	_, err := a.srv.AgentRegisterService(nil, req)
-	require.NoError(t, err)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	args = &structs.ServiceDefinition{
 		Name: "test",
@@ -3480,8 +3459,9 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 		},
 	}
 	req, _ = http.NewRequest("PUT", "/v1/agent/service/register?replace-existing-checks", jsonReader(args))
-	_, err = a.srv.AgentRegisterService(nil, req)
-	require.NoError(t, err)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	checks := a.State.Checks(structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.Len(t, checks, 2)
@@ -3609,9 +3589,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 			req, _ := http.NewRequest("PUT", "/v1/agent/service/register", strings.NewReader(json))
 
 			rr := httptest.NewRecorder()
-			obj, err := a.srv.AgentRegisterService(rr, req)
-			require.NoError(t, err)
-			require.Nil(t, obj)
+			a.srv.h.ServeHTTP(rr, req)
 			require.Equal(t, 200, rr.Code, "body: %s", rr.Body)
 
 			svc := &structs.NodeService{
@@ -3761,16 +3739,16 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 
 	t.Run("no token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
-		if _, err := a.srv.AgentRegisterService(nil, req); !acl.IsErrPermissionDenied(err) {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusForbidden, resp.Code)
 	})
 
 	t.Run("root token", func(t *testing.T) {
 		req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=root", jsonReader(args))
-		if _, err := a.srv.AgentRegisterService(nil, req); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
 	})
 }
 
@@ -3805,10 +3783,7 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 			}
 			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
 			resp := httptest.NewRecorder()
-			_, err := a.srv.AgentRegisterService(resp, req)
-			if err != nil {
-				t.Fatalf("got error %v want nil", err)
-			}
+			a.srv.h.ServeHTTP(resp, req)
 			if got, want := resp.Code, 400; got != want {
 				t.Fatalf("got code %d want %d", got, want)
 			}
@@ -3873,9 +3848,8 @@ func testAgent_RegisterService_UnmanagedConnectProxy(t *testing.T, extraHCL stri
 
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token=abc123", jsonReader(args))
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.AgentRegisterService(resp, req)
-	require.NoError(t, err)
-	require.Nil(t, obj)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	// Ensure the service
 	sid := structs.NewServiceID("connect-proxy", nil)
@@ -3952,10 +3926,14 @@ func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 	}
 	req, _ := http.NewRequest("PUT", "/v1/acl/token?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.ACLTokenCreate(resp, req)
-	require.NoError(t, err)
-	require.NotNil(t, obj)
-	aclResp := obj.(*structs.ACLToken)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	dec := json.NewDecoder(resp.Body)
+	aclResp := &structs.ACLToken{}
+	if err := dec.Decode(aclResp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	return aclResp.SecretID
 }
 
@@ -3966,10 +3944,14 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 	}
 	req, _ := http.NewRequest("PUT", "/v1/acl/policy?token=root", jsonReader(args))
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.ACLPolicyCreate(resp, req)
-	require.NoError(t, err)
-	require.NotNil(t, obj)
-	aclResp := obj.(*structs.ACLPolicy)
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	dec := json.NewDecoder(resp.Body)
+	aclResp := &structs.ACLPolicy{}
+	if err := dec.Decode(aclResp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	return aclResp.ID
 }
 
@@ -4401,15 +4383,11 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 
 			req, _ := http.NewRequest("PUT", "/v1/agent/service/register?token="+token, br)
 			resp := httptest.NewRecorder()
-			obj, err := a.srv.AgentRegisterService(resp, req)
+			a.srv.h.ServeHTTP(resp, req)
 			if tt.wantErr != "" {
-				require.Error(err, "response code=%d, body:\n%s",
-					resp.Code, resp.Body.String())
-				require.Contains(strings.ToLower(err.Error()), strings.ToLower(tt.wantErr))
+				require.Contains(strings.ToLower(resp.Body.String()), strings.ToLower(tt.wantErr))
 				return
 			}
-			require.NoError(err)
-			assert.Nil(obj)
 			require.Equal(200, resp.Code, "request failed with body: %s",
 				resp.Body.String())
 
@@ -4418,7 +4396,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 
 			// Parse the expected definition into a ServiceDefinition
 			var sd structs.ServiceDefinition
-			err = json.Unmarshal([]byte(tt.json), &sd)
+			err := json.Unmarshal([]byte(tt.json), &sd)
 			require.NoError(err)
 			require.NotEmpty(sd.Name)
 
@@ -4459,9 +4437,8 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				req := httptest.NewRequest("PUT",
 					"/v1/agent/service/deregister/"+svcID+"?token="+token, nil)
 				resp := httptest.NewRecorder()
-				obj, err := a.srv.AgentDeregisterService(resp, req)
-				require.NoError(err)
-				require.Nil(obj)
+				a.srv.h.ServeHTTP(resp, req)
+				require.Equal(http.StatusOK, resp.Code)
 
 				svcs := a.State.AllServices()
 				_, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
