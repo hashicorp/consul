@@ -24,7 +24,7 @@ $syntax-dark-gray: #535f73;
   --syntax-yellow: rgb(var(--tone-yellow-500));
 }
 .CodeMirror {
-  max-width: 1150px;
+  max-width: 1260px;
   min-height: 300px;
   height: auto;
   /* adds some space at the bottom of the editor for when a horizonal-scroll has appeared */
@@ -183,6 +183,38 @@ $syntax-dark-gray: #535f73;
 
     span.cm-variable-2 {
       color: var(--syntax-light-grey-blue);
+    }
+  }
+}
+
+%code-editor {
+  .toolbar-container {
+    background: rgb(var(--tone-gray-050));
+    background: linear-gradient(
+      180deg,
+      rgb(var(--tone-gray-050)) 50%,
+      rgb(var(--tone-gray-150)) 100%
+    );
+    border: 1px solid rgb(var(--tone-gray-150));
+    border-bottom-color: rgb(var(--tone-gray-600));
+    border-top-color: rgb(var(--tone-gray-400));
+
+    .toolbar {
+      .title {
+        color: rgb(var(--tone-gray-900));
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .toolbar-separator {
+        border-right: 1px solid rgb(var(--tone-gray-300));
+      }
+    }
+    .ember-power-select-trigger {
+      background-color: rgb(var(--tone-gray-000));
+      color: rgb(var(--tone-gray-999));
+      border-radius: var(--decor-radius-100);
+      border: var(--decor-border-100);
+      border-color: rgb(var(--tone-gray-700));
     }
   }
 }

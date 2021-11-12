@@ -3,23 +3,9 @@
   border: 10px;
   overflow: hidden;
   position: relative;
+  clear: both;
 }
-%code-editor .ember-power-select-trigger {
-  @extend %code-editor-syntax-select;
-}
-%code-editor-syntax-select {
-  width: 200px;
-  float: right;
-  z-index: 1;
-}
-%code-editor-syntax-select {
-  margin-top: 1px;
-  border: 0;
-  background-color: rgb(var(--black));
-  color: rgb(var(--white));
-  border-left: 1px solid;
-  border-radius: 0;
-}
+
 %code-editor::after {
   position: absolute;
   bottom: 0px;
@@ -31,4 +17,52 @@
 }
 %code-editor > pre {
   display: none;
+}
+
+%code-editor {
+  .toolbar-container,
+  .toolbar-container .toolbar {
+    align-items: center;
+    justify-content: space-between;
+    display: flex;
+  }
+
+  .toolbar-container {
+    position: relative;
+    margin-top: 4px;
+    height: 44px;
+
+    .toolbar {
+      flex: 1;
+      white-space: nowrap;
+
+      .title {
+        padding: 0 8px;
+      }
+
+      .toolbar-separator {
+        height: 32px;
+        margin: 0 4px;
+        width: 0;
+      }
+
+      .tools {
+        display: flex;
+        flex-direction: row;
+        margin: 0 10px;
+        align-items: center;
+        .copy-button {
+          margin-left: 10px;
+        }
+      }
+    }
+    .ember-basic-dropdown-trigger {
+      margin: 0 8px;
+      width: 120px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      flex-direction: row;
+    }
+  }
 }

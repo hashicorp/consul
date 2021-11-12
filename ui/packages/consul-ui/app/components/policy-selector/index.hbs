@@ -114,28 +114,45 @@
           </dl>
 {{/if}}
           <label class="type-text">
-            <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template 'service-identity')}}
             <CodeEditor
               @syntax="hcl"
               @readonly={{true}}
-            ><Consul::ServiceIdentity::Template
-              @nspace={{nspace}}
-              @name={{item.Name}}
-            /></CodeEditor>
+            >
+              <:label>
+                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+              </:label>
+              <:content>
+                <Consul::ServiceIdentity::Template
+                  @nspace={{nspace}}
+                  @name={{item.Name}}
+                />
+              </:content>
+            </CodeEditor>
 {{else if (eq item.template 'node-identity')}}
             <CodeEditor
               @syntax="hcl"
               @readonly={{true}}
-            ><Consul::NodeIdentity::Template
-              @name={{item.Name}}
-            /></CodeEditor>
+            >
+              <:label>
+                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+              </:label>
+              <:content>
+                <Consul::NodeIdentity::Template
+                  @name={{item.Name}}
+                />
+              </:content>
+            </CodeEditor>
 {{else}}
             <CodeEditor
               @syntax="hcl"
               @readonly={{true}}
               @value={{or loadedItem.Rules item.Rules}}
-            />
+            >
+              <:label>
+                Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
+              </:label>
+            </CodeEditor>
 {{/if}}
           </label>
 {{#if (not disabled)}}
