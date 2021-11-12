@@ -10,7 +10,7 @@ state: needs-love
     @readonly={{true}}
     @name={{concat name "[Rules]"}}
     @syntax="hcl"
-    @oninput={{action "change" (concat name "[Rules]")}}
+    @oninput={{noop}}
 >
     <:label>
     Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a>
