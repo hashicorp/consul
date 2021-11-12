@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-func makeNode(dc, name, id string, server bool, build string) *serf.Member {
+func makeNodeWithSegment(dc, name, id string, server bool, build string, segment string) *serf.Member {
 	var role string
 	if server {
 		role = "consul"
@@ -23,12 +23,17 @@ func makeNode(dc, name, id string, server bool, build string) *serf.Member {
 			"dc":      dc,
 			"id":      id,
 			"port":    "8300",
+			"segment": segment,
 			"build":   build,
 			"vsn":     "2",
 			"vsn_max": "3",
 			"vsn_min": "2",
 		},
 	}
+}
+
+func makeNode(dc, name, id string, server bool, build string) *serf.Member {
+	return makeNodeWithSegment(dc, name, id, server, build, "")
 }
 
 func TestMerge_LAN(t *testing.T) {
@@ -85,6 +90,18 @@ func TestMerge_LAN(t *testing.T) {
 					"0.9.0"),
 			},
 			expect: "with member",
+		},
+		// Attempting to merge with a cluster on a different segment
+		{
+			members: []*serf.Member{
+				makeNodeWithSegment("dc1",
+					"node1",
+					"6185913b-98d7-4441-bd8f-f7f7d854a4af",
+					true,
+					"0.8.5",
+					"alpha"),
+			},
+			expect: "Member 'node1' part of wrong segment 'alpha', must be on same segment (<default>) as member 'node0'",
 		},
 		// Cluster with existing conflicting node IDs, but version is
 		// old enough to skip the check.

@@ -82,8 +82,26 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 		}
 
 		if segment := m.Tags["segment"]; segment != md.segment {
-			return fmt.Errorf("Member '%s' part of wrong segment '%s' (expected '%s')",
-				m.Name, segment, md.segment)
+			// Format segment names for printing:
+			// - Empty segment -> <default>
+			// - Non-empty     -> wrap in ''
+			var segmentFormatted string
+			var mdSegmentFormatted string
+
+			if segment == "" {
+				segmentFormatted = `<default>`
+			} else {
+				segmentFormatted = `'` + segment + `'`
+			}
+
+			if md.segment == "" {
+				mdSegmentFormatted = `<default>`
+			} else {
+				mdSegmentFormatted = `'` + md.segment + `'`
+			}
+
+			return fmt.Errorf("Member '%s' part of wrong segment %s, must be on same segment (%s) as member '%s'",
+				m.Name, segmentFormatted, mdSegmentFormatted, md.nodeName)
 		}
 	}
 	return nil
