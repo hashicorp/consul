@@ -41,7 +41,7 @@ This diagram shows the timeline of a task starting up and all its containers:
 
 ### Task Shutdown
 
-Graceful shutdown is supported when deploying Consul on ECS, which means the following:
+Graceful shutdown is supported when deploying Consul on ECS, which is done by the following:
 
 * No incoming traffic from the mesh is directed to this task during shutdown.
 * Outgoing traffic to the mesh is possible during shutdown.
@@ -63,25 +63,25 @@ This diagram shows an example timeline of a task shutting down:
   - Updates about this task have reached the rest of the Consul cluster, which means downstream proxies are updated to stop sending traffic to this task.
 - **T3**: All containers have exited
   - `consul-client` finishes gracefully leaving the Consul datacenter and exits.
-  - ECS notices all containers have exited, and will soon put change the Task status to `STOPPED`
+  - ECS notices all containers have exited, and will soon change the Task status to `STOPPED`
 - **T4**: (Not applicable to this example, but if any conatiners are still running at this point, ECS forcefully stops them by sending a KILL signal)
 
 #### Task Shutdown: Completely Avoiding Application Errors
 
-Because Consul service mesh is a distributed, eventually consistent system that is subject to network latency, it is hard to achieve a perfect graceful shutdown.
+Consul service mesh is a distributed and eventually-consistent system subject to network latency, so gracefully shutting down Consul is not always successful.
 
-In particular, you may have noticed the following issue in example above, where it is possible that an application that has exited still receives incoming traffic:
+In some cases, an exited application can receive incoming traffic. The following example of this behavior draws on the timeline described above:
 
 * The `user-app` container exits in **T0**
-* Afterwards in **T2**, downstream services are updated to no longer send traffic to this task
+* During **T2**, downstream services are updated to stop sending traffic to this task.
 
-As a result, downstream applications will see errors when requests are directed to this instance. This can occur for a short period (seconds or less) at the beginning of task shutdown, until the rest of the Consul cluster knows to avoid sending traffic to this instance.
+As a result, downstream applications will report errors when requests are directed to this instance. Errors can be reported for a short period (seconds or less) at the beginning of task shutdown. Applications will stop reporting errors when all nodes in the Consul cluster have instructions to stop sending traffic to this instance.
 
-Here are a couple of approaches to address this issue:
+Use the following methods to resolve this issue:
 
-1. Modify your application container continue running for a short period of time into task shutdown. By doing this, the application is running to respond to incoming requests successfully at the beginning of task shutdown. This allows time for the Consul cluster to update downstream proxies to stop sending traffic to this task.
+1. Modify your application container to continue running for a short period of time into task shutdown. By doing this, the application continues responding to incoming requests successfully at the beginning of task shutdown. This allows time for the Consul cluster to update downstream proxies to stop sending traffic to this task.
 
-   One way to accomplish this with an entrypoint override for your application container which ignores the TERM signal sent by ECS. Here is an example shell script:
+   You can accomplish this by using an entrypoint override for your application container. Entrypoint overrides ignore the TERM signal sent by ECS. The following shell script contains an entrypoint override:
 
    ```bash
    # Run the provided command in a background subprocess.
@@ -130,7 +130,7 @@ Here are a couple of approaches to address this issue:
 
 2. If the traffic is HTTP(S), you can enable retry logic through Consul Connect [Service Router](/docs/connect/config-entries/service-router). This will configure proxies retry when receiving an error. When Envoy receives a failed request an upstream service, it can retry the request to a different instance of that service that may be able to respond successfully.
 
-   To enable retries through Service Router for a service named `example`, first ensure the configured protocol to `http`:
+   To enable retries through Service Router for a service named `example`, first ensure the configured protocol is `http`:
 
    ```hcl
    Kind = "service-defaults"
@@ -138,13 +138,13 @@ Here are a couple of approaches to address this issue:
    Protocol = "http"
    ```
 
-   The apply the config entry:
+   Apply the config entry:
 
    ```shell-session
    $ consul config write example-defaults.hcl
    ```
 
-   The add retry settings for the service:
+   Add retry settings for the service:
 
    ```hcl
    Kind = "service-router"
