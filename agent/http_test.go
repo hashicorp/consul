@@ -267,14 +267,14 @@ func TestSetKnownLeader(t *testing.T) {
 func TestSetFilteredByACLs(t *testing.T) {
 	t.Parallel()
 	resp := httptest.NewRecorder()
-	setFilteredByACLs(resp, true)
-	header := resp.Header().Get("X-Consul-FilteredByACLs")
+	setResultsFilteredByACLs(resp, true)
+	header := resp.Header().Get("X-Consul-Results-Filtered-By-ACLs")
 	if header != "true" {
 		t.Fatalf("Bad: %v", header)
 	}
 	resp = httptest.NewRecorder()
-	setFilteredByACLs(resp, false)
-	header = resp.Header().Get("X-Consul-FilteredByACLs")
+	setResultsFilteredByACLs(resp, false)
+	header = resp.Header().Get("X-Consul-Results-Filtered-By-ACLs")
 	if header != "" {
 		t.Fatalf("Bad: %v", header)
 	}
@@ -316,10 +316,10 @@ func TestSetMeta(t *testing.T) {
 	setMeta(resp, &meta)
 
 	testCases := map[string]string{
-		"X-Consul-Index":          "1000",
-		"X-Consul-KnownLeader":    "true",
-		"X-Consul-LastContact":    "123",
-		"X-Consul-FilteredByACLs": "true",
+		"X-Consul-Index":                    "1000",
+		"X-Consul-KnownLeader":              "true",
+		"X-Consul-LastContact":              "123",
+		"X-Consul-Results-Filtered-By-ACLs": "true",
 	}
 	for header, expectedValue := range testCases {
 		if v := resp.Header().Get(header); v != expectedValue {
