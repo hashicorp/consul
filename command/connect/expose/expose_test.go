@@ -43,6 +43,7 @@ func TestConnectExpose(t *testing.T) {
 	entry, _, err := client.ConfigEntries().Get(api.IngressGateway, "ingress", nil)
 	require.NoError(err)
 	ns := entry.(*api.IngressGatewayConfigEntry).Namespace
+	ap := entry.(*api.IngressGatewayConfigEntry).Partition
 	expected := &api.IngressGatewayConfigEntry{
 		Kind:      api.IngressGateway,
 		Name:      "ingress",
