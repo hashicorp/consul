@@ -26,6 +26,9 @@ type AdminPartition struct {
 	ModifyIndex uint64 `json:"ModifyIndex,omitempty"`
 }
 
+// PartitionDefaultName is the default partition value.
+const PartitionDefaultName = "default"
+
 type AdminPartitions struct {
 	Partitions []*AdminPartition
 }
