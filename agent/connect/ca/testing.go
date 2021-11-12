@@ -168,8 +168,11 @@ func runTestVault(t testing.T) (*TestVaultServer, error) {
 		returnPortsFn: returnPortsFn,
 	}
 	t.Cleanup(func() {
-		testVault.Stop()
+		if err := testVault.Stop(); err != nil {
+			t.Log("failed to stop vault server: %w", err)
+		}
 	})
+
 	return testVault, nil
 }
 
