@@ -1,0 +1,208 @@
+---
+layout: docs
+page_title: 'Configuration Entry Kind: Partition Exports'
+description: >-
+  The partition-exports configuration entry enables you to export services from a single file.
+  Settings in this config entry apply across all namespaces and federated datacenters.
+  Write access to the mesh resource is required.
+---
+
+# Partition Exports
+
+This topic describes the `partition-exports` configuration entry type. The `partition-exports` configuration entry enables Consul to export copies of services to other admin partitions from a single file. This enables your services to be networked across admin partitions.    
+
+-> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
+
+## Introduction
+
+You can configure Consul to export services from one admin partition to one or more additional partitions by declaring the `partition-exports` configuration entry in the `kind` field. 
+Settings defined in the `partition-exports` configuration entry apply across all namespaces and federated datacenters.
+
+TO DO: More background info and info about the use case(s).
+
+## Requirements
+
+The consumer partition must have an `upstream` configuration that specifies the destination for the services. The upstream configuration \<DOES WHAT?>.
+
+Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for information on how to configure the upstream.
+
+## Usage
+
+1. Verify that your datacenter meets the conditions specified in the [Requirements](#requirements).
+1. Specify the `partition-exports` configuration in the agent configuration file as described in [Configuration](#configuration).
+1. Deploy the configuration per your runtime:
+    * [VM](/docs/install) 
+    * [Kubernetes](/docs/k8s/installation/install) 
+
+## Configuration
+
+Configure the following parameters to define a `partition-exports` configuration entry:
+
+<CodeTabs heading="Partition exports configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<CodeBlockConfig>
+
+```hcl
+Kind = "partition-exports"
+Partition = "<partition containing services to export>"
+Services = [
+  {
+    Name = "<name of service to export>"
+    Namespace = "<namespace of namespace in the partition>"  
+    Consumers = [
+      {
+        Partition = "<name of destination partition>"
+      },      
+    ]
+  }
+]
+```
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+Kind: PartitionExports
+Partition: <partition containing services to export>
+Services:
+- Consumers:
+  - Partition: <name of destination partition>
+  Name: <name of service to export>
+  Namespace: <namespace of namespace in the partition>
+```
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```json
+"Kind": "partition-exports",
+"Partition": "<partition containing services to export>",
+"Services": [
+  {
+    "Consumers": [
+      {
+        "Partition": "<name of destination partition>"
+      }
+    ],
+    "Name": "<name of service to export>",
+    "Namespace": "<namespace of namespace in the partition>"
+  }
+]
+```
+</CodeBlockConfig>
+</CodeTabs>
+
+### Configuration Parameters
+
+The following table describes the parameters associated with the `partition-exports` configuration entry.
+
+| Parameter | Description | Required | Default |
+| ---       | ---         | ---      | ---     |
+| `Kind`    | String value that enables the configuration entry. The value should always be `partition-exports` (HCL and JSON) or `PartitionExports` (YAML) | Required | None |
+| `Partition` | String value that specifies the name of the partition that contains the services you want to export. | Required | None |
+| `Services` | List of objects that specify which services to export. See [`Services`](#services) for details. | Required | None| 
+| `Meta` | Object that defines a map of the max 64 key/value pairs. | Optional | None |
+
+#### `Services`
+
+The `Services` parameter contains one or more lists of parameters that specify which services to export, which namespaces the services reside, and the destination partition for the exported services. Each list in the `Services` block must contain the following parameters:
+
+* `Name`: Specifies the name of the service to export. You can use a asterisk wildcard (`*`) to include all services in the namespace. 
+* `Namespace`: Specifies the name space containing the services to export. You can use a asterisk wildcard (`*`) to include all namespaces in the partition.
+* `Consumers`: Specifies one ore more objects that identify a destination partition for the exported services. 
+
+## Example
+
+The following example configures the agent to export the `billing` service from the `default` namespace of the `finance` admin partition to the `frontend` and `backend` partitions. Additionally, all services in all namespaces within the `finance` partition will be exported to the `monitoring` partition. 
+
+<CodeTabs heading="" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<CodeBlockConfig>
+
+```hcl
+Kind = "partition-exports" 
+Partition = "finance"
+
+Services = [
+  {
+    Name = "billing"
+    Namespace = "default"
+    Consumers = [
+        {
+            Partition  = "frontend"
+        },
+        {
+            Partition  = "backend"
+        }
+    ]
+  },
+  {
+    Name      = "*"
+    Namespace = "*"
+    Consumers = [
+        {
+            Partition  = "monitoring"
+        }
+    ]
+  }
+]
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```yaml
+Kind: partition-exports
+Partition: finance
+Services:
+- Consumers:
+  - Partition: frontend
+  - Partition: backend
+  Name: billing
+  Namespace: default
+- Consumers:
+  - Partition: monitoring
+  Name: '*'
+  Namespace: '*'
+```
+
+</CodeBlockConfig>
+<CodeBlockConfig>
+
+```json
+"Kind": "partition-exports",
+  "Partition": "finance",
+  "Services": [
+    {
+      "Consumers": [
+        {
+          "Partition": "frontend"
+        },
+        {
+          "Partition": "backend"
+        }
+      ],
+      "Name": "billing",
+      "Namespace": "default"
+    },
+    {
+      "Consumers": [
+        {
+          "Partition": "monitoring"
+        }
+      ],
+      "Name": "*",
+      "Namespace": "*"
+    }
+  ]
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+## Reading Services
+
+When an exported service has been imported to another partition, you can use the `health` REST API endpoint to query the service on the consumer partition. The following example queries the `finance` partition for the imported `billing` service:
+
+```shell-session
+$ curl 'localhost:8500/v1/health/connect/billing?partition=finance'
+```
+
+See [Health HTTP Endpoing](/api-docs/health) for additional information.
