@@ -1347,6 +1347,13 @@ func entrySetToKindNames(entrySet *structs.DiscoveryChainConfigEntries) []Config
 			&entry.EnterpriseMeta,
 		))
 	}
+	for _, entry := range entrySet.ProxyDefaults {
+		out = append(out, NewConfigEntryKindName(
+			entry.Kind,
+			entry.Name,
+			&entry.EnterpriseMeta,
+		))
+	}
 	return out
 }
 

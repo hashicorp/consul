@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
@@ -4085,6 +4086,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 								Service:               "carrot",
 								ServiceSubset:         "kale",
 								Namespace:             "leek",
+								Partition:             acl.DefaultPartitionName,
 								PrefixRewrite:         "/alternate",
 								RequestTimeout:        99 * time.Second,
 								NumRetries:            12345,

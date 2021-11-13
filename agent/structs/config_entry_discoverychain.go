@@ -119,6 +119,9 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		if route.Destination != nil && route.Destination.Namespace == "" {
 			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
 		}
+		if route.Destination != nil && route.Destination.Partition == "" {
+			route.Destination.Partition = e.EnterpriseMeta.PartitionOrEmpty()
+		}
 	}
 
 	return nil
@@ -381,6 +384,13 @@ type ServiceRouteDestination struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
+	// Partition is the partition to resolve the service from instead of the
+	// current partition. If empty the current partition is assumed.
+	//
+	// If this field is specified then this route is ineligible for further
+	// splitting.
+	Partition string `json:",omitempty"`
+
 	// PrefixRewrite allows for the proxied request to have its matching path
 	// prefix modified before being sent to the destination. Described more
 	// below in the envoy implementation section.
@@ -557,8 +567,8 @@ func (e *ServiceSplitterConfigEntry) Validate() error {
 		}
 		if _, ok := found[splitKey]; ok {
 			return fmt.Errorf(
-				"split destination occurs more than once: service=%q, subset=%q, namespace=%q",
-				splitKey.Service, splitKey.ServiceSubset, splitKey.Namespace,
+				"split destination occurs more than once: service=%q, subset=%q, namespace=%q, partition=%q",
+				splitKey.Service, splitKey.ServiceSubset, splitKey.Namespace, splitKey.Partition,
 			)
 		}
 		found[splitKey] = struct{}{}
@@ -665,7 +675,12 @@ type ServiceSplit struct {
 	// splitting.
 	Namespace string `json:",omitempty"`
 
-	// NOTE: Partition is not represented here by design. Do not add it.
+	// Partition is the partition to resolve the service from instead of the
+	// current partition. If empty the current partition is assumed (optional).
+	//
+	// If this field is specified then this route is ineligible for further
+	// splitting.
+	Partition string `json:",omitempty"`
 
 	// NOTE: Any configuration added to Splits that needs to be passed to the
 	// proxy needs special handling MergeParent below.
@@ -930,9 +945,13 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	}
 
 	if e.Redirect != nil {
-		if e.PartitionOrEmpty() != acl.DefaultPartitionName && e.Redirect.Datacenter != "" {
-			return fmt.Errorf("Cross datacenters redirect is not allowed for non default partition")
+		if !e.InDefaultPartition() && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross-datacenter redirect is not supported in non-default partitions")
 		}
+		if PartitionOrDefault(e.Redirect.Partition) != e.PartitionOrDefault() && e.Redirect.Datacenter != "" {
+			return fmt.Errorf("Cross-datacenter and cross-partition redirect is not supported")
+		}
+
 		r := e.Redirect
 
 		if len(e.Failover) > 0 {
@@ -941,7 +960,7 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 
 		// TODO(rb): prevent subsets and default subsets from being defined?
 
-		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Datacenter == "" {
+		if r.Service == "" && r.ServiceSubset == "" && r.Namespace == "" && r.Partition == "" && r.Datacenter == "" {
 			return fmt.Errorf("Redirect is empty")
 		}
 
@@ -951,6 +970,9 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 			}
 			if r.Namespace != "" {
 				return fmt.Errorf("Redirect.Namespace defined without Redirect.Service")
+			}
+			if r.Partition != "" {
+				return fmt.Errorf("Redirect.Partition defined without Redirect.Service")
 			}
 		} else if r.Service == e.Name {
 			if r.ServiceSubset != "" && !isSubset(r.ServiceSubset) {
@@ -962,15 +984,19 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 	if len(e.Failover) > 0 {
 
 		for subset, f := range e.Failover {
-			if e.PartitionOrEmpty() != acl.DefaultPartitionName && len(f.Datacenters) != 0 {
-				return fmt.Errorf("Cross datacenters failover is not allowed for non default partition")
+			if !e.InDefaultPartition() && len(f.Datacenters) != 0 {
+				return fmt.Errorf("Cross-datacenter failover is not supported in non-default partitions")
 			}
+			if PartitionOrDefault(f.Partition) != e.PartitionOrDefault() && len(f.Datacenters) != 0 {
+				return fmt.Errorf("Cross-datacenter and cross-partition failover is not supported")
+			}
+
 			if subset != "*" && !isSubset(subset) {
 				return fmt.Errorf("Bad Failover[%q]: not a valid subset", subset)
 			}
 
-			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && len(f.Datacenters) == 0 {
-				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, or Datacenters is required", subset)
+			if f.Service == "" && f.ServiceSubset == "" && f.Namespace == "" && f.Partition == "" && len(f.Datacenters) == 0 {
+				return fmt.Errorf("Bad Failover[%q] one of Service, ServiceSubset, Namespace, Partition, or Datacenters is required", subset)
 			}
 
 			if f.ServiceSubset != "" {
@@ -1141,6 +1167,10 @@ type ServiceResolverRedirect struct {
 	// current one (optional).
 	Namespace string `json:",omitempty"`
 
+	// Partition is the partition to resolve the service from instead of the
+	// current one (optional).
+	Partition string `json:",omitempty"`
+
 	// Datacenter is the datacenter to resolve the service from instead of the
 	// current one (optional).
 	Datacenter string `json:",omitempty"`
@@ -1171,6 +1201,13 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Namespace string `json:",omitempty"`
+
+	// Partition is the partition to resolve the requested service from to form
+	// the failover group of instances. If empty the current partition is used
+	// (optional).
+	//
+	// This is a DESTINATION during failover.
+	Partition string `json:",omitempty"`
 
 	// Datacenters is a fixed list of datacenters to try. We never try a
 	// datacenter multiple times, so those are subtracted from this list before
@@ -1309,19 +1346,20 @@ func canWriteDiscoveryChain(entry discoveryChainConfigEntry, authz acl.Authorize
 // DiscoveryChainConfigEntries wraps just the raw cross-referenced config
 // entries. None of these are defaulted.
 type DiscoveryChainConfigEntries struct {
-	Routers     map[ServiceID]*ServiceRouterConfigEntry
-	Splitters   map[ServiceID]*ServiceSplitterConfigEntry
-	Resolvers   map[ServiceID]*ServiceResolverConfigEntry
-	Services    map[ServiceID]*ServiceConfigEntry
-	GlobalProxy *ProxyConfigEntry
+	Routers       map[ServiceID]*ServiceRouterConfigEntry
+	Splitters     map[ServiceID]*ServiceSplitterConfigEntry
+	Resolvers     map[ServiceID]*ServiceResolverConfigEntry
+	Services      map[ServiceID]*ServiceConfigEntry
+	ProxyDefaults map[string]*ProxyConfigEntry
 }
 
 func NewDiscoveryChainConfigEntries() *DiscoveryChainConfigEntries {
 	return &DiscoveryChainConfigEntries{
-		Routers:   make(map[ServiceID]*ServiceRouterConfigEntry),
-		Splitters: make(map[ServiceID]*ServiceSplitterConfigEntry),
-		Resolvers: make(map[ServiceID]*ServiceResolverConfigEntry),
-		Services:  make(map[ServiceID]*ServiceConfigEntry),
+		Routers:       make(map[ServiceID]*ServiceRouterConfigEntry),
+		Splitters:     make(map[ServiceID]*ServiceSplitterConfigEntry),
+		Resolvers:     make(map[ServiceID]*ServiceResolverConfigEntry),
+		Services:      make(map[ServiceID]*ServiceConfigEntry),
+		ProxyDefaults: make(map[string]*ProxyConfigEntry),
 	}
 }
 
@@ -1349,6 +1387,13 @@ func (e *DiscoveryChainConfigEntries) GetResolver(sid ServiceID) *ServiceResolve
 func (e *DiscoveryChainConfigEntries) GetService(sid ServiceID) *ServiceConfigEntry {
 	if e.Services != nil {
 		return e.Services[sid]
+	}
+	return nil
+}
+
+func (e *DiscoveryChainConfigEntries) GetProxyDefaults(partition string) *ProxyConfigEntry {
+	if e.ProxyDefaults != nil {
+		return e.ProxyDefaults[partition]
 	}
 	return nil
 }
@@ -1393,6 +1438,16 @@ func (e *DiscoveryChainConfigEntries) AddServices(entries ...*ServiceConfigEntry
 	}
 }
 
+// AddProxyDefaults adds proxy-defaults configs. Convenience function for testing.
+func (e *DiscoveryChainConfigEntries) AddProxyDefaults(entries ...*ProxyConfigEntry) {
+	if e.ProxyDefaults == nil {
+		e.ProxyDefaults = make(map[string]*ProxyConfigEntry)
+	}
+	for _, entry := range entries {
+		e.ProxyDefaults[entry.PartitionOrDefault()] = entry
+	}
+}
+
 // AddEntries adds generic configs. Convenience function for testing. Panics on
 // operator error.
 func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
@@ -1410,7 +1465,7 @@ func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
 			if entry.GetName() != ProxyConfigGlobal {
 				panic("the only supported proxy-defaults name is '" + ProxyConfigGlobal + "'")
 			}
-			e.GlobalProxy = entry.(*ProxyConfigEntry)
+			e.AddProxyDefaults(entry.(*ProxyConfigEntry))
 		default:
 			panic("unhandled config entry kind: " + entry.GetKind())
 		}
@@ -1418,7 +1473,7 @@ func (e *DiscoveryChainConfigEntries) AddEntries(entries ...ConfigEntry) {
 }
 
 func (e *DiscoveryChainConfigEntries) IsEmpty() bool {
-	return e.IsChainEmpty() && len(e.Services) == 0 && e.GlobalProxy == nil
+	return e.IsChainEmpty() && len(e.Services) == 0 && len(e.ProxyDefaults) == 0
 }
 
 func (e *DiscoveryChainConfigEntries) IsChainEmpty() bool {

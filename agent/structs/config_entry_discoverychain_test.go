@@ -695,7 +695,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {},
 				},
 			},
-			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, or Datacenters is required`,
+			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, Partition, or Datacenters is required`,
 		},
 		{
 			name: "failover to self using invalid subset",

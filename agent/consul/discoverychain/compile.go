@@ -185,7 +185,7 @@ type customizationMarkers struct {
 // the String() method on the type itself. It is this way to be more
 // consistent with other string ids within the discovery chain.
 func serviceIDString(sid structs.ServiceID) string {
-	return fmt.Sprintf("%s.%s", sid.ID, sid.NamespaceOrDefault())
+	return fmt.Sprintf("%s.%s.%s", sid.ID, sid.NamespaceOrDefault(), sid.PartitionOrDefault())
 }
 
 func (m *customizationMarkers) IsZero() bool {
@@ -213,10 +213,10 @@ func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if serviceDefault := c.entries.GetService(sid); serviceDefault != nil {
 		return c.recordProtocol(sid, serviceDefault.Protocol)
 	}
-	if c.entries.GlobalProxy != nil {
+	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		var cfg proxyConfig
 		// Ignore errors and fallback on defaults if it does happen.
-		_ = mapstructure.WeakDecode(c.entries.GlobalProxy.Config, &cfg)
+		_ = mapstructure.WeakDecode(proxyDefault.Config, &cfg)
 		if cfg.Protocol != "" {
 			return c.recordProtocol(sid, cfg.Protocol)
 		}
@@ -567,11 +567,12 @@ func (c *compiler) assembleChain() error {
 			dest = &structs.ServiceRouteDestination{
 				Service:   c.serviceName,
 				Namespace: router.NamespaceOrDefault(),
+				Partition: router.PartitionOrDefault(),
 			}
 		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
-		destPartition := router.PartitionOrDefault()
+		destPartition := defaultIfEmpty(dest.Partition, router.PartitionOrDefault())
 
 		// Check to see if the destination is eligible for splitting.
 		var (
@@ -602,7 +603,7 @@ func (c *compiler) assembleChain() error {
 	}
 
 	defaultRoute := &structs.DiscoveryRoute{
-		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault()),
+		Definition: newDefaultServiceRoute(router.Name, router.NamespaceOrDefault(), router.PartitionOrDefault()),
 		NextNode:   defaultDestinationNode.MapKey(),
 	}
 	routeNode.Routes = append(routeNode.Routes, defaultRoute)
@@ -613,7 +614,7 @@ func (c *compiler) assembleChain() error {
 	return nil
 }
 
-func newDefaultServiceRoute(serviceName string, namespace string) *structs.ServiceRoute {
+func newDefaultServiceRoute(serviceName, namespace, partition string) *structs.ServiceRoute {
 	return &structs.ServiceRoute{
 		Match: &structs.ServiceRouteMatch{
 			HTTP: &structs.ServiceRouteHTTPMatch{
@@ -623,6 +624,7 @@ func newDefaultServiceRoute(serviceName string, namespace string) *structs.Servi
 		Destination: &structs.ServiceRouteDestination{
 			Service:   serviceName,
 			Namespace: namespace,
+			Partition: partition,
 		},
 	}
 }
@@ -836,7 +838,7 @@ RESOLVE_AGAIN:
 			target,
 			redirect.Service,
 			redirect.ServiceSubset,
-			target.Partition,
+			redirect.Partition,
 			redirect.Namespace,
 			redirect.Datacenter,
 		)
@@ -940,9 +942,9 @@ RESOLVE_AGAIN:
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
 		}
-
-		if c.entries.GlobalProxy != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			target.MeshGateway.Mode = c.entries.GlobalProxy.MeshGateway.Mode
+		proxyDefault := c.entries.GetProxyDefaults(targetID.PartitionOrDefault())
+		if proxyDefault != nil && target.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			target.MeshGateway.Mode = proxyDefault.MeshGateway.Mode
 		}
 
 		if c.overrideMeshGateway.Mode != structs.MeshGatewayModeDefault {
@@ -987,7 +989,7 @@ RESOLVE_AGAIN:
 						target,
 						failover.Service,
 						failover.ServiceSubset,
-						target.Partition,
+						failover.Partition,
 						failover.Namespace,
 						dc,
 					)
@@ -1001,7 +1003,7 @@ RESOLVE_AGAIN:
 					target,
 					failover.Service,
 					failover.ServiceSubset,
-					target.Partition,
+					failover.Partition,
 					failover.Namespace,
 					"",
 				)
