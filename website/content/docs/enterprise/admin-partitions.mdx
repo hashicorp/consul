@@ -53,6 +53,12 @@ Client agents will be configured to operate within a specific admin partition. T
 
 Values specified for [`proxy-defaults`](docs/connect/config-entries/proxy-defaults) configurations are scoped to a specific partition. Services registered in the partition will use the partition's `proxy-defaults` values.
 
+### Cross-partition Networking
+
+You can configure services to be discoverable and accessible by upstream services in any partition within the datacenter. Specify upstream services contained in other partitions by configuring the `partition-exports` configuration entry for the agent in the source partition. Refer to the [`partition-exports` documentation](docs/connect/config-entries/partition-exports) for details.
+
+Additionally, the `upstreams` configuration for proxies in the source partition must specify the name of the destination partition so that listeners can be created. Refer to the [Upstreamd Configuration Reference](docs/connect/registration/service-registration#upstream-configuration-reference) for additional information.
+
 ## Requirements
 
 Your Consul configuration must meet the following requirements to use admin partitions.
@@ -67,6 +73,7 @@ Your Consul configuration must meet the following requirements to use admin part
 * The `write` permission for `proxy-defaults` requires `mesh:write`. See [Admin Partition Rules](/docs/security/acl/acl-rules#admin-partition-rules) for additional information.
 * The `write` permissions for ingress and terminating gateways require `mesh:write` privileges.
 * Wildcards (`*`) are not supported when creating intentions for admin partitions, but you can use a wildcard to specify services within a partition.
+* With the exception of the `default` admin partition, ACL rules configured for admin partitions are isolated, so policies defined in partitions outside of the `default` partition can only reference its local partition.
 
 ### Agent Configurations
 

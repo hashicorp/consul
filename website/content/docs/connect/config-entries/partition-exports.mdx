@@ -9,22 +9,21 @@ description: >-
 
 # Partition Exports
 
-This topic describes the `partition-exports` configuration entry type. The `partition-exports` configuration entry enables Consul to export copies of services to other admin partitions from a single file. This enables your services to be networked across admin partitions.    
+This topic describes the `partition-exports` configuration entry type. The `partition-exports` configuration entry enables Consul to export service instances to other admin partitions from a single file. This enables your services to be networked across admin partitions.    
 
 -> **v1.11.0+:** This config entry is supported in Consul versions 1.11.0+.
 
 ## Introduction
 
-You can configure Consul to export services from one admin partition to one or more additional partitions by declaring the `partition-exports` configuration entry in the `kind` field. 
-Settings defined in the `partition-exports` configuration entry apply across all namespaces and federated datacenters.
+You can configure Consul to export services contained in an admin partition to one or more additional partitions by declaring the `partition-exports` configuration entry in the `kind` field. This enables you to route traffic between services in different clusters when a single set of Consul servers running on each cluster are jonied using WAN federation. 
+
+The settings defined in the `partition-exports` configuration entry apply to all namespaces and federated datacenters.
 
 TO DO: More background info and info about the use case(s).
 
 ## Requirements
 
-The consumer partition must have an `upstream` configuration that specifies the destination for the services. The upstream configuration \<DOES WHAT?>.
-
-Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for information on how to configure the upstream.
+The consumer partition must have an `upstream` configuration that specifies the destination for the services. Refer to the [Upstream Configuration Reference](/docs/connect/registration/service-registration#upstream-configuration-reference) for information on how to configure the upstream.
 
 ## Usage
 
