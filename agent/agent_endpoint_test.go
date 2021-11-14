@@ -965,7 +965,6 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 			req, _ := http.NewRequest("GET", url, nil)
 			resp := httptest.NewRecorder()
 			a.srv.h.ServeHTTP(resp, req)
-			//dataRaw, err := a.srv.AgentHealthServiceByID(resp, req)
 			if got, want := resp.Code, expectedCode; got != want {
 				t.Fatalf("returned bad status: expected %d, but had: %d", expectedCode, resp.Code)
 			}
@@ -991,7 +990,6 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 	t.Run("critical checks", func(t *testing.T) {
 		eval(t, "/v1/agent/health/service/id/mysql3", http.StatusServiceUnavailable, "critical")
 	})
-	// TODO: Look into why the http response body is formatted with quotes while previous do not have quotes.
 	t.Run("unknown serviceid", func(t *testing.T) {
 		eval(t, "/v1/agent/health/service/id/mysql1", http.StatusNotFound, fmt.Sprintf("ServiceId %s not found", structs.ServiceIDString("mysql1", nil)))
 	})
