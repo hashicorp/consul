@@ -147,7 +147,7 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	// Create a token with a short TTL to be renewed by the provider.
 	ttl := 1 * time.Second
 	tcr := &vaultapi.TokenCreateRequest{
-		TTL:       ttl.String(),
+		TTL: ttl.String(),
 	}
 	secret, err := testVault.client.Auth().Token().Create(tcr)
 	require.NoError(t, err)

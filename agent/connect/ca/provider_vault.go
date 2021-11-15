@@ -24,19 +24,15 @@ import (
 const (
 	VaultCALeafCertRole = "leaf-cert"
 
-	defaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-)
-
-const (
 	VaultAuthMethodTypeKubernetes = "kubernetes"
+	VaultAuthMethodTypeLDAP       = "ldap"
+	VaultAuthMethodTypeUserpass   = "userpass"
+	VaultAuthMethodTypeOkta       = "okta"
+	VaultAuthMethodTypeRadius     = "radius"
+	VaultAuthMethodTypeOCI        = "oci"
+	VaultAuthMethodTypeToken      = "token"
 
-	VaultAuthMethodTypeLDAP     = "ldap"
-	VaultAuthMethodTypeUserpass = "userpass"
-	VaultAuthMethodTypeOkta     = "okta"
-	VaultAuthMethodTypeRadius   = "radius"
-	VaultAuthMethodTypeOCI      = "oci"
-
-	VaultAuthMethodTypeToken = "token"
+	defaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
 var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
