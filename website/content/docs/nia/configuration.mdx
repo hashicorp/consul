@@ -52,7 +52,7 @@ tls {
   - `enabled` - (bool: false) Enable TLS. Providing a value for any of the TLS options will enable this parameter implicitly.
   - `cert` - (string) The path to a PEM-encoded certificate file used for TLS connections to the CTS API.
   - `key` - (string) The path to the PEM-encoded private key file used with the certificate configured by `cert`.
-  - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_file` or `ca_path`.
+  - `verify_incoming` - (bool: false) Enable mutual TLS. Requires all incoming connections to the CTS API to use a TLS connection and provide a certificate signed by a Certificate Authority specified by the `ca_cert` or `ca_path`.
   - `ca_cert` - (string) The path to a PEM-encoded certificate authority file used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true. Takes precedence over `ca_path` if both are configured.
   - `ca_path` - (string) The path to a directory of PEM-encoded certificate authority files used to verify the authenticity of the incoming client connections to the CTS API when `verify_incoming` is set to true.
 - `license_path` <EnterpriseAlert inline /> - (string: "") Configures the path to the file containing the license. A license must be set to use enterprise features. You can also set the license by defining the `CONSUL_LICENSE` and `CONSUL_LICENSE_PATH` environment variables. See [Setting the License](/docs/nia/enterprise/license#setting-the-license) for details.
