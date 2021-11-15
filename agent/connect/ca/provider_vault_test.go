@@ -18,6 +18,52 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
+func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
+	cases := map[string]struct {
+		rawConfig map[string]interface{}
+		expConfig *structs.VaultCAProviderConfig
+		expError  string
+	}{
+		"no token and no auth method provided": {
+			rawConfig: map[string]interface{}{},
+			expError:  "must provide a Vault token or configure a Vault auth method",
+		},
+		"both token and auth method provided": {
+			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
+			expError:  "only one of Vault token or auth method can be provided, but not both",
+		},
+		"no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test"},
+			expError:  "must provide a valid path to a root PKI backend",
+		},
+		"no root intermediate path": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
+			expError:  "must provide a valid path for the intermediate PKI backend",
+		},
+		"adds a slash to RootPKIPath and IntermediatePKIPath": {
+			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Token:                  "test",
+				RootPKIPath:            "test/",
+				IntermediatePKIPath:    "test/",
+			},
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			config, err := ParseVaultCAConfig(c.rawConfig)
+			if c.expError != "" {
+				require.EqualError(t, err, c.expError)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, c.expConfig, config)
+			}
+		})
+	}
+}
+
 func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	config := &structs.VaultCAProviderConfig{
 		CAFile:        "/capath/ca.pem",
@@ -101,7 +147,7 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	// Create a token with a short TTL to be renewed by the provider.
 	ttl := 1 * time.Second
 	tcr := &vaultapi.TokenCreateRequest{
-		TTL: ttl.String(),
+		TTL:       ttl.String(),
 	}
 	secret, err := testVault.client.Auth().Token().Create(tcr)
 	require.NoError(t, err)
@@ -110,14 +156,17 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
 	require.NoError(t, err)
 
-	// Check the last renewal time.
-	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
-	require.NoError(t, err)
-	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
-	require.NoError(t, err)
-
 	// Wait past the TTL and make sure the token has been renewed.
 	retry.Run(t, func(r *retry.R) {
+		// Check the last renewal time. We need to wait for the first renewal to happen
+		// for this value to be populated.
+		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+		require.NoError(r, err)
+		lastRenewalData, ok := secret.Data["last_renewal_time"]
+		require.True(r, ok)
+		firstRenewal, err := lastRenewalData.(json.Number).Int64()
+		require.NoError(r, err)
+
 		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
 		require.NoError(r, err)
 		lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
@@ -507,6 +556,132 @@ func TestVaultProvider_Cleanup(t *testing.T) {
 	})
 }
 
+func TestVaultProvider_ConfigureWithAuthMethod(t *testing.T) {
+	cases := []struct {
+		authMethodType          string
+		configureAuthMethodFunc func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{}
+	}{
+		{
+			authMethodType: "userpass",
+			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
+				_, err := vaultClient.Logical().Write("/auth/userpass/users/test",
+					map[string]interface{}{"password": "foo", "policies": "admins"})
+				require.NoError(t, err)
+				return map[string]interface{}{
+					"Type": "userpass",
+					"Params": map[string]interface{}{
+						"username": "test",
+						"password": "foo",
+					},
+				}
+			},
+		},
+		{
+			authMethodType: "approle",
+			configureAuthMethodFunc: func(t *testing.T, vaultClient *vaultapi.Client) map[string]interface{} {
+				_, err := vaultClient.Logical().Write("auth/approle/role/my-role", nil)
+				require.NoError(t, err)
+				resp, err := vaultClient.Logical().Read("auth/approle/role/my-role/role-id")
+				require.NoError(t, err)
+				roleID := resp.Data["role_id"]
+
+				resp, err = vaultClient.Logical().Write("auth/approle/role/my-role/secret-id", nil)
+				require.NoError(t, err)
+				secretID := resp.Data["secret_id"]
+
+				return map[string]interface{}{
+					"Type": "approle",
+					"Params": map[string]interface{}{
+						"role_id":   roleID,
+						"secret_id": secretID,
+					},
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.authMethodType, func(t *testing.T) {
+			testVault := NewTestVaultServer(t)
+
+			err := testVault.Client().Sys().EnableAuthWithOptions(c.authMethodType, &vaultapi.EnableAuthOptions{Type: c.authMethodType})
+			require.NoError(t, err)
+
+			authMethodConf := c.configureAuthMethodFunc(t, testVault.Client())
+
+			conf := map[string]interface{}{
+				"Address":             testVault.Addr,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+				"AuthMethod":          authMethodConf,
+			}
+
+			provider := NewVaultProvider(hclog.New(nil))
+
+			cfg := ProviderConfig{
+				ClusterID:  connect.TestClusterID,
+				Datacenter: "dc1",
+				IsPrimary:  true,
+				RawConfig:  conf,
+			}
+			t.Cleanup(provider.Stop)
+			err = provider.Configure(cfg)
+			require.NoError(t, err)
+			require.NotEmpty(t, provider.client.Token())
+		})
+	}
+}
+
+func TestVaultProvider_RotateAuthMethodToken(t *testing.T) {
+	testVault := NewTestVaultServer(t)
+
+	err := testVault.Client().Sys().EnableAuthWithOptions("approle", &vaultapi.EnableAuthOptions{Type: "approle"})
+	require.NoError(t, err)
+
+	_, err = testVault.Client().Logical().Write("auth/approle/role/my-role",
+		map[string]interface{}{"token_ttl": "2s", "token_explicit_max_ttl": "2s"})
+	require.NoError(t, err)
+	resp, err := testVault.Client().Logical().Read("auth/approle/role/my-role/role-id")
+	require.NoError(t, err)
+	roleID := resp.Data["role_id"]
+
+	resp, err = testVault.Client().Logical().Write("auth/approle/role/my-role/secret-id", nil)
+	require.NoError(t, err)
+	secretID := resp.Data["secret_id"]
+
+	conf := map[string]interface{}{
+		"Address":             testVault.Addr,
+		"RootPKIPath":         "pki-root/",
+		"IntermediatePKIPath": "pki-intermediate/",
+		"AuthMethod": map[string]interface{}{
+			"Type": "approle",
+			"Params": map[string]interface{}{
+				"role_id":   roleID,
+				"secret_id": secretID,
+			},
+		},
+	}
+
+	provider := NewVaultProvider(hclog.New(nil))
+
+	cfg := ProviderConfig{
+		ClusterID:  connect.TestClusterID,
+		Datacenter: "dc1",
+		IsPrimary:  true,
+		RawConfig:  conf,
+	}
+	t.Cleanup(provider.Stop)
+	err = provider.Configure(cfg)
+	require.NoError(t, err)
+	token := provider.client.Token()
+	require.NotEmpty(t, token)
+
+	// Check that the token is rotated after max_ttl time has passed.
+	require.Eventually(t, func() bool {
+		return provider.client.Token() != token
+	}, 10*time.Second, 100*time.Millisecond)
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 
@@ -524,10 +699,6 @@ func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.
 	dur, err := time.ParseDuration(ttlString)
 	require.NoError(t, err)
 	return dur
-}
-
-func testVaultProvider(t *testing.T) (*VaultProvider, *TestVaultServer) {
-	return testVaultProviderWithConfig(t, true, nil)
 }
 
 func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *TestVaultServer) {
@@ -573,6 +744,7 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 		cfg.Datacenter = "dc2"
 	}
 
+	t.Cleanup(provider.Stop)
 	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
 		require.NoError(t, provider.GenerateRoot())
