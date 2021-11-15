@@ -2919,6 +2919,9 @@ node "node1" {
 
 func TestACL_filterNodes(t *testing.T) {
 	t.Parallel()
+
+	require := require.New(t)
+
 	// Create a nodes list.
 	nodes := structs.Nodes{
 		&structs.Node{
@@ -2931,17 +2934,15 @@ func TestACL_filterNodes(t *testing.T) {
 
 	// Try permissive filtering.
 	filt := newACLFilter(acl.AllowAll(), nil)
-	filt.filterNodes(&nodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %#v", nodes)
-	}
+	removed := filt.filterNodes(&nodes)
+	require.False(removed)
+	require.Len(nodes, 2)
 
 	// Try restrictive filtering
 	filt = newACLFilter(acl.DenyAll(), nil)
-	filt.filterNodes(&nodes)
-	if len(nodes) != 0 {
-		t.Fatalf("bad: %#v", nodes)
-	}
+	removed = filt.filterNodes(&nodes)
+	require.True(removed)
+	require.Len(nodes, 0)
 }
 
 func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {

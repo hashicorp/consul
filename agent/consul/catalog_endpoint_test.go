@@ -1307,42 +1307,48 @@ func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// We scope the reply in each of these since msgpack won't clear out an
-	// existing slice if the incoming one is nil, so it's best to start
-	// clean each time.
+	token := func(policy string) string {
+		rules := fmt.Sprintf(
+			`node "%s" { policy = "%s" }`,
+			s1.config.NodeName,
+			policy,
+		)
+		return createTokenWithPolicyName(t, policy, codec, rules)
+	}
 
-	// The node policy should not be ignored.
 	args := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	{
-		reply := structs.IndexedNodes{}
+
+	t.Run("deny", func(t *testing.T) {
+		args.Token = token("deny")
+
+		var reply structs.IndexedNodes
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 0 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-	}
+		if !reply.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should be true")
+		}
+	})
 
-	rules := fmt.Sprintf(`
-node "%s" {
-	policy = "read"
-}
-`, s1.config.NodeName)
-	id := createToken(t, codec, rules)
+	t.Run("allow", func(t *testing.T) {
+		args.Token = token("read")
 
-	// Now try with the token and it will go through.
-	args.Token = id
-	{
-		reply := structs.IndexedNodes{}
+		var reply structs.IndexedNodes
 		if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &reply); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(reply.Nodes) != 1 {
 			t.Fatalf("bad: %v", reply.Nodes)
 		}
-	}
+		if reply.QueryMeta.ResultsFilteredByACLs {
+			t.Fatal("ResultsFilteredByACLs should not true")
+		}
+	})
 }
 
 func Benchmark_Catalog_ListNodes(t *testing.B) {
