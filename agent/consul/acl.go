@@ -1242,18 +1242,24 @@ func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) bool {
 	return removed
 }
 
-// filterServices is used to filter a set of services based on ACLs.
-func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) {
+// filterServices is used to filter a set of services based on ACLs. Returns
+// true if any elements were removed.
+func (f *aclFilter) filterServices(services structs.Services, entMeta *structs.EnterpriseMeta) bool {
 	var authzContext acl.AuthorizerContext
 	entMeta.FillAuthzContext(&authzContext)
+
+	var removed bool
 
 	for svc := range services {
 		if f.allowService(svc, &authzContext) {
 			continue
 		}
 		f.logger.Debug("dropping service from result due to ACLs", "service", svc)
+		removed = true
 		delete(services, svc)
 	}
+
+	return removed
 }
 
 // filterServiceNodes is used to filter a set of nodes for a given service
@@ -1849,7 +1855,7 @@ func filterACLWithAuthorizer(logger hclog.Logger, authorizer acl.Authorizer, sub
 		filt.filterServiceNodes(&v.ServiceNodes)
 
 	case *structs.IndexedServices:
-		filt.filterServices(v.Services, &v.EnterpriseMeta)
+		v.QueryMeta.ResultsFilteredByACLs = filt.filterServices(v.Services, &v.EnterpriseMeta)
 
 	case *structs.IndexedSessions:
 		filt.filterSessions(&v.Sessions)

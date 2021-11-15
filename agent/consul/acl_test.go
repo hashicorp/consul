@@ -2295,6 +2295,9 @@ service "foo" {
 
 func TestACL_filterServices(t *testing.T) {
 	t.Parallel()
+
+	require := require.New(t)
+
 	// Create some services
 	services := structs.Services{
 		"service1": []string{},
@@ -2304,17 +2307,15 @@ func TestACL_filterServices(t *testing.T) {
 
 	// Try permissive filtering.
 	filt := newACLFilter(acl.AllowAll(), nil)
-	filt.filterServices(services, nil)
-	if len(services) != 3 {
-		t.Fatalf("bad: %#v", services)
-	}
+	removed := filt.filterServices(services, nil)
+	require.False(removed)
+	require.Len(services, 3)
 
 	// Try restrictive filtering.
 	filt = newACLFilter(acl.DenyAll(), nil)
-	filt.filterServices(services, nil)
-	if len(services) != 0 {
-		t.Fatalf("bad: %#v", services)
-	}
+	removed = filt.filterServices(services, nil)
+	require.True(removed)
+	require.Empty(services)
 }
 
 func TestACL_filterServiceNodes(t *testing.T) {

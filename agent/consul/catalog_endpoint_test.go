@@ -1428,6 +1428,7 @@ func TestCatalog_ListServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	require.False(t, out.QueryMeta.NotModified)
+	require.False(t, out.QueryMeta.ResultsFilteredByACLs)
 
 	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
 		args.QueryOptions = structs.QueryOptions{
@@ -2783,6 +2784,9 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 	}
 	if _, ok := reply.Services["bar"]; ok {
 		t.Fatalf("bad: %#v", reply.Services)
+	}
+	if !reply.QueryMeta.ResultsFilteredByACLs {
+		t.Fatal("ResultsFilteredByACLs should be true")
 	}
 }
 
